@@ -49,16 +49,27 @@ The component currently uses a basic HTML structure to display the spectrogram i
    - Create helper methods in the component API for these transformations
    - Document the coordinate transformation approach
 
-5. **Ensure responsive behavior with ResizeObserver:**
+5. **Implement axes on left/bottom sides with tick marks and labels:**
+   - Allocate approximately 20px border around the image for axes
+   - Draw time axis (horizontal) along the bottom with appropriate tick marks and labels
+   - Draw frequency axis (vertical) along the left side with appropriate tick marks and labels
+   - Implement dynamic tick density that adjusts based on available space
+   - Ensure axes and labels are properly styled and readable
+   - Follow the approach in `docs/Component-Strategy.md` for axis implementation
+
+6. **Ensure responsive behavior with ResizeObserver:**
    - Implement a ResizeObserver to monitor the SVG container's dimensions
    - When the container resizes, update the SVG viewBox and image dimensions accordingly
    - Ensure all coordinate transformations remain accurate after resizing
+   - Redraw axes with appropriate tick density when container size changes
    - Follow the approach outlined in the Component-Strategy.md document for dynamic redraw on resize
 
-6. **Create integration tests:**
+7. **Create integration tests:**
    - Implement Playwright tests to verify the SVG container functionality
    - Test that the image displays correctly within the SVG
    - Verify that coordinate transformations work accurately
+   - Test that axes are rendered correctly with appropriate tick marks and labels
+   - Verify that axes update properly when the container is resized
    - Test responsive behavior with different viewport sizes
    - Fix any broken integration tests before proceeding to the next task
 
@@ -66,13 +77,15 @@ The component currently uses a basic HTML structure to display the spectrogram i
 
 **Success Criteria:**
 - The spectrogram image is properly displayed within an SVG container
-- The component visually appears identical to the previous implementation
+- Time and frequency axes are rendered on the left and bottom sides with appropriate tick marks and labels
+- The component visually appears identical to the previous implementation, with the addition of axes
 - Coordinate transformations accurately convert between screen, SVG, and data coordinates
-- The component responds properly to container resizing
+- The component responds properly to container resizing, including dynamic adjustment of axis tick density
 - All integration tests pass
 
 **Deliverables:**
 - Updated component code with SVG container implementation
+- Time and frequency axes implementation with tick marks and labels
 - Helper methods for coordinate transformations
 - ResizeObserver implementation for responsive behavior
 - Integration tests for all new functionality
