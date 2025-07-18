@@ -51,8 +51,8 @@ The component currently uses a basic HTML structure to display the spectrogram i
 
 5. **Implement axes on left/bottom sides with tick marks and labels:**
    - Allocate approximately 20px border around the image for axes
-   - Draw time axis (horizontal) along the bottom with appropriate tick marks and labels
-   - Draw frequency axis (vertical) along the left side with appropriate tick marks and labels
+   - Draw time axis (vertical) along the left side with appropriate tick marks and labels
+   - Draw frequency axis (horizontal) along the bottom with appropriate tick marks and labels
    - Implement dynamic tick density that adjusts based on available space
    - Ensure axes and labels are properly styled and readable
    - Follow the approach in `docs/Component-Strategy.md` for axis implementation
