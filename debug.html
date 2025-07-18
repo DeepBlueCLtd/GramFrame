@@ -128,8 +128,14 @@
     <div class="diagnostics-panel">
       <h2>Diagnostics Panel</h2>
       
-      <div class="state-display" id="state-display">
-        Waiting for component initialization...
+      <div class="panel-section">
+        <h3>State Display</h3>
+        <pre id="state-display">Waiting for component initialization...</pre>
+      </div>
+      
+      <div class="panel-section">
+        <h3>Image Dimensions</h3>
+        <div id="image-dimensions">Loading...</div>
       </div>
       
       <div class="controls">
@@ -144,6 +150,7 @@
     // This script will be used to connect to the component's state listener
     document.addEventListener('DOMContentLoaded', () => {
       const stateDisplay = document.getElementById('state-display')
+      const imageDimensionsDisplay = document.getElementById('image-dimensions')
       const toggleBoundsBtn = document.getElementById('toggle-bounds')
       const toggleGridBtn = document.getElementById('toggle-grid')
       const forceUpdateBtn = document.getElementById('force-update')
@@ -154,7 +161,19 @@
       // Register state listener
       if (window.GramFrame) {
         window.GramFrame.addStateListener((state) => {
+          // Update state display
           stateDisplay.textContent = JSON.stringify(state, null, 2)
+          
+          // Update image dimensions display
+          const { width, height } = state.displayDimensions || { width: 0, height: 0 }
+          const { naturalWidth, naturalHeight } = state.imageDetails || { naturalWidth: 0, naturalHeight: 0 }
+          imageDimensionsDisplay.innerHTML = `
+            <strong>Display Width:</strong> ${width}px<br>
+            <strong>Display Height:</strong> ${height}px<br>
+            <strong>Natural Width:</strong> ${naturalWidth}px<br>
+            <strong>Natural Height:</strong> ${naturalHeight}px<br>
+            <strong>Aspect Ratio:</strong> ${width && height ? (width / height).toFixed(2) : 'N/A'}
+          `
         })
         
         // Add event listeners for control buttons

@@ -15,14 +15,18 @@ const initialState = {
   cursors: [],
   imageDetails: {
     url: '',
-    width: 0,
-    height: 0
+    naturalWidth: 0,  // Original dimensions of the image
+    naturalHeight: 0
   },
   config: {
     timeMin: 0,
     timeMax: 0,
     freqMin: 0,
     freqMax: 0
+  },
+  displayDimensions: {  // Current display dimensions (responsive)
+    width: 0,
+    height: 0
   }
 }
 
@@ -175,9 +179,51 @@ class GramFrame {
         this._setRate(rate)
       }
     })
+    
+    // Window resize event
+    window.addEventListener('resize', this._handleResize.bind(this))
+  }
+  
+  _handleResize() {
+    // Only handle resize if we have a valid image
+    if (!this.spectrogramImage) return
+    
+    // Get the current container width
+    const containerWidth = this.container.clientWidth
+    
+    // Calculate new dimensions while maintaining aspect ratio
+    const originalWidth = this.spectrogramImage.naturalWidth
+    const originalHeight = this.spectrogramImage.naturalHeight
+    const aspectRatio = originalWidth / originalHeight
+    
+    // Set new canvas dimensions
+    let newWidth = containerWidth
+    let newHeight = containerWidth / aspectRatio
+    
+    // Update canvas dimensions
+    this.canvas.width = newWidth
+    this.canvas.height = newHeight
+    
+    // Update state with new dimensions
+    this.state.displayDimensions = {
+      width: Math.round(newWidth),
+      height: Math.round(newHeight)
+    }
+    
+    // Re-render the image
+    this._renderSpectrogramImage()
+    
+    // Notify listeners
+    this._notifyStateListeners()
+    
+    // Log resize event for debugging
+    console.log('GramFrame resized:', this.state.displayDimensions)
   }
   
   _handleMouseMove(event) {
+    // Only process if we have valid image dimensions
+    if (!this.canvas.width || !this.canvas.height) return
+    
     // Get mouse position relative to canvas
     const rect = this.canvas.getBoundingClientRect()
     const x = event.clientX - rect.left
@@ -187,8 +233,13 @@ class GramFrame {
     const freq = this._calculateFrequency(x)
     const time = this._calculateTime(y)
     
-    // Update cursor position in state
-    this.state.cursorPosition = { x, y, time, freq }
+    // Update cursor position in state with normalized coordinates
+    this.state.cursorPosition = { 
+      x: Math.round(x), 
+      y: Math.round(y), 
+      time: parseFloat(time.toFixed(2)), 
+      freq: parseFloat(freq.toFixed(2))
+    }
     
     // Update LED displays
     this._updateLEDDisplays()
@@ -207,7 +258,10 @@ class GramFrame {
     const { freqMin, freqMax } = this.state.config
     const canvasWidth = this.canvas.width
     
-    return freqMin + (x / canvasWidth) * (freqMax - freqMin)
+    // Ensure x is within canvas bounds
+    const boundedX = Math.max(0, Math.min(x, canvasWidth))
+    
+    return freqMin + (boundedX / canvasWidth) * (freqMax - freqMin)
   }
   
   _calculateTime(y) {
@@ -215,7 +269,10 @@ class GramFrame {
     const { timeMin, timeMax } = this.state.config
     const canvasHeight = this.canvas.height
     
-    return timeMax - (y / canvasHeight) * (timeMax - timeMin)
+    // Ensure y is within canvas bounds
+    const boundedY = Math.max(0, Math.min(y, canvasHeight))
+    
+    return timeMax - (boundedY / canvasHeight) * (timeMax - timeMin)
   }
   
   _switchMode(mode) {
@@ -279,13 +336,27 @@ class GramFrame {
       // We'll get actual dimensions when the image loads
       this.spectrogramImage = new Image()
       this.spectrogramImage.onload = () => {
-        // Update state with image dimensions
-        this.state.imageDetails.width = this.spectrogramImage.width
-        this.state.imageDetails.height = this.spectrogramImage.height
+        // Store original image dimensions in imageDetails
+        this.state.imageDetails.naturalWidth = this.spectrogramImage.naturalWidth
+        this.state.imageDetails.naturalHeight = this.spectrogramImage.naturalHeight
         
-        // Set canvas dimensions to match the image
-        this.canvas.width = this.spectrogramImage.width
-        this.canvas.height = this.spectrogramImage.height
+        // Calculate initial dimensions based on container size
+        const containerWidth = this.container.clientWidth
+        const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
+        
+        // Set initial canvas dimensions
+        const initialWidth = containerWidth
+        const initialHeight = containerWidth / aspectRatio
+        
+        // Update the displayDimensions property for diagnostics
+        this.state.displayDimensions = {
+          width: Math.round(initialWidth),
+          height: Math.round(initialHeight)
+        }
+        
+        // Set canvas dimensions
+        this.canvas.width = initialWidth
+        this.canvas.height = initialHeight
         
         // Render the image on the canvas
         this._renderSpectrogramImage()
