@@ -178,8 +178,8 @@ class GramFrame {
     const y = event.clientY - rect.top
     
     // Calculate time and frequency based on position
-    const time = this._calculateTime(x)
-    const freq = this._calculateFrequency(y)
+    const freq = this._calculateFrequency(x)
+    const time = this._calculateTime(y)
     
     // Update cursor position in state
     this.state.cursorPosition = { x, y, time, freq }
@@ -196,20 +196,20 @@ class GramFrame {
     console.log('Canvas clicked')
   }
   
-  _calculateTime(x) {
-    // Calculate time based on x position
-    const { timeMin, timeMax } = this.state.config
+  _calculateFrequency(x) {
+    // Calculate frequency based on x position
+    const { freqMin, freqMax } = this.state.config
     const canvasWidth = this.canvas.width
     
-    return timeMin + (x / canvasWidth) * (timeMax - timeMin)
+    return freqMin + (x / canvasWidth) * (freqMax - freqMin)
   }
   
-  _calculateFrequency(y) {
-    // Calculate frequency based on y position (inverted, as y=0 is top)
-    const { freqMin, freqMax } = this.state.config
+  _calculateTime(y) {
+    // Calculate time based on y position (inverted, as y=0 is top)
+    const { timeMin, timeMax } = this.state.config
     const canvasHeight = this.canvas.height
     
-    return freqMax - (y / canvasHeight) * (freqMax - freqMin)
+    return timeMax - (y / canvasHeight) * (timeMax - timeMin)
   }
   
   _switchMode(mode) {
