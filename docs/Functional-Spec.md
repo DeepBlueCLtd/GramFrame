@@ -13,11 +13,11 @@
 ## Display
 - Green LED-style readouts
 - Harmonic lines: bold main line + lighter harmonics
-- Top-left label = multiplier (e.g., 2x), top-right = frequency (Hz)
+- Top-left label for harmonic lines = multiplier (e.g., 2x), top-right = frequency (Hz)
 
 ## Configuration
 - Defined by `<table class="gram-frame">`
 - Hidden on activation
 - Includes:
   - Top row: spectrogram image
-  - Headers: `param`, `min`, `max`
+  - Second row contains headers: `param`, `min`, `max`

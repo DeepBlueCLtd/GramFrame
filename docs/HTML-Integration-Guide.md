@@ -4,7 +4,7 @@
 
 1. Add the script:
 ```html
-<script src="spectro-component.js"></script>
+<script src="gramframe.js"></script>
 ```
 
 2. Insert a config table:
