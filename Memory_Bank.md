@@ -127,6 +127,30 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 - State listener mechanism with error handling
 - Comprehensive Playwright test suite (9 tests)
 
+### Phase 3: SVG Container and Axes Implementation ✅
+**Date: July 18, 2025**
+
+#### Task 3.1: SVG Container Implementation with Axes
+- Successfully migrated from HTML5 Canvas to SVG container
+- Implemented proper SVG namespace handling (`setAttribute` instead of `className`)
+- Created coordinate transformation system:
+  - `_screenToSVGCoordinates()` - screen pixels to SVG coordinates
+  - `_svgToDataCoordinates()` - SVG coordinates to data space (time/frequency)
+  - `_imageToDataCoordinates()` - image-relative coordinates to data space
+  - `_dataToSVGCoordinates()` - data coordinates to SVG space
+  - `_svgToScreenCoordinates()` - SVG coordinates back to screen pixels
+- Added ResizeObserver for responsive behavior
+- Implemented axes with tick marks and labels:
+  - **Time axis (vertical)** on the left side with time values in seconds
+  - **Frequency axis (horizontal)** on the bottom with frequency values in Hz
+  - Dynamic tick density that adjusts based on available space
+  - Proper margin allocation (50px left, 30px bottom, 10px right/top)
+- Updated mouse handling to account for axes margins
+- Enhanced state structure with axes configuration and image-relative coordinates
+- Updated CSS styles for SVG elements and axes styling
+- Comprehensive test coverage (23/24 tests passing)
+- Fixed axis orientation confusion (frequency=horizontal, time=vertical)
+
 ## Technical Decisions
 **Date: July 18, 2025**
 
