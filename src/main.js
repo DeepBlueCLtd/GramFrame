@@ -41,6 +41,12 @@ class GramFrame {
     this.container = document.createElement('div')
     this.container.className = 'gram-frame-container'
     
+    // Add Hello World message for Task 1.3
+    const helloWorld = document.createElement('div')
+    helloWorld.className = 'gram-frame-hello-world'
+    helloWorld.textContent = 'Hello World from GramFrame!'
+    this.container.appendChild(helloWorld)
+    
     // Create canvas element for rendering
     this.canvas = document.createElement('canvas')
     this.canvas.className = 'gram-frame-canvas'
@@ -321,10 +327,13 @@ class GramFrame {
   }
   
   _notifyStateListeners() {
+    // Log state changes to console for Task 1.4
+    console.log('GramFrame State Updated:', JSON.stringify(this.state, null, 2))
+    
     // Create a deep copy of the state to prevent direct modification
     const stateCopy = JSON.parse(JSON.stringify(this.state))
     
-    // Notify all registered listeners
+    // Notify all registered state listeners
     stateListeners.forEach(listener => {
       try {
         listener(stateCopy)
@@ -397,17 +406,10 @@ const GramFrameAPI = {
   }
 }
 
-// Initialize on DOM content loaded
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize component
-  const instances = GramFrameAPI.init()
-  
-  // Add a message to confirm the component loaded
-  const div = document.createElement('div')
-  div.textContent = `Hello World from GramFrame! Initialized ${instances.length} instance(s).`
-  div.style = 'margin: 2em; padding: 1em; background: #eef;'
-  document.body.appendChild(div)
-  
+  window.GramFrame = GramFrameAPI
+  GramFrameAPI.init()
   // Connect to state display if we're on the debug page
   const stateDisplay = document.getElementById('state-display')
   if (stateDisplay) {
@@ -419,3 +421,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Export the API
 window.GramFrame = GramFrameAPI
+
+// Hot Module Replacement (HMR) support for Task 1.4
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    console.log('🔄 GramFrame component updated - Hot reloading')
+    
+    // Store old state listeners before replacing the API
+    const oldListeners = [...stateListeners]
+    
+    // Clear existing listeners
+    stateListeners.length = 0
+    
+    // Re-initialize the component
+    const instances = GramFrameAPI.init()
+    
+    // Restore state listeners
+    oldListeners.forEach(listener => {
+      GramFrameAPI.addStateListener(listener)
+    })
+    
+    console.log('✅ GramFrame hot reload complete')
+  })
+}
