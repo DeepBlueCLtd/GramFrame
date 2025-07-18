@@ -20,23 +20,36 @@
     }
     
     .debug-container {
+      margin: 20px 0;
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
       gap: 20px;
     }
     
-    .component-container {
+    .component-container,
+    .diagnostics-panel {
+      padding: 15px;
       border: 1px solid #ddd;
-      padding: 20px;
       border-radius: 4px;
+      flex-basis: calc(50% - 10px);
+      box-sizing: border-box;
+    }
+    
+    @media (max-width: 768px) {
+      .component-container,
+      .diagnostics-panel {
+        flex-basis: 100%;
+      }
+    }
+    
+    .component-container {
       background-color: #f9f9f9;
     }
     
     .diagnostics-panel {
-      border: 1px solid #ddd;
-      padding: 20px;
-      border-radius: 4px;
-      background-color: #f5f5f5;
+      background-color: #fff;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     
     .diagnostics-panel h2 {
@@ -45,14 +58,31 @@
       color: #555;
     }
     
-    .state-display {
-      font-family: monospace;
+    .panel-section {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #eaeaea;
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+    
+    .panel-section h3 {
+      margin-top: 0;
+      color: #444;
+      font-size: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+    }
+    
+    pre {
       white-space: pre;
-      background-color: #eee;
+      background-color: #f5f5f5;
       padding: 10px;
       border-radius: 4px;
       overflow: auto;
-      max-height: 300px;
+      max-height: 60vh;
+      font-size: 14px;
+      font-family: monospace;
     }
     
     table.spectro-config {
@@ -77,6 +107,12 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
+    }
+    
+    .component-container img,
+    .gram-frame-container {
+      width: 100%;
+      height: auto;
     }
     
     button {
@@ -130,12 +166,7 @@
       
       <div class="panel-section">
         <h3>State Display</h3>
-        <pre id="state-display">Waiting for component initialization...</pre>
-      </div>
-      
-      <div class="panel-section">
-        <h3>Image Dimensions</h3>
-        <div id="image-dimensions">Loading...</div>
+        <pre id="state-display">Loading...</pre>
       </div>
       
       <div class="controls">
@@ -150,7 +181,6 @@
     // This script will be used to connect to the component's state listener
     document.addEventListener('DOMContentLoaded', () => {
       const stateDisplay = document.getElementById('state-display')
-      const imageDimensionsDisplay = document.getElementById('image-dimensions')
       const toggleBoundsBtn = document.getElementById('toggle-bounds')
       const toggleGridBtn = document.getElementById('toggle-grid')
       const forceUpdateBtn = document.getElementById('force-update')
@@ -161,19 +191,8 @@
       // Register state listener
       if (window.GramFrame) {
         window.GramFrame.addStateListener((state) => {
-          // Update state display
+          // Update state display with formatted JSON
           stateDisplay.textContent = JSON.stringify(state, null, 2)
-          
-          // Update image dimensions display
-          const { width, height } = state.displayDimensions || { width: 0, height: 0 }
-          const { naturalWidth, naturalHeight } = state.imageDetails || { naturalWidth: 0, naturalHeight: 0 }
-          imageDimensionsDisplay.innerHTML = `
-            <strong>Display Width:</strong> ${width}px<br>
-            <strong>Display Height:</strong> ${height}px<br>
-            <strong>Natural Width:</strong> ${naturalWidth}px<br>
-            <strong>Natural Height:</strong> ${naturalHeight}px<br>
-            <strong>Aspect Ratio:</strong> ${width && height ? (width / height).toFixed(2) : 'N/A'}
-          `
         })
         
         // Add event listeners for control buttons
