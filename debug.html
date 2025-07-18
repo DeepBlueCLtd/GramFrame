@@ -127,6 +127,24 @@
     button:hover {
       background-color: #45a049;
     }
+    
+    .diagnostics-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    
+    .diagnostics-table td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .diagnostics-table td:first-child {
+      font-weight: bold;
+      width: 40%;
+    }
   </style>
 </head>
 <body>
@@ -165,6 +183,46 @@
       <h2>Diagnostics Panel</h2>
       
       <div class="panel-section">
+        <h3>Image Details</h3>
+        <table class="diagnostics-table">
+          <tr>
+            <td>URL:</td>
+            <td id="image-url">-</td>
+          </tr>
+          <tr>
+            <td>Size:</td>
+            <td id="image-size">-</td>
+          </tr>
+          <tr>
+            <td>Time Range:</td>
+            <td id="time-range">-</td>
+          </tr>
+          <tr>
+            <td>Frequency Range:</td>
+            <td id="freq-range">-</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div class="panel-section">
+        <h3>Mouse Coordinates</h3>
+        <table class="diagnostics-table">
+          <tr>
+            <td>Canvas Position:</td>
+            <td id="mouse-canvas-pos">-</td>
+          </tr>
+          <tr>
+            <td>Time:</td>
+            <td id="mouse-time">-</td>
+          </tr>
+          <tr>
+            <td>Frequency:</td>
+            <td id="mouse-freq">-</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div class="panel-section">
         <h3>State Display</h3>
         <pre id="state-display">Loading...</pre>
       </div>
@@ -180,7 +238,21 @@
   <script>
     // This script will be used to connect to the component's state listener
     document.addEventListener('DOMContentLoaded', () => {
+      // Get state display element
       const stateDisplay = document.getElementById('state-display')
+      
+      // Get image details elements
+      const imageUrl = document.getElementById('image-url')
+      const imageSize = document.getElementById('image-size')
+      const timeRange = document.getElementById('time-range')
+      const freqRange = document.getElementById('freq-range')
+      
+      // Get mouse coordinates elements
+      const mouseCanvasPos = document.getElementById('mouse-canvas-pos')
+      const mouseTime = document.getElementById('mouse-time')
+      const mouseFreq = document.getElementById('mouse-freq')
+      
+      // Get control buttons
       const toggleBoundsBtn = document.getElementById('toggle-bounds')
       const toggleGridBtn = document.getElementById('toggle-grid')
       const forceUpdateBtn = document.getElementById('force-update')
@@ -193,6 +265,34 @@
         window.GramFrame.addStateListener((state) => {
           // Update state display with formatted JSON
           stateDisplay.textContent = JSON.stringify(state, null, 2)
+          
+          // Update image details
+          if (state.imageDetails) {
+            imageUrl.textContent = state.imageDetails.url || '-'
+            
+            if (state.imageDetails.naturalWidth && state.imageDetails.naturalHeight) {
+              imageSize.textContent = `${state.imageDetails.naturalWidth} × ${state.imageDetails.naturalHeight} px`
+            } else {
+              imageSize.textContent = '-'
+            }
+          }
+          
+          // Update time and frequency ranges
+          if (state.config) {
+            timeRange.textContent = `${state.config.timeMin} to ${state.config.timeMax} s`
+            freqRange.textContent = `${state.config.freqMin} to ${state.config.freqMax} Hz`
+          }
+          
+          // Update mouse coordinates
+          if (state.cursorPosition) {
+            mouseCanvasPos.textContent = `(${state.cursorPosition.x}, ${state.cursorPosition.y})`
+            mouseTime.textContent = `${state.cursorPosition.time.toFixed(2)} s`
+            mouseFreq.textContent = `${state.cursorPosition.freq.toFixed(2)} Hz`
+          } else {
+            mouseCanvasPos.textContent = '-'
+            mouseTime.textContent = '-'
+            mouseFreq.textContent = '-'
+          }
         })
         
         // Add event listeners for control buttons
