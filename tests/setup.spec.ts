@@ -1,44 +1,44 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './helpers/fixtures'
+import { expectValidMetadata, expectValidConfig, expectValidImageDetails, expectValidDisplayDimensions } from './helpers/state-assertions'
 
 /**
  * Basic setup test to verify the test infrastructure
  */
 test.describe('GramFrame Test Setup', () => {
-  test('debug page loads correctly', async ({ page }) => {
-    // Navigate to the debug page
-    await page.goto('/debug.html')
-    
+  test('debug page loads correctly', async ({ gramFramePage }) => {
     // Verify the page title
-    await expect(page).toHaveTitle('GramFrame Debug Page')
+    await expect(gramFramePage.page).toHaveTitle('GramFrame Debug Page')
     
     // Verify the component container exists
-    await expect(page.locator('.component-container')).toBeVisible()
+    await expect(gramFramePage.componentContainer).toBeVisible()
     
     // Verify the diagnostics panel exists
-    await expect(page.locator('.diagnostics-panel')).toBeVisible()
+    await expect(gramFramePage.diagnosticsPanel).toBeVisible()
     
-    // Wait for the component to initialize and update the state display
-    await page.waitForFunction(() => {
-      const stateDisplay = document.getElementById('state-display')
-      return stateDisplay && stateDisplay.textContent && 
-             !stateDisplay.textContent.includes('Loading...')
+    // Get the current state
+    const state = await gramFramePage.getState()
+    
+    // Verify state has valid metadata
+    expectValidMetadata(state)
+    
+    // Verify state has valid config
+    expectValidConfig(state, {
+      timeMin: 0,
+      timeMax: 60,
+      freqMin: 0,
+      freqMax: 100
     })
     
-    // Verify that the state display contains valid JSON
-    const stateContent = await page.locator('#state-display').textContent()
-    expect(stateContent).toBeTruthy()
+    // Verify image details
+    expectValidImageDetails(state)
     
-    // Verify that the state content can be parsed as JSON
-    let stateJson
-    try {
-      stateJson = JSON.parse(stateContent || '{}')
-      expect(stateJson).toHaveProperty('version')
-      expect(stateJson).toHaveProperty('mode')
-    } catch (e) {
-      throw new Error(`State display does not contain valid JSON: ${stateContent}`)
-    }
+    // Verify display dimensions
+    expectValidDisplayDimensions(state)
+    
+    // Verify the image is loaded on the canvas
+    await gramFramePage.verifyImageLoaded()
     
     // Take a screenshot for reference
-    await page.screenshot({ path: './test-results/debug-page-loaded.png' })
+    await gramFramePage.page.screenshot({ path: './test-results/debug-page-loaded.png' })
   })
 })
