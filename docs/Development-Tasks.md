@@ -1,6 +1,7 @@
 # Development Tasks
 
 ## Core
+- [ ] Document config table structure
 - [ ] Detect and parse config table
 - [ ] Load and size background image
 - [ ] Draw main canvas overlay
