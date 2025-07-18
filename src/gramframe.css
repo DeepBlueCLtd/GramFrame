@@ -28,6 +28,33 @@
   height: 100%;
 }
 
+/* SVG axes styling */
+.gram-frame-axis-line {
+  stroke: #333;
+  stroke-width: 1;
+  fill: none;
+}
+
+.gram-frame-axis-tick {
+  stroke: #333;
+  stroke-width: 1;
+}
+
+.gram-frame-axis-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 10px;
+  fill: #333;
+  dominant-baseline: central;
+}
+
+.gram-frame-time-axis .gram-frame-axis-label {
+  dominant-baseline: hanging;
+}
+
+.gram-frame-freq-axis .gram-frame-axis-label {
+  dominant-baseline: central;
+}
+
 /* LED-style readout panel */
 .gram-frame-readout {
   display: flex;
