@@ -69,6 +69,10 @@ class GramFrame {
     // Replace the table with our container
     if (configTable && configTable.parentNode) {
       configTable.parentNode.replaceChild(this.container, configTable)
+      
+      // Store a reference to this instance on the container element
+      // This allows the state listener mechanism to access the instance
+      this.container.__gramFrameInstance = this
     }
     
     // Extract config data from table
@@ -427,19 +431,79 @@ const GramFrameAPI = {
     return instances
   },
   
-  // Add a state listener
+  /**
+   * Add a state listener that will be called whenever the component state changes
+   * @param {Function} callback - Function to be called with the current state
+   * @returns {Function} - Returns the callback function for chaining
+   * @example
+   * // Basic usage
+   * GramFrame.addStateListener(state => {
+   *   console.log('State updated:', state)
+   * })
+   * 
+   * // With error handling
+   * GramFrame.addStateListener(state => {
+   *   try {
+   *     // Process state
+   *     updateUI(state.cursorPosition)
+   *   } catch (err) {
+   *     console.error('Error processing state:', err)
+   *   }
+   * })
+   */
   addStateListener(callback) {
-    if (typeof callback === 'function' && !stateListeners.includes(callback)) {
-      stateListeners.push(callback)
+    if (typeof callback !== 'function') {
+      throw new Error('State listener must be a function')
     }
+    
+    if (!stateListeners.includes(callback)) {
+      stateListeners.push(callback)
+      
+      // Immediately call the listener with the current state if available
+      const instances = document.querySelectorAll('.gram-frame-container')
+      if (instances.length > 0) {
+        // Find the first GramFrame instance
+        const instance = instances[0].__gramFrameInstance
+        if (instance && instance.state) {
+          try {
+            // Create a deep copy of the state
+            const stateCopy = JSON.parse(JSON.stringify(instance.state))
+            // Call the listener with the current state
+            callback(stateCopy)
+          } catch (error) {
+            console.error('Error calling state listener with initial state:', error)
+          }
+        }
+      }
+    }
+    
+    return callback
   },
   
-  // Remove a state listener
+  /**
+   * Remove a previously added state listener
+   * @param {Function} callback - The callback function to remove
+   * @returns {boolean} - Returns true if the listener was found and removed, false otherwise
+   * @example
+   * // Add a listener and store the reference
+   * const myListener = GramFrame.addStateListener(state => {
+   *   console.log('State updated:', state)
+   * })
+   * 
+   * // Later, remove the listener
+   * GramFrame.removeStateListener(myListener)
+   */
   removeStateListener(callback) {
+    if (typeof callback !== 'function') {
+      throw new Error('Callback must be a function')
+    }
+    
     const index = stateListeners.indexOf(callback)
     if (index !== -1) {
       stateListeners.splice(index, 1)
+      return true
     }
+    return false
   },
   
   // Toggle canvas bounds overlay
