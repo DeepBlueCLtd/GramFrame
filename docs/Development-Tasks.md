@@ -22,6 +22,10 @@
 
 Note: as part of each task in this phase, extend the debug page UI to display the updated state, and add Playwright tests to verify the expected behavior.
 
+- [ ] Refactor to use SVG container for image and overlays
+  - [ ] Move spectrogram image into SVG container
+  - [ ] Ensure proper scaling and positioning within SVG
+  - [ ] Add support for coordinate system transformation
 - [ ] Add mouse move tracking
 - [ ] Calculate and display time/frequency at cursor
 - [ ] Click to add cursors; drag to reposition
