@@ -26,6 +26,11 @@ Note: as part of each task in this phase, extend the debug page UI to display th
   - [ ] Move spectrogram image into SVG container
   - [ ] Ensure proper scaling and positioning within SVG
   - [ ] Add support for coordinate system transformation
+  - [ ] Implement axes on left/bottom sides with tick marks and labels
+    - [ ] Allocate ~20px border around image for axes
+    - [ ] Draw time axis (horizontal) with appropriate tick marks
+    - [ ] Draw frequency axis (vertical) with appropriate tick marks
+    - [ ] Ensure axes scale properly with image resizing
 - [ ] Add mouse move tracking
 - [ ] Calculate and display time/frequency at cursor
 - [ ] Click to add cursors; drag to reposition
