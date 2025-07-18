@@ -10,6 +10,8 @@
 
 ## 🟡 Phase 2: Basic Layout and Diagnostics Panel
 
+- [ ] Add Playwright as a dev dependency (only Chrome browser)
+- [ ] Write initial Playwright test: debug page loads and "Hello World" appears
 - [ ] Load spectrogram image from config
 - [ ] Read and display min/max time/frequency
 - [ ] Add LED-style readout panel below image
@@ -37,10 +39,8 @@
 - [ ] Polish `build` output (dist includes debug page)
 - [ ] Final QA: browser matrix, multi-instance test
 
-## 🧪 End-to-End Testing (Playwright)
+## 🧪 Additional Playwright Test Coverage
 
-- [ ] Add Playwright as a dev dependency
-- [ ] Write test for debug page loading component
 - [ ] Test LED readout appears and updates
 - [ ] Test cursor placement and harmonic lines
 - [ ] Test mode switching and UI behaviour

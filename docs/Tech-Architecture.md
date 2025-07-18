@@ -1,7 +1,7 @@
 # Technical Architecture
 
 ## Initialization
-- Auto-detects tables with `.gram-frame`
+- Auto-detects tables with `.spectro-config`
 - Replaces each with canvas-based component
 
 ## Structure
