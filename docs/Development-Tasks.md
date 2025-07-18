@@ -20,6 +20,8 @@
 
 ## 🟠 Phase 3: Interaction Foundations
 
+Note: as part of each task in this phase, extend the debug page UI to display the updated state, and add Playwright tests to verify the expected behavior.
+
 - [ ] Add mouse move tracking
 - [ ] Calculate and display time/frequency at cursor
 - [ ] Click to add cursors; drag to reposition
@@ -27,12 +29,16 @@
 
 ## 🔵 Phase 4: Harmonics & Modes
 
+Note: as part of each task in this phase, extend the debug page UI to display the updated state, and add Playwright tests to verify the expected behavior.
+
 - [ ] Add mode switching UI (Analysis, Harmonics, Doppler)
 - [ ] Draw harmonic lines with correct labels
 - [ ] Support multiple cursors and harmonics per cursor
 - [ ] Add ‘rate’ input box and propagate to calculations
 
 ## 🟣 Phase 5: Final Fit & Polish
+
+Note: as part of each task in this phase, extend the debug page UI to display the updated state, and add Playwright tests to verify the expected behavior.
 
 - [ ] Auto-detect and replace config tables
 - [ ] Add canvas boundary and grid toggles to diagnostics page
