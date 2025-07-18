@@ -45,11 +45,7 @@ class GramFrame {
     this.container = document.createElement('div')
     this.container.className = 'gram-frame-container'
     
-    // Add Hello World message for Task 1.3
-    const helloWorld = document.createElement('div')
-    helloWorld.className = 'gram-frame-hello-world'
-    helloWorld.textContent = 'Hello World from GramFrame!'
-    this.container.appendChild(helloWorld)
+    // Component container is now set up
     
     // Create canvas element for rendering
     this.canvas = document.createElement('canvas')
