@@ -37,11 +37,11 @@ This project will use a **directory-based Memory Bank** located at `/Memory/`. T
 
 | Task ID | Task Description | Assigned Agent | Dependencies | Status |
 |---------|-----------------|----------------|--------------|--------|
-| 1.1 | Create `debug.html` page that loads a fixed component instance | Implementation Agent | - | To Do |
+| 1.1 | Create `debug.html` page that loads a fixed component instance | Implementation Agent | - | Completed |
 | 1.1.1 | Write unit tests for component initialization | Testing Agent | 1.1 | To Do |
-| 1.2 | Hook up "Hello World" from component inside the debug page | Implementation Agent | 1.1, 1.1.1 | To Do |
+| 1.2 | Hook up "Hello World" from component inside the debug page | Implementation Agent | 1.1, 1.1.1 | Completed |
 | 1.2.1 | Write tests to verify component rendering | Testing Agent | 1.2 | To Do |
-| 1.3 | Set up hot module reload and visible console logging for state | Implementation Agent | 1.2, 1.2.1 | To Do |
+| 1.3 | Set up hot module reload and visible console logging for state | Implementation Agent | 1.2, 1.2.1 | Completed |
 | 1.3.1 | Verify logging functionality with tests | Testing Agent | 1.3 | To Do |
 
 **Deliverables**:
@@ -59,11 +59,11 @@ This project will use a **directory-based Memory Bank** located at `/Memory/`. T
 |---------|-----------------|----------------|--------------|--------|
 | 2.1 | Add Playwright as a dev dependency (only Chrome browser) | Implementation Agent | Phase 1 | To Do |
 | 2.2 | Create test infrastructure and write initial Playwright test | Testing Agent | 2.1 | To Do |
-| 2.3 | Load spectrogram image from config | Implementation Agent | Phase 1 | To Do |
+| 2.3 | Load spectrogram image from config | Implementation Agent | Phase 1 | Completed |
 | 2.3.1 | Write tests for image loading functionality | Testing Agent | 2.3 | To Do |
-| 2.4 | Read and display min/max time/frequency | Implementation Agent | 2.3, 2.3.1 | To Do |
+| 2.4 | Read and display min/max time/frequency | Implementation Agent | 2.3, 2.3.1 | Completed |
 | 2.4.1 | Test min/max extraction and display | Testing Agent | 2.4 | To Do |
-| 2.5 | Add LED-style readout panel below image | Implementation Agent | 2.4, 2.4.1 | To Do |
+| 2.5 | Add LED-style readout panel below image | Implementation Agent | 2.4, 2.4.1 | Completed |
 | 2.5.1 | Test LED panel rendering and formatting | Testing Agent | 2.5 | To Do |
 | 2.6 | Diagnostics: display image URL, size, min/max, and mouse coordinates | Implementation Agent | 2.5, 2.5.1 | To Do |
 | 2.6.1 | Test diagnostics panel information accuracy | Testing Agent | 2.6 | To Do |
