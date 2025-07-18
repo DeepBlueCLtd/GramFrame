@@ -144,11 +144,34 @@
     // This script will be used to connect to the component's state listener
     document.addEventListener('DOMContentLoaded', () => {
       const stateDisplay = document.getElementById('state-display')
+      const toggleBoundsBtn = document.getElementById('toggle-bounds')
+      const toggleGridBtn = document.getElementById('toggle-grid')
+      const forceUpdateBtn = document.getElementById('force-update')
       
       // Display initial state
       stateDisplay.textContent = 'Component loaded. Waiting for state updates...'
       
-      // Future: Add state listener registration here
+      // Register state listener
+      if (window.GramFrame) {
+        window.GramFrame.addStateListener((state) => {
+          stateDisplay.textContent = JSON.stringify(state, null, 2)
+        })
+        
+        // Add event listeners for control buttons
+        toggleBoundsBtn.addEventListener('click', () => {
+          window.GramFrame.toggleCanvasBoundsOverlay()
+        })
+        
+        toggleGridBtn.addEventListener('click', () => {
+          // Toggle grid state
+          const gridEnabled = toggleGridBtn.classList.toggle('active')
+          window.GramFrame.setDebugGrid(gridEnabled)
+        })
+        
+        forceUpdateBtn.addEventListener('click', () => {
+          window.GramFrame.forceUpdate()
+        })
+      }
     })
   </script>
 </body>
