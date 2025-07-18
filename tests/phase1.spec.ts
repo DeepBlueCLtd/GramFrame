@@ -14,8 +14,8 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     // Verify the original table is no longer visible
     await expect(gramFramePage.page.locator('table.spectro-config')).not.toBeVisible()
     
-    // Verify the canvas element is created
-    await expect(gramFramePage.canvas).toBeVisible()
+    // Verify the SVG element is created
+    await expect(gramFramePage.svg).toBeVisible()
     
     // Verify the readout panel is created
     await expect(gramFramePage.readoutPanel).toBeVisible()
@@ -46,10 +46,10 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     await expect(gramFramePage.page.locator('.gram-frame-rate')).toBeVisible()
     await expect(gramFramePage.page.locator('.gram-frame-rate input')).toBeVisible()
     
-    // Verify the canvas is properly sized
-    const canvasBounds = await gramFramePage.canvas.boundingBox()
-    expect(canvasBounds?.width).toBeGreaterThan(0)
-    expect(canvasBounds?.height).toBeGreaterThan(0)
+    // Verify the SVG is properly sized
+    const svgBounds = await gramFramePage.svg.boundingBox()
+    expect(svgBounds?.width).toBeGreaterThan(0)
+    expect(svgBounds?.height).toBeGreaterThan(0)
   })
   
   // Task 1.3.1: Test console logging for state changes
@@ -65,10 +65,10 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     
     // Perform actions that trigger state changes
     
-    // 1. Move mouse over canvas to trigger cursor position update
-    const canvasBounds = await gramFramePage.canvas.boundingBox()
-    if (canvasBounds) {
-      await gramFramePage.moveMouse(canvasBounds.width / 2, canvasBounds.height / 2)
+    // 1. Move mouse over SVG to trigger cursor position update
+    const svgBounds = await gramFramePage.svg.boundingBox()
+    if (svgBounds) {
+      await gramFramePage.moveMouse(svgBounds.width / 2, svgBounds.height / 2)
     }
     
     // 2. Change mode
@@ -111,9 +111,9 @@ test.describe('Hot Module Reload Simulation', () => {
     await gramFramePage.setRate(3.5)
     
     // 3. Move mouse to set cursor position
-    const canvasBounds = await gramFramePage.canvas.boundingBox()
-    if (canvasBounds) {
-      await gramFramePage.moveMouse(canvasBounds.width / 3, canvasBounds.height / 3)
+    const svgBounds = await gramFramePage.svg.boundingBox()
+    if (svgBounds) {
+      await gramFramePage.moveMouse(svgBounds.width / 3, svgBounds.height / 3)
     }
     
     // Get the state before reload

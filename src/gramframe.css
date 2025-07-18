@@ -14,12 +14,18 @@
 }
 
 
-/* Canvas for drawing the spectrogram and overlays */
-.gram-frame-canvas {
+/* SVG container for drawing the spectrogram and overlays */
+.gram-frame-svg {
   display: block;
   width: 100%;
   height: auto;
   border: 1px solid #ddd;
+}
+
+/* SVG image element for the spectrogram */
+.gram-frame-image {
+  width: 100%;
+  height: 100%;
 }
 
 /* LED-style readout panel */

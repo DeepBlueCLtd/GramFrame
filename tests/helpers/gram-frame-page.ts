@@ -9,7 +9,7 @@ export class GramFramePage {
   readonly componentContainer: Locator
   readonly diagnosticsPanel: Locator
   readonly stateDisplay: Locator
-  readonly canvas: Locator
+  readonly svg: Locator
   readonly readoutPanel: Locator
   readonly freqLED: Locator
   readonly timeLED: Locator
@@ -20,7 +20,7 @@ export class GramFramePage {
     this.componentContainer = page.locator('.component-container')
     this.diagnosticsPanel = page.locator('.diagnostics-panel')
     this.stateDisplay = page.locator('#state-display')
-    this.canvas = page.locator('.gram-frame-canvas')
+    this.svg = page.locator('.gram-frame-svg')
     this.readoutPanel = page.locator('.gram-frame-readout')
     this.freqLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text("Frequency"))')
     this.timeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text("Time"))')
@@ -54,17 +54,17 @@ export class GramFramePage {
    * Wait for the spectrogram image to load
    */
   async waitForImageLoad() {
-    // Wait for the image to be loaded and rendered on canvas
+    // Wait for the image to be loaded and rendered in SVG
     await this.page.waitForFunction(() => {
-      const canvas = document.querySelector('.gram-frame-canvas') as HTMLCanvasElement
-      if (!canvas || canvas.width === 0 || canvas.height === 0) return false
+      const svg = document.querySelector('.gram-frame-svg') as SVGSVGElement
+      if (!svg) return false
       
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return false
+      const image = svg.querySelector('.gram-frame-image') as SVGImageElement
+      if (!image) return false
       
-      // Check if canvas has content (not all transparent pixels)
-      const imageData = ctx.getImageData(0, 0, Math.min(10, canvas.width), Math.min(10, canvas.height))
-      return imageData.data.some(value => value !== 0)
+      // Check if the image has been loaded (href attribute is set)
+      const href = image.getAttributeNS('http://www.w3.org/1999/xlink', 'href')
+      return href && href.length > 0
     }, {}, { timeout: 10000 })
   }
 
@@ -78,21 +78,21 @@ export class GramFramePage {
   }
 
   /**
-   * Move the mouse to specific coordinates on the canvas
+   * Move the mouse to specific coordinates on the SVG
    * @param x X coordinate
    * @param y Y coordinate
    */
   async moveMouse(x: number, y: number) {
-    await this.canvas.hover({ position: { x, y } })
+    await this.svg.hover({ position: { x, y } })
   }
 
   /**
-   * Click at specific coordinates on the canvas
+   * Click at specific coordinates on the SVG
    * @param x X coordinate
    * @param y Y coordinate
    */
-  async clickCanvas(x: number, y: number) {
-    await this.canvas.click({ position: { x, y } })
+  async clickSVG(x: number, y: number) {
+    await this.svg.click({ position: { x, y } })
   }
 
   /**
@@ -133,23 +133,23 @@ export class GramFramePage {
   }
 
   /**
-   * Verify that the image has been loaded on the canvas
+   * Verify that the image has been loaded in the SVG
    */
   async verifyImageLoaded() {
-    // Check if canvas has content (not empty)
-    const canvasEmpty = await this.page.evaluate(() => {
-      const canvas = document.querySelector('.gram-frame-canvas') as HTMLCanvasElement
-      if (!canvas) return true
+    // Check if SVG image has a valid href attribute
+    const imageLoaded = await this.page.evaluate(() => {
+      const svg = document.querySelector('.gram-frame-svg') as SVGSVGElement
+      if (!svg) return false
       
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return true
+      const image = svg.querySelector('.gram-frame-image') as SVGImageElement
+      if (!image) return false
       
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      // Check if all pixels are transparent/empty
-      return !imageData.data.some(value => value !== 0)
+      // Check if the image has been loaded (href attribute is set)
+      const href = image.getAttributeNS('http://www.w3.org/1999/xlink', 'href')
+      return href && href.length > 0 && href.includes('.png')
     })
     
-    expect(canvasEmpty).toBe(false)
+    expect(imageLoaded).toBe(true)
   }
 
   /**

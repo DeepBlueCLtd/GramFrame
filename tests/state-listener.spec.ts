@@ -66,10 +66,10 @@ test.describe('State Listener Mechanism', () => {
     // 2. Change rate
     await gramFramePage.setRate(2.5)
     
-    // 3. Move mouse over canvas
-    const canvasBounds = await gramFramePage.canvas.boundingBox()
-    if (canvasBounds) {
-      await gramFramePage.moveMouse(canvasBounds.width / 2, canvasBounds.height / 2)
+    // 3. Move mouse over SVG
+    const svgBounds = await gramFramePage.svg.boundingBox()
+    if (svgBounds) {
+      await gramFramePage.moveMouse(svgBounds.width / 2, svgBounds.height / 2)
     }
     
     // Wait a moment for all state updates to be processed

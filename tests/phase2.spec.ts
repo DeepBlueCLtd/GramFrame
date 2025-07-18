@@ -11,13 +11,13 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
     // Wait for the image to load
     await gramFramePage.waitForImageLoad()
     
-    // Verify the image is displayed in the canvas
-    await expect(gramFramePage.canvas).toBeVisible()
+    // Verify the image is displayed in the SVG
+    await expect(gramFramePage.svg).toBeVisible()
     
-    // Verify the canvas has dimensions
-    const canvasBounds = await gramFramePage.canvas.boundingBox()
-    expect(canvasBounds?.width).toBeGreaterThan(0)
-    expect(canvasBounds?.height).toBeGreaterThan(0)
+    // Verify the SVG has dimensions
+    const svgBounds = await gramFramePage.svg.boundingBox()
+    expect(svgBounds?.width).toBeGreaterThan(0)
+    expect(svgBounds?.height).toBeGreaterThan(0)
     
     // Verify the state contains image details
     const state = await gramFramePage.getState()
@@ -63,9 +63,9 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
     await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Analysis')
     
     // Test LED updates when mouse moves
-    const canvasBounds = await gramFramePage.canvas.boundingBox()
-    if (canvasBounds) {
-      await gramFramePage.moveMouse(canvasBounds.width / 2, canvasBounds.height / 2)
+    const svgBounds = await gramFramePage.svg.boundingBox()
+    if (svgBounds) {
+      await gramFramePage.moveMouse(svgBounds.width / 2, svgBounds.height / 2)
       
       // Wait for updates
       await gramFramePage.page.waitForTimeout(100)
@@ -118,10 +118,10 @@ test.describe('Phase 2: Diagnostics Panel', () => {
     expect(mouseTime).toBe('-')
     expect(mouseFreq).toBe('-')
     
-    // Move mouse over the canvas
-    const canvasBounds = await gramFramePage.canvas.boundingBox()
-    if (canvasBounds) {
-      await gramFramePage.moveMouse(canvasBounds.width / 2, canvasBounds.height / 2)
+    // Move mouse over the SVG
+    const svgBounds = await gramFramePage.svg.boundingBox()
+    if (svgBounds) {
+      await gramFramePage.moveMouse(svgBounds.width / 2, svgBounds.height / 2)
       await page.waitForTimeout(200)
       
       // Verify coordinates are updated
@@ -220,7 +220,7 @@ test.describe('Phase 2: Comprehensive Integration', () => {
     
     // Verify component is fully initialized
     await expect(gramFramePage.componentContainer).toBeVisible()
-    await expect(gramFramePage.canvas).toBeVisible()
+    await expect(gramFramePage.svg).toBeVisible()
     await expect(gramFramePage.readoutPanel).toBeVisible()
     
     // Verify LED panels are working
@@ -241,10 +241,10 @@ test.describe('Phase 2: Comprehensive Integration', () => {
     expect(stateDisplayText).toContain('"imageDetails"')
     
     // Test interactive functionality
-    const canvasBounds = await gramFramePage.canvas.boundingBox()
-    if (canvasBounds) {
+    const svgBounds = await gramFramePage.svg.boundingBox()
+    if (svgBounds) {
       // Move mouse and verify all components update
-      await gramFramePage.moveMouse(canvasBounds.width * 0.3, canvasBounds.height * 0.7)
+      await gramFramePage.moveMouse(svgBounds.width * 0.3, svgBounds.height * 0.7)
       await page.waitForTimeout(200)
       
       // Verify LED displays updated
