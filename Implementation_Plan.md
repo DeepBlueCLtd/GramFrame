@@ -1,8 +1,26 @@
 # GramFrame Implementation Plan
 
-## Project Overview
+## Overview
 
-GramFrame is a JavaScript component that transforms HTML tables containing spectrogram images into interactive analysis tools. The component allows users to analyze frequency data through different modes (Analysis, Harmonics, Doppler) and provides interactive features like cursor placement and harmonic line visualization.
+This document outlines the implementation plan for the GramFrame project, a JavaScript component that transforms HTML tables containing spectrogram images into interactive analysis tools. The plan is structured into phases aligned with the development tasks outlined in the project documentation.
+
+## Agent Roles
+
+This project utilizes two primary agent roles within the Agentic Project Management (APM) framework:
+
+- **Implementation Agent**: Responsible for developing features according to specifications
+- **Testing Agent**: Responsible for creating test specifications and verifying implementation quality
+
+For a detailed description of the Testing Agent's role and the project's testing strategy, refer to [Testing-Strategy.md](/Users/ian/git/GramFrame/docs/Testing-Strategy.md).
+
+## Testing Philosophy
+
+This project follows a comprehensive testing approach to ensure quality and prevent regressions:
+
+- **Test-Driven Development**: Tests will be written before implementation to guide development
+- **Unit and Integration Testing**: Each component will have both unit tests and integration tests
+- **Test Coverage**: No task is considered complete until it has adequate test coverage
+- **Continuous Testing**: Tests will be run after each significant change to catch regressions early
 
 ## Memory Bank Structure
 
@@ -10,16 +28,6 @@ This project will use a **directory-based Memory Bank** located at `/Memory/`. T
 - Multiple distinct phases with different functionality areas
 - Need to organize test results by feature
 - Better organization of implementation details by component
-
-## Testing Philosophy
-
-This project follows a comprehensive testing approach to ensure code quality and prevent regressions:
-
-1. **Test-Driven Development**: Where appropriate, tests should be written before implementing functionality
-2. **Unit Testing**: Each component and function should have unit tests
-3. **Integration Testing**: Features should be tested in combination using Playwright
-4. **Test Coverage**: Each task must include corresponding test coverage before being considered complete
-5. **Continuous Testing**: Tests should be run after each significant code change
 
 ## Implementation Phases
 
@@ -30,11 +38,11 @@ This project follows a comprehensive testing approach to ensure code quality and
 | Task ID | Task Description | Assigned Agent | Dependencies | Status |
 |---------|-----------------|----------------|--------------|--------|
 | 1.1 | Create `debug.html` page that loads a fixed component instance | Implementation Agent | - | To Do |
-| 1.1.1 | Write unit tests for component initialization | Implementation Agent | 1.1 | To Do |
+| 1.1.1 | Write unit tests for component initialization | Testing Agent | 1.1 | To Do |
 | 1.2 | Hook up "Hello World" from component inside the debug page | Implementation Agent | 1.1, 1.1.1 | To Do |
-| 1.2.1 | Write tests to verify component rendering | Implementation Agent | 1.2 | To Do |
+| 1.2.1 | Write tests to verify component rendering | Testing Agent | 1.2 | To Do |
 | 1.3 | Set up hot module reload and visible console logging for state | Implementation Agent | 1.2, 1.2.1 | To Do |
-| 1.3.1 | Verify logging functionality with tests | Implementation Agent | 1.3 | To Do |
+| 1.3.1 | Verify logging functionality with tests | Testing Agent | 1.3 | To Do |
 
 **Deliverables**:
 - Functional debug.html page
@@ -50,18 +58,18 @@ This project follows a comprehensive testing approach to ensure code quality and
 | Task ID | Task Description | Assigned Agent | Dependencies | Status |
 |---------|-----------------|----------------|--------------|--------|
 | 2.1 | Add Playwright as a dev dependency (only Chrome browser) | Implementation Agent | Phase 1 | To Do |
-| 2.2 | Create test infrastructure and write initial Playwright test | Implementation Agent | 2.1 | To Do |
+| 2.2 | Create test infrastructure and write initial Playwright test | Testing Agent | 2.1 | To Do |
 | 2.3 | Load spectrogram image from config | Implementation Agent | Phase 1 | To Do |
-| 2.3.1 | Write tests for image loading functionality | Implementation Agent | 2.3 | To Do |
+| 2.3.1 | Write tests for image loading functionality | Testing Agent | 2.3 | To Do |
 | 2.4 | Read and display min/max time/frequency | Implementation Agent | 2.3, 2.3.1 | To Do |
-| 2.4.1 | Test min/max extraction and display | Implementation Agent | 2.4 | To Do |
+| 2.4.1 | Test min/max extraction and display | Testing Agent | 2.4 | To Do |
 | 2.5 | Add LED-style readout panel below image | Implementation Agent | 2.4, 2.4.1 | To Do |
-| 2.5.1 | Test LED panel rendering and formatting | Implementation Agent | 2.5 | To Do |
+| 2.5.1 | Test LED panel rendering and formatting | Testing Agent | 2.5 | To Do |
 | 2.6 | Diagnostics: display image URL, size, min/max, and mouse coordinates | Implementation Agent | 2.5, 2.5.1 | To Do |
-| 2.6.1 | Test diagnostics panel information accuracy | Implementation Agent | 2.6 | To Do |
+| 2.6.1 | Test diagnostics panel information accuracy | Testing Agent | 2.6 | To Do |
 | 2.7 | Expose initial `addStateListener()` mechanism | Implementation Agent | 2.6, 2.6.1 | To Do |
-| 2.7.1 | Write tests for state listener functionality | Implementation Agent | 2.7 | To Do |
-| 2.8 | Write comprehensive Playwright tests for all Phase 2 functionality | Implementation Agent | 2.1-2.7.1 | To Do |
+| 2.7.1 | Write tests for state listener functionality | Testing Agent | 2.7 | To Do |
+| 2.8 | Write comprehensive Playwright tests for all Phase 2 functionality | Testing Agent | 2.1-2.7.1 | To Do |
 
 **Deliverables**:
 - Playwright test setup
@@ -79,16 +87,16 @@ This project follows a comprehensive testing approach to ensure code quality and
 | Task ID | Task Description | Assigned Agent | Dependencies | Status |
 |---------|-----------------|----------------|--------------|--------|
 | 3.1 | Add mouse move tracking | Implementation Agent | Phase 2 | To Do |
-| 3.1.1 | Write tests for mouse tracking accuracy | Implementation Agent | 3.1 | To Do |
+| 3.1.1 | Write tests for mouse tracking accuracy | Testing Agent | 3.1 | To Do |
 | 3.2 | Calculate and display time/frequency at cursor | Implementation Agent | 3.1, 3.1.1 | To Do |
-| 3.2.1 | Test time/frequency calculation accuracy | Implementation Agent | 3.2 | To Do |
+| 3.2.1 | Test time/frequency calculation accuracy | Testing Agent | 3.2 | To Do |
 | 3.3 | Click to add cursors; drag to reposition | Implementation Agent | 3.2, 3.2.1 | To Do |
-| 3.3.1 | Test cursor addition and repositioning | Implementation Agent | 3.3 | To Do |
+| 3.3.1 | Test cursor addition and repositioning | Testing Agent | 3.3 | To Do |
 | 3.4 | Update state listener and diagnostics panel accordingly | Implementation Agent | 3.3, 3.3.1 | To Do |
-| 3.4.1 | Test state updates with cursor interactions | Implementation Agent | 3.4 | To Do |
+| 3.4.1 | Test state updates with cursor interactions | Testing Agent | 3.4 | To Do |
 | 3.5 | Extend debug page UI to display updated state | Implementation Agent | 3.4, 3.4.1 | To Do |
-| 3.5.1 | Test debug UI updates with state changes | Implementation Agent | 3.5 | To Do |
-| 3.6 | Write comprehensive Playwright tests for all Phase 3 functionality | Implementation Agent | 3.1-3.5.1 | To Do |
+| 3.5.1 | Test debug UI updates with state changes | Testing Agent | 3.5 | To Do |
+| 3.6 | Write comprehensive Playwright tests for all Phase 3 functionality | Testing Agent | 3.1-3.5.1 | To Do |
 
 **Deliverables**:
 - Mouse tracking implementation
@@ -105,20 +113,20 @@ This project follows a comprehensive testing approach to ensure code quality and
 | Task ID | Task Description | Assigned Agent | Dependencies | Status |
 |---------|-----------------|----------------|--------------|--------|
 | 4.1 | Add mode switching UI (Analysis, Harmonics, Doppler) | Implementation Agent | Phase 3 | To Do |
-| 4.1.1 | Test mode switching UI functionality | Implementation Agent | 4.1 | To Do |
+| 4.1.1 | Test mode switching UI functionality | Testing Agent | 4.1 | To Do |
 | 4.2 | Implement Analysis mode functionality | Implementation Agent | 4.1, 4.1.1 | To Do |
-| 4.2.1 | Test Analysis mode calculations and display | Implementation Agent | 4.2 | To Do |
+| 4.2.1 | Test Analysis mode calculations and display | Testing Agent | 4.2 | To Do |
 | 4.3 | Implement Harmonics mode with correct line drawing | Implementation Agent | 4.2, 4.2.1 | To Do |
-| 4.3.1 | Test harmonic line calculations and rendering | Implementation Agent | 4.3 | To Do |
+| 4.3.1 | Test harmonic line calculations and rendering | Testing Agent | 4.3 | To Do |
 | 4.4 | Implement Doppler mode (details TBD) | Implementation Agent | 4.3, 4.3.1 | To Do |
-| 4.4.1 | Test Doppler mode functionality | Implementation Agent | 4.4 | To Do |
+| 4.4.1 | Test Doppler mode functionality | Testing Agent | 4.4 | To Do |
 | 4.5 | Support multiple cursors and harmonics per cursor | Implementation Agent | 4.3, 4.3.1 | To Do |
-| 4.5.1 | Test multiple cursor interactions and harmonic calculations | Implementation Agent | 4.5 | To Do |
+| 4.5.1 | Test multiple cursor interactions and harmonic calculations | Testing Agent | 4.5 | To Do |
 | 4.6 | Add 'rate' input box and propagate to calculations | Implementation Agent | 4.5, 4.5.1 | To Do |
-| 4.6.1 | Test rate input and its effect on calculations | Implementation Agent | 4.6 | To Do |
+| 4.6.1 | Test rate input and its effect on calculations | Testing Agent | 4.6 | To Do |
 | 4.7 | Extend debug page UI to display mode-specific state | Implementation Agent | 4.1-4.6.1 | To Do |
-| 4.7.1 | Test debug UI mode-specific displays | Implementation Agent | 4.7 | To Do |
-| 4.8 | Write comprehensive Playwright tests for all Phase 4 functionality | Implementation Agent | 4.1-4.7.1 | To Do |
+| 4.7.1 | Test debug UI mode-specific displays | Testing Agent | 4.7 | To Do |
+| 4.8 | Write comprehensive Playwright tests for all Phase 4 functionality | Testing Agent | 4.1-4.7.1 | To Do |
 
 **Deliverables**:
 - Mode switching UI
@@ -137,16 +145,16 @@ This project follows a comprehensive testing approach to ensure code quality and
 | Task ID | Task Description | Assigned Agent | Dependencies | Status |
 |---------|-----------------|----------------|--------------|--------|
 | 5.1 | Auto-detect and replace config tables | Implementation Agent | Phase 4 | To Do |
-| 5.1.1 | Test auto-detection with various table configurations | Implementation Agent | 5.1 | To Do |
+| 5.1.1 | Test auto-detection with various table configurations | Testing Agent | 5.1 | To Do |
 | 5.2 | Add canvas boundary and grid toggles to diagnostics page | Implementation Agent | 5.1, 5.1.1 | To Do |
-| 5.2.1 | Test boundary and grid toggle functionality | Implementation Agent | 5.2 | To Do |
+| 5.2.1 | Test boundary and grid toggle functionality | Testing Agent | 5.2 | To Do |
 | 5.3 | Polish `build` output (dist includes debug page) | Implementation Agent | 5.2, 5.2.1 | To Do |
-| 5.3.1 | Verify build output and distribution files | Implementation Agent | 5.3 | To Do |
+| 5.3.1 | Verify build output and distribution files | Testing Agent | 5.3 | To Do |
 | 5.4 | Implement comprehensive error handling | Implementation Agent | 5.3, 5.3.1 | To Do |
-| 5.4.1 | Test error handling with edge cases and invalid inputs | Implementation Agent | 5.4 | To Do |
+| 5.4.1 | Test error handling with edge cases and invalid inputs | Testing Agent | 5.4 | To Do |
 | 5.5 | Final QA: browser matrix, multi-instance test | Implementation Agent | 5.4, 5.4.1 | To Do |
-| 5.5.1 | Document browser compatibility test results | Implementation Agent | 5.5 | To Do |
-| 5.6 | Write comprehensive Playwright test suite covering all functionality | Implementation Agent | 5.1-5.5.1 | To Do |
+| 5.5.1 | Document browser compatibility test results | Testing Agent | 5.5 | To Do |
+| 5.6 | Write comprehensive Playwright test suite covering all functionality | Testing Agent | 5.1-5.5.1 | To Do |
 | 5.7 | Documentation review and updates | Implementation Agent | 5.6 | To Do |
 
 **Deliverables**:
