@@ -532,8 +532,15 @@ const GramFrameAPI = {
   
   // Force update
   forceUpdate() {
-    // This will be implemented in Phase 3
-    console.log('Force update')
+    // Find the first GramFrame instance and trigger a state update
+    const instances = document.querySelectorAll('.gram-frame-container')
+    if (instances.length > 0) {
+      const instance = instances[0].__gramFrameInstance
+      if (instance) {
+        // Trigger a state update by calling _notifyStateListeners
+        instance._notifyStateListeners()
+      }
+    }
   }
 }
 

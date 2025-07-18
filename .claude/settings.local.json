@@ -26,7 +26,10 @@
       "Bash(pkill:*)",
       "Bash(mv:*)",
       "Bash(python3:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm run test:*)",
+      "Bash(yarn test)",
+      "Bash(yarn test:*)"
     ],
     "deny": []
   }

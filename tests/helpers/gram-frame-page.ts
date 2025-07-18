@@ -51,6 +51,24 @@ export class GramFramePage {
   }
 
   /**
+   * Wait for the spectrogram image to load
+   */
+  async waitForImageLoad() {
+    // Wait for the image to be loaded and rendered on canvas
+    await this.page.waitForFunction(() => {
+      const canvas = document.querySelector('.gram-frame-canvas') as HTMLCanvasElement
+      if (!canvas || canvas.width === 0 || canvas.height === 0) return false
+      
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return false
+      
+      // Check if canvas has content (not all transparent pixels)
+      const imageData = ctx.getImageData(0, 0, Math.min(10, canvas.width), Math.min(10, canvas.height))
+      return imageData.data.some(value => value !== 0)
+    }, {}, { timeout: 10000 })
+  }
+
+  /**
    * Get the current state of the component
    * @returns The parsed state object
    */

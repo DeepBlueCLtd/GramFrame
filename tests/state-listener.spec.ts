@@ -151,21 +151,23 @@ test.describe('State Listener Mechanism', () => {
         throw new Error('Test error in listener')
       }
       
-      // Add error handler to capture console errors
-      window.addEventListener('error', e => {
-        errorThrown = e.message
-        return true
-      })
+      // Override console.error temporarily to capture the error
+      const originalConsoleError = console.error
+      console.error = (...args) => {
+        if (args[0] === 'Error in state listener:') {
+          errorThrown = args[1].message || 'Error captured'
+        }
+        originalConsoleError.apply(console, args)
+      }
       
       // Add the listener
       window.GramFrame.addStateListener(listener)
       
       // Force an update to trigger the listener
-      try {
-        window.GramFrame.forceUpdate()
-      } catch (e) {
-        errorThrown = 'Uncaught error: ' + e.message
-      }
+      window.GramFrame.forceUpdate()
+      
+      // Restore original console.error
+      console.error = originalConsoleError
       
       return errorThrown
     })
