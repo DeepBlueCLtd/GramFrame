@@ -29,7 +29,11 @@
       "Bash(grep:*)",
       "Bash(npm run test:*)",
       "Bash(yarn test)",
-      "Bash(yarn test:*)"
+      "Bash(yarn test:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

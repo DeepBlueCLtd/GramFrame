@@ -30,10 +30,10 @@ const initialState = {
   },
   axes: {
     margins: {
-      left: 50,    // Space for frequency axis
-      bottom: 30,  // Space for time axis
-      right: 10,   // Small right margin
-      top: 10      // Small top margin
+      left: 60,    // Space for time axis labels
+      bottom: 50,  // Space for frequency axis labels  
+      right: 15,   // Small right margin
+      top: 15      // Small top margin
     }
   }
 }
@@ -263,14 +263,14 @@ class GramFrame {
     this.svg.setAttribute('width', newWidth)
     this.svg.setAttribute('height', newHeight)
     
-    // Position the main group to account for top and left margins
-    this.mainGroup.setAttribute('transform', `translate(${margins.left}, ${margins.top})`)
+    // Position image directly in SVG coordinate space (no mainGroup translation)
+    this.mainGroup.setAttribute('transform', '')
     
-    // Update image element within SVG
+    // Update image element within SVG - position it in the margin area
     this.svgImage.setAttribute('width', originalWidth)
     this.svgImage.setAttribute('height', originalHeight)
-    this.svgImage.setAttribute('x', 0)
-    this.svgImage.setAttribute('y', 0)
+    this.svgImage.setAttribute('x', margins.left)
+    this.svgImage.setAttribute('y', margins.top)
     
     // Update state with new dimensions
     this.state.displayDimensions = {
@@ -300,7 +300,7 @@ class GramFrame {
     // Convert screen coordinates to SVG coordinates
     const svgCoords = this._screenToSVGCoordinates(x, y)
     
-    // Adjust SVG coordinates to account for margins (get coordinates relative to image)
+    // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
     const margins = this.state.axes.margins
     const imageRelativeX = svgCoords.x - margins.left
     const imageRelativeY = svgCoords.y - margins.top
@@ -467,19 +467,16 @@ class GramFrame {
    */
   _drawTimeAxis() {
     const { timeMin, timeMax } = this.state.config
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    const { naturalHeight } = this.state.imageDetails
     const margins = this.state.axes.margins
     
-    // Calculate the range for tick marks
+    // Calculate tick marks
     const range = timeMax - timeMin
-    const availableHeight = naturalHeight
-    
-    // Determine tick density based on available space
-    const targetTickCount = Math.floor(availableHeight / 50) // Aim for ticks every ~50px
+    const targetTickCount = Math.floor(naturalHeight / 50) // Aim for ticks every ~50px
     const tickCount = Math.max(2, Math.min(targetTickCount, 8))
     const tickInterval = range / (tickCount - 1)
     
-    // Draw main axis line
+    // Draw main axis line (along the left edge of the image)
     const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
     axisLine.setAttribute('x1', margins.left)
     axisLine.setAttribute('y1', margins.top)
@@ -491,10 +488,10 @@ class GramFrame {
     // Draw tick marks and labels
     for (let i = 0; i < tickCount; i++) {
       const timeValue = timeMin + (i * tickInterval)
-      // Note: y position is inverted because SVG y=0 is at top, but we want timeMin at bottom
+      // Y position: timeMin at bottom, timeMax at top (inverted because SVG y=0 is at top)
       const yPos = margins.top + naturalHeight - (i / (tickCount - 1)) * naturalHeight
       
-      // Tick mark
+      // Tick mark (extends into the left margin)
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
       tick.setAttribute('x1', margins.left - 5)
       tick.setAttribute('y1', yPos)
@@ -503,7 +500,7 @@ class GramFrame {
       tick.setAttribute('class', 'gram-frame-axis-tick')
       this.timeAxisGroup.appendChild(tick)
       
-      // Label
+      // Label (in the left margin)
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
       label.setAttribute('x', margins.left - 8)
       label.setAttribute('y', yPos + 4) // Slight offset for better alignment
@@ -522,21 +519,19 @@ class GramFrame {
     const { naturalWidth, naturalHeight } = this.state.imageDetails
     const margins = this.state.axes.margins
     
-    // Calculate the range for tick marks
+    // Calculate tick marks
     const range = freqMax - freqMin
-    const availableWidth = naturalWidth
-    
-    // Determine tick density based on available space
-    const targetTickCount = Math.floor(availableWidth / 80) // Aim for ticks every ~80px
+    const targetTickCount = Math.floor(naturalWidth / 80) // Aim for ticks every ~80px
     const tickCount = Math.max(2, Math.min(targetTickCount, 10))
     const tickInterval = range / (tickCount - 1)
     
-    // Draw main axis line
+    // Draw main axis line (along the bottom edge of the image)
+    const axisLineY = margins.top + naturalHeight
     const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
     axisLine.setAttribute('x1', margins.left)
-    axisLine.setAttribute('y1', margins.top + naturalHeight)
+    axisLine.setAttribute('y1', axisLineY)
     axisLine.setAttribute('x2', margins.left + naturalWidth)
-    axisLine.setAttribute('y2', margins.top + naturalHeight)
+    axisLine.setAttribute('y2', axisLineY)
     axisLine.setAttribute('class', 'gram-frame-axis-line')
     this.freqAxisGroup.appendChild(axisLine)
     
@@ -545,19 +540,19 @@ class GramFrame {
       const freqValue = freqMin + (i * tickInterval)
       const xPos = margins.left + (i / (tickCount - 1)) * naturalWidth
       
-      // Tick mark
+      // Tick mark (extends into the bottom margin)
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
       tick.setAttribute('x1', xPos)
-      tick.setAttribute('y1', margins.top + naturalHeight)
+      tick.setAttribute('y1', axisLineY)
       tick.setAttribute('x2', xPos)
-      tick.setAttribute('y2', margins.top + naturalHeight + 5)
+      tick.setAttribute('y2', axisLineY + 5)
       tick.setAttribute('class', 'gram-frame-axis-tick')
       this.freqAxisGroup.appendChild(tick)
       
-      // Label
+      // Label (in the bottom margin)
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
       label.setAttribute('x', xPos)
-      label.setAttribute('y', margins.top + naturalHeight + 18)
+      label.setAttribute('y', axisLineY + 18)
       label.setAttribute('text-anchor', 'middle')
       label.setAttribute('class', 'gram-frame-axis-label')
       label.textContent = freqValue.toFixed(0) + 'Hz'
@@ -662,15 +657,16 @@ class GramFrame {
         this.svg.setAttribute('width', initialWidth)
         this.svg.setAttribute('height', initialHeight)
         
-        // Position the main group to account for top and left margins
-        this.mainGroup.setAttribute('transform', `translate(${margins.left}, ${margins.top})`)
+        // Position image directly in SVG coordinate space (no mainGroup translation)
+        this.mainGroup.setAttribute('transform', '')
         
-        // Set the image source in SVG
+        // Set the image source in SVG - position it in the margin area
         this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
         this.svgImage.setAttribute('width', this.spectrogramImage.naturalWidth)
         this.svgImage.setAttribute('height', this.spectrogramImage.naturalHeight)
-        this.svgImage.setAttribute('x', 0)
-        this.svgImage.setAttribute('y', 0)
+        this.svgImage.setAttribute('x', margins.left)
+        this.svgImage.setAttribute('y', margins.top)
+        
         
         // Draw initial axes
         this._drawAxes()
