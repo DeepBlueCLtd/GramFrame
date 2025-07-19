@@ -198,4 +198,22 @@ export class GramFramePage {
   async clickControlButton(buttonId: string) {
     await this.page.locator(`#${buttonId}`).click()
   }
+
+  /**
+   * Get the current state from the debug page state display
+   * Alias for getState for consistency
+   */
+  async getCurrentState() {
+    return this.getState()
+  }
+
+  /**
+   * Move mouse to a position on the spectrogram
+   * @param x X coordinate relative to the spectrogram
+   * @param y Y coordinate relative to the spectrogram
+   */
+  async moveMouseToSpectrogram(x: number, y: number) {
+    // Move mouse to the SVG area (spectrogram is within the SVG)
+    await this.svg.hover({ position: { x, y } })
+  }
 }

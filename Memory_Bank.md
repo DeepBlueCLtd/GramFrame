@@ -343,6 +343,103 @@ Initial implementation had low visibility of crosshair lines against varying spe
 Ready to proceed with Task 3.4: Cursor Management implementation.
 
 ---
+**Agent:** Implementation Agent
+**Task Reference:** Phase 4, Task 4.1: Mode Switching UI Implementation
+
+**Summary:**
+Implemented comprehensive mode switching UI with three interaction modes (Analysis, Harmonics, Doppler), complete state management, LED display integration, and extensive test coverage.
+
+**Details:**
+- Found that mode switching UI was already implemented in src/main.js:98-165 but lacked comprehensive testing
+- Mode switching implementation included:
+  - **UI Components:** Three mode buttons (Analysis, Harmonics, Doppler) with active state styling
+  - **State Management:** Mode property in state with default "analysis" mode
+  - **Event Handling:** Click handlers for mode switching with proper state updates
+  - **LED Integration:** Mode LED display showing current mode in LED-style aesthetic
+  - **State Listener Integration:** Mode changes properly propagated to all registered listeners
+- Enhanced test helper methods in `tests/helpers/gram-frame-page.ts`:
+  - Added `getCurrentState()` method for consistency
+  - Added `moveMouseToSpectrogram()` method for mouse interaction testing
+- Created comprehensive test suite `tests/mode-switching.spec.ts` with 9 test cases:
+  1. Mode switching UI components are present and correctly styled
+  2. Default Analysis mode is set correctly 
+  3. Mode switching changes state and UI correctly (all three modes)
+  4. Mode changes are properly propagated to state listeners
+  5. Mode information appears in diagnostics panel
+  6. Mode switching preserves other state properties
+  7. Mode buttons have correct styling and hover states
+  8. LED-style aesthetic is maintained for mode display
+  9. Mode switching works with mouse tracking
+- Verified integration with existing functionality:
+  - Mouse tracking continues to work correctly after mode changes
+  - State listener mechanism properly notifies all listeners of mode changes
+  - LED display updates maintain LED-style aesthetic (Courier font, green text, black background)
+  - Other state properties (rate, config, imageDetails, etc.) are preserved during mode changes
+
+**Code Implementation:**
+The mode switching functionality was already implemented in src/main.js:
+```javascript
+// Mode switching UI creation (lines 140-165)
+_createModeSwitchingUI() {
+  this.modesContainer = document.createElement('div')
+  this.modesContainer.className = 'gram-frame-modes'
+  
+  const modes = ['analysis', 'harmonics', 'doppler']
+  this.modeButtons = {}
+  
+  modes.forEach(mode => {
+    const button = document.createElement('button')
+    button.className = 'gram-frame-mode-btn'
+    button.textContent = this._capitalizeFirstLetter(mode)
+    button.dataset.mode = mode
+    
+    if (mode === this.state.mode) {
+      button.classList.add('active')
+    }
+    
+    this.modeButtons[mode] = button
+    this.modesContainer.appendChild(button)
+  })
+  
+  this.container.appendChild(this.modesContainer)
+}
+
+// Mode switching logic (lines 629-647)
+_switchMode(mode) {
+  this.state.mode = mode
+  
+  // Update UI
+  Object.keys(this.modeButtons).forEach(m => {
+    if (m === mode) {
+      this.modeButtons[m].classList.add('active')
+    } else {
+      this.modeButtons[m].classList.remove('active')
+    }
+  })
+  
+  this._updateModeLED()
+  this._notifyStateListeners()
+}
+```
+
+**Test Results:**
+- All 9 new mode switching tests pass
+- Complete test suite (44 tests total) passes with no regressions
+- Verified mode switching works correctly in all scenarios:
+  - UI state changes properly
+  - State listener notifications work
+  - LED display updates correctly
+  - Integration with mouse tracking maintained
+
+**Status:** Completed
+
+**Issues/Blockers:**
+None. The implementation was already present and functional, requiring only comprehensive test coverage to validate all requirements.
+
+**Next Steps:**
+Ready to proceed with Task 4.2: Analysis Mode Implementation.
+
+---
 
 ## Technical Decisions
 **Date: July 18, 2025**
