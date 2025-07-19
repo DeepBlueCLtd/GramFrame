@@ -151,6 +151,87 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 - Comprehensive test coverage (23/24 tests passing)
 - Fixed axis orientation confusion (frequency=horizontal, time=vertical)
 
+---
+**Agent:** Implementation Agent
+**Task Reference:** Phase 3, Task 3.2: Mouse Tracking Implementation
+
+**Summary:**
+Enhanced and completed mouse tracking functionality with comprehensive edge case handling, proper event listener cleanup, and extensive test coverage.
+
+**Details:**
+- Enhanced existing mouse tracking implementation that was already functional but lacked comprehensive edge case handling and cleanup
+- Added proper event listener cleanup with bound references for component destruction
+- Implemented mouse leave handling to clear cursor position when mouse exits SVG container
+- Enhanced edge case handling to clear cursor position when mouse moves outside image bounds (into margin areas)
+- Improved LED display updates to show default values ("0.00 Hz", "0.00 s") when cursor position is null
+- Added comprehensive component destruction method with proper resource cleanup
+- Created 5 new integration tests specifically for mouse tracking functionality:
+  - Mouse movement accuracy across multiple positions within the image
+  - Mouse leave behavior and cursor position clearing
+  - Edge case handling when mouse is outside image bounds but within SVG
+  - Coordinate conversion accuracy testing at image corners and center
+  - LED display integration with mouse tracking state changes
+- Fixed existing test that was affected by enhanced edge case handling
+- Maintained all existing coordinate transformation functionality
+
+**Output/Result:**
+```javascript
+// Enhanced event listener setup with proper cleanup references
+_setupEventListeners() {
+  // Bind event handlers to maintain proper 'this' context
+  this._boundHandleMouseMove = this._handleMouseMove.bind(this)
+  this._boundHandleMouseLeave = this._handleMouseLeave.bind(this)
+  this._boundHandleClick = this._handleClick.bind(this)
+  this._boundHandleResize = this._handleResize.bind(this)
+  
+  // SVG mouse events
+  this.svg.addEventListener('mousemove', this._boundHandleMouseMove)
+  this.svg.addEventListener('mouseleave', this._boundHandleMouseLeave)
+  this.svg.addEventListener('click', this._boundHandleClick)
+  // ... other event listeners
+}
+
+// New mouse leave handler
+_handleMouseLeave(event) {
+  // Clear cursor position when mouse leaves the SVG area
+  this.state.cursorPosition = null
+  this._updateLEDDisplays()
+  this._notifyStateListeners()
+}
+
+// Enhanced edge case handling in mouse move
+// Only process if mouse is within the image area
+if (imageRelativeX < 0 || imageRelativeY < 0 || 
+    imageRelativeX > this.state.imageDetails.naturalWidth || 
+    imageRelativeY > this.state.imageDetails.naturalHeight) {
+  // Clear cursor position when mouse is outside image bounds
+  this.state.cursorPosition = null
+  this._updateLEDDisplays()
+  this._notifyStateListeners()
+  return
+}
+
+// Component cleanup method
+destroy() {
+  this._cleanupEventListeners()
+  if (this.container && this.container.parentNode) {
+    this.container.parentNode.removeChild(this.container)
+  }
+}
+```
+
+Created comprehensive test file: `tests/mouse-tracking.spec.ts` with 5 test cases covering all mouse tracking scenarios.
+
+**Status:** Completed
+
+**Issues/Blockers:**
+None. One existing test required adjustment due to enhanced edge case handling where mouse position is properly cleared when outside image bounds.
+
+**Next Steps:**
+Ready to proceed with Task 3.3: Time/Frequency Cursor Display implementation.
+
+---
+
 ## Technical Decisions
 **Date: July 18, 2025**
 
