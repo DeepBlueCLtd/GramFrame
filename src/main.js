@@ -17,6 +17,13 @@ const initialState = {
     baseFrequency: null,
     harmonicData: []
   },
+  doppler: {
+    startPoint: null,
+    endPoint: null,
+    deltaTime: null,
+    deltaFrequency: null,
+    speed: null
+  },
   dragState: {
     isDragging: false,
     dragStartPosition: null
@@ -143,6 +150,19 @@ class GramFrame {
     // Create mode display
     this.modeLED = this._createLEDDisplay('Mode', this._capitalizeFirstLetter(this.state.mode))
     this.readoutPanel.appendChild(this.modeLED)
+    
+    // Create doppler-specific displays (initially hidden)
+    this.deltaTimeLED = this._createLEDDisplay('ΔTime', '0.00 s')
+    this.deltaTimeLED.style.display = 'none'
+    this.readoutPanel.appendChild(this.deltaTimeLED)
+    
+    this.deltaFreqLED = this._createLEDDisplay('ΔFreq', '0 Hz')
+    this.deltaFreqLED.style.display = 'none'
+    this.readoutPanel.appendChild(this.deltaFreqLED)
+    
+    this.speedLED = this._createLEDDisplay('Speed', '0.0 knots')
+    this.speedLED.style.display = 'none'
+    this.readoutPanel.appendChild(this.speedLED)
   }
   
   _createModeSwitchingUI() {
@@ -418,11 +438,73 @@ class GramFrame {
   }
   
   _handleClick(event) {
-    // Click events are not used for harmonics mode anymore (now using drag)
-    // Doppler mode will be implemented later
-    // Analysis mode does not use clicks
+    // Only process if we have valid image details and are in Doppler mode
+    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight || this.state.mode !== 'doppler') {
+      return
+    }
     
-    console.log('Canvas clicked')
+    // Only process if mouse is within the image area
+    if (!this.state.cursorPosition) {
+      return
+    }
+    
+    // Handle Doppler mode clicks
+    if (this.state.mode === 'doppler') {
+      this._handleDopplerClick()
+    }
+  }
+  
+  _handleDopplerClick() {
+    // Create point data from current cursor position
+    const clickPoint = {
+      time: this.state.cursorPosition.time,
+      freq: this.state.cursorPosition.freq,
+      svgX: this.state.cursorPosition.svgX,
+      svgY: this.state.cursorPosition.svgY
+    }
+    
+    if (!this.state.doppler.startPoint) {
+      // Set start point
+      this.state.doppler.startPoint = clickPoint
+      this.state.doppler.endPoint = null
+      this.state.doppler.deltaTime = null
+      this.state.doppler.deltaFrequency = null
+      this.state.doppler.speed = null
+    } else if (!this.state.doppler.endPoint) {
+      // Set end point and calculate measurements
+      this.state.doppler.endPoint = clickPoint
+      this._calculateDopplerMeasurements()
+    } else {
+      // Both points are set, start a new measurement
+      this.state.doppler.startPoint = clickPoint
+      this.state.doppler.endPoint = null
+      this.state.doppler.deltaTime = null
+      this.state.doppler.deltaFrequency = null
+      this.state.doppler.speed = null
+    }
+    
+    // Update displays and indicators
+    this._updateLEDDisplays()
+    this._updateCursorIndicators()
+    
+    // Notify listeners of state change
+    this._notifyStateListeners()
+  }
+  
+  _calculateDopplerMeasurements() {
+    if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
+      return
+    }
+    
+    const start = this.state.doppler.startPoint
+    const end = this.state.doppler.endPoint
+    
+    // Calculate delta values
+    this.state.doppler.deltaTime = end.time - start.time
+    this.state.doppler.deltaFrequency = end.freq - start.freq
+    
+    // Mock speed calculation: ΔT * ΔF as specified in the task
+    this.state.doppler.speed = Math.abs(this.state.doppler.deltaTime * this.state.doppler.deltaFrequency)
   }
   
   /**
@@ -691,6 +773,15 @@ class GramFrame {
       this.state.harmonics.harmonicData = []
     }
     
+    // Clear doppler state when switching away from doppler mode
+    if (mode !== 'doppler') {
+      this.state.doppler.startPoint = null
+      this.state.doppler.endPoint = null
+      this.state.doppler.deltaTime = null
+      this.state.doppler.deltaFrequency = null
+      this.state.doppler.speed = null
+    }
+    
     // Clear drag state when switching modes
     this.state.dragState.isDragging = false
     this.state.dragState.dragStartPosition = null
@@ -724,6 +815,36 @@ class GramFrame {
   }
   
   _updateLEDDisplays() {
+    // Hide/show doppler-specific LEDs based on mode
+    if (this.state.mode === 'doppler') {
+      this.deltaTimeLED.style.display = 'block'
+      this.deltaFreqLED.style.display = 'block'
+      this.speedLED.style.display = 'block'
+      
+      // Update doppler-specific values if available
+      if (this.state.doppler.deltaTime !== null) {
+        this.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = `ΔT: ${this.state.doppler.deltaTime.toFixed(2)} s`
+      } else {
+        this.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = 'ΔT: 0.00 s'
+      }
+      
+      if (this.state.doppler.deltaFrequency !== null) {
+        this.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = `ΔF: ${this.state.doppler.deltaFrequency.toFixed(0)} Hz`
+      } else {
+        this.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = 'ΔF: 0 Hz'
+      }
+      
+      if (this.state.doppler.speed !== null) {
+        this.speedLED.querySelector('.gram-frame-led-value').textContent = `Speed: ${this.state.doppler.speed.toFixed(1)} knots`
+      } else {
+        this.speedLED.querySelector('.gram-frame-led-value').textContent = 'Speed: 0.0 knots'
+      }
+    } else {
+      this.deltaTimeLED.style.display = 'none'
+      this.deltaFreqLED.style.display = 'none'
+      this.speedLED.style.display = 'none'
+    }
+    
     if (!this.state.cursorPosition) {
       // Show default values when no cursor position
       this.freqLED.querySelector('.gram-frame-led-value').textContent = 'Freq: 0.00 Hz'
@@ -779,8 +900,9 @@ class GramFrame {
       if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
         this._drawHarmonicsMode()
       }
+    } else if (this.state.mode === 'doppler') {
+      this._drawDopplerMode()
     }
-    // Doppler mode will be implemented later
   }
   
   _drawAnalysisMode() {
@@ -951,6 +1073,86 @@ class GramFrame {
     frequencyLabel.setAttribute('class', 'gram-frame-harmonic-label')
     frequencyLabel.textContent = `${Math.round(harmonic.frequency)} Hz`
     this.cursorGroup.appendChild(frequencyLabel)
+  }
+  
+  _drawDopplerMode() {
+    // Draw normal crosshairs for current cursor position
+    if (this.state.cursorPosition) {
+      this._drawAnalysisMode()
+    }
+    
+    // Draw start point marker if set
+    if (this.state.doppler.startPoint) {
+      this._drawDopplerPoint(this.state.doppler.startPoint, 'start')
+    }
+    
+    // Draw end point marker and line if both points are set
+    if (this.state.doppler.endPoint) {
+      this._drawDopplerPoint(this.state.doppler.endPoint, 'end')
+      this._drawDopplerLine()
+    }
+  }
+  
+  _drawDopplerPoint(point, type) {
+    const margins = this.state.axes.margins
+    
+    // Convert data coordinates to SVG coordinates
+    const dataCoords = this._dataToSVGCoordinates(point.freq, point.time)
+    const svgX = margins.left + dataCoords.x
+    const svgY = margins.top + dataCoords.y
+    
+    // Draw point marker
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    marker.setAttribute('cx', svgX)
+    marker.setAttribute('cy', svgY)
+    marker.setAttribute('r', '5')
+    marker.setAttribute('class', `gram-frame-doppler-${type}-point`)
+    this.cursorGroup.appendChild(marker)
+    
+    // Draw point label
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('x', svgX + 8)
+    label.setAttribute('y', svgY - 8)
+    label.setAttribute('class', 'gram-frame-doppler-label')
+    label.textContent = type === 'start' ? '1' : '2'
+    this.cursorGroup.appendChild(label)
+  }
+  
+  _drawDopplerLine() {
+    if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
+      return
+    }
+    
+    const margins = this.state.axes.margins
+    
+    // Convert data coordinates to SVG coordinates
+    const startCoords = this._dataToSVGCoordinates(this.state.doppler.startPoint.freq, this.state.doppler.startPoint.time)
+    const endCoords = this._dataToSVGCoordinates(this.state.doppler.endPoint.freq, this.state.doppler.endPoint.time)
+    
+    const startX = margins.left + startCoords.x
+    const startY = margins.top + startCoords.y
+    const endX = margins.left + endCoords.x
+    const endY = margins.top + endCoords.y
+    
+    // Draw shadow line for visibility
+    const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    shadowLine.setAttribute('x1', startX)
+    shadowLine.setAttribute('y1', startY)
+    shadowLine.setAttribute('x2', endX)
+    shadowLine.setAttribute('y2', endY)
+    shadowLine.setAttribute('stroke-width', '4')
+    shadowLine.setAttribute('class', 'gram-frame-doppler-line-shadow')
+    this.cursorGroup.appendChild(shadowLine)
+    
+    // Draw main line
+    const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    mainLine.setAttribute('x1', startX)
+    mainLine.setAttribute('y1', startY)
+    mainLine.setAttribute('x2', endX)
+    mainLine.setAttribute('y2', endY)
+    mainLine.setAttribute('stroke-width', '2')
+    mainLine.setAttribute('class', 'gram-frame-doppler-line')
+    this.cursorGroup.appendChild(mainLine)
   }
   
   _capitalizeFirstLetter(string) {

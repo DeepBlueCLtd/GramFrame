@@ -22,9 +22,9 @@ export class GramFramePage {
     this.stateDisplay = page.locator('#state-display')
     this.svg = page.locator('.gram-frame-svg')
     this.readoutPanel = page.locator('.gram-frame-readout')
-    this.freqLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text("Frequency"))')
-    this.timeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text("Time"))')
-    this.modeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text("Mode"))')
+    this.freqLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Frequency"))')
+    this.timeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Time"))')
+    this.modeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Mode"))')
   }
 
   /**
@@ -142,7 +142,7 @@ export class GramFramePage {
    * @param expectedValueRegex Regular expression to match the expected value
    */
   async verifyLEDValue(label: string, expectedValueRegex: RegExp) {
-    const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text("${label}")) .gram-frame-led-value`
+    const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text-is("${label}")) .gram-frame-led-value`
     await expect(this.page.locator(ledSelector)).toHaveText(expectedValueRegex)
   }
 
@@ -152,7 +152,7 @@ export class GramFramePage {
    * @returns The text content of the LED value
    */
   async getLEDValue(label: string) {
-    const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text("${label}")) .gram-frame-led-value`
+    const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text-is("${label}")) .gram-frame-led-value`
     return await this.page.locator(ledSelector).textContent()
   }
 
@@ -256,5 +256,15 @@ export class GramFramePage {
   async moveMouseToSpectrogram(x: number, y: number) {
     // Move mouse to the SVG area (spectrogram is within the SVG)
     await this.svg.hover({ position: { x, y } })
+  }
+
+  /**
+   * Click at a position on the spectrogram
+   * @param x X coordinate relative to the spectrogram
+   * @param y Y coordinate relative to the spectrogram
+   */
+  async clickSpectrogram(x: number, y: number) {
+    // Click on the SVG area (spectrogram is within the SVG)
+    await this.svg.click({ position: { x, y } })
   }
 }
