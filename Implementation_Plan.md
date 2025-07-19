@@ -90,11 +90,9 @@ This project will use a **directory-based Memory Bank** located at `/Memory/`. T
 | 3.1.1 | Write tests for mouse tracking accuracy | Testing Agent | 3.1 | To Do |
 | 3.2 | Calculate and display time/frequency at cursor | Implementation Agent | 3.1, 3.1.1 | To Do |
 | 3.2.1 | Test time/frequency calculation accuracy | Testing Agent | 3.2 | To Do |
-| 3.3 | Click to add cursors; drag to reposition | Implementation Agent | 3.2, 3.2.1 | To Do |
-| 3.3.1 | Test cursor addition and repositioning | Testing Agent | 3.3 | To Do |
-| 3.4 | Update state listener and diagnostics panel accordingly | Implementation Agent | 3.3, 3.3.1 | To Do |
-| 3.4.1 | Test state updates with cursor interactions | Testing Agent | 3.4 | To Do |
-| 3.5 | Extend debug page UI to display updated state | Implementation Agent | 3.4, 3.4.1 | To Do |
+| 3.3 | Update state listener and diagnostics panel accordingly | Implementation Agent | 3.2, 3.2.1 | To Do |
+| 3.4.1 | Test state updates with cursor interactions | Testing Agent | 3.3 | To Do |
+| 3.5 | Extend debug page UI to display updated state | Implementation Agent | 3.3, 3.3.1 | To Do |
 | 3.5.1 | Test debug UI updates with state changes | Testing Agent | 3.5 | To Do |
 | 3.6 | Write comprehensive Playwright tests for all Phase 3 functionality | Testing Agent | 3.1-3.5.1 | To Do |
 
