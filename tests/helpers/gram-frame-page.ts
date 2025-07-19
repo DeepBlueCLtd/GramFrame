@@ -96,6 +96,47 @@ export class GramFramePage {
   }
 
   /**
+   * Drag from one position to another on the SVG
+   * @param startX Starting X coordinate
+   * @param startY Starting Y coordinate
+   * @param endX Ending X coordinate
+   * @param endY Ending Y coordinate
+   */
+  async dragSVG(startX: number, startY: number, endX: number, endY: number) {
+    // Use Playwright's mouse API for precise drag control
+    await this.page.mouse.move(startX, startY)
+    await this.page.mouse.down()
+    await this.page.mouse.move(endX, endY)
+    await this.page.mouse.up()
+  }
+
+  /**
+   * Start a drag at specific coordinates on the SVG
+   * @param x X coordinate
+   * @param y Y coordinate
+   */
+  async startDragSVG(x: number, y: number) {
+    const svgBox = await this.svg.boundingBox()
+    if (svgBox) {
+      await this.page.mouse.move(svgBox.x + x, svgBox.y + y)
+      await this.page.mouse.down()
+    }
+  }
+
+  /**
+   * End a drag at specific coordinates on the SVG
+   * @param x X coordinate
+   * @param y Y coordinate
+   */
+  async endDragSVG(x: number, y: number) {
+    const svgBox = await this.svg.boundingBox()
+    if (svgBox) {
+      await this.page.mouse.move(svgBox.x + x, svgBox.y + y)
+      await this.page.mouse.up()
+    }
+  }
+
+  /**
    * Verify the value of an LED display
    * @param label The label of the LED display (e.g., "Frequency", "Time", "Mode")
    * @param expectedValueRegex Regular expression to match the expected value

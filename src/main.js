@@ -13,6 +13,14 @@ const initialState = {
   rate: 1,
   cursorPosition: null,
   cursors: [],
+  harmonics: {
+    baseFrequency: null,
+    harmonicData: []
+  },
+  dragState: {
+    isDragging: false,
+    dragStartPosition: null
+  },
   imageDetails: {
     url: '',
     naturalWidth: 0,  // Original dimensions of the image
@@ -200,12 +208,16 @@ class GramFrame {
     this._boundHandleMouseMove = this._handleMouseMove.bind(this)
     this._boundHandleMouseLeave = this._handleMouseLeave.bind(this)
     this._boundHandleClick = this._handleClick.bind(this)
+    this._boundHandleMouseDown = this._handleMouseDown.bind(this)
+    this._boundHandleMouseUp = this._handleMouseUp.bind(this)
     this._boundHandleResize = this._handleResize.bind(this)
     
     // SVG mouse events
     this.svg.addEventListener('mousemove', this._boundHandleMouseMove)
     this.svg.addEventListener('mouseleave', this._boundHandleMouseLeave)
     this.svg.addEventListener('click', this._boundHandleClick)
+    this.svg.addEventListener('mousedown', this._boundHandleMouseDown)
+    this.svg.addEventListener('mouseup', this._boundHandleMouseUp)
     
     // Mode button events
     Object.keys(this.modeButtons).forEach(mode => {
@@ -349,6 +361,11 @@ class GramFrame {
     // Update visual cursor indicators
     this._updateCursorIndicators()
     
+    // In Analysis mode, update harmonics during drag
+    if (this.state.mode === 'analysis' && this.state.dragState.isDragging) {
+      this._triggerHarmonicsDisplay()
+    }
+    
     // Notify listeners
     this._notifyStateListeners()
   }
@@ -367,8 +384,44 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  _handleMouseDown(event) {
+    // Only process if we have valid image details
+    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
+    
+    // Start drag state in Analysis mode for harmonics
+    if (this.state.mode === 'analysis' && this.state.cursorPosition) {
+      this.state.dragState.isDragging = true
+      this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
+      
+      // Trigger harmonics display immediately on mouse down
+      this._triggerHarmonicsDisplay()
+    }
+  }
+  
+  _handleMouseUp(event) {
+    // End drag state
+    if (this.state.dragState.isDragging) {
+      this.state.dragState.isDragging = false
+      this.state.dragState.dragStartPosition = null
+      
+      // Clear harmonics state when drag ends
+      this.state.harmonics.baseFrequency = null
+      this.state.harmonics.harmonicData = []
+      
+      // Update displays and indicators
+      this._updateLEDDisplays()
+      this._updateCursorIndicators()
+      
+      // Notify listeners of state change
+      this._notifyStateListeners()
+    }
+  }
+  
   _handleClick(event) {
-    // This will be implemented in Phase 3
+    // Click events are not used for harmonics mode anymore (now using drag)
+    // Doppler mode will be implemented later
+    // Analysis mode does not use clicks
+    
     console.log('Canvas clicked')
   }
   
@@ -380,6 +433,8 @@ class GramFrame {
       this.svg.removeEventListener('mousemove', this._boundHandleMouseMove)
       this.svg.removeEventListener('mouseleave', this._boundHandleMouseLeave)
       this.svg.removeEventListener('click', this._boundHandleClick)
+      this.svg.removeEventListener('mousedown', this._boundHandleMouseDown)
+      this.svg.removeEventListener('mouseup', this._boundHandleMouseUp)
     }
     
     if (this._boundHandleResize) {
@@ -630,6 +685,16 @@ class GramFrame {
     // Update state
     this.state.mode = mode
     
+    // Clear harmonics state when switching away from analysis mode
+    if (mode !== 'analysis') {
+      this.state.harmonics.baseFrequency = null
+      this.state.harmonics.harmonicData = []
+    }
+    
+    // Clear drag state when switching modes
+    this.state.dragState.isDragging = false
+    this.state.dragState.dragStartPosition = null
+    
     // Update UI
     Object.keys(this.modeButtons).forEach(m => {
       if (m === mode) {
@@ -639,8 +704,12 @@ class GramFrame {
       }
     })
     
+    // Clear existing cursor indicators and redraw for new mode
+    this._updateCursorIndicators()
+    
     // Update LED display
     this._updateModeLED()
+    this._updateLEDDisplays()
     
     // Notify listeners
     this._notifyStateListeners()
@@ -662,13 +731,24 @@ class GramFrame {
       return
     }
     
-    // Update frequency LED - use 1 decimal place for Analysis mode as per spec
-    const freqValue = this.state.cursorPosition.freq.toFixed(1)
-    this.freqLED.querySelector('.gram-frame-led-value').textContent = `Freq: ${freqValue} Hz`
-    
-    // Update time LED - use 2 decimal places for Analysis mode as per spec
-    const timeValue = this.state.cursorPosition.time.toFixed(2)
-    this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
+    // Mode-specific LED formatting
+    if (this.state.mode === 'analysis' && this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
+      // For Analysis mode during drag, show base frequency for harmonics
+      const baseFreqValue = this.state.harmonics.baseFrequency.toFixed(1)
+      this.freqLED.querySelector('.gram-frame-led-value').textContent = `Base: ${baseFreqValue} Hz`
+      
+      // Still show time
+      const timeValue = this.state.cursorPosition.time.toFixed(2)
+      this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
+    } else {
+      // For normal mode operation - use 1 decimal place for frequency as per spec
+      const freqValue = this.state.cursorPosition.freq.toFixed(1)
+      this.freqLED.querySelector('.gram-frame-led-value').textContent = `Freq: ${freqValue} Hz`
+      
+      // Update time LED - use 2 decimal places as per spec
+      const timeValue = this.state.cursorPosition.time.toFixed(2)
+      this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
+    }
   }
   
   _updateModeLED() {
@@ -683,14 +763,27 @@ class GramFrame {
     
     // Only draw indicators if cursor position is available
     if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
+      // In harmonics mode, if we have harmonic data but no cursor position, clear the harmonics
+      if (this.state.mode === 'harmonics' && this.state.harmonics.baseFrequency !== null) {
+        // Keep harmonics state but don't draw anything when cursor is outside
+        return
+      }
       return
     }
     
-    // Only show cross-hairs in Analysis mode
-    if (this.state.mode !== 'analysis') {
-      return
+    // Handle different modes
+    if (this.state.mode === 'analysis') {
+      this._drawAnalysisMode()
+      
+      // In Analysis mode, also draw harmonics if dragging
+      if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
+        this._drawHarmonicsMode()
+      }
     }
-    
+    // Doppler mode will be implemented later
+  }
+  
+  _drawAnalysisMode() {
     const margins = this.state.axes.margins
     const { naturalWidth, naturalHeight } = this.state.imageDetails
     
@@ -739,6 +832,125 @@ class GramFrame {
     centerPoint.setAttribute('r', '3')
     centerPoint.setAttribute('class', 'gram-frame-cursor-point')
     this.cursorGroup.appendChild(centerPoint)
+  }
+  
+  _triggerHarmonicsDisplay() {
+    // Only trigger if we have a cursor position, are in analysis mode, and are dragging
+    if (!this.state.cursorPosition || this.state.mode !== 'analysis' || !this.state.dragState.isDragging) {
+      return
+    }
+    
+    const baseFrequency = this.state.cursorPosition.freq
+    
+    // Calculate harmonic frequencies and their positions
+    const harmonics = this._calculateHarmonics(baseFrequency)
+    
+    // Update state with harmonic data
+    this.state.harmonics.baseFrequency = baseFrequency
+    this.state.harmonics.harmonicData = harmonics
+    
+    // Update LED displays to show base frequency
+    this._updateLEDDisplays()
+    
+    // Redraw cursor indicators to show harmonics
+    this._updateCursorIndicators()
+    
+    // Notify listeners of state change
+    this._notifyStateListeners()
+  }
+  
+  _drawHarmonicsMode() {
+    // This method now only draws the harmonics that have been calculated
+    // It doesn't calculate them - that's done in _triggerHarmonicsDisplay
+    const harmonics = this.state.harmonics.harmonicData
+    
+    // Draw harmonic lines and labels
+    harmonics.forEach((harmonic, index) => {
+      this._drawHarmonicLine(harmonic, index === 0)
+      this._drawHarmonicLabels(harmonic, index === 0)
+    })
+  }
+  
+  _calculateHarmonics(baseFrequency) {
+    const { freqMin, freqMax } = this.state.config
+    const harmonics = []
+    
+    // Start with the base frequency (1x harmonic)
+    let harmonicNumber = 1
+    let harmonicFreq = baseFrequency * harmonicNumber
+    
+    // Add harmonics while they're within the visible frequency range
+    while (harmonicFreq <= freqMax && harmonics.length < 10) { // Limit to 10 harmonics max
+      if (harmonicFreq >= freqMin) {
+        // Convert frequency to SVG x-coordinate
+        const dataCoords = this._dataToSVGCoordinates(harmonicFreq, 0)
+        const svgX = this.state.axes.margins.left + dataCoords.x
+        
+        harmonics.push({
+          number: harmonicNumber,
+          frequency: harmonicFreq,
+          svgX: svgX
+        })
+      }
+      
+      harmonicNumber++
+      harmonicFreq = baseFrequency * harmonicNumber
+    }
+    
+    return harmonics
+  }
+  
+  _drawHarmonicLine(harmonic, isMainLine) {
+    const margins = this.state.axes.margins
+    const { naturalHeight } = this.state.imageDetails
+    
+    // Draw shadow line first for visibility
+    const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    shadowLine.setAttribute('x1', harmonic.svgX)
+    shadowLine.setAttribute('y1', margins.top)
+    shadowLine.setAttribute('x2', harmonic.svgX)
+    shadowLine.setAttribute('y2', margins.top + naturalHeight)
+    shadowLine.setAttribute('class', 'gram-frame-harmonic-shadow')
+    this.cursorGroup.appendChild(shadowLine)
+    
+    // Draw main line
+    const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    mainLine.setAttribute('x1', harmonic.svgX)
+    mainLine.setAttribute('y1', margins.top)
+    mainLine.setAttribute('x2', harmonic.svgX)
+    mainLine.setAttribute('y2', margins.top + naturalHeight)
+    
+    // Use distinct styling for the main line (1×) as specified
+    if (isMainLine) {
+      mainLine.setAttribute('class', 'gram-frame-harmonic-main')
+    } else {
+      mainLine.setAttribute('class', 'gram-frame-harmonic-line')
+    }
+    
+    this.cursorGroup.appendChild(mainLine)
+  }
+  
+  _drawHarmonicLabels(harmonic, isMainLine) {
+    const margins = this.state.axes.margins
+    const labelY = margins.top + 15 // Position labels near the top
+    
+    // Create harmonic number label (left side of line)
+    const numberLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    numberLabel.setAttribute('x', harmonic.svgX - 5)
+    numberLabel.setAttribute('y', labelY)
+    numberLabel.setAttribute('text-anchor', 'end')
+    numberLabel.setAttribute('class', 'gram-frame-harmonic-label')
+    numberLabel.textContent = `${harmonic.number}×`
+    this.cursorGroup.appendChild(numberLabel)
+    
+    // Create frequency label (right side of line)
+    const frequencyLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    frequencyLabel.setAttribute('x', harmonic.svgX + 5)
+    frequencyLabel.setAttribute('y', labelY)
+    frequencyLabel.setAttribute('text-anchor', 'start')
+    frequencyLabel.setAttribute('class', 'gram-frame-harmonic-label')
+    frequencyLabel.textContent = `${Math.round(harmonic.frequency)} Hz`
+    this.cursorGroup.appendChild(frequencyLabel)
   }
   
   _capitalizeFirstLetter(string) {

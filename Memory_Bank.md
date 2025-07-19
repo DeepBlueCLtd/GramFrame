@@ -530,6 +530,361 @@ Initial test failures due to using `toBeVisible()` instead of `toHaveCount()` fo
 Ready to proceed with Task 4.3: Harmonics Mode Implementation.
 
 ---
+**Agent:** Implementation Agent
+**Task Reference:** Phase 4, Task 4.3: Harmonics Mode Implementation
+
+**Summary:**
+Implemented Harmonics mode functionality with click-based harmonic line display, base frequency tracking, harmonic label rendering, and comprehensive test coverage per Gram-Modes.md specifications.
+
+**Details:**
+- **Click-Based Interaction:** Implemented click-to-trigger harmonics display (corrected from initial hover-based approach per user feedback)
+- **Harmonic Line Calculation:** Added `_calculateHarmonics()` method that computes integer multiples of base frequency within visible frequency range
+- **Visual Harmonic Lines:** Created vertical lines at harmonic frequencies (1×, 2×, 3×, etc.) extending full height of spectrogram
+- **Distinct Main Line Styling:** Main line (1×) has gold color (rgba(255, 215, 0, 0.9)) and 2px width, while other harmonics are yellow (rgba(255, 255, 0, 0.8)) and 1px width
+- **Harmonic Labels:** Added labels showing harmonic number ("2×") on left and frequency ("440 Hz") on right of each line
+- **Enhanced LED Display:** Shows "Base: 220.0 Hz" format when harmonics are active, otherwise standard "Freq: X.X Hz" format
+- **State Management Integration:** Extended state with harmonics object containing baseFrequency and harmonicData arrays
+- **Shadow Lines for Visibility:** Implemented white shadow lines (3px) behind harmonic lines for optimal visibility against spectrogram backgrounds
+- **Mode-Specific Behavior:** Harmonics only appear when in Harmonics mode and harmonics have been triggered by click
+- **Persistent State:** Harmonic state persists until mode change, but visual display requires cursor position over spectrogram
+
+**Code Implementation:**
+```javascript
+// Enhanced state structure with harmonics support
+const initialState = {
+  // ... existing properties ...
+  harmonics: {
+    baseFrequency: null,
+    harmonicData: []
+  }
+}
+
+// Click handler enhanced for harmonics mode
+_handleClick(event) {
+  if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
+  
+  if (this.state.mode === 'harmonics') {
+    this._triggerHarmonicsDisplay()
+  }
+}
+
+// Harmonics calculation and display trigger
+_triggerHarmonicsDisplay() {
+  if (!this.state.cursorPosition || this.state.mode !== 'harmonics') return
+  
+  const baseFrequency = this.state.cursorPosition.freq
+  const harmonics = this._calculateHarmonics(baseFrequency)
+  
+  this.state.harmonics.baseFrequency = baseFrequency
+  this.state.harmonics.harmonicData = harmonics
+  
+  this._updateLEDDisplays()
+  this._updateCursorIndicators()
+  this._notifyStateListeners()
+}
+
+// Harmonic frequency calculation
+_calculateHarmonics(baseFrequency) {
+  const { freqMin, freqMax } = this.state.config
+  const harmonics = []
+  
+  let harmonicNumber = 1
+  let harmonicFreq = baseFrequency * harmonicNumber
+  
+  while (harmonicFreq <= freqMax && harmonics.length < 10) {
+    if (harmonicFreq >= freqMin) {
+      const dataCoords = this._dataToSVGCoordinates(harmonicFreq, 0)
+      const svgX = this.state.axes.margins.left + dataCoords.x
+      
+      harmonics.push({
+        number: harmonicNumber,
+        frequency: harmonicFreq,
+        svgX: svgX
+      })
+    }
+    harmonicNumber++
+    harmonicFreq = baseFrequency * harmonicNumber
+  }
+  
+  return harmonics
+}
+
+// Mode-specific cursor indicator rendering
+_updateCursorIndicators() {
+  this.cursorGroup.innerHTML = ''
+  
+  if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
+    if (this.state.mode === 'harmonics' && this.state.harmonics.baseFrequency !== null) {
+      return // Keep harmonics state but don't draw without cursor
+    }
+    return
+  }
+  
+  if (this.state.mode === 'analysis') {
+    this._drawAnalysisMode()
+  } else if (this.state.mode === 'harmonics' && this.state.harmonics.baseFrequency !== null) {
+    this._drawHarmonicsMode()
+  }
+}
+
+// Harmonics mode visual rendering
+_drawHarmonicsMode() {
+  const harmonics = this.state.harmonics.harmonicData
+  
+  harmonics.forEach((harmonic, index) => {
+    this._drawHarmonicLine(harmonic, index === 0)
+    this._drawHarmonicLabels(harmonic, index === 0)
+  })
+}
+
+// Enhanced LED display for harmonics mode
+_updateLEDDisplays() {
+  if (!this.state.cursorPosition) {
+    this.freqLED.querySelector('.gram-frame-led-value').textContent = 'Freq: 0.00 Hz'
+    this.timeLED.querySelector('.gram-frame-led-value').textContent = 'Time: 0.00 s'
+    return
+  }
+  
+  if (this.state.mode === 'harmonics' && this.state.harmonics.baseFrequency !== null) {
+    const baseFreqValue = this.state.harmonics.baseFrequency.toFixed(1)
+    this.freqLED.querySelector('.gram-frame-led-value').textContent = `Base: ${baseFreqValue} Hz`
+    
+    const timeValue = this.state.cursorPosition.time.toFixed(2)
+    this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
+  } else {
+    const freqValue = this.state.cursorPosition.freq.toFixed(1)
+    this.freqLED.querySelector('.gram-frame-led-value').textContent = `Freq: ${freqValue} Hz`
+    
+    const timeValue = this.state.cursorPosition.time.toFixed(2)
+    this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
+  }
+}
+```
+
+**CSS Styling:**
+```css
+/* SVG Harmonic line styles */
+.gram-frame-harmonic-shadow {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 3;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-harmonic-main {
+  stroke: rgba(255, 215, 0, 0.9); /* Gold color for main line (1×) */
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-harmonic-line {
+  stroke: rgba(255, 255, 0, 0.8); /* Yellow for other harmonics */
+  stroke-width: 1;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+/* SVG Harmonic labels */
+.gram-frame-harmonic-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 10px;
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.8);
+  stroke-width: 0.5;
+  paint-order: stroke;
+  pointer-events: none;
+  dominant-baseline: central;
+}
+```
+
+**Test Coverage:**
+Created comprehensive test suite `tests/harmonics-mode.spec.ts` with 12 test cases:
+1. Harmonic lines appear only in Harmonics mode on click (not hover)
+2. Harmonic lines are positioned at correct frequency multiples
+3. Main harmonic line (1×) has distinct styling (gold color, thicker)
+4. Harmonic labels show correct harmonic numbers and frequencies
+5. LED display shows base frequency in Harmonics mode
+6. Harmonic lines extend full height of spectrogram
+7. Harmonics mode operates on click with persistent state until mode change
+8. Harmonic lines update when clicking at different positions
+9. Harmonic calculation handles edge cases correctly
+10. Harmonics state is properly tracked in diagnostics
+11. Harmonic lines have optimal visibility styling
+12. Mode indicator shows "Harmonics" when in harmonics mode
+
+**Test Results:**
+- All 12 harmonics mode tests pass
+- Complete test suite (65 tests total) passes with no regressions
+- Verified harmonics behavior matches Gram-Modes.md specifications:
+  - Click-based interaction (not hover)
+  - Vertical lines at integer multiples of base frequency
+  - Main line distinct styling (dark + light shadow)
+  - Labels with harmonic numbers and frequencies
+  - LED shows base frequency format
+  - Lines extend full height of spectrogram
+  - Hover-only operation with no persistent click state corrected to click-based with persistent state
+
+**Status:** Completed
+
+**Issues/Blockers:**
+Initial implementation used hover-based interaction, but user corrected this to click-based. Updated implementation and all tests accordingly. All tests now pass.
+
+**Next Steps:**
+Ready to proceed with Task 4.4: Doppler Mode Implementation or other Phase 4 tasks.
+
+---
+**Agent:** Implementation Agent  
+**Task Reference:** Phase 4, Task 4.3: Harmonics Mode Implementation - Updated to Analysis Mode Drag Interaction
+
+**Summary:**
+Updated Harmonics implementation to integrate with Analysis mode using drag interaction instead of separate Harmonics mode, per updated Gram-Modes.md specifications.
+
+**Details:**
+- **Integration with Analysis Mode:** Harmonics functionality is now part of Analysis mode rather than a separate mode
+- **Drag-Based Interaction:** Harmonics appear when dragging in Analysis mode (not on click or hover)
+- **Dual Analysis Behavior:** Analysis mode now supports both basic cross-hair analysis (hover) and harmonics analysis (drag)
+- **State Management:** Added dragState tracking with isDragging flag and dragStartPosition
+- **Harmonics Display:** Harmonics lines and labels appear during mouse drag and disappear when drag ends
+- **LED Display Integration:** Shows "Base: X.X Hz" format during drag, returns to "Freq: X.X Hz" when not dragging
+- **Enhanced Event Handling:** Added mousedown and mouseup handlers for drag detection
+- **State Cleanup:** Harmonics state automatically clears when drag ends or mode changes
+
+**Updated Code Implementation:**
+```javascript
+// Enhanced state with drag tracking
+const initialState = {
+  // ... existing properties ...
+  dragState: {
+    isDragging: false,
+    dragStartPosition: null
+  }
+}
+
+// Drag detection
+_handleMouseDown(event) {
+  if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
+  
+  if (this.state.mode === 'analysis' && this.state.cursorPosition) {
+    this.state.dragState.isDragging = true
+    this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
+    this._triggerHarmonicsDisplay()
+  }
+}
+
+_handleMouseUp(event) {
+  if (this.state.dragState.isDragging) {
+    this.state.dragState.isDragging = false
+    this.state.dragState.dragStartPosition = null
+    
+    // Clear harmonics state when drag ends
+    this.state.harmonics.baseFrequency = null
+    this.state.harmonics.harmonicData = []
+    
+    this._updateLEDDisplays()
+    this._updateCursorIndicators()
+    this._notifyStateListeners()
+  }
+}
+
+// Integrated rendering for Analysis mode
+_updateCursorIndicators() {
+  // ... existing code ...
+  
+  if (this.state.mode === 'analysis') {
+    this._drawAnalysisMode()
+    
+    // Also draw harmonics if dragging
+    if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
+      this._drawHarmonicsMode()
+    }
+  }
+}
+
+// Enhanced LED display for drag state
+_updateLEDDisplays() {
+  // ... existing code ...
+  
+  if (this.state.mode === 'analysis' && this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
+    // Show base frequency during drag
+    const baseFreqValue = this.state.harmonics.baseFrequency.toFixed(1)
+    this.freqLED.querySelector('.gram-frame-led-value').textContent = `Base: ${baseFreqValue} Hz`
+  } else {
+    // Normal frequency display
+    const freqValue = this.state.cursorPosition.freq.toFixed(1)
+    this.freqLED.querySelector('.gram-frame-led-value').textContent = `Freq: ${freqValue} Hz`
+  }
+}
+```
+
+**Test Framework Enhancement:**
+```javascript
+// Added drag simulation methods to test helper
+async dragSVG(startX: number, startY: number, endX: number, endY: number) {
+  await this.page.mouse.move(startX, startY)
+  await this.page.mouse.down()
+  await this.page.mouse.move(endX, endY)
+  await this.page.mouse.up()
+}
+
+async startDragSVG(x: number, y: number) {
+  const svgBox = await this.svg.boundingBox()
+  if (svgBox) {
+    await this.page.mouse.move(svgBox.x + x, svgBox.y + y)
+    await this.page.mouse.down()
+  }
+}
+
+async endDragSVG(x: number, y: number) {
+  const svgBox = await this.svg.boundingBox()
+  if (svgBox) {
+    await this.page.mouse.move(svgBox.x + x, svgBox.y + y)
+    await this.page.mouse.up()
+  }
+}
+```
+
+**Updated Test Coverage:**
+Revised test suite to focus on Analysis mode drag functionality:
+1. Harmonic lines appear in Analysis mode on drag (cross-hairs + harmonics)
+2. Harmonic lines are positioned at correct frequency multiples during drag
+3. Harmonics disappear when drag ends but cross-hairs remain
+4. State management properly tracks drag state and harmonics data
+5. LED display shows base frequency format during drag
+
+**Behavioral Changes:**
+- **From:** Separate Harmonics mode with click interaction
+- **To:** Integrated Analysis mode with drag interaction
+- **User Experience:** Hover shows cross-hairs, drag reveals harmonic relationships
+- **State Persistence:** Harmonics clear automatically when drag ends (not persistent)
+- **Mode Integration:** All functionality accessible through single Analysis mode
+
+**Test Results:**
+- 5 core tests passing for drag-based harmonics in Analysis mode
+- Integration verified with existing Analysis mode cross-hair functionality
+- Drag state management working correctly
+- LED display format switching validated
+
+**Specification Compliance:**
+Implementation now matches updated Gram-Modes.md specification:
+- Analysis mode supports both hover (basic) and drag (harmonics) interactions
+- Harmonics appear as vertical lines at integer multiples during drag
+- Main line (1×) has distinct gold styling
+- Labels show harmonic numbers and frequencies
+- Base frequency displayed in LED during drag
+
+**Status:** Completed - Harmonics functionality successfully integrated into Analysis mode with drag interaction
+
+**Issues/Blockers:**
+None. Implementation successfully updated to match revised specifications.
+
+**Next Steps:**
+Ready to proceed with Task 4.4: Doppler Mode Implementation.
+
+---
 
 ## Technical Decisions
 **Date: July 18, 2025**
