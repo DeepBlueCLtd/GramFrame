@@ -657,18 +657,18 @@ class GramFrame {
   _updateLEDDisplays() {
     if (!this.state.cursorPosition) {
       // Show default values when no cursor position
-      this.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00 Hz'
-      this.timeLED.querySelector('.gram-frame-led-value').textContent = '0.00 s'
+      this.freqLED.querySelector('.gram-frame-led-value').textContent = 'Freq: 0.00 Hz'
+      this.timeLED.querySelector('.gram-frame-led-value').textContent = 'Time: 0.00 s'
       return
     }
     
-    // Update frequency LED
-    const freqValue = this.state.cursorPosition.freq.toFixed(2)
-    this.freqLED.querySelector('.gram-frame-led-value').textContent = `${freqValue} Hz`
+    // Update frequency LED - use 1 decimal place for Analysis mode as per spec
+    const freqValue = this.state.cursorPosition.freq.toFixed(1)
+    this.freqLED.querySelector('.gram-frame-led-value').textContent = `Freq: ${freqValue} Hz`
     
-    // Update time LED
+    // Update time LED - use 2 decimal places for Analysis mode as per spec
     const timeValue = this.state.cursorPosition.time.toFixed(2)
-    this.timeLED.querySelector('.gram-frame-led-value').textContent = `${timeValue} s`
+    this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
   }
   
   _updateModeLED() {
@@ -683,6 +683,11 @@ class GramFrame {
     
     // Only draw indicators if cursor position is available
     if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
+      return
+    }
+    
+    // Only show cross-hairs in Analysis mode
+    if (this.state.mode !== 'analysis') {
       return
     }
     

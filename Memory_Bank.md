@@ -440,6 +440,96 @@ None. The implementation was already present and functional, requiring only comp
 Ready to proceed with Task 4.2: Analysis Mode Implementation.
 
 ---
+**Agent:** Implementation Agent
+**Task Reference:** Phase 4, Task 4.2: Analysis Mode Implementation
+
+**Summary:**
+Implemented Analysis mode functionality with mode-specific cross-hair display, enhanced LED formatting, and comprehensive test coverage ensuring cross-hairs only appear in Analysis mode as per Gram-Modes.md specifications.
+
+**Details:**
+- **Cross-hair Mode Restriction:** Modified `_updateCursorIndicators()` to only display cross-hairs when `this.state.mode === 'analysis'`
+- **Enhanced LED Display Formatting:** Updated LED display format to match specification:
+  - Frequency: "Freq: 734.2 Hz" (1 decimal place) 
+  - Time: "Time: 5.84 s" (2 decimal places)
+  - Default values: "Freq: 0.00 Hz" and "Time: 0.00 s"
+- **Hover-only Interaction:** Verified Analysis mode operates on hover only with no persistent click state
+- **Existing Cross-hair Infrastructure:** Leveraged existing cross-hair implementation from Phase 3:
+  - Vertical and horizontal lines with shadow technique for visibility
+  - Center point indicator with red fill and white stroke
+  - Full spectrogram width/height coverage
+  - Proper SVG coordinate handling with margins
+- **Test Infrastructure Enhancement:** Enhanced `GramFramePage` helper with additional methods:
+  - `getCurrentState()` alias for consistency
+  - `moveMouseToSpectrogram()` for mouse interaction testing
+- **Comprehensive Test Coverage:** Created `tests/analysis-mode.spec.ts` with 9 test cases:
+  1. Cross-hairs appear only in Analysis mode (not in Harmonics/Doppler)
+  2. Cross-hairs follow mouse movement in Analysis mode
+  3. LED display shows correct Analysis mode formatting
+  4. LED display shows default values when mouse is outside spectrogram
+  5. Analysis mode operates on hover only with no click interactions
+  6. Cross-hairs extend across full width and height of spectrogram
+  7. Cross-hairs have optimal visibility styling
+  8. Analysis mode state is properly tracked in diagnostics
+  9. Analysis mode integrates correctly with existing mouse tracking
+- **Regression Fix:** Updated existing tests to match new LED format expectations
+
+**Code Implementation:**
+```javascript
+// Modified cursor indicator method to be mode-specific
+_updateCursorIndicators() {
+  // Clear existing cursor indicators
+  this.cursorGroup.innerHTML = ''
+  
+  // Only draw indicators if cursor position is available
+  if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
+    return
+  }
+  
+  // Only show cross-hairs in Analysis mode
+  if (this.state.mode !== 'analysis') {
+    return
+  }
+  
+  // ... existing cross-hair creation code continues unchanged ...
+}
+
+// Enhanced LED display formatting to match specification
+_updateLEDDisplays() {
+  if (!this.state.cursorPosition) {
+    // Show default values when no cursor position
+    this.freqLED.querySelector('.gram-frame-led-value').textContent = 'Freq: 0.00 Hz'
+    this.timeLED.querySelector('.gram-frame-led-value').textContent = 'Time: 0.00 s'
+    return
+  }
+  
+  // Update frequency LED - use 1 decimal place for Analysis mode as per spec
+  const freqValue = this.state.cursorPosition.freq.toFixed(1)
+  this.freqLED.querySelector('.gram-frame-led-value').textContent = `Freq: ${freqValue} Hz`
+  
+  // Update time LED - use 2 decimal places for Analysis mode as per spec
+  const timeValue = this.state.cursorPosition.time.toFixed(2)
+  this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
+}
+```
+
+**Test Results:**
+- All 9 new Analysis mode tests pass
+- Complete test suite (53 tests total) passes with no regressions
+- Verified Analysis mode behavior matches Gram-Modes.md specifications:
+  - Cross-hairs appear only in Analysis mode
+  - LED format matches "Freq: 734.2 Hz" and "Time: 5.84 s" specification
+  - Hover-only interaction confirmed
+  - Integration with existing mouse tracking maintained
+
+**Status:** Completed
+
+**Issues/Blockers:**
+Initial test failures due to using `toBeVisible()` instead of `toHaveCount()` for SVG element detection. Resolved by aligning with existing cursor display test patterns.
+
+**Next Steps:**
+Ready to proceed with Task 4.3: Harmonics Mode Implementation.
+
+---
 
 ## Technical Decisions
 **Date: July 18, 2025**

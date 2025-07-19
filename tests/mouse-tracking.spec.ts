@@ -172,8 +172,8 @@ test.describe('Mouse Tracking Implementation', () => {
       const freqValueAfter = await freqLED.locator('.gram-frame-led-value').textContent()
       const timeValueAfter = await timeLED.locator('.gram-frame-led-value').textContent()
       
-      expect(freqValueAfter).toBe('0.00 Hz')
-      expect(timeValueAfter).toBe('0.00 s')
+      expect(freqValueAfter).toBe('Freq: 0.00 Hz')
+      expect(timeValueAfter).toBe('Time: 0.00 s')
     }
   })
 })
