@@ -4,13 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GramFrame Debug Page</title>
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       padding: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
+      margin: 0;
     }
     
     h1 {
@@ -31,8 +30,16 @@
       padding: 15px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      flex-basis: calc(50% - 10px);
+      flex-basis: calc(60% - 10px);
       box-sizing: border-box;
+    }
+    
+    .component-container {
+      flex-basis: calc(70% - 10px);
+    }
+    
+    .diagnostics-panel {
+      flex-basis: calc(30% - 10px);
     }
     
     @media (max-width: 768px) {

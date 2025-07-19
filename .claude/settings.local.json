@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn init:*)",
+      "Bash(yarn add:*)",
+      "Bash(mkdir:*)",
+      "Bash(yarn build-plugin:*)",
+      "Bash(rm:*)",
+      "Bash(npx husky:*)",
+      "Bash(ls:*)",
+      "Bash(chmod:*)",
+      "Bash(yarn test)",
+      "Bash(yarn lint)",
+      "Bash(yarn format)",
+      "Bash(yarn lint:*)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(npm run build:*)",
+      "Bash(yarn build)",
+      "Bash(find:*)",
+      "Bash(yarn dev)",
+      "Bash(npm run test:integration:*)",
+      "Bash(npx:*)",
+      "Bash(yarn test:*)",
+      "Bash(timeout 30s yarn test:integration --grep \"should display BackChannel icon after initialization\")",
+      "Bash(pkill:*)",
+      "Bash(mv:*)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(npm run test:*)",
+      "Bash(yarn test)",
+      "Bash(yarn test:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}

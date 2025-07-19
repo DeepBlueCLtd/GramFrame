@@ -27,6 +27,14 @@ const initialState = {
   displayDimensions: {  // Current display dimensions (responsive)
     width: 0,
     height: 0
+  },
+  axes: {
+    margins: {
+      left: 60,    // Space for time axis labels
+      bottom: 50,  // Space for frequency axis labels  
+      right: 15,   // Small right margin
+      top: 15      // Small top margin
+    }
   }
 }
 
@@ -47,10 +55,32 @@ class GramFrame {
     
     // Component container is now set up
     
-    // Create canvas element for rendering
-    this.canvas = document.createElement('canvas')
-    this.canvas.className = 'gram-frame-canvas'
-    this.container.appendChild(this.canvas)
+    // Create SVG element for rendering
+    this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    this.svg.setAttribute('class', 'gram-frame-svg')
+    this.svg.setAttribute('width', '100%')
+    this.svg.setAttribute('height', 'auto')
+    this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+    this.container.appendChild(this.svg)
+    
+    // Create main group for content with margins for axes
+    this.mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    this.mainGroup.setAttribute('class', 'gram-frame-main-group')
+    this.svg.appendChild(this.mainGroup)
+    
+    // Create image element within main group for spectrogram
+    this.svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
+    this.svgImage.setAttribute('class', 'gram-frame-image')
+    this.mainGroup.appendChild(this.svgImage)
+    
+    // Create groups for axes
+    this.timeAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    this.timeAxisGroup.setAttribute('class', 'gram-frame-time-axis')
+    this.svg.appendChild(this.timeAxisGroup)
+    
+    this.freqAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    this.freqAxisGroup.setAttribute('class', 'gram-frame-freq-axis')
+    this.svg.appendChild(this.freqAxisGroup)
     
     // Create LED readout panel
     this.readoutPanel = document.createElement('div')
@@ -69,16 +99,20 @@ class GramFrame {
     // Replace the table with our container
     if (configTable && configTable.parentNode) {
       configTable.parentNode.replaceChild(this.container, configTable)
+      
+      // Store a reference to this instance on the container element
+      // This allows the state listener mechanism to access the instance
+      this.container.__gramFrameInstance = this
     }
     
     // Extract config data from table
     this._extractConfigData()
     
-    // Setup canvas context
-    this.ctx = this.canvas.getContext('2d')
-    
     // Setup event listeners
     this._setupEventListeners()
+    
+    // Setup ResizeObserver for responsive behavior
+    this._setupResizeObserver()
     
     // Notify listeners of initial state
     this._notifyStateListeners()
@@ -157,9 +191,9 @@ class GramFrame {
   }
   
   _setupEventListeners() {
-    // Canvas mouse events
-    this.canvas.addEventListener('mousemove', this._handleMouseMove.bind(this))
-    this.canvas.addEventListener('click', this._handleClick.bind(this))
+    // SVG mouse events
+    this.svg.addEventListener('mousemove', this._handleMouseMove.bind(this))
+    this.svg.addEventListener('click', this._handleClick.bind(this))
     
     // Mode button events
     Object.keys(this.modeButtons).forEach(mode => {
@@ -180,25 +214,63 @@ class GramFrame {
     window.addEventListener('resize', this._handleResize.bind(this))
   }
   
+  _setupResizeObserver() {
+    // Use ResizeObserver to monitor SVG container dimensions
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          this._handleSVGResize(entry.contentRect)
+        }
+      })
+      this.resizeObserver.observe(this.container)
+    }
+  }
+  
   _handleResize() {
+    // Delegate to SVG resize handler
+    const containerRect = this.container.getBoundingClientRect()
+    this._handleSVGResize(containerRect)
+  }
+  
+  _handleSVGResize(containerRect) {
     // Only handle resize if we have a valid image
     if (!this.spectrogramImage) return
-    
-    // Get the current container width
-    const containerWidth = this.container.clientWidth
     
     // Calculate new dimensions while maintaining aspect ratio
     const originalWidth = this.spectrogramImage.naturalWidth
     const originalHeight = this.spectrogramImage.naturalHeight
     const aspectRatio = originalWidth / originalHeight
     
-    // Set new canvas dimensions
-    let newWidth = containerWidth
-    let newHeight = containerWidth / aspectRatio
+    // Account for axes margins
+    const margins = this.state.axes.margins
+    const totalMarginWidth = margins.left + margins.right
+    const totalMarginHeight = margins.top + margins.bottom
     
-    // Update canvas dimensions
-    this.canvas.width = newWidth
-    this.canvas.height = newHeight
+    // Calculate available space for the image
+    const availableWidth = containerRect.width - totalMarginWidth
+    const availableHeight = availableWidth / aspectRatio
+    
+    // Set new SVG dimensions (include margins)
+    let newWidth = availableWidth + totalMarginWidth
+    let newHeight = availableHeight + totalMarginHeight
+    
+    // Create viewBox that includes margin space
+    const viewBoxWidth = originalWidth + totalMarginWidth
+    const viewBoxHeight = originalHeight + totalMarginHeight
+    
+    // Update SVG viewBox and dimensions
+    this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
+    this.svg.setAttribute('width', newWidth)
+    this.svg.setAttribute('height', newHeight)
+    
+    // Position image directly in SVG coordinate space (no mainGroup translation)
+    this.mainGroup.setAttribute('transform', '')
+    
+    // Update image element within SVG - position it in the margin area
+    this.svgImage.setAttribute('width', originalWidth)
+    this.svgImage.setAttribute('height', originalHeight)
+    this.svgImage.setAttribute('x', margins.left)
+    this.svgImage.setAttribute('y', margins.top)
     
     // Update state with new dimensions
     this.state.displayDimensions = {
@@ -206,8 +278,8 @@ class GramFrame {
       height: Math.round(newHeight)
     }
     
-    // Re-render the image
-    this._renderSpectrogramImage()
+    // Redraw axes
+    this._drawAxes()
     
     // Notify listeners
     this._notifyStateListeners()
@@ -217,24 +289,42 @@ class GramFrame {
   }
   
   _handleMouseMove(event) {
-    // Only process if we have valid image dimensions
-    if (!this.canvas.width || !this.canvas.height) return
+    // Only process if we have valid image details
+    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
     
-    // Get mouse position relative to canvas
-    const rect = this.canvas.getBoundingClientRect()
+    // Get mouse position relative to SVG
+    const rect = this.svg.getBoundingClientRect()
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
     
-    // Calculate time and frequency based on position
-    const freq = this._calculateFrequency(x)
-    const time = this._calculateTime(y)
+    // Convert screen coordinates to SVG coordinates
+    const svgCoords = this._screenToSVGCoordinates(x, y)
+    
+    // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
+    const margins = this.state.axes.margins
+    const imageRelativeX = svgCoords.x - margins.left
+    const imageRelativeY = svgCoords.y - margins.top
+    
+    // Only process if mouse is within the image area
+    if (imageRelativeX < 0 || imageRelativeY < 0 || 
+        imageRelativeX > this.state.imageDetails.naturalWidth || 
+        imageRelativeY > this.state.imageDetails.naturalHeight) {
+      return
+    }
+    
+    // Convert image-relative coordinates to data coordinates
+    const dataCoords = this._imageToDataCoordinates(imageRelativeX, imageRelativeY)
     
     // Update cursor position in state with normalized coordinates
     this.state.cursorPosition = { 
       x: Math.round(x), 
       y: Math.round(y), 
-      time: parseFloat(time.toFixed(2)), 
-      freq: parseFloat(freq.toFixed(2))
+      svgX: Math.round(svgCoords.x),
+      svgY: Math.round(svgCoords.y),
+      imageX: Math.round(imageRelativeX),
+      imageY: Math.round(imageRelativeY),
+      time: parseFloat(dataCoords.time.toFixed(2)), 
+      freq: parseFloat(dataCoords.freq.toFixed(2))
     }
     
     // Update LED displays
@@ -249,26 +339,225 @@ class GramFrame {
     console.log('Canvas clicked')
   }
   
-  _calculateFrequency(x) {
-    // Calculate frequency based on x position
-    const { freqMin, freqMax } = this.state.config
-    const canvasWidth = this.canvas.width
+  /**
+   * Convert screen coordinates to SVG coordinates
+   */
+  _screenToSVGCoordinates(screenX, screenY) {
+    const svgRect = this.svg.getBoundingClientRect()
+    const viewBox = this.svg.viewBox.baseVal
     
-    // Ensure x is within canvas bounds
-    const boundedX = Math.max(0, Math.min(x, canvasWidth))
+    // If viewBox is not set, fall back to using image natural dimensions
+    if (!viewBox || viewBox.width === 0 || viewBox.height === 0) {
+      if (this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
+        const scaleX = this.state.imageDetails.naturalWidth / svgRect.width
+        const scaleY = this.state.imageDetails.naturalHeight / svgRect.height
+        return {
+          x: screenX * scaleX,
+          y: screenY * scaleY
+        }
+      }
+      // Default fallback - use screen coordinates
+      return { x: screenX, y: screenY }
+    }
     
-    return freqMin + (boundedX / canvasWidth) * (freqMax - freqMin)
+    // Scale factors between screen and SVG coordinates
+    const scaleX = viewBox.width / svgRect.width
+    const scaleY = viewBox.height / svgRect.height
+    
+    return {
+      x: screenX * scaleX,
+      y: screenY * scaleY
+    }
   }
   
-  _calculateTime(y) {
-    // Calculate time based on y position (inverted, as y=0 is top)
+  /**
+   * Convert SVG coordinates to data coordinates (time and frequency)
+   */
+  _svgToDataCoordinates(svgX, svgY) {
+    const margins = this.state.axes.margins
+    const imageX = svgX - margins.left
+    const imageY = svgY - margins.top
+    
+    return this._imageToDataCoordinates(imageX, imageY)
+  }
+  
+  /**
+   * Convert image-relative coordinates to data coordinates (time and frequency)
+   */
+  _imageToDataCoordinates(imageX, imageY) {
+    const { freqMin, freqMax, timeMin, timeMax } = this.state.config
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    
+    // Ensure coordinates are within image bounds
+    const boundedX = Math.max(0, Math.min(imageX, naturalWidth))
+    const boundedY = Math.max(0, Math.min(imageY, naturalHeight))
+    
+    // Convert to data coordinates
+    const freq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
+    const time = timeMax - (boundedY / naturalHeight) * (timeMax - timeMin)
+    
+    return { freq, time }
+  }
+  
+  /**
+   * Convert data coordinates to SVG coordinates
+   */
+  _dataToSVGCoordinates(freq, time) {
+    const { freqMin, freqMax, timeMin, timeMax } = this.state.config
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    
+    const x = ((freq - freqMin) / (freqMax - freqMin)) * naturalWidth
+    const y = naturalHeight - ((time - timeMin) / (timeMax - timeMin)) * naturalHeight
+    
+    return { x, y }
+  }
+  
+  /**
+   * Convert SVG coordinates to screen coordinates
+   */
+  _svgToScreenCoordinates(svgX, svgY) {
+    const svgRect = this.svg.getBoundingClientRect()
+    const viewBox = this.svg.viewBox.baseVal
+    
+    // If viewBox is not set, fall back to using image natural dimensions
+    if (!viewBox || viewBox.width === 0 || viewBox.height === 0) {
+      if (this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
+        const scaleX = svgRect.width / this.state.imageDetails.naturalWidth
+        const scaleY = svgRect.height / this.state.imageDetails.naturalHeight
+        return {
+          x: svgX * scaleX,
+          y: svgY * scaleY
+        }
+      }
+      // Default fallback - use SVG coordinates as screen coordinates
+      return { x: svgX, y: svgY }
+    }
+    
+    // Scale factors between SVG and screen coordinates
+    const scaleX = svgRect.width / viewBox.width
+    const scaleY = svgRect.height / viewBox.height
+    
+    return {
+      x: svgX * scaleX,
+      y: svgY * scaleY
+    }
+  }
+  
+  /**
+   * Draw axes with tick marks and labels
+   */
+  _drawAxes() {
+    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
+    
+    this._clearAxes()
+    this._drawFrequencyAxis() // Horizontal axis (bottom)
+    this._drawTimeAxis()      // Vertical axis (left)
+  }
+  
+  /**
+   * Clear existing axes
+   */
+  _clearAxes() {
+    this.timeAxisGroup.innerHTML = ''
+    this.freqAxisGroup.innerHTML = ''
+  }
+  
+  /**
+   * Draw time axis (vertical, left)
+   */
+  _drawTimeAxis() {
     const { timeMin, timeMax } = this.state.config
-    const canvasHeight = this.canvas.height
+    const { naturalHeight } = this.state.imageDetails
+    const margins = this.state.axes.margins
     
-    // Ensure y is within canvas bounds
-    const boundedY = Math.max(0, Math.min(y, canvasHeight))
+    // Calculate tick marks
+    const range = timeMax - timeMin
+    const targetTickCount = Math.floor(naturalHeight / 50) // Aim for ticks every ~50px
+    const tickCount = Math.max(2, Math.min(targetTickCount, 8))
+    const tickInterval = range / (tickCount - 1)
     
-    return timeMax - (boundedY / canvasHeight) * (timeMax - timeMin)
+    // Draw main axis line (along the left edge of the image)
+    const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    axisLine.setAttribute('x1', margins.left)
+    axisLine.setAttribute('y1', margins.top)
+    axisLine.setAttribute('x2', margins.left)
+    axisLine.setAttribute('y2', margins.top + naturalHeight)
+    axisLine.setAttribute('class', 'gram-frame-axis-line')
+    this.timeAxisGroup.appendChild(axisLine)
+    
+    // Draw tick marks and labels
+    for (let i = 0; i < tickCount; i++) {
+      const timeValue = timeMin + (i * tickInterval)
+      // Y position: timeMin at bottom, timeMax at top (inverted because SVG y=0 is at top)
+      const yPos = margins.top + naturalHeight - (i / (tickCount - 1)) * naturalHeight
+      
+      // Tick mark (extends into the left margin)
+      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      tick.setAttribute('x1', margins.left - 5)
+      tick.setAttribute('y1', yPos)
+      tick.setAttribute('x2', margins.left)
+      tick.setAttribute('y2', yPos)
+      tick.setAttribute('class', 'gram-frame-axis-tick')
+      this.timeAxisGroup.appendChild(tick)
+      
+      // Label (in the left margin)
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      label.setAttribute('x', margins.left - 8)
+      label.setAttribute('y', yPos + 4) // Slight offset for better alignment
+      label.setAttribute('text-anchor', 'end')
+      label.setAttribute('class', 'gram-frame-axis-label')
+      label.textContent = timeValue.toFixed(1) + 's'
+      this.timeAxisGroup.appendChild(label)
+    }
+  }
+  
+  /**
+   * Draw frequency axis (horizontal, bottom)
+   */
+  _drawFrequencyAxis() {
+    const { freqMin, freqMax } = this.state.config
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    const margins = this.state.axes.margins
+    
+    // Calculate tick marks
+    const range = freqMax - freqMin
+    const targetTickCount = Math.floor(naturalWidth / 80) // Aim for ticks every ~80px
+    const tickCount = Math.max(2, Math.min(targetTickCount, 10))
+    const tickInterval = range / (tickCount - 1)
+    
+    // Draw main axis line (along the bottom edge of the image)
+    const axisLineY = margins.top + naturalHeight
+    const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    axisLine.setAttribute('x1', margins.left)
+    axisLine.setAttribute('y1', axisLineY)
+    axisLine.setAttribute('x2', margins.left + naturalWidth)
+    axisLine.setAttribute('y2', axisLineY)
+    axisLine.setAttribute('class', 'gram-frame-axis-line')
+    this.freqAxisGroup.appendChild(axisLine)
+    
+    // Draw tick marks and labels
+    for (let i = 0; i < tickCount; i++) {
+      const freqValue = freqMin + (i * tickInterval)
+      const xPos = margins.left + (i / (tickCount - 1)) * naturalWidth
+      
+      // Tick mark (extends into the bottom margin)
+      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      tick.setAttribute('x1', xPos)
+      tick.setAttribute('y1', axisLineY)
+      tick.setAttribute('x2', xPos)
+      tick.setAttribute('y2', axisLineY + 5)
+      tick.setAttribute('class', 'gram-frame-axis-tick')
+      this.freqAxisGroup.appendChild(tick)
+      
+      // Label (in the bottom margin)
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      label.setAttribute('x', xPos)
+      label.setAttribute('y', axisLineY + 18)
+      label.setAttribute('text-anchor', 'middle')
+      label.setAttribute('class', 'gram-frame-axis-label')
+      label.textContent = freqValue.toFixed(0) + 'Hz'
+      this.freqAxisGroup.appendChild(label)
+    }
   }
   
   _switchMode(mode) {
@@ -336,13 +625,22 @@ class GramFrame {
         this.state.imageDetails.naturalWidth = this.spectrogramImage.naturalWidth
         this.state.imageDetails.naturalHeight = this.spectrogramImage.naturalHeight
         
-        // Calculate initial dimensions based on container size
+        // Calculate initial dimensions based on container size and margins
         const containerWidth = this.container.clientWidth
         const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
         
-        // Set initial canvas dimensions
-        const initialWidth = containerWidth
-        const initialHeight = containerWidth / aspectRatio
+        // Account for axes margins
+        const margins = this.state.axes.margins
+        const totalMarginWidth = margins.left + margins.right
+        const totalMarginHeight = margins.top + margins.bottom
+        
+        // Calculate available space for the image
+        const availableWidth = containerWidth - totalMarginWidth
+        const availableHeight = availableWidth / aspectRatio
+        
+        // Set initial SVG dimensions (include margins)
+        const initialWidth = availableWidth + totalMarginWidth
+        const initialHeight = availableHeight + totalMarginHeight
         
         // Update the displayDimensions property for diagnostics
         this.state.displayDimensions = {
@@ -350,12 +648,28 @@ class GramFrame {
           height: Math.round(initialHeight)
         }
         
-        // Set canvas dimensions
-        this.canvas.width = initialWidth
-        this.canvas.height = initialHeight
+        // Create viewBox that includes margin space
+        const viewBoxWidth = this.spectrogramImage.naturalWidth + totalMarginWidth
+        const viewBoxHeight = this.spectrogramImage.naturalHeight + totalMarginHeight
         
-        // Render the image on the canvas
-        this._renderSpectrogramImage()
+        // Set SVG dimensions and viewBox
+        this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
+        this.svg.setAttribute('width', initialWidth)
+        this.svg.setAttribute('height', initialHeight)
+        
+        // Position image directly in SVG coordinate space (no mainGroup translation)
+        this.mainGroup.setAttribute('transform', '')
+        
+        // Set the image source in SVG - position it in the margin area
+        this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
+        this.svgImage.setAttribute('width', this.spectrogramImage.naturalWidth)
+        this.svgImage.setAttribute('height', this.spectrogramImage.naturalHeight)
+        this.svgImage.setAttribute('x', margins.left)
+        this.svgImage.setAttribute('y', margins.top)
+        
+        
+        // Draw initial axes
+        this._drawAxes()
         
         // Notify listeners of updated state
         this._notifyStateListeners()
@@ -383,15 +697,6 @@ class GramFrame {
     })
   }
   
-  _renderSpectrogramImage() {
-    if (!this.ctx || !this.spectrogramImage) return
-    
-    // Clear the canvas
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    
-    // Draw the spectrogram image
-    this.ctx.drawImage(this.spectrogramImage, 0, 0, this.canvas.width, this.canvas.height)
-  }
   
   _notifyStateListeners() {
     // Log state changes to console for Task 1.4
@@ -427,19 +732,79 @@ const GramFrameAPI = {
     return instances
   },
   
-  // Add a state listener
+  /**
+   * Add a state listener that will be called whenever the component state changes
+   * @param {Function} callback - Function to be called with the current state
+   * @returns {Function} - Returns the callback function for chaining
+   * @example
+   * // Basic usage
+   * GramFrame.addStateListener(state => {
+   *   console.log('State updated:', state)
+   * })
+   * 
+   * // With error handling
+   * GramFrame.addStateListener(state => {
+   *   try {
+   *     // Process state
+   *     updateUI(state.cursorPosition)
+   *   } catch (err) {
+   *     console.error('Error processing state:', err)
+   *   }
+   * })
+   */
   addStateListener(callback) {
-    if (typeof callback === 'function' && !stateListeners.includes(callback)) {
-      stateListeners.push(callback)
+    if (typeof callback !== 'function') {
+      throw new Error('State listener must be a function')
     }
+    
+    if (!stateListeners.includes(callback)) {
+      stateListeners.push(callback)
+      
+      // Immediately call the listener with the current state if available
+      const instances = document.querySelectorAll('.gram-frame-container')
+      if (instances.length > 0) {
+        // Find the first GramFrame instance
+        const instance = instances[0].__gramFrameInstance
+        if (instance && instance.state) {
+          try {
+            // Create a deep copy of the state
+            const stateCopy = JSON.parse(JSON.stringify(instance.state))
+            // Call the listener with the current state
+            callback(stateCopy)
+          } catch (error) {
+            console.error('Error calling state listener with initial state:', error)
+          }
+        }
+      }
+    }
+    
+    return callback
   },
   
-  // Remove a state listener
+  /**
+   * Remove a previously added state listener
+   * @param {Function} callback - The callback function to remove
+   * @returns {boolean} - Returns true if the listener was found and removed, false otherwise
+   * @example
+   * // Add a listener and store the reference
+   * const myListener = GramFrame.addStateListener(state => {
+   *   console.log('State updated:', state)
+   * })
+   * 
+   * // Later, remove the listener
+   * GramFrame.removeStateListener(myListener)
+   */
   removeStateListener(callback) {
+    if (typeof callback !== 'function') {
+      throw new Error('Callback must be a function')
+    }
+    
     const index = stateListeners.indexOf(callback)
     if (index !== -1) {
       stateListeners.splice(index, 1)
+      return true
     }
+    return false
   },
   
   // Toggle canvas bounds overlay
@@ -468,8 +833,15 @@ const GramFrameAPI = {
   
   // Force update
   forceUpdate() {
-    // This will be implemented in Phase 3
-    console.log('Force update')
+    // Find the first GramFrame instance and trigger a state update
+    const instances = document.querySelectorAll('.gram-frame-container')
+    if (instances.length > 0) {
+      const instance = instances[0].__gramFrameInstance
+      if (instance) {
+        // Trigger a state update by calling _notifyStateListeners
+        instance._notifyStateListeners()
+      }
+    }
   }
 }
 

@@ -14,12 +14,44 @@
 }
 
 
-/* Canvas for drawing the spectrogram and overlays */
-.gram-frame-canvas {
+/* SVG container for drawing the spectrogram and overlays */
+.gram-frame-svg {
   display: block;
   width: 100%;
   height: auto;
   border: 1px solid #ddd;
+}
+
+/* SVG image element for the spectrogram */
+.gram-frame-image {
+  /* Remove width/height CSS to allow SVG attributes to control positioning */
+}
+
+/* SVG axes styling */
+.gram-frame-axis-line {
+  stroke: #333;
+  stroke-width: 1;
+  fill: none;
+}
+
+.gram-frame-axis-tick {
+  stroke: #333;
+  stroke-width: 1;
+}
+
+.gram-frame-axis-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 10px;
+  fill: #333;
+  dominant-baseline: central;
+}
+
+.gram-frame-time-axis .gram-frame-axis-label {
+  dominant-baseline: hanging;
+}
+
+.gram-frame-freq-axis .gram-frame-axis-label {
+  dominant-baseline: central;
 }
 
 /* LED-style readout panel */
