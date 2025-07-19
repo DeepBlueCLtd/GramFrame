@@ -130,7 +130,40 @@
   border-radius: 3px;
 }
 
-/* Cursor styles */
+/* SVG cursor indicator styles */
+.gram-frame-cursor-group {
+  pointer-events: none;
+}
+
+/* Cursor shadow lines - thicker white outline for contrast */
+.gram-frame-cursor-shadow {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 3;
+  stroke-dasharray: 6, 3;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+/* Main cursor lines - thinner colored line on top */
+.gram-frame-cursor-vertical,
+.gram-frame-cursor-horizontal {
+  stroke: rgba(255, 0, 0, 0.9);
+  stroke-width: 1;
+  stroke-dasharray: 4, 2;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-cursor-point {
+  fill: rgba(255, 0, 0, 0.9);
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+/* Legacy cursor styles (for backward compatibility) */
 .gram-frame-cursor {
   position: absolute;
   width: 2px;

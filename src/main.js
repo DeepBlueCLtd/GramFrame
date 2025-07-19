@@ -82,6 +82,11 @@ class GramFrame {
     this.freqAxisGroup.setAttribute('class', 'gram-frame-freq-axis')
     this.svg.appendChild(this.freqAxisGroup)
     
+    // Create cursor indicator group
+    this.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    this.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
+    this.svg.appendChild(this.cursorGroup)
+    
     // Create LED readout panel
     this.readoutPanel = document.createElement('div')
     this.readoutPanel.className = 'gram-frame-readout'
@@ -341,6 +346,9 @@ class GramFrame {
     // Update LED displays
     this._updateLEDDisplays()
     
+    // Update visual cursor indicators
+    this._updateCursorIndicators()
+    
     // Notify listeners
     this._notifyStateListeners()
   }
@@ -351,6 +359,9 @@ class GramFrame {
     
     // Update LED displays to show no position
     this._updateLEDDisplays()
+    
+    // Clear visual cursor indicators
+    this._updateCursorIndicators()
     
     // Notify listeners
     this._notifyStateListeners()
@@ -664,6 +675,65 @@ class GramFrame {
     // Update mode LED
     this.modeLED.querySelector('.gram-frame-led-value').textContent = 
       this._capitalizeFirstLetter(this.state.mode)
+  }
+  
+  _updateCursorIndicators() {
+    // Clear existing cursor indicators
+    this.cursorGroup.innerHTML = ''
+    
+    // Only draw indicators if cursor position is available
+    if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
+      return
+    }
+    
+    const margins = this.state.axes.margins
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    
+    // Calculate cursor position in SVG coordinates (accounting for margins)
+    const cursorSVGX = margins.left + this.state.cursorPosition.imageX
+    const cursorSVGY = margins.top + this.state.cursorPosition.imageY
+    
+    // Create vertical crosshair lines (time indicator) - shadow first, then main line
+    const verticalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    verticalShadow.setAttribute('x1', cursorSVGX)
+    verticalShadow.setAttribute('y1', margins.top)
+    verticalShadow.setAttribute('x2', cursorSVGX)
+    verticalShadow.setAttribute('y2', margins.top + naturalHeight)
+    verticalShadow.setAttribute('class', 'gram-frame-cursor-shadow')
+    this.cursorGroup.appendChild(verticalShadow)
+    
+    const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    verticalLine.setAttribute('x1', cursorSVGX)
+    verticalLine.setAttribute('y1', margins.top)
+    verticalLine.setAttribute('x2', cursorSVGX)
+    verticalLine.setAttribute('y2', margins.top + naturalHeight)
+    verticalLine.setAttribute('class', 'gram-frame-cursor-vertical')
+    this.cursorGroup.appendChild(verticalLine)
+    
+    // Create horizontal crosshair lines (frequency indicator) - shadow first, then main line
+    const horizontalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    horizontalShadow.setAttribute('x1', margins.left)
+    horizontalShadow.setAttribute('y1', cursorSVGY)
+    horizontalShadow.setAttribute('x2', margins.left + naturalWidth)
+    horizontalShadow.setAttribute('y2', cursorSVGY)
+    horizontalShadow.setAttribute('class', 'gram-frame-cursor-shadow')
+    this.cursorGroup.appendChild(horizontalShadow)
+    
+    const horizontalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    horizontalLine.setAttribute('x1', margins.left)
+    horizontalLine.setAttribute('y1', cursorSVGY)
+    horizontalLine.setAttribute('x2', margins.left + naturalWidth)
+    horizontalLine.setAttribute('y2', cursorSVGY)
+    horizontalLine.setAttribute('class', 'gram-frame-cursor-horizontal')
+    this.cursorGroup.appendChild(horizontalLine)
+    
+    // Create center point indicator
+    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    centerPoint.setAttribute('cx', cursorSVGX)
+    centerPoint.setAttribute('cy', cursorSVGY)
+    centerPoint.setAttribute('r', '3')
+    centerPoint.setAttribute('class', 'gram-frame-cursor-point')
+    this.cursorGroup.appendChild(centerPoint)
   }
   
   _capitalizeFirstLetter(string) {

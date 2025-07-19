@@ -231,6 +231,118 @@ None. One existing test required adjustment due to enhanced edge case handling w
 Ready to proceed with Task 3.3: Time/Frequency Cursor Display implementation.
 
 ---
+**Agent:** Implementation Agent
+**Task Reference:** Phase 3, Task 3.3: Time/Frequency Cursor Display
+
+**Summary:**
+Implemented visual cursor indicators (crosshairs and center point) for the spectrogram display with enhanced visibility using contrasting colors and comprehensive test coverage.
+
+**Details:**
+- Built upon existing mouse tracking implementation to add visual feedback for cursor position
+- Time and frequency calculations were already working from Task 3.2
+- LED display updates were already functional from Task 3.2
+- Added visual cursor indicators as the core new functionality:
+  - **Crosshair System:** Vertical and horizontal dashed lines that span the entire image area
+  - **Enhanced Visibility:** Implemented dual-line technique with white shadow lines (3px) underneath red main lines (1px) for visibility against any background
+  - **Center Point:** Red circle with white stroke at cursor intersection
+  - **Responsive Design:** Cursor indicators properly scale and position with container resizing
+  - **Boundary Respect:** Indicators only appear when mouse is within image bounds (not in margin areas)
+- Added comprehensive cursor indicator management:
+  - `_updateCursorIndicators()` method for creating/updating visual indicators
+  - Proper cleanup when cursor leaves image area
+  - SVG-based implementation within dedicated cursor group
+- Enhanced CSS styling with contrasting colors:
+  - Shadow lines: white, 3px thick, dashed pattern (6,3)
+  - Main lines: red, 1px thick, dashed pattern (4,2)
+  - Center point: red fill with white stroke for maximum visibility
+- Created comprehensive test suite: `tests/cursor-display.spec.ts` with 6 test cases:
+  1. Cursor indicators appear when mouse moves over image
+  2. Cursor indicators disappear when mouse leaves image
+  3. Cursor indicators move with mouse position and maintain proper coordinates
+  4. Cursor indicators have correct styling for visibility
+  5. Cursor indicators work correctly with container resizing
+  6. Cursor indicators respect image boundaries (no indicators in margin areas)
+
+**Output/Result:**
+```javascript
+// SVG cursor group creation in constructor
+this.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+this.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
+this.svg.appendChild(this.cursorGroup)
+
+// Enhanced mouse move handler with cursor indicators
+_handleMouseMove(event) {
+  // ... existing coordinate calculations ...
+  
+  // Update LED displays
+  this._updateLEDDisplays()
+  
+  // Update visual cursor indicators
+  this._updateCursorIndicators()
+  
+  // Notify listeners
+  this._notifyStateListeners()
+}
+
+// Cursor indicator implementation with dual-line visibility technique
+_updateCursorIndicators() {
+  // Clear existing cursor indicators
+  this.cursorGroup.innerHTML = ''
+  
+  // Only draw indicators if cursor position is available
+  if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
+    return
+  }
+  
+  const margins = this.state.axes.margins
+  const cursorSVGX = margins.left + this.state.cursorPosition.imageX
+  const cursorSVGY = margins.top + this.state.cursorPosition.imageY
+  
+  // Create shadow lines first (thicker, white)
+  const verticalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  // ... shadow line setup ...
+  
+  // Create main lines on top (thinner, red)
+  const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  // ... main line setup ...
+  
+  // Create center point indicator
+  const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+  // ... center point setup ...
+}
+```
+
+```css
+/* Enhanced cursor styling for visibility */
+.gram-frame-cursor-shadow {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 3;
+  stroke-dasharray: 6, 3;
+}
+
+.gram-frame-cursor-vertical,
+.gram-frame-cursor-horizontal {
+  stroke: rgba(255, 0, 0, 0.9);
+  stroke-width: 1;
+  stroke-dasharray: 4, 2;
+}
+
+.gram-frame-cursor-point {
+  fill: rgba(255, 0, 0, 0.9);
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+}
+```
+
+**Status:** Completed
+
+**Issues/Blockers:**
+Initial implementation had low visibility of crosshair lines against varying spectrogram backgrounds. Resolved by implementing dual-line technique with contrasting white shadow underneath red main lines.
+
+**Next Steps:**
+Ready to proceed with Task 3.4: Cursor Management implementation.
+
+---
 
 ## Technical Decisions
 **Date: July 18, 2025**
