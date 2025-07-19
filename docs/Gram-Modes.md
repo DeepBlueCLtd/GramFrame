@@ -1,24 +1,26 @@
 # Gram Component Interaction Modes
 
-This document describes the three interaction modes of the spectrogram-based analysis tool: **Analysis**, **Harmonics**, and **Doppler**. Each section includes a business overview, UI behaviour, and a detailed interaction walkthrough.
+This document describes the two interaction modes of the spectrogram-based analysis tool: **Analysis** and **Doppler**. Each section includes a business overview, UI behaviour, and a detailed interaction walkthrough.
 
 ---
 
 ## 🔍 Analysis Mode
 
 ### Purpose
-Measure precise frequency (X) and time (Y) positions by hovering over the spectrogram image.
+Measure precise frequency (X) and time (Y) positions by hovering over the spectrogram image, and reveal harmonic relationships by dragging to set a base frequency.
 
 ### Business Context
-Used by analysts or trainees to identify and examine features such as tonal events, broadband pulses, or ambient shifts in sonar data.
+Used by analysts or trainees to identify and examine features such as tonal events, broadband pulses, or ambient shifts in sonar data. Also used to determine if high-frequency tonals share a common origin, such as a propeller shaft or mechanical source, by testing for integer multiple relationships.
 
 ### Features
-- **Cross-hairs**: A pair of vertical and horizontal lines follow the mouse.
+- **Cross-hairs**: A pair of vertical and horizontal lines follow the mouse during hover.
 - **X = Frequency**, **Y = Time**
-- **Hover only**: No clicks, drags, or persistent state.
+- **Hover interaction**: Shows cross-hairs with precise frequency and time values.
+- **Drag interaction**: Reveals harmonic relationships based on the dragged frequency.
 - **LED-style panel**: Displays live frequency and time values.
+- **Harmonic lines**: Vertical lines at integer multiples of base frequency (during drag).
 
-### Interaction Walkthrough
+### Interaction Walkthrough - Hover (Basic Analysis)
 
 **1. Initial State**
 - Mode set to **Analysis**
@@ -37,45 +39,29 @@ Used by analysts or trainees to identify and examine features such as tonal even
 **4. Visible Screen Elements**
 - Cross-hairs (vertical and horizontal lines)
 - LED-style panel with real-time readout
-- Mode label: “Analysis”
+- Mode label: "Analysis"
 
----
-
-## 🎵 Harmonics Mode
-
-### Purpose
-Reveal whether observed frequency components are harmonically related to a base frequency.
-
-### Business Context
-Used to determine if high-frequency tonals share a common origin, such as a propeller shaft or mechanical source, by testing for integer multiple relationships.
-
-### Features
-- **Hover only**
-- **Base frequency** = mouse X-position (frequency)
-- **Vertical lines** at 1×, 2×, 3×… of base frequency
-- **Labels**: 
-  - Left of line: Harmonic number (e.g. “2×”)
-  - Right of line: Frequency (e.g. “440 Hz”)
-- **Lines** extend full height of spectrogram
-- **Main line** (1×) drawn with distinct styling (dark + light shadow)
-
-### Interaction Walkthrough
+### Interaction Walkthrough - Drag (Harmonics Analysis)
 
 **1. Initial State**
-- Mode set to **Harmonics**
-- No lines shown initially
+- Mode set to **Analysis**
+- Spectrogram visible
 
 **2. User Interaction**
-- Mouse hovers across spectrogram
+- User presses mouse button and drags across spectrogram
 
 **3. Expected UI Response**
-- Harmonic lines appear dynamically
-- Labels shown at top-left and top-right of each line
+- Harmonic lines appear dynamically based on mouse X-position (frequency)
+- Vertical lines shown at 1×, 2×, 3×... of base frequency
+- Labels displayed:
+  - Left of line: Harmonic number (e.g., "2×")
+  - Right of line: Frequency (e.g., "440 Hz")
+- Main line (1×) drawn with distinct styling (dark + light shadow)
 
 **4. Visible Screen Elements**
 - Vertical harmonic lines at integer multiples
 - LED-style panel showing base frequency
-- Mode label: “Harmonics”
+- Mode label: "Analysis"
 
 ---
 
@@ -129,3 +115,4 @@ Used during tactical or post-mission analysis to derive platform speeds from ton
 - [ ] Ensure consistent styling for overlays and readouts
 - [ ] Mode-specific overlays should not interfere with others
 - [ ] Measurement panel format: LED-style, persistent across modes
+- [ ] Implement hover vs. drag detection for Analysis mode to switch between basic analysis and harmonics analysis
