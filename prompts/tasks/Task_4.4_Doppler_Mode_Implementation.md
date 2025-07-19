@@ -35,7 +35,7 @@ Your task builds on this foundation by implementing the Doppler mode functionali
 3. **Calculate and display measurement values:**
    - Calculate ΔTime (time difference between points)
    - Calculate ΔFrequency (frequency difference between points)
-   - Derive speed calculation based on the frequency shift formula
+   - Derive speed calculation based on the frequency shift formula. Mock this calculation by just multiplying time and frequency deltas (e.g., ΔT * ΔF)
    - Format values with appropriate precision (e.g., "ΔT: 3.00 s", "ΔF: -240 Hz", "Speed: 14.2 knots")
    - Update the LED panel to show these calculated values
 
