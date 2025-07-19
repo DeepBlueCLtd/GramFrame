@@ -68,7 +68,11 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     // 1. Move mouse over SVG to trigger cursor position update
     const svgBounds = await gramFramePage.svg.boundingBox()
     if (svgBounds) {
-      await gramFramePage.moveMouse(svgBounds.width / 2, svgBounds.height / 2)
+      // Move to a position that's definitely within the image area (accounting for margins)
+      const centerX = svgBounds.width * 0.6  // Offset to account for left margin
+      const centerY = svgBounds.height * 0.5
+      await gramFramePage.moveMouse(centerX, centerY)
+      await page.waitForTimeout(100)
     }
     
     // 2. Change mode
@@ -76,6 +80,14 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     
     // 3. Change rate
     await gramFramePage.setRate(2)
+    
+    // 4. Move mouse back over image to ensure cursor position is set for final check
+    if (svgBounds) {
+      const centerX = svgBounds.width * 0.6
+      const centerY = svgBounds.height * 0.5
+      await gramFramePage.moveMouse(centerX, centerY)
+      await page.waitForTimeout(100)
+    }
     
     // Wait a moment for console logs to be processed
     await page.waitForTimeout(500)

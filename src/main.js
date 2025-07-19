@@ -191,9 +191,16 @@ class GramFrame {
   }
   
   _setupEventListeners() {
+    // Bind event handlers to maintain proper 'this' context
+    this._boundHandleMouseMove = this._handleMouseMove.bind(this)
+    this._boundHandleMouseLeave = this._handleMouseLeave.bind(this)
+    this._boundHandleClick = this._handleClick.bind(this)
+    this._boundHandleResize = this._handleResize.bind(this)
+    
     // SVG mouse events
-    this.svg.addEventListener('mousemove', this._handleMouseMove.bind(this))
-    this.svg.addEventListener('click', this._handleClick.bind(this))
+    this.svg.addEventListener('mousemove', this._boundHandleMouseMove)
+    this.svg.addEventListener('mouseleave', this._boundHandleMouseLeave)
+    this.svg.addEventListener('click', this._boundHandleClick)
     
     // Mode button events
     Object.keys(this.modeButtons).forEach(mode => {
@@ -211,7 +218,7 @@ class GramFrame {
     })
     
     // Window resize event
-    window.addEventListener('resize', this._handleResize.bind(this))
+    window.addEventListener('resize', this._boundHandleResize)
   }
   
   _setupResizeObserver() {
@@ -309,6 +316,10 @@ class GramFrame {
     if (imageRelativeX < 0 || imageRelativeY < 0 || 
         imageRelativeX > this.state.imageDetails.naturalWidth || 
         imageRelativeY > this.state.imageDetails.naturalHeight) {
+      // Clear cursor position when mouse is outside image bounds
+      this.state.cursorPosition = null
+      this._updateLEDDisplays()
+      this._notifyStateListeners()
       return
     }
     
@@ -334,9 +345,53 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  _handleMouseLeave(event) {
+    // Clear cursor position when mouse leaves the SVG area
+    this.state.cursorPosition = null
+    
+    // Update LED displays to show no position
+    this._updateLEDDisplays()
+    
+    // Notify listeners
+    this._notifyStateListeners()
+  }
+  
   _handleClick(event) {
     // This will be implemented in Phase 3
     console.log('Canvas clicked')
+  }
+  
+  /**
+   * Clean up event listeners (called when component is destroyed)
+   */
+  _cleanupEventListeners() {
+    if (this.svg && this._boundHandleMouseMove) {
+      this.svg.removeEventListener('mousemove', this._boundHandleMouseMove)
+      this.svg.removeEventListener('mouseleave', this._boundHandleMouseLeave)
+      this.svg.removeEventListener('click', this._boundHandleClick)
+    }
+    
+    if (this._boundHandleResize) {
+      window.removeEventListener('resize', this._boundHandleResize)
+    }
+    
+    // Clean up ResizeObserver
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+      this.resizeObserver = null
+    }
+  }
+  
+  /**
+   * Destroy the component and clean up resources
+   */
+  destroy() {
+    this._cleanupEventListeners()
+    
+    // Remove from DOM if still attached
+    if (this.container && this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container)
+    }
   }
   
   /**
@@ -589,7 +644,12 @@ class GramFrame {
   }
   
   _updateLEDDisplays() {
-    if (!this.state.cursorPosition) return
+    if (!this.state.cursorPosition) {
+      // Show default values when no cursor position
+      this.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00 Hz'
+      this.timeLED.querySelector('.gram-frame-led-value').textContent = '0.00 s'
+      return
+    }
     
     // Update frequency LED
     const freqValue = this.state.cursorPosition.freq.toFixed(2)
