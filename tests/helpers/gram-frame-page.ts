@@ -22,9 +22,9 @@ export class GramFramePage {
     this.stateDisplay = page.locator('#state-display')
     this.svg = page.locator('.gram-frame-svg')
     this.readoutPanel = page.locator('.gram-frame-readout')
-    this.freqLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text("Frequency"))')
-    this.timeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text("Time"))')
-    this.modeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text("Mode"))')
+    this.freqLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Frequency"))')
+    this.timeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Time"))')
+    this.modeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Mode"))')
   }
 
   /**
@@ -96,12 +96,53 @@ export class GramFramePage {
   }
 
   /**
+   * Drag from one position to another on the SVG
+   * @param startX Starting X coordinate
+   * @param startY Starting Y coordinate
+   * @param endX Ending X coordinate
+   * @param endY Ending Y coordinate
+   */
+  async dragSVG(startX: number, startY: number, endX: number, endY: number) {
+    // Use Playwright's mouse API for precise drag control
+    await this.page.mouse.move(startX, startY)
+    await this.page.mouse.down()
+    await this.page.mouse.move(endX, endY)
+    await this.page.mouse.up()
+  }
+
+  /**
+   * Start a drag at specific coordinates on the SVG
+   * @param x X coordinate
+   * @param y Y coordinate
+   */
+  async startDragSVG(x: number, y: number) {
+    const svgBox = await this.svg.boundingBox()
+    if (svgBox) {
+      await this.page.mouse.move(svgBox.x + x, svgBox.y + y)
+      await this.page.mouse.down()
+    }
+  }
+
+  /**
+   * End a drag at specific coordinates on the SVG
+   * @param x X coordinate
+   * @param y Y coordinate
+   */
+  async endDragSVG(x: number, y: number) {
+    const svgBox = await this.svg.boundingBox()
+    if (svgBox) {
+      await this.page.mouse.move(svgBox.x + x, svgBox.y + y)
+      await this.page.mouse.up()
+    }
+  }
+
+  /**
    * Verify the value of an LED display
    * @param label The label of the LED display (e.g., "Frequency", "Time", "Mode")
    * @param expectedValueRegex Regular expression to match the expected value
    */
   async verifyLEDValue(label: string, expectedValueRegex: RegExp) {
-    const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text("${label}")) .gram-frame-led-value`
+    const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text-is("${label}")) .gram-frame-led-value`
     await expect(this.page.locator(ledSelector)).toHaveText(expectedValueRegex)
   }
 
@@ -111,7 +152,7 @@ export class GramFramePage {
    * @returns The text content of the LED value
    */
   async getLEDValue(label: string) {
-    const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text("${label}")) .gram-frame-led-value`
+    const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text-is("${label}")) .gram-frame-led-value`
     return await this.page.locator(ledSelector).textContent()
   }
 
@@ -197,5 +238,33 @@ export class GramFramePage {
    */
   async clickControlButton(buttonId: string) {
     await this.page.locator(`#${buttonId}`).click()
+  }
+
+  /**
+   * Get the current state from the debug page state display
+   * Alias for getState for consistency
+   */
+  async getCurrentState() {
+    return this.getState()
+  }
+
+  /**
+   * Move mouse to a position on the spectrogram
+   * @param x X coordinate relative to the spectrogram
+   * @param y Y coordinate relative to the spectrogram
+   */
+  async moveMouseToSpectrogram(x: number, y: number) {
+    // Move mouse to the SVG area (spectrogram is within the SVG)
+    await this.svg.hover({ position: { x, y } })
+  }
+
+  /**
+   * Click at a position on the spectrogram
+   * @param x X coordinate relative to the spectrogram
+   * @param y Y coordinate relative to the spectrogram
+   */
+  async clickSpectrogram(x: number, y: number) {
+    // Click on the SVG area (spectrogram is within the SVG)
+    await this.svg.click({ position: { x, y } })
   }
 }

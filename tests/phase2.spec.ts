@@ -74,8 +74,8 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
       const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
       const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
       
-      expect(freqText).toMatch(/\d+\.\d{2} Hz/)
-      expect(timeText).toMatch(/\d+\.\d{2} s/)
+      expect(freqText).toMatch(/Freq: \d+\.\d Hz/)
+      expect(timeText).toMatch(/Time: \d+\.\d{2} s/)
     }
   })
 })
@@ -250,8 +250,8 @@ test.describe('Phase 2: Comprehensive Integration', () => {
       // Verify LED displays updated
       const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
       const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
-      expect(freqText).toMatch(/\d+\.\d{2} Hz/)
-      expect(timeText).toMatch(/\d+\.\d{2} s/)
+      expect(freqText).toMatch(/Freq: \d+\.\d Hz/)
+      expect(timeText).toMatch(/Time: \d+\.\d{2} s/)
       
       // Verify diagnostics panel updated
       const mouseCanvasPos = await page.locator('#mouse-canvas-pos').textContent()

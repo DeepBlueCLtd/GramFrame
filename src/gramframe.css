@@ -130,7 +130,46 @@
   border-radius: 3px;
 }
 
-/* Cursor styles */
+.gram-frame-rate-unit {
+  font-size: 0.9em;
+  color: #777;
+  font-style: italic;
+}
+
+/* SVG cursor indicator styles */
+.gram-frame-cursor-group {
+  pointer-events: none;
+}
+
+/* Cursor shadow lines - thicker white outline for contrast */
+.gram-frame-cursor-shadow {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 3;
+  stroke-dasharray: 6, 3;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+/* Main cursor lines - thinner colored line on top */
+.gram-frame-cursor-vertical,
+.gram-frame-cursor-horizontal {
+  stroke: rgba(255, 0, 0, 0.9);
+  stroke-width: 1;
+  stroke-dasharray: 4, 2;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-cursor-point {
+  fill: rgba(255, 0, 0, 0.9);
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+/* Legacy cursor styles (for backward compatibility) */
 .gram-frame-cursor {
   position: absolute;
   width: 2px;
@@ -138,7 +177,44 @@
   pointer-events: none;
 }
 
-/* Harmonic lines */
+/* SVG Harmonic line styles */
+.gram-frame-harmonic-shadow {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 3;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-harmonic-main {
+  stroke: rgba(255, 215, 0, 0.9); /* Gold color for main line (1×) */
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-harmonic-line {
+  stroke: rgba(255, 255, 0, 0.8); /* Yellow for other harmonics */
+  stroke-width: 1;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+/* SVG Harmonic labels */
+.gram-frame-harmonic-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 10px;
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.8);
+  stroke-width: 0.5;
+  paint-order: stroke;
+  pointer-events: none;
+  dominant-baseline: central;
+}
+
+/* Legacy harmonic styles (for backward compatibility) */
 .gram-frame-harmonic {
   position: absolute;
   height: 1px;
@@ -151,15 +227,47 @@
   background-color: rgba(255, 255, 0, 0.9);
 }
 
-/* Harmonic labels */
-.gram-frame-harmonic-label {
-  position: absolute;
-  font-size: 0.8em;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  padding: 2px 4px;
-  border-radius: 2px;
+/* SVG Doppler mode styles */
+.gram-frame-doppler-line-shadow {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 4;
+  fill: none;
   pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-doppler-line {
+  stroke: rgba(0, 255, 255, 0.9); /* Cyan color for doppler line */
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-doppler-start-point {
+  fill: rgba(0, 255, 0, 0.9); /* Green for start point */
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.gram-frame-doppler-end-point {
+  fill: rgba(255, 0, 255, 0.9); /* Magenta for end point */
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.gram-frame-doppler-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 12px;
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.8);
+  stroke-width: 0.5;
+  paint-order: stroke;
+  pointer-events: none;
+  font-weight: bold;
+  dominant-baseline: central;
 }
 
 /* Debug grid */

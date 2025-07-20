@@ -2,10 +2,12 @@
  * GramFrame - A JavaScript component for interactive spectrogram analysis
  */
 
-// Import component styles
-import './gramframe.css'
+/// <reference path="./types.js" />
 
-// Initial state object
+/**
+ * Initial state object for GramFrame component
+ * @type {GramFrameState}
+ */
 const initialState = {
   version: '0.0.1',
   timestamp: new Date().toISOString(),
@@ -13,6 +15,21 @@ const initialState = {
   rate: 1,
   cursorPosition: null,
   cursors: [],
+  harmonics: {
+    baseFrequency: null,
+    harmonicData: []
+  },
+  doppler: {
+    startPoint: null,
+    endPoint: null,
+    deltaTime: null,
+    deltaFrequency: null,
+    speed: null
+  },
+  dragState: {
+    isDragging: false,
+    dragStartPosition: null
+  },
   imageDetails: {
     url: '',
     naturalWidth: 0,  // Original dimensions of the image
@@ -38,13 +55,20 @@ const initialState = {
   }
 }
 
-// State listeners
+/**
+ * Array of state listener functions
+ * @type {StateListener[]}
+ */
 const stateListeners = []
 
 /**
  * GramFrame class - Main component implementation
  */
 class GramFrame {
+  /**
+   * Creates a new GramFrame instance
+   * @param {HTMLTableElement} configTable - Configuration table element to replace
+   */
   constructor(configTable) {
     this.state = { ...initialState }
     this.configTable = configTable
@@ -82,6 +106,11 @@ class GramFrame {
     this.freqAxisGroup.setAttribute('class', 'gram-frame-freq-axis')
     this.svg.appendChild(this.freqAxisGroup)
     
+    // Create cursor indicator group
+    this.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    this.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
+    this.svg.appendChild(this.cursorGroup)
+    
     // Create LED readout panel
     this.readoutPanel = document.createElement('div')
     this.readoutPanel.className = 'gram-frame-readout'
@@ -102,6 +131,7 @@ class GramFrame {
       
       // Store a reference to this instance on the container element
       // This allows the state listener mechanism to access the instance
+      // @ts-ignore - Adding custom property to DOM element
       this.container.__gramFrameInstance = this
     }
     
@@ -118,6 +148,9 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  /**
+   * Creates LED display elements for showing measurement values
+   */
   _createLEDDisplays() {
     // Create frequency display
     this.freqLED = this._createLEDDisplay('Frequency', '0.00 Hz')
@@ -130,15 +163,37 @@ class GramFrame {
     // Create mode display
     this.modeLED = this._createLEDDisplay('Mode', this._capitalizeFirstLetter(this.state.mode))
     this.readoutPanel.appendChild(this.modeLED)
+    
+    // Create doppler-specific displays (initially hidden)
+    this.deltaTimeLED = this._createLEDDisplay('ΔTime', '0.00 s')
+    this.deltaTimeLED.style.display = 'none'
+    this.readoutPanel.appendChild(this.deltaTimeLED)
+    
+    this.deltaFreqLED = this._createLEDDisplay('ΔFreq', '0 Hz')
+    this.deltaFreqLED.style.display = 'none'
+    this.readoutPanel.appendChild(this.deltaFreqLED)
+    
+    this.speedLED = this._createLEDDisplay('Speed', '0.0 knots')
+    this.speedLED.style.display = 'none'
+    this.readoutPanel.appendChild(this.speedLED)
+    
+    // Create rate display
+    this.rateLED = this._createLEDDisplay('Rate', `${this.state.rate} Hz/s`)
+    this.readoutPanel.appendChild(this.rateLED)
   }
   
+  /**
+   * Creates mode switching button UI
+   */
   _createModeSwitchingUI() {
     // Create mode buttons container
+    /** @type {HTMLDivElement} */
     this.modesContainer = document.createElement('div')
     this.modesContainer.className = 'gram-frame-modes'
     
     // Create mode buttons
     const modes = ['analysis', 'harmonics', 'doppler']
+    /** @type {Record<string, HTMLButtonElement>} */
     this.modeButtons = {}
     
     modes.forEach(mode => {
@@ -153,12 +208,17 @@ class GramFrame {
       }
       
       this.modeButtons[mode] = button
-      this.modesContainer.appendChild(button)
+      if (this.modesContainer) {
+        this.modesContainer.appendChild(button)
+      }
     })
     
     this.container.appendChild(this.modesContainer)
   }
   
+  /**
+   * Creates rate input control
+   */
   _createRateInput() {
     // Create rate input container
     const rateContainer = document.createElement('div')
@@ -170,16 +230,30 @@ class GramFrame {
     rateContainer.appendChild(label)
     
     // Create input
+    /** @type {HTMLInputElement} */
     this.rateInput = document.createElement('input')
     this.rateInput.type = 'number'
     this.rateInput.min = '0.1'
     this.rateInput.step = '0.1'
-    this.rateInput.value = this.state.rate
+    this.rateInput.value = String(this.state.rate)
+    this.rateInput.title = 'Rate value affects Doppler speed calculations'
     rateContainer.appendChild(this.rateInput)
+    
+    // Create unit indicator
+    const unit = document.createElement('span')
+    unit.textContent = 'Hz/s'
+    unit.className = 'gram-frame-rate-unit'
+    rateContainer.appendChild(unit)
     
     this.container.appendChild(rateContainer)
   }
   
+  /**
+   * Creates a single LED display element
+   * @param {string} label - Display label
+   * @param {string} value - Initial display value
+   * @returns {HTMLDivElement} The LED display element
+   */
   _createLEDDisplay(label, value) {
     const led = document.createElement('div')
     led.className = 'gram-frame-led'
@@ -190,30 +264,71 @@ class GramFrame {
     return led
   }
   
+  /**
+   * Sets up event listeners for mouse interactions and UI controls
+   */
   _setupEventListeners() {
+    // Bind event handlers to maintain proper 'this' context
+    this._boundHandleMouseMove = this._handleMouseMove.bind(this)
+    this._boundHandleMouseLeave = this._handleMouseLeave.bind(this)
+    this._boundHandleClick = this._handleClick.bind(this)
+    this._boundHandleMouseDown = this._handleMouseDown.bind(this)
+    this._boundHandleMouseUp = this._handleMouseUp.bind(this)
+    this._boundHandleResize = this._handleResize.bind(this)
+    
     // SVG mouse events
-    this.svg.addEventListener('mousemove', this._handleMouseMove.bind(this))
-    this.svg.addEventListener('click', this._handleClick.bind(this))
+    this.svg.addEventListener('mousemove', this._boundHandleMouseMove)
+    this.svg.addEventListener('mouseleave', this._boundHandleMouseLeave)
+    this.svg.addEventListener('click', this._boundHandleClick)
+    this.svg.addEventListener('mousedown', this._boundHandleMouseDown)
+    this.svg.addEventListener('mouseup', this._boundHandleMouseUp)
     
     // Mode button events
-    Object.keys(this.modeButtons).forEach(mode => {
-      this.modeButtons[mode].addEventListener('click', () => {
-        this._switchMode(mode)
-      })
-    })
-    
-    // Rate input events
-    this.rateInput.addEventListener('change', () => {
-      const rate = parseFloat(this.rateInput.value)
-      if (!isNaN(rate) && rate > 0) {
-        this._setRate(rate)
+    Object.keys(this.modeButtons || {}).forEach(mode => {
+      const button = this.modeButtons[mode]
+      if (button) {
+        button.addEventListener('click', () => {
+          this._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
+        })
       }
     })
     
+    // Rate input events
+    if (this.rateInput) {
+      this.rateInput.addEventListener('change', () => {
+        if (this.rateInput) {
+          const rate = parseFloat(this.rateInput.value)
+          if (!isNaN(rate) && rate >= 0.1) {
+            this._setRate(rate)
+          } else {
+            // Reset to previous valid value if invalid input
+            this.rateInput.value = String(this.state.rate)
+          }
+        }
+      })
+    }
+    
+    // Also handle input events for real-time validation feedback
+    if (this.rateInput) {
+      this.rateInput.addEventListener('input', () => {
+        if (this.rateInput) {
+          const rate = parseFloat(this.rateInput.value)
+          if (!isNaN(rate) && rate >= 0.1) {
+            this.rateInput.style.borderColor = '#ddd'
+          } else {
+            this.rateInput.style.borderColor = '#ff6b6b'
+          }
+        }
+      })
+    }
+    
     // Window resize event
-    window.addEventListener('resize', this._handleResize.bind(this))
+    window.addEventListener('resize', this._boundHandleResize)
   }
   
+  /**
+   * Sets up ResizeObserver to monitor container dimensions
+   */
   _setupResizeObserver() {
     // Use ResizeObserver to monitor SVG container dimensions
     if (typeof ResizeObserver !== 'undefined') {
@@ -226,12 +341,19 @@ class GramFrame {
     }
   }
   
+  /**
+   * Handles window resize events
+   */
   _handleResize() {
     // Delegate to SVG resize handler
     const containerRect = this.container.getBoundingClientRect()
     this._handleSVGResize(containerRect)
   }
   
+  /**
+   * Handles SVG container resize
+   * @param {DOMRect} containerRect - Container dimensions
+   */
   _handleSVGResize(containerRect) {
     // Only handle resize if we have a valid image
     if (!this.spectrogramImage) return
@@ -260,17 +382,17 @@ class GramFrame {
     
     // Update SVG viewBox and dimensions
     this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
-    this.svg.setAttribute('width', newWidth)
-    this.svg.setAttribute('height', newHeight)
+    this.svg.setAttribute('width', String(newWidth))
+    this.svg.setAttribute('height', String(newHeight))
     
     // Position image directly in SVG coordinate space (no mainGroup translation)
     this.mainGroup.setAttribute('transform', '')
     
     // Update image element within SVG - position it in the margin area
-    this.svgImage.setAttribute('width', originalWidth)
-    this.svgImage.setAttribute('height', originalHeight)
-    this.svgImage.setAttribute('x', margins.left)
-    this.svgImage.setAttribute('y', margins.top)
+    this.svgImage.setAttribute('width', String(originalWidth))
+    this.svgImage.setAttribute('height', String(originalHeight))
+    this.svgImage.setAttribute('x', String(margins.left))
+    this.svgImage.setAttribute('y', String(margins.top))
     
     // Update state with new dimensions
     this.state.displayDimensions = {
@@ -288,6 +410,10 @@ class GramFrame {
     console.log('GramFrame resized:', this.state.displayDimensions)
   }
   
+  /**
+   * Handles mouse move events over the SVG
+   * @param {MouseEvent} event - Mouse event
+   */
   _handleMouseMove(event) {
     // Only process if we have valid image details
     if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
@@ -309,6 +435,10 @@ class GramFrame {
     if (imageRelativeX < 0 || imageRelativeY < 0 || 
         imageRelativeX > this.state.imageDetails.naturalWidth || 
         imageRelativeY > this.state.imageDetails.naturalHeight) {
+      // Clear cursor position when mouse is outside image bounds
+      this.state.cursorPosition = null
+      this._updateLEDDisplays()
+      this._notifyStateListeners()
       return
     }
     
@@ -330,17 +460,212 @@ class GramFrame {
     // Update LED displays
     this._updateLEDDisplays()
     
+    // Update visual cursor indicators
+    this._updateCursorIndicators()
+    
+    // In Analysis mode, update harmonics during drag
+    if (this.state.mode === 'analysis' && this.state.dragState.isDragging) {
+      this._triggerHarmonicsDisplay()
+    }
+    
     // Notify listeners
     this._notifyStateListeners()
   }
   
+  /**
+   * Handles mouse leave events
+   * @param {MouseEvent} event - Mouse event
+   */
+  _handleMouseLeave(event) {
+    // Clear cursor position when mouse leaves the SVG area
+    this.state.cursorPosition = null
+    
+    // Update LED displays to show no position
+    this._updateLEDDisplays()
+    
+    // Clear visual cursor indicators
+    this._updateCursorIndicators()
+    
+    // Notify listeners
+    this._notifyStateListeners()
+  }
+  
+  /**
+   * Handles mouse down events for drag interactions
+   * @param {MouseEvent} event - Mouse event
+   */
+  _handleMouseDown(event) {
+    // Only process if we have valid image details
+    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
+    
+    // Start drag state in Analysis mode for harmonics
+    if (this.state.mode === 'analysis' && this.state.cursorPosition) {
+      this.state.dragState.isDragging = true
+      this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
+      
+      // Trigger harmonics display immediately on mouse down
+      this._triggerHarmonicsDisplay()
+    }
+  }
+  
+  /**
+   * Handles mouse up events to end drag interactions
+   * @param {MouseEvent} event - Mouse event
+   */
+  _handleMouseUp(event) {
+    // End drag state
+    if (this.state.dragState.isDragging) {
+      this.state.dragState.isDragging = false
+      this.state.dragState.dragStartPosition = null
+      
+      // Clear harmonics state when drag ends
+      this.state.harmonics.baseFrequency = null
+      this.state.harmonics.harmonicData = []
+      
+      // Update displays and indicators
+      this._updateLEDDisplays()
+      this._updateCursorIndicators()
+      
+      // Notify listeners of state change
+      this._notifyStateListeners()
+    }
+  }
+  
+  /**
+   * Handles click events for Doppler mode measurements
+   * @param {MouseEvent} event - Mouse event
+   */
   _handleClick(event) {
-    // This will be implemented in Phase 3
-    console.log('Canvas clicked')
+    // Only process if we have valid image details and are in Doppler mode
+    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight || this.state.mode !== 'doppler') {
+      return
+    }
+    
+    // Only process if mouse is within the image area
+    if (!this.state.cursorPosition) {
+      return
+    }
+    
+    // Handle Doppler mode clicks
+    if (this.state.mode === 'doppler') {
+      this._handleDopplerClick()
+    }
+  }
+  
+  /**
+   * Processes Doppler mode click to set measurement points
+   */
+  _handleDopplerClick() {
+    // Create point data from current cursor position
+    if (!this.state.cursorPosition) return
+    
+    const clickPoint = {
+      time: this.state.cursorPosition.time,
+      freq: this.state.cursorPosition.freq,
+      svgX: this.state.cursorPosition.svgX,
+      svgY: this.state.cursorPosition.svgY
+    }
+    
+    if (!this.state.doppler.startPoint) {
+      // Set start point
+      this.state.doppler.startPoint = clickPoint
+      this.state.doppler.endPoint = null
+      this.state.doppler.deltaTime = null
+      this.state.doppler.deltaFrequency = null
+      this.state.doppler.speed = null
+    } else if (!this.state.doppler.endPoint) {
+      // Set end point and calculate measurements
+      this.state.doppler.endPoint = clickPoint
+      this._calculateDopplerMeasurements()
+    } else {
+      // Both points are set, start a new measurement
+      this.state.doppler.startPoint = clickPoint
+      this.state.doppler.endPoint = null
+      this.state.doppler.deltaTime = null
+      this.state.doppler.deltaFrequency = null
+      this.state.doppler.speed = null
+    }
+    
+    // Update displays and indicators
+    this._updateLEDDisplays()
+    this._updateCursorIndicators()
+    
+    // Notify listeners of state change
+    this._notifyStateListeners()
+  }
+  
+  /**
+   * Calculates Doppler measurements from start and end points
+   */
+  _calculateDopplerMeasurements() {
+    if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
+      return
+    }
+    
+    const start = this.state.doppler.startPoint
+    const end = this.state.doppler.endPoint
+    
+    // Calculate delta values
+    this.state.doppler.deltaTime = end.time - start.time
+    this.state.doppler.deltaFrequency = end.freq - start.freq
+    
+    // Speed calculation incorporating rate: ΔT * ΔF * rate
+    this.state.doppler.speed = Math.abs(this.state.doppler.deltaTime * this.state.doppler.deltaFrequency * this.state.rate)
+  }
+  
+  /**
+   * Clean up event listeners (called when component is destroyed)
+   */
+  _cleanupEventListeners() {
+    if (this.svg) {
+      if (this._boundHandleMouseMove) {
+        this.svg.removeEventListener('mousemove', this._boundHandleMouseMove)
+      }
+      if (this._boundHandleMouseLeave) {
+        this.svg.removeEventListener('mouseleave', this._boundHandleMouseLeave)
+      }
+      if (this._boundHandleClick) {
+        this.svg.removeEventListener('click', this._boundHandleClick)
+      }
+      if (this._boundHandleMouseDown) {
+        this.svg.removeEventListener('mousedown', this._boundHandleMouseDown)
+      }
+      if (this._boundHandleMouseUp) {
+        this.svg.removeEventListener('mouseup', this._boundHandleMouseUp)
+      }
+    }
+    
+    if (this._boundHandleResize) {
+      window.removeEventListener('resize', this._boundHandleResize)
+    }
+    
+    // Clean up ResizeObserver
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+      this.resizeObserver = null
+    }
+  }
+  
+  /**
+   * Destroy the component and clean up resources
+   */
+  destroy() {
+    this._cleanupEventListeners()
+    
+    // Remove from DOM if still attached
+    if (this.container && this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container)
+    }
   }
   
   /**
    * Convert screen coordinates to SVG coordinates
+   */
+  /**
+   * Convert screen coordinates to SVG coordinates
+   * @param {number} screenX - Screen X coordinate
+   * @param {number} screenY - Screen Y coordinate
+   * @returns {SVGCoordinates} SVG coordinates
    */
   _screenToSVGCoordinates(screenX, screenY) {
     const svgRect = this.svg.getBoundingClientRect()
@@ -373,6 +698,12 @@ class GramFrame {
   /**
    * Convert SVG coordinates to data coordinates (time and frequency)
    */
+  /**
+   * Convert SVG coordinates to data coordinates (time and frequency)
+   * @param {number} svgX - SVG X coordinate
+   * @param {number} svgY - SVG Y coordinate
+   * @returns {DataCoordinates} Data coordinates
+   */
   _svgToDataCoordinates(svgX, svgY) {
     const margins = this.state.axes.margins
     const imageX = svgX - margins.left
@@ -384,6 +715,12 @@ class GramFrame {
   /**
    * Convert image-relative coordinates to data coordinates (time and frequency)
    */
+  /**
+   * Convert image-relative coordinates to data coordinates (time and frequency)
+   * @param {number} imageX - Image X coordinate
+   * @param {number} imageY - Image Y coordinate
+   * @returns {DataCoordinates} Data coordinates
+   */
   _imageToDataCoordinates(imageX, imageY) {
     const { freqMin, freqMax, timeMin, timeMax } = this.state.config
     const { naturalWidth, naturalHeight } = this.state.imageDetails
@@ -393,8 +730,11 @@ class GramFrame {
     const boundedY = Math.max(0, Math.min(imageY, naturalHeight))
     
     // Convert to data coordinates
-    const freq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
+    const rawFreq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
     const time = timeMax - (boundedY / naturalHeight) * (timeMax - timeMin)
+    
+    // Apply rate scaling to frequency - rate acts as a frequency divider
+    const freq = rawFreq / this.state.rate
     
     return { freq, time }
   }
@@ -402,11 +742,20 @@ class GramFrame {
   /**
    * Convert data coordinates to SVG coordinates
    */
+  /**
+   * Convert data coordinates to SVG coordinates
+   * @param {number} freq - Frequency in Hz
+   * @param {number} time - Time in seconds
+   * @returns {SVGCoordinates} SVG coordinates
+   */
   _dataToSVGCoordinates(freq, time) {
     const { freqMin, freqMax, timeMin, timeMax } = this.state.config
     const { naturalWidth, naturalHeight } = this.state.imageDetails
     
-    const x = ((freq - freqMin) / (freqMax - freqMin)) * naturalWidth
+    // Convert frequency back to raw frequency space for positioning
+    const rawFreq = freq * this.state.rate
+    
+    const x = ((rawFreq - freqMin) / (freqMax - freqMin)) * naturalWidth
     const y = naturalHeight - ((time - timeMin) / (timeMax - timeMin)) * naturalHeight
     
     return { x, y }
@@ -414,6 +763,12 @@ class GramFrame {
   
   /**
    * Convert SVG coordinates to screen coordinates
+   */
+  /**
+   * Convert SVG coordinates to screen coordinates
+   * @param {number} svgX - SVG X coordinate
+   * @param {number} svgY - SVG Y coordinate
+   * @returns {ScreenCoordinates} Screen coordinates
    */
   _svgToScreenCoordinates(svgX, svgY) {
     const svgRect = this.svg.getBoundingClientRect()
@@ -446,6 +801,9 @@ class GramFrame {
   /**
    * Draw axes with tick marks and labels
    */
+  /**
+   * Draw axes with tick marks and labels
+   */
   _drawAxes() {
     if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
     
@@ -465,6 +823,9 @@ class GramFrame {
   /**
    * Draw time axis (vertical, left)
    */
+  /**
+   * Draw time axis (vertical, left)
+   */
   _drawTimeAxis() {
     const { timeMin, timeMax } = this.state.config
     const { naturalHeight } = this.state.imageDetails
@@ -478,10 +839,10 @@ class GramFrame {
     
     // Draw main axis line (along the left edge of the image)
     const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    axisLine.setAttribute('x1', margins.left)
-    axisLine.setAttribute('y1', margins.top)
-    axisLine.setAttribute('x2', margins.left)
-    axisLine.setAttribute('y2', margins.top + naturalHeight)
+    axisLine.setAttribute('x1', String(margins.left))
+    axisLine.setAttribute('y1', String(margins.top))
+    axisLine.setAttribute('x2', String(margins.left))
+    axisLine.setAttribute('y2', String(margins.top + naturalHeight))
     axisLine.setAttribute('class', 'gram-frame-axis-line')
     this.timeAxisGroup.appendChild(axisLine)
     
@@ -493,17 +854,17 @@ class GramFrame {
       
       // Tick mark (extends into the left margin)
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', margins.left - 5)
-      tick.setAttribute('y1', yPos)
-      tick.setAttribute('x2', margins.left)
-      tick.setAttribute('y2', yPos)
+      tick.setAttribute('x1', String(margins.left - 5))
+      tick.setAttribute('y1', String(yPos))
+      tick.setAttribute('x2', String(margins.left))
+      tick.setAttribute('y2', String(yPos))
       tick.setAttribute('class', 'gram-frame-axis-tick')
       this.timeAxisGroup.appendChild(tick)
       
       // Label (in the left margin)
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', margins.left - 8)
-      label.setAttribute('y', yPos + 4) // Slight offset for better alignment
+      label.setAttribute('x', String(margins.left - 8))
+      label.setAttribute('y', String(yPos + 4)) // Slight offset for better alignment
       label.setAttribute('text-anchor', 'end')
       label.setAttribute('class', 'gram-frame-axis-label')
       label.textContent = timeValue.toFixed(1) + 's'
@@ -511,6 +872,9 @@ class GramFrame {
     }
   }
   
+  /**
+   * Draw frequency axis (horizontal, bottom)
+   */
   /**
    * Draw frequency axis (horizontal, bottom)
    */
@@ -528,10 +892,10 @@ class GramFrame {
     // Draw main axis line (along the bottom edge of the image)
     const axisLineY = margins.top + naturalHeight
     const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    axisLine.setAttribute('x1', margins.left)
-    axisLine.setAttribute('y1', axisLineY)
-    axisLine.setAttribute('x2', margins.left + naturalWidth)
-    axisLine.setAttribute('y2', axisLineY)
+    axisLine.setAttribute('x1', String(margins.left))
+    axisLine.setAttribute('y1', String(axisLineY))
+    axisLine.setAttribute('x2', String(margins.left + naturalWidth))
+    axisLine.setAttribute('y2', String(axisLineY))
     axisLine.setAttribute('class', 'gram-frame-axis-line')
     this.freqAxisGroup.appendChild(axisLine)
     
@@ -542,17 +906,17 @@ class GramFrame {
       
       // Tick mark (extends into the bottom margin)
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', xPos)
-      tick.setAttribute('y1', axisLineY)
-      tick.setAttribute('x2', xPos)
-      tick.setAttribute('y2', axisLineY + 5)
+      tick.setAttribute('x1', String(xPos))
+      tick.setAttribute('y1', String(axisLineY))
+      tick.setAttribute('x2', String(xPos))
+      tick.setAttribute('y2', String(axisLineY + 5))
       tick.setAttribute('class', 'gram-frame-axis-tick')
       this.freqAxisGroup.appendChild(tick)
       
       // Label (in the bottom margin)
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', xPos)
-      label.setAttribute('y', axisLineY + 18)
+      label.setAttribute('x', String(xPos))
+      label.setAttribute('y', String(axisLineY + 18))
       label.setAttribute('text-anchor', 'middle')
       label.setAttribute('class', 'gram-frame-axis-label')
       label.textContent = freqValue.toFixed(0) + 'Hz'
@@ -560,56 +924,486 @@ class GramFrame {
     }
   }
   
+  /**
+   * Switch between analysis modes
+   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
+   */
   _switchMode(mode) {
     // Update state
     this.state.mode = mode
     
+    // Clear harmonics state when switching away from analysis mode
+    if (mode !== 'analysis') {
+      this.state.harmonics.baseFrequency = null
+      this.state.harmonics.harmonicData = []
+    }
+    
+    // Clear doppler state when switching away from doppler mode
+    if (mode !== 'doppler') {
+      this.state.doppler.startPoint = null
+      this.state.doppler.endPoint = null
+      this.state.doppler.deltaTime = null
+      this.state.doppler.deltaFrequency = null
+      this.state.doppler.speed = null
+    }
+    
+    // Clear drag state when switching modes
+    this.state.dragState.isDragging = false
+    this.state.dragState.dragStartPosition = null
+    
     // Update UI
-    Object.keys(this.modeButtons).forEach(m => {
-      if (m === mode) {
-        this.modeButtons[m].classList.add('active')
-      } else {
-        this.modeButtons[m].classList.remove('active')
-      }
-    })
+    if (this.modeButtons) {
+      Object.keys(this.modeButtons).forEach(m => {
+        const button = this.modeButtons[m]
+        if (button) {
+          if (m === mode) {
+            button.classList.add('active')
+          } else {
+            button.classList.remove('active')
+          }
+        }
+      })
+    }
+    
+    // Clear existing cursor indicators and redraw for new mode
+    this._updateCursorIndicators()
     
     // Update LED display
     this._updateModeLED()
+    this._updateLEDDisplays()
     
     // Notify listeners
     this._notifyStateListeners()
   }
   
+  /**
+   * Set the rate value for frequency calculations
+   * @param {number} rate - Rate value in Hz/s
+   */
   _setRate(rate) {
     // Update state
     this.state.rate = rate
     
+    // Update rate LED display
+    this._updateRateLED()
+    
+    // If in Doppler mode and we have measurements, recalculate speed with new rate
+    if (this.state.mode === 'doppler' && this.state.doppler.startPoint && this.state.doppler.endPoint) {
+      this._calculateDopplerMeasurements()
+      this._updateLEDDisplays()
+    }
+    
     // Notify listeners
     this._notifyStateListeners()
   }
   
+  /**
+   * Update LED display values based on current state
+   */
   _updateLEDDisplays() {
-    if (!this.state.cursorPosition) return
+    // Hide/show doppler-specific LEDs based on mode
+    if (this.state.mode === 'doppler') {
+      this.deltaTimeLED.style.display = 'block'
+      this.deltaFreqLED.style.display = 'block'
+      this.speedLED.style.display = 'block'
+      
+      // Update doppler-specific values if available
+      if (this.state.doppler.deltaTime !== null) {
+        this.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = `ΔT: ${this.state.doppler.deltaTime.toFixed(2)} s`
+      } else {
+        this.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = 'ΔT: 0.00 s'
+      }
+      
+      if (this.state.doppler.deltaFrequency !== null) {
+        this.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = `ΔF: ${this.state.doppler.deltaFrequency.toFixed(0)} Hz`
+      } else {
+        this.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = 'ΔF: 0 Hz'
+      }
+      
+      if (this.state.doppler.speed !== null) {
+        this.speedLED.querySelector('.gram-frame-led-value').textContent = `Speed: ${this.state.doppler.speed.toFixed(1)} knots`
+      } else {
+        this.speedLED.querySelector('.gram-frame-led-value').textContent = 'Speed: 0.0 knots'
+      }
+    } else {
+      this.deltaTimeLED.style.display = 'none'
+      this.deltaFreqLED.style.display = 'none'
+      this.speedLED.style.display = 'none'
+    }
     
-    // Update frequency LED
-    const freqValue = this.state.cursorPosition.freq.toFixed(2)
-    this.freqLED.querySelector('.gram-frame-led-value').textContent = `${freqValue} Hz`
+    if (!this.state.cursorPosition) {
+      // Show default values when no cursor position
+      this.freqLED.querySelector('.gram-frame-led-value').textContent = 'Freq: 0.00 Hz'
+      this.timeLED.querySelector('.gram-frame-led-value').textContent = 'Time: 0.00 s'
+      return
+    }
     
-    // Update time LED
-    const timeValue = this.state.cursorPosition.time.toFixed(2)
-    this.timeLED.querySelector('.gram-frame-led-value').textContent = `${timeValue} s`
+    // Mode-specific LED formatting
+    if (this.state.mode === 'analysis' && this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
+      // For Analysis mode during drag, show base frequency for harmonics
+      const baseFreqValue = this.state.harmonics.baseFrequency.toFixed(1)
+      this.freqLED.querySelector('.gram-frame-led-value').textContent = `Base: ${baseFreqValue} Hz`
+      
+      // Still show time
+      const timeValue = this.state.cursorPosition.time.toFixed(2)
+      this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
+    } else {
+      // For normal mode operation - use 1 decimal place for frequency as per spec
+      const freqValue = this.state.cursorPosition.freq.toFixed(1)
+      this.freqLED.querySelector('.gram-frame-led-value').textContent = `Freq: ${freqValue} Hz`
+      
+      // Update time LED - use 2 decimal places as per spec
+      const timeValue = this.state.cursorPosition.time.toFixed(2)
+      this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
+    }
   }
   
+  /**
+   * Update mode LED display
+   */
   _updateModeLED() {
     // Update mode LED
     this.modeLED.querySelector('.gram-frame-led-value').textContent = 
       this._capitalizeFirstLetter(this.state.mode)
   }
   
+  /**
+   * Update rate LED display
+   */
+  _updateRateLED() {
+    // Update rate LED
+    this.rateLED.querySelector('.gram-frame-led-value').textContent = `${this.state.rate} Hz/s`
+  }
+  
+  /**
+   * Update cursor visual indicators based on current mode and state
+   */
+  _updateCursorIndicators() {
+    // Clear existing cursor indicators
+    this.cursorGroup.innerHTML = ''
+    
+    // Only draw indicators if cursor position is available
+    if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
+      // In harmonics mode, if we have harmonic data but no cursor position, clear the harmonics
+      if (this.state.mode === 'harmonics' && this.state.harmonics.baseFrequency !== null) {
+        // Keep harmonics state but don't draw anything when cursor is outside
+        return
+      }
+      return
+    }
+    
+    // Handle different modes
+    if (this.state.mode === 'analysis') {
+      this._drawAnalysisMode()
+      
+      // In Analysis mode, also draw harmonics if dragging
+      if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
+        this._drawHarmonicsMode()
+      }
+    } else if (this.state.mode === 'doppler') {
+      this._drawDopplerMode()
+    }
+  }
+  
+  /**
+   * Draw cursor indicators for analysis mode
+   */
+  _drawAnalysisMode() {
+    if (!this.state.cursorPosition) return
+    
+    const margins = this.state.axes.margins
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    
+    // Calculate cursor position in SVG coordinates (accounting for margins)
+    const cursorSVGX = margins.left + this.state.cursorPosition.imageX
+    const cursorSVGY = margins.top + this.state.cursorPosition.imageY
+    
+    // Create vertical crosshair lines (time indicator) - shadow first, then main line
+    const verticalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    verticalShadow.setAttribute('x1', String(cursorSVGX))
+    verticalShadow.setAttribute('y1', String(margins.top))
+    verticalShadow.setAttribute('x2', String(cursorSVGX))
+    verticalShadow.setAttribute('y2', String(margins.top + naturalHeight))
+    verticalShadow.setAttribute('class', 'gram-frame-cursor-shadow')
+    this.cursorGroup.appendChild(verticalShadow)
+    
+    const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    verticalLine.setAttribute('x1', String(cursorSVGX))
+    verticalLine.setAttribute('y1', String(margins.top))
+    verticalLine.setAttribute('x2', String(cursorSVGX))
+    verticalLine.setAttribute('y2', String(margins.top + naturalHeight))
+    verticalLine.setAttribute('class', 'gram-frame-cursor-vertical')
+    this.cursorGroup.appendChild(verticalLine)
+    
+    // Create horizontal crosshair lines (frequency indicator) - shadow first, then main line
+    const horizontalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    horizontalShadow.setAttribute('x1', String(margins.left))
+    horizontalShadow.setAttribute('y1', String(cursorSVGY))
+    horizontalShadow.setAttribute('x2', String(margins.left + naturalWidth))
+    horizontalShadow.setAttribute('y2', String(cursorSVGY))
+    horizontalShadow.setAttribute('class', 'gram-frame-cursor-shadow')
+    this.cursorGroup.appendChild(horizontalShadow)
+    
+    const horizontalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    horizontalLine.setAttribute('x1', String(margins.left))
+    horizontalLine.setAttribute('y1', String(cursorSVGY))
+    horizontalLine.setAttribute('x2', String(margins.left + naturalWidth))
+    horizontalLine.setAttribute('y2', String(cursorSVGY))
+    horizontalLine.setAttribute('class', 'gram-frame-cursor-horizontal')
+    this.cursorGroup.appendChild(horizontalLine)
+    
+    // Create center point indicator
+    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    centerPoint.setAttribute('cx', String(cursorSVGX))
+    centerPoint.setAttribute('cy', String(cursorSVGY))
+    centerPoint.setAttribute('r', '3')
+    centerPoint.setAttribute('class', 'gram-frame-cursor-point')
+    this.cursorGroup.appendChild(centerPoint)
+  }
+  
+  /**
+   * Trigger harmonics calculation and display during drag
+   */
+  _triggerHarmonicsDisplay() {
+    // Only trigger if we have a cursor position, are in analysis mode, and are dragging
+    if (!this.state.cursorPosition || this.state.mode !== 'analysis' || !this.state.dragState.isDragging) {
+      return
+    }
+    
+    const baseFrequency = this.state.cursorPosition.freq
+    
+    // Calculate harmonic frequencies and their positions
+    const harmonics = this._calculateHarmonics(baseFrequency)
+    
+    // Update state with harmonic data
+    this.state.harmonics.baseFrequency = baseFrequency
+    this.state.harmonics.harmonicData = harmonics
+    
+    // Update LED displays to show base frequency
+    this._updateLEDDisplays()
+    
+    // Redraw cursor indicators to show harmonics
+    this._updateCursorIndicators()
+    
+    // Notify listeners of state change
+    this._notifyStateListeners()
+  }
+  
+  /**
+   * Draw harmonic indicators
+   */
+  _drawHarmonicsMode() {
+    // This method now only draws the harmonics that have been calculated
+    // It doesn't calculate them - that's done in _triggerHarmonicsDisplay
+    const harmonics = this.state.harmonics.harmonicData
+    
+    // Draw harmonic lines and labels
+    harmonics.forEach((harmonic, index) => {
+      this._drawHarmonicLine(harmonic, index === 0)
+      this._drawHarmonicLabels(harmonic, index === 0)
+    })
+  }
+  
+  /**
+   * Calculate harmonic frequencies and their positions
+   * @param {number} baseFrequency - Base frequency in Hz
+   * @returns {HarmonicData[]} Array of harmonic data
+   */
+  _calculateHarmonics(baseFrequency) {
+    const { freqMin, freqMax } = this.state.config
+    const harmonics = []
+    
+    // Start with the base frequency (1x harmonic)
+    let harmonicNumber = 1
+    let harmonicFreq = baseFrequency * harmonicNumber
+    
+    // Add harmonics while they're within the visible frequency range
+    while (harmonicFreq <= freqMax && harmonics.length < 10) { // Limit to 10 harmonics max
+      if (harmonicFreq >= freqMin) {
+        // Convert frequency to SVG x-coordinate
+        const dataCoords = this._dataToSVGCoordinates(harmonicFreq, 0)
+        const svgX = this.state.axes.margins.left + dataCoords.x
+        
+        harmonics.push({
+          number: harmonicNumber,
+          frequency: harmonicFreq,
+          svgX: svgX
+        })
+      }
+      
+      harmonicNumber++
+      harmonicFreq = baseFrequency * harmonicNumber
+    }
+    
+    return harmonics
+  }
+  
+  /**
+   * Draw a single harmonic line
+   * @param {HarmonicData} harmonic - Harmonic data
+   * @param {boolean} isMainLine - Whether this is the main (1x) line
+   */
+  _drawHarmonicLine(harmonic, isMainLine) {
+    const margins = this.state.axes.margins
+    const { naturalHeight } = this.state.imageDetails
+    
+    // Draw shadow line first for visibility
+    const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    shadowLine.setAttribute('x1', String(harmonic.svgX))
+    shadowLine.setAttribute('y1', String(margins.top))
+    shadowLine.setAttribute('x2', String(harmonic.svgX))
+    shadowLine.setAttribute('y2', String(margins.top + naturalHeight))
+    shadowLine.setAttribute('class', 'gram-frame-harmonic-shadow')
+    this.cursorGroup.appendChild(shadowLine)
+    
+    // Draw main line
+    const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    mainLine.setAttribute('x1', String(harmonic.svgX))
+    mainLine.setAttribute('y1', String(margins.top))
+    mainLine.setAttribute('x2', String(harmonic.svgX))
+    mainLine.setAttribute('y2', String(margins.top + naturalHeight))
+    
+    // Use distinct styling for the main line (1×) as specified
+    if (isMainLine) {
+      mainLine.setAttribute('class', 'gram-frame-harmonic-main')
+    } else {
+      mainLine.setAttribute('class', 'gram-frame-harmonic-line')
+    }
+    
+    this.cursorGroup.appendChild(mainLine)
+  }
+  
+  /**
+   * Draw labels for a harmonic line
+   * @param {HarmonicData} harmonic - Harmonic data
+   * @param {boolean} isMainLine - Whether this is the main (1x) line
+   */
+  _drawHarmonicLabels(harmonic, isMainLine) {
+    const margins = this.state.axes.margins
+    const labelY = margins.top + 15 // Position labels near the top
+    
+    // Create harmonic number label (left side of line)
+    const numberLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    numberLabel.setAttribute('x', String(harmonic.svgX - 5))
+    numberLabel.setAttribute('y', String(labelY))
+    numberLabel.setAttribute('text-anchor', 'end')
+    numberLabel.setAttribute('class', 'gram-frame-harmonic-label')
+    numberLabel.textContent = `${harmonic.number}×`
+    this.cursorGroup.appendChild(numberLabel)
+    
+    // Create frequency label (right side of line)
+    const frequencyLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    frequencyLabel.setAttribute('x', String(harmonic.svgX + 5))
+    frequencyLabel.setAttribute('y', String(labelY))
+    frequencyLabel.setAttribute('text-anchor', 'start')
+    frequencyLabel.setAttribute('class', 'gram-frame-harmonic-label')
+    frequencyLabel.textContent = `${Math.round(harmonic.frequency)} Hz`
+    this.cursorGroup.appendChild(frequencyLabel)
+  }
+  
+  /**
+   * Draw Doppler mode indicators
+   */
+  _drawDopplerMode() {
+    // Draw normal crosshairs for current cursor position
+    if (this.state.cursorPosition) {
+      this._drawAnalysisMode()
+    }
+    
+    // Draw start point marker if set
+    if (this.state.doppler.startPoint) {
+      this._drawDopplerPoint(this.state.doppler.startPoint, 'start')
+    }
+    
+    // Draw end point marker and line if both points are set
+    if (this.state.doppler.endPoint) {
+      this._drawDopplerPoint(this.state.doppler.endPoint, 'end')
+      this._drawDopplerLine()
+    }
+  }
+  
+  /**
+   * Draw a Doppler measurement point
+   * @param {DopplerPoint} point - Point data
+   * @param {'start'|'end'} type - Point type
+   */
+  _drawDopplerPoint(point, type) {
+    const margins = this.state.axes.margins
+    
+    // Convert data coordinates to SVG coordinates
+    const dataCoords = this._dataToSVGCoordinates(point.freq, point.time)
+    const svgX = margins.left + dataCoords.x
+    const svgY = margins.top + dataCoords.y
+    
+    // Draw point marker
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    marker.setAttribute('cx', String(svgX))
+    marker.setAttribute('cy', String(svgY))
+    marker.setAttribute('r', '5')
+    marker.setAttribute('class', `gram-frame-doppler-${type}-point`)
+    this.cursorGroup.appendChild(marker)
+    
+    // Draw point label
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('x', String(svgX + 8))
+    label.setAttribute('y', String(svgY - 8))
+    label.setAttribute('class', 'gram-frame-doppler-label')
+    label.textContent = type === 'start' ? '1' : '2'
+    this.cursorGroup.appendChild(label)
+  }
+  
+  /**
+   * Draw line between Doppler measurement points
+   */
+  _drawDopplerLine() {
+    if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
+      return
+    }
+    
+    const margins = this.state.axes.margins
+    
+    // Convert data coordinates to SVG coordinates
+    const startCoords = this._dataToSVGCoordinates(this.state.doppler.startPoint.freq, this.state.doppler.startPoint.time)
+    const endCoords = this._dataToSVGCoordinates(this.state.doppler.endPoint.freq, this.state.doppler.endPoint.time)
+    
+    const startX = margins.left + startCoords.x
+    const startY = margins.top + startCoords.y
+    const endX = margins.left + endCoords.x
+    const endY = margins.top + endCoords.y
+    
+    // Draw shadow line for visibility
+    const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    shadowLine.setAttribute('x1', String(startX))
+    shadowLine.setAttribute('y1', String(startY))
+    shadowLine.setAttribute('x2', String(endX))
+    shadowLine.setAttribute('y2', String(endY))
+    shadowLine.setAttribute('stroke-width', '4')
+    shadowLine.setAttribute('class', 'gram-frame-doppler-line-shadow')
+    this.cursorGroup.appendChild(shadowLine)
+    
+    // Draw main line
+    const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    mainLine.setAttribute('x1', String(startX))
+    mainLine.setAttribute('y1', String(startY))
+    mainLine.setAttribute('x2', String(endX))
+    mainLine.setAttribute('y2', String(endY))
+    mainLine.setAttribute('stroke-width', '2')
+    mainLine.setAttribute('class', 'gram-frame-doppler-line')
+    this.cursorGroup.appendChild(mainLine)
+  }
+  
+  /**
+   * Capitalize first letter of a string
+   * @param {string} string - Input string
+   * @returns {string} Capitalized string
+   */
   _capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1)
   }
   
+  /**
+   * Extract configuration data from the config table
+   */
   _extractConfigData() {
     if (!this.configTable) return
     
@@ -622,12 +1416,13 @@ class GramFrame {
       this.spectrogramImage = new Image()
       this.spectrogramImage.onload = () => {
         // Store original image dimensions in imageDetails
-        this.state.imageDetails.naturalWidth = this.spectrogramImage.naturalWidth
-        this.state.imageDetails.naturalHeight = this.spectrogramImage.naturalHeight
+        if (this.spectrogramImage) {
+          this.state.imageDetails.naturalWidth = this.spectrogramImage.naturalWidth
+          this.state.imageDetails.naturalHeight = this.spectrogramImage.naturalHeight
         
-        // Calculate initial dimensions based on container size and margins
-        const containerWidth = this.container.clientWidth
-        const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
+          // Calculate initial dimensions based on container size and margins
+          const containerWidth = this.container.clientWidth
+          const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
         
         // Account for axes margins
         const margins = this.state.axes.margins
@@ -648,31 +1443,32 @@ class GramFrame {
           height: Math.round(initialHeight)
         }
         
-        // Create viewBox that includes margin space
-        const viewBoxWidth = this.spectrogramImage.naturalWidth + totalMarginWidth
-        const viewBoxHeight = this.spectrogramImage.naturalHeight + totalMarginHeight
+          // Create viewBox that includes margin space
+          const viewBoxWidth = this.spectrogramImage.naturalWidth + totalMarginWidth
+          const viewBoxHeight = this.spectrogramImage.naturalHeight + totalMarginHeight
         
         // Set SVG dimensions and viewBox
         this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
-        this.svg.setAttribute('width', initialWidth)
-        this.svg.setAttribute('height', initialHeight)
+        this.svg.setAttribute('width', String(initialWidth))
+        this.svg.setAttribute('height', String(initialHeight))
         
         // Position image directly in SVG coordinate space (no mainGroup translation)
         this.mainGroup.setAttribute('transform', '')
         
-        // Set the image source in SVG - position it in the margin area
-        this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
-        this.svgImage.setAttribute('width', this.spectrogramImage.naturalWidth)
-        this.svgImage.setAttribute('height', this.spectrogramImage.naturalHeight)
-        this.svgImage.setAttribute('x', margins.left)
-        this.svgImage.setAttribute('y', margins.top)
+          // Set the image source in SVG - position it in the margin area
+          this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
+          this.svgImage.setAttribute('width', String(this.spectrogramImage.naturalWidth))
+          this.svgImage.setAttribute('height', String(this.spectrogramImage.naturalHeight))
+        this.svgImage.setAttribute('x', String(margins.left))
+        this.svgImage.setAttribute('y', String(margins.top))
         
-        
-        // Draw initial axes
-        this._drawAxes()
-        
-        // Notify listeners of updated state
-        this._notifyStateListeners()
+          
+          // Draw initial axes
+          this._drawAxes()
+          
+          // Notify listeners of updated state
+          this._notifyStateListeners()
+        }
       }
       this.spectrogramImage.src = imgElement.src
     }
@@ -682,9 +1478,9 @@ class GramFrame {
     rows.forEach(row => {
       const cells = row.querySelectorAll('td')
       if (cells.length >= 3) {
-        const param = cells[0].textContent.trim()
-        const min = parseFloat(cells[1].textContent)
-        const max = parseFloat(cells[2].textContent)
+        const param = cells[0].textContent?.trim() || ''
+        const min = parseFloat(cells[1].textContent || '0')
+        const max = parseFloat(cells[2].textContent || '0')
         
         if (param === 'time') {
           this.state.config.timeMin = min
@@ -698,6 +1494,9 @@ class GramFrame {
   }
   
   
+  /**
+   * Notify all registered state listeners of state changes
+   */
   _notifyStateListeners() {
     // Log state changes to console for Task 1.4
     console.log('GramFrame State Updated:', JSON.stringify(this.state, null, 2))
@@ -717,16 +1516,21 @@ class GramFrame {
 }
 
 /**
- * Public API
+ * Public API for GramFrame component
+ * @type {Object}
  */
 const GramFrameAPI = {
-  // Initialize all config tables on the page
+  /**
+   * Initialize all config tables on the page
+   * @returns {GramFrame[]} Array of GramFrame instances
+   */
   init() {
     const configTables = document.querySelectorAll('table.spectro-config')
+    /** @type {GramFrame[]} */
     const instances = []
     
     configTables.forEach(table => {
-      instances.push(new GramFrame(table))
+      instances.push(new GramFrame(/** @type {HTMLTableElement} */ (table)))
     })
     
     return instances
@@ -752,6 +1556,11 @@ const GramFrameAPI = {
    *   }
    * })
    */
+  /**
+   * Add a state listener that will be called whenever the component state changes
+   * @param {StateListener} callback - Function to be called with the current state
+   * @returns {StateListener} Returns the callback function for chaining
+   */
   addStateListener(callback) {
     if (typeof callback !== 'function') {
       throw new Error('State listener must be a function')
@@ -764,6 +1573,7 @@ const GramFrameAPI = {
       const instances = document.querySelectorAll('.gram-frame-container')
       if (instances.length > 0) {
         // Find the first GramFrame instance
+        // @ts-ignore - Custom property on DOM element
         const instance = instances[0].__gramFrameInstance
         if (instance && instance.state) {
           try {
@@ -794,6 +1604,11 @@ const GramFrameAPI = {
    * // Later, remove the listener
    * GramFrame.removeStateListener(myListener)
    */
+  /**
+   * Remove a previously added state listener
+   * @param {StateListener} callback - The callback function to remove
+   * @returns {boolean} Returns true if the listener was found and removed, false otherwise
+   */
   removeStateListener(callback) {
     if (typeof callback !== 'function') {
       throw new Error('Callback must be a function')
@@ -807,35 +1622,49 @@ const GramFrameAPI = {
     return false
   },
   
-  // Toggle canvas bounds overlay
+  /**
+   * Toggle canvas bounds overlay (future implementation)
+   */
   toggleCanvasBoundsOverlay() {
     // This will be implemented in Phase 5
     console.log('Toggle canvas bounds overlay')
   },
   
-  // Set debug grid visibility
+  /**
+   * Set debug grid visibility (future implementation)
+   * @param {boolean} visible - Whether to show the debug grid
+   */
   setDebugGrid(visible) {
     // This will be implemented in Phase 5
     console.log('Set debug grid visibility:', visible)
   },
   
-  // Switch mode
+  /**
+   * Switch mode (future implementation)
+   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
+   */
   switchMode(mode) {
     // This will be implemented in Phase 4
     console.log('Switch mode:', mode)
   },
   
-  // Set rate value
+  /**
+   * Set rate value (future implementation)
+   * @param {number} value - Rate value in Hz/s
+   */
   setRate(value) {
     // This will be implemented in Phase 4
     console.log('Set rate:', value)
   },
   
-  // Force update
+  /**
+   * Force update of the component state
+   */
   forceUpdate() {
     // Find the first GramFrame instance and trigger a state update
     const instances = document.querySelectorAll('.gram-frame-container')
     if (instances.length > 0) {
+      // @ts-ignore - Custom property on DOM element
       const instance = instances[0].__gramFrameInstance
       if (instance) {
         // Trigger a state update by calling _notifyStateListeners
@@ -847,22 +1676,26 @@ const GramFrameAPI = {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+  // @ts-ignore - Adding to global window object
   window.GramFrame = GramFrameAPI
   GramFrameAPI.init()
   // Connect to state display if we're on the debug page
   const stateDisplay = document.getElementById('state-display')
   if (stateDisplay) {
-    GramFrameAPI.addStateListener((state) => {
+    GramFrameAPI.addStateListener(/** @param {any} state */ (state) => {
       stateDisplay.textContent = JSON.stringify(state, null, 2)
     })
   }
 })
 
 // Export the API
+// @ts-ignore - Adding to global window object
 window.GramFrame = GramFrameAPI
 
 // Hot Module Replacement (HMR) support for Task 1.4
+// @ts-ignore - Vite HMR API
 if (import.meta.hot) {
+  // @ts-ignore - Vite HMR API
   import.meta.hot.accept(() => {
     console.log('🔄 GramFrame component updated - Hot reloading')
     

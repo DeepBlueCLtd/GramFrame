@@ -35,10 +35,11 @@ Note: as part of each task in this phase, extend the debug page UI to display th
 
 Note: as part of each task in this phase, extend the debug page UI to display the updated state, and add Playwright tests to verify the expected behavior.
 
-- [ ] Add mode switching UI (Analysis, Harmonics, Doppler)
+- [ ] Add mode switching UI (Analysis, Doppler)
 - [ ] Draw harmonic lines with correct labels
-- [ ] Support multiple cursors and harmonics per cursor
+- [ ] Support multiple harmonics per cursor
 - [ ] Add ‘rate’ input box and propagate to calculations
+- [ ] Demonstrate support for multiple component instance on page. See (mock-gram-2.png and mock-gram-3.png)
 
 ## 🟣 Phase 5: Final Fit & Polish
 
