@@ -184,6 +184,7 @@
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
+  stroke-dasharray: 6, 3; /* Match the cross-hair shadow style */
 }
 
 .gram-frame-harmonic-main {
@@ -192,6 +193,7 @@
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
+  stroke-dasharray: 4, 2; /* Match the cross-hair main line style */
 }
 
 .gram-frame-harmonic-line {
@@ -200,6 +202,7 @@
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
+  stroke-dasharray: 4, 2; /* Match the cross-hair line style */
 }
 
 /* SVG Harmonic labels */

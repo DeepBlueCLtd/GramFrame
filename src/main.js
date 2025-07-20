@@ -1234,6 +1234,7 @@ class GramFrame {
    */
   _calculateHarmonics(baseFrequency) {
     const { freqMin, freqMax } = this.state.config
+    const { width } = this.state.displayDimensions
     const harmonics = []
     
     // Start with the base frequency (1x harmonic)
@@ -1241,11 +1242,18 @@ class GramFrame {
     let harmonicFreq = baseFrequency * harmonicNumber
     
     // Add harmonics while they're within the visible frequency range
-    while (harmonicFreq <= freqMax && harmonics.length < 10) { // Limit to 10 harmonics max
+    // Continue until we exceed the maximum frequency or reach the right edge of the component
+    while (harmonicFreq <= freqMax) {
       if (harmonicFreq >= freqMin) {
         // Convert frequency to SVG x-coordinate
         const dataCoords = this._dataToSVGCoordinates(harmonicFreq, 0)
         const svgX = this.state.axes.margins.left + dataCoords.x
+        
+        // If we've reached the right edge of the component, stop adding harmonics
+        const rightEdge = this.state.axes.margins.left + width - this.state.axes.margins.right
+        if (svgX > rightEdge) {
+          break
+        }
         
         harmonics.push({
           number: harmonicNumber,
