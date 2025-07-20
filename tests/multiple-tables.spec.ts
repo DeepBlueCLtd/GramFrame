@@ -121,24 +121,16 @@ test.describe('Multiple Tables Display', () => {
     // Verify we have 3 components
     expect(componentStates).toHaveLength(3)
     
-    // Debug: show actual states
-    if (componentStates.length !== 3) {
-      throw new Error(`Expected 3 components, got ${componentStates.length}: ${JSON.stringify(componentStates, null, 2)}`)
-    }
-    
     // Verify each component has unique instance ID
     const instanceIds = componentStates.map(state => state.instanceId)
     const uniqueInstanceIds = new Set(instanceIds)
-    
-    if (uniqueInstanceIds.size !== 3) {
-      throw new Error(`Expected 3 unique instance IDs, got ${uniqueInstanceIds.size}. States: ${JSON.stringify(componentStates, null, 2)}`)
-    }
+    expect(uniqueInstanceIds.size).toBe(3)
     
     // Verify each component has different image URLs
     const imageUrls = componentStates.map(state => state.imageUrl)
-    expect(imageUrls).toContain('./sample/mock-gram.png')
-    expect(imageUrls).toContain('./sample/mock-gram-3.png') 
-    expect(imageUrls).toContain('./sample/mock-gram-2.png')
+    expect(imageUrls.some(url => url.includes('mock-gram.png'))).toBe(true)
+    expect(imageUrls.some(url => url.includes('mock-gram-3.png'))).toBe(true) 
+    expect(imageUrls.some(url => url.includes('mock-gram-2.png'))).toBe(true)
     
     // Verify components have different configurations based on their table data
     // First component: time 0-60, freq 0-100

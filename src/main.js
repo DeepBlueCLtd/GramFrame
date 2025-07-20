@@ -11,6 +11,9 @@
 const initialState = {
   version: '0.0.1',
   timestamp: new Date().toISOString(),
+  metadata: {
+    instanceId: ''
+  },
   mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
   rate: 1,
   cursorPosition: null,
@@ -70,15 +73,8 @@ class GramFrame {
    * @param {HTMLTableElement} configTable - Configuration table element to replace
    */
   constructor(configTable) {
-    this.state = { ...initialState }
+    this.state = JSON.parse(JSON.stringify(initialState))
     this.configTable = configTable
-    
-    // Debug: Log what table was received in constructor
-    console.log('GramFrame constructor received table:', {
-      hasImg: !!configTable?.querySelector('img'),
-      imgSrc: configTable?.querySelector('img')?.src,
-      tableCells: configTable ? Array.from(configTable.querySelectorAll('td')).map(td => td.textContent?.trim()) : []
-    })
     
     /**
      * Array of state listener functions for this specific instance
@@ -215,7 +211,7 @@ class GramFrame {
     this.modesContainer.className = 'gram-frame-modes'
     
     // Create mode buttons
-    const modes = ['analysis', 'harmonics', 'doppler']
+    const modes = ['analysis', 'doppler']
     /** @type {Record<string, HTMLButtonElement>} */
     this.modeButtons = {}
     
@@ -311,7 +307,7 @@ class GramFrame {
       const button = this.modeButtons[mode]
       if (button) {
         button.addEventListener('click', () => {
-          this._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
+          this._switchMode(/** @type {'analysis'|'doppler'} */ (mode))
         })
       }
     })
@@ -949,7 +945,7 @@ class GramFrame {
   
   /**
    * Switch between analysis modes
-   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
+   * @param {'analysis'|'doppler'} mode - Target mode
    */
   _switchMode(mode) {
     // Update state
@@ -1650,13 +1646,6 @@ const GramFrameAPI = {
     const errors = []
     
     console.log(`GramFrame: Found ${configTables.length} config tables to process`)
-    configTables.forEach((table, index) => {
-      console.log(`GramFrame: Table ${index + 1} preview:`, {
-        innerHTML: table.innerHTML.substring(0, 200),
-        hasImg: !!table.querySelector('img'),
-        imgSrc: table.querySelector('img')?.src
-      })
-    })
     
     configTables.forEach((table, index) => {
       try {
@@ -1689,6 +1678,10 @@ const GramFrameAPI = {
         
         // Store instance ID for debugging and API access
         instance.instanceId = instanceId
+        instance.state.metadata = {
+          ...instance.state.metadata,
+          instanceId: instanceId
+        }
         
         console.log(`GramFrame: Successfully created instance [${instanceId}] with config:`, {
           timeRange: `${instance.state.config.timeMin}-${instance.state.config.timeMax}s`,
@@ -1905,24 +1898,6 @@ const GramFrameAPI = {
   },
   
   /**
-   * Switch mode (future implementation)
-   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
-   */
-  switchMode(mode) {
-    // This will be implemented in Phase 4
-    console.log('Switch mode:', mode)
-  },
-  
-  /**
-   * Set rate value (future implementation)
-   * @param {number} value - Rate value in Hz/s
-   */
-  setRate(value) {
-    // This will be implemented in Phase 4
-    console.log('Set rate:', value)
-  },
-  
-  /**
    * Force update of the component state
    */
   forceUpdate() {
@@ -2091,10 +2066,10 @@ if (import.meta.hot) {
     console.log('🔄 GramFrame component updated - Hot reloading')
     
     // Store old state listeners before replacing the API
-    const oldListeners = [...stateListeners]
+    const oldListeners = [...globalStateListeners]
     
     // Clear existing listeners
-    stateListeners.length = 0
+    globalStateListeners.length = 0
     
     // Re-initialize the component
     const instances = GramFrameAPI.init()

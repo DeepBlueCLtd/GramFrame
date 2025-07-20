@@ -101,6 +101,8 @@
  * @typedef {Object} GramFrameState
  * @property {string} version - Component version
  * @property {string} timestamp - Timestamp of state creation
+ * @property {Object} metadata - Component instance metadata
+ * @property {string} metadata.instanceId - Unique instance identifier
  * @property {'analysis'|'harmonics'|'doppler'} mode - Current analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
