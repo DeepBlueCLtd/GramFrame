@@ -10,7 +10,7 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     await gramFramePage.waitForImageLoad()
   })
 
-  test('cross-hairs appear only in Analysis mode', async () => {
+  test('cross-hairs appear in Analysis and Doppler modes', async () => {
     // Verify we start in Analysis mode
     const initialState = await gramFramePage.getCurrentState()
     expect(initialState.mode).toBe('analysis')
@@ -29,27 +29,16 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     await expect(gramFramePage.page.locator('.gram-frame-cursor-horizontal')).toHaveCount(1)
     await expect(gramFramePage.page.locator('.gram-frame-cursor-point')).toHaveCount(1)
     
-    // Switch to Harmonics mode
-    await gramFramePage.clickMode('Harmonics')
-    
-    // Move mouse again to ensure no cross-hairs appear
-    await gramFramePage.moveMouseToSpectrogram(200, 150)
-    
-    // Verify cross-hairs are NOT present in Harmonics mode
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-vertical')).toHaveCount(0)
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-horizontal')).toHaveCount(0)
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-point')).toHaveCount(0)
-    
     // Switch to Doppler mode
     await gramFramePage.clickMode('Doppler')
     
-    // Move mouse again to ensure no cross-hairs appear
+    // Move mouse again to verify cross-hairs still appear
     await gramFramePage.moveMouseToSpectrogram(180, 120)
     
-    // Verify cross-hairs are NOT present in Doppler mode
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-vertical')).toHaveCount(0)
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-horizontal')).toHaveCount(0)
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-point')).toHaveCount(0)
+    // Verify cross-hairs ARE present in Doppler mode (needed for positioning)
+    await expect(gramFramePage.page.locator('.gram-frame-cursor-vertical')).toHaveCount(1)
+    await expect(gramFramePage.page.locator('.gram-frame-cursor-horizontal')).toHaveCount(1)
+    await expect(gramFramePage.page.locator('.gram-frame-cursor-point')).toHaveCount(1)
     
     // Switch back to Analysis mode
     await gramFramePage.clickMode('Analysis')
