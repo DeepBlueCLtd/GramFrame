@@ -4,9 +4,6 @@
 
 /// <reference path="./types.js" />
 
-// Import component styles
-import './gramframe.css'
-
 /**
  * Initial state object for GramFrame component
  * @type {GramFrameState}
