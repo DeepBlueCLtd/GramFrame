@@ -52,10 +52,10 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 #### Task 5.1: Auto-Detect and Replace Config Tables Implementation
 
 ##### Enhanced Table Detection Mechanism
-Successfully implemented comprehensive auto-detection functionality that scans the DOM for tables with the class "spectro-config" and replaces them with interactive GramFrame components:
+Successfully implemented comprehensive auto-detection functionality that scans the DOM for tables with the class "gram-config" and replaces them with interactive GramFrame components:
 
 - **Primary Detection Function**: Enhanced `GramFrameAPI.detectAndReplaceConfigTables()` method
-  - Searches for all tables with `spectro-config` class in the specified container (defaults to document)
+  - Searches for all tables with `gram-config` class in the specified container (defaults to document)
   - Processes multiple tables on the same page correctly
   - Generates unique instance IDs for each component (`gramframe-${timestamp}-${index}`)
   - Provides detailed logging for detected tables including position and image validation
@@ -141,7 +141,7 @@ Enhanced code with comprehensive JSDoc documentation and type annotations:
 - Code follows existing project conventions and patterns
 
 #### Key Success Criteria Met:
-✅ Tables with class "spectro-config" are automatically detected and replaced  
+✅ Tables with class "gram-config" are automatically detected and replaced  
 ✅ Configuration is correctly extracted from tables with validation  
 ✅ Multiple tables on the same page are handled properly  
 ✅ Public API allows manual initialization  

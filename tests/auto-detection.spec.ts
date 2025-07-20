@@ -6,15 +6,15 @@ import { test, expect } from '@playwright/test'
  */
 test.describe('Auto-Detection Functionality', () => {
   
-  test('detects and replaces spectro-config table on debug page', async ({ page }) => {
-    // Navigate to the debug page which has a spectro-config table
+  test('detects and replaces gram-config table on debug page', async ({ page }) => {
+    // Navigate to the debug page which has a gram-config table
     await page.goto('/debug.html')
     
     // Wait for component initialization
     await page.waitForFunction(() => window.GramFrame !== undefined)
     
     // Verify table was replaced on the debug page
-    await expect(page.locator('table.spectro-config')).not.toBeVisible()
+    await expect(page.locator('table.gram-config')).not.toBeVisible()
     await expect(page.locator('.gram-frame-container')).toBeVisible()
     
     // Verify component was created successfully

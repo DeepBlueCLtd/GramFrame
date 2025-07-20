@@ -9,7 +9,7 @@
 
 2. Insert a config table:
 ```html
-<table class="spectro-config" frame="box">
+<table class="gram-config" frame="box">
   <tr><td colspan="3"><img src="img/spectrogram.png" /></td></tr>
   <tr><th>param</th><th>min</th><th>max</th></tr>
   <tr><td>time (s)</td><td>0</td><td>10</td></tr>

@@ -886,6 +886,7 @@ class GramFrame {
       label.setAttribute('y', String(yPos + 4)) // Slight offset for better alignment
       label.setAttribute('text-anchor', 'end')
       label.setAttribute('class', 'gram-frame-axis-label')
+      label.setAttribute('font-size', '10')
       label.textContent = timeValue.toFixed(1) + 's'
       this.timeAxisGroup.appendChild(label)
     }
@@ -955,6 +956,7 @@ class GramFrame {
       label.setAttribute('y', String(axisLineY + 18))
       label.setAttribute('text-anchor', 'middle')
       label.setAttribute('class', 'gram-frame-axis-label')
+      label.setAttribute('font-size', '10')
       label.textContent = freqValue.toFixed(0) + 'Hz'
       this.freqAxisGroup.appendChild(label)
     }
@@ -1327,6 +1329,7 @@ class GramFrame {
     numberLabel.setAttribute('y', String(labelY))
     numberLabel.setAttribute('text-anchor', 'end')
     numberLabel.setAttribute('class', 'gram-frame-harmonic-label')
+    numberLabel.setAttribute('font-size', '10')
     numberLabel.textContent = `${harmonic.number}×`
     this.cursorGroup.appendChild(numberLabel)
     
@@ -1336,6 +1339,7 @@ class GramFrame {
     frequencyLabel.setAttribute('y', String(labelY))
     frequencyLabel.setAttribute('text-anchor', 'start')
     frequencyLabel.setAttribute('class', 'gram-frame-harmonic-label')
+    frequencyLabel.setAttribute('font-size', '10')
     frequencyLabel.textContent = `${Math.round(harmonic.frequency)} Hz`
     this.cursorGroup.appendChild(frequencyLabel)
   }
@@ -1387,6 +1391,7 @@ class GramFrame {
     label.setAttribute('x', String(svgX + 8))
     label.setAttribute('y', String(svgY - 8))
     label.setAttribute('class', 'gram-frame-doppler-label')
+    label.setAttribute('font-size', '12')
     label.textContent = type === 'start' ? '1' : '2'
     this.cursorGroup.appendChild(label)
   }
@@ -1652,7 +1657,7 @@ const GramFrameAPI = {
    * @returns {GramFrame[]} Array of GramFrame instances created
    */
   detectAndReplaceConfigTables(container = document) {
-    const configTables = container.querySelectorAll('table.spectro-config')
+    const configTables = container.querySelectorAll('table.gram-config')
     /** @type {GramFrame[]} */
     const instances = []
     const errors = []
@@ -1753,9 +1758,9 @@ const GramFrameAPI = {
       }
       
       // Check if table has the correct class
-      if (!table.classList.contains('spectro-config')) {
-        console.warn('GramFrame: Table does not have "spectro-config" class, adding it')
-        table.classList.add('spectro-config')
+      if (!table.classList.contains('gram-config')) {
+        console.warn('GramFrame: Table does not have "gram-config" class, adding it')
+        table.classList.add('gram-config')
       }
       
       // Validate table structure

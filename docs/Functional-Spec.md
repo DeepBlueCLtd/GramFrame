@@ -16,7 +16,7 @@
 - Top-left label = multiplier (e.g., 2x), top-right = frequency (Hz)
 
 ## Configuration
-- Defined by `<table class="spectro-config">`
+- Defined by `<table class="gram-config">`
 - Hidden on activation
 - Includes:
   - Top row: spectrogram image

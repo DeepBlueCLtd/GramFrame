@@ -42,7 +42,6 @@
 
 .gram-frame-axis-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  font-size: 10px;
   fill: #333;
   dominant-baseline: central;
 }
@@ -209,7 +208,6 @@
 /* SVG Harmonic labels */
 .gram-frame-harmonic-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  font-size: 10px;
   fill: #fff;
   stroke: rgba(0, 0, 0, 0.8);
   stroke-width: 0.5;
@@ -264,7 +262,6 @@
 
 .gram-frame-doppler-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  font-size: 12px;
   fill: #fff;
   stroke: rgba(0, 0, 0, 0.8);
   stroke-width: 0.5;

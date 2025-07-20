@@ -14,12 +14,12 @@ Your task begins Phase 5, which focuses on final fit and polish. This first task
 
 **Reference Implementation Plan:** This assignment corresponds to `Phase 5, Task 5.1: Auto-detect and replace config tables` in the Implementation Plan.
 
-**Objective:** Implement functionality to automatically detect HTML tables with the class "spectro-config" and replace them with interactive GramFrame components, making the component ready for real-world use.
+**Objective:** Implement functionality to automatically detect HTML tables with the class "gram-config" and replace them with interactive GramFrame components, making the component ready for real-world use.
 
 **Detailed Action Steps:**
 
 1. **Implement table detection mechanism:**
-   - Create a function to scan the DOM for tables with the class "spectro-config"
+   - Create a function to scan the DOM for tables with the class "gram-config"
    - Ensure the detection runs on page load and can be triggered manually if needed
    - Handle cases where multiple config tables exist on the same page
    - Add logging for detected tables (number found, their IDs or positions)
@@ -65,7 +65,7 @@ Your task begins Phase 5, which focuses on final fit and polish. This first task
 ## 4. Expected Output & Deliverables
 
 **Success Criteria:**
-- Tables with class "spectro-config" are automatically detected and replaced with GramFrame components
+- Tables with class "gram-config" are automatically detected and replaced with GramFrame components
 - Configuration is correctly extracted from tables
 - Multiple tables on the same page are handled properly
 - The public API allows manual initialization

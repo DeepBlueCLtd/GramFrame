@@ -6,7 +6,7 @@ You are activated as an Implementation Agent within the Agentic Project Manageme
 
 ## 2. Onboarding / Context from Prior Work
 
-The GramFrame project has completed Task 5.1, which implemented auto-detection and replacement of config tables with interactive GramFrame components. The component now automatically transforms HTML tables with the class "spectro-config" into fully functional analysis tools.
+The GramFrame project has completed Task 5.1, which implemented auto-detection and replacement of config tables with interactive GramFrame components. The component now automatically transforms HTML tables with the class "gram-config" into fully functional analysis tools.
 
 Your task builds on this foundation by adding canvas boundary and grid toggle options to the diagnostics page, enhancing the development and debugging experience.
 

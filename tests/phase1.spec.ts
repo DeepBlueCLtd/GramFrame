@@ -12,7 +12,7 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     await expect(gramFramePage.componentContainer).toBeVisible()
     
     // Verify the original table is no longer visible
-    await expect(gramFramePage.page.locator('table.spectro-config')).not.toBeVisible()
+    await expect(gramFramePage.page.locator('table.gram-config')).not.toBeVisible()
     
     // Verify the SVG element is created
     await expect(gramFramePage.svg).toBeVisible()

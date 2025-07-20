@@ -189,7 +189,7 @@ Total estimated time: 16-22 days
 ## Success Criteria
 
 1. All functionality specified in the Functional Specification is implemented
-2. Component correctly transforms tables with class "spectro-config" into interactive tools
+2. Component correctly transforms tables with class "gram-config" into interactive tools
 3. All two modes (Analysis, Doppler) function as specified
 4. Comprehensive test coverage with Playwright
 5. Clean, maintainable codebase with proper documentation
