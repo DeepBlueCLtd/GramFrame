@@ -106,20 +106,18 @@ This project will use a **directory-based Memory Bank** located at `/Memory/`. T
 
 ### Phase 4: Harmonics & Modes
 
-**Objective**: Implement the three analysis modes and harmonic calculations.
+**Objective**: Implement the two analysis modes and harmonic calculations.
 
 | Task ID | Task Description | Assigned Agent | Dependencies | Status |
 |---------|-----------------|----------------|--------------|--------|
-| 4.1 | Add mode switching UI (Analysis, Harmonics, Doppler) | Implementation Agent | Phase 3 | To Do |
+| 4.1 | Add mode switching UI (Analysis, Doppler) | Implementation Agent | Phase 3 | To Do |
 | 4.1.1 | Test mode switching UI functionality | Testing Agent | 4.1 | To Do |
 | 4.2 | Implement Analysis mode functionality | Implementation Agent | 4.1, 4.1.1 | To Do |
 | 4.2.1 | Test Analysis mode calculations and display | Testing Agent | 4.2 | To Do |
-| 4.3 | Implement Harmonics mode with correct line drawing | Implementation Agent | 4.2, 4.2.1 | To Do |
+| 4.3 | Implement Harmonics feature with correct line drawing | Implementation Agent | 4.2, 4.2.1 | To Do |
 | 4.3.1 | Test harmonic line calculations and rendering | Testing Agent | 4.3 | To Do |
 | 4.4 | Implement Doppler mode (details TBD) | Implementation Agent | 4.3, 4.3.1 | To Do |
 | 4.4.1 | Test Doppler mode functionality | Testing Agent | 4.4 | To Do |
-| 4.5 | Support multiple cursors and harmonics per cursor | Implementation Agent | 4.3, 4.3.1 | To Do |
-| 4.5.1 | Test multiple cursor interactions and harmonic calculations | Testing Agent | 4.5 | To Do |
 | 4.6 | Add 'rate' input box and propagate to calculations | Implementation Agent | 4.5, 4.5.1 | To Do |
 | 4.6.1 | Test rate input and its effect on calculations | Testing Agent | 4.6 | To Do |
 | 4.7 | Extend debug page UI to display mode-specific state | Implementation Agent | 4.1-4.6.1 | To Do |
@@ -129,7 +127,6 @@ This project will use a **directory-based Memory Bank** located at `/Memory/`. T
 **Deliverables**:
 - Mode switching UI
 - Analysis mode implementation
-- Harmonics mode with line drawing
 - Doppler mode implementation
 - Multiple cursor support
 - Rate input and calculation integration
@@ -193,7 +190,7 @@ Total estimated time: 16-22 days
 
 1. All functionality specified in the Functional Specification is implemented
 2. Component correctly transforms tables with class "spectro-config" into interactive tools
-3. All three modes (Analysis, Harmonics, Doppler) function as specified
+3. All two modes (Analysis, Doppler) function as specified
 4. Comprehensive test coverage with Playwright
 5. Clean, maintainable codebase with proper documentation
 6. No build step required for end users - just include the script

@@ -6,7 +6,7 @@ You are activated as an Implementation Agent within the Agentic Project Manageme
 
 ## 2. Onboarding / Context from Prior Work
 
-The GramFrame project has completed Phase 4, which implemented all three interaction modes (Analysis, Harmonics, and Doppler) with multiple cursor support, rate-based calculations, and comprehensive testing. The component now has full functionality for analyzing spectrograms with different modes.
+The GramFrame project has completed Phase 4, which implemented all two interaction modes (Analysis and Doppler) with multiple cursor support, rate-based calculations, and comprehensive testing. The component now has full functionality for analyzing spectrograms with different modes.
 
 Your task begins Phase 5, which focuses on final fit and polish. This first task in Phase 5 involves implementing the auto-detection and replacement of config tables, which is a core feature of the GramFrame component.
 
