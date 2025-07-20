@@ -14,12 +14,12 @@ Your task builds on this foundation by extending the debug page UI to display mo
 
 **Reference Implementation Plan:** This assignment corresponds to `Phase 4, Task 4.7: Extend debug page UI to display mode-specific state` in the Implementation Plan.
 
-**Objective:** Enhance the debug page UI to display detailed mode-specific state information for each of the three modes (Analysis, Harmonics, and Doppler), providing better visibility into the component's internal state during development and testing.
+**Objective:** Enhance the debug page UI to display detailed mode-specific state information for each of the two modes (Analysis, and Doppler), providing better visibility into the component's internal state during development and testing.
 
 **Detailed Action Steps:**
 
 1. **Design and implement mode-specific debug panels:**
-   - Create separate sections in the debug UI for each mode (Analysis, Harmonics, Doppler)
+   - Create separate sections in the debug UI for each mode (Analysis, Doppler)
    - Implement conditional rendering to show the relevant section based on the active mode
    - Design a clean and organized layout for each mode's debug information
    - Ensure the debug UI updates in real-time as the component state changes
@@ -27,14 +27,9 @@ Your task builds on this foundation by extending the debug page UI to display mo
 2. **Implement Analysis mode debug display:**
    - Show detailed information about cursor positions
    - Display raw and calculated time/frequency values
-   - For multiple cursors, show information for each cursor with clear identification
-   - Include any additional Analysis mode specific state
-
-3. **Implement Harmonics mode debug display:**
    - Show base frequency and all calculated harmonic frequencies
    - Display information about harmonic line positions
-   - For multiple harmonic sets, show information for each set with clear identification
-   - Include any additional Harmonics mode specific state
+   - Include any additional Analysis mode specific state
 
 4. **Implement Doppler mode debug display:**
    - Show start and end point coordinates (both raw and calculated values)
@@ -73,7 +68,6 @@ Your task builds on this foundation by extending the debug page UI to display mo
 **Deliverables:**
 - Implementation of mode-specific debug panels
 - Analysis mode debug display
-- Harmonics mode debug display
 - Doppler mode debug display
 - Interactive debug controls
 - Updated state listener integration
