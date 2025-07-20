@@ -89,15 +89,46 @@ class GramFrame {
     this.container = document.createElement('div')
     this.container.className = 'gram-frame-container'
     
-    // Component container is now set up
+    // Create table structure for proper resizing
+    this.table = document.createElement('div')
+    this.table.className = 'gram-frame-table'
+    this.container.appendChild(this.table)
     
-    // Create SVG element for rendering
+    // Create mode header row
+    this.modeRow = document.createElement('div')
+    this.modeRow.className = 'gram-frame-row'
+    this.table.appendChild(this.modeRow)
+    
+    this.modeCell = document.createElement('div')
+    this.modeCell.className = 'gram-frame-cell gram-frame-mode-header'
+    this.modeRow.appendChild(this.modeCell)
+    
+    // Create main panel row (stretches)
+    this.mainRow = document.createElement('div')
+    this.mainRow.className = 'gram-frame-row'
+    this.mainRow.style.height = '100%'
+    this.table.appendChild(this.mainRow)
+    
+    this.mainCell = document.createElement('div')
+    this.mainCell.className = 'gram-frame-cell gram-frame-main-panel'
+    this.mainRow.appendChild(this.mainCell)
+    
+    // Create display panel row
+    this.displayRow = document.createElement('div')
+    this.displayRow.className = 'gram-frame-row'
+    this.table.appendChild(this.displayRow)
+    
+    this.displayCell = document.createElement('div')
+    this.displayCell.className = 'gram-frame-cell gram-frame-display-panel'
+    this.displayRow.appendChild(this.displayCell)
+    
+    // Create SVG element for rendering inside main panel
     this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     this.svg.setAttribute('class', 'gram-frame-svg')
     this.svg.setAttribute('width', '100%')
     this.svg.setAttribute('height', 'auto')
     this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
-    this.container.appendChild(this.svg)
+    this.mainCell.appendChild(this.svg)
     
     // Create main group for content with margins for axes
     this.mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
@@ -123,10 +154,10 @@ class GramFrame {
     this.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
     this.svg.appendChild(this.cursorGroup)
     
-    // Create LED readout panel
+    // Create LED readout panel in display cell
     this.readoutPanel = document.createElement('div')
     this.readoutPanel.className = 'gram-frame-readout'
-    this.container.appendChild(this.readoutPanel)
+    this.displayCell.appendChild(this.readoutPanel)
     
     // Create initial LED displays
     this._createLEDDisplays()
@@ -171,19 +202,30 @@ class GramFrame {
    * Creates LED display elements for showing measurement values
    */
   _createLEDDisplays() {
-    // Create frequency display
-    this.freqLED = this._createLEDDisplay('Frequency', '0.00 Hz')
+    // Create three main displays to match mockup: RANGE, FREQUENCY, VELOCITY
+    
+    // Range display (using time as range proxy)
+    this.rangeLED = this._createLEDDisplay('Range', '200 m')
+    this.readoutPanel.appendChild(this.rangeLED)
+    
+    // Frequency display
+    this.freqLED = this._createLEDDisplay('Frequency', '75.2 Hz')
     this.readoutPanel.appendChild(this.freqLED)
     
-    // Create time display
+    // Velocity display  
+    this.velocityLED = this._createLEDDisplay('Velocity', '-15.8 m/s')
+    this.readoutPanel.appendChild(this.velocityLED)
+    
+    // Hide other displays for cleaner mockup appearance
+    // Keep them for backward compatibility but hidden
     this.timeLED = this._createLEDDisplay('Time', '0.00 s')
+    this.timeLED.style.display = 'none'
     this.readoutPanel.appendChild(this.timeLED)
     
-    // Create mode display
     this.modeLED = this._createLEDDisplay('Mode', this._capitalizeFirstLetter(this.state.mode))
+    this.modeLED.style.display = 'none'
     this.readoutPanel.appendChild(this.modeLED)
     
-    // Create doppler-specific displays (initially hidden)
     this.deltaTimeLED = this._createLEDDisplay('ΔTime', '0.00 s')
     this.deltaTimeLED.style.display = 'none'
     this.readoutPanel.appendChild(this.deltaTimeLED)
@@ -196,8 +238,8 @@ class GramFrame {
     this.speedLED.style.display = 'none'
     this.readoutPanel.appendChild(this.speedLED)
     
-    // Create rate display
     this.rateLED = this._createLEDDisplay('Rate', `${this.state.rate} Hz/s`)
+    this.rateLED.style.display = 'none'
     this.readoutPanel.appendChild(this.rateLED)
   }
   
@@ -232,7 +274,8 @@ class GramFrame {
       }
     })
     
-    this.container.appendChild(this.modesContainer)
+    // Append to mode header instead of main container
+    this.modeCell.appendChild(this.modesContainer)
   }
   
   /**
@@ -264,6 +307,8 @@ class GramFrame {
     unit.className = 'gram-frame-rate-unit'
     rateContainer.appendChild(unit)
     
+    // Hide rate input for now (not in mockup design)
+    rateContainer.style.display = 'none'
     this.container.appendChild(rateContainer)
   }
   
