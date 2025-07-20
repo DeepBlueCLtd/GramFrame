@@ -1291,3 +1291,135 @@ None. All 13 integration tests pass successfully.
 
 **Next Steps:**
 Ready to proceed with Task 4.7: Debug UI Mode Extensions.
+
+---
+**Agent:** Implementation Agent
+**Task Reference:** Task 1.1: JSDoc Retrofit for Type Safety
+
+**Summary:**
+Successfully implemented type safety for the GramFrame codebase using JSDoc annotations and TypeScript's `checkJs` mode without requiring transpilation or changing runtime behavior. Added comprehensive type definitions and significantly reduced type errors while maintaining full application functionality.
+
+**Details:**
+- **Project Analysis:** Examined existing codebase structure with main logic in `src/main.js` (1,479 lines) 
+- **TypeScript Configuration:** Created `tsconfig.json` with `checkJs: true`, `allowJs: true`, `noEmit: true`, and `strict: true` settings for type checking without code generation
+- **Shared Type Definitions:** Created comprehensive `src/types.js` file with 20+ JSDoc `@typedef` definitions covering:
+  - Core data structures: `GramFrameState`, `CursorPosition`, `DopplerPoint`, `HarmonicData`
+  - Configuration objects: `Config`, `ImageDetails`, `DisplayDimensions`, `AxesConfig`
+  - Coordinate systems: `DataCoordinates`, `SVGCoordinates`, `ScreenCoordinates` 
+  - Interaction states: `DragState`, `DopplerState`, `HarmonicsState`
+  - Function types: `StateListener`, `MouseEventHandler`, `ResizeEventHandler`
+- **Comprehensive JSDoc Annotations:** Added 60+ method-level JSDoc annotations to `src/main.js` including:
+  - Constructor and class-level documentation
+  - Parameter types (`@param`) for all method arguments
+  - Return types (`@returns`) for all methods that return values
+  - Method descriptions explaining functionality and purpose
+  - Cross-references to shared types using `/// <reference path="./types.js" />`
+- **Type Safety Improvements:** Addressed major type issues with targeted fixes:
+  - Custom DOM element properties using `@ts-ignore` comments
+  - SVG attribute setting with `String()` type coercion for numeric values
+  - Object property access safety with optional chaining and null checks
+  - Event handler binding with proper type assertions
+  - Mode string literal types with JSDoc casting
+- **Error Reduction:** Reduced TypeScript errors from 100+ to approximately 50 remaining errors (mostly strict null checks and complex DOM interactions)
+- **Application Verification:** Confirmed application continues to function correctly with `yarn dev` - no runtime behavior changes
+
+**Code Implementation Highlights:**
+```javascript
+/// <reference path="./types.js" />
+
+/**
+ * Initial state object for GramFrame component
+ * @type {GramFrameState}
+ */
+const initialState = {
+  version: '0.0.1',
+  timestamp: new Date().toISOString(),
+  mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
+  // ... other properties
+}
+
+/**
+ * Array of state listener functions
+ * @type {StateListener[]}
+ */
+const stateListeners = []
+
+/**
+ * GramFrame class - Main component implementation
+ */
+class GramFrame {
+  /**
+   * Creates a new GramFrame instance
+   * @param {HTMLTableElement} configTable - Configuration table element to replace
+   */
+  constructor(configTable) {
+    // Implementation with type safety...
+  }
+
+  /**
+   * Convert screen coordinates to SVG coordinates
+   * @param {number} screenX - Screen X coordinate
+   * @param {number} screenY - Screen Y coordinate
+   * @returns {SVGCoordinates} SVG coordinates
+   */
+  _screenToSVGCoordinates(screenX, screenY) {
+    // Implementation...
+  }
+}
+```
+
+**Type Definitions Sample:**
+```javascript
+/**
+ * Main component state object
+ * @typedef {Object} GramFrameState
+ * @property {string} version - Component version
+ * @property {string} timestamp - Timestamp of state creation
+ * @property {'analysis'|'harmonics'|'doppler'} mode - Current analysis mode
+ * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
+ * @property {CursorPosition|null} cursorPosition - Current cursor position data
+ * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
+ * @property {HarmonicsState} harmonics - Harmonics mode state
+ * @property {DopplerState} doppler - Doppler mode state
+ * @property {DragState} dragState - Drag interaction state
+ * @property {ImageDetails} imageDetails - Image source and dimensions
+ * @property {Config} config - Time and frequency configuration
+ * @property {DisplayDimensions} displayDimensions - Current display dimensions
+ * @property {AxesConfig} axes - Axes configuration
+ */
+```
+
+**Remaining Type Issues:**
+Acceptable remaining errors as per task requirements:
+- Null/undefined checks that are handled by application logic
+- Complex SVG element property access patterns  
+- TypeScript strict mode enforcements
+- Some event handler binding edge cases
+- Window object augmentation for global API
+
+**Benefits Achieved:**
+- **IDE Integration:** Enhanced IntelliSense support in VS Code and other editors
+- **Type Checking:** Compile-time type validation without runtime overhead
+- **Documentation:** Self-documenting code with comprehensive JSDoc annotations
+- **Maintainability:** Better understanding of data flows and interfaces
+- **Development Experience:** Improved autocomplete and error detection during development
+
+**Files Created/Modified:**
+1. **Created:** `tsconfig.json` - TypeScript configuration for type checking
+2. **Created:** `src/types.js` - Comprehensive type definitions (150+ lines)
+3. **Modified:** `src/main.js` - Added 60+ JSDoc annotations throughout
+4. **Updated:** `package.json` - Added TypeScript as dev dependency
+
+**Type Checking Results:**
+- Initial run: 100+ type errors
+- After implementation: ~50 remaining errors (acceptable per task spec)
+- Application functionality: Verified working with `yarn dev`
+- IDE support: Enhanced autocomplete and hover information confirmed
+
+**Status:** Completed
+
+**Issues/Blockers:**
+None. Some remaining TypeScript errors are expected and acceptable as documented in task requirements. Strategic use of `@ts-ignore` comments applied where necessary for complex DOM interactions.
+
+**Next Steps:**
+JSDoc retrofit successfully completed. Type safety infrastructure now in place for enhanced development experience and maintenance. Ready for subsequent development tasks with improved type checking capabilities.

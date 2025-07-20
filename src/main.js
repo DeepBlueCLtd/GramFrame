@@ -2,10 +2,15 @@
  * GramFrame - A JavaScript component for interactive spectrogram analysis
  */
 
+/// <reference path="./types.js" />
+
 // Import component styles
 import './gramframe.css'
 
-// Initial state object
+/**
+ * Initial state object for GramFrame component
+ * @type {GramFrameState}
+ */
 const initialState = {
   version: '0.0.1',
   timestamp: new Date().toISOString(),
@@ -53,13 +58,20 @@ const initialState = {
   }
 }
 
-// State listeners
+/**
+ * Array of state listener functions
+ * @type {StateListener[]}
+ */
 const stateListeners = []
 
 /**
  * GramFrame class - Main component implementation
  */
 class GramFrame {
+  /**
+   * Creates a new GramFrame instance
+   * @param {HTMLTableElement} configTable - Configuration table element to replace
+   */
   constructor(configTable) {
     this.state = { ...initialState }
     this.configTable = configTable
@@ -122,6 +134,7 @@ class GramFrame {
       
       // Store a reference to this instance on the container element
       // This allows the state listener mechanism to access the instance
+      // @ts-ignore - Adding custom property to DOM element
       this.container.__gramFrameInstance = this
     }
     
@@ -138,6 +151,9 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  /**
+   * Creates LED display elements for showing measurement values
+   */
   _createLEDDisplays() {
     // Create frequency display
     this.freqLED = this._createLEDDisplay('Frequency', '0.00 Hz')
@@ -169,6 +185,9 @@ class GramFrame {
     this.readoutPanel.appendChild(this.rateLED)
   }
   
+  /**
+   * Creates mode switching button UI
+   */
   _createModeSwitchingUI() {
     // Create mode buttons container
     this.modesContainer = document.createElement('div')
@@ -196,6 +215,9 @@ class GramFrame {
     this.container.appendChild(this.modesContainer)
   }
   
+  /**
+   * Creates rate input control
+   */
   _createRateInput() {
     // Create rate input container
     const rateContainer = document.createElement('div')
@@ -224,6 +246,12 @@ class GramFrame {
     this.container.appendChild(rateContainer)
   }
   
+  /**
+   * Creates a single LED display element
+   * @param {string} label - Display label
+   * @param {string} value - Initial display value
+   * @returns {HTMLDivElement} The LED display element
+   */
   _createLEDDisplay(label, value) {
     const led = document.createElement('div')
     led.className = 'gram-frame-led'
@@ -234,6 +262,9 @@ class GramFrame {
     return led
   }
   
+  /**
+   * Sets up event listeners for mouse interactions and UI controls
+   */
   _setupEventListeners() {
     // Bind event handlers to maintain proper 'this' context
     this._boundHandleMouseMove = this._handleMouseMove.bind(this)
@@ -251,10 +282,13 @@ class GramFrame {
     this.svg.addEventListener('mouseup', this._boundHandleMouseUp)
     
     // Mode button events
-    Object.keys(this.modeButtons).forEach(mode => {
-      this.modeButtons[mode].addEventListener('click', () => {
-        this._switchMode(mode)
-      })
+    Object.keys(this.modeButtons || {}).forEach(mode => {
+      const button = this.modeButtons?.[mode]
+      if (button) {
+        button.addEventListener('click', () => {
+          this._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
+        })
+      }
     })
     
     // Rate input events
@@ -264,7 +298,7 @@ class GramFrame {
         this._setRate(rate)
       } else {
         // Reset to previous valid value if invalid input
-        this.rateInput.value = this.state.rate
+        this.rateInput.value = String(this.state.rate)
       }
     })
     
@@ -282,6 +316,9 @@ class GramFrame {
     window.addEventListener('resize', this._boundHandleResize)
   }
   
+  /**
+   * Sets up ResizeObserver to monitor container dimensions
+   */
   _setupResizeObserver() {
     // Use ResizeObserver to monitor SVG container dimensions
     if (typeof ResizeObserver !== 'undefined') {
@@ -294,12 +331,19 @@ class GramFrame {
     }
   }
   
+  /**
+   * Handles window resize events
+   */
   _handleResize() {
     // Delegate to SVG resize handler
     const containerRect = this.container.getBoundingClientRect()
     this._handleSVGResize(containerRect)
   }
   
+  /**
+   * Handles SVG container resize
+   * @param {DOMRect} containerRect - Container dimensions
+   */
   _handleSVGResize(containerRect) {
     // Only handle resize if we have a valid image
     if (!this.spectrogramImage) return
@@ -328,17 +372,17 @@ class GramFrame {
     
     // Update SVG viewBox and dimensions
     this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
-    this.svg.setAttribute('width', newWidth)
-    this.svg.setAttribute('height', newHeight)
+    this.svg.setAttribute('width', String(newWidth))
+    this.svg.setAttribute('height', String(newHeight))
     
     // Position image directly in SVG coordinate space (no mainGroup translation)
     this.mainGroup.setAttribute('transform', '')
     
     // Update image element within SVG - position it in the margin area
-    this.svgImage.setAttribute('width', originalWidth)
-    this.svgImage.setAttribute('height', originalHeight)
-    this.svgImage.setAttribute('x', margins.left)
-    this.svgImage.setAttribute('y', margins.top)
+    this.svgImage.setAttribute('width', String(originalWidth))
+    this.svgImage.setAttribute('height', String(originalHeight))
+    this.svgImage.setAttribute('x', String(margins.left))
+    this.svgImage.setAttribute('y', String(margins.top))
     
     // Update state with new dimensions
     this.state.displayDimensions = {
@@ -356,6 +400,10 @@ class GramFrame {
     console.log('GramFrame resized:', this.state.displayDimensions)
   }
   
+  /**
+   * Handles mouse move events over the SVG
+   * @param {MouseEvent} event - Mouse event
+   */
   _handleMouseMove(event) {
     // Only process if we have valid image details
     if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
@@ -414,6 +462,10 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  /**
+   * Handles mouse leave events
+   * @param {MouseEvent} event - Mouse event
+   */
   _handleMouseLeave(event) {
     // Clear cursor position when mouse leaves the SVG area
     this.state.cursorPosition = null
@@ -428,6 +480,10 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  /**
+   * Handles mouse down events for drag interactions
+   * @param {MouseEvent} event - Mouse event
+   */
   _handleMouseDown(event) {
     // Only process if we have valid image details
     if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
@@ -442,6 +498,10 @@ class GramFrame {
     }
   }
   
+  /**
+   * Handles mouse up events to end drag interactions
+   * @param {MouseEvent} event - Mouse event
+   */
   _handleMouseUp(event) {
     // End drag state
     if (this.state.dragState.isDragging) {
@@ -461,6 +521,10 @@ class GramFrame {
     }
   }
   
+  /**
+   * Handles click events for Doppler mode measurements
+   * @param {MouseEvent} event - Mouse event
+   */
   _handleClick(event) {
     // Only process if we have valid image details and are in Doppler mode
     if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight || this.state.mode !== 'doppler') {
@@ -478,6 +542,9 @@ class GramFrame {
     }
   }
   
+  /**
+   * Processes Doppler mode click to set measurement points
+   */
   _handleDopplerClick() {
     // Create point data from current cursor position
     const clickPoint = {
@@ -515,6 +582,9 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  /**
+   * Calculates Doppler measurements from start and end points
+   */
   _calculateDopplerMeasurements() {
     if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
       return
@@ -569,6 +639,12 @@ class GramFrame {
   /**
    * Convert screen coordinates to SVG coordinates
    */
+  /**
+   * Convert screen coordinates to SVG coordinates
+   * @param {number} screenX - Screen X coordinate
+   * @param {number} screenY - Screen Y coordinate
+   * @returns {SVGCoordinates} SVG coordinates
+   */
   _screenToSVGCoordinates(screenX, screenY) {
     const svgRect = this.svg.getBoundingClientRect()
     const viewBox = this.svg.viewBox.baseVal
@@ -600,6 +676,12 @@ class GramFrame {
   /**
    * Convert SVG coordinates to data coordinates (time and frequency)
    */
+  /**
+   * Convert SVG coordinates to data coordinates (time and frequency)
+   * @param {number} svgX - SVG X coordinate
+   * @param {number} svgY - SVG Y coordinate
+   * @returns {DataCoordinates} Data coordinates
+   */
   _svgToDataCoordinates(svgX, svgY) {
     const margins = this.state.axes.margins
     const imageX = svgX - margins.left
@@ -610,6 +692,12 @@ class GramFrame {
   
   /**
    * Convert image-relative coordinates to data coordinates (time and frequency)
+   */
+  /**
+   * Convert image-relative coordinates to data coordinates (time and frequency)
+   * @param {number} imageX - Image X coordinate
+   * @param {number} imageY - Image Y coordinate
+   * @returns {DataCoordinates} Data coordinates
    */
   _imageToDataCoordinates(imageX, imageY) {
     const { freqMin, freqMax, timeMin, timeMax } = this.state.config
@@ -632,6 +720,12 @@ class GramFrame {
   /**
    * Convert data coordinates to SVG coordinates
    */
+  /**
+   * Convert data coordinates to SVG coordinates
+   * @param {number} freq - Frequency in Hz
+   * @param {number} time - Time in seconds
+   * @returns {SVGCoordinates} SVG coordinates
+   */
   _dataToSVGCoordinates(freq, time) {
     const { freqMin, freqMax, timeMin, timeMax } = this.state.config
     const { naturalWidth, naturalHeight } = this.state.imageDetails
@@ -647,6 +741,12 @@ class GramFrame {
   
   /**
    * Convert SVG coordinates to screen coordinates
+   */
+  /**
+   * Convert SVG coordinates to screen coordinates
+   * @param {number} svgX - SVG X coordinate
+   * @param {number} svgY - SVG Y coordinate
+   * @returns {ScreenCoordinates} Screen coordinates
    */
   _svgToScreenCoordinates(svgX, svgY) {
     const svgRect = this.svg.getBoundingClientRect()
@@ -679,6 +779,9 @@ class GramFrame {
   /**
    * Draw axes with tick marks and labels
    */
+  /**
+   * Draw axes with tick marks and labels
+   */
   _drawAxes() {
     if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
     
@@ -698,6 +801,9 @@ class GramFrame {
   /**
    * Draw time axis (vertical, left)
    */
+  /**
+   * Draw time axis (vertical, left)
+   */
   _drawTimeAxis() {
     const { timeMin, timeMax } = this.state.config
     const { naturalHeight } = this.state.imageDetails
@@ -711,10 +817,10 @@ class GramFrame {
     
     // Draw main axis line (along the left edge of the image)
     const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    axisLine.setAttribute('x1', margins.left)
-    axisLine.setAttribute('y1', margins.top)
-    axisLine.setAttribute('x2', margins.left)
-    axisLine.setAttribute('y2', margins.top + naturalHeight)
+    axisLine.setAttribute('x1', String(margins.left))
+    axisLine.setAttribute('y1', String(margins.top))
+    axisLine.setAttribute('x2', String(margins.left))
+    axisLine.setAttribute('y2', String(margins.top + naturalHeight))
     axisLine.setAttribute('class', 'gram-frame-axis-line')
     this.timeAxisGroup.appendChild(axisLine)
     
@@ -726,17 +832,17 @@ class GramFrame {
       
       // Tick mark (extends into the left margin)
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', margins.left - 5)
-      tick.setAttribute('y1', yPos)
-      tick.setAttribute('x2', margins.left)
-      tick.setAttribute('y2', yPos)
+      tick.setAttribute('x1', String(margins.left - 5))
+      tick.setAttribute('y1', String(yPos))
+      tick.setAttribute('x2', String(margins.left))
+      tick.setAttribute('y2', String(yPos))
       tick.setAttribute('class', 'gram-frame-axis-tick')
       this.timeAxisGroup.appendChild(tick)
       
       // Label (in the left margin)
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', margins.left - 8)
-      label.setAttribute('y', yPos + 4) // Slight offset for better alignment
+      label.setAttribute('x', String(margins.left - 8))
+      label.setAttribute('y', String(yPos + 4)) // Slight offset for better alignment
       label.setAttribute('text-anchor', 'end')
       label.setAttribute('class', 'gram-frame-axis-label')
       label.textContent = timeValue.toFixed(1) + 's'
@@ -744,6 +850,9 @@ class GramFrame {
     }
   }
   
+  /**
+   * Draw frequency axis (horizontal, bottom)
+   */
   /**
    * Draw frequency axis (horizontal, bottom)
    */
@@ -761,10 +870,10 @@ class GramFrame {
     // Draw main axis line (along the bottom edge of the image)
     const axisLineY = margins.top + naturalHeight
     const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    axisLine.setAttribute('x1', margins.left)
-    axisLine.setAttribute('y1', axisLineY)
-    axisLine.setAttribute('x2', margins.left + naturalWidth)
-    axisLine.setAttribute('y2', axisLineY)
+    axisLine.setAttribute('x1', String(margins.left))
+    axisLine.setAttribute('y1', String(axisLineY))
+    axisLine.setAttribute('x2', String(margins.left + naturalWidth))
+    axisLine.setAttribute('y2', String(axisLineY))
     axisLine.setAttribute('class', 'gram-frame-axis-line')
     this.freqAxisGroup.appendChild(axisLine)
     
@@ -775,17 +884,17 @@ class GramFrame {
       
       // Tick mark (extends into the bottom margin)
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', xPos)
-      tick.setAttribute('y1', axisLineY)
-      tick.setAttribute('x2', xPos)
-      tick.setAttribute('y2', axisLineY + 5)
+      tick.setAttribute('x1', String(xPos))
+      tick.setAttribute('y1', String(axisLineY))
+      tick.setAttribute('x2', String(xPos))
+      tick.setAttribute('y2', String(axisLineY + 5))
       tick.setAttribute('class', 'gram-frame-axis-tick')
       this.freqAxisGroup.appendChild(tick)
       
       // Label (in the bottom margin)
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', xPos)
-      label.setAttribute('y', axisLineY + 18)
+      label.setAttribute('x', String(xPos))
+      label.setAttribute('y', String(axisLineY + 18))
       label.setAttribute('text-anchor', 'middle')
       label.setAttribute('class', 'gram-frame-axis-label')
       label.textContent = freqValue.toFixed(0) + 'Hz'
@@ -793,6 +902,10 @@ class GramFrame {
     }
   }
   
+  /**
+   * Switch between analysis modes
+   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
+   */
   _switchMode(mode) {
     // Update state
     this.state.mode = mode
@@ -817,11 +930,14 @@ class GramFrame {
     this.state.dragState.dragStartPosition = null
     
     // Update UI
-    Object.keys(this.modeButtons).forEach(m => {
-      if (m === mode) {
-        this.modeButtons[m].classList.add('active')
-      } else {
-        this.modeButtons[m].classList.remove('active')
+    Object.keys(this.modeButtons || {}).forEach(m => {
+      const button = this.modeButtons?.[m]
+      if (button) {
+        if (m === mode) {
+          button.classList.add('active')
+        } else {
+          button.classList.remove('active')
+        }
       }
     })
     
@@ -836,6 +952,10 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  /**
+   * Set the rate value for frequency calculations
+   * @param {number} rate - Rate value in Hz/s
+   */
   _setRate(rate) {
     // Update state
     this.state.rate = rate
@@ -853,6 +973,9 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  /**
+   * Update LED display values based on current state
+   */
   _updateLEDDisplays() {
     // Hide/show doppler-specific LEDs based on mode
     if (this.state.mode === 'doppler') {
@@ -911,17 +1034,26 @@ class GramFrame {
     }
   }
   
+  /**
+   * Update mode LED display
+   */
   _updateModeLED() {
     // Update mode LED
     this.modeLED.querySelector('.gram-frame-led-value').textContent = 
       this._capitalizeFirstLetter(this.state.mode)
   }
   
+  /**
+   * Update rate LED display
+   */
   _updateRateLED() {
     // Update rate LED
     this.rateLED.querySelector('.gram-frame-led-value').textContent = `${this.state.rate} Hz/s`
   }
   
+  /**
+   * Update cursor visual indicators based on current mode and state
+   */
   _updateCursorIndicators() {
     // Clear existing cursor indicators
     this.cursorGroup.innerHTML = ''
@@ -949,6 +1081,9 @@ class GramFrame {
     }
   }
   
+  /**
+   * Draw cursor indicators for analysis mode
+   */
   _drawAnalysisMode() {
     const margins = this.state.axes.margins
     const { naturalWidth, naturalHeight } = this.state.imageDetails
@@ -959,47 +1094,50 @@ class GramFrame {
     
     // Create vertical crosshair lines (time indicator) - shadow first, then main line
     const verticalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    verticalShadow.setAttribute('x1', cursorSVGX)
-    verticalShadow.setAttribute('y1', margins.top)
-    verticalShadow.setAttribute('x2', cursorSVGX)
-    verticalShadow.setAttribute('y2', margins.top + naturalHeight)
+    verticalShadow.setAttribute('x1', String(cursorSVGX))
+    verticalShadow.setAttribute('y1', String(margins.top))
+    verticalShadow.setAttribute('x2', String(cursorSVGX))
+    verticalShadow.setAttribute('y2', String(margins.top + naturalHeight))
     verticalShadow.setAttribute('class', 'gram-frame-cursor-shadow')
     this.cursorGroup.appendChild(verticalShadow)
     
     const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    verticalLine.setAttribute('x1', cursorSVGX)
-    verticalLine.setAttribute('y1', margins.top)
-    verticalLine.setAttribute('x2', cursorSVGX)
-    verticalLine.setAttribute('y2', margins.top + naturalHeight)
+    verticalLine.setAttribute('x1', String(cursorSVGX))
+    verticalLine.setAttribute('y1', String(margins.top))
+    verticalLine.setAttribute('x2', String(cursorSVGX))
+    verticalLine.setAttribute('y2', String(margins.top + naturalHeight))
     verticalLine.setAttribute('class', 'gram-frame-cursor-vertical')
     this.cursorGroup.appendChild(verticalLine)
     
     // Create horizontal crosshair lines (frequency indicator) - shadow first, then main line
     const horizontalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    horizontalShadow.setAttribute('x1', margins.left)
-    horizontalShadow.setAttribute('y1', cursorSVGY)
-    horizontalShadow.setAttribute('x2', margins.left + naturalWidth)
-    horizontalShadow.setAttribute('y2', cursorSVGY)
+    horizontalShadow.setAttribute('x1', String(margins.left))
+    horizontalShadow.setAttribute('y1', String(cursorSVGY))
+    horizontalShadow.setAttribute('x2', String(margins.left + naturalWidth))
+    horizontalShadow.setAttribute('y2', String(cursorSVGY))
     horizontalShadow.setAttribute('class', 'gram-frame-cursor-shadow')
     this.cursorGroup.appendChild(horizontalShadow)
     
     const horizontalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    horizontalLine.setAttribute('x1', margins.left)
-    horizontalLine.setAttribute('y1', cursorSVGY)
-    horizontalLine.setAttribute('x2', margins.left + naturalWidth)
-    horizontalLine.setAttribute('y2', cursorSVGY)
+    horizontalLine.setAttribute('x1', String(margins.left))
+    horizontalLine.setAttribute('y1', String(cursorSVGY))
+    horizontalLine.setAttribute('x2', String(margins.left + naturalWidth))
+    horizontalLine.setAttribute('y2', String(cursorSVGY))
     horizontalLine.setAttribute('class', 'gram-frame-cursor-horizontal')
     this.cursorGroup.appendChild(horizontalLine)
     
     // Create center point indicator
     const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    centerPoint.setAttribute('cx', cursorSVGX)
-    centerPoint.setAttribute('cy', cursorSVGY)
+    centerPoint.setAttribute('cx', String(cursorSVGX))
+    centerPoint.setAttribute('cy', String(cursorSVGY))
     centerPoint.setAttribute('r', '3')
     centerPoint.setAttribute('class', 'gram-frame-cursor-point')
     this.cursorGroup.appendChild(centerPoint)
   }
   
+  /**
+   * Trigger harmonics calculation and display during drag
+   */
   _triggerHarmonicsDisplay() {
     // Only trigger if we have a cursor position, are in analysis mode, and are dragging
     if (!this.state.cursorPosition || this.state.mode !== 'analysis' || !this.state.dragState.isDragging) {
@@ -1025,6 +1163,9 @@ class GramFrame {
     this._notifyStateListeners()
   }
   
+  /**
+   * Draw harmonic indicators
+   */
   _drawHarmonicsMode() {
     // This method now only draws the harmonics that have been calculated
     // It doesn't calculate them - that's done in _triggerHarmonicsDisplay
@@ -1037,6 +1178,11 @@ class GramFrame {
     })
   }
   
+  /**
+   * Calculate harmonic frequencies and their positions
+   * @param {number} baseFrequency - Base frequency in Hz
+   * @returns {HarmonicData[]} Array of harmonic data
+   */
   _calculateHarmonics(baseFrequency) {
     const { freqMin, freqMax } = this.state.config
     const harmonics = []
@@ -1066,25 +1212,30 @@ class GramFrame {
     return harmonics
   }
   
+  /**
+   * Draw a single harmonic line
+   * @param {HarmonicData} harmonic - Harmonic data
+   * @param {boolean} isMainLine - Whether this is the main (1x) line
+   */
   _drawHarmonicLine(harmonic, isMainLine) {
     const margins = this.state.axes.margins
     const { naturalHeight } = this.state.imageDetails
     
     // Draw shadow line first for visibility
     const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    shadowLine.setAttribute('x1', harmonic.svgX)
-    shadowLine.setAttribute('y1', margins.top)
-    shadowLine.setAttribute('x2', harmonic.svgX)
-    shadowLine.setAttribute('y2', margins.top + naturalHeight)
+    shadowLine.setAttribute('x1', String(harmonic.svgX))
+    shadowLine.setAttribute('y1', String(margins.top))
+    shadowLine.setAttribute('x2', String(harmonic.svgX))
+    shadowLine.setAttribute('y2', String(margins.top + naturalHeight))
     shadowLine.setAttribute('class', 'gram-frame-harmonic-shadow')
     this.cursorGroup.appendChild(shadowLine)
     
     // Draw main line
     const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    mainLine.setAttribute('x1', harmonic.svgX)
-    mainLine.setAttribute('y1', margins.top)
-    mainLine.setAttribute('x2', harmonic.svgX)
-    mainLine.setAttribute('y2', margins.top + naturalHeight)
+    mainLine.setAttribute('x1', String(harmonic.svgX))
+    mainLine.setAttribute('y1', String(margins.top))
+    mainLine.setAttribute('x2', String(harmonic.svgX))
+    mainLine.setAttribute('y2', String(margins.top + naturalHeight))
     
     // Use distinct styling for the main line (1×) as specified
     if (isMainLine) {
@@ -1096,14 +1247,19 @@ class GramFrame {
     this.cursorGroup.appendChild(mainLine)
   }
   
+  /**
+   * Draw labels for a harmonic line
+   * @param {HarmonicData} harmonic - Harmonic data
+   * @param {boolean} isMainLine - Whether this is the main (1x) line
+   */
   _drawHarmonicLabels(harmonic, isMainLine) {
     const margins = this.state.axes.margins
     const labelY = margins.top + 15 // Position labels near the top
     
     // Create harmonic number label (left side of line)
     const numberLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    numberLabel.setAttribute('x', harmonic.svgX - 5)
-    numberLabel.setAttribute('y', labelY)
+    numberLabel.setAttribute('x', String(harmonic.svgX - 5))
+    numberLabel.setAttribute('y', String(labelY))
     numberLabel.setAttribute('text-anchor', 'end')
     numberLabel.setAttribute('class', 'gram-frame-harmonic-label')
     numberLabel.textContent = `${harmonic.number}×`
@@ -1111,14 +1267,17 @@ class GramFrame {
     
     // Create frequency label (right side of line)
     const frequencyLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    frequencyLabel.setAttribute('x', harmonic.svgX + 5)
-    frequencyLabel.setAttribute('y', labelY)
+    frequencyLabel.setAttribute('x', String(harmonic.svgX + 5))
+    frequencyLabel.setAttribute('y', String(labelY))
     frequencyLabel.setAttribute('text-anchor', 'start')
     frequencyLabel.setAttribute('class', 'gram-frame-harmonic-label')
     frequencyLabel.textContent = `${Math.round(harmonic.frequency)} Hz`
     this.cursorGroup.appendChild(frequencyLabel)
   }
   
+  /**
+   * Draw Doppler mode indicators
+   */
   _drawDopplerMode() {
     // Draw normal crosshairs for current cursor position
     if (this.state.cursorPosition) {
@@ -1137,6 +1296,11 @@ class GramFrame {
     }
   }
   
+  /**
+   * Draw a Doppler measurement point
+   * @param {DopplerPoint} point - Point data
+   * @param {'start'|'end'} type - Point type
+   */
   _drawDopplerPoint(point, type) {
     const margins = this.state.axes.margins
     
@@ -1147,21 +1311,24 @@ class GramFrame {
     
     // Draw point marker
     const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    marker.setAttribute('cx', svgX)
-    marker.setAttribute('cy', svgY)
+    marker.setAttribute('cx', String(svgX))
+    marker.setAttribute('cy', String(svgY))
     marker.setAttribute('r', '5')
     marker.setAttribute('class', `gram-frame-doppler-${type}-point`)
     this.cursorGroup.appendChild(marker)
     
     // Draw point label
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    label.setAttribute('x', svgX + 8)
-    label.setAttribute('y', svgY - 8)
+    label.setAttribute('x', String(svgX + 8))
+    label.setAttribute('y', String(svgY - 8))
     label.setAttribute('class', 'gram-frame-doppler-label')
     label.textContent = type === 'start' ? '1' : '2'
     this.cursorGroup.appendChild(label)
   }
   
+  /**
+   * Draw line between Doppler measurement points
+   */
   _drawDopplerLine() {
     if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
       return
@@ -1180,29 +1347,37 @@ class GramFrame {
     
     // Draw shadow line for visibility
     const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    shadowLine.setAttribute('x1', startX)
-    shadowLine.setAttribute('y1', startY)
-    shadowLine.setAttribute('x2', endX)
-    shadowLine.setAttribute('y2', endY)
+    shadowLine.setAttribute('x1', String(startX))
+    shadowLine.setAttribute('y1', String(startY))
+    shadowLine.setAttribute('x2', String(endX))
+    shadowLine.setAttribute('y2', String(endY))
     shadowLine.setAttribute('stroke-width', '4')
     shadowLine.setAttribute('class', 'gram-frame-doppler-line-shadow')
     this.cursorGroup.appendChild(shadowLine)
     
     // Draw main line
     const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    mainLine.setAttribute('x1', startX)
-    mainLine.setAttribute('y1', startY)
-    mainLine.setAttribute('x2', endX)
-    mainLine.setAttribute('y2', endY)
+    mainLine.setAttribute('x1', String(startX))
+    mainLine.setAttribute('y1', String(startY))
+    mainLine.setAttribute('x2', String(endX))
+    mainLine.setAttribute('y2', String(endY))
     mainLine.setAttribute('stroke-width', '2')
     mainLine.setAttribute('class', 'gram-frame-doppler-line')
     this.cursorGroup.appendChild(mainLine)
   }
   
+  /**
+   * Capitalize first letter of a string
+   * @param {string} string - Input string
+   * @returns {string} Capitalized string
+   */
   _capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1)
   }
   
+  /**
+   * Extract configuration data from the config table
+   */
   _extractConfigData() {
     if (!this.configTable) return
     
@@ -1247,18 +1422,18 @@ class GramFrame {
         
         // Set SVG dimensions and viewBox
         this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
-        this.svg.setAttribute('width', initialWidth)
-        this.svg.setAttribute('height', initialHeight)
+        this.svg.setAttribute('width', String(initialWidth))
+        this.svg.setAttribute('height', String(initialHeight))
         
         // Position image directly in SVG coordinate space (no mainGroup translation)
         this.mainGroup.setAttribute('transform', '')
         
         // Set the image source in SVG - position it in the margin area
         this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
-        this.svgImage.setAttribute('width', this.spectrogramImage.naturalWidth)
-        this.svgImage.setAttribute('height', this.spectrogramImage.naturalHeight)
-        this.svgImage.setAttribute('x', margins.left)
-        this.svgImage.setAttribute('y', margins.top)
+        this.svgImage.setAttribute('width', String(this.spectrogramImage.naturalWidth))
+        this.svgImage.setAttribute('height', String(this.spectrogramImage.naturalHeight))
+        this.svgImage.setAttribute('x', String(margins.left))
+        this.svgImage.setAttribute('y', String(margins.top))
         
         
         // Draw initial axes
@@ -1291,6 +1466,9 @@ class GramFrame {
   }
   
   
+  /**
+   * Notify all registered state listeners of state changes
+   */
   _notifyStateListeners() {
     // Log state changes to console for Task 1.4
     console.log('GramFrame State Updated:', JSON.stringify(this.state, null, 2))
@@ -1310,16 +1488,21 @@ class GramFrame {
 }
 
 /**
- * Public API
+ * Public API for GramFrame component
+ * @type {Object}
  */
 const GramFrameAPI = {
-  // Initialize all config tables on the page
+  /**
+   * Initialize all config tables on the page
+   * @returns {GramFrame[]} Array of GramFrame instances
+   */
   init() {
     const configTables = document.querySelectorAll('table.spectro-config')
+    /** @type {GramFrame[]} */
     const instances = []
     
     configTables.forEach(table => {
-      instances.push(new GramFrame(table))
+      instances.push(new GramFrame(/** @type {HTMLTableElement} */ (table)))
     })
     
     return instances
@@ -1345,6 +1528,11 @@ const GramFrameAPI = {
    *   }
    * })
    */
+  /**
+   * Add a state listener that will be called whenever the component state changes
+   * @param {StateListener} callback - Function to be called with the current state
+   * @returns {StateListener} Returns the callback function for chaining
+   */
   addStateListener(callback) {
     if (typeof callback !== 'function') {
       throw new Error('State listener must be a function')
@@ -1357,6 +1545,7 @@ const GramFrameAPI = {
       const instances = document.querySelectorAll('.gram-frame-container')
       if (instances.length > 0) {
         // Find the first GramFrame instance
+        // @ts-ignore - Custom property on DOM element
         const instance = instances[0].__gramFrameInstance
         if (instance && instance.state) {
           try {
@@ -1387,6 +1576,11 @@ const GramFrameAPI = {
    * // Later, remove the listener
    * GramFrame.removeStateListener(myListener)
    */
+  /**
+   * Remove a previously added state listener
+   * @param {StateListener} callback - The callback function to remove
+   * @returns {boolean} Returns true if the listener was found and removed, false otherwise
+   */
   removeStateListener(callback) {
     if (typeof callback !== 'function') {
       throw new Error('Callback must be a function')
@@ -1400,35 +1594,49 @@ const GramFrameAPI = {
     return false
   },
   
-  // Toggle canvas bounds overlay
+  /**
+   * Toggle canvas bounds overlay (future implementation)
+   */
   toggleCanvasBoundsOverlay() {
     // This will be implemented in Phase 5
     console.log('Toggle canvas bounds overlay')
   },
   
-  // Set debug grid visibility
+  /**
+   * Set debug grid visibility (future implementation)
+   * @param {boolean} visible - Whether to show the debug grid
+   */
   setDebugGrid(visible) {
     // This will be implemented in Phase 5
     console.log('Set debug grid visibility:', visible)
   },
   
-  // Switch mode
+  /**
+   * Switch mode (future implementation)
+   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
+   */
   switchMode(mode) {
     // This will be implemented in Phase 4
     console.log('Switch mode:', mode)
   },
   
-  // Set rate value
+  /**
+   * Set rate value (future implementation)
+   * @param {number} value - Rate value in Hz/s
+   */
   setRate(value) {
     // This will be implemented in Phase 4
     console.log('Set rate:', value)
   },
   
-  // Force update
+  /**
+   * Force update of the component state
+   */
   forceUpdate() {
     // Find the first GramFrame instance and trigger a state update
     const instances = document.querySelectorAll('.gram-frame-container')
     if (instances.length > 0) {
+      // @ts-ignore - Custom property on DOM element
       const instance = instances[0].__gramFrameInstance
       if (instance) {
         // Trigger a state update by calling _notifyStateListeners
@@ -1440,6 +1648,7 @@ const GramFrameAPI = {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+  // @ts-ignore - Adding to global window object
   window.GramFrame = GramFrameAPI
   GramFrameAPI.init()
   // Connect to state display if we're on the debug page
@@ -1452,10 +1661,13 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 // Export the API
+// @ts-ignore - Adding to global window object
 window.GramFrame = GramFrameAPI
 
 // Hot Module Replacement (HMR) support for Task 1.4
+// @ts-ignore - Vite HMR API
 if (import.meta.hot) {
+  // @ts-ignore - Vite HMR API
   import.meta.hot.accept(() => {
     console.log('🔄 GramFrame component updated - Hot reloading')
     
