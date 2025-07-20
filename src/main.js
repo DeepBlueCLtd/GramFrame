@@ -190,11 +190,13 @@ class GramFrame {
    */
   _createModeSwitchingUI() {
     // Create mode buttons container
+    /** @type {HTMLDivElement} */
     this.modesContainer = document.createElement('div')
     this.modesContainer.className = 'gram-frame-modes'
     
     // Create mode buttons
     const modes = ['analysis', 'harmonics', 'doppler']
+    /** @type {Record<string, HTMLButtonElement>} */
     this.modeButtons = {}
     
     modes.forEach(mode => {
@@ -209,7 +211,9 @@ class GramFrame {
       }
       
       this.modeButtons[mode] = button
-      this.modesContainer.appendChild(button)
+      if (this.modesContainer) {
+        this.modesContainer.appendChild(button)
+      }
     })
     
     this.container.appendChild(this.modesContainer)
@@ -229,11 +233,12 @@ class GramFrame {
     rateContainer.appendChild(label)
     
     // Create input
+    /** @type {HTMLInputElement} */
     this.rateInput = document.createElement('input')
     this.rateInput.type = 'number'
     this.rateInput.min = '0.1'
     this.rateInput.step = '0.1'
-    this.rateInput.value = this.state.rate
+    this.rateInput.value = String(this.state.rate)
     this.rateInput.title = 'Rate value affects Doppler speed calculations'
     rateContainer.appendChild(this.rateInput)
     
@@ -283,7 +288,7 @@ class GramFrame {
     
     // Mode button events
     Object.keys(this.modeButtons || {}).forEach(mode => {
-      const button = this.modeButtons?.[mode]
+      const button = this.modeButtons[mode]
       if (button) {
         button.addEventListener('click', () => {
           this._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
@@ -292,25 +297,33 @@ class GramFrame {
     })
     
     // Rate input events
-    this.rateInput.addEventListener('change', () => {
-      const rate = parseFloat(this.rateInput.value)
-      if (!isNaN(rate) && rate >= 0.1) {
-        this._setRate(rate)
-      } else {
-        // Reset to previous valid value if invalid input
-        this.rateInput.value = String(this.state.rate)
-      }
-    })
+    if (this.rateInput) {
+      this.rateInput.addEventListener('change', () => {
+        if (this.rateInput) {
+          const rate = parseFloat(this.rateInput.value)
+          if (!isNaN(rate) && rate >= 0.1) {
+            this._setRate(rate)
+          } else {
+            // Reset to previous valid value if invalid input
+            this.rateInput.value = String(this.state.rate)
+          }
+        }
+      })
+    }
     
     // Also handle input events for real-time validation feedback
-    this.rateInput.addEventListener('input', () => {
-      const rate = parseFloat(this.rateInput.value)
-      if (!isNaN(rate) && rate >= 0.1) {
-        this.rateInput.style.borderColor = '#ddd'
-      } else {
-        this.rateInput.style.borderColor = '#ff6b6b'
-      }
-    })
+    if (this.rateInput) {
+      this.rateInput.addEventListener('input', () => {
+        if (this.rateInput) {
+          const rate = parseFloat(this.rateInput.value)
+          if (!isNaN(rate) && rate >= 0.1) {
+            this.rateInput.style.borderColor = '#ddd'
+          } else {
+            this.rateInput.style.borderColor = '#ff6b6b'
+          }
+        }
+      })
+    }
     
     // Window resize event
     window.addEventListener('resize', this._boundHandleResize)
@@ -547,6 +560,8 @@ class GramFrame {
    */
   _handleDopplerClick() {
     // Create point data from current cursor position
+    if (!this.state.cursorPosition) return
+    
     const clickPoint = {
       time: this.state.cursorPosition.time,
       freq: this.state.cursorPosition.freq,
@@ -605,12 +620,22 @@ class GramFrame {
    * Clean up event listeners (called when component is destroyed)
    */
   _cleanupEventListeners() {
-    if (this.svg && this._boundHandleMouseMove) {
-      this.svg.removeEventListener('mousemove', this._boundHandleMouseMove)
-      this.svg.removeEventListener('mouseleave', this._boundHandleMouseLeave)
-      this.svg.removeEventListener('click', this._boundHandleClick)
-      this.svg.removeEventListener('mousedown', this._boundHandleMouseDown)
-      this.svg.removeEventListener('mouseup', this._boundHandleMouseUp)
+    if (this.svg) {
+      if (this._boundHandleMouseMove) {
+        this.svg.removeEventListener('mousemove', this._boundHandleMouseMove)
+      }
+      if (this._boundHandleMouseLeave) {
+        this.svg.removeEventListener('mouseleave', this._boundHandleMouseLeave)
+      }
+      if (this._boundHandleClick) {
+        this.svg.removeEventListener('click', this._boundHandleClick)
+      }
+      if (this._boundHandleMouseDown) {
+        this.svg.removeEventListener('mousedown', this._boundHandleMouseDown)
+      }
+      if (this._boundHandleMouseUp) {
+        this.svg.removeEventListener('mouseup', this._boundHandleMouseUp)
+      }
     }
     
     if (this._boundHandleResize) {
@@ -930,16 +955,18 @@ class GramFrame {
     this.state.dragState.dragStartPosition = null
     
     // Update UI
-    Object.keys(this.modeButtons || {}).forEach(m => {
-      const button = this.modeButtons?.[m]
-      if (button) {
-        if (m === mode) {
-          button.classList.add('active')
-        } else {
-          button.classList.remove('active')
+    if (this.modeButtons) {
+      Object.keys(this.modeButtons).forEach(m => {
+        const button = this.modeButtons[m]
+        if (button) {
+          if (m === mode) {
+            button.classList.add('active')
+          } else {
+            button.classList.remove('active')
+          }
         }
-      }
-    })
+      })
+    }
     
     // Clear existing cursor indicators and redraw for new mode
     this._updateCursorIndicators()
@@ -1085,6 +1112,8 @@ class GramFrame {
    * Draw cursor indicators for analysis mode
    */
   _drawAnalysisMode() {
+    if (!this.state.cursorPosition) return
+    
     const margins = this.state.axes.margins
     const { naturalWidth, naturalHeight } = this.state.imageDetails
     
@@ -1390,12 +1419,13 @@ class GramFrame {
       this.spectrogramImage = new Image()
       this.spectrogramImage.onload = () => {
         // Store original image dimensions in imageDetails
-        this.state.imageDetails.naturalWidth = this.spectrogramImage.naturalWidth
-        this.state.imageDetails.naturalHeight = this.spectrogramImage.naturalHeight
+        if (this.spectrogramImage) {
+          this.state.imageDetails.naturalWidth = this.spectrogramImage.naturalWidth
+          this.state.imageDetails.naturalHeight = this.spectrogramImage.naturalHeight
         
-        // Calculate initial dimensions based on container size and margins
-        const containerWidth = this.container.clientWidth
-        const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
+          // Calculate initial dimensions based on container size and margins
+          const containerWidth = this.container.clientWidth
+          const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
         
         // Account for axes margins
         const margins = this.state.axes.margins
@@ -1416,9 +1446,9 @@ class GramFrame {
           height: Math.round(initialHeight)
         }
         
-        // Create viewBox that includes margin space
-        const viewBoxWidth = this.spectrogramImage.naturalWidth + totalMarginWidth
-        const viewBoxHeight = this.spectrogramImage.naturalHeight + totalMarginHeight
+          // Create viewBox that includes margin space
+          const viewBoxWidth = this.spectrogramImage.naturalWidth + totalMarginWidth
+          const viewBoxHeight = this.spectrogramImage.naturalHeight + totalMarginHeight
         
         // Set SVG dimensions and viewBox
         this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
@@ -1428,19 +1458,20 @@ class GramFrame {
         // Position image directly in SVG coordinate space (no mainGroup translation)
         this.mainGroup.setAttribute('transform', '')
         
-        // Set the image source in SVG - position it in the margin area
-        this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
-        this.svgImage.setAttribute('width', String(this.spectrogramImage.naturalWidth))
-        this.svgImage.setAttribute('height', String(this.spectrogramImage.naturalHeight))
+          // Set the image source in SVG - position it in the margin area
+          this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
+          this.svgImage.setAttribute('width', String(this.spectrogramImage.naturalWidth))
+          this.svgImage.setAttribute('height', String(this.spectrogramImage.naturalHeight))
         this.svgImage.setAttribute('x', String(margins.left))
         this.svgImage.setAttribute('y', String(margins.top))
         
-        
-        // Draw initial axes
-        this._drawAxes()
-        
-        // Notify listeners of updated state
-        this._notifyStateListeners()
+          
+          // Draw initial axes
+          this._drawAxes()
+          
+          // Notify listeners of updated state
+          this._notifyStateListeners()
+        }
       }
       this.spectrogramImage.src = imgElement.src
     }
@@ -1450,9 +1481,9 @@ class GramFrame {
     rows.forEach(row => {
       const cells = row.querySelectorAll('td')
       if (cells.length >= 3) {
-        const param = cells[0].textContent.trim()
-        const min = parseFloat(cells[1].textContent)
-        const max = parseFloat(cells[2].textContent)
+        const param = cells[0].textContent?.trim() || ''
+        const min = parseFloat(cells[1].textContent || '0')
+        const max = parseFloat(cells[2].textContent || '0')
         
         if (param === 'time') {
           this.state.config.timeMin = min
@@ -1654,7 +1685,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Connect to state display if we're on the debug page
   const stateDisplay = document.getElementById('state-display')
   if (stateDisplay) {
-    GramFrameAPI.addStateListener((state) => {
+    GramFrameAPI.addStateListener(/** @param {any} state */ (state) => {
       stateDisplay.textContent = JSON.stringify(state, null, 2)
     })
   }
