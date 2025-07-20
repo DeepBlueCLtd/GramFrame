@@ -20,6 +20,7 @@
   width: 100%;
   height: auto;
   border: 1px solid #ddd;
+  cursor: crosshair;
 }
 
 /* SVG image element for the spectrogram */
