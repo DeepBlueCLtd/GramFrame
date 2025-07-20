@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GramFrame Debug Page</title>
+  <title>GramFrame Debug Page - Multiple Components</title>
   <link rel="stylesheet" href="./src/gramframe.css" />
   <script type="module" src="./src/main.js"></script>
   <style>
@@ -156,13 +156,13 @@
   </style>
 </head>
 <body>
-  <h1>GramFrame Debug Page</h1>
+  <h1>GramFrame Debug Page - Multiple Components</h1>
   
   <div class="debug-container">
     <div class="component-container">
-      <h2>Component Instance</h2>
+      <h2>Multiple Component Instances</h2>
       
-      <!-- Sample config table that will be replaced by the component -->
+      <!-- First table -->
       <table class="spectro-config">
         <tr>
           <td colspan="3">
@@ -183,6 +183,54 @@
           <td>freq</td>
           <td>0</td>
           <td>100</td>
+        </tr>
+      </table>
+      
+      <!-- Second table -->
+      <table class="spectro-config">
+        <tr>
+          <td colspan="3">
+            <img src="./sample/mock-gram-3.png" alt="Sample Spectrogram">
+          </td>
+        </tr>
+        <tr>
+          <th>param</th>
+          <th>min</th>
+          <th>max</th>
+        </tr>
+        <tr>
+          <td>time</td>
+          <td>0</td>
+          <td>60</td>
+        </tr>
+        <tr>
+          <td>freq</td>
+          <td>0</td>
+          <td>100</td>
+        </tr>
+      </table>
+      
+      <!-- Third table -->
+      <table class="spectro-config">
+        <tr>
+          <td colspan="3">
+            <img src="./sample/mock-gram-2.png" alt="Sample Spectrogram">
+          </td>
+        </tr>
+        <tr>
+          <th>param</th>
+          <th>min</th>
+          <th>max</th>
+        </tr>
+        <tr>
+          <td>time</td>
+          <td>100</td>
+          <td>200</td>
+        </tr>
+        <tr>
+          <td>freq</td>
+          <td>0</td>
+          <td>200</td>
         </tr>
       </table>
     </div>

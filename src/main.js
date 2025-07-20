@@ -211,7 +211,7 @@ class GramFrame {
     this.modesContainer.className = 'gram-frame-modes'
     
     // Create mode buttons
-    const modes = ['analysis', 'doppler']
+    const modes = ['analysis', 'harmonics', 'doppler']
     /** @type {Record<string, HTMLButtonElement>} */
     this.modeButtons = {}
     

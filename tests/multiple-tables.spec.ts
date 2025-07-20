@@ -5,8 +5,9 @@ import { test, expect } from './helpers/fixtures'
  */
 test.describe('Multiple Tables Display', () => {
   test('displays three tables with correct images and configuration', async ({ gramFramePage }) => {
-    // Navigate to debug page
-    await gramFramePage.goto()
+    // Navigate to multiple components debug page
+    await gramFramePage.page.goto('/debug-multiple.html')
+    await gramFramePage.waitForComponentLoad()
     
     // Verify all three components are created (tables should be replaced)
     const components = await gramFramePage.page.locator('.gram-frame-container').all()
@@ -20,7 +21,8 @@ test.describe('Multiple Tables Display', () => {
   })
 
   test('components are properly contained within component container', async ({ gramFramePage }) => {
-    await gramFramePage.goto()
+    await gramFramePage.page.goto('/debug-multiple.html')
+    await gramFramePage.waitForComponentLoad()
     
     // Verify all components are within the component container
     const componentContainer = gramFramePage.page.locator('.component-container')
@@ -41,7 +43,8 @@ test.describe('Multiple Tables Display', () => {
   })
 
   test('layout remains responsive with multiple tables', async ({ gramFramePage }) => {
-    await gramFramePage.goto()
+    await gramFramePage.page.goto('/debug-multiple.html')
+    await gramFramePage.waitForComponentLoad()
     
     // Test desktop layout
     await gramFramePage.page.setViewportSize({ width: 1200, height: 800 })
@@ -62,7 +65,8 @@ test.describe('Multiple Tables Display', () => {
   })
 
   test('all component images load correctly', async ({ gramFramePage }) => {
-    await gramFramePage.goto()
+    await gramFramePage.page.goto('/debug-multiple.html')
+    await gramFramePage.waitForComponentLoad()
     
     // Wait for all images to load
     await gramFramePage.page.waitForLoadState('networkidle')
@@ -87,7 +91,8 @@ test.describe('Multiple Tables Display', () => {
   })
 
   test('each component maintains independent state and metadata', async ({ gramFramePage }) => {
-    await gramFramePage.goto()
+    await gramFramePage.page.goto('/debug-multiple.html')
+    await gramFramePage.waitForComponentLoad()
     
     // Wait for all components to be fully initialized
     await gramFramePage.page.waitForTimeout(1000)
@@ -149,7 +154,8 @@ test.describe('Multiple Tables Display', () => {
   })
 
   test('page structure is valid HTML with multiple tables', async ({ gramFramePage }) => {
-    await gramFramePage.goto()
+    await gramFramePage.page.goto('/debug-multiple.html')
+    await gramFramePage.waitForComponentLoad()
     
     // Verify no unclosed divs or structural issues
     const bodyContent = await gramFramePage.page.content()
