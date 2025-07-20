@@ -33,7 +33,7 @@ Note: as part of each task in this phase, extend the debug page UI to display th
 
 - [ ] Add mode switching UI (Analysis, Harmonics, Doppler)
 - [ ] Draw harmonic lines with correct labels
-- [ ] Support multiple cursors and harmonics per cursor
+- [ ] Support multiple harmonics per cursor
 - [ ] Add ‘rate’ input box and propagate to calculations
 
 ## 🟣 Phase 5: Final Fit & Polish
