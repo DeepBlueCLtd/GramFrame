@@ -56,10 +56,10 @@ const initialState = {
 }
 
 /**
- * Array of state listener functions
+ * Global registry of listeners that should be applied to all instances
  * @type {StateListener[]}
  */
-const stateListeners = []
+const globalStateListeners = []
 
 /**
  * GramFrame class - Main component implementation
@@ -72,6 +72,19 @@ class GramFrame {
   constructor(configTable) {
     this.state = { ...initialState }
     this.configTable = configTable
+    
+    // Debug: Log what table was received in constructor
+    console.log('GramFrame constructor received table:', {
+      hasImg: !!configTable?.querySelector('img'),
+      imgSrc: configTable?.querySelector('img')?.src,
+      tableCells: configTable ? Array.from(configTable.querySelectorAll('td')).map(td => td.textContent?.trim()) : []
+    })
+    
+    /**
+     * Array of state listener functions for this specific instance
+     * @type {StateListener[]}
+     */
+    this.stateListeners = []
     
     /** @type {string} */
     this.instanceId = ''
@@ -137,6 +150,13 @@ class GramFrame {
       // @ts-ignore - Adding custom property to DOM element
       this.container.__gramFrameInstance = this
     }
+    
+    // Apply any globally registered listeners to this new instance
+    globalStateListeners.forEach(listener => {
+      if (!this.stateListeners.includes(listener)) {
+        this.stateListeners.push(listener)
+      }
+    })
     
     // Extract config data from table
     this._extractConfigData()
@@ -1537,12 +1557,12 @@ class GramFrame {
               this.state.config.timeMin = min
               this.state.config.timeMax = max
               foundTimeConfig = true
-              console.log(`GramFrame: Time range configured: ${min}s to ${max}s`)
+              console.log(`GramFrame [${this.instanceId}]: Time range configured: ${min}s to ${max}s`)
             } else if (param === 'freq') {
               this.state.config.freqMin = min
               this.state.config.freqMax = max
               foundFreqConfig = true
-              console.log(`GramFrame: Frequency range configured: ${min}Hz to ${max}Hz`)
+              console.log(`GramFrame [${this.instanceId}]: Frequency range configured: ${min}Hz to ${max}Hz`)
             }
           }
         } catch (error) {
@@ -1586,8 +1606,8 @@ class GramFrame {
     // Create a deep copy of the state to prevent direct modification
     const stateCopy = JSON.parse(JSON.stringify(this.state))
     
-    // Notify all registered state listeners
-    stateListeners.forEach(listener => {
+    // Notify all registered state listeners for this instance
+    this.stateListeners.forEach(listener => {
       try {
         listener(stateCopy)
       } catch (error) {
@@ -1622,6 +1642,13 @@ const GramFrameAPI = {
     const errors = []
     
     console.log(`GramFrame: Found ${configTables.length} config tables to process`)
+    configTables.forEach((table, index) => {
+      console.log(`GramFrame: Table ${index + 1} preview:`, {
+        innerHTML: table.innerHTML.substring(0, 200),
+        hasImg: !!table.querySelector('img'),
+        imgSrc: table.querySelector('img')?.src
+      })
+    })
     
     configTables.forEach((table, index) => {
       try {
@@ -1641,11 +1668,25 @@ const GramFrameAPI = {
           throw new Error(`Invalid config table structure: ${validationResult.errors.join(', ')}`)
         }
         
+        // Debug: Log table details before creating instance
+        console.log(`GramFrame: About to create instance for table ${index + 1}:`, {
+          tableIndex: index,
+          imgSrc: table.querySelector('img')?.src,
+          tableCells: Array.from(table.querySelectorAll('td')).map(td => td.textContent?.trim()),
+          tableHTML: table.outerHTML.substring(0, 300)
+        })
+        
         // Create GramFrame instance
         const instance = new GramFrame(/** @type {HTMLTableElement} */ (table))
         
         // Store instance ID for debugging and API access
         instance.instanceId = instanceId
+        
+        console.log(`GramFrame: Successfully created instance [${instanceId}] with config:`, {
+          timeRange: `${instance.state.config.timeMin}-${instance.state.config.timeMax}s`,
+          freqRange: `${instance.state.config.freqMin}-${instance.state.config.freqMax}Hz`,
+          imageUrl: instance.state.imageDetails.url
+        })
         
         instances.push(instance)
         
@@ -1760,16 +1801,21 @@ const GramFrameAPI = {
       throw new Error('State listener must be a function')
     }
     
-    if (!stateListeners.includes(callback)) {
-      stateListeners.push(callback)
-      
-      // Immediately call the listener with the current state if available
-      const instances = document.querySelectorAll('.gram-frame-container')
-      if (instances.length > 0) {
-        // Find the first GramFrame instance
-        // @ts-ignore - Custom property on DOM element
-        const instance = instances[0].__gramFrameInstance
-        if (instance && instance.state) {
+    // Add to global registry for future instances
+    if (!globalStateListeners.includes(callback)) {
+      globalStateListeners.push(callback)
+    }
+    
+    // Add the listener to all existing instances
+    const instances = document.querySelectorAll('.gram-frame-container')
+    instances.forEach(container => {
+      // @ts-ignore - Custom property on DOM element
+      const instance = container.__gramFrameInstance
+      if (instance && !instance.stateListeners.includes(callback)) {
+        instance.stateListeners.push(callback)
+        
+        // Immediately call the listener with the current state
+        if (instance.state) {
           try {
             // Create a deep copy of the state
             const stateCopy = JSON.parse(JSON.stringify(instance.state))
@@ -1780,7 +1826,7 @@ const GramFrameAPI = {
           }
         }
       }
-    }
+    })
     
     return callback
   },
@@ -1808,12 +1854,29 @@ const GramFrameAPI = {
       throw new Error('Callback must be a function')
     }
     
-    const index = stateListeners.indexOf(callback)
-    if (index !== -1) {
-      stateListeners.splice(index, 1)
-      return true
+    let removed = false
+    
+    // Remove from global registry
+    const globalIndex = globalStateListeners.indexOf(callback)
+    if (globalIndex !== -1) {
+      globalStateListeners.splice(globalIndex, 1)
+      removed = true
     }
-    return false
+    
+    // Remove the listener from all instances
+    const instances = document.querySelectorAll('.gram-frame-container')
+    instances.forEach(container => {
+      // @ts-ignore - Custom property on DOM element
+      const instance = container.__gramFrameInstance
+      if (instance) {
+        const index = instance.stateListeners.indexOf(callback)
+        if (index !== -1) {
+          instance.stateListeners.splice(index, 1)
+          removed = true
+        }
+      }
+    })
+    return removed
   },
   
   /**
@@ -1855,16 +1918,16 @@ const GramFrameAPI = {
    * Force update of the component state
    */
   forceUpdate() {
-    // Find the first GramFrame instance and trigger a state update
+    // Trigger state update on all GramFrame instances
     const instances = document.querySelectorAll('.gram-frame-container')
-    if (instances.length > 0) {
+    instances.forEach(container => {
       // @ts-ignore - Custom property on DOM element
-      const instance = instances[0].__gramFrameInstance
+      const instance = container.__gramFrameInstance
       if (instance) {
         // Trigger a state update by calling _notifyStateListeners
         instance._notifyStateListeners()
       }
-    }
+    })
   },
   
   /**

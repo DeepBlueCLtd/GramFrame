@@ -44,7 +44,8 @@
       "Bash(grep:*)",
       "Bash(yarn build)",
       "Bash(/dev/null)",
-      "Bash(yarn typecheck)"
+      "Bash(yarn typecheck)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
