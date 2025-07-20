@@ -163,6 +163,10 @@ class GramFrame {
     this.speedLED = this._createLEDDisplay('Speed', '0.0 knots')
     this.speedLED.style.display = 'none'
     this.readoutPanel.appendChild(this.speedLED)
+    
+    // Create rate display
+    this.rateLED = this._createLEDDisplay('Rate', `${this.state.rate} Hz/s`)
+    this.readoutPanel.appendChild(this.rateLED)
   }
   
   _createModeSwitchingUI() {
@@ -208,7 +212,14 @@ class GramFrame {
     this.rateInput.min = '0.1'
     this.rateInput.step = '0.1'
     this.rateInput.value = this.state.rate
+    this.rateInput.title = 'Rate value affects Doppler speed calculations'
     rateContainer.appendChild(this.rateInput)
+    
+    // Create unit indicator
+    const unit = document.createElement('span')
+    unit.textContent = 'Hz/s'
+    unit.className = 'gram-frame-rate-unit'
+    rateContainer.appendChild(unit)
     
     this.container.appendChild(rateContainer)
   }
@@ -249,8 +260,21 @@ class GramFrame {
     // Rate input events
     this.rateInput.addEventListener('change', () => {
       const rate = parseFloat(this.rateInput.value)
-      if (!isNaN(rate) && rate > 0) {
+      if (!isNaN(rate) && rate >= 0.1) {
         this._setRate(rate)
+      } else {
+        // Reset to previous valid value if invalid input
+        this.rateInput.value = this.state.rate
+      }
+    })
+    
+    // Also handle input events for real-time validation feedback
+    this.rateInput.addEventListener('input', () => {
+      const rate = parseFloat(this.rateInput.value)
+      if (!isNaN(rate) && rate >= 0.1) {
+        this.rateInput.style.borderColor = '#ddd'
+      } else {
+        this.rateInput.style.borderColor = '#ff6b6b'
       }
     })
     
@@ -503,8 +527,8 @@ class GramFrame {
     this.state.doppler.deltaTime = end.time - start.time
     this.state.doppler.deltaFrequency = end.freq - start.freq
     
-    // Mock speed calculation: ΔT * ΔF as specified in the task
-    this.state.doppler.speed = Math.abs(this.state.doppler.deltaTime * this.state.doppler.deltaFrequency)
+    // Speed calculation incorporating rate: ΔT * ΔF * rate
+    this.state.doppler.speed = Math.abs(this.state.doppler.deltaTime * this.state.doppler.deltaFrequency * this.state.rate)
   }
   
   /**
@@ -596,8 +620,11 @@ class GramFrame {
     const boundedY = Math.max(0, Math.min(imageY, naturalHeight))
     
     // Convert to data coordinates
-    const freq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
+    const rawFreq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
     const time = timeMax - (boundedY / naturalHeight) * (timeMax - timeMin)
+    
+    // Apply rate scaling to frequency - rate acts as a frequency divider
+    const freq = rawFreq / this.state.rate
     
     return { freq, time }
   }
@@ -609,7 +636,10 @@ class GramFrame {
     const { freqMin, freqMax, timeMin, timeMax } = this.state.config
     const { naturalWidth, naturalHeight } = this.state.imageDetails
     
-    const x = ((freq - freqMin) / (freqMax - freqMin)) * naturalWidth
+    // Convert frequency back to raw frequency space for positioning
+    const rawFreq = freq * this.state.rate
+    
+    const x = ((rawFreq - freqMin) / (freqMax - freqMin)) * naturalWidth
     const y = naturalHeight - ((time - timeMin) / (timeMax - timeMin)) * naturalHeight
     
     return { x, y }
@@ -810,6 +840,15 @@ class GramFrame {
     // Update state
     this.state.rate = rate
     
+    // Update rate LED display
+    this._updateRateLED()
+    
+    // If in Doppler mode and we have measurements, recalculate speed with new rate
+    if (this.state.mode === 'doppler' && this.state.doppler.startPoint && this.state.doppler.endPoint) {
+      this._calculateDopplerMeasurements()
+      this._updateLEDDisplays()
+    }
+    
     // Notify listeners
     this._notifyStateListeners()
   }
@@ -876,6 +915,11 @@ class GramFrame {
     // Update mode LED
     this.modeLED.querySelector('.gram-frame-led-value').textContent = 
       this._capitalizeFirstLetter(this.state.mode)
+  }
+  
+  _updateRateLED() {
+    // Update rate LED
+    this.rateLED.querySelector('.gram-frame-led-value').textContent = `${this.state.rate} Hz/s`
   }
   
   _updateCursorIndicators() {

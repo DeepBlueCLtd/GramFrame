@@ -156,8 +156,8 @@ test.describe('Mouse Tracking Implementation', () => {
       await gramFramePage.page.waitForTimeout(100)
       
       // Check that LED displays are updated
-      const freqLED = gramFramePage.page.locator('.gram-frame-led').filter({ hasText: 'Frequency' })
-      const timeLED = gramFramePage.page.locator('.gram-frame-led').filter({ hasText: 'Time' })
+      const freqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Frequency"))')
+      const timeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Time"))')
       
       const freqValue = await freqLED.locator('.gram-frame-led-value').textContent()
       const timeValue = await timeLED.locator('.gram-frame-led-value').textContent()

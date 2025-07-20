@@ -130,6 +130,12 @@
   border-radius: 3px;
 }
 
+.gram-frame-rate-unit {
+  font-size: 0.9em;
+  color: #777;
+  font-style: italic;
+}
+
 /* SVG cursor indicator styles */
 .gram-frame-cursor-group {
   pointer-events: none;

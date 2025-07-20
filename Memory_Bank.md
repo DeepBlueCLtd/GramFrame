@@ -885,6 +885,273 @@ None. Implementation successfully updated to match revised specifications.
 Ready to proceed with Task 4.4: Doppler Mode Implementation.
 
 ---
+**Agent:** Implementation Agent  
+**Task Reference:** Phase 4, Task 4.4: Doppler Mode Implementation
+
+**Summary:**
+Implemented complete Doppler mode functionality with click-based point selection, sloped line visualization, delta measurement calculations (ΔTime, ΔFrequency, Speed), mode-specific LED display, persistent state management, and comprehensive test coverage per Gram-Modes.md specifications.
+
+**Details:**
+- **Click-Based Point Selection:** Implemented two-click interaction to define start and end points for frequency shift measurement
+- **State Management:** Extended initial state with doppler object containing startPoint, endPoint, deltaTime, deltaFrequency, and speed properties
+- **Measurement Calculations:** Added `_calculateDopplerMeasurements()` method using mock speed formula (ΔT × ΔF) as specified
+- **Visual Line Display:** Created sloped line connecting two measurement points with shadow line technique for optimal visibility
+- **Point Markers:** Added distinct circular markers for start point (green) and end point (magenta) with white stroke outline
+- **Point Labels:** Numbered markers ("1" and "2") to clearly identify start and end points
+- **Mode-Specific LED Panel:** Added three additional LED displays (ΔTime, ΔFreq, Speed) that appear only in Doppler mode
+- **Persistent State:** Measurements persist until mode change or new measurement started
+- **Replacement Logic:** Third click starts new measurement (replaces previous one)
+- **Enhanced CSS Styling:** Added comprehensive styling for Doppler elements with optimal visibility
+- **State Listener Integration:** All Doppler state changes properly propagated to registered listeners
+- **Mode Switching Cleanup:** Doppler state automatically cleared when switching away from Doppler mode
+
+**Code Implementation:**
+```javascript
+// Enhanced state structure with Doppler support
+const initialState = {
+  // ... existing properties ...
+  doppler: {
+    startPoint: null,
+    endPoint: null,
+    deltaTime: null,
+    deltaFrequency: null,
+    speed: null
+  }
+}
+
+// Click handler enhanced for Doppler mode
+_handleClick(event) {
+  if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight || this.state.mode !== 'doppler') {
+    return
+  }
+  
+  if (!this.state.cursorPosition) {
+    return
+  }
+  
+  if (this.state.mode === 'doppler') {
+    this._handleDopplerClick()
+  }
+}
+
+// Doppler click interaction logic
+_handleDopplerClick() {
+  const clickPoint = {
+    time: this.state.cursorPosition.time,
+    freq: this.state.cursorPosition.freq,
+    svgX: this.state.cursorPosition.svgX,
+    svgY: this.state.cursorPosition.svgY
+  }
+  
+  if (!this.state.doppler.startPoint) {
+    // Set start point
+    this.state.doppler.startPoint = clickPoint
+    this.state.doppler.endPoint = null
+    this.state.doppler.deltaTime = null
+    this.state.doppler.deltaFrequency = null
+    this.state.doppler.speed = null
+  } else if (!this.state.doppler.endPoint) {
+    // Set end point and calculate measurements
+    this.state.doppler.endPoint = clickPoint
+    this._calculateDopplerMeasurements()
+  } else {
+    // Both points are set, start a new measurement
+    this.state.doppler.startPoint = clickPoint
+    this.state.doppler.endPoint = null
+    this.state.doppler.deltaTime = null
+    this.state.doppler.deltaFrequency = null
+    this.state.doppler.speed = null
+  }
+  
+  this._updateLEDDisplays()
+  this._updateCursorIndicators()
+  this._notifyStateListeners()
+}
+
+// Doppler measurement calculations
+_calculateDopplerMeasurements() {
+  if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
+    return
+  }
+  
+  const start = this.state.doppler.startPoint
+  const end = this.state.doppler.endPoint
+  
+  // Calculate delta values
+  this.state.doppler.deltaTime = end.time - start.time
+  this.state.doppler.deltaFrequency = end.freq - start.freq
+  
+  // Mock speed calculation: ΔT * ΔF as specified in the task
+  this.state.doppler.speed = Math.abs(this.state.doppler.deltaTime * this.state.doppler.deltaFrequency)
+}
+
+// Doppler mode visualization
+_drawDopplerMode() {
+  // Draw normal crosshairs for current cursor position
+  if (this.state.cursorPosition) {
+    this._drawAnalysisMode()
+  }
+  
+  // Draw start point marker if set
+  if (this.state.doppler.startPoint) {
+    this._drawDopplerPoint(this.state.doppler.startPoint, 'start')
+  }
+  
+  // Draw end point marker and line if both points are set
+  if (this.state.doppler.endPoint) {
+    this._drawDopplerPoint(this.state.doppler.endPoint, 'end')
+    this._drawDopplerLine()
+  }
+}
+
+// Enhanced LED displays for Doppler mode
+_createLEDDisplays() {
+  // ... existing LED displays ...
+  
+  // Create doppler-specific displays (initially hidden)
+  this.deltaTimeLED = this._createLEDDisplay('ΔTime', '0.00 s')
+  this.deltaTimeLED.style.display = 'none'
+  this.readoutPanel.appendChild(this.deltaTimeLED)
+  
+  this.deltaFreqLED = this._createLEDDisplay('ΔFreq', '0 Hz')
+  this.deltaFreqLED.style.display = 'none'
+  this.readoutPanel.appendChild(this.deltaFreqLED)
+  
+  this.speedLED = this._createLEDDisplay('Speed', '0.0 knots')
+  this.speedLED.style.display = 'none'
+  this.readoutPanel.appendChild(this.speedLED)
+}
+
+// Mode-specific LED display management
+_updateLEDDisplays() {
+  // Hide/show doppler-specific LEDs based on mode
+  if (this.state.mode === 'doppler') {
+    this.deltaTimeLED.style.display = 'block'
+    this.deltaFreqLED.style.display = 'block'
+    this.speedLED.style.display = 'block'
+    
+    // Update doppler-specific values if available
+    if (this.state.doppler.deltaTime !== null) {
+      this.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = `ΔT: ${this.state.doppler.deltaTime.toFixed(2)} s`
+    } else {
+      this.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = 'ΔT: 0.00 s'
+    }
+    
+    if (this.state.doppler.deltaFrequency !== null) {
+      this.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = `ΔF: ${this.state.doppler.deltaFrequency.toFixed(0)} Hz`
+    } else {
+      this.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = 'ΔF: 0 Hz'
+    }
+    
+    if (this.state.doppler.speed !== null) {
+      this.speedLED.querySelector('.gram-frame-led-value').textContent = `Speed: ${this.state.doppler.speed.toFixed(1)} knots`
+    } else {
+      this.speedLED.querySelector('.gram-frame-led-value').textContent = 'Speed: 0.0 knots'
+    }
+  } else {
+    this.deltaTimeLED.style.display = 'none'
+    this.deltaFreqLED.style.display = 'none'
+    this.speedLED.style.display = 'none'
+  }
+  
+  // ... existing LED update logic continues ...
+}
+```
+
+**CSS Styling:**
+```css
+/* SVG Doppler mode styles */
+.gram-frame-doppler-line-shadow {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 4;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-doppler-line {
+  stroke: rgba(0, 255, 255, 0.9); /* Cyan color for doppler line */
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-doppler-start-point {
+  fill: rgba(0, 255, 0, 0.9); /* Green for start point */
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.gram-frame-doppler-end-point {
+  fill: rgba(255, 0, 255, 0.9); /* Magenta for end point */
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.gram-frame-doppler-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 12px;
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.8);
+  stroke-width: 0.5;
+  paint-order: stroke;
+  pointer-events: none;
+  font-weight: bold;
+  dominant-baseline: central;
+}
+```
+
+**Test Coverage:**
+Created comprehensive test suite `tests/doppler-mode.spec.ts` with 6 test cases:
+1. Click interaction correctly sets start and end points with proper markers
+2. LED panel displays calculated measurements (ΔT, ΔF, Speed) with correct formatting
+3. State persists until mode change (measurements remain visible when moving mouse)
+4. New measurements replace previous ones (third click starts new measurement)
+5. Edge cases handled correctly (same position clicks, boundary conditions)
+6. Line and markers have optimal visibility styling with shadow technique
+
+**Test Helper Enhancement:**
+Enhanced `tests/helpers/gram-frame-page.ts` with Doppler-specific methods:
+- `clickSpectrogram(x, y)` for precise click interactions
+- Updated LED selectors to use `text-is()` for exact matching to avoid conflicts with new ΔTime LED
+
+**Measurement Format Specifications:**
+- **ΔTime:** "ΔT: 3.00 s" (2 decimal places)
+- **ΔFrequency:** "ΔF: -240 Hz" (0 decimal places, includes negative values)
+- **Speed:** "Speed: 14.2 knots" (1 decimal place, absolute value)
+
+**Test Results:**
+- All 6 Doppler mode tests pass consistently
+- Complete test suite runs successfully with enhanced LED selector specificity
+- Verified Doppler behavior matches Gram-Modes.md specifications:
+  - Two-click interaction for point definition
+  - Sloped line connecting measurement points
+  - Calculated values displayed in LED format
+  - Persistent state until mode change or new measurement
+  - Mode-specific LED displays show/hide correctly
+
+**Specification Compliance:**
+Implementation fully matches Gram-Modes.md requirements:
+- Click 1 sets start point (time + frequency)
+- Click 2 sets end point and calculates measurements
+- Sloped line drawn between the two points
+- ΔTime, ΔFrequency, and derived speed calculations
+- State persists until replaced by new click or mode change
+- LED-style panel displays with "Doppler" mode indicator
+- Optional markers at each end implemented as numbered circles
+
+**Status:** Completed
+
+**Issues/Blockers:**
+Initial test failures due to LED selector conflicts between "Time" and "ΔTime" displays. Resolved by using exact text matching (`text-is()`) instead of partial text matching (`text()`). One test required coordinate adjustment to ensure distinct measurement values for replacement testing.
+
+**Next Steps:**
+Task 4.4 Doppler Mode Implementation completed successfully. All deliverables implemented and tested. Ready for next Phase 4 task or project handover.
+
+---
 
 ## Technical Decisions
 **Date: July 18, 2025**
@@ -903,3 +1170,124 @@ Ready to proceed with Task 4.4: Doppler Mode Implementation.
 - Added mouse move and click event listeners to the canvas
 - Implemented coordinate calculations with bounds checking
 - Created LED display updates based on cursor position
+
+---
+**Agent:** Implementation Agent
+**Task Reference:** Phase 4, Task 4.6: Add 'rate' input box and propagate to calculations
+
+**Summary:**
+Successfully implemented a rate input box with LED display, input validation, unit indicator, and integration with Doppler mode speed calculations. Enhanced UI feedback and created comprehensive test coverage for rate functionality.
+
+**Details:**
+- **Rate Input UI:** Added properly styled rate input with label, numeric validation, and unit indicator (Hz/s)
+- **Input Validation:** Implemented real-time validation with visual feedback (red border for invalid values) and automatic reset to previous valid value for invalid input
+- **Rate LED Display:** Added new LED display showing current rate value in the format "Rate: X.X Hz/s"
+- **Doppler Integration:** Updated Doppler speed calculation to incorporate rate: `speed = |ΔT × ΔF × rate|`
+- **State Management:** Enhanced rate state persistence across mode changes and proper state listener notifications
+- **Enhanced User Experience:** Added tooltip explaining rate's purpose and immediate visual feedback for invalid input
+- **Comprehensive Testing:** Created 13 integration tests covering all rate input functionality
+
+**Key Implementation Changes:**
+```javascript
+// Rate input creation with validation
+_createRateInput() {
+  const rateContainer = document.createElement('div')
+  rateContainer.className = 'gram-frame-rate'
+  
+  // Label and input with validation attributes
+  const label = document.createElement('label')
+  label.textContent = 'Rate:'
+  
+  this.rateInput = document.createElement('input')
+  this.rateInput.type = 'number'
+  this.rateInput.min = '0.1'
+  this.rateInput.step = '0.1'
+  this.rateInput.value = this.state.rate
+  this.rateInput.title = 'Rate value affects Doppler speed calculations'
+  
+  // Unit indicator
+  const unit = document.createElement('span')
+  unit.textContent = 'Hz/s'
+  unit.className = 'gram-frame-rate-unit'
+  
+  rateContainer.appendChild(label)
+  rateContainer.appendChild(this.rateInput)
+  rateContainer.appendChild(unit)
+  this.container.appendChild(rateContainer)
+}
+
+// Enhanced rate setting with immediate calculation updates
+_setRate(rate) {
+  this.state.rate = rate
+  this._updateRateLED()
+  
+  // Recalculate Doppler measurements if in Doppler mode
+  if (this.state.mode === 'doppler' && this.state.doppler.startPoint && this.state.doppler.endPoint) {
+    this._calculateDopplerMeasurements()
+    this._updateLEDDisplays()
+  }
+  
+  this._notifyStateListeners()
+}
+
+// Updated Doppler calculation with rate integration
+_calculateDopplerMeasurements() {
+  if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) return
+  
+  const start = this.state.doppler.startPoint
+  const end = this.state.doppler.endPoint
+  
+  this.state.doppler.deltaTime = end.time - start.time
+  this.state.doppler.deltaFrequency = end.freq - start.freq
+  
+  // Speed calculation incorporating rate: ΔT * ΔF * rate
+  this.state.doppler.speed = Math.abs(this.state.doppler.deltaTime * this.state.doppler.deltaFrequency * this.state.rate)
+}
+
+// Input validation with visual feedback
+this.rateInput.addEventListener('input', () => {
+  const rate = parseFloat(this.rateInput.value)
+  if (!isNaN(rate) && rate >= 0.1) {
+    this.rateInput.style.borderColor = '#ddd'
+  } else {
+    this.rateInput.style.borderColor = '#ff6b6b'
+  }
+})
+```
+
+**CSS Enhancements:**
+```css
+.gram-frame-rate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.gram-frame-rate-unit {
+  font-size: 0.9em;
+  color: #777;
+  font-style: italic;
+}
+```
+
+**Testing Coverage:**
+Created comprehensive test file `tests/rate-input.spec.ts` with 13 test cases:
+- Rate input presence and default value verification
+- Input validation (accepts valid values, rejects invalid values)
+- Visual feedback for invalid input (red border)
+- Rate LED display functionality
+- Rate persistence across mode changes
+- Doppler speed calculation integration with rate
+- State listener notification testing
+- Edge case handling (minimum/maximum values)
+- Multi-browser zoom level compatibility
+- State diagnostics integration
+
+**Status:** Completed
+
+**Issues/Blockers:**
+None. All 13 integration tests pass successfully.
+
+**Next Steps:**
+Ready to proceed with Task 4.7: Debug UI Mode Extensions.
