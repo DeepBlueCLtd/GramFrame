@@ -61,7 +61,7 @@ test.describe('State Listener Mechanism', () => {
     // Perform actions that should trigger state changes
     
     // 1. Change mode
-    await gramFramePage.clickMode('Harmonics')
+    await gramFramePage.clickMode('Doppler')
     
     // 2. Change rate
     await gramFramePage.setRate(2.5)
@@ -83,7 +83,7 @@ test.describe('State Listener Mechanism', () => {
     
     // Verify the last update contains our changes
     const lastUpdate = updates[updates.length - 1]
-    expect(lastUpdate.mode).toBe('harmonics')
+    expect(lastUpdate.mode).toBe('doppler')
     expect(lastUpdate.rate).toBe(2.5)
     expect(lastUpdate.cursorPosition).toBeTruthy()
   })

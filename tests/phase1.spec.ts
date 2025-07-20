@@ -39,7 +39,6 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     
     // Verify all mode buttons exist
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).toBeVisible()
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')).toBeVisible()
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')).toBeVisible()
     
     // Verify rate input is created
@@ -76,7 +75,7 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     }
     
     // 2. Change mode
-    await gramFramePage.clickMode('Harmonics')
+    await gramFramePage.clickMode('Analysis')
     
     // 3. Change rate
     await gramFramePage.setRate(2)
@@ -104,7 +103,7 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     
     // Verify the final state reflects our changes
     const finalState = await gramFramePage.getState()
-    expect(finalState.mode).toBe('harmonics')
+    expect(finalState.mode).toBe('analysis')
     expect(finalState.rate).toBe(2)
     expect(finalState.cursorPosition).not.toBeNull()
   })

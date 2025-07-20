@@ -94,8 +94,8 @@ test.describe('Rate Input Implementation', () => {
     await rateInput.blur()
     await expect(rateLED).toHaveText('3.5 Hz/s')
     
-    // Switch to harmonics mode
-    await gramFramePage.clickMode('Harmonics')
+    // Switch to doppler mode
+    await gramFramePage.clickMode('Doppler')
     await expect(rateLED).toHaveText('3.5 Hz/s')
     await expect(rateInput).toHaveValue('3.5')
     

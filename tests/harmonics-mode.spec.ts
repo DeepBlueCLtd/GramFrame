@@ -428,11 +428,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
     const analysisButton = gramFramePage.page.locator('[data-mode="analysis"]')
     await expect(analysisButton).toHaveClass(/active/)
     
-    // Verify other mode buttons are not active
-    const harmonicsButton = gramFramePage.page.locator('[data-mode="harmonics"]')
+    // Verify doppler mode button is not active
     const dopplerButton = gramFramePage.page.locator('[data-mode="doppler"]')
-    
-    await expect(harmonicsButton).not.toHaveClass(/active/) // harmonics button should not be active when in Analysis mode
     await expect(dopplerButton).not.toHaveClass(/active/)
   })
 })

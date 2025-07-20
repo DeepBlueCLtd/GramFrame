@@ -14,7 +14,7 @@ const initialState = {
   metadata: {
     instanceId: ''
   },
-  mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
+  mode: 'analysis', // 'analysis', 'doppler'
   rate: 1,
   cursorPosition: null,
   cursors: [],
@@ -211,7 +211,7 @@ class GramFrame {
     this.modesContainer.className = 'gram-frame-modes'
     
     // Create mode buttons
-    const modes = ['analysis', 'harmonics', 'doppler']
+    const modes = ['analysis', 'doppler']
     /** @type {Record<string, HTMLButtonElement>} */
     this.modeButtons = {}
     
@@ -902,11 +902,26 @@ class GramFrame {
     const { naturalWidth, naturalHeight } = this.state.imageDetails
     const margins = this.state.axes.margins
     
-    // Calculate tick marks
+    // Calculate nice tick marks using tidy algorithm
     const range = freqMax - freqMin
     const targetTickCount = Math.floor(naturalWidth / 80) // Aim for ticks every ~80px
-    const tickCount = Math.max(2, Math.min(targetTickCount, 10))
-    const tickInterval = range / (tickCount - 1)
+    const roughInterval = range / Math.max(1, targetTickCount - 1)
+    
+    // Find nice interval from standard set
+    const niceIntervals = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
+    let tickInterval = niceIntervals[0]
+    
+    for (const interval of niceIntervals) {
+      if (interval >= roughInterval) {
+        tickInterval = interval
+        break
+      }
+    }
+    
+    // Calculate actual tick positions
+    const startTick = Math.ceil(freqMin / tickInterval) * tickInterval
+    const endTick = Math.floor(freqMax / tickInterval) * tickInterval
+    const tickCount = Math.floor((endTick - startTick) / tickInterval) + 1
     
     // Draw main axis line (along the bottom edge of the image)
     const axisLineY = margins.top + naturalHeight
@@ -920,8 +935,10 @@ class GramFrame {
     
     // Draw tick marks and labels
     for (let i = 0; i < tickCount; i++) {
-      const freqValue = freqMin + (i * tickInterval)
-      const xPos = margins.left + (i / (tickCount - 1)) * naturalWidth
+      const freqValue = startTick + (i * tickInterval)
+      // Convert frequency value to pixel position
+      const normalizedX = (freqValue - freqMin) / (freqMax - freqMin)
+      const xPos = margins.left + normalizedX * naturalWidth
       
       // Tick mark (extends into the bottom margin)
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
@@ -1103,11 +1120,6 @@ class GramFrame {
     
     // Only draw indicators if cursor position is available
     if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
-      // In harmonics mode, if we have harmonic data but no cursor position, clear the harmonics
-      if (this.state.mode === 'harmonics' && this.state.harmonics.baseFrequency !== null) {
-        // Keep harmonics state but don't draw anything when cursor is outside
-        return
-      }
       return
     }
     

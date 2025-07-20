@@ -13,18 +13,15 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     // Verify mode switching container exists
     await expect(gramFramePage.page.locator('.gram-frame-modes')).toBeVisible()
     
-    // Verify all three mode buttons exist with correct text
+    // Verify both mode buttons exist with correct text
     const analysisBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')
-    const harmonicsBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')
     const dopplerBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')
     
     await expect(analysisBtn).toBeVisible()
-    await expect(harmonicsBtn).toBeVisible()
     await expect(dopplerBtn).toBeVisible()
     
     // Verify Analysis mode is active by default
     await expect(analysisBtn).toHaveClass(/active/)
-    await expect(harmonicsBtn).not.toHaveClass(/active/)
     await expect(dopplerBtn).not.toHaveClass(/active/)
   })
 
@@ -38,27 +35,11 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
   })
 
   test('mode switching changes state and UI correctly', async () => {
-    // Test switching to Harmonics mode
-    await gramFramePage.clickMode('Harmonics')
-    
-    // Verify button state changes
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).not.toHaveClass(/active/)
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')).toHaveClass(/active/)
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')).not.toHaveClass(/active/)
-    
-    // Verify state is updated
-    const stateAfterHarmonics = await gramFramePage.getCurrentState()
-    expect(stateAfterHarmonics.mode).toBe('harmonics')
-    
-    // Verify LED display is updated
-    await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Harmonics')
-    
     // Test switching to Doppler mode
     await gramFramePage.clickMode('Doppler')
     
-    // Verify button state changes again
+    // Verify button state changes
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).not.toHaveClass(/active/)
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')).not.toHaveClass(/active/)
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')).toHaveClass(/active/)
     
     // Verify state is updated
@@ -73,14 +54,13 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     
     // Verify button state changes back
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).toHaveClass(/active/)
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')).not.toHaveClass(/active/)
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')).not.toHaveClass(/active/)
     
-    // Verify state is updated
-    const stateBackToAnalysis = await gramFramePage.getCurrentState()
-    expect(stateBackToAnalysis.mode).toBe('analysis')
+    // Verify state is updated back to analysis
+    const stateAfterAnalysis = await gramFramePage.getCurrentState()
+    expect(stateAfterAnalysis.mode).toBe('analysis')
     
-    // Verify LED display is updated
+    // Verify LED display is updated back
     await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Analysis')
   })
 
@@ -99,11 +79,8 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     })
     
     // Switch modes and verify state listener is called
-    await gramFramePage.clickMode('Harmonics')
-    await gramFramePage.page.waitForTimeout(100) // Brief pause for state propagation
-    
     await gramFramePage.clickMode('Doppler')
-    await gramFramePage.page.waitForTimeout(100)
+    await gramFramePage.page.waitForTimeout(100) // Brief pause for state propagation
     
     await gramFramePage.clickMode('Analysis')
     await gramFramePage.page.waitForTimeout(100)
@@ -111,15 +88,13 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     // Check that state listener received the mode changes
     const updates = await gramFramePage.page.evaluate(() => (window as any).testStateUpdates)
     
-    // Should have at least 3 updates (one for each mode change)
-    expect(updates.length).toBeGreaterThanOrEqual(3)
+    // Should have at least 2 updates (one for each mode change)
+    expect(updates.length).toBeGreaterThanOrEqual(2)
     
     // Find the mode changes in the updates
-    const harmonicsUpdate = updates.find((u: any) => u.mode === 'harmonics')
     const dopplerUpdate = updates.find((u: any) => u.mode === 'doppler')
     const analysisUpdate = updates.reverse().find((u: any) => u.mode === 'analysis') // Get the latest analysis update
     
-    expect(harmonicsUpdate).toBeDefined()
     expect(dopplerUpdate).toBeDefined()
     expect(analysisUpdate).toBeDefined()
   })
@@ -134,11 +109,11 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
       expect(initialStateText).toContain('"mode": "analysis"')
       
       // Change mode and verify update in state display
-      await gramFramePage.clickMode('Harmonics')
+      await gramFramePage.clickMode('Doppler')
       await gramFramePage.page.waitForTimeout(100)
       
       const updatedStateText = await stateDisplay.textContent()
-      expect(updatedStateText).toContain('"mode": "harmonics"')
+      expect(updatedStateText).toContain('"mode": "doppler"')
     }
   })
 
@@ -147,7 +122,7 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     const initialState = await gramFramePage.getCurrentState()
     
     // Switch mode
-    await gramFramePage.clickMode('Harmonics')
+    await gramFramePage.clickMode('Doppler')
     
     // Get state after mode change
     const stateAfterModeChange = await gramFramePage.getCurrentState()
@@ -160,23 +135,23 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     expect(stateAfterModeChange.axes).toEqual(initialState.axes)
     
     // Only mode should have changed
-    expect(stateAfterModeChange.mode).toBe('harmonics')
+    expect(stateAfterModeChange.mode).toBe('doppler')
     expect(stateAfterModeChange.mode).not.toBe(initialState.mode)
   })
 
   test('mode buttons have correct styling and hover states', async () => {
     const analysisBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')
-    const harmonicsBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')
+    const dopplerBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')
     
     // Verify buttons have correct base styling
     await expect(analysisBtn).toHaveCSS('cursor', 'pointer')
-    await expect(harmonicsBtn).toHaveCSS('cursor', 'pointer')
+    await expect(dopplerBtn).toHaveCSS('cursor', 'pointer')
     
     // Verify active button has different styling
     await expect(analysisBtn).toHaveClass(/active/)
     
     // Verify inactive button styling
-    await expect(harmonicsBtn).not.toHaveClass(/active/)
+    await expect(dopplerBtn).not.toHaveClass(/active/)
   })
 
   test('LED-style aesthetic is maintained for mode display', async () => {
@@ -205,24 +180,24 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     expect(stateWithCursor.cursorPosition).not.toBeNull()
     
     // Switch mode 
-    await gramFramePage.clickMode('Harmonics')
+    await gramFramePage.clickMode('Doppler')
     
     // Verify mode changed
     const stateAfterModeChange = await gramFramePage.getCurrentState()
-    expect(stateAfterModeChange.mode).toBe('harmonics')
+    expect(stateAfterModeChange.mode).toBe('doppler')
     
     // Move mouse back to spectrogram and verify tracking still works
     await gramFramePage.moveMouseToSpectrogram(200, 150)
     
     const stateAfterMouseMove = await gramFramePage.getCurrentState()
-    expect(stateAfterMouseMove.mode).toBe('harmonics')
+    expect(stateAfterMouseMove.mode).toBe('doppler')
     expect(stateAfterMouseMove.cursorPosition).not.toBeNull()
     
     // Move mouse to another position and verify coordinates change
     await gramFramePage.moveMouseToSpectrogram(150, 200)
     
     const stateAfterSecondMove = await gramFramePage.getCurrentState()
-    expect(stateAfterSecondMove.mode).toBe('harmonics')
+    expect(stateAfterSecondMove.mode).toBe('doppler')
     expect(stateAfterSecondMove.cursorPosition).not.toBeNull()
     expect(stateAfterSecondMove.cursorPosition.x).not.toBe(stateAfterMouseMove.cursorPosition.x)
   })

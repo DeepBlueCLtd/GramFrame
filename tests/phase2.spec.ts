@@ -263,14 +263,14 @@ test.describe('Phase 2: Comprehensive Integration', () => {
     }
     
     // Test mode switching
-    await gramFramePage.clickMode('Harmonics')
+    await gramFramePage.clickMode('Doppler')
     await page.waitForTimeout(200)
     
     // Verify mode LED updated
-    await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Harmonics')
+    await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Doppler')
     
     // Verify state reflects mode change
     const finalState = await gramFramePage.getState()
-    expect(finalState.mode).toBe('harmonics')
+    expect(finalState.mode).toBe('doppler')
   })
 })
