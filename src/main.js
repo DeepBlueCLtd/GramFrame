@@ -1405,92 +1405,171 @@ class GramFrame {
    * Extract configuration data from the config table
    */
   _extractConfigData() {
-    if (!this.configTable) return
+    if (!this.configTable) {
+      console.warn('GramFrame: No config table provided for configuration extraction')
+      return
+    }
     
-    // Get image URL from the first row
-    const imgElement = this.configTable.querySelector('img')
-    if (imgElement) {
+    try {
+      // Get image URL from the first row
+      const imgElement = this.configTable.querySelector('img')
+      if (!imgElement) {
+        throw new Error('No image element found in config table')
+      }
+      
+      if (!imgElement.src) {
+        throw new Error('Image element has no src attribute')
+      }
+      
       this.state.imageDetails.url = imgElement.src
+      console.log('GramFrame: Found image URL:', imgElement.src)
       
       // We'll get actual dimensions when the image loads
       this.spectrogramImage = new Image()
+      
+      this.spectrogramImage.onerror = () => {
+        console.error('GramFrame: Failed to load spectrogram image:', imgElement.src)
+        // Set error state but don't throw - allow component to continue
+        this.state.imageDetails.url = ''
+      }
+      
       this.spectrogramImage.onload = () => {
-        // Store original image dimensions in imageDetails
-        if (this.spectrogramImage) {
-          this.state.imageDetails.naturalWidth = this.spectrogramImage.naturalWidth
-          this.state.imageDetails.naturalHeight = this.spectrogramImage.naturalHeight
-        
-          // Calculate initial dimensions based on container size and margins
-          const containerWidth = this.container.clientWidth
-          const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
-        
-        // Account for axes margins
-        const margins = this.state.axes.margins
-        const totalMarginWidth = margins.left + margins.right
-        const totalMarginHeight = margins.top + margins.bottom
-        
-        // Calculate available space for the image
-        const availableWidth = containerWidth - totalMarginWidth
-        const availableHeight = availableWidth / aspectRatio
-        
-        // Set initial SVG dimensions (include margins)
-        const initialWidth = availableWidth + totalMarginWidth
-        const initialHeight = availableHeight + totalMarginHeight
-        
-        // Update the displayDimensions property for diagnostics
-        this.state.displayDimensions = {
-          width: Math.round(initialWidth),
-          height: Math.round(initialHeight)
-        }
-        
-          // Create viewBox that includes margin space
-          const viewBoxWidth = this.spectrogramImage.naturalWidth + totalMarginWidth
-          const viewBoxHeight = this.spectrogramImage.naturalHeight + totalMarginHeight
-        
-        // Set SVG dimensions and viewBox
-        this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
-        this.svg.setAttribute('width', String(initialWidth))
-        this.svg.setAttribute('height', String(initialHeight))
-        
-        // Position image directly in SVG coordinate space (no mainGroup translation)
-        this.mainGroup.setAttribute('transform', '')
-        
-          // Set the image source in SVG - position it in the margin area
-          this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
-          this.svgImage.setAttribute('width', String(this.spectrogramImage.naturalWidth))
-          this.svgImage.setAttribute('height', String(this.spectrogramImage.naturalHeight))
-        this.svgImage.setAttribute('x', String(margins.left))
-        this.svgImage.setAttribute('y', String(margins.top))
-        
+        try {
+          // Store original image dimensions in imageDetails
+          if (this.spectrogramImage) {
+            this.state.imageDetails.naturalWidth = this.spectrogramImage.naturalWidth
+            this.state.imageDetails.naturalHeight = this.spectrogramImage.naturalHeight
+            
+            console.log('GramFrame: Image loaded successfully', {
+              url: imgElement.src,
+              dimensions: `${this.spectrogramImage.naturalWidth}x${this.spectrogramImage.naturalHeight}`
+            })
           
-          // Draw initial axes
-          this._drawAxes()
+            // Calculate initial dimensions based on container size and margins
+            const containerWidth = this.container.clientWidth
+            const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
           
-          // Notify listeners of updated state
-          this._notifyStateListeners()
+          // Account for axes margins
+          const margins = this.state.axes.margins
+          const totalMarginWidth = margins.left + margins.right
+          const totalMarginHeight = margins.top + margins.bottom
+          
+          // Calculate available space for the image
+          const availableWidth = containerWidth - totalMarginWidth
+          const availableHeight = availableWidth / aspectRatio
+          
+          // Set initial SVG dimensions (include margins)
+          const initialWidth = availableWidth + totalMarginWidth
+          const initialHeight = availableHeight + totalMarginHeight
+          
+          // Update the displayDimensions property for diagnostics
+          this.state.displayDimensions = {
+            width: Math.round(initialWidth),
+            height: Math.round(initialHeight)
+          }
+          
+            // Create viewBox that includes margin space
+            const viewBoxWidth = this.spectrogramImage.naturalWidth + totalMarginWidth
+            const viewBoxHeight = this.spectrogramImage.naturalHeight + totalMarginHeight
+          
+          // Set SVG dimensions and viewBox
+          this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
+          this.svg.setAttribute('width', String(initialWidth))
+          this.svg.setAttribute('height', String(initialHeight))
+          
+          // Position image directly in SVG coordinate space (no mainGroup translation)
+          this.mainGroup.setAttribute('transform', '')
+          
+            // Set the image source in SVG - position it in the margin area
+            this.svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgElement.src)
+            this.svgImage.setAttribute('width', String(this.spectrogramImage.naturalWidth))
+            this.svgImage.setAttribute('height', String(this.spectrogramImage.naturalHeight))
+          this.svgImage.setAttribute('x', String(margins.left))
+          this.svgImage.setAttribute('y', String(margins.top))
+          
+            
+            // Draw initial axes
+            this._drawAxes()
+            
+            // Notify listeners of updated state
+            this._notifyStateListeners()
+          }
+        } catch (error) {
+          console.error('GramFrame: Error during image setup:', error)
         }
       }
       this.spectrogramImage.src = imgElement.src
+    } catch (error) {
+      console.error('GramFrame: Error setting up image:', error.message)
     }
     
-    // Extract min/max values from the table rows
-    const rows = this.configTable.querySelectorAll('tr')
-    rows.forEach(row => {
-      const cells = row.querySelectorAll('td')
-      if (cells.length >= 3) {
-        const param = cells[0].textContent?.trim() || ''
-        const min = parseFloat(cells[1].textContent || '0')
-        const max = parseFloat(cells[2].textContent || '0')
-        
-        if (param === 'time') {
-          this.state.config.timeMin = min
-          this.state.config.timeMax = max
-        } else if (param === 'freq') {
-          this.state.config.freqMin = min
-          this.state.config.freqMax = max
+    // Extract min/max values from the table rows with error handling
+    try {
+      const rows = this.configTable.querySelectorAll('tr')
+      let foundTimeConfig = false
+      let foundFreqConfig = false
+      
+      rows.forEach((row, index) => {
+        try {
+          const cells = row.querySelectorAll('td')
+          if (cells.length >= 3) {
+            const param = cells[0].textContent?.trim() || ''
+            const minText = cells[1].textContent?.trim() || '0'
+            const maxText = cells[2].textContent?.trim() || '0'
+            
+            const min = parseFloat(minText)
+            const max = parseFloat(maxText)
+            
+            if (isNaN(min) || isNaN(max)) {
+              console.warn(`GramFrame: Invalid numeric values in row ${index + 1}: min="${minText}", max="${maxText}"`)
+              return
+            }
+            
+            if (min >= max) {
+              console.warn(`GramFrame: Invalid range in row ${index + 1}: min (${min}) >= max (${max})`)
+              return
+            }
+            
+            if (param === 'time') {
+              this.state.config.timeMin = min
+              this.state.config.timeMax = max
+              foundTimeConfig = true
+              console.log(`GramFrame: Time range configured: ${min}s to ${max}s`)
+            } else if (param === 'freq') {
+              this.state.config.freqMin = min
+              this.state.config.freqMax = max
+              foundFreqConfig = true
+              console.log(`GramFrame: Frequency range configured: ${min}Hz to ${max}Hz`)
+            }
+          }
+        } catch (error) {
+          console.warn(`GramFrame: Error parsing row ${index + 1}:`, error.message)
         }
+      })
+      
+      // Validate that we found required configuration
+      if (!foundTimeConfig) {
+        console.warn('GramFrame: No valid time configuration found, using defaults (0-60s)')
+        this.state.config.timeMin = 0
+        this.state.config.timeMax = 60
       }
-    })
+      
+      if (!foundFreqConfig) {
+        console.warn('GramFrame: No valid frequency configuration found, using defaults (0-100Hz)')
+        this.state.config.freqMin = 0
+        this.state.config.freqMax = 100
+      }
+      
+    } catch (error) {
+      console.error('GramFrame: Error extracting configuration data:', error.message)
+      // Set safe defaults
+      this.state.config = {
+        timeMin: 0,
+        timeMax: 60,
+        freqMin: 0,
+        freqMax: 100
+      }
+    }
   }
   
   
@@ -1525,15 +1604,127 @@ const GramFrameAPI = {
    * @returns {GramFrame[]} Array of GramFrame instances
    */
   init() {
-    const configTables = document.querySelectorAll('table.spectro-config')
+    return this.detectAndReplaceConfigTables()
+  },
+  
+  /**
+   * Detect and replace all config tables with interactive GramFrame components
+   * @param {HTMLElement} [container=document] - Container to search within
+   * @returns {GramFrame[]} Array of GramFrame instances created
+   */
+  detectAndReplaceConfigTables(container = document) {
+    const configTables = container.querySelectorAll('table.spectro-config')
     /** @type {GramFrame[]} */
     const instances = []
+    const errors = []
     
-    configTables.forEach(table => {
-      instances.push(new GramFrame(/** @type {HTMLTableElement} */ (table)))
+    console.log(`GramFrame: Found ${configTables.length} config tables to process`)
+    
+    configTables.forEach((table, index) => {
+      try {
+        // Generate unique ID for each component instance
+        const instanceId = `gramframe-${Date.now()}-${index}`
+        
+        // Log table detection
+        console.log(`GramFrame: Processing table ${index + 1}/${configTables.length}`, {
+          id: table.id || instanceId,
+          position: table.getBoundingClientRect(),
+          hasImage: !!table.querySelector('img')
+        })
+        
+        // Validate table structure before processing
+        const validationResult = this._validateConfigTable(table)
+        if (!validationResult.isValid) {
+          throw new Error(`Invalid config table structure: ${validationResult.errors.join(', ')}`)
+        }
+        
+        // Create GramFrame instance
+        const instance = new GramFrame(/** @type {HTMLTableElement} */ (table))
+        
+        // Store instance ID for debugging and API access
+        instance.instanceId = instanceId
+        
+        instances.push(instance)
+        
+        console.log(`GramFrame: Successfully created instance ${instanceId}`)
+        
+      } catch (error) {
+        const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error.message}`
+        console.error('GramFrame Error:', errorMsg, error)
+        errors.push({ table, error: errorMsg, index })
+        
+        // Add error indicator to the table (don't replace it)
+        this._addErrorIndicator(table, errorMsg)
+      }
     })
     
+    // Log summary
+    if (instances.length > 0) {
+      console.log(`GramFrame: Successfully initialized ${instances.length} component${instances.length === 1 ? '' : 's'}`)
+    }
+    
+    if (errors.length > 0) {
+      console.warn(`GramFrame: ${errors.length} error${errors.length === 1 ? '' : 's'} encountered during initialization`, errors)
+    }
+    
+    // Store instances for global access
+    this._instances = instances
+    
     return instances
+  },
+  
+  /**
+   * Initialize a specific config table manually
+   * @param {HTMLTableElement|string} tableOrSelector - Table element or CSS selector
+   * @returns {GramFrame|null} GramFrame instance or null if failed
+   */
+  initializeTable(tableOrSelector) {
+    try {
+      let table
+      
+      if (typeof tableOrSelector === 'string') {
+        table = document.querySelector(tableOrSelector)
+        if (!table) {
+          throw new Error(`Table not found with selector: ${tableOrSelector}`)
+        }
+      } else {
+        table = tableOrSelector
+      }
+      
+      if (!(table instanceof HTMLTableElement)) {
+        throw new Error('Provided element is not a table')
+      }
+      
+      // Check if table has the correct class
+      if (!table.classList.contains('spectro-config')) {
+        console.warn('GramFrame: Table does not have "spectro-config" class, adding it')
+        table.classList.add('spectro-config')
+      }
+      
+      // Validate table structure
+      const validationResult = this._validateConfigTable(table)
+      if (!validationResult.isValid) {
+        throw new Error(`Invalid config table structure: ${validationResult.errors.join(', ')}`)
+      }
+      
+      // Create instance
+      const instance = new GramFrame(table)
+      instance.instanceId = `gramframe-manual-${Date.now()}`
+      
+      // Add to instances array
+      if (!this._instances) {
+        this._instances = []
+      }
+      this._instances.push(instance)
+      
+      console.log(`GramFrame: Manually initialized instance ${instance.instanceId}`)
+      
+      return instance
+      
+    } catch (error) {
+      console.error('GramFrame: Manual initialization failed:', error.message, error)
+      return null
+    }
   },
   
   /**
@@ -1670,6 +1861,132 @@ const GramFrameAPI = {
         // Trigger a state update by calling _notifyStateListeners
         instance._notifyStateListeners()
       }
+    }
+  },
+  
+  /**
+   * Get all active GramFrame instances
+   * @returns {GramFrame[]} Array of active instances
+   */
+  getInstances() {
+    return this._instances || []
+  },
+  
+  /**
+   * Get instance by ID
+   * @param {string} instanceId - Instance ID to find
+   * @returns {GramFrame|null} Instance or null if not found
+   */
+  getInstance(instanceId) {
+    if (!this._instances) return null
+    return this._instances.find(instance => instance.instanceId === instanceId) || null
+  },
+  
+  /**
+   * Validate config table structure
+   * @private
+   * @param {HTMLTableElement} table - Table to validate
+   * @returns {{isValid: boolean, errors: string[]}} Validation result
+   */
+  _validateConfigTable(table) {
+    const errors = []
+    
+    // Check if table exists
+    if (!table) {
+      errors.push('Table element is null or undefined')
+      return { isValid: false, errors }
+    }
+    
+    // Check if it's actually a table
+    if (!(table instanceof HTMLTableElement)) {
+      errors.push('Element is not a table')
+      return { isValid: false, errors }
+    }
+    
+    // Check for image
+    const imgElement = table.querySelector('img')
+    if (!imgElement) {
+      errors.push('No image found in table')
+    } else if (!imgElement.src) {
+      errors.push('Image has no src attribute')
+    }
+    
+    // Check for parameter rows
+    const rows = table.querySelectorAll('tr')
+    let hasTimeRow = false
+    let hasFreqRow = false
+    
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td')
+      if (cells.length >= 3) {
+        const param = cells[0].textContent?.trim().toLowerCase()
+        const min = cells[1].textContent?.trim()
+        const max = cells[2].textContent?.trim()
+        
+        if (param === 'time') {
+          hasTimeRow = true
+          if (isNaN(parseFloat(min)) || isNaN(parseFloat(max))) {
+            errors.push('Time row has invalid numeric values')
+          }
+        } else if (param === 'freq') {
+          hasFreqRow = true
+          if (isNaN(parseFloat(min)) || isNaN(parseFloat(max))) {
+            errors.push('Frequency row has invalid numeric values')
+          }
+        }
+      }
+    })
+    
+    if (!hasTimeRow) {
+      errors.push('Missing time parameter row')
+    }
+    
+    if (!hasFreqRow) {
+      errors.push('Missing frequency parameter row')
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
+  },
+  
+  /**
+   * Add error indicator to a table that failed to initialize
+   * @private
+   * @param {HTMLTableElement} table - Table that failed
+   * @param {string} errorMsg - Error message to display
+   */
+  _addErrorIndicator(table, errorMsg) {
+    try {
+      // Create error overlay
+      const errorDiv = document.createElement('div')
+      errorDiv.className = 'gramframe-error-indicator'
+      errorDiv.style.cssText = `
+        position: relative;
+        background-color: #ffe6e6;
+        border: 2px solid #ff6b6b;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 10px 0;
+        color: #d32f2f;
+        font-family: monospace;
+        font-size: 14px;
+      `
+      
+      errorDiv.innerHTML = `
+        <strong>GramFrame Initialization Error:</strong><br>
+        ${errorMsg}<br>
+        <small>Check the browser console for detailed error information.</small>
+      `
+      
+      // Insert error indicator after the table
+      if (table.parentNode) {
+        table.parentNode.insertBefore(errorDiv, table.nextSibling)
+      }
+      
+    } catch (e) {
+      console.error('GramFrame: Failed to add error indicator:', e)
     }
   }
 }

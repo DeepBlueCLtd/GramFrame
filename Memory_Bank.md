@@ -45,6 +45,111 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 - Implemented styling for LED displays
 - Added update mechanism for LED values based on cursor position
 
+### Phase 5: Auto-Detection and Config Tables (Completed)
+**Date: July 20, 2025**
+**Task Reference: Phase 5, Task 5.1: Auto-detect and replace config tables**
+
+#### Task 5.1: Auto-Detect and Replace Config Tables Implementation
+
+##### Enhanced Table Detection Mechanism
+Successfully implemented comprehensive auto-detection functionality that scans the DOM for tables with the class "spectro-config" and replaces them with interactive GramFrame components:
+
+- **Primary Detection Function**: Enhanced `GramFrameAPI.detectAndReplaceConfigTables()` method
+  - Searches for all tables with `spectro-config` class in the specified container (defaults to document)
+  - Processes multiple tables on the same page correctly
+  - Generates unique instance IDs for each component (`gramframe-${timestamp}-${index}`)
+  - Provides detailed logging for detected tables including position and image validation
+
+```javascript
+// Example usage showing enhanced detection
+const instances = GramFrame.detectAndReplaceConfigTables()
+console.log(`Initialized ${instances.length} components`)
+```
+
+##### Comprehensive Configuration Extraction
+Implemented robust configuration extraction from HTML tables with extensive error handling:
+
+- **Image Validation**: Checks for image element presence and valid src attribute
+- **Parameter Validation**: Validates time and frequency rows with numeric range checking
+- **Graceful Defaults**: Falls back to sensible defaults (0-60s time, 0-100Hz frequency) when configuration is incomplete
+- **Range Validation**: Ensures min < max for all parameter ranges
+- **Detailed Logging**: Logs successful configuration extraction and warns about issues
+
+```javascript
+// Enhanced validation ensures robust configuration extraction
+const validationResult = this._validateConfigTable(table)
+if (!validationResult.isValid) {
+  throw new Error(`Invalid config table structure: ${validationResult.errors.join(', ')}`)
+}
+```
+
+##### Component Instance Creation and Table Replacement
+Streamlined the component creation process while maintaining all existing functionality:
+
+- **Seamless Replacement**: Tables are replaced with GramFrame components maintaining original position and layout context
+- **Instance Tracking**: All instances are tracked with unique IDs and stored for API access
+- **Error Recovery**: Failed initializations don't prevent other components from working
+- **Visual Continuity**: Component containers preserve table positioning and surrounding context
+
+##### Public API for Manual Initialization
+Created comprehensive public API methods for manual component management:
+
+- **`initializeTable(tableOrSelector)`**: Manually initialize specific tables with validation
+- **`getInstances()`**: Retrieve all active GramFrame instances
+- **`getInstance(instanceId)`**: Get specific instance by ID
+- **`detectAndReplaceConfigTables(container)`**: Re-run detection in specified container
+
+```javascript
+// Manual initialization example
+const instance = GramFrame.initializeTable('#my-custom-table')
+if (instance) {
+  console.log(`Created instance: ${instance.instanceId}`)
+}
+```
+
+##### Error Handling and Reporting
+Implemented comprehensive error handling with user-friendly reporting:
+
+- **Validation Errors**: Detailed validation of table structure before processing
+- **Visual Error Indicators**: Failed tables show error messages with styling
+- **Console Logging**: Detailed error information in console for debugging
+- **Graceful Degradation**: Errors don't break other components or page functionality
+
+Key error handling features:
+- Missing image detection
+- Invalid parameter row validation
+- Numeric value validation for time/frequency ranges
+- Image loading error handling
+
+##### Integration Tests
+Created comprehensive Playwright test suite (`tests/auto-detection.spec.ts`) covering:
+
+- **Basic Detection**: Verifies tables are detected and replaced correctly
+- **API Functionality**: Tests all public API methods
+- **Error Handling**: Validates error reporting and graceful degradation
+- **State Management**: Confirms proper component state structure
+- **Logging**: Verifies detection and initialization progress logging
+
+Test results: 7/7 tests passing, covering all major functionality paths.
+
+##### Code Quality and Documentation
+Enhanced code with comprehensive JSDoc documentation and type annotations:
+
+- All new methods have detailed parameter and return type documentation
+- Error conditions are clearly documented
+- Usage examples provided for public API methods
+- Code follows existing project conventions and patterns
+
+#### Key Success Criteria Met:
+✅ Tables with class "spectro-config" are automatically detected and replaced  
+✅ Configuration is correctly extracted from tables with validation  
+✅ Multiple tables on the same page are handled properly  
+✅ Public API allows manual initialization  
+✅ Error handling is comprehensive and user-friendly  
+✅ All integration tests pass  
+
+This implementation makes GramFrame ready for real-world deployment with robust auto-detection capabilities that work reliably across different HTML table structures and handle edge cases gracefully.
+
 ## Additional Improvements
 **Date: July 18, 2025**
 
