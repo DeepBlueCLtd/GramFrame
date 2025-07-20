@@ -73,6 +73,9 @@ class GramFrame {
     this.state = { ...initialState }
     this.configTable = configTable
     
+    /** @type {string} */
+    this.instanceId = ''
+    
     // Create a container to replace the table
     this.container = document.createElement('div')
     this.container.className = 'gram-frame-container'
@@ -1609,7 +1612,7 @@ const GramFrameAPI = {
   
   /**
    * Detect and replace all config tables with interactive GramFrame components
-   * @param {HTMLElement} [container=document] - Container to search within
+   * @param {Document|HTMLElement} [container=document] - Container to search within
    * @returns {GramFrame[]} Array of GramFrame instances created
    */
   detectAndReplaceConfigTables(container = document) {

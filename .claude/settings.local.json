@@ -43,7 +43,8 @@
       "Bash(timeout 10s yarn dev)",
       "Bash(grep:*)",
       "Bash(yarn build)",
-      "Bash(/dev/null)"
+      "Bash(/dev/null)",
+      "Bash(yarn typecheck)"
     ],
     "deny": []
   }
