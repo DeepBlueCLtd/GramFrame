@@ -58,6 +58,12 @@ import {
   drawDopplerMode
 } from './rendering/cursors.js'
 
+import {
+  setupEventListeners,
+  setupResizeObserver,
+  cleanupEventListeners
+} from './core/events.js'
+
 
 /**
  * GramFrame class - Main component implementation
@@ -190,10 +196,10 @@ export class GramFrame {
     extractConfigData(this)
     
     // Setup event listeners
-    this._setupEventListeners()
+    setupEventListeners(this)
     
     // Setup ResizeObserver for responsive behavior
-    this._setupResizeObserver()
+    setupResizeObserver(this)
     
     // Notify listeners of initial state
     notifyStateListeners(this.state, this.stateListeners)
@@ -207,338 +213,12 @@ export class GramFrame {
   
   
   
-  /**
-   * Sets up event listeners for mouse interactions and UI controls
-   */
-  _setupEventListeners() {
-    // Bind event handlers to maintain proper 'this' context
-    this._boundHandleMouseMove = this._handleMouseMove.bind(this)
-    this._boundHandleMouseLeave = this._handleMouseLeave.bind(this)
-    this._boundHandleClick = this._handleClick.bind(this)
-    this._boundHandleMouseDown = this._handleMouseDown.bind(this)
-    this._boundHandleMouseUp = this._handleMouseUp.bind(this)
-    this._boundHandleResize = () => handleResize(this)
-    
-    // SVG mouse events
-    this.svg.addEventListener('mousemove', this._boundHandleMouseMove)
-    this.svg.addEventListener('mouseleave', this._boundHandleMouseLeave)
-    this.svg.addEventListener('click', this._boundHandleClick)
-    this.svg.addEventListener('mousedown', this._boundHandleMouseDown)
-    this.svg.addEventListener('mouseup', this._boundHandleMouseUp)
-    
-    // Mode button events
-    Object.keys(this.modeButtons || {}).forEach(mode => {
-      const button = this.modeButtons[mode]
-      if (button) {
-        button.addEventListener('click', () => {
-          this._switchMode(/** @type {'analysis'|'doppler'} */ (mode))
-        })
-      }
-    })
-    
-    // Rate input events
-    if (this.rateInput) {
-      this.rateInput.addEventListener('change', () => {
-        if (this.rateInput) {
-          const rate = parseFloat(this.rateInput.value)
-          if (!isNaN(rate) && rate >= 0.1) {
-            this._setRate(rate)
-          } else {
-            // Reset to previous valid value if invalid input
-            this.rateInput.value = String(this.state.rate)
-          }
-        }
-      })
-    }
-    
-    // Also handle input events for real-time validation feedback
-    if (this.rateInput) {
-      this.rateInput.addEventListener('input', () => {
-        if (this.rateInput) {
-          const rate = parseFloat(this.rateInput.value)
-          if (!isNaN(rate) && rate >= 0.1) {
-            this.rateInput.style.borderColor = '#ddd'
-          } else {
-            this.rateInput.style.borderColor = '#ff6b6b'
-          }
-        }
-      })
-    }
-    
-    // Window resize event
-    window.addEventListener('resize', this._boundHandleResize)
-  }
-  
-  /**
-   * Sets up ResizeObserver to monitor container dimensions
-   */
-  _setupResizeObserver() {
-    // Use ResizeObserver to monitor SVG container dimensions
-    if (typeof ResizeObserver !== 'undefined') {
-      this.resizeObserver = new ResizeObserver(entries => {
-        for (const entry of entries) {
-          handleSVGResize(this, entry.contentRect)
-        }
-      })
-      this.resizeObserver.observe(this.container)
-    }
-  }
-  
-  /**
-   * Handles window resize events
-   */
-  
-  /**
-   * Handles mouse move events over the SVG
-   * @param {MouseEvent} event - Mouse event
-   */
-  _handleMouseMove(event) {
-    // Only process if we have valid image details
-    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
-    
-    // Use SVG's built-in coordinate transformation for accurate positioning
-    let svgCoords
-    try {
-      const pt = this.svg.createSVGPoint()
-      pt.x = event.clientX
-      pt.y = event.clientY
-      const transformedPt = pt.matrixTransform(this.svg.getScreenCTM().inverse())
-      svgCoords = { x: transformedPt.x, y: transformedPt.y }
-    } catch (e) {
-      // Fallback to manual calculation
-      const rect = this.svg.getBoundingClientRect()
-      const x = event.clientX - rect.left
-      const y = event.clientY - rect.top
-      svgCoords = screenToSVGCoordinates(x, y, this.svg, this.state.imageDetails)
-    }
-    
-    // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
-    const margins = this.state.axes.margins
-    const imageRelativeX = svgCoords.x - margins.left
-    const imageRelativeY = svgCoords.y - margins.top
-    
-    // Only process if mouse is within the image area
-    if (imageRelativeX < 0 || imageRelativeY < 0 || 
-        imageRelativeX > this.state.imageDetails.naturalWidth || 
-        imageRelativeY > this.state.imageDetails.naturalHeight) {
-      // Clear cursor position when mouse is outside image bounds
-      this.state.cursorPosition = null
-      updateLEDDisplays(this, this.state)
-      notifyStateListeners(this.state, this.stateListeners)
-      return
-    }
-    
-    // Convert image-relative coordinates to data coordinates
-    const dataCoords = imageToDataCoordinates(imageRelativeX, imageRelativeY, this.state.config, this.state.imageDetails, this.state.rate)
-    
-    // Calculate screen coordinates for state (relative to SVG)
-    const rect = this.svg.getBoundingClientRect()
-    const screenX = event.clientX - rect.left
-    const screenY = event.clientY - rect.top
-
-    // Update cursor position in state with normalized coordinates
-    this.state.cursorPosition = { 
-      x: Math.round(screenX), 
-      y: Math.round(screenY), 
-      svgX: Math.round(svgCoords.x),
-      svgY: Math.round(svgCoords.y),
-      imageX: Math.round(imageRelativeX),
-      imageY: Math.round(imageRelativeY),
-      time: parseFloat(dataCoords.time.toFixed(2)), 
-      freq: parseFloat(dataCoords.freq.toFixed(2))
-    }
-    
-    // Update LED displays
-    updateLEDDisplays(this, this.state)
-    
-    // Update visual cursor indicators
-    updateCursorIndicators(this)
-    
-    // In Analysis mode, update harmonics during drag
-    if (this.state.mode === 'analysis' && this.state.dragState.isDragging) {
-      triggerHarmonicsDisplay(
-        this.state, 
-        () => updateLEDDisplays(this, this.state),
-        () => updateCursorIndicators(this), 
-        notifyStateListeners, 
-        this.stateListeners
-      )
-    }
-    
-    // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
-  }
-  
-  /**
-   * Handles mouse leave events
-   * @param {MouseEvent} event - Mouse event
-   */
-  _handleMouseLeave(event) {
-    // Clear cursor position when mouse leaves the SVG area
-    this.state.cursorPosition = null
-    
-    // Update LED displays to show no position
-    updateLEDDisplays(this, this.state)
-    
-    // Clear visual cursor indicators
-    updateCursorIndicators(this)
-    
-    // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
-  }
-  
-  /**
-   * Handles mouse down events for drag interactions
-   * @param {MouseEvent} event - Mouse event
-   */
-  _handleMouseDown(event) {
-    // Only process if we have valid image details
-    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
-    
-    // Start drag state in Analysis mode for harmonics
-    if (this.state.mode === 'analysis' && this.state.cursorPosition) {
-      this.state.dragState.isDragging = true
-      this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
-      
-      // Trigger harmonics display immediately on mouse down
-      triggerHarmonicsDisplay(
-        this.state, 
-        () => updateLEDDisplays(this, this.state),
-        () => updateCursorIndicators(this), 
-        notifyStateListeners, 
-        this.stateListeners
-      )
-    }
-  }
-  
-  /**
-   * Handles mouse up events to end drag interactions
-   * @param {MouseEvent} event - Mouse event
-   */
-  _handleMouseUp(event) {
-    // End drag state
-    if (this.state.dragState.isDragging) {
-      this.state.dragState.isDragging = false
-      this.state.dragState.dragStartPosition = null
-      
-      // Clear harmonics state when drag ends
-      this.state.harmonics.baseFrequency = null
-      this.state.harmonics.harmonicData = []
-      
-      // Update displays and indicators
-      updateLEDDisplays(this, this.state)
-      updateCursorIndicators(this)
-      
-      // Notify listeners of state change
-      notifyStateListeners(this.state, this.stateListeners)
-    }
-  }
-  
-  /**
-   * Handles click events for Doppler mode measurements
-   * @param {MouseEvent} event - Mouse event
-   */
-  _handleClick(event) {
-    // Only process if we have valid image details and are in Doppler mode
-    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight || this.state.mode !== 'doppler') {
-      return
-    }
-    
-    // Only process if mouse is within the image area
-    if (!this.state.cursorPosition) {
-      return
-    }
-    
-    // Handle Doppler mode clicks
-    if (this.state.mode === 'doppler') {
-      this._handleDopplerClick()
-    }
-  }
-  
-  /**
-   * Processes Doppler mode click to set measurement points
-   */
-  _handleDopplerClick() {
-    // Create point data from current cursor position
-    if (!this.state.cursorPosition) return
-    
-    const clickPoint = {
-      time: this.state.cursorPosition.time,
-      freq: this.state.cursorPosition.freq,
-      svgX: this.state.cursorPosition.svgX,
-      svgY: this.state.cursorPosition.svgY
-    }
-    
-    if (!this.state.doppler.startPoint) {
-      // Set start point
-      this.state.doppler.startPoint = clickPoint
-      this.state.doppler.endPoint = null
-      this.state.doppler.deltaTime = null
-      this.state.doppler.deltaFrequency = null
-      this.state.doppler.speed = null
-    } else if (!this.state.doppler.endPoint) {
-      // Set end point and calculate measurements
-      this.state.doppler.endPoint = clickPoint
-      calculateDopplerMeasurements(this.state)
-    } else {
-      // Both points are set, start a new measurement
-      this.state.doppler.startPoint = clickPoint
-      this.state.doppler.endPoint = null
-      this.state.doppler.deltaTime = null
-      this.state.doppler.deltaFrequency = null
-      this.state.doppler.speed = null
-    }
-    
-    // Update displays and indicators
-    updateLEDDisplays(this, this.state)
-    updateCursorIndicators(this)
-    
-    // Notify listeners of state change
-    notifyStateListeners(this.state, this.stateListeners)
-  }
-  
-  /**
-   * Calculates Doppler measurements from start and end points
-   */
-  
-  /**
-   * Clean up event listeners (called when component is destroyed)
-   */
-  _cleanupEventListeners() {
-    if (this.svg) {
-      if (this._boundHandleMouseMove) {
-        this.svg.removeEventListener('mousemove', this._boundHandleMouseMove)
-      }
-      if (this._boundHandleMouseLeave) {
-        this.svg.removeEventListener('mouseleave', this._boundHandleMouseLeave)
-      }
-      if (this._boundHandleClick) {
-        this.svg.removeEventListener('click', this._boundHandleClick)
-      }
-      if (this._boundHandleMouseDown) {
-        this.svg.removeEventListener('mousedown', this._boundHandleMouseDown)
-      }
-      if (this._boundHandleMouseUp) {
-        this.svg.removeEventListener('mouseup', this._boundHandleMouseUp)
-      }
-    }
-    
-    if (this._boundHandleResize) {
-      window.removeEventListener('resize', this._boundHandleResize)
-    }
-    
-    // Clean up ResizeObserver
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect()
-      this.resizeObserver = null
-    }
-  }
   
   /**
    * Destroy the component and clean up resources
    */
   destroy() {
-    this._cleanupEventListeners()
+    cleanupEventListeners(this)
     
     // Remove from DOM if still attached
     if (this.container && this.container.parentNode) {
