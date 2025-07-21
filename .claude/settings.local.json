@@ -50,6 +50,7 @@
       "Bash(git add:*)",
       "Bash(git commit:*)"
     ],
-    "deny": []
+    "deny": [],
+    "exec_confirmed_commands": ["mail", "echo"]
   }
 }
