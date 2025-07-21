@@ -48,9 +48,13 @@
       "Bash(ls:*)",
       "Bash(git checkout:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(awk:*)"
     ],
     "deny": [],
-    "exec_confirmed_commands": ["mail", "echo"]
+    "exec_confirmed_commands": [
+      "mail",
+      "echo"
+    ]
   }
 }
