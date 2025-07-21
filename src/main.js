@@ -1345,10 +1345,11 @@ const GramFrameAPI = {
   
   /**
    * Initialize a specific config table manually
+   * @__test__ This method is only used for testing purposes
    * @param {HTMLTableElement|string} tableOrSelector - Table element or CSS selector
    * @returns {GramFrame|null} GramFrame instance or null if failed
    */
-  initializeTable(tableOrSelector) {
+  __test__initializeTable(tableOrSelector) {
     try {
       let table
       
@@ -1521,8 +1522,9 @@ const GramFrameAPI = {
   
   /**
    * Force update of the component state
+   * @__test__ This method is only used for testing purposes
    */
-  forceUpdate() {
+  __test__forceUpdate() {
     // Trigger state update on all GramFrame instances
     const instances = document.querySelectorAll('.gram-frame-container')
     instances.forEach(container => {
@@ -1537,18 +1539,20 @@ const GramFrameAPI = {
   
   /**
    * Get all active GramFrame instances
+   * @__test__ This method is only used for testing purposes
    * @returns {GramFrame[]} Array of active instances
    */
-  getInstances() {
+  __test__getInstances() {
     return this._instances || []
   },
   
   /**
    * Get instance by ID
+   * @__test__ This method is only used for testing purposes
    * @param {string} instanceId - Instance ID to find
    * @returns {GramFrame|null} Instance or null if not found
    */
-  getInstance(instanceId) {
+  __test__getInstance(instanceId) {
     if (!this._instances) return null
     return this._instances.find(instance => instance.instanceId === instanceId) || null
   },
