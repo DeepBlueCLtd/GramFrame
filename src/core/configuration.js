@@ -6,6 +6,7 @@
 
 import { calculateLayoutDimensions } from '../utils/svg.js'
 import { notifyStateListeners } from './state.js'
+import { drawAxes } from '../rendering/axes.js'
 
 /**
  * Extract configuration data from HTML table and set up image loading
@@ -97,7 +98,7 @@ export function extractConfigData(instance) {
         
           
           // Draw initial axes
-          instance._drawAxes()
+          drawAxes(instance)
           
           // Notify listeners of updated state
           notifyStateListeners(instance.state, instance.stateListeners)

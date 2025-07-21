@@ -64,6 +64,8 @@ import {
   cleanupEventListeners
 } from './core/events.js'
 
+import { setupComponentTable } from './components/table.js'
+
 
 /**
  * GramFrame class - Main component implementation
@@ -89,79 +91,19 @@ export class GramFrame {
     /** @type {HTMLImageElement} */
     this.spectrogramImage = null
     
-    // Create a container to replace the table
-    this.container = document.createElement('div')
-    this.container.className = 'gram-frame-container'
+    // Initialize DOM element properties (will be populated by setupComponentTable)
+    /** @type {HTMLDivElement} */
+    this.container = null
+    /** @type {HTMLDivElement} */
+    this.readoutPanel = null
+    /** @type {HTMLDivElement} */
+    this.modeCell = null
     
-    // Create table structure for proper resizing
-    this.table = document.createElement('div')
-    this.table.className = 'gram-frame-table'
-    this.container.appendChild(this.table)
+    // Extract config data from table BEFORE replacing it
+    extractConfigData(this)
     
-    // Create mode header row
-    this.modeRow = document.createElement('div')
-    this.modeRow.className = 'gram-frame-row'
-    this.table.appendChild(this.modeRow)
-    
-    this.modeCell = document.createElement('div')
-    this.modeCell.className = 'gram-frame-cell gram-frame-mode-header'
-    this.modeRow.appendChild(this.modeCell)
-    
-    // Create main panel row (stretches)
-    this.mainRow = document.createElement('div')
-    this.mainRow.className = 'gram-frame-row'
-    this.mainRow.style.height = '100%'
-    this.table.appendChild(this.mainRow)
-    
-    this.mainCell = document.createElement('div')
-    this.mainCell.className = 'gram-frame-cell gram-frame-main-panel'
-    this.mainRow.appendChild(this.mainCell)
-    
-    // Create display panel row
-    this.displayRow = document.createElement('div')
-    this.displayRow.className = 'gram-frame-row'
-    this.table.appendChild(this.displayRow)
-    
-    this.displayCell = document.createElement('div')
-    this.displayCell.className = 'gram-frame-cell gram-frame-display-panel'
-    this.displayRow.appendChild(this.displayCell)
-    
-    // Create SVG element for rendering inside main panel
-    this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    this.svg.setAttribute('class', 'gram-frame-svg')
-    this.svg.setAttribute('width', '100%')
-    this.svg.setAttribute('height', 'auto')
-    this.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
-    this.mainCell.appendChild(this.svg)
-    
-    // Create main group for content with margins for axes
-    this.mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-    this.mainGroup.setAttribute('class', 'gram-frame-main-group')
-    this.svg.appendChild(this.mainGroup)
-    
-    // Create image element within main group for spectrogram
-    this.svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
-    this.svgImage.setAttribute('class', 'gram-frame-image')
-    this.mainGroup.appendChild(this.svgImage)
-    
-    // Create groups for axes
-    this.timeAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-    this.timeAxisGroup.setAttribute('class', 'gram-frame-time-axis')
-    this.svg.appendChild(this.timeAxisGroup)
-    
-    this.freqAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-    this.freqAxisGroup.setAttribute('class', 'gram-frame-freq-axis')
-    this.svg.appendChild(this.freqAxisGroup)
-    
-    // Create cursor indicator group
-    this.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-    this.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
-    this.svg.appendChild(this.cursorGroup)
-    
-    // Create LED readout panel in display cell
-    this.readoutPanel = document.createElement('div')
-    this.readoutPanel.className = 'gram-frame-readout'
-    this.displayCell.appendChild(this.readoutPanel)
+    // Create complete component table structure including DOM and SVG
+    setupComponentTable(this, configTable)
     
     // Create initial LED displays
     const ledElements = createLEDDisplays(this.readoutPanel, this.state)
@@ -175,25 +117,12 @@ export class GramFrame {
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
-    // Replace the table with our container
-    if (configTable && configTable.parentNode) {
-      configTable.parentNode.replaceChild(this.container, configTable)
-      
-      // Store a reference to this instance on the container element
-      // This allows the state listener mechanism to access the instance
-      // @ts-ignore - Adding custom property to DOM element
-      this.container.__gramFrameInstance = this
-    }
-    
     // Apply any globally registered listeners to this new instance
     getGlobalStateListeners().forEach(listener => {
       if (!this.stateListeners.includes(listener)) {
         this.stateListeners.push(listener)
       }
     })
-    
-    // Extract config data from table
-    extractConfigData(this)
     
     // Setup event listeners
     setupEventListeners(this)

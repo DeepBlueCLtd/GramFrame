@@ -11,6 +11,9 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
     // Wait for the image to load
     await gramFramePage.waitForImageLoad()
     
+    // Wait for image dimensions to be populated in state
+    await gramFramePage.waitForImageDimensions()
+    
     // Verify the image is displayed in the SVG
     await expect(gramFramePage.svg).toBeVisible()
     
