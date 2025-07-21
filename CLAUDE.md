@@ -38,6 +38,7 @@ When a task completes, please notify me via email, using the following command i
 ```
 echo "Claude job done" | mail -s "Claude Update" "$CLAUDE_NOTIFY_EMAIL"
 ```
+
 ## Architecture Overview
 
 **GramFrame** is a JavaScript component for interactive spectrogram analysis that transforms HTML config tables into interactive SVG-based overlays for sonar training materials.
