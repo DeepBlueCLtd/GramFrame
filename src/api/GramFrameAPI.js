@@ -110,62 +110,7 @@ export function createGramFrameAPI(GramFrame) {
       
       return instances
     },
-    
-    /**
-     * Initialize a specific config table manually
-     * @__test__ This method is only used for testing purposes
-     * @param {HTMLTableElement|string} tableOrSelector - Table element or CSS selector
-     * @returns {GramFrame|null} GramFrame instance or null if failed
-     */
-    __test__initializeTable(tableOrSelector) {
-      try {
-        let table
         
-        if (typeof tableOrSelector === 'string') {
-          table = document.querySelector(tableOrSelector)
-          if (!table) {
-            throw new Error(`Table not found with selector: ${tableOrSelector}`)
-          }
-        } else {
-          table = tableOrSelector
-        }
-        
-        if (!(table instanceof HTMLTableElement)) {
-          throw new Error('Provided element is not a table')
-        }
-        
-        // Check if table has the correct class
-        if (!table.classList.contains('gram-config')) {
-          console.warn('GramFrame: Table does not have "gram-config" class, adding it')
-          table.classList.add('gram-config')
-        }
-        
-        // Validate table structure
-        const validationResult = this._validateConfigTable(table)
-        if (!validationResult.isValid) {
-          throw new Error(`Invalid config table structure: ${validationResult.errors.join(', ')}`)
-        }
-        
-        // Create instance
-        const instance = new GramFrame(table)
-        instance.instanceId = `gramframe-manual-${Date.now()}`
-        
-        // Add to instances array
-        if (!this._instances) {
-          this._instances = []
-        }
-        this._instances.push(instance)
-        
-        console.log(`GramFrame: Manually initialized instance ${instance.instanceId}`)
-        
-        return instance
-        
-      } catch (error) {
-        console.error('GramFrame: Manual initialization failed:', error.message, error)
-        return null
-      }
-    },
-    
     /**
      * Add a state listener that will be called whenever the component state changes
      * @param {Function} callback - Function to be called with the current state
