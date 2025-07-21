@@ -50,7 +50,8 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
     // Verify LED displays are visible
     await expect(gramFramePage.freqLED).toBeVisible()
     await expect(gramFramePage.timeLED).toBeVisible()
-    await expect(gramFramePage.modeLED).toBeVisible()
+    // Mode LED is hidden in the UI
+    // await expect(gramFramePage.modeLED).toBeVisible()
     
     // Verify LED structure
     await expect(gramFramePage.freqLED.locator('.gram-frame-led-label')).toContainText('Frequency')
@@ -58,8 +59,8 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
     await expect(gramFramePage.modeLED.locator('.gram-frame-led-label')).toContainText('Mode')
     
     // Verify initial LED values
-    await expect(gramFramePage.freqLED.locator('.gram-frame-led-value')).toContainText('Hz')
-    await expect(gramFramePage.timeLED.locator('.gram-frame-led-value')).toContainText('s')
+    await expect(gramFramePage.freqLED.locator('.gram-frame-led-value')).toContainText('0.00 Hz')
+    await expect(gramFramePage.timeLED.locator('.gram-frame-led-value')).toContainText('0.00 s')
     await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Analysis')
     
     // Test LED updates when mouse moves
@@ -226,7 +227,8 @@ test.describe('Phase 2: Comprehensive Integration', () => {
     // Verify LED panels are working
     await expect(gramFramePage.freqLED).toBeVisible()
     await expect(gramFramePage.timeLED).toBeVisible()
-    await expect(gramFramePage.modeLED).toBeVisible()
+    // Mode LED is hidden in the UI
+    // await expect(gramFramePage.modeLED).toBeVisible()
     
     // Verify diagnostics panel is populated
     const imageUrl = await page.locator('#image-url').textContent()

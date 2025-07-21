@@ -32,7 +32,8 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     // Verify LED displays are created
     await expect(gramFramePage.freqLED).toBeVisible()
     await expect(gramFramePage.timeLED).toBeVisible()
-    await expect(gramFramePage.modeLED).toBeVisible()
+    // Mode LED is hidden in the UI
+    // await expect(gramFramePage.modeLED).toBeVisible()
     
     // Verify mode switching UI is created
     await expect(gramFramePage.page.locator('.gram-frame-modes')).toBeVisible()
@@ -41,9 +42,8 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).toBeVisible()
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')).toBeVisible()
     
-    // Verify rate input is created
-    await expect(gramFramePage.page.locator('.gram-frame-rate')).toBeVisible()
-    await expect(gramFramePage.page.locator('.gram-frame-rate input')).toBeVisible()
+    // Rate input has been removed from the UI
+    // No need to verify its visibility
     
     // Verify the SVG is properly sized
     const svgBounds = await gramFramePage.svg.boundingBox()
@@ -77,8 +77,7 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     // 2. Change mode
     await gramFramePage.clickMode('Analysis')
     
-    // 3. Change rate
-    await gramFramePage.setRate(2)
+    // Note: Rate input has been removed from UI, skipping rate change step
     
     // 4. Move mouse back over image to ensure cursor position is set for final check
     if (svgBounds) {
@@ -104,7 +103,8 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     // Verify the final state reflects our changes
     const finalState = await gramFramePage.getState()
     expect(finalState.mode).toBe('analysis')
-    expect(finalState.rate).toBe(2)
+    // Rate input has been removed, so rate remains at default value of 1
+    expect(finalState.rate).toBe(1)
     expect(finalState.cursorPosition).not.toBeNull()
   })
 })
@@ -118,8 +118,7 @@ test.describe('Hot Module Reload Simulation', () => {
     // 1. Change mode to something other than default
     await gramFramePage.clickMode('Doppler')
     
-    // 2. Change rate
-    await gramFramePage.setRate(3.5)
+    // Note: Rate input has been removed from UI, skipping rate change step
     
     // 3. Move mouse to set cursor position
     const svgBounds = await gramFramePage.svg.boundingBox()

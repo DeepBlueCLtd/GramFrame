@@ -63,8 +63,7 @@ test.describe('State Listener Mechanism', () => {
     // 1. Change mode
     await gramFramePage.clickMode('Doppler')
     
-    // 2. Change rate
-    await gramFramePage.setRate(2.5)
+    // Note: Rate input has been removed from UI, skipping rate change step
     
     // 3. Move mouse over SVG
     const svgBounds = await gramFramePage.svg.boundingBox()
@@ -84,7 +83,8 @@ test.describe('State Listener Mechanism', () => {
     // Verify the last update contains our changes
     const lastUpdate = updates[updates.length - 1]
     expect(lastUpdate.mode).toBe('doppler')
-    expect(lastUpdate.rate).toBe(2.5)
+    // Rate input has been removed, so rate remains at default value of 1
+    expect(lastUpdate.rate).toBe(1)
     expect(lastUpdate.cursorPosition).toBeTruthy()
   })
   
