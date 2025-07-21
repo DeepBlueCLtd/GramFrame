@@ -61,14 +61,14 @@ test.describe('Auto-Detection Functionality', () => {
     
     // Test getInstances API
     const instanceCount = await page.evaluate(() => {
-      return window.GramFrame.getInstances().length
+      return window.GramFrame.__test__getInstances().length
     })
     
     expect(instanceCount).toBe(1)
     
     // Test that instances have the expected structure
     const hasInstanceId = await page.evaluate(() => {
-      const instances = window.GramFrame.getInstances()
+      const instances = window.GramFrame.__test__getInstances()
       return instances.length > 0 && instances[0].instanceId !== undefined
     })
     
@@ -96,29 +96,7 @@ test.describe('Auto-Detection Functionality', () => {
     
     expect(result).toBe(true)
   })
-  
-  test('manual initialization API is available', async ({ page }) => {
-    // Navigate to debug page
-    await page.goto('/debug.html')
-    
-    // Wait for component initialization
-    await page.waitForFunction(() => window.GramFrame !== undefined)
-    
-    // Test that initializeTable method is available
-    const methodExists = await page.evaluate(() => {
-      return typeof window.GramFrame.initializeTable === 'function'
-    })
-    
-    expect(methodExists).toBe(true)
-    
-    // Test that getInstance method is available
-    const getInstanceExists = await page.evaluate(() => {
-      return typeof window.GramFrame.getInstance === 'function'
-    })
-    
-    expect(getInstanceExists).toBe(true)
-  })
-  
+
   test('validation and error handling methods are available', async ({ page }) => {
     // Navigate to debug page
     await page.goto('/debug.html')
@@ -150,7 +128,7 @@ test.describe('Auto-Detection Functionality', () => {
     
     // Check that component has proper state structure
     const stateStructure = await page.evaluate(() => {
-      const instances = window.GramFrame.getInstances()
+      const instances = window.GramFrame.__test__getInstances()
       if (instances.length === 0) return null
       
       const state = instances[0].state

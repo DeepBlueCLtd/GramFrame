@@ -69,6 +69,25 @@ export class GramFramePage {
   }
 
   /**
+   * Wait for the image dimensions to be populated in the state
+   */
+  async waitForImageDimensions() {
+    await this.page.waitForFunction(() => {
+      const stateDisplay = document.getElementById('state-display')
+      if (!stateDisplay || !stateDisplay.textContent) return false
+      
+      try {
+        const state = JSON.parse(stateDisplay.textContent)
+        return state.imageDetails && 
+               state.imageDetails.naturalWidth > 0 && 
+               state.imageDetails.naturalHeight > 0
+      } catch {
+        return false
+      }
+    }, {}, { timeout: 10000 })
+  }
+
+  /**
    * Get the current state of the component
    * @returns The parsed state object
    */

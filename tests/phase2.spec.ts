@@ -11,6 +11,9 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
     // Wait for the image to load
     await gramFramePage.waitForImageLoad()
     
+    // Wait for image dimensions to be populated in state
+    await gramFramePage.waitForImageDimensions()
+    
     // Verify the image is displayed in the SVG
     await expect(gramFramePage.svg).toBeVisible()
     
@@ -157,7 +160,7 @@ test.describe('Phase 2: State Listener Mechanism', () => {
       window.GramFrame.addStateListener(listener)
       
       // Force an update to trigger the listener
-      window.GramFrame.forceUpdate()
+      window.GramFrame.__test__forceUpdate()
       
       return { callCount, hasState: lastState !== null }
     })
@@ -178,7 +181,7 @@ test.describe('Phase 2: State Listener Mechanism', () => {
       window.GramFrame.addStateListener(listener2)
       
       // Force an update
-      window.GramFrame.forceUpdate()
+      window.GramFrame.__test__forceUpdate()
       
       return { listener1Called, listener2Called }
     })
@@ -196,7 +199,7 @@ test.describe('Phase 2: State Listener Mechanism', () => {
       }
       
       window.GramFrame.addStateListener(listener)
-      window.GramFrame.forceUpdate()
+      window.GramFrame.__test__forceUpdate()
       
       return receivedState ? Object.keys(receivedState) : []
     })

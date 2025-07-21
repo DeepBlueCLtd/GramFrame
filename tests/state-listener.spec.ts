@@ -120,7 +120,7 @@ test.describe('State Listener Mechanism', () => {
       testResult.removalResult = window.GramFrame.removeStateListener(listener)
       
       // Force an update to trigger any listeners
-      window.GramFrame.forceUpdate()
+      window.GramFrame.__test__forceUpdate()
       
       return testResult
     })
@@ -164,7 +164,7 @@ test.describe('State Listener Mechanism', () => {
       window.GramFrame.addStateListener(listener)
       
       // Force an update to trigger the listener
-      window.GramFrame.forceUpdate()
+      window.GramFrame.__test__forceUpdate()
       
       // Restore original console.error
       console.error = originalConsoleError

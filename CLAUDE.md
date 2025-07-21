@@ -38,6 +38,7 @@ When a task completes, please notify me via email, using the following command i
 ```
 echo "Claude job done" | mail -s "Claude Update" "$CLAUDE_NOTIFY_EMAIL"
 ```
+
 ## Architecture Overview
 
 **GramFrame** is a JavaScript component for interactive spectrogram analysis that transforms HTML config tables into interactive SVG-based overlays for sonar training materials.
@@ -62,6 +63,10 @@ echo "Claude job done" | mail -s "Claude Update" "$CLAUDE_NOTIFY_EMAIL"
 - `src/main.js` - Main component implementation (~2100 lines)
 - `src/types.js` - TypeScript-style JSDoc type definitions
 - `src/gramframe.css` - Component styling
+- `src/core/` - Core modules (state, analysis, events, configuration)
+- `src/utils/` - Utility modules (coordinates, SVG, calculations)
+- `src/components/` - UI components and table handling
+- `src/api/` - External API interface
 - `tests/` - Playwright test suite with helper utilities
 - `sample/` - Sample HTML files for testing
 - `debug.html` - Development debug page
@@ -95,3 +100,5 @@ Components are configured via HTML tables with class `gram-config`:
 - Harmonics are calculated dynamically during drag interactions
 - State is deep-copied before passing to listeners to prevent mutations
 - HMR preserves state listeners across hot reloads
+- Build output is unminified for field debugging (`minify: false` in vite.config.js)
+- TypeScript checking with JSDoc annotations (no TypeScript compilation)

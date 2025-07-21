@@ -45,8 +45,16 @@
       "Bash(yarn build)",
       "Bash(/dev/null)",
       "Bash(yarn typecheck)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(awk:*)"
     ],
-    "deny": []
+    "deny": [],
+    "exec_confirmed_commands": [
+      "mail",
+      "echo"
+    ]
   }
 }

@@ -101,7 +101,7 @@ Created comprehensive public API methods for manual component management:
 
 ```javascript
 // Manual initialization example
-const instance = GramFrame.initializeTable('#my-custom-table')
+const instance = GramFrame.__test__initializeTable('#my-custom-table')
 if (instance) {
   console.log(`Created instance: ${instance.instanceId}`)
 }
