@@ -26,6 +26,17 @@ import {
   clearGlobalStateListeners
 } from './core/state.js'
 
+import {
+  createLEDDisplays,
+  updateDisplayVisibility,
+  createModeSwitchingUI,
+  createRateInput,
+  createLEDDisplay,
+  updateLEDDisplays,
+  updateModeLED,
+  updateRateLED
+} from './components/UIComponents.js'
+
 
 /**
  * GramFrame class - Main component implementation
@@ -123,13 +134,16 @@ class GramFrame {
     this.displayCell.appendChild(this.readoutPanel)
     
     // Create initial LED displays
-    this._createLEDDisplays()
+    const ledElements = createLEDDisplays(this.readoutPanel, this.state)
+    Object.assign(this, ledElements)
     
     // Create mode switching UI
-    this._createModeSwitchingUI()
+    const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
+    this.modesContainer = modeUI.modesContainer
+    this.modeButtons = modeUI.modeButtons
     
     // Create rate input
-    this._createRateInput()
+    this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
     // Replace the table with our container
     if (configTable && configTable.parentNode) {
@@ -164,58 +178,7 @@ class GramFrame {
   /**
    * Creates LED display elements for showing measurement values
    */
-  _createLEDDisplays() {
-    // Create displays for both modes
-    
-    // Time display - shown in both modes
-    this.timeLED = this._createLEDDisplay('Time', '0.00 s')
-    this.readoutPanel.appendChild(this.timeLED)
-    
-    // Frequency display - shown in both modes
-    this.freqLED = this._createLEDDisplay('Frequency', '0.00 Hz')
-    this.readoutPanel.appendChild(this.freqLED)
-    
-    // Speed display - only shown in Doppler mode
-    this.speedLED = this._createLEDDisplay('Speed', '0.0 knots')
-    this.readoutPanel.appendChild(this.speedLED)
-    
-    // Hide other displays for backward compatibility
-    this.modeLED = this._createLEDDisplay('Mode', capitalizeFirstLetter(this.state.mode))
-    this.modeLED.style.display = 'none'
-    this.readoutPanel.appendChild(this.modeLED)
-    
-    this.deltaTimeLED = this._createLEDDisplay('ΔTime', '0.00 s')
-    this.deltaTimeLED.style.display = 'none'
-    this.readoutPanel.appendChild(this.deltaTimeLED)
-    
-    this.deltaFreqLED = this._createLEDDisplay('ΔFreq', '0 Hz')
-    this.deltaFreqLED.style.display = 'none'
-    this.readoutPanel.appendChild(this.deltaFreqLED)
-    
-    this.rateLED = this._createLEDDisplay('Rate', `${this.state.rate} Hz/s`)
-    this.rateLED.style.display = 'none'
-    this.readoutPanel.appendChild(this.rateLED)
-    
-    // Set initial display state based on current mode
-    this._updateDisplayVisibility()
-  }
   
-  /**
-   * Updates display visibility based on current mode
-   */
-  _updateDisplayVisibility() {
-    if (this.state.mode === 'analysis') {
-      // Analysis mode: show Time and Frequency only
-      this.timeLED.style.display = ''
-      this.freqLED.style.display = ''
-      this.speedLED.style.display = 'none'
-    } else if (this.state.mode === 'doppler') {
-      // Doppler mode: show Time, Frequency, and Speed
-      this.timeLED.style.display = ''
-      this.freqLED.style.display = ''
-      this.speedLED.style.display = ''
-    }
-  }
 
   /**
    * Creates mode switching button UI
@@ -483,7 +446,7 @@ class GramFrame {
         imageRelativeY > this.state.imageDetails.naturalHeight) {
       // Clear cursor position when mouse is outside image bounds
       this.state.cursorPosition = null
-      this._updateLEDDisplays()
+      updateLEDDisplays(this, this.state)
       notifyStateListeners(this.state, this.stateListeners)
       return
     }
@@ -509,7 +472,7 @@ class GramFrame {
     }
     
     // Update LED displays
-    this._updateLEDDisplays()
+    updateLEDDisplays(this, this.state)
     
     // Update visual cursor indicators
     this._updateCursorIndicators()
@@ -532,7 +495,7 @@ class GramFrame {
     this.state.cursorPosition = null
     
     // Update LED displays to show no position
-    this._updateLEDDisplays()
+    updateLEDDisplays(this, this.state)
     
     // Clear visual cursor indicators
     this._updateCursorIndicators()
@@ -574,7 +537,7 @@ class GramFrame {
       this.state.harmonics.harmonicData = []
       
       // Update displays and indicators
-      this._updateLEDDisplays()
+      updateLEDDisplays(this, this.state)
       this._updateCursorIndicators()
       
       // Notify listeners of state change
@@ -638,7 +601,7 @@ class GramFrame {
     }
     
     // Update displays and indicators
-    this._updateLEDDisplays()
+    updateLEDDisplays(this, this.state)
     this._updateCursorIndicators()
     
     // Notify listeners of state change
@@ -904,11 +867,11 @@ class GramFrame {
     this._updateCursorIndicators()
     
     // Update LED display
-    this._updateModeLED()
-    this._updateLEDDisplays()
+    updateModeLED(this.modeLED, this.state.mode)
+    updateLEDDisplays(this, this.state)
     
     // Update display visibility based on new mode
-    this._updateDisplayVisibility()
+    updateDisplayVisibility(this, this.state.mode)
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
@@ -923,12 +886,12 @@ class GramFrame {
     this.state.rate = rate
     
     // Update rate LED display
-    this._updateRateLED()
+    updateRateLED(this.rateLED, this.state.rate)
     
     // If in Doppler mode and we have measurements, recalculate speed with new rate
     if (this.state.mode === 'doppler' && this.state.doppler.startPoint && this.state.doppler.endPoint) {
       this._calculateDopplerMeasurements()
-      this._updateLEDDisplays()
+      updateLEDDisplays(this, this.state)
     }
     
     // Notify listeners
@@ -1119,7 +1082,7 @@ class GramFrame {
     this.state.harmonics.harmonicData = harmonics
     
     // Update LED displays to show base frequency
-    this._updateLEDDisplays()
+    updateLEDDisplays(this, this.state)
     
     // Redraw cursor indicators to show harmonics
     this._updateCursorIndicators()
