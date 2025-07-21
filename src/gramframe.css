@@ -181,14 +181,47 @@
   padding: 10px;
   background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);
   border-bottom: 2px solid #555;
-  text-align: center;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
 }
 
 .gram-frame-modes {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+/* Guidance panel */
+.gram-frame-guidance {
+  flex: 1;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+}
+
+.gram-frame-guidance h4 {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  color: #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.gram-frame-guidance p {
+  margin: 0 0 4px 0;
 }
 
 /* Military-style metal buttons */

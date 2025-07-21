@@ -108,12 +108,42 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
     modesContainer.appendChild(button)
   })
   
-  // Append to mode header
+  // Create guidance panel
+  const guidancePanel = document.createElement('div')
+  guidancePanel.className = 'gram-frame-guidance'
+  updateGuidanceContent(guidancePanel, state.mode)
+  
+  // Append both to mode header
   modeCell.appendChild(modesContainer)
+  modeCell.appendChild(guidancePanel)
   
   return {
     modesContainer,
-    modeButtons
+    modeButtons,
+    guidancePanel
+  }
+}
+
+/**
+ * Updates guidance content based on current mode
+ * @param {HTMLElement} guidancePanel - The guidance panel element
+ * @param {string} mode - Current mode ('analysis' or 'doppler')
+ */
+export function updateGuidanceContent(guidancePanel, mode) {
+  if (mode === 'analysis') {
+    guidancePanel.innerHTML = `
+      <h4>Analysis Mode</h4>
+      <p>• Click to position cursor</p>
+      <p>• Drag to show harmonics</p>
+      <p>• Base frequency displays during drag</p>
+    `
+  } else if (mode === 'doppler') {
+    guidancePanel.innerHTML = `
+      <h4>Doppler Mode</h4>
+      <p>• First click: Start point</p>
+      <p>• Second click: End point</p>
+      <p>• Speed calculation displayed</p>
+    `
   }
 }
 
