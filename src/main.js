@@ -11,8 +11,12 @@ import {
 } from './utils/coordinates.js'
 
 import {
-  calculateHarmonics
-} from './utils/calculations.js'
+  createSVGLine,
+  createSVGText,
+  calculateLayoutDimensions,
+  withMarginOffset
+} from './utils/svg.js'
+
 
 import {
   createInitialState,
@@ -281,22 +285,23 @@ class GramFrame {
     const originalHeight = this.spectrogramImage.naturalHeight
     const aspectRatio = originalWidth / originalHeight
     
-    // Account for axes margins
+    // Calculate layout dimensions with margins
     const margins = this.state.axes.margins
-    const totalMarginWidth = margins.left + margins.right
-    const totalMarginHeight = margins.top + margins.bottom
-    
-    // Calculate available space for the image
-    const availableWidth = containerRect.width - totalMarginWidth
-    const availableHeight = availableWidth / aspectRatio
+    const layout = calculateLayoutDimensions(
+      containerRect.width,
+      aspectRatio,
+      originalWidth,
+      originalHeight,
+      margins
+    )
     
     // Set new SVG dimensions (include margins)
-    let newWidth = availableWidth + totalMarginWidth
-    let newHeight = availableHeight + totalMarginHeight
+    let newWidth = layout.newWidth
+    let newHeight = layout.newHeight
     
     // Create viewBox that includes margin space
-    const viewBoxWidth = originalWidth + totalMarginWidth
-    const viewBoxHeight = originalHeight + totalMarginHeight
+    const viewBoxWidth = layout.viewBoxWidth
+    const viewBoxHeight = layout.viewBoxHeight
     
     // Update SVG viewBox and dimensions
     this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
@@ -631,12 +636,13 @@ class GramFrame {
     const tickInterval = range / (tickCount - 1)
     
     // Draw main axis line (along the left edge of the image)
-    const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    axisLine.setAttribute('x1', String(margins.left))
-    axisLine.setAttribute('y1', String(margins.top))
-    axisLine.setAttribute('x2', String(margins.left))
-    axisLine.setAttribute('y2', String(margins.top + naturalHeight))
-    axisLine.setAttribute('class', 'gram-frame-axis-line')
+    const axisLine = createSVGLine(
+      margins.left,
+      margins.top,
+      margins.left,
+      margins.top + naturalHeight,
+      'gram-frame-axis-line'
+    )
     this.timeAxisGroup.appendChild(axisLine)
     
     // Draw tick marks and labels
@@ -646,22 +652,24 @@ class GramFrame {
       const yPos = margins.top + naturalHeight - (i / (tickCount - 1)) * naturalHeight
       
       // Tick mark (extends into the left margin)
-      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', String(margins.left - 5))
-      tick.setAttribute('y1', String(yPos))
-      tick.setAttribute('x2', String(margins.left))
-      tick.setAttribute('y2', String(yPos))
-      tick.setAttribute('class', 'gram-frame-axis-tick')
+      const tick = createSVGLine(
+        margins.left - 5,
+        yPos,
+        margins.left,
+        yPos,
+        'gram-frame-axis-tick'
+      )
       this.timeAxisGroup.appendChild(tick)
       
       // Label (in the left margin)
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', String(margins.left - 8))
-      label.setAttribute('y', String(yPos + 4)) // Slight offset for better alignment
-      label.setAttribute('text-anchor', 'end')
-      label.setAttribute('class', 'gram-frame-axis-label')
+      const label = createSVGText(
+        margins.left - 8,
+        yPos + 4, // Slight offset for better alignment
+        timeValue.toFixed(1) + 's',
+        'gram-frame-axis-label',
+        'end'
+      )
       label.setAttribute('font-size', '10')
-      label.textContent = timeValue.toFixed(1) + 's'
       this.timeAxisGroup.appendChild(label)
     }
   }
@@ -700,12 +708,13 @@ class GramFrame {
     
     // Draw main axis line (along the bottom edge of the image)
     const axisLineY = margins.top + naturalHeight
-    const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    axisLine.setAttribute('x1', String(margins.left))
-    axisLine.setAttribute('y1', String(axisLineY))
-    axisLine.setAttribute('x2', String(margins.left + naturalWidth))
-    axisLine.setAttribute('y2', String(axisLineY))
-    axisLine.setAttribute('class', 'gram-frame-axis-line')
+    const axisLine = createSVGLine(
+      margins.left,
+      axisLineY,
+      margins.left + naturalWidth,
+      axisLineY,
+      'gram-frame-axis-line'
+    )
     this.freqAxisGroup.appendChild(axisLine)
     
     // Draw tick marks and labels
@@ -716,12 +725,13 @@ class GramFrame {
       const xPos = margins.left + normalizedX * naturalWidth
       
       // Tick mark (extends into the bottom margin)
-      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', String(xPos))
-      tick.setAttribute('y1', String(axisLineY))
-      tick.setAttribute('x2', String(xPos))
-      tick.setAttribute('y2', String(axisLineY + 5))
-      tick.setAttribute('class', 'gram-frame-axis-tick')
+      const tick = createSVGLine(
+        xPos,
+        axisLineY,
+        xPos,
+        axisLineY + 5,
+        'gram-frame-axis-tick'
+      )
       this.freqAxisGroup.appendChild(tick)
       
       // Label (in the bottom margin)
@@ -1117,18 +1127,19 @@ class GramFrame {
             const containerWidth = this.container.clientWidth
             const aspectRatio = this.spectrogramImage.naturalWidth / this.spectrogramImage.naturalHeight
           
-          // Account for axes margins
+          // Calculate layout dimensions with margins
           const margins = this.state.axes.margins
-          const totalMarginWidth = margins.left + margins.right
-          const totalMarginHeight = margins.top + margins.bottom
-          
-          // Calculate available space for the image
-          const availableWidth = containerWidth - totalMarginWidth
-          const availableHeight = availableWidth / aspectRatio
+          const layout = calculateLayoutDimensions(
+            containerWidth,
+            aspectRatio,
+            this.spectrogramImage.naturalWidth,
+            this.spectrogramImage.naturalHeight,
+            margins
+          )
           
           // Set initial SVG dimensions (include margins)
-          const initialWidth = availableWidth + totalMarginWidth
-          const initialHeight = availableHeight + totalMarginHeight
+          const initialWidth = layout.newWidth
+          const initialHeight = layout.newHeight
           
           // Update the displayDimensions property for diagnostics
           this.state.displayDimensions = {
@@ -1137,8 +1148,8 @@ class GramFrame {
           }
           
             // Create viewBox that includes margin space
-            const viewBoxWidth = this.spectrogramImage.naturalWidth + totalMarginWidth
-            const viewBoxHeight = this.spectrogramImage.naturalHeight + totalMarginHeight
+            const viewBoxWidth = layout.viewBoxWidth
+            const viewBoxHeight = layout.viewBoxHeight
           
           // Set SVG dimensions and viewBox
           this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
