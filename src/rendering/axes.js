@@ -227,5 +227,5 @@ export function handleSVGResize(instance, containerRect) {
   notifyStateListeners(instance.state, instance.stateListeners)
   
   // Log resize event for debugging
-  console.log('GramFrame resized:', instance.state.displayDimensions)
+
 }

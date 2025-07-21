@@ -30,7 +30,6 @@ export function extractConfigData(instance) {
     }
     
     instance.state.imageDetails.url = imgElement.src
-    console.log('GramFrame: Found image URL:', imgElement.src)
     
     // We'll get actual dimensions when the image loads
     instance.spectrogramImage = new Image()
@@ -48,10 +47,7 @@ export function extractConfigData(instance) {
           instance.state.imageDetails.naturalWidth = instance.spectrogramImage.naturalWidth
           instance.state.imageDetails.naturalHeight = instance.spectrogramImage.naturalHeight
           
-          console.log('GramFrame: Image loaded successfully', {
-            url: imgElement.src,
-            dimensions: `${instance.spectrogramImage.naturalWidth}x${instance.spectrogramImage.naturalHeight}`
-          })
+
         
           // Calculate initial dimensions based on container size and margins
           const containerWidth = instance.container.clientWidth
@@ -143,12 +139,12 @@ export function extractConfigData(instance) {
             instance.state.config.timeMin = min
             instance.state.config.timeMax = max
             foundTimeConfig = true
-            console.log(`GramFrame [${instance.instanceId}]: Time range configured: ${min}s to ${max}s`)
+
           } else if (param === 'freq') {
             instance.state.config.freqMin = min
             instance.state.config.freqMax = max
             foundFreqConfig = true
-            console.log(`GramFrame [${instance.instanceId}]: Frequency range configured: ${min}Hz to ${max}Hz`)
+
           }
         }
       } catch (error) {

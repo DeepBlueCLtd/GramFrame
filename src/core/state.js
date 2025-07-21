@@ -81,9 +81,6 @@ export function createInitialState() {
  * @param {StateListener[]} listeners - Array of listener functions
  */
 export function notifyStateListeners(state, listeners) {
-  // Log state changes to console for Task 1.4
-  console.log('GramFrame State Updated:', JSON.stringify(state, null, 2))
-  
   // Create a deep copy of the state to prevent direct modification
   const stateCopy = JSON.parse(JSON.stringify(state))
   

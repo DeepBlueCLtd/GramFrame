@@ -38,33 +38,16 @@ export function createGramFrameAPI(GramFrame) {
       const instances = []
       const errors = []
       
-      console.log(`GramFrame: Found ${configTables.length} config tables to process`)
-      
       configTables.forEach((table, index) => {
         try {
           // Generate unique ID for each component instance
           const instanceId = `gramframe-${Date.now()}-${index}`
-          
-          // Log table detection
-          console.log(`GramFrame: Processing table ${index + 1}/${configTables.length}`, {
-            id: table.id || instanceId,
-            position: table.getBoundingClientRect(),
-            hasImage: !!table.querySelector('img')
-          })
           
           // Validate table structure before processing
           const validationResult = this._validateConfigTable(table)
           if (!validationResult.isValid) {
             throw new Error(`Invalid config table structure: ${validationResult.errors.join(', ')}`)
           }
-          
-          // Debug: Log table details before creating instance
-          console.log(`GramFrame: About to create instance for table ${index + 1}:`, {
-            tableIndex: index,
-            imgSrc: table.querySelector('img')?.src,
-            tableCells: Array.from(table.querySelectorAll('td')).map(td => td.textContent?.trim()),
-            tableHTML: table.outerHTML.substring(0, 300)
-          })
           
           // Create GramFrame instance
           const instance = new GramFrame(/** @type {HTMLTableElement} */ (table))
@@ -76,15 +59,7 @@ export function createGramFrameAPI(GramFrame) {
             instanceId: instanceId
           }
           
-          console.log(`GramFrame: Successfully created instance [${instanceId}] with config:`, {
-            timeRange: `${instance.state.config.timeMin}-${instance.state.config.timeMax}s`,
-            freqRange: `${instance.state.config.freqMin}-${instance.state.config.freqMax}Hz`,
-            imageUrl: instance.state.imageDetails.url
-          })
-          
           instances.push(instance)
-          
-          console.log(`GramFrame: Successfully created instance ${instanceId}`)
           
         } catch (error) {
           const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error.message}`
@@ -221,7 +196,7 @@ export function createGramFrameAPI(GramFrame) {
      */
     toggleCanvasBoundsOverlay() {
       // This will be implemented in Phase 5
-      console.log('Toggle canvas bounds overlay')
+
     },
     
     /**
@@ -230,7 +205,7 @@ export function createGramFrameAPI(GramFrame) {
      */
     setDebugGrid(visible) {
       // This will be implemented in Phase 5
-      console.log('Set debug grid visibility:', visible)
+
     },
     
     /**
