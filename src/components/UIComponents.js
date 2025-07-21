@@ -190,6 +190,11 @@ export function createLEDDisplay(label, value) {
  * @param {GramFrameState} state - Current state object
  */
 export function updateLEDDisplays(ledElements, state) {
+  // Update mode LED display
+  if (ledElements.modeLED) {
+    ledElements.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(state.mode)
+  }
+  
   // Hide/show doppler-specific LEDs based on mode
   if (state.mode === 'doppler') {
     ledElements.deltaTimeLED.style.display = 'block'

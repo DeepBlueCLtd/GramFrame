@@ -869,7 +869,6 @@ class GramFrame {
     this._updateCursorIndicators()
     
     // Update LED display
-    updateModeLED(this.modeLED, this.state.mode)
     updateLEDDisplays(this, this.state)
     
     // Update display visibility based on new mode
@@ -887,8 +886,7 @@ class GramFrame {
     // Update state
     this.state.rate = rate
     
-    // Update rate LED display
-    updateRateLED(this.rateLED, this.state.rate)
+    // Update rate LED display (handled by updateLEDDisplays)
     
     // If in Doppler mode and we have measurements, recalculate speed with new rate
     if (this.state.mode === 'doppler' && this.state.doppler.startPoint && this.state.doppler.endPoint) {
@@ -900,83 +898,8 @@ class GramFrame {
     notifyStateListeners(this.state, this.stateListeners)
   }
   
-  /**
-   * Update LED display values based on current state
-   */
-  _updateLEDDisplays() {
-    // Hide/show doppler-specific LEDs based on mode
-    if (this.state.mode === 'doppler') {
-      this.deltaTimeLED.style.display = 'block'
-      this.deltaFreqLED.style.display = 'block'
-      this.speedLED.style.display = 'block'
-      
-      // Update doppler-specific values if available
-      if (this.state.doppler.deltaTime !== null) {
-        this.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = `ΔT: ${this.state.doppler.deltaTime.toFixed(2)} s`
-      } else {
-        this.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = 'ΔT: 0.00 s'
-      }
-      
-      if (this.state.doppler.deltaFrequency !== null) {
-        this.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = `ΔF: ${this.state.doppler.deltaFrequency.toFixed(0)} Hz`
-      } else {
-        this.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = 'ΔF: 0 Hz'
-      }
-      
-      if (this.state.doppler.speed !== null) {
-        this.speedLED.querySelector('.gram-frame-led-value').textContent = `Speed: ${this.state.doppler.speed.toFixed(1)} knots`
-      } else {
-        this.speedLED.querySelector('.gram-frame-led-value').textContent = 'Speed: 0.0 knots'
-      }
-    } else {
-      this.deltaTimeLED.style.display = 'none'
-      this.deltaFreqLED.style.display = 'none'
-      this.speedLED.style.display = 'none'
-    }
-    
-    if (!this.state.cursorPosition) {
-      // Show default values when no cursor position
-      this.freqLED.querySelector('.gram-frame-led-value').textContent = 'Freq: 0.00 Hz'
-      this.timeLED.querySelector('.gram-frame-led-value').textContent = 'Time: 0.00 s'
-      return
-    }
-    
-    // Mode-specific LED formatting
-    if (this.state.mode === 'analysis' && this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
-      // For Analysis mode during drag, show base frequency for harmonics
-      const baseFreqValue = this.state.harmonics.baseFrequency.toFixed(1)
-      this.freqLED.querySelector('.gram-frame-led-value').textContent = `Base: ${baseFreqValue} Hz`
-      
-      // Still show time
-      const timeValue = this.state.cursorPosition.time.toFixed(2)
-      this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
-    } else {
-      // For normal mode operation - use 1 decimal place for frequency as per spec
-      const freqValue = this.state.cursorPosition.freq.toFixed(1)
-      this.freqLED.querySelector('.gram-frame-led-value').textContent = `Freq: ${freqValue} Hz`
-      
-      // Update time LED - use 2 decimal places as per spec
-      const timeValue = this.state.cursorPosition.time.toFixed(2)
-      this.timeLED.querySelector('.gram-frame-led-value').textContent = `Time: ${timeValue} s`
-    }
-  }
   
-  /**
-   * Update mode LED display
-   */
-  _updateModeLED() {
-    // Update mode LED
-    this.modeLED.querySelector('.gram-frame-led-value').textContent = 
-      capitalizeFirstLetter(this.state.mode)
-  }
   
-  /**
-   * Update rate LED display
-   */
-  _updateRateLED() {
-    // Update rate LED
-    this.rateLED.querySelector('.gram-frame-led-value').textContent = `${this.state.rate} Hz/s`
-  }
   
   /**
    * Update cursor visual indicators based on current mode and state
