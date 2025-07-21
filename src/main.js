@@ -44,6 +44,20 @@ import { extractConfigData } from './core/configuration.js'
 
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
+import { 
+  drawAxes,
+  clearAxes,
+  handleResize,
+  handleSVGResize
+} from './rendering/axes.js'
+
+import {
+  updateCursorIndicators,
+  drawAnalysisMode,
+  drawHarmonicsMode,
+  drawDopplerMode
+} from './rendering/cursors.js'
+
 
 /**
  * GramFrame class - Main component implementation
@@ -203,7 +217,7 @@ export class GramFrame {
     this._boundHandleClick = this._handleClick.bind(this)
     this._boundHandleMouseDown = this._handleMouseDown.bind(this)
     this._boundHandleMouseUp = this._handleMouseUp.bind(this)
-    this._boundHandleResize = this._handleResize.bind(this)
+    this._boundHandleResize = () => handleResize(this)
     
     // SVG mouse events
     this.svg.addEventListener('mousemove', this._boundHandleMouseMove)
@@ -263,7 +277,7 @@ export class GramFrame {
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(entries => {
         for (const entry of entries) {
-          this._handleSVGResize(entry.contentRect)
+          handleSVGResize(this, entry.contentRect)
         }
       })
       this.resizeObserver.observe(this.container)
@@ -273,72 +287,6 @@ export class GramFrame {
   /**
    * Handles window resize events
    */
-  _handleResize() {
-    // Delegate to SVG resize handler
-    const containerRect = this.container.getBoundingClientRect()
-    this._handleSVGResize(containerRect)
-  }
-  
-  /**
-   * Handles SVG container resize
-   * @param {DOMRect} containerRect - Container dimensions
-   */
-  _handleSVGResize(containerRect) {
-    // Only handle resize if we have a valid image
-    if (!this.spectrogramImage) return
-    
-    // Calculate new dimensions while maintaining aspect ratio
-    const originalWidth = this.spectrogramImage.naturalWidth
-    const originalHeight = this.spectrogramImage.naturalHeight
-    const aspectRatio = originalWidth / originalHeight
-    
-    // Calculate layout dimensions with margins
-    const margins = this.state.axes.margins
-    const layout = calculateLayoutDimensions(
-      containerRect.width,
-      aspectRatio,
-      originalWidth,
-      originalHeight,
-      margins
-    )
-    
-    // Set new SVG dimensions (include margins)
-    let newWidth = layout.newWidth
-    let newHeight = layout.newHeight
-    
-    // Create viewBox that includes margin space
-    const viewBoxWidth = layout.viewBoxWidth
-    const viewBoxHeight = layout.viewBoxHeight
-    
-    // Update SVG viewBox and dimensions
-    this.svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
-    this.svg.setAttribute('width', String(newWidth))
-    this.svg.setAttribute('height', String(newHeight))
-    
-    // Position image directly in SVG coordinate space (no mainGroup translation)
-    this.mainGroup.setAttribute('transform', '')
-    
-    // Update image element within SVG - position it in the margin area
-    this.svgImage.setAttribute('width', String(originalWidth))
-    this.svgImage.setAttribute('height', String(originalHeight))
-    this.svgImage.setAttribute('x', String(margins.left))
-    this.svgImage.setAttribute('y', String(margins.top))
-    
-    // Update state with new dimensions
-    this.state.displayDimensions = {
-      width: Math.round(newWidth),
-      height: Math.round(newHeight)
-    }
-    
-    // Redraw axes
-    this._drawAxes()
-    
-    // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
-    
-    // Log resize event for debugging
-    console.log('GramFrame resized:', this.state.displayDimensions)
-  }
   
   /**
    * Handles mouse move events over the SVG
@@ -404,14 +352,14 @@ export class GramFrame {
     updateLEDDisplays(this, this.state)
     
     // Update visual cursor indicators
-    this._updateCursorIndicators()
+    updateCursorIndicators(this)
     
     // In Analysis mode, update harmonics during drag
     if (this.state.mode === 'analysis' && this.state.dragState.isDragging) {
       triggerHarmonicsDisplay(
         this.state, 
         () => updateLEDDisplays(this, this.state),
-        () => this._updateCursorIndicators(), 
+        () => updateCursorIndicators(this), 
         notifyStateListeners, 
         this.stateListeners
       )
@@ -433,7 +381,7 @@ export class GramFrame {
     updateLEDDisplays(this, this.state)
     
     // Clear visual cursor indicators
-    this._updateCursorIndicators()
+    updateCursorIndicators(this)
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
@@ -456,7 +404,7 @@ export class GramFrame {
       triggerHarmonicsDisplay(
         this.state, 
         () => updateLEDDisplays(this, this.state),
-        () => this._updateCursorIndicators(), 
+        () => updateCursorIndicators(this), 
         notifyStateListeners, 
         this.stateListeners
       )
@@ -479,7 +427,7 @@ export class GramFrame {
       
       // Update displays and indicators
       updateLEDDisplays(this, this.state)
-      this._updateCursorIndicators()
+      updateCursorIndicators(this)
       
       // Notify listeners of state change
       notifyStateListeners(this.state, this.stateListeners)
@@ -543,7 +491,7 @@ export class GramFrame {
     
     // Update displays and indicators
     updateLEDDisplays(this, this.state)
-    this._updateCursorIndicators()
+    updateCursorIndicators(this)
     
     // Notify listeners of state change
     notifyStateListeners(this.state, this.stateListeners)
@@ -606,152 +554,6 @@ export class GramFrame {
   /**
    * Draw axes with tick marks and labels
    */
-  /**
-   * Draw axes with tick marks and labels
-   */
-  _drawAxes() {
-    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
-    
-    this._clearAxes()
-    this._drawFrequencyAxis() // Horizontal axis (bottom)
-    this._drawTimeAxis()      // Vertical axis (left)
-  }
-  
-  /**
-   * Clear existing axes
-   */
-  _clearAxes() {
-    this.timeAxisGroup.innerHTML = ''
-    this.freqAxisGroup.innerHTML = ''
-  }
-  
-  /**
-   * Draw time axis (vertical, left)
-   */
-  /**
-   * Draw time axis (vertical, left)
-   */
-  _drawTimeAxis() {
-    const { timeMin, timeMax } = this.state.config
-    const { naturalHeight } = this.state.imageDetails
-    const margins = this.state.axes.margins
-    
-    // Calculate tick marks
-    const range = timeMax - timeMin
-    const targetTickCount = Math.floor(naturalHeight / 50) // Aim for ticks every ~50px
-    const tickCount = Math.max(2, Math.min(targetTickCount, 8))
-    const tickInterval = range / (tickCount - 1)
-    
-    // Draw main axis line (along the left edge of the image)
-    const axisLine = createSVGLine(
-      margins.left,
-      margins.top,
-      margins.left,
-      margins.top + naturalHeight,
-      'gram-frame-axis-line'
-    )
-    this.timeAxisGroup.appendChild(axisLine)
-    
-    // Draw tick marks and labels
-    for (let i = 0; i < tickCount; i++) {
-      const timeValue = timeMin + (i * tickInterval)
-      // Y position: timeMin at bottom, timeMax at top (inverted because SVG y=0 is at top)
-      const yPos = margins.top + naturalHeight - (i / (tickCount - 1)) * naturalHeight
-      
-      // Tick mark (extends into the left margin)
-      const tick = createSVGLine(
-        margins.left - 5,
-        yPos,
-        margins.left,
-        yPos,
-        'gram-frame-axis-tick'
-      )
-      this.timeAxisGroup.appendChild(tick)
-      
-      // Label (in the left margin)
-      const label = createSVGText(
-        margins.left - 8,
-        yPos + 4, // Slight offset for better alignment
-        timeValue.toFixed(1) + 's',
-        'gram-frame-axis-label',
-        'end'
-      )
-      label.setAttribute('font-size', '10')
-      this.timeAxisGroup.appendChild(label)
-    }
-  }
-  
-  /**
-   * Draw frequency axis (horizontal, bottom)
-   */
-  /**
-   * Draw frequency axis (horizontal, bottom)
-   */
-  _drawFrequencyAxis() {
-    const { freqMin, freqMax } = this.state.config
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    const margins = this.state.axes.margins
-    
-    // Calculate nice tick marks using tidy algorithm
-    const range = freqMax - freqMin
-    const targetTickCount = Math.floor(naturalWidth / 80) // Aim for ticks every ~80px
-    const roughInterval = range / Math.max(1, targetTickCount - 1)
-    
-    // Find nice interval from standard set
-    const niceIntervals = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
-    let tickInterval = niceIntervals[0]
-    
-    for (const interval of niceIntervals) {
-      if (interval >= roughInterval) {
-        tickInterval = interval
-        break
-      }
-    }
-    
-    // Calculate actual tick positions
-    const startTick = Math.ceil(freqMin / tickInterval) * tickInterval
-    const endTick = Math.floor(freqMax / tickInterval) * tickInterval
-    const tickCount = Math.floor((endTick - startTick) / tickInterval) + 1
-    
-    // Draw main axis line (along the bottom edge of the image)
-    const axisLineY = margins.top + naturalHeight
-    const axisLine = createSVGLine(
-      margins.left,
-      axisLineY,
-      margins.left + naturalWidth,
-      axisLineY,
-      'gram-frame-axis-line'
-    )
-    this.freqAxisGroup.appendChild(axisLine)
-    
-    // Draw tick marks and labels
-    for (let i = 0; i < tickCount; i++) {
-      const freqValue = startTick + (i * tickInterval)
-      // Convert frequency value to pixel position
-      const normalizedX = (freqValue - freqMin) / (freqMax - freqMin)
-      const xPos = margins.left + normalizedX * naturalWidth
-      
-      // Tick mark (extends into the bottom margin)
-      const tick = createSVGLine(
-        xPos,
-        axisLineY,
-        xPos,
-        axisLineY + 5,
-        'gram-frame-axis-tick'
-      )
-      this.freqAxisGroup.appendChild(tick)
-      
-      // Label (in the bottom margin)
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', String(xPos))
-      label.setAttribute('y', String(axisLineY + 18))
-      label.setAttribute('text-anchor', 'middle')
-      label.setAttribute('class', 'gram-frame-axis-label')
-      label.setAttribute('font-size', '10')
-      label.textContent = freqValue.toFixed(0) + 'Hz'
-      this.freqAxisGroup.appendChild(label)
-    }
-  }
   
   /**
    * Switch between analysis modes
@@ -795,7 +597,7 @@ export class GramFrame {
     }
     
     // Clear existing cursor indicators and redraw for new mode
-    this._updateCursorIndicators()
+    updateCursorIndicators(this)
     
     // Update LED display
     updateLEDDisplays(this, this.state)
@@ -833,257 +635,6 @@ export class GramFrame {
   /**
    * Update cursor visual indicators based on current mode and state
    */
-  _updateCursorIndicators() {
-    // Clear existing cursor indicators
-    this.cursorGroup.innerHTML = ''
-    
-    // Only draw indicators if cursor position is available
-    if (!this.state.cursorPosition || !this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
-      return
-    }
-    
-    // Handle different modes
-    if (this.state.mode === 'analysis') {
-      this._drawAnalysisMode()
-      
-      // In Analysis mode, also draw harmonics if dragging
-      if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
-        this._drawHarmonicsMode()
-      }
-    } else if (this.state.mode === 'doppler') {
-      this._drawDopplerMode()
-    }
-  }
-  
-  /**
-   * Draw cursor indicators for analysis mode
-   */
-  _drawAnalysisMode() {
-    if (!this.state.cursorPosition) return
-    
-    const margins = this.state.axes.margins
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    
-    // Calculate cursor position in SVG coordinates (accounting for margins)
-    const cursorSVGX = margins.left + this.state.cursorPosition.imageX
-    const cursorSVGY = margins.top + this.state.cursorPosition.imageY
-    
-    // Create vertical crosshair lines (time indicator) - shadow first, then main line
-    const verticalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    verticalShadow.setAttribute('x1', String(cursorSVGX))
-    verticalShadow.setAttribute('y1', String(margins.top))
-    verticalShadow.setAttribute('x2', String(cursorSVGX))
-    verticalShadow.setAttribute('y2', String(margins.top + naturalHeight))
-    verticalShadow.setAttribute('class', 'gram-frame-cursor-shadow')
-    this.cursorGroup.appendChild(verticalShadow)
-    
-    const verticalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    verticalLine.setAttribute('x1', String(cursorSVGX))
-    verticalLine.setAttribute('y1', String(margins.top))
-    verticalLine.setAttribute('x2', String(cursorSVGX))
-    verticalLine.setAttribute('y2', String(margins.top + naturalHeight))
-    verticalLine.setAttribute('class', 'gram-frame-cursor-vertical')
-    this.cursorGroup.appendChild(verticalLine)
-    
-    // Create horizontal crosshair lines (frequency indicator) - shadow first, then main line
-    const horizontalShadow = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    horizontalShadow.setAttribute('x1', String(margins.left))
-    horizontalShadow.setAttribute('y1', String(cursorSVGY))
-    horizontalShadow.setAttribute('x2', String(margins.left + naturalWidth))
-    horizontalShadow.setAttribute('y2', String(cursorSVGY))
-    horizontalShadow.setAttribute('class', 'gram-frame-cursor-shadow')
-    this.cursorGroup.appendChild(horizontalShadow)
-    
-    const horizontalLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    horizontalLine.setAttribute('x1', String(margins.left))
-    horizontalLine.setAttribute('y1', String(cursorSVGY))
-    horizontalLine.setAttribute('x2', String(margins.left + naturalWidth))
-    horizontalLine.setAttribute('y2', String(cursorSVGY))
-    horizontalLine.setAttribute('class', 'gram-frame-cursor-horizontal')
-    this.cursorGroup.appendChild(horizontalLine)
-    
-    // Create center point indicator
-    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    centerPoint.setAttribute('cx', String(cursorSVGX))
-    centerPoint.setAttribute('cy', String(cursorSVGY))
-    centerPoint.setAttribute('r', '3')
-    centerPoint.setAttribute('class', 'gram-frame-cursor-point')
-    this.cursorGroup.appendChild(centerPoint)
-  }
-  
-  
-  /**
-   * Draw harmonic indicators
-   */
-  _drawHarmonicsMode() {
-    // This method now only draws the harmonics that have been calculated
-    // It doesn't calculate them - that's done in _triggerHarmonicsDisplay
-    const harmonics = this.state.harmonics.harmonicData
-    
-    // Draw harmonic lines and labels
-    harmonics.forEach((harmonic, index) => {
-      this._drawHarmonicLine(harmonic, index === 0)
-      this._drawHarmonicLabels(harmonic, index === 0)
-    })
-  }
-  
-  
-  /**
-   * Draw a single harmonic line
-   * @param {HarmonicData} harmonic - Harmonic data
-   * @param {boolean} isMainLine - Whether this is the main (1x) line
-   */
-  _drawHarmonicLine(harmonic, isMainLine) {
-    const margins = this.state.axes.margins
-    const { naturalHeight } = this.state.imageDetails
-    
-    // Draw shadow line first for visibility
-    const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    shadowLine.setAttribute('x1', String(harmonic.svgX))
-    shadowLine.setAttribute('y1', String(margins.top))
-    shadowLine.setAttribute('x2', String(harmonic.svgX))
-    shadowLine.setAttribute('y2', String(margins.top + naturalHeight))
-    shadowLine.setAttribute('class', 'gram-frame-harmonic-shadow')
-    this.cursorGroup.appendChild(shadowLine)
-    
-    // Draw main line
-    const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    mainLine.setAttribute('x1', String(harmonic.svgX))
-    mainLine.setAttribute('y1', String(margins.top))
-    mainLine.setAttribute('x2', String(harmonic.svgX))
-    mainLine.setAttribute('y2', String(margins.top + naturalHeight))
-    
-    // Use distinct styling for the main line (1×) as specified
-    if (isMainLine) {
-      mainLine.setAttribute('class', 'gram-frame-harmonic-main')
-    } else {
-      mainLine.setAttribute('class', 'gram-frame-harmonic-line')
-    }
-    
-    this.cursorGroup.appendChild(mainLine)
-  }
-  
-  /**
-   * Draw labels for a harmonic line
-   * @param {HarmonicData} harmonic - Harmonic data
-   * @param {boolean} isMainLine - Whether this is the main (1x) line
-   */
-  _drawHarmonicLabels(harmonic, isMainLine) {
-    const margins = this.state.axes.margins
-    const labelY = margins.top + 15 // Position labels near the top
-    
-    // Create harmonic number label (left side of line)
-    const numberLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    numberLabel.setAttribute('x', String(harmonic.svgX - 5))
-    numberLabel.setAttribute('y', String(labelY))
-    numberLabel.setAttribute('text-anchor', 'end')
-    numberLabel.setAttribute('class', 'gram-frame-harmonic-label')
-    numberLabel.setAttribute('font-size', '10')
-    numberLabel.textContent = `${harmonic.number}×`
-    this.cursorGroup.appendChild(numberLabel)
-    
-    // Create frequency label (right side of line)
-    const frequencyLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    frequencyLabel.setAttribute('x', String(harmonic.svgX + 5))
-    frequencyLabel.setAttribute('y', String(labelY))
-    frequencyLabel.setAttribute('text-anchor', 'start')
-    frequencyLabel.setAttribute('class', 'gram-frame-harmonic-label')
-    frequencyLabel.setAttribute('font-size', '10')
-    frequencyLabel.textContent = `${Math.round(harmonic.frequency)} Hz`
-    this.cursorGroup.appendChild(frequencyLabel)
-  }
-  
-  /**
-   * Draw Doppler mode indicators
-   */
-  _drawDopplerMode() {
-    // Draw normal crosshairs for current cursor position
-    if (this.state.cursorPosition) {
-      this._drawAnalysisMode()
-    }
-    
-    // Draw start point marker if set
-    if (this.state.doppler.startPoint) {
-      this._drawDopplerPoint(this.state.doppler.startPoint, 'start')
-    }
-    
-    // Draw end point marker and line if both points are set
-    if (this.state.doppler.endPoint) {
-      this._drawDopplerPoint(this.state.doppler.endPoint, 'end')
-      this._drawDopplerLine()
-    }
-  }
-  
-  /**
-   * Draw a Doppler measurement point
-   * @param {DopplerPoint} point - Point data
-   * @param {'start'|'end'} type - Point type
-   */
-  _drawDopplerPoint(point, type) {
-    const margins = this.state.axes.margins
-    
-    // Convert data coordinates to SVG coordinates
-    const dataCoords = dataToSVGCoordinates(point.freq, point.time, this.state.config, this.state.imageDetails, this.state.rate)
-    const svgX = margins.left + dataCoords.x
-    const svgY = margins.top + dataCoords.y
-    
-    // Draw point marker
-    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    marker.setAttribute('cx', String(svgX))
-    marker.setAttribute('cy', String(svgY))
-    marker.setAttribute('r', '5')
-    marker.setAttribute('class', `gram-frame-doppler-${type}-point`)
-    this.cursorGroup.appendChild(marker)
-    
-    // Draw point label
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    label.setAttribute('x', String(svgX + 8))
-    label.setAttribute('y', String(svgY - 8))
-    label.setAttribute('class', 'gram-frame-doppler-label')
-    label.setAttribute('font-size', '12')
-    label.textContent = type === 'start' ? '1' : '2'
-    this.cursorGroup.appendChild(label)
-  }
-  
-  /**
-   * Draw line between Doppler measurement points
-   */
-  _drawDopplerLine() {
-    if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
-      return
-    }
-    
-    const margins = this.state.axes.margins
-    
-    // Convert data coordinates to SVG coordinates
-    const startCoords = dataToSVGCoordinates(this.state.doppler.startPoint.freq, this.state.doppler.startPoint.time, this.state.config, this.state.imageDetails, this.state.rate)
-    const endCoords = dataToSVGCoordinates(this.state.doppler.endPoint.freq, this.state.doppler.endPoint.time, this.state.config, this.state.imageDetails, this.state.rate)
-    
-    const startX = margins.left + startCoords.x
-    const startY = margins.top + startCoords.y
-    const endX = margins.left + endCoords.x
-    const endY = margins.top + endCoords.y
-    
-    // Draw shadow line for visibility
-    const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    shadowLine.setAttribute('x1', String(startX))
-    shadowLine.setAttribute('y1', String(startY))
-    shadowLine.setAttribute('x2', String(endX))
-    shadowLine.setAttribute('y2', String(endY))
-    shadowLine.setAttribute('stroke-width', '4')
-    shadowLine.setAttribute('class', 'gram-frame-doppler-line-shadow')
-    this.cursorGroup.appendChild(shadowLine)
-    
-    // Draw main line
-    const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    mainLine.setAttribute('x1', String(startX))
-    mainLine.setAttribute('y1', String(startY))
-    mainLine.setAttribute('x2', String(endX))
-    mainLine.setAttribute('y2', String(endY))
-    mainLine.setAttribute('stroke-width', '2')
-    mainLine.setAttribute('class', 'gram-frame-doppler-line')
-    this.cursorGroup.appendChild(mainLine)
-  }
   
   
 }
