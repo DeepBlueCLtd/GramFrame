@@ -47,7 +47,8 @@
       "Bash(yarn typecheck)",
       "Bash(ls:*)",
       "Bash(git checkout:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
