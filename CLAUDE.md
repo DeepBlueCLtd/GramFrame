@@ -31,6 +31,13 @@ npx playwright test --ui
 npx playwright test tests/mode-switching.spec.ts --debug
 ```
 
+### Status updates
+
+When a task completes, please notify me via email, using the following command in bash, updating message and subject title as appropriate:
+
+```
+echo "Claude job done" | mail -s "Claude Update" "$CLAUDE_NOTIFY_EMAIL"
+```
 ## Architecture Overview
 
 **GramFrame** is a JavaScript component for interactive spectrogram analysis that transforms HTML config tables into interactive SVG-based overlays for sonar training materials.
