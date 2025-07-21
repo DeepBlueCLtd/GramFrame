@@ -493,13 +493,21 @@ class GramFrame {
     // Only process if we have valid image details
     if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) return
     
-    // Get mouse position relative to SVG
-    const rect = this.svg.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
-    
-    // Convert screen coordinates to SVG coordinates
-    const svgCoords = this._screenToSVGCoordinates(x, y)
+    // Use SVG's built-in coordinate transformation for accurate positioning
+    let svgCoords
+    try {
+      const pt = this.svg.createSVGPoint()
+      pt.x = event.clientX
+      pt.y = event.clientY
+      const transformedPt = pt.matrixTransform(this.svg.getScreenCTM().inverse())
+      svgCoords = { x: transformedPt.x, y: transformedPt.y }
+    } catch (e) {
+      // Fallback to manual calculation
+      const rect = this.svg.getBoundingClientRect()
+      const x = event.clientX - rect.left
+      const y = event.clientY - rect.top
+      svgCoords = this._screenToSVGCoordinates(x, y)
+    }
     
     // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
     const margins = this.state.axes.margins
@@ -520,10 +528,15 @@ class GramFrame {
     // Convert image-relative coordinates to data coordinates
     const dataCoords = this._imageToDataCoordinates(imageRelativeX, imageRelativeY)
     
+    // Calculate screen coordinates for state (relative to SVG)
+    const rect = this.svg.getBoundingClientRect()
+    const screenX = event.clientX - rect.left
+    const screenY = event.clientY - rect.top
+
     // Update cursor position in state with normalized coordinates
     this.state.cursorPosition = { 
-      x: Math.round(x), 
-      y: Math.round(y), 
+      x: Math.round(screenX), 
+      y: Math.round(screenY), 
       svgX: Math.round(svgCoords.x),
       svgY: Math.round(svgCoords.y),
       imageX: Math.round(imageRelativeX),
