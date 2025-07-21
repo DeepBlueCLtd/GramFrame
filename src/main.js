@@ -37,6 +37,11 @@ import {
   updateRateLED
 } from './components/UIComponents.js'
 
+import {
+  calculateDopplerMeasurements,
+  triggerHarmonicsDisplay
+} from './core/analysis.js'
+
 
 /**
  * GramFrame class - Main component implementation
@@ -479,7 +484,13 @@ class GramFrame {
     
     // In Analysis mode, update harmonics during drag
     if (this.state.mode === 'analysis' && this.state.dragState.isDragging) {
-      this._triggerHarmonicsDisplay()
+      triggerHarmonicsDisplay(
+        this.state, 
+        () => updateLEDDisplays(this, this.state),
+        () => this._updateCursorIndicators(), 
+        notifyStateListeners, 
+        this.stateListeners
+      )
     }
     
     // Notify listeners
@@ -518,7 +529,13 @@ class GramFrame {
       this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
       
       // Trigger harmonics display immediately on mouse down
-      this._triggerHarmonicsDisplay()
+      triggerHarmonicsDisplay(
+        this.state, 
+        () => updateLEDDisplays(this, this.state),
+        () => this._updateCursorIndicators(), 
+        notifyStateListeners, 
+        this.stateListeners
+      )
     }
   }
   
@@ -590,7 +607,7 @@ class GramFrame {
     } else if (!this.state.doppler.endPoint) {
       // Set end point and calculate measurements
       this.state.doppler.endPoint = clickPoint
-      this._calculateDopplerMeasurements()
+      calculateDopplerMeasurements(this.state)
     } else {
       // Both points are set, start a new measurement
       this.state.doppler.startPoint = clickPoint
@@ -611,21 +628,6 @@ class GramFrame {
   /**
    * Calculates Doppler measurements from start and end points
    */
-  _calculateDopplerMeasurements() {
-    if (!this.state.doppler.startPoint || !this.state.doppler.endPoint) {
-      return
-    }
-    
-    const start = this.state.doppler.startPoint
-    const end = this.state.doppler.endPoint
-    
-    // Calculate delta values
-    this.state.doppler.deltaTime = end.time - start.time
-    this.state.doppler.deltaFrequency = end.freq - start.freq
-    
-    // Speed calculation incorporating rate: ΔT * ΔF * rate
-    this.state.doppler.speed = Math.abs(this.state.doppler.deltaTime * this.state.doppler.deltaFrequency * this.state.rate)
-  }
   
   /**
    * Clean up event listeners (called when component is destroyed)
@@ -890,7 +892,7 @@ class GramFrame {
     
     // If in Doppler mode and we have measurements, recalculate speed with new rate
     if (this.state.mode === 'doppler' && this.state.doppler.startPoint && this.state.doppler.endPoint) {
-      this._calculateDopplerMeasurements()
+      calculateDopplerMeasurements(this.state)
       updateLEDDisplays(this, this.state)
     }
     
@@ -1057,39 +1059,6 @@ class GramFrame {
     this.cursorGroup.appendChild(centerPoint)
   }
   
-  /**
-   * Trigger harmonics calculation and display during drag
-   */
-  _triggerHarmonicsDisplay() {
-    // Only trigger if we have a cursor position, are in analysis mode, and are dragging
-    if (!this.state.cursorPosition || this.state.mode !== 'analysis' || !this.state.dragState.isDragging) {
-      return
-    }
-    
-    const baseFrequency = this.state.cursorPosition.freq
-    
-    // Calculate harmonic frequencies and their positions
-    const harmonics = calculateHarmonics(
-      baseFrequency,
-      this.state.config,
-      this.state.displayDimensions,
-      this.state.axes,
-      (freq, time) => dataToSVGCoordinates(freq, time, this.state.config, this.state.imageDetails, this.state.rate)
-    )
-    
-    // Update state with harmonic data
-    this.state.harmonics.baseFrequency = baseFrequency
-    this.state.harmonics.harmonicData = harmonics
-    
-    // Update LED displays to show base frequency
-    updateLEDDisplays(this, this.state)
-    
-    // Redraw cursor indicators to show harmonics
-    this._updateCursorIndicators()
-    
-    // Notify listeners of state change
-    notifyStateListeners(this.state, this.stateListeners)
-  }
   
   /**
    * Draw harmonic indicators
