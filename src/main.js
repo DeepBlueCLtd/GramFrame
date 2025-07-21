@@ -32,7 +32,8 @@ import {
   updateDisplayVisibility,
   createModeSwitchingUI,
   createRateInput,
-  updateLEDDisplays
+  updateLEDDisplays,
+  updateGuidanceContent
 } from './components/UIComponents.js'
 
 import {
@@ -113,6 +114,7 @@ export class GramFrame {
     const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
     this.modesContainer = modeUI.modesContainer
     this.modeButtons = modeUI.modeButtons
+    this.guidancePanel = modeUI.guidancePanel
     
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
@@ -213,6 +215,11 @@ export class GramFrame {
     
     // Update display visibility based on new mode
     updateDisplayVisibility(this, this.state.mode)
+    
+    // Update guidance panel content
+    if (this.guidancePanel) {
+      updateGuidanceContent(this.guidancePanel, mode)
+    }
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)

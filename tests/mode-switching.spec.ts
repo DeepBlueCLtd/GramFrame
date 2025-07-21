@@ -203,4 +203,41 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     expect(stateAfterSecondMove.cursorPosition).not.toBeNull()
     expect(stateAfterSecondMove.cursorPosition.x).not.toBe(stateAfterMouseMove.cursorPosition.x)
   })
+
+  test('guidance panel displays correct content for each mode', async ({ page }) => {
+    const gramFramePage = new GramFramePage(page)
+    await gramFramePage.goto()
+    
+    // Wait for component to load
+    await gramFramePage.waitForComponentLoad()
+    
+    // Verify guidance panel exists
+    const guidancePanel = page.locator('.gram-frame-guidance')
+    await expect(guidancePanel).toBeVisible()
+    
+    // Test Analysis mode guidance (default mode)
+    await expect(guidancePanel).toContainText('Analysis Mode')
+    await expect(guidancePanel).toContainText('Click to position cursor')
+    await expect(guidancePanel).toContainText('Drag to show harmonics')
+    await expect(guidancePanel).toContainText('Base frequency displays during drag')
+    
+    // Switch to Doppler mode
+    const dopplerButton = page.locator('[data-mode="doppler"]')
+    await dopplerButton.click()
+    
+    // Verify guidance content changes
+    await expect(guidancePanel).toContainText('Doppler Mode')
+    await expect(guidancePanel).toContainText('First click: Start point')
+    await expect(guidancePanel).toContainText('Second click: End point')
+    await expect(guidancePanel).toContainText('Speed calculation displayed')
+    
+    // Switch back to Analysis mode
+    const analysisButton = page.locator('[data-mode="analysis"]')
+    await analysisButton.click()
+    
+    // Verify content switches back
+    await expect(guidancePanel).toContainText('Analysis Mode')
+    await expect(guidancePanel).toContainText('Click to position cursor')
+    await expect(guidancePanel).not.toContainText('Doppler Mode')
+  })
 })
