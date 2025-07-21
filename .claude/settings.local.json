@@ -45,7 +45,8 @@
       "Bash(yarn build)",
       "Bash(/dev/null)",
       "Bash(yarn typecheck)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }
