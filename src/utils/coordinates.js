@@ -14,7 +14,7 @@
  * Convert screen coordinates to SVG coordinates
  * @param {number} screenX - Screen X coordinate
  * @param {number} screenY - Screen Y coordinate
- * @param {SVGElement} svg - SVG element reference
+ * @param {SVGSVGElement} svg - SVG element reference
  * @param {Object} imageDetails - Image dimensions
  * @param {number} imageDetails.naturalWidth - Natural width of image
  * @param {number} imageDetails.naturalHeight - Natural height of image
@@ -138,7 +138,7 @@ export function dataToSVGCoordinates(freq, time, config, imageDetails, rate) {
  * Convert SVG coordinates to screen coordinates
  * @param {number} svgX - SVG X coordinate
  * @param {number} svgY - SVG Y coordinate
- * @param {SVGElement} svg - SVG element reference
+ * @param {SVGSVGElement} svg - SVG element reference
  * @param {Object} imageDetails - Image dimensions
  * @param {number} imageDetails.naturalWidth - Natural width of image
  * @param {number} imageDetails.naturalHeight - Natural height of image

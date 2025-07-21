@@ -17,65 +17,15 @@ import {
   capitalizeFirstLetter
 } from './utils/calculations.js'
 
-/**
- * Initial state object for GramFrame component
- * @type {GramFrameState}
- */
-const initialState = {
-  version: '0.0.1',
-  timestamp: new Date().toISOString(),
-  metadata: {
-    instanceId: ''
-  },
-  mode: 'analysis', // 'analysis', 'doppler'
-  rate: 1,
-  cursorPosition: null,
-  cursors: [],
-  harmonics: {
-    baseFrequency: null,
-    harmonicData: []
-  },
-  doppler: {
-    startPoint: null,
-    endPoint: null,
-    deltaTime: null,
-    deltaFrequency: null,
-    speed: null
-  },
-  dragState: {
-    isDragging: false,
-    dragStartPosition: null
-  },
-  imageDetails: {
-    url: '',
-    naturalWidth: 0,  // Original dimensions of the image
-    naturalHeight: 0
-  },
-  config: {
-    timeMin: 0,
-    timeMax: 0,
-    freqMin: 0,
-    freqMax: 0
-  },
-  displayDimensions: {  // Current display dimensions (responsive)
-    width: 0,
-    height: 0
-  },
-  axes: {
-    margins: {
-      left: 60,    // Space for time axis labels
-      bottom: 50,  // Space for frequency axis labels  
-      right: 15,   // Small right margin
-      top: 15      // Small top margin
-    }
-  }
-}
+import {
+  createInitialState,
+  notifyStateListeners,
+  addGlobalStateListener,
+  removeGlobalStateListener,
+  getGlobalStateListeners,
+  clearGlobalStateListeners
+} from './core/state.js'
 
-/**
- * Global registry of listeners that should be applied to all instances
- * @type {StateListener[]}
- */
-const globalStateListeners = []
 
 /**
  * GramFrame class - Main component implementation
@@ -86,7 +36,7 @@ class GramFrame {
    * @param {HTMLTableElement} configTable - Configuration table element to replace
    */
   constructor(configTable) {
-    this.state = JSON.parse(JSON.stringify(initialState))
+    this.state = createInitialState()
     this.configTable = configTable
     
     /**
@@ -192,7 +142,7 @@ class GramFrame {
     }
     
     // Apply any globally registered listeners to this new instance
-    globalStateListeners.forEach(listener => {
+    getGlobalStateListeners().forEach(listener => {
       if (!this.stateListeners.includes(listener)) {
         this.stateListeners.push(listener)
       }
@@ -208,7 +158,7 @@ class GramFrame {
     this._setupResizeObserver()
     
     // Notify listeners of initial state
-    this._notifyStateListeners()
+    notifyStateListeners(this.state, this.stateListeners)
   }
   
   /**
@@ -492,7 +442,7 @@ class GramFrame {
     this._drawAxes()
     
     // Notify listeners
-    this._notifyStateListeners()
+    notifyStateListeners(this.state, this.stateListeners)
     
     // Log resize event for debugging
     console.log('GramFrame resized:', this.state.displayDimensions)
@@ -534,7 +484,7 @@ class GramFrame {
       // Clear cursor position when mouse is outside image bounds
       this.state.cursorPosition = null
       this._updateLEDDisplays()
-      this._notifyStateListeners()
+      notifyStateListeners(this.state, this.stateListeners)
       return
     }
     
@@ -570,7 +520,7 @@ class GramFrame {
     }
     
     // Notify listeners
-    this._notifyStateListeners()
+    notifyStateListeners(this.state, this.stateListeners)
   }
   
   /**
@@ -588,7 +538,7 @@ class GramFrame {
     this._updateCursorIndicators()
     
     // Notify listeners
-    this._notifyStateListeners()
+    notifyStateListeners(this.state, this.stateListeners)
   }
   
   /**
@@ -628,7 +578,7 @@ class GramFrame {
       this._updateCursorIndicators()
       
       // Notify listeners of state change
-      this._notifyStateListeners()
+      notifyStateListeners(this.state, this.stateListeners)
     }
   }
   
@@ -692,7 +642,7 @@ class GramFrame {
     this._updateCursorIndicators()
     
     // Notify listeners of state change
-    this._notifyStateListeners()
+    notifyStateListeners(this.state, this.stateListeners)
   }
   
   /**
@@ -961,7 +911,7 @@ class GramFrame {
     this._updateDisplayVisibility()
     
     // Notify listeners
-    this._notifyStateListeners()
+    notifyStateListeners(this.state, this.stateListeners)
   }
   
   /**
@@ -982,7 +932,7 @@ class GramFrame {
     }
     
     // Notify listeners
-    this._notifyStateListeners()
+    notifyStateListeners(this.state, this.stateListeners)
   }
   
   /**
@@ -1175,7 +1125,7 @@ class GramFrame {
     this._updateCursorIndicators()
     
     // Notify listeners of state change
-    this._notifyStateListeners()
+    notifyStateListeners(this.state, this.stateListeners)
   }
   
   /**
@@ -1492,7 +1442,7 @@ class GramFrame {
             this._drawAxes()
             
             // Notify listeners of updated state
-            this._notifyStateListeners()
+            notifyStateListeners(this.state, this.stateListeners)
           }
         } catch (error) {
           console.error('GramFrame: Error during image setup:', error)
@@ -1576,22 +1526,6 @@ class GramFrame {
   /**
    * Notify all registered state listeners of state changes
    */
-  _notifyStateListeners() {
-    // Log state changes to console for Task 1.4
-    console.log('GramFrame State Updated:', JSON.stringify(this.state, null, 2))
-    
-    // Create a deep copy of the state to prevent direct modification
-    const stateCopy = JSON.parse(JSON.stringify(this.state))
-    
-    // Notify all registered state listeners for this instance
-    this.stateListeners.forEach(listener => {
-      try {
-        listener(stateCopy)
-      } catch (error) {
-        console.error('Error in state listener:', error)
-      }
-    })
-  }
 }
 
 /**
@@ -1776,9 +1710,7 @@ const GramFrameAPI = {
     }
     
     // Add to global registry for future instances
-    if (!globalStateListeners.includes(callback)) {
-      globalStateListeners.push(callback)
-    }
+    addGlobalStateListener(callback)
     
     // Add the listener to all existing instances
     const instances = document.querySelectorAll('.gram-frame-container')
@@ -1831,9 +1763,8 @@ const GramFrameAPI = {
     let removed = false
     
     // Remove from global registry
-    const globalIndex = globalStateListeners.indexOf(callback)
-    if (globalIndex !== -1) {
-      globalStateListeners.splice(globalIndex, 1)
+    const wasRemoved = removeGlobalStateListener(callback)
+    if (wasRemoved) {
       removed = true
     }
     
@@ -1880,8 +1811,8 @@ const GramFrameAPI = {
       // @ts-ignore - Custom property on DOM element
       const instance = container.__gramFrameInstance
       if (instance) {
-        // Trigger a state update by calling _notifyStateListeners
-        instance._notifyStateListeners()
+        // Trigger a state update by calling notifyStateListeners
+        notifyStateListeners(instance.state, instance.stateListeners)
       }
     })
   },
@@ -2039,10 +1970,10 @@ if (import.meta.hot) {
     console.log('🔄 GramFrame component updated - Hot reloading')
     
     // Store old state listeners before replacing the API
-    const oldListeners = [...globalStateListeners]
+    const oldListeners = getGlobalStateListeners()
     
     // Clear existing listeners
-    globalStateListeners.length = 0
+    clearGlobalStateListeners()
     
     // Re-initialize the component
     const instances = GramFrameAPI.init()
