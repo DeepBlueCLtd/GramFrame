@@ -48,30 +48,6 @@ export function screenToSVGCoordinates(screenX, screenY, svg, imageDetails) {
   }
 }
 
-/**
- * Convert SVG coordinates to data coordinates (time and frequency)
- * @param {number} svgX - SVG X coordinate
- * @param {number} svgY - SVG Y coordinate
- * @param {Object} margins - Axis margins
- * @param {number} margins.left - Left margin
- * @param {number} margins.top - Top margin
- * @param {Object} config - Configuration object
- * @param {number} config.freqMin - Minimum frequency
- * @param {number} config.freqMax - Maximum frequency
- * @param {number} config.timeMin - Minimum time
- * @param {number} config.timeMax - Maximum time
- * @param {Object} imageDetails - Image dimensions
- * @param {number} imageDetails.naturalWidth - Natural width of image
- * @param {number} imageDetails.naturalHeight - Natural height of image
- * @param {number} rate - Rate scaling factor
- * @returns {DataCoordinates} Data coordinates
- */
-export function svgToDataCoordinates(svgX, svgY, margins, config, imageDetails, rate) {
-  const imageX = svgX - margins.left
-  const imageY = svgY - margins.top
-  
-  return imageToDataCoordinates(imageX, imageY, config, imageDetails, rate)
-}
 
 /**
  * Convert image-relative coordinates to data coordinates (time and frequency)
@@ -134,40 +110,3 @@ export function dataToSVGCoordinates(freq, time, config, imageDetails, rate) {
   return { x, y }
 }
 
-/**
- * Convert SVG coordinates to screen coordinates
- * @param {number} svgX - SVG X coordinate
- * @param {number} svgY - SVG Y coordinate
- * @param {SVGSVGElement} svg - SVG element reference
- * @param {Object} imageDetails - Image dimensions
- * @param {number} imageDetails.naturalWidth - Natural width of image
- * @param {number} imageDetails.naturalHeight - Natural height of image
- * @returns {ScreenCoordinates} Screen coordinates
- */
-export function svgToScreenCoordinates(svgX, svgY, svg, imageDetails) {
-  const svgRect = svg.getBoundingClientRect()
-  const viewBox = svg.viewBox.baseVal
-  
-  // If viewBox is not set, fall back to using image natural dimensions
-  if (!viewBox || viewBox.width === 0 || viewBox.height === 0) {
-    if (imageDetails.naturalWidth && imageDetails.naturalHeight) {
-      const scaleX = svgRect.width / imageDetails.naturalWidth
-      const scaleY = svgRect.height / imageDetails.naturalHeight
-      return {
-        x: svgX * scaleX,
-        y: svgY * scaleY
-      }
-    }
-    // Default fallback - use SVG coordinates as screen coordinates
-    return { x: svgX, y: svgY }
-  }
-  
-  // Scale factors between SVG and screen coordinates
-  const scaleX = svgRect.width / viewBox.width
-  const scaleY = svgRect.height / viewBox.height
-  
-  return {
-    x: svgX * scaleX,
-    y: svgY * scaleY
-  }
-}

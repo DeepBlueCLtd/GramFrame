@@ -6,15 +6,12 @@
 
 import { 
   screenToSVGCoordinates,
-  svgToDataCoordinates,
   imageToDataCoordinates,
-  dataToSVGCoordinates,
-  svgToScreenCoordinates
+  dataToSVGCoordinates
 } from './utils/coordinates.js'
 
 import {
-  calculateHarmonics,
-  capitalizeFirstLetter
+  calculateHarmonics
 } from './utils/calculations.js'
 
 import {
@@ -31,10 +28,7 @@ import {
   updateDisplayVisibility,
   createModeSwitchingUI,
   createRateInput,
-  createLEDDisplay,
-  updateLEDDisplays,
-  updateModeLED,
-  updateRateLED
+  updateLEDDisplays
 } from './components/UIComponents.js'
 
 import {
@@ -185,90 +179,8 @@ class GramFrame {
    */
   
 
-  /**
-   * Creates mode switching button UI
-   */
-  _createModeSwitchingUI() {
-    // Create mode buttons container
-    /** @type {HTMLDivElement} */
-    this.modesContainer = document.createElement('div')
-    this.modesContainer.className = 'gram-frame-modes'
-    
-    // Create mode buttons
-    const modes = ['analysis', 'doppler']
-    /** @type {Record<string, HTMLButtonElement>} */
-    this.modeButtons = {}
-    
-    modes.forEach(mode => {
-      const button = document.createElement('button')
-      button.className = 'gram-frame-mode-btn'
-      button.textContent = capitalizeFirstLetter(mode)
-      button.dataset.mode = mode
-      
-      // Set active state for current mode
-      if (mode === this.state.mode) {
-        button.classList.add('active')
-      }
-      
-      this.modeButtons[mode] = button
-      if (this.modesContainer) {
-        this.modesContainer.appendChild(button)
-      }
-    })
-    
-    // Append to mode header instead of main container
-    this.modeCell.appendChild(this.modesContainer)
-  }
   
-  /**
-   * Creates rate input control
-   */
-  _createRateInput() {
-    // Create rate input container
-    const rateContainer = document.createElement('div')
-    rateContainer.className = 'gram-frame-rate'
-    
-    // Create label
-    const label = document.createElement('label')
-    label.textContent = 'Rate:'
-    rateContainer.appendChild(label)
-    
-    // Create input
-    /** @type {HTMLInputElement} */
-    this.rateInput = document.createElement('input')
-    this.rateInput.type = 'number'
-    this.rateInput.min = '0.1'
-    this.rateInput.step = '0.1'
-    this.rateInput.value = String(this.state.rate)
-    this.rateInput.title = 'Rate value affects Doppler speed calculations'
-    rateContainer.appendChild(this.rateInput)
-    
-    // Create unit indicator
-    const unit = document.createElement('span')
-    unit.textContent = 'Hz/s'
-    unit.className = 'gram-frame-rate-unit'
-    rateContainer.appendChild(unit)
-    
-    // Hide rate input for now (not in mockup design)
-    rateContainer.style.display = 'none'
-    this.container.appendChild(rateContainer)
-  }
   
-  /**
-   * Creates a single LED display element
-   * @param {string} label - Display label
-   * @param {string} value - Initial display value
-   * @returns {HTMLDivElement} The LED display element
-   */
-  _createLEDDisplay(label, value) {
-    const led = document.createElement('div')
-    led.className = 'gram-frame-led'
-    led.innerHTML = `
-      <div class="gram-frame-led-label">${label}</div>
-      <div class="gram-frame-led-value">${value}</div>
-    `
-    return led
-  }
   
   /**
    * Sets up event listeners for mouse interactions and UI controls
@@ -998,47 +910,6 @@ class GramFrame {
     })
   }
   
-  /**
-   * Calculate harmonic frequencies and their positions
-   * @param {number} baseFrequency - Base frequency in Hz
-   * @returns {HarmonicData[]} Array of harmonic data
-   */
-  _calculateHarmonics(baseFrequency) {
-    const { freqMin, freqMax } = this.state.config
-    const { width } = this.state.displayDimensions
-    const harmonics = []
-    
-    // Start with the base frequency (1x harmonic)
-    let harmonicNumber = 1
-    let harmonicFreq = baseFrequency * harmonicNumber
-    
-    // Add harmonics while they're within the visible frequency range
-    // Continue until we exceed the maximum frequency or reach the right edge of the component
-    while (harmonicFreq <= freqMax) {
-      if (harmonicFreq >= freqMin) {
-        // Convert frequency to SVG x-coordinate
-        const dataCoords = dataToSVGCoordinates(harmonicFreq, 0, this.state.config, this.state.imageDetails, this.state.rate)
-        const svgX = this.state.axes.margins.left + dataCoords.x
-        
-        // If we've reached the right edge of the component, stop adding harmonics
-        const rightEdge = this.state.axes.margins.left + width - this.state.axes.margins.right
-        if (svgX > rightEdge) {
-          break
-        }
-        
-        harmonics.push({
-          number: harmonicNumber,
-          frequency: harmonicFreq,
-          svgX: svgX
-        })
-      }
-      
-      harmonicNumber++
-      harmonicFreq = baseFrequency * harmonicNumber
-    }
-    
-    return harmonics
-  }
   
   /**
    * Draw a single harmonic line
@@ -1197,14 +1068,6 @@ class GramFrame {
     this.cursorGroup.appendChild(mainLine)
   }
   
-  /**
-   * Capitalize first letter of a string
-   * @param {string} string - Input string
-   * @returns {string} Capitalized string
-   */
-  _capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1)
-  }
   
   /**
    * Extract configuration data from the config table

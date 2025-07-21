@@ -252,20 +252,4 @@ export function updateLEDDisplays(ledElements, state) {
   }
 }
 
-/**
- * Update mode LED display
- * @param {HTMLElement} modeLED - Mode LED element
- * @param {string} mode - Current mode
- */
-export function updateModeLED(modeLED, mode) {
-  modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(mode)
-}
 
-/**
- * Update rate LED display
- * @param {HTMLElement} rateLED - Rate LED element
- * @param {number} rate - Current rate value
- */
-export function updateRateLED(rateLED, rate) {
-  rateLED.querySelector('.gram-frame-led-value').textContent = `${rate} Hz/s`
-}
