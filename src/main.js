@@ -4,6 +4,19 @@
 
 /// <reference path="./types.js" />
 
+import { 
+  screenToSVGCoordinates,
+  svgToDataCoordinates,
+  imageToDataCoordinates,
+  dataToSVGCoordinates,
+  svgToScreenCoordinates
+} from './utils/coordinates.js'
+
+import {
+  calculateHarmonics,
+  capitalizeFirstLetter
+} from './utils/calculations.js'
+
 /**
  * Initial state object for GramFrame component
  * @type {GramFrameState}
@@ -217,7 +230,7 @@ class GramFrame {
     this.readoutPanel.appendChild(this.speedLED)
     
     // Hide other displays for backward compatibility
-    this.modeLED = this._createLEDDisplay('Mode', this._capitalizeFirstLetter(this.state.mode))
+    this.modeLED = this._createLEDDisplay('Mode', capitalizeFirstLetter(this.state.mode))
     this.modeLED.style.display = 'none'
     this.readoutPanel.appendChild(this.modeLED)
     
@@ -271,7 +284,7 @@ class GramFrame {
     modes.forEach(mode => {
       const button = document.createElement('button')
       button.className = 'gram-frame-mode-btn'
-      button.textContent = this._capitalizeFirstLetter(mode)
+      button.textContent = capitalizeFirstLetter(mode)
       button.dataset.mode = mode
       
       // Set active state for current mode
@@ -506,7 +519,7 @@ class GramFrame {
       const rect = this.svg.getBoundingClientRect()
       const x = event.clientX - rect.left
       const y = event.clientY - rect.top
-      svgCoords = this._screenToSVGCoordinates(x, y)
+      svgCoords = screenToSVGCoordinates(x, y, this.svg, this.state.imageDetails)
     }
     
     // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
@@ -526,7 +539,7 @@ class GramFrame {
     }
     
     // Convert image-relative coordinates to data coordinates
-    const dataCoords = this._imageToDataCoordinates(imageRelativeX, imageRelativeY)
+    const dataCoords = imageToDataCoordinates(imageRelativeX, imageRelativeY, this.state.config, this.state.imageDetails, this.state.rate)
     
     // Calculate screen coordinates for state (relative to SVG)
     const rect = this.svg.getBoundingClientRect()
@@ -746,145 +759,10 @@ class GramFrame {
     }
   }
   
-  /**
-   * Convert screen coordinates to SVG coordinates
-   */
-  /**
-   * Convert screen coordinates to SVG coordinates
-   * @param {number} screenX - Screen X coordinate
-   * @param {number} screenY - Screen Y coordinate
-   * @returns {SVGCoordinates} SVG coordinates
-   */
-  _screenToSVGCoordinates(screenX, screenY) {
-    const svgRect = this.svg.getBoundingClientRect()
-    const viewBox = this.svg.viewBox.baseVal
-    
-    // If viewBox is not set, fall back to using image natural dimensions
-    if (!viewBox || viewBox.width === 0 || viewBox.height === 0) {
-      if (this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
-        const scaleX = this.state.imageDetails.naturalWidth / svgRect.width
-        const scaleY = this.state.imageDetails.naturalHeight / svgRect.height
-        return {
-          x: screenX * scaleX,
-          y: screenY * scaleY
-        }
-      }
-      // Default fallback - use screen coordinates
-      return { x: screenX, y: screenY }
-    }
-    
-    // Scale factors between screen and SVG coordinates
-    const scaleX = viewBox.width / svgRect.width
-    const scaleY = viewBox.height / svgRect.height
-    
-    return {
-      x: screenX * scaleX,
-      y: screenY * scaleY
-    }
-  }
   
-  /**
-   * Convert SVG coordinates to data coordinates (time and frequency)
-   */
-  /**
-   * Convert SVG coordinates to data coordinates (time and frequency)
-   * @param {number} svgX - SVG X coordinate
-   * @param {number} svgY - SVG Y coordinate
-   * @returns {DataCoordinates} Data coordinates
-   */
-  _svgToDataCoordinates(svgX, svgY) {
-    const margins = this.state.axes.margins
-    const imageX = svgX - margins.left
-    const imageY = svgY - margins.top
-    
-    return this._imageToDataCoordinates(imageX, imageY)
-  }
   
-  /**
-   * Convert image-relative coordinates to data coordinates (time and frequency)
-   */
-  /**
-   * Convert image-relative coordinates to data coordinates (time and frequency)
-   * @param {number} imageX - Image X coordinate
-   * @param {number} imageY - Image Y coordinate
-   * @returns {DataCoordinates} Data coordinates
-   */
-  _imageToDataCoordinates(imageX, imageY) {
-    const { freqMin, freqMax, timeMin, timeMax } = this.state.config
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    
-    // Ensure coordinates are within image bounds
-    const boundedX = Math.max(0, Math.min(imageX, naturalWidth))
-    const boundedY = Math.max(0, Math.min(imageY, naturalHeight))
-    
-    // Convert to data coordinates
-    const rawFreq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
-    const time = timeMax - (boundedY / naturalHeight) * (timeMax - timeMin)
-    
-    // Apply rate scaling to frequency - rate acts as a frequency divider
-    const freq = rawFreq / this.state.rate
-    
-    return { freq, time }
-  }
   
-  /**
-   * Convert data coordinates to SVG coordinates
-   */
-  /**
-   * Convert data coordinates to SVG coordinates
-   * @param {number} freq - Frequency in Hz
-   * @param {number} time - Time in seconds
-   * @returns {SVGCoordinates} SVG coordinates
-   */
-  _dataToSVGCoordinates(freq, time) {
-    const { freqMin, freqMax, timeMin, timeMax } = this.state.config
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    
-    // Convert frequency back to raw frequency space for positioning
-    const rawFreq = freq * this.state.rate
-    
-    const x = ((rawFreq - freqMin) / (freqMax - freqMin)) * naturalWidth
-    const y = naturalHeight - ((time - timeMin) / (timeMax - timeMin)) * naturalHeight
-    
-    return { x, y }
-  }
   
-  /**
-   * Convert SVG coordinates to screen coordinates
-   */
-  /**
-   * Convert SVG coordinates to screen coordinates
-   * @param {number} svgX - SVG X coordinate
-   * @param {number} svgY - SVG Y coordinate
-   * @returns {ScreenCoordinates} Screen coordinates
-   */
-  _svgToScreenCoordinates(svgX, svgY) {
-    const svgRect = this.svg.getBoundingClientRect()
-    const viewBox = this.svg.viewBox.baseVal
-    
-    // If viewBox is not set, fall back to using image natural dimensions
-    if (!viewBox || viewBox.width === 0 || viewBox.height === 0) {
-      if (this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
-        const scaleX = svgRect.width / this.state.imageDetails.naturalWidth
-        const scaleY = svgRect.height / this.state.imageDetails.naturalHeight
-        return {
-          x: svgX * scaleX,
-          y: svgY * scaleY
-        }
-      }
-      // Default fallback - use SVG coordinates as screen coordinates
-      return { x: svgX, y: svgY }
-    }
-    
-    // Scale factors between SVG and screen coordinates
-    const scaleX = svgRect.width / viewBox.width
-    const scaleY = svgRect.height / viewBox.height
-    
-    return {
-      x: svgX * scaleX,
-      y: svgY * scaleY
-    }
-  }
   
   /**
    * Draw axes with tick marks and labels
@@ -1174,7 +1052,7 @@ class GramFrame {
   _updateModeLED() {
     // Update mode LED
     this.modeLED.querySelector('.gram-frame-led-value').textContent = 
-      this._capitalizeFirstLetter(this.state.mode)
+      capitalizeFirstLetter(this.state.mode)
   }
   
   /**
@@ -1278,7 +1156,13 @@ class GramFrame {
     const baseFrequency = this.state.cursorPosition.freq
     
     // Calculate harmonic frequencies and their positions
-    const harmonics = this._calculateHarmonics(baseFrequency)
+    const harmonics = calculateHarmonics(
+      baseFrequency,
+      this.state.config,
+      this.state.displayDimensions,
+      this.state.axes,
+      (freq, time) => dataToSVGCoordinates(freq, time, this.state.config, this.state.imageDetails, this.state.rate)
+    )
     
     // Update state with harmonic data
     this.state.harmonics.baseFrequency = baseFrequency
@@ -1328,7 +1212,7 @@ class GramFrame {
     while (harmonicFreq <= freqMax) {
       if (harmonicFreq >= freqMin) {
         // Convert frequency to SVG x-coordinate
-        const dataCoords = this._dataToSVGCoordinates(harmonicFreq, 0)
+        const dataCoords = dataToSVGCoordinates(harmonicFreq, 0, this.state.config, this.state.imageDetails, this.state.rate)
         const svgX = this.state.axes.margins.left + dataCoords.x
         
         // If we've reached the right edge of the component, stop adding harmonics
@@ -1446,7 +1330,7 @@ class GramFrame {
     const margins = this.state.axes.margins
     
     // Convert data coordinates to SVG coordinates
-    const dataCoords = this._dataToSVGCoordinates(point.freq, point.time)
+    const dataCoords = dataToSVGCoordinates(point.freq, point.time, this.state.config, this.state.imageDetails, this.state.rate)
     const svgX = margins.left + dataCoords.x
     const svgY = margins.top + dataCoords.y
     
@@ -1479,8 +1363,8 @@ class GramFrame {
     const margins = this.state.axes.margins
     
     // Convert data coordinates to SVG coordinates
-    const startCoords = this._dataToSVGCoordinates(this.state.doppler.startPoint.freq, this.state.doppler.startPoint.time)
-    const endCoords = this._dataToSVGCoordinates(this.state.doppler.endPoint.freq, this.state.doppler.endPoint.time)
+    const startCoords = dataToSVGCoordinates(this.state.doppler.startPoint.freq, this.state.doppler.startPoint.time, this.state.config, this.state.imageDetails, this.state.rate)
+    const endCoords = dataToSVGCoordinates(this.state.doppler.endPoint.freq, this.state.doppler.endPoint.time, this.state.config, this.state.imageDetails, this.state.rate)
     
     const startX = margins.left + startCoords.x
     const startY = margins.top + startCoords.y
