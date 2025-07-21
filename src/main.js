@@ -202,26 +202,21 @@ class GramFrame {
    * Creates LED display elements for showing measurement values
    */
   _createLEDDisplays() {
-    // Create three main displays to match mockup: RANGE, FREQUENCY, VELOCITY
+    // Create displays for both modes
     
-    // Range display (using time as range proxy)
-    this.rangeLED = this._createLEDDisplay('Range', '200 m')
-    this.readoutPanel.appendChild(this.rangeLED)
-    
-    // Frequency display
-    this.freqLED = this._createLEDDisplay('Frequency', '75.2 Hz')
-    this.readoutPanel.appendChild(this.freqLED)
-    
-    // Velocity display  
-    this.velocityLED = this._createLEDDisplay('Velocity', '-15.8 m/s')
-    this.readoutPanel.appendChild(this.velocityLED)
-    
-    // Hide other displays for cleaner mockup appearance
-    // Keep them for backward compatibility but hidden
+    // Time display - shown in both modes
     this.timeLED = this._createLEDDisplay('Time', '0.00 s')
-    this.timeLED.style.display = 'none'
     this.readoutPanel.appendChild(this.timeLED)
     
+    // Frequency display - shown in both modes
+    this.freqLED = this._createLEDDisplay('Frequency', '0.00 Hz')
+    this.readoutPanel.appendChild(this.freqLED)
+    
+    // Speed display - only shown in Doppler mode
+    this.speedLED = this._createLEDDisplay('Speed', '0.0 knots')
+    this.readoutPanel.appendChild(this.speedLED)
+    
+    // Hide other displays for backward compatibility
     this.modeLED = this._createLEDDisplay('Mode', this._capitalizeFirstLetter(this.state.mode))
     this.modeLED.style.display = 'none'
     this.readoutPanel.appendChild(this.modeLED)
@@ -234,15 +229,31 @@ class GramFrame {
     this.deltaFreqLED.style.display = 'none'
     this.readoutPanel.appendChild(this.deltaFreqLED)
     
-    this.speedLED = this._createLEDDisplay('Speed', '0.0 knots')
-    this.speedLED.style.display = 'none'
-    this.readoutPanel.appendChild(this.speedLED)
-    
     this.rateLED = this._createLEDDisplay('Rate', `${this.state.rate} Hz/s`)
     this.rateLED.style.display = 'none'
     this.readoutPanel.appendChild(this.rateLED)
+    
+    // Set initial display state based on current mode
+    this._updateDisplayVisibility()
   }
   
+  /**
+   * Updates display visibility based on current mode
+   */
+  _updateDisplayVisibility() {
+    if (this.state.mode === 'analysis') {
+      // Analysis mode: show Time and Frequency only
+      this.timeLED.style.display = ''
+      this.freqLED.style.display = ''
+      this.speedLED.style.display = 'none'
+    } else if (this.state.mode === 'doppler') {
+      // Doppler mode: show Time, Frequency, and Speed
+      this.timeLED.style.display = ''
+      this.freqLED.style.display = ''
+      this.speedLED.style.display = ''
+    }
+  }
+
   /**
    * Creates mode switching button UI
    */
@@ -1054,6 +1065,9 @@ class GramFrame {
     // Update LED display
     this._updateModeLED()
     this._updateLEDDisplays()
+    
+    // Update display visibility based on new mode
+    this._updateDisplayVisibility()
     
     // Notify listeners
     this._notifyStateListeners()
