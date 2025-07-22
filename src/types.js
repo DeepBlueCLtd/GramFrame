@@ -93,6 +93,7 @@
  * @property {number|null} originalSpacing - Original spacing of dragged harmonic set
  * @property {number|null} originalAnchorTime - Original anchor time of dragged harmonic set  
  * @property {number|null} clickedHarmonicNumber - Which harmonic number was clicked for dragging
+ * @property {boolean} isCreatingNewHarmonicSet - Whether currently creating a new harmonic set via drag
  */
 
 /**

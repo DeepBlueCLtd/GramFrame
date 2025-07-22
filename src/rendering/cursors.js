@@ -109,12 +109,7 @@ export function drawHarmonicsMode(instance) {
     drawHarmonicSetLines(instance, harmonicSet)
   })
   
-  // Then draw old harmonics system if they exist (temporary compatibility)
-  const harmonics = instance.state.harmonics.harmonicData
-  harmonics.forEach((harmonic, index) => {
-    drawHarmonicLine(instance, harmonic, index === 0)
-    drawHarmonicLabels(instance, harmonic, index === 0)
-  })
+  // Old harmonics system disabled - now using harmonic sets exclusively
 }
 
 /**
@@ -135,7 +130,8 @@ export function drawHarmonicSetLines(instance, harmonicSet) {
   const lineHeight = naturalHeight * 0.2
   const timeRange = instance.state.config.timeMax - instance.state.config.timeMin
   const timeRatio = (harmonicSet.anchorTime - instance.state.config.timeMin) / timeRange
-  const anchorSVGY = margins.top + timeRatio * naturalHeight
+  // Invert the Y coordinate since Y=0 is at top but timeMin should be at bottom
+  const anchorSVGY = margins.top + (1 - timeRatio) * naturalHeight
   const lineStartY = anchorSVGY - lineHeight / 2
   const lineEndY = anchorSVGY + lineHeight / 2
   

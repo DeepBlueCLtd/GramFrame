@@ -128,8 +128,8 @@ export class GramFrame {
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
-    // Create harmonic management panel (add to mode cell to avoid layout issues)
-    this.harmonicPanel = createHarmonicPanel(this.modeCell, this)
+    // Create harmonic management panel (add to readout panel)
+    this.harmonicPanel = createHarmonicPanel(this.readoutPanel, this)
     
     // Apply any globally registered listeners to this new instance
     getGlobalStateListeners().forEach(listener => {

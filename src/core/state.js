@@ -39,7 +39,8 @@ export const initialState = {
     draggedHarmonicSetId: null,
     originalSpacing: null,
     originalAnchorTime: null,
-    clickedHarmonicNumber: null
+    clickedHarmonicNumber: null,
+    isCreatingNewHarmonicSet: false
   },
   imageDetails: {
     url: '',

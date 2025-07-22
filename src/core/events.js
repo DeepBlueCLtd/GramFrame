@@ -167,9 +167,6 @@ export function handleMouseMove(instance, event) {
     if (instance.state.dragState.draggedHarmonicSetId) {
       // Update dragged harmonic set
       handleHarmonicSetDrag(instance)
-    } else {
-      // No dragging of harmonic sets - just regular cursor tracking during drag
-      // Old harmonics system is disabled in favor of click-to-create approach
     }
   }
   
@@ -203,9 +200,9 @@ function handleHarmonicSetDrag(instance) {
   const newSpacing = (instance.state.dragState.originalSpacing + deltaFreq / clickedHarmonicNumber)
   
   // Update anchor time based on vertical drag  
-  // Note: deltaTime is positive when dragging up, but we want up to decrease anchor time
-  // to move the lines up on screen, so we subtract deltaTime
-  const newAnchorTime = instance.state.dragState.originalAnchorTime - deltaTime
+  // Since we inverted the Y-axis in rendering (1 - timeRatio), dragging up (positive deltaTime)
+  // should now increase anchor time to move lines up on screen
+  const newAnchorTime = instance.state.dragState.originalAnchorTime + deltaTime
 
   // Apply updates
   const updates = {}
@@ -267,10 +264,28 @@ export function handleMouseDown(instance, event) {
       const harmonicNumber = Math.round(cursorFreq / existingSet.spacing)
       instance.state.dragState.clickedHarmonicNumber = harmonicNumber
     } else {
-      // Don't use old harmonics system - just set dragging for now
-      // This could be enhanced later to create harmonic sets while dragging
+      // Start creating a new harmonic set with click-and-drag
       instance.state.dragState.isDragging = true
       instance.state.dragState.dragStartPosition = { ...instance.state.cursorPosition }
+      instance.state.dragState.isCreatingNewHarmonicSet = true
+      
+      // Create initial harmonic set at click position
+      const cursorFreq = instance.state.cursorPosition.freq
+      const cursorTime = instance.state.cursorPosition.time
+      const freqOrigin = instance.state.config.freqMin
+      const initialHarmonicNumber = freqOrigin > 0 ? 10 : 5
+      const initialSpacing = cursorFreq / initialHarmonicNumber
+      
+      // Create the harmonic set and store its ID for live updating
+      const harmonicSet = instance._addHarmonicSet(cursorTime, initialSpacing)
+      instance.state.dragState.draggedHarmonicSetId = harmonicSet.id
+      instance.state.dragState.originalSpacing = initialSpacing
+      instance.state.dragState.originalAnchorTime = cursorTime
+      instance.state.dragState.clickedHarmonicNumber = initialHarmonicNumber
+      
+      // Update displays immediately for the new harmonic set
+      updateCursorIndicators(instance)
+      updateHarmonicPanel(instance)
     }
   }
 }
@@ -292,6 +307,7 @@ export function handleMouseUp(instance, event) {
     instance.state.dragState.originalSpacing = null
     instance.state.dragState.originalAnchorTime = null
     instance.state.dragState.clickedHarmonicNumber = null
+    instance.state.dragState.isCreatingNewHarmonicSet = false
     
     // Clear old harmonics system state (for backward compatibility)
     instance.state.harmonics.baseFrequency = null
@@ -382,29 +398,9 @@ export function handleDopplerClick(instance) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleHarmonicsClick(instance, event) {
-  if (!instance.state.cursorPosition) return
-
-  const cursorFreq = instance.state.cursorPosition.freq
-  const cursorTime = instance.state.cursorPosition.time
-
-  // Check if we clicked on an existing harmonic line for dragging
-  const existingSet = instance._findHarmonicSetAtFrequency(cursorFreq)
-  if (existingSet) {
-    // We clicked on an existing harmonic line - this will be handled by mouse down for dragging
-    return
-  }
-
-  // Create a new harmonic set
-  // Determine initial spacing: cursor represents 10th harmonic if freq origin > 0, else 5th harmonic
-  const freqOrigin = instance.state.config.freqMin
-  const initialHarmonicNumber = freqOrigin > 0 ? 10 : 5
-  const spacing = cursorFreq / initialHarmonicNumber
-
-  // Create the harmonic set
-  instance._addHarmonicSet(cursorTime, spacing)
-
-  // Update the harmonic management panel if it exists
-  updateHarmonicPanel(instance)
+  // Harmonics are now created via click-and-drag in handleMouseDown
+  // This function is kept for backward compatibility but no longer creates harmonics
+  // The creation logic has been moved to the mousedown handler for live drag creation
 }
 
 /**
