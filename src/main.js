@@ -205,11 +205,8 @@ export class GramFrame {
       this.state.doppler.isPreviewDrag = false
       this.state.doppler.previewEnd = null
       
-      // Remove speed LED display if it exists
-      if (this.speedLED) {
-        this.speedLED.remove()
-        this.speedLED = null
-      }
+      // Speed LED display is now handled by standard LED system
+      // No cleanup needed - it will be hidden by updateDisplayVisibility
     }
     
     
@@ -400,11 +397,8 @@ export class GramFrame {
     this.state.doppler.isPreviewDrag = false
     this.state.doppler.previewEnd = null
     
-    // Remove speed LED display if it exists
-    if (this.speedLED) {
-      this.speedLED.remove()
-      this.speedLED = null
-    }
+    // Speed LED display is now handled by standard LED system
+    // No cleanup needed - it will be hidden by updateDisplayVisibility
     
     // Update displays
     updateCursorIndicators(this)

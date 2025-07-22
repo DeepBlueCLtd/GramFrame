@@ -637,26 +637,8 @@ function calculateAndUpdateDopplerSpeed(instance) {
  * @param {Object} instance - GramFrame instance
  */
 function updateDopplerDisplays(instance) {
-  const doppler = instance.state.doppler
-  
-  if (doppler.speed !== null && instance.ledElements) {
-    // Create speed display if it doesn't exist
-    if (!instance.speedLED && instance.ledReadout) {
-      instance.speedLED = document.createElement('div')
-      instance.speedLED.className = 'gram-frame-led'
-      instance.speedLED.innerHTML = `
-        <div class="gram-frame-led-label">Speed (m/s)</div>
-        <div class="gram-frame-led-value">${doppler.speed.toFixed(1)}</div>
-      `
-      instance.ledReadout.appendChild(instance.speedLED)
-    } else if (instance.speedLED) {
-      // Update existing speed display
-      const valueElement = instance.speedLED.querySelector('.gram-frame-led-value')
-      if (valueElement) {
-        valueElement.textContent = doppler.speed.toFixed(1)
-      }
-    }
-  }
+  // Speed display is now handled by the standard LED display system
+  updateLEDDisplays(instance, instance.state)
 }
 
 /**

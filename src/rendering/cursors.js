@@ -311,18 +311,6 @@ export function drawDopplerMarker(instance, point, type) {
     verticalLine.setAttribute('stroke-width', '2')
     instance.cursorGroup.appendChild(horizontalLine)
     instance.cursorGroup.appendChild(verticalLine)
-    
-    // Add f₀ label
-    const label = createSVGText(
-      svgX + 12, svgY - 5,
-      'f₀',
-      'gram-frame-doppler-label',
-      'start'
-    )
-    label.setAttribute('fill', '#00ff00')
-    label.setAttribute('font-size', '14')
-    label.setAttribute('font-weight', 'bold')
-    instance.cursorGroup.appendChild(label)
   } else {
     // Draw dot for f+ and f-
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
@@ -344,18 +332,6 @@ export function drawDopplerMarker(instance, point, type) {
     
     circle.setAttribute('fill', color)
     instance.cursorGroup.appendChild(circle)
-    
-    // Add label
-    const label = createSVGText(
-      svgX + 8, svgY - 5,
-      labelText,
-      'gram-frame-doppler-label',
-      'start'
-    )
-    label.setAttribute('fill', color)
-    label.setAttribute('font-size', '14')
-    label.setAttribute('font-weight', 'bold')
-    instance.cursorGroup.appendChild(label)
   }
 }
 
@@ -507,10 +483,10 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
   const plusSVG = convertToSVG(fPlus)
   const zeroSVG = convertToSVG(fZero)
   
-  // Draw preview markers (semi-transparent)
-  drawPreviewMarker(instance, minusSVG, 'f−')
-  drawPreviewMarker(instance, plusSVG, 'f+')
-  drawPreviewMarker(instance, zeroSVG, 'f₀')
+  // Draw preview markers (no labels needed)
+  drawPreviewMarker(instance, minusSVG, 'fMinus')
+  drawPreviewMarker(instance, plusSVG, 'fPlus')
+  drawPreviewMarker(instance, zeroSVG, 'fZero')
   
   // Draw preview curve (semi-transparent)
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
@@ -530,7 +506,7 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
   path.setAttribute('stroke', '#ff0000')
   path.setAttribute('stroke-width', '2')
   path.setAttribute('fill', 'none')
-  path.setAttribute('opacity', '0.6')
+  path.setAttribute('opacity', '1.0')
   path.setAttribute('class', 'gram-frame-doppler-preview')
   
   instance.cursorGroup.appendChild(path)
@@ -540,10 +516,10 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
  * Draw a preview marker during drag
  * @param {Object} instance - GramFrame instance
  * @param {Object} svgPos - SVG position {x, y}
- * @param {string} label - Marker label
+ * @param {string} type - Marker type ('fZero', 'fPlus', 'fMinus')
  */
-function drawPreviewMarker(instance, svgPos, label) {
-  if (label === 'f₀') {
+function drawPreviewMarker(instance, svgPos, type) {
+  if (type === 'fZero') {
     // Draw cross-hair for f₀ preview
     const horizontalLine = createSVGLine(
       svgPos.x - 6, svgPos.y, svgPos.x + 6, svgPos.y, 
@@ -557,8 +533,8 @@ function drawPreviewMarker(instance, svgPos, label) {
     verticalLine.setAttribute('stroke', '#00ff00')
     horizontalLine.setAttribute('stroke-width', '1')
     verticalLine.setAttribute('stroke-width', '1')
-    horizontalLine.setAttribute('opacity', '0.6')
-    verticalLine.setAttribute('opacity', '0.6')
+    horizontalLine.setAttribute('opacity', '1.0')
+    verticalLine.setAttribute('opacity', '1.0')
     instance.cursorGroup.appendChild(horizontalLine)
     instance.cursorGroup.appendChild(verticalLine)
   } else {
@@ -568,22 +544,10 @@ function drawPreviewMarker(instance, svgPos, label) {
     circle.setAttribute('cy', String(svgPos.y))
     circle.setAttribute('r', '3')
     circle.setAttribute('fill', '#ff0000')
-    circle.setAttribute('opacity', '0.6')
+    circle.setAttribute('opacity', '1.0')
     circle.setAttribute('class', 'gram-frame-doppler-preview')
     instance.cursorGroup.appendChild(circle)
   }
-  
-  // Add preview label
-  const labelText = createSVGText(
-    svgPos.x + 8, svgPos.y - 5,
-    label,
-    'gram-frame-doppler-preview',
-    'start'
-  )
-  labelText.setAttribute('fill', label === 'f₀' ? '#00ff00' : '#ff0000')
-  labelText.setAttribute('font-size', '12')
-  labelText.setAttribute('opacity', '0.6')
-  instance.cursorGroup.appendChild(labelText)
 }
 
 

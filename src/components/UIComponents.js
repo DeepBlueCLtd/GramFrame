@@ -27,6 +27,11 @@ export function createLEDDisplays(readoutPanel, state) {
   readoutPanel.appendChild(ledElements.freqLED)
 
   
+  // Speed display for Doppler mode
+  ledElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
+  ledElements.speedLED.style.display = 'none'
+  readoutPanel.appendChild(ledElements.speedLED)
+  
   // Hide other displays for backward compatibility
   ledElements.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(state.mode))
   ledElements.modeLED.style.display = 'none'
@@ -52,18 +57,30 @@ export function updateDisplayVisibility(ledElements, mode) {
     // Analysis mode: show Time and Frequency only
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
   } else if (mode === 'harmonics') {
     // Harmonics mode: show Frequency only, Time is not needed
     ledElements.timeLED.style.display = 'none'
     ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
   } else if (mode === 'doppler') {
-    // Doppler mode: show Time and Frequency
+    // Doppler mode: show Time, Frequency, and Speed
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = ''
+    }
   } else {
     // Default: show Time and Frequency
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
   }
 }
 
@@ -133,13 +150,14 @@ export function updateGuidanceContent(guidancePanel, mode) {
   } else if (mode === 'harmonics') {
     guidancePanel.innerHTML = `
       <h4>Harmonics Mode</h4>
-      <p>• Drag to display harmonic lines</p>
-      <p>• Base frequency displays during drag</p>
+      <p>• Drag to generate harmonic lines</p>
+      <p>• Drag existing harmonic lines to adjust</p>
+      <p>• Spacing interval updates during drag</p>
     `
   } else if (mode === 'doppler') {
     guidancePanel.innerHTML = `
       <h4>Doppler Mode</h4>
-      <p>• Click to place f- then f+ markers</p>
+      <p>• Drag line to give overall doppler curve</p>
       <p>• Drag markers to adjust curve</p>
       <p>• Right-click to reset</p>
     `
@@ -256,6 +274,17 @@ export function updateLEDDisplays(ledElements, state) {
     // Update time LED - use 2 decimal places as per spec
     const timeValue = state.cursorPosition.time.toFixed(2)
     ledElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
+  }
+  
+  // Update speed LED for Doppler mode
+  if (state.mode === 'doppler' && ledElements.speedLED) {
+    if (state.doppler.speed !== null) {
+      // Convert m/s to knots: 1 m/s = 1.94384 knots
+      const speedInKnots = state.doppler.speed * 1.94384
+      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
+    } else {
+      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
+    }
   }
 }
 
