@@ -118,7 +118,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   guidancePanel.className = 'gram-frame-guidance'
   updateGuidanceContent(guidancePanel, state.mode)
   
-  // Append both to mode header
+  // Append all to mode header
   modeCell.appendChild(modesContainer)
   modeCell.appendChild(guidancePanel)
   

@@ -116,6 +116,9 @@ export class GramFrame {
     this.modeButtons = modeUI.modeButtons
     this.guidancePanel = modeUI.guidancePanel
     
+    // Append LED readout panel to mode cell
+    this.modeCell.appendChild(this.readoutPanel)
+    
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     

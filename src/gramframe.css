@@ -121,11 +121,12 @@
 .gram-frame-readout {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 10px;
   padding: 0;
   background: transparent;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
+  flex-shrink: 0;
 }
 
 /* Military-style display windows */
@@ -133,18 +134,19 @@
   font-family: 'Courier New', monospace;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
   color: #00ff00; /* LED green */
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 2px solid #333;
   border-radius: 4px;
   display: flex;
   flex-direction: column;
-  min-width: 120px;
+  min-width: 100px;
   text-align: center;
   box-shadow: 
     inset 0 2px 6px rgba(0,0,0,0.8),
     inset 0 -1px 2px rgba(255,255,255,0.05),
     0 2px 4px rgba(0,0,0,0.5);
   position: relative;
+  font-size: 11px;
 }
 
 .gram-frame-led:before {
@@ -184,6 +186,7 @@
   display: flex;
   gap: 20px;
   align-items: flex-start;
+  justify-content: space-between;
 }
 
 .gram-frame-modes {

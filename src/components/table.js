@@ -38,19 +38,10 @@ export function createComponentStructure(instance) {
   instance.mainCell.className = 'gram-frame-cell gram-frame-main-panel'
   instance.mainRow.appendChild(instance.mainCell)
   
-  // Create display panel row
-  instance.displayRow = document.createElement('div')
-  instance.displayRow.className = 'gram-frame-row'
-  instance.table.appendChild(instance.displayRow)
-  
-  instance.displayCell = document.createElement('div')
-  instance.displayCell.className = 'gram-frame-cell gram-frame-display-panel'
-  instance.displayRow.appendChild(instance.displayCell)
-  
-  // Create LED readout panel in display cell
+  // Create LED readout panel in mode cell (moved from separate display row)
   instance.readoutPanel = document.createElement('div')
   instance.readoutPanel.className = 'gram-frame-readout'
-  instance.displayCell.appendChild(instance.readoutPanel)
+  // Will be appended to modeCell in UIComponents.js
   
   return {
     container: instance.container,
@@ -59,8 +50,6 @@ export function createComponentStructure(instance) {
     modeCell: instance.modeCell,
     mainRow: instance.mainRow,
     mainCell: instance.mainCell,
-    displayRow: instance.displayRow,
-    displayCell: instance.displayCell,
     readoutPanel: instance.readoutPanel
   }
 }
