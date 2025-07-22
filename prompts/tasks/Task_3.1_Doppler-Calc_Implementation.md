@@ -30,6 +30,7 @@ Your task is to build the `Doppler-Calc` feature on top of this existing foundat
         *   Define the `DopplerPoint` and `DopplerFit` types in your component's state management, as specified in `docs/Doppler-Calc.md`.
         *   Add a `dopplerFit` object to the component's state to hold the `fPlus`, `fMinus`, `fZero` points, and the calculated `speed`.
         *   Initialize this state to be empty or null.
+        *   Stop for review
 
     2.  **Event Handling (`click`):**
         *   Modify the existing `click` handler. When the component is in `Doppler` mode, the click logic should be as follows:
@@ -37,22 +38,26 @@ Your task is to build the `Doppler-Calc` feature on top of this existing foundat
             *   The **second click** sets the `fMinus` point (start of engagement).
             *   Subsequent clicks in `Doppler` mode should do nothing until the points are reset.
         *   After the second click (`fMinus` is set), you must calculate the initial `fZero` point. Its time coordinate is the midpoint between `fPlus.time` and `fMinus.time`, and its frequency is the midpoint between `fPlus.frequency` and `fMinus.frequency`.
+        *   Stop for review
 
     3.  **UI Rendering (Markers & Curve):**
         *   When `fPlus` is set, render a red dot marker at its coordinates.
         *   When `fMinus` is set, render a blue dot marker at its coordinates.
         *   When `fZero` is set, render a draggable green cross-hair marker at its coordinates.
         *   Once `fPlus` and `fMinus` are set, render a smooth S-curve connecting them. A simple cosine or sigmoid interpolation is sufficient. The curve should visually react to changes in the marker positions.
+        *   Stop for review
 
     4.  **Speed Calculation:**
         *   Implement the speed calculation logic as defined in `docs/Doppler-Calc.md`:
             *   `Δf = (fPlus.frequency - fMinus.frequency) / 2`
             *   `v = (c / fZero.frequency) × Δf` (where `c` = 1500 m/s).
         *   This calculation should be triggered whenever `fPlus`, `fMinus`, or `fZero` are updated.
+        *   Stop for review
 
     5.  **UI Rendering (Speed Readout):**
         *   Create a new UI element to display the calculated speed (`v`) in m/s.
         *   This readout should update in real-time as the Doppler curve is manipulated.
+        *   Stop for review
 
     6.  **Interaction (`drag`):**
         *   Implement drag functionality for all three markers (`fPlus`, `fMinus`, `fZero`).
@@ -60,10 +65,12 @@ Your task is to build the `Doppler-Calc` feature on top of this existing foundat
             *   Update its corresponding `time` and `frequency` in the state.
             *   Recalculate the speed.
             *   Redraw the S-curve to reflect the new marker positions.
+        *   Stop for review
 
     7.  **Reset Functionality:**
         *   Implement a mechanism to reset the Doppler tool. This can be a dedicated button or triggered by switching out of `Doppler` mode.
         *   Resetting should clear the `dopplerFit` state and remove all related UI elements (markers, curve) from the display.
+        *   Stop for review
 
 ## 4. Expected Output & Deliverables
 
