@@ -131,6 +131,11 @@
   max-width: 500px;
 }
 
+/* Harmonics mode: position frequency box at top of panel */
+.gram-frame-harmonics-mode .gram-frame-readout {
+  align-items: flex-start;
+}
+
 /* Military-style display windows */
 .gram-frame-led {
   font-family: 'Courier New', monospace;

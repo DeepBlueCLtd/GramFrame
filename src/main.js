@@ -224,6 +224,14 @@ export class GramFrame {
       })
     }
     
+    // Update container class for mode-specific styling
+    if (this.container) {
+      // Remove all mode classes
+      this.container.classList.remove('gram-frame-analysis-mode', 'gram-frame-harmonics-mode', 'gram-frame-doppler-mode')
+      // Add current mode class
+      this.container.classList.add(`gram-frame-${mode}-mode`)
+    }
+    
     // Clear existing cursor indicators and redraw for new mode
     updateCursorIndicators(this)
     
