@@ -567,6 +567,12 @@
   background: #2a2a2a;
 }
 
+.gram-frame-harmonic-spacing,
+.gram-frame-harmonic-rate {
+  font-size: 14px;
+  font-weight: bold;
+}
+
 .gram-frame-harmonic-color {
   width: 20px;
   height: 12px;

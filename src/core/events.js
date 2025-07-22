@@ -170,8 +170,33 @@ export function handleMouseMove(instance, event) {
     }
   }
   
+  // In Harmonics mode, update live rate displays during mouse movement
+  if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
+    updateHarmonicRatesLive(instance)
+  }
+  
   // Notify listeners
   notifyStateListeners(instance.state, instance.stateListeners)
+}
+
+/**
+ * Update harmonic rate displays live during mouse movement
+ * @param {Object} instance - GramFrame instance
+ */
+function updateHarmonicRatesLive(instance) {
+  if (!instance.harmonicPanel) return
+  
+  const currentFreq = instance.state.cursorPosition.freq
+  const rateElements = instance.harmonicPanel.querySelectorAll('.gram-frame-harmonic-rate')
+  const harmonicSets = instance.state.harmonics.harmonicSets
+  
+  rateElements.forEach((element, index) => {
+    if (index < harmonicSets.length) {
+      const harmonicSet = harmonicSets[index]
+      const rate = currentFreq / harmonicSet.spacing
+      element.textContent = rate.toFixed(2)
+    }
+  })
 }
 
 /**
