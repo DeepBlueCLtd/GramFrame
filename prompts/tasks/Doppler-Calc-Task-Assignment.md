@@ -26,18 +26,48 @@ You are activated as an Implementation Agent within the Agentic Project Manageme
 
 **Objective:** Implement the interactive Doppler speed estimation tool, enabling users to fit a Doppler curve on a spectrogram and receive real-time speed estimates based on marker manipulation.
 
-**Detailed Action Steps:**
+**Phased Implementation of Detailed Action Steps:**
+
+---
+
+### Phase 1: UI Overlay & Marker Placement
 1. Implement UI overlays (Canvas or SVG) for the Doppler tool on the spectrogram display, following the spec in `docs/Doppler-Calc.md`.
 2. Enable placing and dragging of the `f+`, `f−`, and `f₀` markers, with correct color and pointer behavior.
+
+**Test/Review Checkpoint:**
+- Confirm overlays render correctly and markers can be placed and moved as expected.
+
+---
+
+### Phase 2: Curve Drawing & Guides
 3. Draw a smooth S-curve interpolating between `f−` and `f+`, dynamically updating as markers are moved.
 4. Render vertical guide lines from `f+` and `f−` to the panel edges.
+
+**Test/Review Checkpoint:**
+- Verify that the curve and guides update responsively with marker movement.
+
+---
+
+### Phase 3: Speed Calculation & Display
 5. Calculate and display the estimated speed in real time using the formula:
    - Δf = (f+ - f−) / 2
    - v = (c / f₀) × Δf (c = 1500 m/s by default)
 6. Ensure all marker positions map directly to the spectrogram image space.
+
+**Test/Review Checkpoint:**
+- Validate speed calculations and ensure marker positions correspond to spectrogram coordinates.
+
+---
+
+### Phase 4: Mode Handling & UX Polish
 7. Implement reset and mode-change behaviors as described in the spec.
 8. Ensure the tool is only active in Doppler mode and cleans up overlays/markers when mode changes.
 9. Prioritize real-time, low-latency updates and smooth user interactions.
+
+**Final Test/Review:**
+- Confirm mode switching, reset, and overall UX meet requirements.
+
+---
 
 **Provide Necessary Context/Assets:**
 - Full Doppler-Calc spec: `prompts/tasks/Doppler-Calc.md`
