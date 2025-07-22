@@ -13,11 +13,11 @@ Significant work has been completed on the GramFrame component. Here is a summar
 *   **Development Harness:** A `debug.html` page exists that loads the component and provides a live-reloading development environment.
 *   **Core UI:** The UI is composed of two main parts:
     1.  A spectrogram panel that displays a sample image (`/sample/mock-gram.png`).
-    2.  An LED-style diagnostics panel below the image that displays time and frequency based on mouse position.
+    2.  An LED-style diagnostics panel above the image that displays time and frequency based on mouse position.
 *   **State Management:** The component manages state for image dimensions, mouse coordinates, and the current operational mode.
 *   **Coordinate System:** The system correctly calculates and displays time and frequency coordinates based on mouse interaction with the spectrogram image.
 
-Your task is to build the `Doppler-Calc` feature on top of this existing foundation.
+Your task is to replace the existing `Doppler Mode` with the new `Doppler-Calc` feature.
 
 ## 3. Task Assignment
 
