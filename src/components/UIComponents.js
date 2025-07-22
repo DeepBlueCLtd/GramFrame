@@ -25,23 +25,12 @@ export function createLEDDisplays(readoutPanel, state) {
   // Frequency display - shown in both modes
   ledElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
   readoutPanel.appendChild(ledElements.freqLED)
-  
-  // Speed display - not currently used
-  ledElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
-  readoutPanel.appendChild(ledElements.speedLED)
+
   
   // Hide other displays for backward compatibility
   ledElements.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(state.mode))
   ledElements.modeLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.modeLED)
-  
-  ledElements.deltaTimeLED = createLEDDisplay('ΔTime (s)', '0.00')
-  ledElements.deltaTimeLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.deltaTimeLED)
-  
-  ledElements.deltaFreqLED = createLEDDisplay('ΔFreq (Hz)', '0')
-  ledElements.deltaFreqLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.deltaFreqLED)
   
   ledElements.rateLED = createLEDDisplay('Rate (Hz/s)', `${state.rate}`)
   ledElements.rateLED.style.display = 'none'
@@ -63,17 +52,14 @@ export function updateDisplayVisibility(ledElements, mode) {
     // Analysis mode: show Time and Frequency only
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
-    ledElements.speedLED.style.display = 'none'
   } else if (mode === 'harmonics') {
     // Harmonics mode: show Frequency only, Time is not needed
     ledElements.timeLED.style.display = 'none'
     ledElements.freqLED.style.display = ''
-    ledElements.speedLED.style.display = 'none'
   } else {
     // Default: show Time and Frequency
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
-    ledElements.speedLED.style.display = 'none'
   }
 }
 
@@ -234,11 +220,6 @@ export function updateLEDDisplays(ledElements, state) {
   } else {
     freqLabel.textContent = 'Frequency (Hz)'
   }
-  
-  // Hide doppler-specific LEDs - not currently used
-  ledElements.deltaTimeLED.style.display = 'none'
-  ledElements.deltaFreqLED.style.display = 'none'
-  ledElements.speedLED.style.display = 'none'
   
   if (!state.cursorPosition) {
     // Show default values when no cursor position

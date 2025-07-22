@@ -40,24 +40,7 @@
  * @property {number} freq - Frequency value in Hz
  */
 
-/**
- * Point data for Doppler measurements
- * @typedef {Object} DopplerPoint
- * @property {number} time - Time value in seconds
- * @property {number} freq - Frequency value in Hz
- * @property {number} svgX - SVG x coordinate
- * @property {number} svgY - SVG y coordinate
- */
 
-/**
- * Doppler mode state
- * @typedef {Object} DopplerState
- * @property {DopplerPoint|null} startPoint - First measurement point
- * @property {DopplerPoint|null} endPoint - Second measurement point
- * @property {number|null} deltaTime - Time difference in seconds
- * @property {number|null} deltaFrequency - Frequency difference in Hz
- * @property {number|null} speed - Calculated speed in knots
- */
 
 /**
  * Individual harmonic data
@@ -118,12 +101,11 @@
  * @property {string} timestamp - Timestamp of state creation
  * @property {Object} metadata - Component instance metadata
  * @property {string} metadata.instanceId - Unique instance identifier
- * @property {'analysis'|'harmonics'|'doppler'} mode - Current analysis mode
+ * @property {'analysis'|'harmonics'} mode - Current analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {HarmonicsState} harmonics - Harmonics mode state
- * @property {DopplerState} doppler - Doppler mode state
  * @property {DragState} dragState - Drag interaction state
  * @property {ImageDetails} imageDetails - Image source and dimensions
  * @property {Config} config - Time and frequency configuration

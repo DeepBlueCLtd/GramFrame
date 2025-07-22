@@ -43,7 +43,6 @@ import {
 } from './components/HarmonicPanel.js'
 
 import {
-  calculateDopplerMeasurements,
   triggerHarmonicsDisplay
 } from './core/analysis.js'
 
@@ -61,8 +60,7 @@ import {
 import {
   updateCursorIndicators,
   drawAnalysisMode,
-  drawHarmonicsMode,
-  drawDopplerMode
+  drawHarmonicsMode
 } from './rendering/cursors.js'
 
 import {
@@ -180,7 +178,7 @@ export class GramFrame {
   
   /**
    * Switch between analysis modes
-   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
+   * @param {'analysis'|'harmonics'} mode - Target mode
    */
   _switchMode(mode) {
     // Update state
@@ -193,14 +191,6 @@ export class GramFrame {
       this.state.harmonics.harmonicSets = []
     }
     
-    // Clear doppler state when switching away from doppler mode
-    if (mode !== 'doppler') {
-      this.state.doppler.startPoint = null
-      this.state.doppler.endPoint = null
-      this.state.doppler.deltaTime = null
-      this.state.doppler.deltaFrequency = null
-      this.state.doppler.speed = null
-    }
     
     // Clear drag state when switching modes
     this.state.dragState.isDragging = false
@@ -227,7 +217,7 @@ export class GramFrame {
     // Update container class for mode-specific styling
     if (this.container) {
       // Remove all mode classes
-      this.container.classList.remove('gram-frame-analysis-mode', 'gram-frame-harmonics-mode', 'gram-frame-doppler-mode')
+      this.container.classList.remove('gram-frame-analysis-mode', 'gram-frame-harmonics-mode')
       // Add current mode class
       this.container.classList.add(`gram-frame-${mode}-mode`)
     }
@@ -266,11 +256,6 @@ export class GramFrame {
     
     // Update rate LED display (handled by updateLEDDisplays)
     
-    // If in Doppler mode and we have measurements, recalculate speed with new rate
-    if (this.state.mode === 'doppler' && this.state.doppler.startPoint && this.state.doppler.endPoint) {
-      calculateDopplerMeasurements(this.state)
-      updateLEDDisplays(this, this.state)
-    }
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
