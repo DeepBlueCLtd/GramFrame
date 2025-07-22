@@ -144,27 +144,37 @@ export function drawHarmonicSetLines(instance, harmonicSet) {
     const freqRatio = (freq - freqMin) / (freqMax - freqMin)
     const svgX = margins.left + freqRatio * naturalWidth
     
-    // Draw shadow line for visibility
-    const shadowLine = createSVGLine(
+    // Draw a 1px dashed harmonic line using two overlapping lines:
+    // 1) White dashes
+    // 2) Colored dashes offset to fill the gaps
+    // This achieves a two-color dashed effect while keeping overall thickness to 1px
+
+    // White dash line
+    const whiteDash = createSVGLine(
       svgX,
       lineStartY,
       svgX,
       lineEndY,
-      'gram-frame-harmonic-set-shadow'
+      'gram-frame-harmonic-dash-white'
     )
-    instance.cursorGroup.appendChild(shadowLine)
-    
-    // Draw main line with harmonic set color
-    const mainLine = createSVGLine(
+    whiteDash.setAttribute('stroke', '#ffffff')
+    whiteDash.setAttribute('stroke-width', '1')
+    whiteDash.setAttribute('stroke-dasharray', '4 4')
+    instance.cursorGroup.appendChild(whiteDash)
+
+    // Colored dash line (offset so dashes appear between white segments)
+    const colorDash = createSVGLine(
       svgX,
       lineStartY,
       svgX,
       lineEndY,
-      'gram-frame-harmonic-set-line'
+      'gram-frame-harmonic-dash-color'
     )
-    mainLine.setAttribute('stroke', harmonicSet.color)
-    mainLine.setAttribute('stroke-width', '2')
-    instance.cursorGroup.appendChild(mainLine)
+    colorDash.setAttribute('stroke', harmonicSet.color)
+    colorDash.setAttribute('stroke-width', '1')
+    colorDash.setAttribute('stroke-dasharray', '4 4')
+    colorDash.setAttribute('stroke-dashoffset', '4')
+    instance.cursorGroup.appendChild(colorDash)
     
     // Add harmonic number label at the top of the line
     const label = createSVGText(

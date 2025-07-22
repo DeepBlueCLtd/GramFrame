@@ -387,7 +387,26 @@
   dominant-baseline: central;
 }
 
-/* SVG Harmonic Set styles (new system) */
+/* SVG Harmonic Set styles (legacy thick lines) */
+
+/* New dashed harmonic line styles (1px, two-color) */
+.gram-frame-harmonic-dash-white {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 1;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-harmonic-dash-color {
+  stroke-width: 1;
+  fill: none;
+  pointer-events: auto; /* Allow drag interactions if needed */
+  cursor: grab;
+  stroke-linecap: round;
+}
+
+/* SVG Harmonic Set styles (legacy thick lines) */
 .gram-frame-harmonic-set-shadow {
   stroke: rgba(255, 255, 255, 0.6);
   stroke-width: 4;
