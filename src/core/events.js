@@ -202,8 +202,10 @@ function handleHarmonicSetDrag(instance) {
   const clickedHarmonicNumber = instance.state.dragState.clickedHarmonicNumber || 1
   const newSpacing = (instance.state.dragState.originalSpacing + deltaFreq / clickedHarmonicNumber)
   
-  // Update anchor time based on vertical drag
-  const newAnchorTime = instance.state.dragState.originalAnchorTime + deltaTime
+  // Update anchor time based on vertical drag  
+  // Note: deltaTime is positive when dragging up, but we want up to decrease anchor time
+  // to move the lines up on screen, so we subtract deltaTime
+  const newAnchorTime = instance.state.dragState.originalAnchorTime - deltaTime
 
   // Apply updates
   const updates = {}
