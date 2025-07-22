@@ -124,7 +124,7 @@ export class GramFrame {
     
     // Append LED readout panel to mode cell
     this.modeCell.appendChild(this.readoutPanel)
-    
+
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
@@ -193,14 +193,12 @@ export class GramFrame {
       this.state.harmonics.harmonicSets = []
     }
     
-    // Clear doppler state when switching away from doppler mode
-    if (mode !== 'doppler') {
-      this.state.doppler.startPoint = null
-      this.state.doppler.endPoint = null
-      this.state.doppler.deltaTime = null
-      this.state.doppler.deltaFrequency = null
-      this.state.doppler.speed = null
+    // Clear any existing doppler points when entering mode
+    if (mode === 'doppler') {
+      this.state.dopplerFit = null
     }
+    
+
     
     // Clear drag state when switching modes
     this.state.dragState.isDragging = false
@@ -266,9 +264,8 @@ export class GramFrame {
     
     // Update rate LED display (handled by updateLEDDisplays)
     
-    // If in Doppler mode and we have measurements, recalculate speed with new rate
-    if (this.state.mode === 'doppler' && this.state.doppler.startPoint && this.state.doppler.endPoint) {
-      calculateDopplerMeasurements(this.state)
+    // If in Doppler mode and we have measurements, updateLEDDisplays
+    if (this.state.mode === 'doppler') {
       updateLEDDisplays(this, this.state)
     }
     
@@ -376,6 +373,20 @@ export class GramFrame {
       }
     }
     return null
+  }
+
+  /**
+   * Reset the Doppler measurement points
+   */
+  _resetDoppler() {
+    if (this.state.dopplerFit) {
+      this.state.dopplerFit = null
+
+      // Update display and notify listeners
+      updateCursorIndicators(this)
+      updateLEDDisplays(this, this.state)
+      notifyStateListeners(this.state, this.stateListeners)
+    }
   }
   
   

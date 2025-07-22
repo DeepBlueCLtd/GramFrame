@@ -81,9 +81,6 @@
 }
 
 /* SVG image element for the spectrogram */
-.gram-frame-image {
-  /* Remove width/height CSS to allow SVG attributes to control positioning */
-}
 
 /* SVG axes styling - white on dark background */
 .gram-frame-axis-line {

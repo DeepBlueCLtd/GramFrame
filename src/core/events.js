@@ -169,6 +169,27 @@ export function handleMouseMove(instance, event) {
       handleHarmonicSetDrag(instance)
     }
   }
+
+  // Handle Doppler point drag
+  if (instance.state.mode === 'doppler' && instance.state.dragState.isDragging && instance.state.dragState.draggedDopplerPointType) {
+    const { dopplerFit, cursorPosition, dragState } = instance.state
+    const pointType = dragState.draggedDopplerPointType
+
+    if (dopplerFit && dopplerFit[pointType] && cursorPosition) {
+      // Update the point's position
+      dopplerFit[pointType].time = cursorPosition.time
+      dopplerFit[pointType].frequency = cursorPosition.freq
+
+      // Recalculate speed if all points are available
+      if (dopplerFit.fPlus && dopplerFit.fMinus && dopplerFit.fZero) {
+        calculateDopplerMeasurements(instance.state)
+      }
+
+      // Update UI
+      updateCursorIndicators(instance)
+      updateLEDDisplays(instance, instance.state)
+    }
+  }
   
   // In Harmonics mode, update live rate displays during mouse movement
   if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
@@ -267,50 +288,41 @@ export function handleMouseLeave(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseDown(instance, event) {
-  // Only process if we have valid image details
   if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
-  
-  // Handle Harmonics mode drag interactions
-  if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
-    const cursorFreq = instance.state.cursorPosition.freq
-    
-    // Check if we're clicking on an existing harmonic set
+
+  const { state } = instance
+  const { mode, cursorPosition } = state
+
+  if (mode === 'doppler') {
+    const target = /** @type {SVGElement} */ (event.target)
+    const markerGroup = target.closest('[data-doppler-point-type]')
+    if (markerGroup) {
+      const pointType = /** @type {'fPlus'|'fMinus'|'fZero'} */ (markerGroup.getAttribute('data-doppler-point-type'))
+      state.dragState.isDragging = true
+      state.dragState.draggedDopplerPointType = pointType
+      event.preventDefault()
+      return // Prevent other handlers from interfering
+    }
+  }
+
+  if (mode === 'harmonics' && cursorPosition) {
+    const cursorFreq = cursorPosition.freq
     const existingSet = instance._findHarmonicSetAtFrequency(cursorFreq)
-    
+
     if (existingSet) {
-      // Start dragging existing harmonic set
-      instance.state.dragState.isDragging = true
-      instance.state.dragState.dragStartPosition = { ...instance.state.cursorPosition }
-      instance.state.dragState.draggedHarmonicSetId = existingSet.id
-      instance.state.dragState.originalSpacing = existingSet.spacing
-      instance.state.dragState.originalAnchorTime = existingSet.anchorTime
-      
-      // Find which harmonic number was clicked
+      // Start dragging an existing harmonic set
+      state.dragState.isDragging = true
+      state.dragState.draggedHarmonicSetId = existingSet.id
+      state.dragState.originalSpacing = existingSet.spacing
+      state.dragState.originalAnchorTime = existingSet.anchorTime
       const harmonicNumber = Math.round(cursorFreq / existingSet.spacing)
-      instance.state.dragState.clickedHarmonicNumber = harmonicNumber
+      state.dragState.clickedHarmonicNumber = harmonicNumber
     } else {
-      // Start creating a new harmonic set with click-and-drag
-      instance.state.dragState.isDragging = true
-      instance.state.dragState.dragStartPosition = { ...instance.state.cursorPosition }
-      instance.state.dragState.isCreatingNewHarmonicSet = true
-      
-      // Create initial harmonic set at click position
-      const cursorFreq = instance.state.cursorPosition.freq
-      const cursorTime = instance.state.cursorPosition.time
-      const freqOrigin = instance.state.config.freqMin
-      const initialHarmonicNumber = freqOrigin > 0 ? 10 : 5
-      const initialSpacing = cursorFreq / initialHarmonicNumber
-      
-      // Create the harmonic set and store its ID for live updating
-      const harmonicSet = instance._addHarmonicSet(cursorTime, initialSpacing)
-      instance.state.dragState.draggedHarmonicSetId = harmonicSet.id
-      instance.state.dragState.originalSpacing = initialSpacing
-      instance.state.dragState.originalAnchorTime = cursorTime
-      instance.state.dragState.clickedHarmonicNumber = initialHarmonicNumber
-      
-      // Update displays immediately for the new harmonic set
-      updateCursorIndicators(instance)
-      updateHarmonicPanel(instance)
+      // Start creating a new harmonic set by click-and-drag
+      state.dragState.isDragging = true
+      state.dragState.dragStartPosition = { ...cursorPosition }
+      // The actual creation of the harmonic set is handled in handleMouseUp
+      // to allow for click-and-drag creation.
     }
   }
 }
@@ -333,6 +345,7 @@ export function handleMouseUp(instance, event) {
     instance.state.dragState.originalAnchorTime = null
     instance.state.dragState.clickedHarmonicNumber = null
     instance.state.dragState.isCreatingNewHarmonicSet = false
+    instance.state.dragState.draggedDopplerPointType = null
     
     // Clear old harmonics system state (for backward compatibility)
     instance.state.harmonics.baseFrequency = null
@@ -375,44 +388,51 @@ export function handleClick(instance, event) {
 }
 
 /**
- * Process Doppler mode click to set measurement points
+ * Process Doppler mode click to set measurement points.
+ * This function cycles through placing fPlus, fMinus, and fZero points.
  * @param {Object} instance - GramFrame instance
  */
 export function handleDopplerClick(instance) {
-  // Create point data from current cursor position
   if (!instance.state.cursorPosition) return
-  
-  const clickPoint = {
+
+  const newPoint = {
     time: instance.state.cursorPosition.time,
-    freq: instance.state.cursorPosition.freq,
-    svgX: instance.state.cursorPosition.svgX,
-    svgY: instance.state.cursorPosition.svgY
+    frequency: instance.state.cursorPosition.freq,
   }
-  
-  if (!instance.state.doppler.startPoint) {
-    // Set start point
-    instance.state.doppler.startPoint = clickPoint
-    instance.state.doppler.endPoint = null
-    instance.state.doppler.deltaTime = null
-    instance.state.doppler.deltaFrequency = null
-    instance.state.doppler.speed = null
-  } else if (!instance.state.doppler.endPoint) {
-    // Set end point and calculate measurements
-    instance.state.doppler.endPoint = clickPoint
-    calculateDopplerMeasurements(instance.state)
+
+  if (!instance.state.dopplerFit) {
+    instance.state.dopplerFit = {
+      fPlus: newPoint,
+      fMinus: null,
+      fZero: null,
+      speed: null,
+    }
   } else {
-    // Both points are set, start a new measurement
-    instance.state.doppler.startPoint = clickPoint
-    instance.state.doppler.endPoint = null
-    instance.state.doppler.deltaTime = null
-    instance.state.doppler.deltaFrequency = null
-    instance.state.doppler.speed = null
+    const { dopplerFit } = instance.state
+    if (!dopplerFit.fPlus) {
+      dopplerFit.fPlus = newPoint
+    } else if (!dopplerFit.fMinus) {
+      dopplerFit.fMinus = newPoint
+    } else if (!dopplerFit.fZero) {
+      dopplerFit.fZero = newPoint
+    } else {
+      // All points are set, so we cycle. The next click will replace fPlus.
+      dopplerFit.fPlus = newPoint
+      dopplerFit.fMinus = null
+      dopplerFit.fZero = null
+      dopplerFit.speed = null
+    }
   }
-  
+
+  // Calculate speed if all points are available
+  if (instance.state.dopplerFit && instance.state.dopplerFit.fPlus && instance.state.dopplerFit.fMinus && instance.state.dopplerFit.fZero) {
+    calculateDopplerMeasurements(instance.state)
+  }
+
   // Update displays and indicators
   updateLEDDisplays(instance, instance.state)
   updateCursorIndicators(instance)
-  
+
   // Notify listeners of state change
   notifyStateListeners(instance.state, instance.stateListeners)
 }

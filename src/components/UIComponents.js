@@ -27,21 +27,13 @@ export function createLEDDisplays(readoutPanel, state) {
   readoutPanel.appendChild(ledElements.freqLED)
   
   // Speed display - only shown in Doppler mode
-  ledElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
+  ledElements.speedLED = createLEDDisplay('Speed (m/s)', '0.0')
   readoutPanel.appendChild(ledElements.speedLED)
   
   // Hide other displays for backward compatibility
   ledElements.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(state.mode))
   ledElements.modeLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.modeLED)
-  
-  ledElements.deltaTimeLED = createLEDDisplay('ΔTime (s)', '0.00')
-  ledElements.deltaTimeLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.deltaTimeLED)
-  
-  ledElements.deltaFreqLED = createLEDDisplay('ΔFreq (Hz)', '0')
-  ledElements.deltaFreqLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.deltaFreqLED)
   
   ledElements.rateLED = createLEDDisplay('Rate (Hz/s)', `${state.rate}`)
   ledElements.rateLED.style.display = 'none'
@@ -242,34 +234,11 @@ export function updateLEDDisplays(ledElements, state) {
     freqLabel.textContent = 'Frequency (Hz)'
   }
   
-  // Hide/show doppler-specific LEDs based on mode
-  if (state.mode === 'doppler') {
-    ledElements.deltaTimeLED.style.display = 'block'
-    ledElements.deltaFreqLED.style.display = 'block'
-    ledElements.speedLED.style.display = 'block'
-    
-    // Update doppler-specific values if available
-    if (state.doppler.deltaTime !== null) {
-      ledElements.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = state.doppler.deltaTime.toFixed(2)
-    } else {
-      ledElements.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-    }
-    
-    if (state.doppler.deltaFrequency !== null) {
-      ledElements.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = state.doppler.deltaFrequency.toFixed(0)
-    } else {
-      ledElements.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = '0'
-    }
-    
-    if (state.doppler.speed !== null) {
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = state.doppler.speed.toFixed(1)
-    } else {
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
-    }
+  // Update Doppler speed display
+  if (state.mode === 'doppler' && state.dopplerFit && state.dopplerFit.speed !== null) {
+    ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = state.dopplerFit.speed.toFixed(1)
   } else {
-    ledElements.deltaTimeLED.style.display = 'none'
-    ledElements.deltaFreqLED.style.display = 'none'
-    ledElements.speedLED.style.display = 'none'
+    ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
   }
   
   if (!state.cursorPosition) {

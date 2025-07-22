@@ -92,13 +92,19 @@ export function createSVGStructure(instance) {
   instance.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
   instance.svg.appendChild(instance.cursorGroup)
   
+  // Create Doppler overlay group (drawn on top of cursor group)
+  instance.dopplerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  instance.dopplerGroup.setAttribute('class', 'gram-frame-doppler-group')
+  instance.svg.appendChild(instance.dopplerGroup)
+  
   return {
     svg: instance.svg,
     mainGroup: instance.mainGroup,
     svgImage: instance.svgImage,
     timeAxisGroup: instance.timeAxisGroup,
     freqAxisGroup: instance.freqAxisGroup,
-    cursorGroup: instance.cursorGroup
+    cursorGroup: instance.cursorGroup,
+    dopplerGroup: instance.dopplerGroup
   }
 }
 

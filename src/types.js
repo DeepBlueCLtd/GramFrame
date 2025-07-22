@@ -41,22 +41,19 @@
  */
 
 /**
- * Point data for Doppler measurements
+ * A point in the Doppler fit, containing time and frequency data.
  * @typedef {Object} DopplerPoint
- * @property {number} time - Time value in seconds
- * @property {number} freq - Frequency value in Hz
- * @property {number} svgX - SVG x coordinate
- * @property {number} svgY - SVG y coordinate
+ * @property {number} time - Time in seconds.
+ * @property {number} frequency - Frequency in Hz.
  */
 
 /**
- * Doppler mode state
- * @typedef {Object} DopplerState
- * @property {DopplerPoint|null} startPoint - First measurement point
- * @property {DopplerPoint|null} endPoint - Second measurement point
- * @property {number|null} deltaTime - Time difference in seconds
- * @property {number|null} deltaFrequency - Frequency difference in Hz
- * @property {number|null} speed - Calculated speed in knots
+ * Represents the complete state of a Doppler curve fit.
+ * @typedef {Object} DopplerFit
+ * @property {DopplerPoint | null} fPlus - The point representing the highest frequency (end of engagement).
+ * @property {DopplerPoint | null} fMinus - The point representing the lowest frequency (start of engagement).
+ * @property {DopplerPoint | null} fZero - The point representing the center frequency.
+ * @property {number | null} speed - The calculated speed in m/s.
  */
 
 /**
@@ -123,7 +120,7 @@
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {HarmonicsState} harmonics - Harmonics mode state
- * @property {DopplerState} doppler - Doppler mode state
+ * @property {DopplerFit | null} dopplerFit - Doppler fit state
  * @property {DragState} dragState - Drag interaction state
  * @property {ImageDetails} imageDetails - Image source and dimensions
  * @property {Config} config - Time and frequency configuration

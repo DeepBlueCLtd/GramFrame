@@ -11,24 +11,22 @@ import { calculateHarmonics } from '../utils/calculations.js'
 import { dataToSVGCoordinates } from '../utils/coordinates.js'
 
 /**
- * Calculate Doppler measurements from start and end points
+ * Calculate Doppler measurements from the fit points.
  * @param {GramFrameState} state - Current state object (will be modified)
  * @returns {void}
  */
 export function calculateDopplerMeasurements(state) {
-  if (!state.doppler.startPoint || !state.doppler.endPoint) {
+  if (!state.dopplerFit || !state.dopplerFit.fPlus || !state.dopplerFit.fMinus || !state.dopplerFit.fZero) {
     return
   }
-  
-  const start = state.doppler.startPoint
-  const end = state.doppler.endPoint
-  
-  // Calculate delta values
-  state.doppler.deltaTime = end.time - start.time
-  state.doppler.deltaFrequency = end.freq - start.freq
-  
-  // Speed calculation incorporating rate: ΔT * ΔF * rate
-  state.doppler.speed = Math.abs(state.doppler.deltaTime * state.doppler.deltaFrequency * state.rate)
+
+  const { fPlus, fMinus, fZero } = state.dopplerFit
+  const c = 1500 // Speed of sound in water (m/s)
+
+  const deltaF = (fPlus.frequency - fMinus.frequency) / 2
+  const speed = (c / fZero.frequency) * deltaF
+
+  state.dopplerFit.speed = speed
 }
 
 /**

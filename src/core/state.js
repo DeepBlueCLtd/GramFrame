@@ -26,13 +26,7 @@ export const initialState = {
     harmonicData: [],
     harmonicSets: []
   },
-  doppler: {
-    startPoint: null,
-    endPoint: null,
-    deltaTime: null,
-    deltaFrequency: null,
-    speed: null
-  },
+  dopplerFit: null,
   dragState: {
     isDragging: false,
     dragStartPosition: null,

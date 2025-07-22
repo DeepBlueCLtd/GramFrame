@@ -240,6 +240,7 @@
         <button id="toggle-bounds">Toggle Canvas Bounds</button>
         <button id="toggle-grid">Toggle Debug Grid</button>
         <button id="force-update">Force Update</button>
+        <button id="reset-doppler">Reset Doppler</button>
       </div>
     </div>
   </div>
@@ -265,6 +266,7 @@
       const toggleBoundsBtn = document.getElementById('toggle-bounds')
       const toggleGridBtn = document.getElementById('toggle-grid')
       const forceUpdateBtn = document.getElementById('force-update')
+      const resetDopplerBtn = document.getElementById('reset-doppler')
       
       // Display initial state
       stateDisplay.textContent = 'Component loaded. Waiting for state updates...'
@@ -317,6 +319,10 @@
         
         forceUpdateBtn.addEventListener('click', () => {
           window.GramFrame.__test__forceUpdate()
+        })
+
+        resetDopplerBtn.addEventListener('click', () => {
+          window.GramFrame._resetDoppler()
         })
       }
     })
