@@ -18,7 +18,18 @@ export function createHarmonicPanel(container, instance) {
       <h4>Harmonic Sets</h4>
     </div>
     <div class="gram-frame-harmonic-list">
-      <div class="gram-frame-harmonic-empty">No harmonic sets active</div>
+      <table class="gram-frame-harmonic-table">
+        <thead>
+          <tr>
+            <th>Color</th>
+            <th>Spacing (Hz)</th>
+            <th>Rate</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
     </div>
   `
   
@@ -39,12 +50,29 @@ export function updateHarmonicPanelContent(panel, instance) {
   
   const harmonicSets = instance.state.harmonics.harmonicSets
   
-  if (harmonicSets.length === 0) {
-    listContainer.innerHTML = '<div class="gram-frame-harmonic-empty">No harmonic sets active</div>'
-    return
-  }
+  // Always create table structure with headers, populate tbody based on harmonic sets
+  const tableBodyHTML = harmonicSets.length === 0 ? '' : harmonicSets.map(harmonicSet => {
+    // Calculate rate: cursor frequency / spacing
+    // For display, we'll show a representative rate based on a middle harmonic
+    const representativeHarmonic = 5
+    const representativeFreq = representativeHarmonic * harmonicSet.spacing
+    const rate = (representativeFreq / harmonicSet.spacing).toFixed(2)
+    
+    return `
+      <tr data-harmonic-id="${harmonicSet.id}">
+        <td>
+          <div class="gram-frame-harmonic-color" style="background-color: ${harmonicSet.color}"></div>
+        </td>
+        <td class="gram-frame-harmonic-spacing">${harmonicSet.spacing.toFixed(1)}</td>
+        <td class="gram-frame-harmonic-rate">${rate}</td>
+        <td>
+          <button class="gram-frame-harmonic-delete" data-harmonic-id="${harmonicSet.id}" title="Delete harmonic set">×</button>
+        </td>
+      </tr>
+    `
+  }).join('')
   
-  // Create table for harmonic sets
+  // Create table for harmonic sets - always show headers
   const tableHTML = `
     <table class="gram-frame-harmonic-table">
       <thead>
@@ -56,26 +84,7 @@ export function updateHarmonicPanelContent(panel, instance) {
         </tr>
       </thead>
       <tbody>
-        ${harmonicSets.map(harmonicSet => {
-          // Calculate rate: cursor frequency / spacing
-          // For display, we'll show a representative rate based on a middle harmonic
-          const representativeHarmonic = 5
-          const representativeFreq = representativeHarmonic * harmonicSet.spacing
-          const rate = (representativeFreq / harmonicSet.spacing).toFixed(2)
-          
-          return `
-            <tr data-harmonic-id="${harmonicSet.id}">
-              <td>
-                <div class="gram-frame-harmonic-color" style="background-color: ${harmonicSet.color}"></div>
-              </td>
-              <td class="gram-frame-harmonic-spacing">${harmonicSet.spacing.toFixed(1)}</td>
-              <td class="gram-frame-harmonic-rate">${rate}</td>
-              <td>
-                <button class="gram-frame-harmonic-delete" data-harmonic-id="${harmonicSet.id}" title="Delete harmonic set">×</button>
-              </td>
-            </tr>
-          `
-        }).join('')}
+        ${tableBodyHTML}
       </tbody>
     </table>
   `

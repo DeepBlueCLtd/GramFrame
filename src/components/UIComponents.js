@@ -65,8 +65,8 @@ export function updateDisplayVisibility(ledElements, mode) {
     ledElements.freqLED.style.display = ''
     ledElements.speedLED.style.display = 'none'
   } else if (mode === 'harmonics') {
-    // Harmonics mode: show Time and Frequency only (like analysis)
-    ledElements.timeLED.style.display = ''
+    // Harmonics mode: show Frequency only, Time is not needed
+    ledElements.timeLED.style.display = 'none'
     ledElements.freqLED.style.display = ''
     ledElements.speedLED.style.display = 'none'
   } else if (mode === 'doppler') {
