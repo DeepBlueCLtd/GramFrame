@@ -28,6 +28,8 @@ export function updateCursorIndicators(instance) {
     }
   } else if (instance.state.mode === 'harmonics') {
     drawHarmonicsMode(instance)
+  } else if (instance.state.mode === 'doppler') {
+    drawDopplerMode(instance)
   }
 }
 
@@ -242,5 +244,182 @@ export function drawHarmonicLabels(instance, harmonic, isMainLine) {
   instance.cursorGroup.appendChild(frequencyLabel)
 }
 
+/**
+ * Draw Doppler mode indicators and curve
+ * @param {Object} instance - GramFrame instance
+ */
+export function drawDopplerMode(instance) {
+  const doppler = instance.state.doppler
+  
+  // Draw markers if they exist
+  if (doppler.fMinus) {
+    drawDopplerMarker(instance, doppler.fMinus, 'fMinus')
+  }
+  if (doppler.fPlus) {
+    drawDopplerMarker(instance, doppler.fPlus, 'fPlus')
+  }
+  if (doppler.fZero) {
+    drawDopplerMarker(instance, doppler.fZero, 'fZero')
+  }
+  
+  // Draw the curve if both f+ and f- exist
+  if (doppler.fPlus && doppler.fMinus) {
+    drawDopplerCurve(instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
+    drawVerticalGuides(instance, doppler.fPlus, doppler.fMinus)
+  }
+}
+
+/**
+ * Draw a Doppler marker
+ * @param {Object} instance - GramFrame instance
+ * @param {Object} point - DopplerPoint with time and frequency
+ * @param {string} type - Marker type ('fPlus', 'fMinus', 'fZero')
+ */
+export function drawDopplerMarker(instance, point, type) {
+  const margins = instance.state.axes.margins
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
+  
+  // Convert data coordinates to SVG coordinates
+  const timeRatio = (point.time - timeMin) / (timeMax - timeMin)
+  const freqRatio = (point.frequency - freqMin) / (freqMax - freqMin)
+  
+  // Invert Y coordinate since Y=0 is at top but timeMin should be at bottom
+  const svgX = margins.left + freqRatio * naturalWidth
+  const svgY = margins.top + (1 - timeRatio) * naturalHeight
+  
+  if (type === 'fZero') {
+    // Draw cross-hair for f₀
+    const horizontalLine = createSVGLine(
+      svgX - 8, svgY, svgX + 8, svgY, 
+      'gram-frame-doppler-crosshair'
+    )
+    const verticalLine = createSVGLine(
+      svgX, svgY - 8, svgX, svgY + 8, 
+      'gram-frame-doppler-crosshair'
+    )
+    horizontalLine.setAttribute('stroke', '#00ff00')
+    verticalLine.setAttribute('stroke', '#00ff00')
+    horizontalLine.setAttribute('stroke-width', '2')
+    verticalLine.setAttribute('stroke-width', '2')
+    instance.cursorGroup.appendChild(horizontalLine)
+    instance.cursorGroup.appendChild(verticalLine)
+  } else {
+    // Draw dot for f+ and f-
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    circle.setAttribute('cx', String(svgX))
+    circle.setAttribute('cy', String(svgY))
+    circle.setAttribute('r', '4')
+    circle.setAttribute('class', `gram-frame-doppler-${type}`)
+    
+    if (type === 'fPlus') {
+      circle.setAttribute('fill', '#ff0000')
+    } else if (type === 'fMinus') {
+      circle.setAttribute('fill', '#0000ff')
+    }
+    
+    instance.cursorGroup.appendChild(circle)
+  }
+}
+
+/**
+ * Draw the S-curve between f+ and f- markers
+ * @param {Object} instance - GramFrame instance
+ * @param {Object} fPlus - f+ point
+ * @param {Object} fMinus - f- point
+ * @param {Object} fZero - f₀ point (optional)
+ */
+export function drawDopplerCurve(instance, fPlus, fMinus, fZero) {
+  const margins = instance.state.axes.margins
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
+  
+  // Convert points to SVG coordinates
+  const convertToSVG = (point) => {
+    const timeRatio = (point.time - timeMin) / (timeMax - timeMin)
+    const freqRatio = (point.frequency - freqMin) / (freqMax - freqMin)
+    return {
+      x: margins.left + freqRatio * naturalWidth,
+      y: margins.top + (1 - timeRatio) * naturalHeight
+    }
+  }
+  
+  const plusSVG = convertToSVG(fPlus)
+  const minusSVG = convertToSVG(fMinus)
+  
+  // Use fZero if provided, otherwise use midpoint
+  let zeroSVG
+  if (fZero) {
+    zeroSVG = convertToSVG(fZero)
+  } else {
+    zeroSVG = {
+      x: (plusSVG.x + minusSVG.x) / 2,
+      y: (plusSVG.y + minusSVG.y) / 2
+    }
+  }
+  
+  // Create simple S-curve (curved portion only, no vertical extensions)
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  
+  // Draw simple S-curve with only 2 bends using single cubic Bézier
+  // Control points positioned to start/end with vertical tangents (zero frequency rate)
+  const controlPoint1X = minusSVG.x
+  const controlPoint1Y = minusSVG.y + (zeroSVG.y - minusSVG.y) * 0.7
+  const controlPoint2X = plusSVG.x  
+  const controlPoint2Y = plusSVG.y + (zeroSVG.y - plusSVG.y) * 0.7
+  
+  const pathData = `
+    M ${minusSVG.x} ${minusSVG.y}
+    C ${controlPoint1X} ${controlPoint1Y} ${controlPoint2X} ${controlPoint2Y} ${plusSVG.x} ${plusSVG.y}
+  `
+  
+  path.setAttribute('d', pathData.replace(/\s+/g, ' ').trim())
+  path.setAttribute('stroke', '#ff0000')
+  path.setAttribute('stroke-width', '2')
+  path.setAttribute('fill', 'none')
+  path.setAttribute('class', 'gram-frame-doppler-curve')
+  
+  instance.cursorGroup.appendChild(path)
+}
+
+/**
+ * Draw vertical guide lines from f+ and f- markers
+ * @param {Object} instance - GramFrame instance
+ * @param {Object} fPlus - f+ point
+ * @param {Object} fMinus - f- point
+ */
+export function drawVerticalGuides(instance, fPlus, fMinus) {
+  const margins = instance.state.axes.margins
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
+  
+  // Convert frequency positions to SVG X coordinates
+  const plusX = margins.left + ((fPlus.frequency - freqMin) / (freqMax - freqMin)) * naturalWidth
+  const minusX = margins.left + ((fMinus.frequency - freqMin) / (freqMax - freqMin)) * naturalWidth
+  
+  // Draw vertical lines extending full height
+  const plusLine = createSVGLine(
+    plusX, margins.top,
+    plusX, margins.top + naturalHeight,
+    'gram-frame-doppler-guide'
+  )
+  plusLine.setAttribute('stroke', '#ff0000')
+  plusLine.setAttribute('stroke-width', '1')
+  plusLine.setAttribute('stroke-dasharray', '5,5')
+  plusLine.setAttribute('opacity', '0.7')
+  
+  const minusLine = createSVGLine(
+    minusX, margins.top,
+    minusX, margins.top + naturalHeight,
+    'gram-frame-doppler-guide'
+  )
+  minusLine.setAttribute('stroke', '#0000ff')
+  minusLine.setAttribute('stroke-width', '1')
+  minusLine.setAttribute('stroke-dasharray', '5,5')
+  minusLine.setAttribute('opacity', '0.7')
+  
+  instance.cursorGroup.appendChild(plusLine)
+  instance.cursorGroup.appendChild(minusLine)
+}
 
 

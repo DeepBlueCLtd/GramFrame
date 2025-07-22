@@ -178,7 +178,7 @@ export class GramFrame {
   
   /**
    * Switch between analysis modes
-   * @param {'analysis'|'harmonics'} mode - Target mode
+   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
    */
   _switchMode(mode) {
     // Update state
@@ -189,6 +189,24 @@ export class GramFrame {
       this.state.harmonics.baseFrequency = null
       this.state.harmonics.harmonicData = []
       this.state.harmonics.harmonicSets = []
+    }
+    
+    // Clear Doppler state when switching away from Doppler mode
+    if (mode !== 'doppler') {
+      this.state.doppler.fPlus = null
+      this.state.doppler.fMinus = null
+      this.state.doppler.fZero = null
+      this.state.doppler.speed = null
+      this.state.doppler.isDragging = false
+      this.state.doppler.draggedMarker = null
+      this.state.doppler.isPlacingMarkers = false
+      this.state.doppler.markersPlaced = 0
+      
+      // Remove speed LED display if it exists
+      if (this.speedLED) {
+        this.speedLED.remove()
+        this.speedLED = null
+      }
     }
     
     
@@ -363,8 +381,29 @@ export class GramFrame {
     return null
   }
   
-  
-  
+  /**
+   * Reset Doppler mode - clear all markers and calculations
+   */
+  _resetDoppler() {
+    this.state.doppler.fPlus = null
+    this.state.doppler.fMinus = null
+    this.state.doppler.fZero = null
+    this.state.doppler.speed = null
+    this.state.doppler.isDragging = false
+    this.state.doppler.draggedMarker = null
+    this.state.doppler.isPlacingMarkers = false
+    this.state.doppler.markersPlaced = 0
+    
+    // Remove speed LED display if it exists
+    if (this.speedLED) {
+      this.speedLED.remove()
+      this.speedLED = null
+    }
+    
+    // Update displays
+    updateCursorIndicators(this)
+    notifyStateListeners(this.state, this.stateListeners)
+  }
   
   /**
    * Update cursor visual indicators based on current mode and state

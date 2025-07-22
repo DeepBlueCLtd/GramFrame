@@ -9,6 +9,13 @@ import {
   imageToDataCoordinates
 } from '../utils/coordinates.js'
 
+import { 
+  calculateDopplerSpeed,
+  screenToDopplerData,
+  isNearMarker,
+  dopplerDataToSVG
+} from '../utils/doppler.js'
+
 import { updateLEDDisplays } from '../components/UIComponents.js'
 import { notifyStateListeners } from './state.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
@@ -36,12 +43,21 @@ export function setupEventListeners(instance) {
   instance.svg.addEventListener('mousedown', instance._boundHandleMouseDown)
   instance.svg.addEventListener('mouseup', instance._boundHandleMouseUp)
   
+  // Add right-click handler for Doppler mode reset
+  instance.svg.addEventListener('contextmenu', (event) => {
+    if (instance.state.mode === 'doppler') {
+      event.preventDefault()
+      instance._resetDoppler()
+      return false
+    }
+  })
+  
   // Mode button events
   Object.keys(instance.modeButtons || {}).forEach(mode => {
     const button = instance.modeButtons[mode]
     if (button) {
       button.addEventListener('click', () => {
-        instance._switchMode(/** @type {'analysis'|'harmonics'} */ (mode))
+        instance._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
       })
     }
   })
@@ -162,8 +178,12 @@ export function handleMouseMove(instance, event) {
   // Update visual cursor indicators
   updateCursorIndicators(instance)
   
+  // In Doppler mode, handle dragging interactions
+  if (instance.state.mode === 'doppler' && instance.state.doppler.isDragging) {
+    handleDopplerMarkerDrag(instance)
+  }
   // In Harmonics mode, handle dragging interactions
-  if (instance.state.mode === 'harmonics' && instance.state.dragState.isDragging) {
+  else if (instance.state.mode === 'harmonics' && instance.state.dragState.isDragging) {
     if (instance.state.dragState.draggedHarmonicSetId) {
       // Update dragged harmonic set
       handleHarmonicSetDrag(instance)
@@ -270,8 +290,12 @@ export function handleMouseDown(instance, event) {
   // Only process if we have valid image details
   if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
   
+  // Handle Doppler mode drag interactions
+  if (instance.state.mode === 'doppler' && instance.state.cursorPosition) {
+    handleDopplerMouseDown(instance, event)
+  } 
   // Handle Harmonics mode drag interactions
-  if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
+  else if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
     const cursorFreq = instance.state.cursorPosition.freq
     
     // Check if we're clicking on an existing harmonic set
@@ -321,6 +345,13 @@ export function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseUp(instance, event) {
+  // End Doppler drag state
+  if (instance.state.mode === 'doppler' && instance.state.doppler.isDragging) {
+    instance.state.doppler.isDragging = false
+    instance.state.doppler.draggedMarker = null
+    notifyStateListeners(instance.state, instance.stateListeners)
+  }
+  
   // End drag state
   if (instance.state.dragState.isDragging) {
     const wasDraggingHarmonicSet = !!instance.state.dragState.draggedHarmonicSetId
@@ -369,6 +400,8 @@ export function handleClick(instance, event) {
   // Handle mode-specific clicks
   if (instance.state.mode === 'harmonics') {
     handleHarmonicsClick(instance, event)
+  } else if (instance.state.mode === 'doppler') {
+    handleDopplerClick(instance, event)
   }
 }
 
@@ -391,6 +424,170 @@ export function handleHarmonicsClick(instance, event) {
 function updateHarmonicPanel(instance) {
   if (instance.harmonicPanel) {
     updateHarmonicPanelContent(instance.harmonicPanel, instance)
+  }
+}
+
+/**
+ * Handle Doppler mode clicks for marker placement
+ * @param {Object} instance - GramFrame instance
+ * @param {MouseEvent} event - Mouse event
+ */
+export function handleDopplerClick(instance, event) {
+  const doppler = instance.state.doppler
+  
+  // If we're placing markers
+  if (doppler.markersPlaced < 2) {
+    const dataCoords = {
+      time: instance.state.cursorPosition.time,
+      frequency: instance.state.cursorPosition.freq
+    }
+    
+    if (doppler.markersPlaced === 0) {
+      // Place f- (first marker)
+      instance.state.doppler.fMinus = dataCoords
+      instance.state.doppler.markersPlaced = 1
+    } else if (doppler.markersPlaced === 1) {
+      // Place f+ (second marker)
+      instance.state.doppler.fPlus = dataCoords
+      instance.state.doppler.markersPlaced = 2
+      
+      // Calculate initial f₀ as midpoint
+      instance.state.doppler.fZero = {
+        time: (instance.state.doppler.fMinus.time + dataCoords.time) / 2,
+        frequency: (instance.state.doppler.fMinus.frequency + dataCoords.frequency) / 2
+      }
+      
+      // Calculate initial speed
+      calculateAndUpdateDopplerSpeed(instance)
+    }
+    
+    // Update displays
+    updateCursorIndicators(instance)
+    notifyStateListeners(instance.state, instance.stateListeners)
+  }
+}
+
+/**
+ * Handle Doppler mouse down events for marker dragging
+ * @param {Object} instance - GramFrame instance
+ * @param {MouseEvent} event - Mouse event
+ */
+function handleDopplerMouseDown(instance, event) {
+  const doppler = instance.state.doppler
+  const cursorPos = { 
+    x: instance.state.cursorPosition.svgX,
+    y: instance.state.cursorPosition.svgY 
+  }
+  
+  // Check if we're clicking near any existing markers for dragging
+  if (doppler.fPlus) {
+    const fPlusSVG = dopplerDataToSVG(doppler.fPlus, instance)
+    if (isNearMarker(cursorPos, fPlusSVG, 15)) {
+      instance.state.doppler.isDragging = true
+      instance.state.doppler.draggedMarker = 'fPlus'
+      return
+    }
+  }
+  
+  if (doppler.fMinus) {
+    const fMinusSVG = dopplerDataToSVG(doppler.fMinus, instance)
+    if (isNearMarker(cursorPos, fMinusSVG, 15)) {
+      instance.state.doppler.isDragging = true
+      instance.state.doppler.draggedMarker = 'fMinus'
+      return
+    }
+  }
+  
+  if (doppler.fZero) {
+    const fZeroSVG = dopplerDataToSVG(doppler.fZero, instance)
+    if (isNearMarker(cursorPos, fZeroSVG, 15)) {
+      instance.state.doppler.isDragging = true
+      instance.state.doppler.draggedMarker = 'fZero'
+      return
+    }
+  }
+  
+  // If not near any markers, handle normal click for placement
+  handleDopplerClick(instance, event)
+}
+
+/**
+ * Handle dragging of Doppler markers
+ * @param {Object} instance - GramFrame instance
+ */
+function handleDopplerMarkerDrag(instance) {
+  const doppler = instance.state.doppler
+  const draggedMarker = doppler.draggedMarker
+  
+  if (!draggedMarker || !instance.state.cursorPosition) return
+  
+  // Convert current cursor position to data coordinates
+  const newDataCoords = {
+    time: instance.state.cursorPosition.time,
+    frequency: instance.state.cursorPosition.freq
+  }
+  
+  // Update the dragged marker
+  instance.state.doppler[draggedMarker] = newDataCoords
+  
+  // If dragging f+ or f-, update f₀ to midpoint
+  if (draggedMarker === 'fPlus' || draggedMarker === 'fMinus') {
+    if (doppler.fPlus && doppler.fMinus) {
+      instance.state.doppler.fZero = {
+        time: (doppler.fPlus.time + doppler.fMinus.time) / 2,
+        frequency: (doppler.fPlus.frequency + doppler.fMinus.frequency) / 2
+      }
+    }
+  }
+  
+  // Recalculate speed
+  calculateAndUpdateDopplerSpeed(instance)
+  
+  // Update display
+  updateCursorIndicators(instance)
+}
+
+/**
+ * Calculate and update Doppler speed
+ * @param {Object} instance - GramFrame instance
+ */
+function calculateAndUpdateDopplerSpeed(instance) {
+  const doppler = instance.state.doppler
+  
+  if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
+    const speed = calculateDopplerSpeed(doppler.fPlus, doppler.fMinus, doppler.fZero)
+    instance.state.doppler.speed = speed
+    
+    // Update LED displays with speed
+    updateDopplerDisplays(instance)
+    notifyStateListeners(instance.state, instance.stateListeners)
+  }
+}
+
+/**
+ * Update LED displays with Doppler-specific information
+ * @param {Object} instance - GramFrame instance
+ */
+function updateDopplerDisplays(instance) {
+  const doppler = instance.state.doppler
+  
+  if (doppler.speed !== null && instance.ledElements) {
+    // Create speed display if it doesn't exist
+    if (!instance.speedLED && instance.ledReadout) {
+      instance.speedLED = document.createElement('div')
+      instance.speedLED.className = 'gram-frame-led'
+      instance.speedLED.innerHTML = `
+        <div class="gram-frame-led-label">Speed (m/s)</div>
+        <div class="gram-frame-led-value">${doppler.speed.toFixed(1)}</div>
+      `
+      instance.ledReadout.appendChild(instance.speedLED)
+    } else if (instance.speedLED) {
+      // Update existing speed display
+      const valueElement = instance.speedLED.querySelector('.gram-frame-led-value')
+      if (valueElement) {
+        valueElement.textContent = doppler.speed.toFixed(1)
+      }
+    }
   }
 }
 

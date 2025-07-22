@@ -17,7 +17,7 @@ export const initialState = {
   metadata: {
     instanceId: ''
   },
-  mode: 'analysis', // 'analysis', 'harmonics'
+  mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
   rate: 1,
   cursorPosition: null,
   cursors: [],
@@ -25,6 +25,16 @@ export const initialState = {
     baseFrequency: null,
     harmonicData: [],
     harmonicSets: []
+  },
+  doppler: {
+    fPlus: null,  // DopplerPoint: { time, frequency }
+    fMinus: null, // DopplerPoint: { time, frequency }
+    fZero: null,  // DopplerPoint: { time, frequency }
+    speed: null,  // calculated speed in m/s
+    isDragging: false,
+    draggedMarker: null, // 'fPlus', 'fMinus', 'fZero'
+    isPlacingMarkers: false,
+    markersPlaced: 0 // 0 = none, 1 = fMinus placed, 2 = both placed
   },
   dragState: {
     isDragging: false,

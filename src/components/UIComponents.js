@@ -45,7 +45,7 @@ export function createLEDDisplays(readoutPanel, state) {
 /**
  * Updates display visibility based on current mode
  * @param {Object} ledElements - Object containing LED element references
- * @param {string} mode - Current mode ('analysis', 'harmonics')
+ * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
  */
 export function updateDisplayVisibility(ledElements, mode) {
   if (mode === 'analysis') {
@@ -55,6 +55,10 @@ export function updateDisplayVisibility(ledElements, mode) {
   } else if (mode === 'harmonics') {
     // Harmonics mode: show Frequency only, Time is not needed
     ledElements.timeLED.style.display = 'none'
+    ledElements.freqLED.style.display = ''
+  } else if (mode === 'doppler') {
+    // Doppler mode: show Time and Frequency
+    ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
   } else {
     // Default: show Time and Frequency
@@ -76,7 +80,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   modesContainer.className = 'gram-frame-modes'
   
   // Create mode buttons
-  const modes = ['analysis', 'harmonics']
+  const modes = ['analysis', 'harmonics', 'doppler']
   const modeButtons = {}
   
   modes.forEach(mode => {
@@ -118,7 +122,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
 /**
  * Updates guidance content based on current mode
  * @param {HTMLElement} guidancePanel - The guidance panel element
- * @param {string} mode - Current mode ('analysis', 'harmonics')
+ * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
  */
 export function updateGuidanceContent(guidancePanel, mode) {
   if (mode === 'analysis') {
@@ -131,6 +135,13 @@ export function updateGuidanceContent(guidancePanel, mode) {
       <h4>Harmonics Mode</h4>
       <p>• Drag to display harmonic lines</p>
       <p>• Base frequency displays during drag</p>
+    `
+  } else if (mode === 'doppler') {
+    guidancePanel.innerHTML = `
+      <h4>Doppler Mode</h4>
+      <p>• Click to place f- then f+ markers</p>
+      <p>• Drag markers to adjust curve</p>
+      <p>• Right-click to reset</p>
     `
   }
 }
