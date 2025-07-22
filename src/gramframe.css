@@ -121,11 +121,14 @@
 .gram-frame-readout {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 10px;
   padding: 0;
   background: transparent;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
+  flex-shrink: 0;
+  width: 500px;
+  max-width: 500px;
 }
 
 /* Military-style display windows */
