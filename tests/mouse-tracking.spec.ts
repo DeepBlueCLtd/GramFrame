@@ -156,14 +156,14 @@ test.describe('Mouse Tracking Implementation', () => {
       await gramFramePage.page.waitForTimeout(100)
       
       // Check that LED displays are updated
-      const freqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Frequency"))')
-      const timeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Time"))')
+      const freqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Frequency (Hz)"))')
+      const timeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Time (s)"))')
       
       const freqValue = await freqLED.locator('.gram-frame-led-value').textContent()
       const timeValue = await timeLED.locator('.gram-frame-led-value').textContent()
       
-      expect(freqValue).toMatch(/\d+\.\d+ Hz/)
-      expect(timeValue).toMatch(/\d+\.\d+ s/)
+      expect(freqValue).toMatch(/\d+\.\d+/)
+      expect(timeValue).toMatch(/\d+\.\d+/)
       
       // Move mouse outside and verify LEDs show default values
       await gramFramePage.page.mouse.move(svgBounds.x + svgBounds.width + 50, svgBounds.y + svgBounds.height + 50)
@@ -172,8 +172,8 @@ test.describe('Mouse Tracking Implementation', () => {
       const freqValueAfter = await freqLED.locator('.gram-frame-led-value').textContent()
       const timeValueAfter = await timeLED.locator('.gram-frame-led-value').textContent()
       
-      expect(freqValueAfter).toBe('Freq: 0.00 Hz')
-      expect(timeValueAfter).toBe('Time: 0.00 s')
+      expect(freqValueAfter).toBe('0.00')
+      expect(timeValueAfter).toBe('0.00')
     }
   })
 })

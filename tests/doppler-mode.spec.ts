@@ -50,18 +50,18 @@ test.describe('Doppler Mode Implementation (Task 4.4)', () => {
     await gramFramePage.clickMode('Doppler')
     
     // Verify Doppler LEDs are visible
-    const deltaTimeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔTime"))')
-    const deltaFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔFreq"))')
-    const speedLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Speed"))')
+    const deltaTimeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔTime (s)"))')
+    const deltaFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔFreq (Hz)"))')
+    const speedLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Speed (knots)"))')
     
     await expect(deltaTimeLED).toBeVisible()
     await expect(deltaFreqLED).toBeVisible()
     await expect(speedLED).toBeVisible()
     
-    // Verify initial values are zero
-    await expect(deltaTimeLED.locator('.gram-frame-led-value')).toHaveText('ΔT: 0.00 s')
-    await expect(deltaFreqLED.locator('.gram-frame-led-value')).toHaveText('ΔF: 0 Hz')
-    await expect(speedLED.locator('.gram-frame-led-value')).toHaveText('Speed: 0.0 knots')
+    // Verify initial values are zero (numerical only)
+    await expect(deltaTimeLED.locator('.gram-frame-led-value')).toHaveText('0.00')
+    await expect(deltaFreqLED.locator('.gram-frame-led-value')).toHaveText('0')
+    await expect(speedLED.locator('.gram-frame-led-value')).toHaveText('0.0')
     
     // Set two points to trigger calculations
     await gramFramePage.clickSpectrogram(150, 100)
@@ -74,14 +74,14 @@ test.describe('Doppler Mode Implementation (Task 4.4)', () => {
     const deltaFreqText = await deltaFreqLED.locator('.gram-frame-led-value').textContent()
     const speedText = await speedLED.locator('.gram-frame-led-value').textContent()
     
-    expect(deltaTimeText).not.toBe('ΔT: 0.00 s')
-    expect(deltaFreqText).not.toBe('ΔF: 0 Hz')
-    expect(speedText).not.toBe('Speed: 0.0 knots')
+    expect(deltaTimeText).not.toBe('0.00')
+    expect(deltaFreqText).not.toBe('0')
+    expect(speedText).not.toBe('0.0')
     
-    // Verify format is correct
-    expect(deltaTimeText).toMatch(/^ΔT: -?\d+\.\d{2} s$/)
-    expect(deltaFreqText).toMatch(/^ΔF: -?\d+ Hz$/)
-    expect(speedText).toMatch(/^Speed: \d+\.\d knots$/)
+    // Verify format is correct (numerical only)
+    expect(deltaTimeText).toMatch(/^-?\d+\.\d{2}$/)
+    expect(deltaFreqText).toMatch(/^-?\d+$/)
+    expect(speedText).toMatch(/^\d+\.\d$/)
   })
 
   test('doppler mode state persists until mode change', async () => {
@@ -114,9 +114,9 @@ test.describe('Doppler Mode Implementation (Task 4.4)', () => {
     await expect(gramFramePage.page.locator('.gram-frame-doppler-end-point')).toHaveCount(0)
     
     // Verify Doppler LEDs are hidden
-    const deltaTimeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔTime"))')
-    const deltaFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔFreq"))')
-    const speedLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Speed"))')
+    const deltaTimeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔTime (s)"))')
+    const deltaFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔFreq (Hz)"))')
+    const speedLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Speed (knots)"))')
     
     await expect(deltaTimeLED).not.toBeVisible()
     await expect(deltaFreqLED).not.toBeVisible()
@@ -133,7 +133,7 @@ test.describe('Doppler Mode Implementation (Task 4.4)', () => {
     await gramFramePage.page.waitForTimeout(100)
     
     // Get first measurement values
-    const deltaTimeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔTime"))')
+    const deltaTimeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔTime (s)"))')
     const firstDeltaTime = await deltaTimeLED.locator('.gram-frame-led-value').textContent()
     
     // Set new measurement by clicking new start point (should replace previous)
@@ -181,14 +181,14 @@ test.describe('Doppler Mode Implementation (Task 4.4)', () => {
     await expect(gramFramePage.page.locator('.gram-frame-doppler-end-point')).toHaveCount(1)
     await expect(gramFramePage.page.locator('.gram-frame-doppler-line')).toHaveCount(1)
     
-    // Verify calculations show zero deltas
-    const deltaTimeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔTime"))')
-    const deltaFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔFreq"))')
-    const speedLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Speed"))')
+    // Verify calculations show zero deltas (numerical only)
+    const deltaTimeLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔTime (s)"))')
+    const deltaFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("ΔFreq (Hz)"))')
+    const speedLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Speed (knots)"))')
     
-    await expect(deltaTimeLED.locator('.gram-frame-led-value')).toHaveText('ΔT: 0.00 s')
-    await expect(deltaFreqLED.locator('.gram-frame-led-value')).toHaveText('ΔF: 0 Hz')
-    await expect(speedLED.locator('.gram-frame-led-value')).toHaveText('Speed: 0.0 knots')
+    await expect(deltaTimeLED.locator('.gram-frame-led-value')).toHaveText('0.00')
+    await expect(deltaFreqLED.locator('.gram-frame-led-value')).toHaveText('0')
+    await expect(speedLED.locator('.gram-frame-led-value')).toHaveText('0.0')
   })
 
   test('doppler line has optimal visibility styling', async () => {

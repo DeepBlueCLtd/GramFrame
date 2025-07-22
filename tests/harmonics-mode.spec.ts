@@ -176,26 +176,30 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
     await gramFramePage.page.waitForTimeout(100)
     
     // Verify LED displays show the correct format for Harmonics mode
-    const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
+    // During harmonics drag, the frequency LED label changes to "Base Freq (Hz)"
+    const baseFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Base Freq (Hz)"))')
+    const freqText = await baseFreqLED.locator('.gram-frame-led-value').textContent()
     const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
     
-    // During drag in Analysis mode, should show "Base: 220.0 Hz" format
-    expect(freqText).toMatch(/Base: \d+\.\d Hz/)  // 1 decimal place for base frequency
-    expect(timeText).toMatch(/Time: \d+\.\d{2} s/)  // 2 decimal places for time
+    // During drag in Harmonics mode, should show numerical base frequency only
+    expect(freqText).toMatch(/\d+\.\d$/)  // 1 decimal place for base frequency (numerical only)
+    expect(timeText).toMatch(/\d+\.\d{2}$/)  // 2 decimal places for time (numerical only)
     
-    // Verify format structure
-    expect(freqText).toContain('Base: ')
-    expect(freqText).toContain(' Hz')
-    expect(timeText).toContain('Time: ')
-    expect(timeText).toContain(' s')
+    // Verify format structure - no units in values
+    expect(freqText).not.toContain('Base: ')
+    expect(freqText).not.toContain(' Hz')
+    expect(timeText).not.toContain('Time: ')
+    expect(timeText).not.toContain(' s')
     
     // End drag and verify it switches back to normal Analysis mode LED format
     await gramFramePage.endDragSVG(160, 110)
     await gramFramePage.moveMouseToSpectrogram(150, 100)
     
+    // After drag ends, label should revert to "Frequency (Hz)"
     const analysisFreqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
-    expect(analysisFreqText).toContain('Freq: ') // Different prefix
-    expect(analysisFreqText).not.toContain('Base: ')
+    expect(analysisFreqText).toMatch(/\d+\.\d$/) // Should be numerical only
+    expect(analysisFreqText).not.toContain('Freq: ') // No prefix
+    expect(analysisFreqText).not.toContain('Base: ') // No prefix
   })
 
   test('harmonic lines extend full height of spectrogram', async () => {
@@ -304,9 +308,11 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
       // Verify harmonic lines are present
       await expect(gramFramePage.page.locator('.gram-frame-harmonic-main')).toHaveCount(1)
       
-      // Verify LED shows updated base frequency
-      const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
-      expect(freqText).toMatch(/Base: \d+\.\d Hz/)
+      // Verify LED shows updated base frequency (numerical only)
+      // During harmonics drag, the frequency LED label changes to "Base Freq (Hz)"
+      const baseFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Base Freq (Hz)"))')
+      const freqText = await baseFreqLED.locator('.gram-frame-led-value').textContent()
+      expect(freqText).toMatch(/\d+\.\d$/)
       
       // End drag to clear harmonics for next iteration
       await gramFramePage.endDragSVG(pos.x + 10, pos.y + 10)
