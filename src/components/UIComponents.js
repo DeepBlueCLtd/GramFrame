@@ -26,7 +26,7 @@ export function createLEDDisplays(readoutPanel, state) {
   ledElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
   readoutPanel.appendChild(ledElements.freqLED)
   
-  // Speed display - only shown in Doppler mode
+  // Speed display - not currently used
   ledElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
   readoutPanel.appendChild(ledElements.speedLED)
   
@@ -56,7 +56,7 @@ export function createLEDDisplays(readoutPanel, state) {
 /**
  * Updates display visibility based on current mode
  * @param {Object} ledElements - Object containing LED element references
- * @param {string} mode - Current mode ('analysis', 'harmonics', or 'doppler')
+ * @param {string} mode - Current mode ('analysis', 'harmonics')
  */
 export function updateDisplayVisibility(ledElements, mode) {
   if (mode === 'analysis') {
@@ -69,11 +69,11 @@ export function updateDisplayVisibility(ledElements, mode) {
     ledElements.timeLED.style.display = 'none'
     ledElements.freqLED.style.display = ''
     ledElements.speedLED.style.display = 'none'
-  } else if (mode === 'doppler') {
-    // Doppler mode: show Time, Frequency, and Speed
+  } else {
+    // Default: show Time and Frequency
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
-    ledElements.speedLED.style.display = ''
+    ledElements.speedLED.style.display = 'none'
   }
 }
 
@@ -90,7 +90,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   modesContainer.className = 'gram-frame-modes'
   
   // Create mode buttons
-  const modes = ['analysis', 'harmonics', 'doppler']
+  const modes = ['analysis', 'harmonics']
   const modeButtons = {}
   
   modes.forEach(mode => {
@@ -132,7 +132,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
 /**
  * Updates guidance content based on current mode
  * @param {HTMLElement} guidancePanel - The guidance panel element
- * @param {string} mode - Current mode ('analysis', 'harmonics', or 'doppler')
+ * @param {string} mode - Current mode ('analysis', 'harmonics')
  */
 export function updateGuidanceContent(guidancePanel, mode) {
   if (mode === 'analysis') {
@@ -145,13 +145,6 @@ export function updateGuidanceContent(guidancePanel, mode) {
       <h4>Harmonics Mode</h4>
       <p>• Drag to display harmonic lines</p>
       <p>• Base frequency displays during drag</p>
-    `
-  } else if (mode === 'doppler') {
-    guidancePanel.innerHTML = `
-      <h4>Doppler Mode</h4>
-      <p>• First click: Start point</p>
-      <p>• Second click: End point</p>
-      <p>• Speed calculation displayed</p>
     `
   }
 }
@@ -179,7 +172,7 @@ export function createRateInput(container, state, rateChangeCallback) {
   rateInput.min = '0.1'
   rateInput.step = '0.1'
   rateInput.value = String(state.rate)
-  rateInput.title = 'Rate value affects Doppler speed calculations'
+  rateInput.title = 'Rate value affects frequency calculations'
   
   // Add change handler
   rateInput.addEventListener('change', () => {
@@ -242,35 +235,10 @@ export function updateLEDDisplays(ledElements, state) {
     freqLabel.textContent = 'Frequency (Hz)'
   }
   
-  // Hide/show doppler-specific LEDs based on mode
-  if (state.mode === 'doppler') {
-    ledElements.deltaTimeLED.style.display = 'block'
-    ledElements.deltaFreqLED.style.display = 'block'
-    ledElements.speedLED.style.display = 'block'
-    
-    // Update doppler-specific values if available
-    if (state.doppler.deltaTime !== null) {
-      ledElements.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = state.doppler.deltaTime.toFixed(2)
-    } else {
-      ledElements.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-    }
-    
-    if (state.doppler.deltaFrequency !== null) {
-      ledElements.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = state.doppler.deltaFrequency.toFixed(0)
-    } else {
-      ledElements.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = '0'
-    }
-    
-    if (state.doppler.speed !== null) {
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = state.doppler.speed.toFixed(1)
-    } else {
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
-    }
-  } else {
-    ledElements.deltaTimeLED.style.display = 'none'
-    ledElements.deltaFreqLED.style.display = 'none'
-    ledElements.speedLED.style.display = 'none'
-  }
+  // Hide doppler-specific LEDs - not currently used
+  ledElements.deltaTimeLED.style.display = 'none'
+  ledElements.deltaFreqLED.style.display = 'none'
+  ledElements.speedLED.style.display = 'none'
   
   if (!state.cursorPosition) {
     // Show default values when no cursor position

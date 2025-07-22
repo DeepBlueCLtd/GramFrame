@@ -61,7 +61,7 @@ test.describe('State Listener Mechanism', () => {
     // Perform actions that should trigger state changes
     
     // 1. Change mode
-    await gramFramePage.clickMode('Doppler')
+    await gramFramePage.clickMode('Harmonics')
     
     // Note: Rate input has been removed from UI, skipping rate change step
     
@@ -82,7 +82,7 @@ test.describe('State Listener Mechanism', () => {
     
     // Verify the last update contains our changes
     const lastUpdate = updates[updates.length - 1]
-    expect(lastUpdate.mode).toBe('doppler')
+    expect(lastUpdate.mode).toBe('harmonics')
     // Rate input has been removed, so rate remains at default value of 1
     expect(lastUpdate.rate).toBe(1)
     expect(lastUpdate.cursorPosition).toBeTruthy()

@@ -115,7 +115,7 @@ export function expectValidMode(state: any, expectedMode?: string) {
   if (expectedMode) {
     expect(state.mode).toBe(expectedMode)
   } else {
-    expect(['analysis', 'harmonics', 'doppler']).toContain(state.mode)
+    expect(['analysis', 'harmonics']).toContain(state.mode)
   }
 }
 

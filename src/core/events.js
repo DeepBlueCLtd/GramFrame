@@ -13,7 +13,7 @@ import { updateLEDDisplays } from '../components/UIComponents.js'
 import { notifyStateListeners } from './state.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
 import { handleResize, handleSVGResize } from '../rendering/axes.js'
-import { calculateDopplerMeasurements, triggerHarmonicsDisplay } from './analysis.js'
+import { triggerHarmonicsDisplay } from './analysis.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 
 /**
@@ -41,7 +41,7 @@ export function setupEventListeners(instance) {
     const button = instance.modeButtons[mode]
     if (button) {
       button.addEventListener('click', () => {
-        instance._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
+        instance._switchMode(/** @type {'analysis'|'harmonics'} */ (mode))
       })
     }
   })
@@ -367,55 +367,11 @@ export function handleClick(instance, event) {
   }
   
   // Handle mode-specific clicks
-  if (instance.state.mode === 'doppler') {
-    handleDopplerClick(instance)
-  } else if (instance.state.mode === 'harmonics') {
+  if (instance.state.mode === 'harmonics') {
     handleHarmonicsClick(instance, event)
   }
 }
 
-/**
- * Process Doppler mode click to set measurement points
- * @param {Object} instance - GramFrame instance
- */
-export function handleDopplerClick(instance) {
-  // Create point data from current cursor position
-  if (!instance.state.cursorPosition) return
-  
-  const clickPoint = {
-    time: instance.state.cursorPosition.time,
-    freq: instance.state.cursorPosition.freq,
-    svgX: instance.state.cursorPosition.svgX,
-    svgY: instance.state.cursorPosition.svgY
-  }
-  
-  if (!instance.state.doppler.startPoint) {
-    // Set start point
-    instance.state.doppler.startPoint = clickPoint
-    instance.state.doppler.endPoint = null
-    instance.state.doppler.deltaTime = null
-    instance.state.doppler.deltaFrequency = null
-    instance.state.doppler.speed = null
-  } else if (!instance.state.doppler.endPoint) {
-    // Set end point and calculate measurements
-    instance.state.doppler.endPoint = clickPoint
-    calculateDopplerMeasurements(instance.state)
-  } else {
-    // Both points are set, start a new measurement
-    instance.state.doppler.startPoint = clickPoint
-    instance.state.doppler.endPoint = null
-    instance.state.doppler.deltaTime = null
-    instance.state.doppler.deltaFrequency = null
-    instance.state.doppler.speed = null
-  }
-  
-  // Update displays and indicators
-  updateLEDDisplays(instance, instance.state)
-  updateCursorIndicators(instance)
-  
-  // Notify listeners of state change
-  notifyStateListeners(instance.state, instance.stateListeners)
-}
 
 /**
  * Process Harmonics mode click to create new harmonic sets

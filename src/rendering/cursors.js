@@ -28,8 +28,6 @@ export function updateCursorIndicators(instance) {
     }
   } else if (instance.state.mode === 'harmonics') {
     drawHarmonicsMode(instance)
-  } else if (instance.state.mode === 'doppler') {
-    drawDopplerMode(instance)
   }
 }
 
@@ -244,98 +242,5 @@ export function drawHarmonicLabels(instance, harmonic, isMainLine) {
   instance.cursorGroup.appendChild(frequencyLabel)
 }
 
-/**
- * Draw Doppler mode indicators
- * @param {Object} instance - GramFrame instance
- */
-export function drawDopplerMode(instance) {
-  // Draw normal crosshairs for current cursor position
-  if (instance.state.cursorPosition) {
-    drawAnalysisMode(instance)
-  }
-  
-  // Draw start point marker if set
-  if (instance.state.doppler.startPoint) {
-    drawDopplerPoint(instance, instance.state.doppler.startPoint, 'start')
-  }
-  
-  // Draw end point marker and line if both points are set
-  if (instance.state.doppler.endPoint) {
-    drawDopplerPoint(instance, instance.state.doppler.endPoint, 'end')
-    drawDopplerLine(instance)
-  }
-}
 
-/**
- * Draw a Doppler measurement point
- * @param {Object} instance - GramFrame instance
- * @param {DopplerPoint} point - Point data
- * @param {'start'|'end'} type - Point type
- */
-export function drawDopplerPoint(instance, point, type) {
-  const margins = instance.state.axes.margins
-  
-  // Convert data coordinates to SVG coordinates
-  const dataCoords = dataToSVGCoordinates(point.freq, point.time, instance.state.config, instance.state.imageDetails, instance.state.rate)
-  const svgX = margins.left + dataCoords.x
-  const svgY = margins.top + dataCoords.y
-  
-  // Draw point marker
-  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-  marker.setAttribute('cx', String(svgX))
-  marker.setAttribute('cy', String(svgY))
-  marker.setAttribute('r', '5')
-  marker.setAttribute('class', `gram-frame-doppler-${type}-point`)
-  instance.cursorGroup.appendChild(marker)
-  
-  // Draw point label
-  const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-  label.setAttribute('x', String(svgX + 8))
-  label.setAttribute('y', String(svgY - 8))
-  label.setAttribute('class', 'gram-frame-doppler-label')
-  label.setAttribute('font-size', '12')
-  label.textContent = type === 'start' ? '1' : '2'
-  instance.cursorGroup.appendChild(label)
-}
 
-/**
- * Draw line between Doppler measurement points
- * @param {Object} instance - GramFrame instance
- */
-export function drawDopplerLine(instance) {
-  if (!instance.state.doppler.startPoint || !instance.state.doppler.endPoint) {
-    return
-  }
-  
-  const margins = instance.state.axes.margins
-  
-  // Convert data coordinates to SVG coordinates
-  const startCoords = dataToSVGCoordinates(instance.state.doppler.startPoint.freq, instance.state.doppler.startPoint.time, instance.state.config, instance.state.imageDetails, instance.state.rate)
-  const endCoords = dataToSVGCoordinates(instance.state.doppler.endPoint.freq, instance.state.doppler.endPoint.time, instance.state.config, instance.state.imageDetails, instance.state.rate)
-  
-  const startX = margins.left + startCoords.x
-  const startY = margins.top + startCoords.y
-  const endX = margins.left + endCoords.x
-  const endY = margins.top + endCoords.y
-  
-  // Draw shadow line for visibility
-  const shadowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  shadowLine.setAttribute('x1', String(startX))
-  shadowLine.setAttribute('y1', String(startY))
-  shadowLine.setAttribute('x2', String(endX))
-  shadowLine.setAttribute('y2', String(endY))
-  shadowLine.setAttribute('stroke-width', '4')
-  shadowLine.setAttribute('class', 'gram-frame-doppler-line-shadow')
-  instance.cursorGroup.appendChild(shadowLine)
-  
-  // Draw main line
-  const mainLine = createSVGLine(
-    startX,
-    startY,
-    endX,
-    endY,
-    'gram-frame-doppler-line'
-  )
-  mainLine.setAttribute('stroke-width', '2')
-  instance.cursorGroup.appendChild(mainLine)
-}

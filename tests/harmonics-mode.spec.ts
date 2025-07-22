@@ -51,11 +51,11 @@ test.describe('Harmonics Mode Implementation (Task 4.3)', () => {
     await expect(gramFramePage.page.locator('.gram-frame-harmonic-main')).toHaveCount(0)
     await expect(gramFramePage.page.locator('.gram-frame-harmonic-label')).toHaveCount(0)
     
-    // Switch to Doppler mode and verify harmonics disappear but cross-hairs remain
-    await gramFramePage.clickMode('Doppler')
+    // Switch to Analysis mode and verify harmonics disappear but cross-hairs remain
+    await gramFramePage.clickMode('Analysis')
     await gramFramePage.moveMouseToSpectrogram(150, 100)
     
-    // Cross-hairs should still appear in Doppler mode
+    // Cross-hairs should still appear in Analysis mode
     await expect(gramFramePage.page.locator('.gram-frame-cursor-vertical')).toHaveCount(1)
     await expect(gramFramePage.page.locator('.gram-frame-cursor-horizontal')).toHaveCount(1)
     // But harmonics should be gone
@@ -434,8 +434,8 @@ test.describe('Harmonics Mode Implementation (Task 4.3)', () => {
     const harmonicsButton = gramFramePage.page.locator('[data-mode="harmonics"]')
     await expect(harmonicsButton).toHaveClass(/active/)
     
-    // Verify doppler mode button is not active
-    const dopplerButton = gramFramePage.page.locator('[data-mode="doppler"]')
-    await expect(dopplerButton).not.toHaveClass(/active/)
+    // Verify analysis mode button is not active
+    const analysisButton = gramFramePage.page.locator('[data-mode="analysis"]')
+    await expect(analysisButton).not.toHaveClass(/active/)
   })
 })

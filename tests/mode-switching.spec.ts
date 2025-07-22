@@ -13,16 +13,16 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     // Verify mode switching container exists
     await expect(gramFramePage.page.locator('.gram-frame-modes')).toBeVisible()
     
-    // Verify both mode buttons exist with correct text
+    // Verify mode buttons exist with correct text
     const analysisBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')
-    const dopplerBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')
+    const harmonicsBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')
     
     await expect(analysisBtn).toBeVisible()
-    await expect(dopplerBtn).toBeVisible()
+    await expect(harmonicsBtn).toBeVisible()
     
     // Verify Analysis mode is active by default
     await expect(analysisBtn).toHaveClass(/active/)
-    await expect(dopplerBtn).not.toHaveClass(/active/)
+    await expect(harmonicsBtn).not.toHaveClass(/active/)
   })
 
   test('default Analysis mode is set correctly', async () => {
@@ -35,26 +35,26 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
   })
 
   test('mode switching changes state and UI correctly', async () => {
-    // Test switching to Doppler mode
-    await gramFramePage.clickMode('Doppler')
+    // Test switching to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Verify button state changes
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).not.toHaveClass(/active/)
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')).toHaveClass(/active/)
+    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')).toHaveClass(/active/)
     
     // Verify state is updated
-    const stateAfterDoppler = await gramFramePage.getCurrentState()
-    expect(stateAfterDoppler.mode).toBe('doppler')
+    const stateAfterHarmonics = await gramFramePage.getCurrentState()
+    expect(stateAfterHarmonics.mode).toBe('harmonics')
     
     // Verify LED display is updated
-    await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Doppler')
+    await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Harmonics')
     
     // Test switching back to Analysis mode
     await gramFramePage.clickMode('Analysis')
     
     // Verify button state changes back
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).toHaveClass(/active/)
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')).not.toHaveClass(/active/)
+    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')).not.toHaveClass(/active/)
     
     // Verify state is updated back to analysis
     const stateAfterAnalysis = await gramFramePage.getCurrentState()
@@ -79,7 +79,7 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     })
     
     // Switch modes and verify state listener is called
-    await gramFramePage.clickMode('Doppler')
+    await gramFramePage.clickMode('Harmonics')
     await gramFramePage.page.waitForTimeout(100) // Brief pause for state propagation
     
     await gramFramePage.clickMode('Analysis')
@@ -92,10 +92,10 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     expect(updates.length).toBeGreaterThanOrEqual(2)
     
     // Find the mode changes in the updates
-    const dopplerUpdate = updates.find((u: any) => u.mode === 'doppler')
+    const harmonicsUpdate = updates.find((u: any) => u.mode === 'harmonics')
     const analysisUpdate = updates.reverse().find((u: any) => u.mode === 'analysis') // Get the latest analysis update
     
-    expect(dopplerUpdate).toBeDefined()
+    expect(harmonicsUpdate).toBeDefined()
     expect(analysisUpdate).toBeDefined()
   })
 
@@ -109,11 +109,11 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
       expect(initialStateText).toContain('"mode": "analysis"')
       
       // Change mode and verify update in state display
-      await gramFramePage.clickMode('Doppler')
+      await gramFramePage.clickMode('Harmonics')
       await gramFramePage.page.waitForTimeout(100)
       
       const updatedStateText = await stateDisplay.textContent()
-      expect(updatedStateText).toContain('"mode": "doppler"')
+      expect(updatedStateText).toContain('"mode": "harmonics"')
     }
   })
 
@@ -122,7 +122,7 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     const initialState = await gramFramePage.getCurrentState()
     
     // Switch mode
-    await gramFramePage.clickMode('Doppler')
+    await gramFramePage.clickMode('Harmonics')
     
     // Get state after mode change
     const stateAfterModeChange = await gramFramePage.getCurrentState()
@@ -135,23 +135,23 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     expect(stateAfterModeChange.axes).toEqual(initialState.axes)
     
     // Only mode should have changed
-    expect(stateAfterModeChange.mode).toBe('doppler')
+    expect(stateAfterModeChange.mode).toBe('harmonics')
     expect(stateAfterModeChange.mode).not.toBe(initialState.mode)
   })
 
   test('mode buttons have correct styling and hover states', async () => {
     const analysisBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')
-    const dopplerBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')
+    const harmonicsBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')
     
     // Verify buttons have correct base styling
     await expect(analysisBtn).toHaveCSS('cursor', 'pointer')
-    await expect(dopplerBtn).toHaveCSS('cursor', 'pointer')
+    await expect(harmonicsBtn).toHaveCSS('cursor', 'pointer')
     
     // Verify active button has different styling
     await expect(analysisBtn).toHaveClass(/active/)
     
     // Verify inactive button styling
-    await expect(dopplerBtn).not.toHaveClass(/active/)
+    await expect(harmonicsBtn).not.toHaveClass(/active/)
   })
 
   test('LED-style aesthetic is maintained for mode display', async () => {
@@ -182,24 +182,24 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     expect(stateWithCursor.cursorPosition).not.toBeNull()
     
     // Switch mode 
-    await gramFramePage.clickMode('Doppler')
+    await gramFramePage.clickMode('Harmonics')
     
     // Verify mode changed
     const stateAfterModeChange = await gramFramePage.getCurrentState()
-    expect(stateAfterModeChange.mode).toBe('doppler')
+    expect(stateAfterModeChange.mode).toBe('harmonics')
     
     // Move mouse back to spectrogram and verify tracking still works
     await gramFramePage.moveMouseToSpectrogram(200, 150)
     
     const stateAfterMouseMove = await gramFramePage.getCurrentState()
-    expect(stateAfterMouseMove.mode).toBe('doppler')
+    expect(stateAfterMouseMove.mode).toBe('harmonics')
     expect(stateAfterMouseMove.cursorPosition).not.toBeNull()
     
     // Move mouse to another position and verify coordinates change
     await gramFramePage.moveMouseToSpectrogram(150, 200)
     
     const stateAfterSecondMove = await gramFramePage.getCurrentState()
-    expect(stateAfterSecondMove.mode).toBe('doppler')
+    expect(stateAfterSecondMove.mode).toBe('harmonics')
     expect(stateAfterSecondMove.cursorPosition).not.toBeNull()
     expect(stateAfterSecondMove.cursorPosition.x).not.toBe(stateAfterMouseMove.cursorPosition.x)
   })
@@ -228,16 +228,6 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     await expect(guidancePanel).toContainText('Drag to display harmonic lines')
     await expect(guidancePanel).toContainText('Base frequency displays during drag')
     
-    // Switch to Doppler mode
-    const dopplerButton = page.locator('[data-mode="doppler"]')
-    await dopplerButton.click()
-    
-    // Verify guidance content changes
-    await expect(guidancePanel).toContainText('Doppler Mode')
-    await expect(guidancePanel).toContainText('First click: Start point')
-    await expect(guidancePanel).toContainText('Second click: End point')
-    await expect(guidancePanel).toContainText('Speed calculation displayed')
-    
     // Switch back to Analysis mode
     const analysisButton = page.locator('[data-mode="analysis"]')
     await analysisButton.click()
@@ -245,6 +235,5 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     // Verify content switches back
     await expect(guidancePanel).toContainText('Analysis Mode')
     await expect(guidancePanel).toContainText('Hover to view exact frequency/time values')
-    await expect(guidancePanel).not.toContainText('Doppler Mode')
   })
 })
