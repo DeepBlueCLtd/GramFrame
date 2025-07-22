@@ -10,7 +10,7 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     await gramFramePage.waitForImageLoad()
   })
 
-  test('cross-hairs appear in Analysis and Doppler modes', async () => {
+  test('cross-hairs appear in Analysis mode', async () => {
     // Verify we start in Analysis mode
     const initialState = await gramFramePage.getCurrentState()
     expect(initialState.mode).toBe('analysis')
@@ -29,13 +29,13 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     await expect(gramFramePage.page.locator('.gram-frame-cursor-horizontal')).toHaveCount(1)
     await expect(gramFramePage.page.locator('.gram-frame-cursor-point')).toHaveCount(1)
     
-    // Switch to Doppler mode
-    await gramFramePage.clickMode('Doppler')
+    // Switch to Harmonics mode to verify cross-hairs still appear
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse again to verify cross-hairs still appear
     await gramFramePage.moveMouseToSpectrogram(180, 120)
     
-    // Verify cross-hairs ARE present in Doppler mode (needed for positioning)
+    // Verify cross-hairs ARE present in Harmonics mode (needed for positioning)
     await expect(gramFramePage.page.locator('.gram-frame-cursor-vertical')).toHaveCount(1)
     await expect(gramFramePage.page.locator('.gram-frame-cursor-horizontal')).toHaveCount(1)
     await expect(gramFramePage.page.locator('.gram-frame-cursor-point')).toHaveCount(1)

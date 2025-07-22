@@ -27,11 +27,17 @@ export const initialState = {
     harmonicSets: []
   },
   doppler: {
-    startPoint: null,
-    endPoint: null,
-    deltaTime: null,
-    deltaFrequency: null,
-    speed: null
+    fPlus: null,  // DopplerPoint: { time, frequency }
+    fMinus: null, // DopplerPoint: { time, frequency }
+    fZero: null,  // DopplerPoint: { time, frequency }
+    speed: null,  // calculated speed in m/s
+    isDragging: false,
+    draggedMarker: null, // 'fPlus', 'fMinus', 'fZero'
+    isPlacingMarkers: false,
+    markersPlaced: 0, // 0 = none, 1 = first placed, 2 = both placed
+    tempFirst: null, // temporary storage for first marker during placement
+    isPreviewDrag: false, // whether currently dragging to preview curve
+    previewEnd: null // end point for preview drag
   },
   dragState: {
     isDragging: false,

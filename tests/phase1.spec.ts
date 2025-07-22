@@ -41,7 +41,6 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     // Verify all mode buttons exist
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).toBeVisible()
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')).toBeVisible()
-    await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')).toBeVisible()
     
     // Rate input has been removed from the UI
     // No need to verify its visibility
@@ -117,7 +116,7 @@ test.describe('Hot Module Reload Simulation', () => {
     // Perform actions to change the state
     
     // 1. Change mode to something other than default
-    await gramFramePage.clickMode('Doppler')
+    await gramFramePage.clickMode('Harmonics')
     
     // Note: Rate input has been removed from UI, skipping rate change step
     

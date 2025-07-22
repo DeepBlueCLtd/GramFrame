@@ -177,7 +177,7 @@ export class GramFramePage {
 
   /**
    * Click a mode button to switch modes
-   * @param mode The mode to switch to (e.g., "Analysis", "Harmonics", "Doppler")
+   * @param mode The mode to switch to (e.g., "Analysis", "Harmonics")
    */
   async clickMode(mode: string) {
     await this.page.locator(`.gram-frame-mode-btn:text("${mode}")`).click()

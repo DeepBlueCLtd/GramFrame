@@ -25,23 +25,17 @@ export function createLEDDisplays(readoutPanel, state) {
   // Frequency display - shown in both modes
   ledElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
   readoutPanel.appendChild(ledElements.freqLED)
+
   
-  // Speed display - only shown in Doppler mode
+  // Speed display for Doppler mode
   ledElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
+  ledElements.speedLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.speedLED)
   
   // Hide other displays for backward compatibility
   ledElements.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(state.mode))
   ledElements.modeLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.modeLED)
-  
-  ledElements.deltaTimeLED = createLEDDisplay('ΔTime (s)', '0.00')
-  ledElements.deltaTimeLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.deltaTimeLED)
-  
-  ledElements.deltaFreqLED = createLEDDisplay('ΔFreq (Hz)', '0')
-  ledElements.deltaFreqLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.deltaFreqLED)
   
   ledElements.rateLED = createLEDDisplay('Rate (Hz/s)', `${state.rate}`)
   ledElements.rateLED.style.display = 'none'
@@ -56,24 +50,37 @@ export function createLEDDisplays(readoutPanel, state) {
 /**
  * Updates display visibility based on current mode
  * @param {Object} ledElements - Object containing LED element references
- * @param {string} mode - Current mode ('analysis', 'harmonics', or 'doppler')
+ * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
  */
 export function updateDisplayVisibility(ledElements, mode) {
   if (mode === 'analysis') {
     // Analysis mode: show Time and Frequency only
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
-    ledElements.speedLED.style.display = 'none'
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
   } else if (mode === 'harmonics') {
     // Harmonics mode: show Frequency only, Time is not needed
     ledElements.timeLED.style.display = 'none'
     ledElements.freqLED.style.display = ''
-    ledElements.speedLED.style.display = 'none'
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
   } else if (mode === 'doppler') {
     // Doppler mode: show Time, Frequency, and Speed
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
-    ledElements.speedLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = ''
+    }
+  } else {
+    // Default: show Time and Frequency
+    ledElements.timeLED.style.display = ''
+    ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
   }
 }
 
@@ -132,7 +139,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
 /**
  * Updates guidance content based on current mode
  * @param {HTMLElement} guidancePanel - The guidance panel element
- * @param {string} mode - Current mode ('analysis', 'harmonics', or 'doppler')
+ * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
  */
 export function updateGuidanceContent(guidancePanel, mode) {
   if (mode === 'analysis') {
@@ -143,15 +150,16 @@ export function updateGuidanceContent(guidancePanel, mode) {
   } else if (mode === 'harmonics') {
     guidancePanel.innerHTML = `
       <h4>Harmonics Mode</h4>
-      <p>• Drag to display harmonic lines</p>
-      <p>• Base frequency displays during drag</p>
+      <p>• Drag to generate harmonic lines</p>
+      <p>• Drag existing harmonic lines to adjust</p>
+      <p>• Spacing interval updates during drag</p>
     `
   } else if (mode === 'doppler') {
     guidancePanel.innerHTML = `
       <h4>Doppler Mode</h4>
-      <p>• First click: Start point</p>
-      <p>• Second click: End point</p>
-      <p>• Speed calculation displayed</p>
+      <p>• Drag line to give overall doppler curve</p>
+      <p>• Drag markers to adjust curve</p>
+      <p>• Right-click to reset</p>
     `
   }
 }
@@ -179,7 +187,7 @@ export function createRateInput(container, state, rateChangeCallback) {
   rateInput.min = '0.1'
   rateInput.step = '0.1'
   rateInput.value = String(state.rate)
-  rateInput.title = 'Rate value affects Doppler speed calculations'
+  rateInput.title = 'Rate value affects frequency calculations'
   
   // Add change handler
   rateInput.addEventListener('change', () => {
@@ -242,36 +250,6 @@ export function updateLEDDisplays(ledElements, state) {
     freqLabel.textContent = 'Frequency (Hz)'
   }
   
-  // Hide/show doppler-specific LEDs based on mode
-  if (state.mode === 'doppler') {
-    ledElements.deltaTimeLED.style.display = 'block'
-    ledElements.deltaFreqLED.style.display = 'block'
-    ledElements.speedLED.style.display = 'block'
-    
-    // Update doppler-specific values if available
-    if (state.doppler.deltaTime !== null) {
-      ledElements.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = state.doppler.deltaTime.toFixed(2)
-    } else {
-      ledElements.deltaTimeLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-    }
-    
-    if (state.doppler.deltaFrequency !== null) {
-      ledElements.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = state.doppler.deltaFrequency.toFixed(0)
-    } else {
-      ledElements.deltaFreqLED.querySelector('.gram-frame-led-value').textContent = '0'
-    }
-    
-    if (state.doppler.speed !== null) {
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = state.doppler.speed.toFixed(1)
-    } else {
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
-    }
-  } else {
-    ledElements.deltaTimeLED.style.display = 'none'
-    ledElements.deltaFreqLED.style.display = 'none'
-    ledElements.speedLED.style.display = 'none'
-  }
-  
   if (!state.cursorPosition) {
     // Show default values when no cursor position
     ledElements.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00'
@@ -296,6 +274,17 @@ export function updateLEDDisplays(ledElements, state) {
     // Update time LED - use 2 decimal places as per spec
     const timeValue = state.cursorPosition.time.toFixed(2)
     ledElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
+  }
+  
+  // Update speed LED for Doppler mode
+  if (state.mode === 'doppler' && ledElements.speedLED) {
+    if (state.doppler.speed !== null) {
+      // Convert m/s to knots: 1 m/s = 1.94384 knots
+      const speedInKnots = state.doppler.speed * 1.94384
+      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
+    } else {
+      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
+    }
   }
 }
 

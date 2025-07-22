@@ -1,8 +1,7 @@
 /**
  * Analysis Engine for GramFrame
  * 
- * This module provides analysis calculations for doppler measurements
- * and harmonics display functionality.
+ * This module provides harmonics display functionality.
  */
 
 /// <reference path="../types.js" />
@@ -10,26 +9,6 @@
 import { calculateHarmonics } from '../utils/calculations.js'
 import { dataToSVGCoordinates } from '../utils/coordinates.js'
 
-/**
- * Calculate Doppler measurements from start and end points
- * @param {GramFrameState} state - Current state object (will be modified)
- * @returns {void}
- */
-export function calculateDopplerMeasurements(state) {
-  if (!state.doppler.startPoint || !state.doppler.endPoint) {
-    return
-  }
-  
-  const start = state.doppler.startPoint
-  const end = state.doppler.endPoint
-  
-  // Calculate delta values
-  state.doppler.deltaTime = end.time - start.time
-  state.doppler.deltaFrequency = end.freq - start.freq
-  
-  // Speed calculation incorporating rate: ΔT * ΔF * rate
-  state.doppler.speed = Math.abs(state.doppler.deltaTime * state.doppler.deltaFrequency * state.rate)
-}
 
 /**
  * Trigger harmonics display calculation and state updates

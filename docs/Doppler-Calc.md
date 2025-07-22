@@ -11,13 +11,14 @@
 ## User Workflow
 
 1. **User enters `Doppler` mode** (via mode selector).
-2. **User clicks the end of engagement** point (`f+`) — red marker appears.
-3. **User clicks the start of engagement** point (`f−`) — blue marker appears.
-4. System draws a **smooth S-curve** (e.g., cosine or sigmoid) between `f−` and `f+`.
-5. A **cross-hair** appears at the **midpoint in time** between `f−` and `f+`:
+2. **User drags cursor to create diagonal line, representing f+ to f-**
+3. **Smooth S-Shaped line drawn between f+ and f-, extending vertically out at either end**
+4. **A cross-hair appears at the **midpoint in time** between `f−` and `f+`:
    - Initially represents the inflexion point (`f₀`)
    - User drags this cross-hair to match the curve to the Doppler trace
-6. The **estimated speed is calculated and shown live**.
+5. **f0 crosshair shown at mid point of line (in frequency and time values)**
+6. **When cursor goes over f+, f- or f0 markers, pointer switches to `grab`**
+7. **When any marker is dragged, calculate and display estimated speed**
 7. The **user may drag `f+` or `f−` markers** to re-fit the curve as needed:
    - Curve is re-bent and `f₀` midpoint time is updated
    - Speed is recalculated accordingly
@@ -46,8 +47,8 @@
 
 ## Coordinate System
 
-- **X-axis**: Time (in seconds), increasing bottom to top
-- **Y-axis**: Frequency (Hz or kHz), increasing left to right
+- **Y-axis**: Time (in seconds), increasing bottom to top
+- **X-axis**: Frequency (Hz or kHz), increasing left to right
 
 ---
 
@@ -93,7 +94,6 @@ type DopplerFit = {
 | `drag(f+)`    | Update curve endpoint and recalculate |
 | `drag(f−)`    | Update curve start point and recalculate |
 | `drag(f₀)`    | Move inflexion point to match Doppler trace |
-| `hover`       | Show tooltip with time/frequency |
 | `reset`       | Clear all points and overlays |
 | `mode change` | Exit `Doppler` mode disables tool and clears markers |
 
