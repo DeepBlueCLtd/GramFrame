@@ -61,9 +61,9 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
     await expect(gramFramePage.timeLED.locator('.gram-frame-led-label')).toContainText('Time')
     await expect(gramFramePage.modeLED.locator('.gram-frame-led-label')).toContainText('Mode')
     
-    // Verify initial LED values
-    await expect(gramFramePage.freqLED.locator('.gram-frame-led-value')).toContainText('0.00 Hz')
-    await expect(gramFramePage.timeLED.locator('.gram-frame-led-value')).toContainText('0.00 s')
+    // Verify initial LED values (numerical only)
+    await expect(gramFramePage.freqLED.locator('.gram-frame-led-value')).toContainText('0.00')
+    await expect(gramFramePage.timeLED.locator('.gram-frame-led-value')).toContainText('0.00')
     await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Analysis')
     
     // Test LED updates when mouse moves
@@ -74,12 +74,12 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
       // Wait for updates
       await gramFramePage.page.waitForTimeout(100)
       
-      // Verify LED values have updated with real coordinates
+      // Verify LED values have updated with real coordinates (numerical only)
       const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
       const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
       
-      expect(freqText).toMatch(/Freq: \d+\.\d Hz/)
-      expect(timeText).toMatch(/Time: \d+\.\d{2} s/)
+      expect(freqText).toMatch(/\d+\.\d$/)
+      expect(timeText).toMatch(/\d+\.\d{2}$/)
     }
   })
 })
@@ -135,7 +135,7 @@ test.describe('Phase 2: Diagnostics Panel', () => {
       
       expect(mouseCanvasPos).toMatch(/\(\d+, \d+\)/)
       expect(mouseTime).toMatch(/\d+\.\d{2} s/)
-      expect(mouseFreq).toMatch(/\d+\.\d{2} Hz/)
+      expect(mouseFreq).toMatch(/\d+\.\d{2} Hz/)  // Note: diagnostic panel still shows units
     }
   })
 })
@@ -252,11 +252,11 @@ test.describe('Phase 2: Comprehensive Integration', () => {
       await gramFramePage.moveMouse(svgBounds.width * 0.3, svgBounds.height * 0.7)
       await page.waitForTimeout(200)
       
-      // Verify LED displays updated
+      // Verify LED displays updated (numerical values only)
       const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
       const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
-      expect(freqText).toMatch(/Freq: \d+\.\d Hz/)
-      expect(timeText).toMatch(/Time: \d+\.\d{2} s/)
+      expect(freqText).toMatch(/\d+\.\d$/)
+      expect(timeText).toMatch(/\d+\.\d{2}$/)
       
       // Verify diagnostics panel updated
       const mouseCanvasPos = await page.locator('#mouse-canvas-pos').textContent()

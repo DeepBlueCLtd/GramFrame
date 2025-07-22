@@ -90,15 +90,15 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
     const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
     
-    // According to spec: "Freq: 734.2 Hz" and "Time: 5.84 s"
-    expect(freqText).toMatch(/Freq: \d+\.\d Hz/)  // 1 decimal place for frequency
-    expect(timeText).toMatch(/Time: \d+\.\d{2} s/)  // 2 decimal places for time
+    // According to new LED format: numerical values only
+    expect(freqText).toMatch(/\d+\.\d$/)  // 1 decimal place for frequency (numerical only)
+    expect(timeText).toMatch(/\d+\.\d{2}$/)  // 2 decimal places for time (numerical only)
     
-    // Verify format structure
-    expect(freqText).toContain('Freq: ')
-    expect(freqText).toContain(' Hz')
-    expect(timeText).toContain('Time: ')
-    expect(timeText).toContain(' s')
+    // Verify format structure - no units in values
+    expect(freqText).not.toContain('Freq: ')
+    expect(freqText).not.toContain(' Hz')
+    expect(timeText).not.toContain('Time: ')
+    expect(timeText).not.toContain(' s')
   })
 
   test('LED display shows default values when mouse is outside spectrogram', async () => {
@@ -115,8 +115,8 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
     const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
     
-    expect(freqText).toBe('Freq: 0.00 Hz')
-    expect(timeText).toBe('Time: 0.00 s')
+    expect(freqText).toBe('0.00')
+    expect(timeText).toBe('0.00')
   })
 
   test('Analysis mode operates on hover only with no click interactions', async () => {
@@ -262,8 +262,8 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
       const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
       const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
       
-      expect(freqText).toMatch(/Freq: \d+\.\d Hz/)
-      expect(timeText).toMatch(/Time: \d+\.\d{2} s/)
+      expect(freqText).toMatch(/\d+\.\d$/)
+      expect(timeText).toMatch(/\d+\.\d{2}$/)
     }
   })
 })
