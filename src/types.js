@@ -68,10 +68,20 @@
  */
 
 /**
+ * Harmonic set definition for interactive overlays
+ * @typedef {Object} HarmonicSet
+ * @property {string} id - Unique identifier for the harmonic set
+ * @property {string} color - Display color for harmonic lines
+ * @property {number} anchorTime - Time position (Y-axis) in seconds
+ * @property {number} spacing - Frequency spacing between harmonics in Hz
+ */
+
+/**
  * Harmonics mode state
  * @typedef {Object} HarmonicsState
  * @property {number|null} baseFrequency - Base frequency for harmonic calculations
  * @property {HarmonicData[]} harmonicData - Array of calculated harmonic data
+ * @property {HarmonicSet[]} harmonicSets - Array of harmonic sets with persistent overlays
  */
 
 /**
@@ -79,6 +89,10 @@
  * @typedef {Object} DragState
  * @property {boolean} isDragging - Whether user is currently dragging
  * @property {CursorPosition|null} dragStartPosition - Starting position of drag
+ * @property {string|null} draggedHarmonicSetId - ID of harmonic set being dragged
+ * @property {number|null} originalSpacing - Original spacing of dragged harmonic set
+ * @property {number|null} originalAnchorTime - Original anchor time of dragged harmonic set  
+ * @property {number|null} clickedHarmonicNumber - Which harmonic number was clicked for dragging
  */
 
 /**

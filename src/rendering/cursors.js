@@ -15,14 +15,17 @@ export function updateCursorIndicators(instance) {
   // Clear existing cursor indicators
   instance.cursorGroup.innerHTML = ''
   
-  // Only draw indicators if cursor position is available
-  if (!instance.state.cursorPosition || !instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) {
+  // Check if we have valid image dimensions
+  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) {
     return
   }
   
   // Handle different modes
   if (instance.state.mode === 'analysis') {
-    drawAnalysisMode(instance)
+    // Only draw analysis crosshairs if cursor position is available
+    if (instance.state.cursorPosition) {
+      drawAnalysisMode(instance)
+    }
   } else if (instance.state.mode === 'harmonics') {
     drawHarmonicsMode(instance)
   } else if (instance.state.mode === 'doppler') {
@@ -96,17 +99,76 @@ export function drawAnalysisMode(instance) {
  * @param {Object} instance - GramFrame instance
  */
 export function drawHarmonicsMode(instance) {
-  // First draw the cross-hairs (like analysis mode)
-  drawAnalysisMode(instance)
+  // First draw the cross-hairs if cursor position is available
+  if (instance.state.cursorPosition) {
+    drawAnalysisMode(instance)
+  }
   
-  // Then draw harmonics if they exist
+  // Draw persistent harmonic sets (always visible)
+  instance.state.harmonics.harmonicSets.forEach(harmonicSet => {
+    drawHarmonicSetLines(instance, harmonicSet)
+  })
+  
+  // Then draw old harmonics system if they exist (temporary compatibility)
   const harmonics = instance.state.harmonics.harmonicData
-  
-  // Draw harmonic lines and labels
   harmonics.forEach((harmonic, index) => {
     drawHarmonicLine(instance, harmonic, index === 0)
     drawHarmonicLabels(instance, harmonic, index === 0)
   })
+}
+
+/**
+ * Draw harmonic set lines
+ * @param {Object} instance - GramFrame instance  
+ * @param {HarmonicSet} harmonicSet - Harmonic set to render
+ */
+export function drawHarmonicSetLines(instance, harmonicSet) {
+  const margins = instance.state.axes.margins
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const { freqMin, freqMax } = instance.state.config
+  
+  // Calculate visible harmonic lines
+  const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
+  const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
+  
+  // Calculate vertical extent (20% of SVG height, centered on anchor time)
+  const lineHeight = naturalHeight * 0.2
+  const timeRange = instance.state.config.timeMax - instance.state.config.timeMin
+  const timeRatio = (harmonicSet.anchorTime - instance.state.config.timeMin) / timeRange
+  const anchorSVGY = margins.top + timeRatio * naturalHeight
+  const lineStartY = anchorSVGY - lineHeight / 2
+  const lineEndY = anchorSVGY + lineHeight / 2
+  
+  // Draw harmonic lines
+  for (let harmonic = minHarmonic; harmonic <= maxHarmonic; harmonic++) {
+    const freq = harmonic * harmonicSet.spacing
+    
+    // Convert frequency to SVG x coordinate
+    const freqRatio = (freq - freqMin) / (freqMax - freqMin)
+    const svgX = margins.left + freqRatio * naturalWidth
+    
+    // Draw shadow line for visibility
+    const shadowLine = createSVGLine(
+      svgX,
+      lineStartY,
+      svgX,
+      lineEndY,
+      'gram-frame-harmonic-set-shadow'
+    )
+    instance.cursorGroup.appendChild(shadowLine)
+    
+    // Draw main line with harmonic set color
+    const mainLine = createSVGLine(
+      svgX,
+      lineStartY,
+      svgX,
+      lineEndY,
+      'gram-frame-harmonic-set-line'
+    )
+    mainLine.setAttribute('stroke', harmonicSet.color)
+    mainLine.setAttribute('stroke-width', '2')
+    instance.cursorGroup.appendChild(mainLine)
+  }
 }
 
 /**

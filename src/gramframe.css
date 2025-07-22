@@ -379,6 +379,32 @@
   dominant-baseline: central;
 }
 
+/* SVG Harmonic Set styles (new system) */
+.gram-frame-harmonic-set-shadow {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 4;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+.gram-frame-harmonic-set-line {
+  stroke-width: 2;
+  fill: none;
+  pointer-events: auto;
+  cursor: grab;
+  stroke-linecap: round;
+}
+
+.gram-frame-harmonic-set-line:hover {
+  stroke-width: 3;
+  cursor: grab;
+}
+
+.gram-frame-harmonic-set-line:active {
+  cursor: grabbing;
+}
+
 /* Legacy harmonic styles (for backward compatibility) */
 .gram-frame-harmonic {
   position: absolute;
@@ -473,4 +499,104 @@
   border: 1px solid #f5c6cb;
   border-radius: 4px;
   margin: 10px 0;
+}
+
+/* Harmonic Management Panel */
+.gram-frame-harmonic-panel {
+  display: none;
+  margin-top: 10px;
+  padding: 10px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.gram-frame-harmonic-header h4 {
+  margin: 0 0 10px 0;
+  font-size: 11px;
+  color: #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.gram-frame-harmonic-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #ccc;
+}
+
+.gram-frame-harmonic-table th,
+.gram-frame-harmonic-table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid #444;
+}
+
+.gram-frame-harmonic-table th {
+  background: #2a2a2a;
+  color: #00ff00;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.gram-frame-harmonic-table td {
+  background: #1a1a1a;
+}
+
+.gram-frame-harmonic-table tr:hover td {
+  background: #2a2a2a;
+}
+
+.gram-frame-harmonic-color {
+  width: 20px;
+  height: 12px;
+  border: 1px solid #555;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.gram-frame-harmonic-delete {
+  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);
+  color: #ff6666;
+  border: 1px solid #555;
+  border-radius: 2px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+}
+
+.gram-frame-harmonic-delete:hover {
+  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);
+  border-color: #777;
+}
+
+.gram-frame-harmonic-delete:active {
+  transform: translateY(1px);
+}
+
+.gram-frame-harmonic-empty {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
 }

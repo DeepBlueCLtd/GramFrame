@@ -37,6 +37,12 @@ import {
 } from './components/UIComponents.js'
 
 import {
+  createHarmonicPanel,
+  updateHarmonicPanelContent,
+  toggleHarmonicPanelVisibility
+} from './components/HarmonicPanel.js'
+
+import {
   calculateDopplerMeasurements,
   triggerHarmonicsDisplay
 } from './core/analysis.js'
@@ -122,6 +128,9 @@ export class GramFrame {
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
+    // Create harmonic management panel (add to mode cell to avoid layout issues)
+    this.harmonicPanel = createHarmonicPanel(this.modeCell, this)
+    
     // Apply any globally registered listeners to this new instance
     getGlobalStateListeners().forEach(listener => {
       if (!this.stateListeners.includes(listener)) {
@@ -181,6 +190,7 @@ export class GramFrame {
     if (mode !== 'harmonics') {
       this.state.harmonics.baseFrequency = null
       this.state.harmonics.harmonicData = []
+      this.state.harmonics.harmonicSets = []
     }
     
     // Clear doppler state when switching away from doppler mode
@@ -195,6 +205,10 @@ export class GramFrame {
     // Clear drag state when switching modes
     this.state.dragState.isDragging = false
     this.state.dragState.dragStartPosition = null
+    this.state.dragState.draggedHarmonicSetId = null
+    this.state.dragState.originalSpacing = null
+    this.state.dragState.originalAnchorTime = null
+    this.state.dragState.clickedHarmonicNumber = null
     
     // Update UI
     if (this.modeButtons) {
@@ -224,6 +238,12 @@ export class GramFrame {
       updateGuidanceContent(this.guidancePanel, mode)
     }
     
+    // Update harmonic panel visibility and content
+    if (this.harmonicPanel) {
+      toggleHarmonicPanelVisibility(this.harmonicPanel, mode)
+      updateHarmonicPanelContent(this.harmonicPanel, this)
+    }
+    
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
   }
@@ -246,6 +266,108 @@ export class GramFrame {
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
+  }
+
+  /**
+   * Color palette for harmonic sets
+   * @type {string[]}
+   */
+  static harmonicColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffc93c', '#ff9ff3', '#9b59b6', '#e67e22']
+
+  /**
+   * Add a new harmonic set
+   * @param {number} anchorTime - Time position in seconds
+   * @param {number} spacing - Frequency spacing in Hz
+   * @returns {HarmonicSet} The created harmonic set
+   */
+  _addHarmonicSet(anchorTime, spacing) {
+    const id = `harmonic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const colorIndex = this.state.harmonics.harmonicSets.length % GramFrame.harmonicColors.length
+    const color = GramFrame.harmonicColors[colorIndex]
+    
+    const harmonicSet = {
+      id,
+      color,
+      anchorTime,
+      spacing
+    }
+    
+    this.state.harmonics.harmonicSets.push(harmonicSet)
+    
+    // Update display and notify listeners
+    updateCursorIndicators(this)
+    if (this.harmonicPanel) {
+      updateHarmonicPanelContent(this.harmonicPanel, this)
+    }
+    notifyStateListeners(this.state, this.stateListeners)
+    
+    return harmonicSet
+  }
+
+  /**
+   * Update an existing harmonic set
+   * @param {string} id - Harmonic set ID
+   * @param {Partial<HarmonicSet>} updates - Properties to update
+   */
+  _updateHarmonicSet(id, updates) {
+    const setIndex = this.state.harmonics.harmonicSets.findIndex(set => set.id === id)
+    if (setIndex !== -1) {
+      Object.assign(this.state.harmonics.harmonicSets[setIndex], updates)
+      
+      // Update display and notify listeners
+      updateCursorIndicators(this)
+      if (this.harmonicPanel) {
+        updateHarmonicPanelContent(this.harmonicPanel, this)
+      }
+      notifyStateListeners(this.state, this.stateListeners)
+    }
+  }
+
+  /**
+   * Remove a harmonic set
+   * @param {string} id - Harmonic set ID
+   */
+  _removeHarmonicSet(id) {
+    const setIndex = this.state.harmonics.harmonicSets.findIndex(set => set.id === id)
+    if (setIndex !== -1) {
+      this.state.harmonics.harmonicSets.splice(setIndex, 1)
+      
+      // Update display and notify listeners
+      updateCursorIndicators(this)
+      if (this.harmonicPanel) {
+        updateHarmonicPanelContent(this.harmonicPanel, this)
+      }
+      notifyStateListeners(this.state, this.stateListeners)
+    }
+  }
+
+  /**
+   * Find harmonic set containing given frequency coordinate
+   * @param {number} freq - Frequency in Hz to check
+   * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
+   */
+  _findHarmonicSetAtFrequency(freq) {
+    for (const harmonicSet of this.state.harmonics.harmonicSets) {
+      // Check if frequency is close to any harmonic line in this set
+      if (harmonicSet.spacing > 0) {
+        // Only consider harmonics within the visible frequency range
+        const freqMin = this.state.config.freqMin
+        const freqMax = this.state.config.freqMax
+        
+        const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
+        const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
+        
+        for (let h = minHarmonic; h <= maxHarmonic; h++) {
+          const expectedFreq = h * harmonicSet.spacing
+          const tolerance = harmonicSet.spacing * 0.02 // 2% tolerance
+          
+          if (Math.abs(freq - expectedFreq) < tolerance) {
+            return harmonicSet
+          }
+        }
+      }
+    }
+    return null
   }
   
   

@@ -23,7 +23,8 @@ export const initialState = {
   cursors: [],
   harmonics: {
     baseFrequency: null,
-    harmonicData: []
+    harmonicData: [],
+    harmonicSets: []
   },
   doppler: {
     startPoint: null,
@@ -34,7 +35,11 @@ export const initialState = {
   },
   dragState: {
     isDragging: false,
-    dragStartPosition: null
+    dragStartPosition: null,
+    draggedHarmonicSetId: null,
+    originalSpacing: null,
+    originalAnchorTime: null,
+    clickedHarmonicNumber: null
   },
   imageDetails: {
     url: '',
