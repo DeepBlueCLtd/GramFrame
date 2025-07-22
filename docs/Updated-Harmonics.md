@@ -47,7 +47,7 @@ Derived display properties:
 
 ### 4.1 Add New Harmonic Set
 
-- Triggered via clicking on the gram whilst in `Analysis` mode.
+- Triggered via clicking on the gram whilst in `Harmonics` mode.
 - Mouse cursor starts at a position representing the 10th harmonic if the frequency axis origin > 0, else 5th harmonic.
 - Initial spacing is inferred from cursor position
 - Color is auto-assigned from a rotating palette
@@ -86,7 +86,7 @@ This panel displays a summary of all active sets:
 ## 6. Suggested Implementation Sequence
 
 1. **Implement Harmonic Set creation**
-   - When in `Analysis` mode, clicking on the gram will create a new harmonic set.
+   - When in `Harmonics` mode, clicking on the gram will create a new harmonic set.
    - The cursor will start at a position representing the 10th harmonic if the frequency axis origin > 0, else 5th harmonic.
    - Initial spacing is inferred from cursor position
    - Color is auto-assigned from a rotating palette
@@ -110,6 +110,9 @@ This panel displays a summary of all active sets:
 6. **Clutter Management**
    - Restrict overlay height to 20%
    - Optionally fade inactive sets
+
+7. **Mode management**
+   - Harmonic sets are deleted when the user goes out of harmonics mode
 
 ---
 
