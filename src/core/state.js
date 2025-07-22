@@ -17,13 +17,14 @@ export const initialState = {
   metadata: {
     instanceId: ''
   },
-  mode: 'analysis', // 'analysis', 'doppler'
+  mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
   rate: 1,
   cursorPosition: null,
   cursors: [],
   harmonics: {
     baseFrequency: null,
-    harmonicData: []
+    harmonicData: [],
+    harmonicSets: []
   },
   doppler: {
     startPoint: null,
@@ -34,7 +35,12 @@ export const initialState = {
   },
   dragState: {
     isDragging: false,
-    dragStartPosition: null
+    dragStartPosition: null,
+    draggedHarmonicSetId: null,
+    originalSpacing: null,
+    originalAnchorTime: null,
+    clickedHarmonicNumber: null,
+    isCreatingNewHarmonicSet: false
   },
   imageDetails: {
     url: '',

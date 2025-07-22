@@ -14,6 +14,7 @@ import { notifyStateListeners } from './state.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
 import { handleResize, handleSVGResize } from '../rendering/axes.js'
 import { calculateDopplerMeasurements, triggerHarmonicsDisplay } from './analysis.js'
+import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 
 /**
  * Set up event listeners for the GramFrame instance
@@ -40,7 +41,7 @@ export function setupEventListeners(instance) {
     const button = instance.modeButtons[mode]
     if (button) {
       button.addEventListener('click', () => {
-        instance._switchMode(/** @type {'analysis'|'doppler'} */ (mode))
+        instance._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
       })
     }
   })
@@ -161,19 +162,84 @@ export function handleMouseMove(instance, event) {
   // Update visual cursor indicators
   updateCursorIndicators(instance)
   
-  // In Analysis mode, update harmonics during drag
-  if (instance.state.mode === 'analysis' && instance.state.dragState.isDragging) {
-    triggerHarmonicsDisplay(
-      instance.state, 
-      () => updateLEDDisplays(instance, instance.state),
-      () => updateCursorIndicators(instance), 
-      notifyStateListeners, 
-      instance.stateListeners
-    )
+  // In Harmonics mode, handle dragging interactions
+  if (instance.state.mode === 'harmonics' && instance.state.dragState.isDragging) {
+    if (instance.state.dragState.draggedHarmonicSetId) {
+      // Update dragged harmonic set
+      handleHarmonicSetDrag(instance)
+    }
+  }
+  
+  // In Harmonics mode, update live rate displays during mouse movement
+  if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
+    updateHarmonicRatesLive(instance)
   }
   
   // Notify listeners
   notifyStateListeners(instance.state, instance.stateListeners)
+}
+
+/**
+ * Update harmonic rate displays live during mouse movement
+ * @param {Object} instance - GramFrame instance
+ */
+function updateHarmonicRatesLive(instance) {
+  if (!instance.harmonicPanel) return
+  
+  const currentFreq = instance.state.cursorPosition.freq
+  const rateElements = instance.harmonicPanel.querySelectorAll('.gram-frame-harmonic-rate')
+  const harmonicSets = instance.state.harmonics.harmonicSets
+  
+  rateElements.forEach((element, index) => {
+    if (index < harmonicSets.length) {
+      const harmonicSet = harmonicSets[index]
+      const rate = currentFreq / harmonicSet.spacing
+      element.textContent = rate.toFixed(2)
+    }
+  })
+}
+
+/**
+ * Handle dragging of harmonic sets
+ * @param {Object} instance - GramFrame instance
+ */
+function handleHarmonicSetDrag(instance) {
+  if (!instance.state.cursorPosition || !instance.state.dragState.dragStartPosition) return
+
+  const currentPos = instance.state.cursorPosition
+  const startPos = instance.state.dragState.dragStartPosition
+  const setId = instance.state.dragState.draggedHarmonicSetId
+
+  if (!setId) return
+
+  const harmonicSet = instance.state.harmonics.harmonicSets.find(set => set.id === setId)
+  if (!harmonicSet) return
+
+  // Calculate changes from drag start
+  const deltaFreq = currentPos.freq - startPos.freq
+  const deltaTime = currentPos.time - startPos.time
+
+  // Update spacing based on horizontal drag
+  // The dragged harmonic should stay under cursor
+  const clickedHarmonicNumber = instance.state.dragState.clickedHarmonicNumber || 1
+  const newSpacing = (instance.state.dragState.originalSpacing + deltaFreq / clickedHarmonicNumber)
+  
+  // Update anchor time based on vertical drag  
+  // Since we inverted the Y-axis in rendering (1 - timeRatio), dragging up (positive deltaTime)
+  // should now increase anchor time to move lines up on screen
+  const newAnchorTime = instance.state.dragState.originalAnchorTime + deltaTime
+
+  // Apply updates
+  const updates = {}
+  if (newSpacing > 0) {
+    updates.spacing = newSpacing
+  }
+  updates.anchorTime = newAnchorTime
+
+  instance._updateHarmonicSet(setId, updates)
+  
+  // Update harmonic management panel
+  updateHarmonicPanel(instance)
 }
 
 /**
@@ -204,19 +270,48 @@ export function handleMouseDown(instance, event) {
   // Only process if we have valid image details
   if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
   
-  // Start drag state in Analysis mode for harmonics
-  if (instance.state.mode === 'analysis' && instance.state.cursorPosition) {
-    instance.state.dragState.isDragging = true
-    instance.state.dragState.dragStartPosition = { ...instance.state.cursorPosition }
+  // Handle Harmonics mode drag interactions
+  if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
+    const cursorFreq = instance.state.cursorPosition.freq
     
-    // Trigger harmonics display immediately on mouse down
-    triggerHarmonicsDisplay(
-      instance.state, 
-      () => updateLEDDisplays(instance, instance.state),
-      () => updateCursorIndicators(instance), 
-      notifyStateListeners, 
-      instance.stateListeners
-    )
+    // Check if we're clicking on an existing harmonic set
+    const existingSet = instance._findHarmonicSetAtFrequency(cursorFreq)
+    
+    if (existingSet) {
+      // Start dragging existing harmonic set
+      instance.state.dragState.isDragging = true
+      instance.state.dragState.dragStartPosition = { ...instance.state.cursorPosition }
+      instance.state.dragState.draggedHarmonicSetId = existingSet.id
+      instance.state.dragState.originalSpacing = existingSet.spacing
+      instance.state.dragState.originalAnchorTime = existingSet.anchorTime
+      
+      // Find which harmonic number was clicked
+      const harmonicNumber = Math.round(cursorFreq / existingSet.spacing)
+      instance.state.dragState.clickedHarmonicNumber = harmonicNumber
+    } else {
+      // Start creating a new harmonic set with click-and-drag
+      instance.state.dragState.isDragging = true
+      instance.state.dragState.dragStartPosition = { ...instance.state.cursorPosition }
+      instance.state.dragState.isCreatingNewHarmonicSet = true
+      
+      // Create initial harmonic set at click position
+      const cursorFreq = instance.state.cursorPosition.freq
+      const cursorTime = instance.state.cursorPosition.time
+      const freqOrigin = instance.state.config.freqMin
+      const initialHarmonicNumber = freqOrigin > 0 ? 10 : 5
+      const initialSpacing = cursorFreq / initialHarmonicNumber
+      
+      // Create the harmonic set and store its ID for live updating
+      const harmonicSet = instance._addHarmonicSet(cursorTime, initialSpacing)
+      instance.state.dragState.draggedHarmonicSetId = harmonicSet.id
+      instance.state.dragState.originalSpacing = initialSpacing
+      instance.state.dragState.originalAnchorTime = cursorTime
+      instance.state.dragState.clickedHarmonicNumber = initialHarmonicNumber
+      
+      // Update displays immediately for the new harmonic set
+      updateCursorIndicators(instance)
+      updateHarmonicPanel(instance)
+    }
   }
 }
 
@@ -228,10 +323,18 @@ export function handleMouseDown(instance, event) {
 export function handleMouseUp(instance, event) {
   // End drag state
   if (instance.state.dragState.isDragging) {
+    const wasDraggingHarmonicSet = !!instance.state.dragState.draggedHarmonicSetId
+    
+    // Clear drag state
     instance.state.dragState.isDragging = false
     instance.state.dragState.dragStartPosition = null
+    instance.state.dragState.draggedHarmonicSetId = null
+    instance.state.dragState.originalSpacing = null
+    instance.state.dragState.originalAnchorTime = null
+    instance.state.dragState.clickedHarmonicNumber = null
+    instance.state.dragState.isCreatingNewHarmonicSet = false
     
-    // Clear harmonics state when drag ends
+    // Clear old harmonics system state (for backward compatibility)
     instance.state.harmonics.baseFrequency = null
     instance.state.harmonics.harmonicData = []
     
@@ -239,19 +342,22 @@ export function handleMouseUp(instance, event) {
     updateLEDDisplays(instance, instance.state)
     updateCursorIndicators(instance)
     
+    // Update harmonic panel
+    updateHarmonicPanel(instance)
+    
     // Notify listeners of state change
     notifyStateListeners(instance.state, instance.stateListeners)
   }
 }
 
 /**
- * Handle click events for Doppler mode measurements
+ * Handle click events for mode-specific actions
  * @param {Object} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
  */
 export function handleClick(instance, event) {
-  // Only process if we have valid image details and are in Doppler mode
-  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight || instance.state.mode !== 'doppler') {
+  // Only process if we have valid image details
+  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) {
     return
   }
   
@@ -260,9 +366,11 @@ export function handleClick(instance, event) {
     return
   }
   
-  // Handle Doppler mode clicks
+  // Handle mode-specific clicks
   if (instance.state.mode === 'doppler') {
     handleDopplerClick(instance)
+  } else if (instance.state.mode === 'harmonics') {
+    handleHarmonicsClick(instance, event)
   }
 }
 
@@ -307,6 +415,27 @@ export function handleDopplerClick(instance) {
   
   // Notify listeners of state change
   notifyStateListeners(instance.state, instance.stateListeners)
+}
+
+/**
+ * Process Harmonics mode click to create new harmonic sets
+ * @param {Object} instance - GramFrame instance
+ * @param {MouseEvent} event - Mouse event
+ */
+export function handleHarmonicsClick(instance, event) {
+  // Harmonics are now created via click-and-drag in handleMouseDown
+  // This function is kept for backward compatibility but no longer creates harmonics
+  // The creation logic has been moved to the mousedown handler for live drag creation
+}
+
+/**
+ * Update harmonic management panel
+ * @param {Object} instance - GramFrame instance
+ */
+function updateHarmonicPanel(instance) {
+  if (instance.harmonicPanel) {
+    updateHarmonicPanelContent(instance.harmonicPanel, instance)
+  }
 }
 
 /**

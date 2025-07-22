@@ -46,11 +46,9 @@
       "Bash(/dev/null)",
       "Bash(yarn typecheck)",
       "Bash(ls:*)",
-      "Bash(git checkout:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
       "Bash(awk:*)",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "exec_confirmed_commands": [

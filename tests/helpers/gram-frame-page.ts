@@ -22,8 +22,8 @@ export class GramFramePage {
     this.stateDisplay = page.locator('#state-display')
     this.svg = page.locator('.gram-frame-svg')
     this.readoutPanel = page.locator('.gram-frame-readout')
-    this.freqLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Frequency"))')
-    this.timeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Time"))')
+    this.freqLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Frequency (Hz)"))')
+    this.timeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Time (s)"))')
     this.modeLED = page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Mode"))')
   }
 

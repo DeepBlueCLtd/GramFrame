@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { GramFramePage } from './helpers/gram-frame-page'
 
-test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
+test.describe('Harmonics Mode Implementation (Task 4.3)', () => {
   let gramFramePage: GramFramePage
 
   test.beforeEach(async ({ page }) => {
@@ -10,9 +10,9 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
     await gramFramePage.waitForImageLoad()
   })
 
-  test('harmonic lines appear in Analysis mode on drag', async () => {
-    // Ensure we're in Analysis mode
-    await gramFramePage.clickMode('Analysis')
+  test('harmonic lines appear in Harmonics mode on drag', async () => {
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse over spectrogram but don't drag - should show only cross-hairs
     await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -65,8 +65,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('harmonic lines are positioned at correct frequency multiples during drag', async () => {
-    // Ensure we're in Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse to a known frequency position and start drag to trigger harmonics
     await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -107,8 +107,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('main harmonic line (1×) has distinct styling', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse over spectrogram and start drag to trigger harmonics
     await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -133,8 +133,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('harmonic labels show correct harmonic numbers and frequencies', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse over spectrogram and start drag to trigger harmonics
     await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -167,8 +167,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('LED display shows base frequency in Harmonics mode', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse over spectrogram and start drag to trigger harmonics
     await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -176,31 +176,35 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
     await gramFramePage.page.waitForTimeout(100)
     
     // Verify LED displays show the correct format for Harmonics mode
-    const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
+    // During harmonics drag, the frequency LED label changes to "Base Freq (Hz)"
+    const baseFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Base Freq (Hz)"))')
+    const freqText = await baseFreqLED.locator('.gram-frame-led-value').textContent()
     const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
     
-    // During drag in Analysis mode, should show "Base: 220.0 Hz" format
-    expect(freqText).toMatch(/Base: \d+\.\d Hz/)  // 1 decimal place for base frequency
-    expect(timeText).toMatch(/Time: \d+\.\d{2} s/)  // 2 decimal places for time
+    // During drag in Harmonics mode, should show numerical base frequency only
+    expect(freqText).toMatch(/\d+\.\d$/)  // 1 decimal place for base frequency (numerical only)
+    expect(timeText).toMatch(/\d+\.\d{2}$/)  // 2 decimal places for time (numerical only)
     
-    // Verify format structure
-    expect(freqText).toContain('Base: ')
-    expect(freqText).toContain(' Hz')
-    expect(timeText).toContain('Time: ')
-    expect(timeText).toContain(' s')
+    // Verify format structure - no units in values
+    expect(freqText).not.toContain('Base: ')
+    expect(freqText).not.toContain(' Hz')
+    expect(timeText).not.toContain('Time: ')
+    expect(timeText).not.toContain(' s')
     
-    // End drag and verify it switches back to normal Analysis mode LED format
+    // End drag and verify it switches back to normal Harmonics mode LED format
     await gramFramePage.endDragSVG(160, 110)
     await gramFramePage.moveMouseToSpectrogram(150, 100)
     
+    // After drag ends, label should revert to "Frequency (Hz)"
     const analysisFreqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
-    expect(analysisFreqText).toContain('Freq: ') // Different prefix
-    expect(analysisFreqText).not.toContain('Base: ')
+    expect(analysisFreqText).toMatch(/\d+\.\d$/) // Should be numerical only
+    expect(analysisFreqText).not.toContain('Freq: ') // No prefix
+    expect(analysisFreqText).not.toContain('Base: ') // No prefix
   })
 
   test('harmonic lines extend full height of spectrogram', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse over spectrogram and start drag to trigger harmonics
     await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -237,8 +241,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('harmonics mode operates on drag with state cleared when drag ends', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse over spectrogram (hover) - should not trigger harmonics
     await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -280,8 +284,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('harmonic lines update when dragging at different positions', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Test multiple drag positions to verify harmonics update
     const positions = [
@@ -304,9 +308,11 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
       // Verify harmonic lines are present
       await expect(gramFramePage.page.locator('.gram-frame-harmonic-main')).toHaveCount(1)
       
-      // Verify LED shows updated base frequency
-      const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
-      expect(freqText).toMatch(/Base: \d+\.\d Hz/)
+      // Verify LED shows updated base frequency (numerical only)
+      // During harmonics drag, the frequency LED label changes to "Base Freq (Hz)"
+      const baseFreqLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Base Freq (Hz)"))')
+      const freqText = await baseFreqLED.locator('.gram-frame-led-value').textContent()
+      expect(freqText).toMatch(/\d+\.\d$/)
       
       // End drag to clear harmonics for next iteration
       await gramFramePage.endDragSVG(pos.x + 10, pos.y + 10)
@@ -315,8 +321,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('harmonic calculation handles edge cases correctly', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Test near frequency boundaries
     const edgePositions = [
@@ -355,8 +361,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('harmonics state is properly tracked in diagnostics', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Check if state display exists (debug page feature)
     const stateDisplay = gramFramePage.page.locator('#state-display')
@@ -364,7 +370,7 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
     if (await stateDisplay.isVisible()) {
       // Verify mode is shown in state display
       const stateText = await stateDisplay.textContent()
-      expect(stateText).toContain('"mode": "analysis"')
+      expect(stateText).toContain('"mode": "harmonics"')
       
       // Move mouse and start drag to trigger harmonics, then verify harmonic state is tracked
       await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -380,8 +386,8 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
   })
 
   test('harmonic lines have optimal visibility styling', async () => {
-    // Switch to Analysis mode
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
     // Move mouse over spectrogram and start drag to trigger harmonics
     await gramFramePage.moveMouseToSpectrogram(150, 100)
@@ -416,17 +422,17 @@ test.describe('Analysis Mode Harmonics Implementation (Task 4.3)', () => {
     }
   })
 
-  test('mode indicator shows "Analysis" when harmonics functionality is active', async () => {
-    // Switch to Analysis mode (harmonics functionality is integrated here)
-    await gramFramePage.clickMode('Analysis')
+  test('mode indicator shows "Harmonics" when harmonics functionality is active', async () => {
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
     
-    // Verify mode LED shows "Analysis"
+    // Verify mode LED shows "Harmonics"
     const modeText = await gramFramePage.modeLED.locator('.gram-frame-led-value').textContent()
-    expect(modeText).toBe('Analysis')
+    expect(modeText).toBe('Harmonics')
     
     // Verify mode button is active
-    const analysisButton = gramFramePage.page.locator('[data-mode="analysis"]')
-    await expect(analysisButton).toHaveClass(/active/)
+    const harmonicsButton = gramFramePage.page.locator('[data-mode="harmonics"]')
+    await expect(harmonicsButton).toHaveClass(/active/)
     
     // Verify doppler mode button is not active
     const dopplerButton = gramFramePage.page.locator('[data-mode="doppler"]')
