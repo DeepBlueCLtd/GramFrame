@@ -272,7 +272,7 @@ export class GramFrame {
    * Color palette for harmonic sets
    * @type {string[]}
    */
-  static harmonicColors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffc93c', '#ff9ff3', '#9b59b6', '#e67e22']
+  static harmonicColors = ['#ff6b6b', '#2ecc71', '#f39c12', '#9b59b6', '#ffc93c', '#ff9ff3', '#45b7d1', '#e67e22']
 
   /**
    * Add a new harmonic set

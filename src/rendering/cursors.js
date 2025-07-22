@@ -5,7 +5,7 @@
 /// <reference path="../types.js" />
 
 import { dataToSVGCoordinates } from '../utils/coordinates.js'
-import { createSVGLine } from '../utils/svg.js'
+import { createSVGLine, createSVGText } from '../utils/svg.js'
 
 /**
  * Update cursor indicators based on current mode and state
@@ -99,8 +99,9 @@ export function drawAnalysisMode(instance) {
  * @param {Object} instance - GramFrame instance
  */
 export function drawHarmonicsMode(instance) {
-  // First draw the cross-hairs if cursor position is available
-  if (instance.state.cursorPosition) {
+  // Draw cross-hairs if cursor position is available, but not when dragging harmonics
+  // (dragging harmonics would obscure the harmonic sets with the cross-hairs)
+  if (instance.state.cursorPosition && !instance.state.dragState.isDragging) {
     drawAnalysisMode(instance)
   }
   
@@ -164,6 +165,19 @@ export function drawHarmonicSetLines(instance, harmonicSet) {
     mainLine.setAttribute('stroke', harmonicSet.color)
     mainLine.setAttribute('stroke-width', '2')
     instance.cursorGroup.appendChild(mainLine)
+    
+    // Add harmonic number label at the top of the line
+    const label = createSVGText(
+      svgX + 3, // Slight offset to the right of the line
+      lineStartY - 3, // Slightly above the line
+      String(harmonic),
+      'gram-frame-harmonic-label',
+      'start'
+    )
+    label.setAttribute('fill', harmonicSet.color)
+    label.setAttribute('font-size', '12')
+    label.setAttribute('font-weight', 'bold')
+    instance.cursorGroup.appendChild(label)
   }
 }
 
