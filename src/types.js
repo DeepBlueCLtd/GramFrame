@@ -103,7 +103,7 @@
  * @property {string} timestamp - Timestamp of state creation
  * @property {Object} metadata - Component instance metadata
  * @property {string} metadata.instanceId - Unique instance identifier
- * @property {'analysis'|'doppler'} mode - Current analysis mode
+ * @property {'analysis'|'harmonics'|'doppler'} mode - Current analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)

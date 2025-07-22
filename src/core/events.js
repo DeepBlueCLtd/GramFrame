@@ -40,7 +40,7 @@ export function setupEventListeners(instance) {
     const button = instance.modeButtons[mode]
     if (button) {
       button.addEventListener('click', () => {
-        instance._switchMode(/** @type {'analysis'|'doppler'} */ (mode))
+        instance._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
       })
     }
   })
@@ -161,8 +161,8 @@ export function handleMouseMove(instance, event) {
   // Update visual cursor indicators
   updateCursorIndicators(instance)
   
-  // In Analysis mode, update harmonics during drag
-  if (instance.state.mode === 'analysis' && instance.state.dragState.isDragging) {
+  // In Harmonics mode, update harmonics during drag
+  if (instance.state.mode === 'harmonics' && instance.state.dragState.isDragging) {
     triggerHarmonicsDisplay(
       instance.state, 
       () => updateLEDDisplays(instance, instance.state),
@@ -204,8 +204,8 @@ export function handleMouseDown(instance, event) {
   // Only process if we have valid image details
   if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
   
-  // Start drag state in Analysis mode for harmonics
-  if (instance.state.mode === 'analysis' && instance.state.cursorPosition) {
+  // Start drag state in Harmonics mode for harmonics
+  if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
     instance.state.dragState.isDragging = true
     instance.state.dragState.dragStartPosition = { ...instance.state.cursorPosition }
     

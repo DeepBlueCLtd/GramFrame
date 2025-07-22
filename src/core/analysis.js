@@ -41,8 +41,8 @@ export function calculateDopplerMeasurements(state) {
  * @returns {boolean} True if harmonics were calculated, false if conditions not met
  */
 export function triggerHarmonicsDisplay(state, updateLEDDisplays, updateCursorIndicators, notifyStateListeners, stateListeners) {
-  // Only trigger if we have a cursor position, are in analysis mode, and are dragging
-  if (!state.cursorPosition || state.mode !== 'analysis' || !state.dragState.isDragging) {
+  // Only trigger if we have a cursor position, are in harmonics mode, and are dragging
+  if (!state.cursorPosition || state.mode !== 'harmonics' || !state.dragState.isDragging) {
     return false
   }
   

@@ -17,7 +17,7 @@ export const initialState = {
   metadata: {
     instanceId: ''
   },
-  mode: 'analysis', // 'analysis', 'doppler'
+  mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
   rate: 1,
   cursorPosition: null,
   cursors: [],

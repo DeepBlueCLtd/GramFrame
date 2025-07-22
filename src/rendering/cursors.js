@@ -23,11 +23,8 @@ export function updateCursorIndicators(instance) {
   // Handle different modes
   if (instance.state.mode === 'analysis') {
     drawAnalysisMode(instance)
-    
-    // In Analysis mode, also draw harmonics if dragging
-    if (instance.state.dragState.isDragging && instance.state.harmonics.baseFrequency !== null) {
-      drawHarmonicsMode(instance)
-    }
+  } else if (instance.state.mode === 'harmonics') {
+    drawHarmonicsMode(instance)
   } else if (instance.state.mode === 'doppler') {
     drawDopplerMode(instance)
   }
@@ -99,8 +96,10 @@ export function drawAnalysisMode(instance) {
  * @param {Object} instance - GramFrame instance
  */
 export function drawHarmonicsMode(instance) {
-  // This method now only draws the harmonics that have been calculated
-  // It doesn't calculate them - that's done in _triggerHarmonicsDisplay
+  // First draw the cross-hairs (like analysis mode)
+  drawAnalysisMode(instance)
+  
+  // Then draw harmonics if they exist
   const harmonics = instance.state.harmonics.harmonicData
   
   // Draw harmonic lines and labels

@@ -56,11 +56,16 @@ export function createLEDDisplays(readoutPanel, state) {
 /**
  * Updates display visibility based on current mode
  * @param {Object} ledElements - Object containing LED element references
- * @param {string} mode - Current mode ('analysis' or 'doppler')
+ * @param {string} mode - Current mode ('analysis', 'harmonics', or 'doppler')
  */
 export function updateDisplayVisibility(ledElements, mode) {
   if (mode === 'analysis') {
     // Analysis mode: show Time and Frequency only
+    ledElements.timeLED.style.display = ''
+    ledElements.freqLED.style.display = ''
+    ledElements.speedLED.style.display = 'none'
+  } else if (mode === 'harmonics') {
+    // Harmonics mode: show Time and Frequency only (like analysis)
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
     ledElements.speedLED.style.display = 'none'
@@ -85,7 +90,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   modesContainer.className = 'gram-frame-modes'
   
   // Create mode buttons
-  const modes = ['analysis', 'doppler']
+  const modes = ['analysis', 'harmonics', 'doppler']
   const modeButtons = {}
   
   modes.forEach(mode => {
@@ -127,14 +132,18 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
 /**
  * Updates guidance content based on current mode
  * @param {HTMLElement} guidancePanel - The guidance panel element
- * @param {string} mode - Current mode ('analysis' or 'doppler')
+ * @param {string} mode - Current mode ('analysis', 'harmonics', or 'doppler')
  */
 export function updateGuidanceContent(guidancePanel, mode) {
   if (mode === 'analysis') {
     guidancePanel.innerHTML = `
       <h4>Analysis Mode</h4>
-      <p>• Click to position cursor</p>
-      <p>• Drag to show harmonics</p>
+      <p>• Hover to view exact frequency/time values</p>
+    `
+  } else if (mode === 'harmonics') {
+    guidancePanel.innerHTML = `
+      <h4>Harmonics Mode</h4>
+      <p>• Drag to display harmonic lines</p>
       <p>• Base frequency displays during drag</p>
     `
   } else if (mode === 'doppler') {
@@ -263,8 +272,8 @@ export function updateLEDDisplays(ledElements, state) {
   }
   
   // Mode-specific LED formatting
-  if (state.mode === 'analysis' && state.dragState.isDragging && state.harmonics.baseFrequency !== null) {
-    // For Analysis mode during drag, show base frequency for harmonics
+  if (state.mode === 'harmonics' && state.dragState.isDragging && state.harmonics.baseFrequency !== null) {
+    // For Harmonics mode during drag, show base frequency for harmonics
     const baseFreqValue = state.harmonics.baseFrequency.toFixed(1)
     ledElements.freqLED.querySelector('.gram-frame-led-value').textContent = `Base: ${baseFreqValue} Hz`
     

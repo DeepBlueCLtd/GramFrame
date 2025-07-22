@@ -168,14 +168,14 @@ export class GramFrame {
   
   /**
    * Switch between analysis modes
-   * @param {'analysis'|'doppler'} mode - Target mode
+   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
    */
   _switchMode(mode) {
     // Update state
     this.state.mode = mode
     
-    // Clear harmonics state when switching away from analysis mode
-    if (mode !== 'analysis') {
+    // Clear harmonics state when switching away from harmonics mode
+    if (mode !== 'harmonics') {
       this.state.harmonics.baseFrequency = null
       this.state.harmonics.harmonicData = []
     }

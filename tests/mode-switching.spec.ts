@@ -217,8 +217,15 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     
     // Test Analysis mode guidance (default mode)
     await expect(guidancePanel).toContainText('Analysis Mode')
-    await expect(guidancePanel).toContainText('Click to position cursor')
-    await expect(guidancePanel).toContainText('Drag to show harmonics')
+    await expect(guidancePanel).toContainText('Hover to view exact frequency/time values')
+    
+    // Switch to Harmonics mode
+    const harmonicsButton = page.locator('[data-mode="harmonics"]')
+    await harmonicsButton.click()
+    
+    // Verify guidance content changes
+    await expect(guidancePanel).toContainText('Harmonics Mode')
+    await expect(guidancePanel).toContainText('Drag to display harmonic lines')
     await expect(guidancePanel).toContainText('Base frequency displays during drag')
     
     // Switch to Doppler mode
@@ -237,7 +244,7 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     
     // Verify content switches back
     await expect(guidancePanel).toContainText('Analysis Mode')
-    await expect(guidancePanel).toContainText('Click to position cursor')
+    await expect(guidancePanel).toContainText('Hover to view exact frequency/time values')
     await expect(guidancePanel).not.toContainText('Doppler Mode')
   })
 })
