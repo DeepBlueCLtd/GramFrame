@@ -34,7 +34,10 @@ export const initialState = {
     isDragging: false,
     draggedMarker: null, // 'fPlus', 'fMinus', 'fZero'
     isPlacingMarkers: false,
-    markersPlaced: 0 // 0 = none, 1 = fMinus placed, 2 = both placed
+    markersPlaced: 0, // 0 = none, 1 = first placed, 2 = both placed
+    tempFirst: null, // temporary storage for first marker during placement
+    isPreviewDrag: false, // whether currently dragging to preview curve
+    previewEnd: null // end point for preview drag
   },
   dragState: {
     isDragging: false,

@@ -201,6 +201,9 @@ export class GramFrame {
       this.state.doppler.draggedMarker = null
       this.state.doppler.isPlacingMarkers = false
       this.state.doppler.markersPlaced = 0
+      this.state.doppler.tempFirst = null
+      this.state.doppler.isPreviewDrag = false
+      this.state.doppler.previewEnd = null
       
       // Remove speed LED display if it exists
       if (this.speedLED) {
@@ -393,6 +396,9 @@ export class GramFrame {
     this.state.doppler.draggedMarker = null
     this.state.doppler.isPlacingMarkers = false
     this.state.doppler.markersPlaced = 0
+    this.state.doppler.tempFirst = null
+    this.state.doppler.isPreviewDrag = false
+    this.state.doppler.previewEnd = null
     
     // Remove speed LED display if it exists
     if (this.speedLED) {

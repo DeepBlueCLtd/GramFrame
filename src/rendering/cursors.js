@@ -251,21 +251,28 @@ export function drawHarmonicLabels(instance, harmonic, isMainLine) {
 export function drawDopplerMode(instance) {
   const doppler = instance.state.doppler
   
-  // Draw markers if they exist
-  if (doppler.fMinus) {
-    drawDopplerMarker(instance, doppler.fMinus, 'fMinus')
+  // Draw preview during drag
+  if (doppler.isPreviewDrag && doppler.tempFirst && doppler.previewEnd) {
+    drawDopplerPreview(instance, doppler.tempFirst, doppler.previewEnd)
   }
-  if (doppler.fPlus) {
-    drawDopplerMarker(instance, doppler.fPlus, 'fPlus')
-  }
-  if (doppler.fZero) {
-    drawDopplerMarker(instance, doppler.fZero, 'fZero')
-  }
-  
-  // Draw the curve if both f+ and f- exist
-  if (doppler.fPlus && doppler.fMinus) {
-    drawDopplerCurve(instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
-    drawDopplerVerticalExtension(instance, doppler.fPlus)
+  // Draw final markers and curve if placed
+  else {
+    // Draw markers if they exist
+    if (doppler.fMinus) {
+      drawDopplerMarker(instance, doppler.fMinus, 'fMinus')
+    }
+    if (doppler.fPlus) {
+      drawDopplerMarker(instance, doppler.fPlus, 'fPlus')
+    }
+    if (doppler.fZero) {
+      drawDopplerMarker(instance, doppler.fZero, 'fZero')
+    }
+    
+    // Draw the curve if both f+ and f- exist
+    if (doppler.fPlus && doppler.fMinus) {
+      drawDopplerCurve(instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
+      drawDopplerVerticalExtensions(instance, doppler.fPlus, doppler.fMinus)
+    }
   }
 }
 
@@ -413,32 +420,170 @@ export function drawDopplerCurve(instance, fPlus, fMinus, fZero) {
 }
 
 /**
- * Draw vertical extension from f+ marker to top of spectrogram
+ * Draw vertical extensions from f+ and f- markers
  * @param {Object} instance - GramFrame instance
  * @param {Object} fPlus - f+ point
+ * @param {Object} fMinus - f- point
  */
-export function drawDopplerVerticalExtension(instance, fPlus) {
+export function drawDopplerVerticalExtensions(instance, fPlus, fMinus) {
   const margins = instance.state.axes.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
   
   // Convert f+ to SVG coordinates
-  const timeRatio = (fPlus.time - timeMin) / (timeMax - timeMin)
-  const freqRatio = (fPlus.frequency - freqMin) / (freqMax - freqMin)
-  const plusX = margins.left + freqRatio * naturalWidth
-  const plusY = margins.top + (1 - timeRatio) * naturalHeight
+  const plusTimeRatio = (fPlus.time - timeMin) / (timeMax - timeMin)
+  const plusFreqRatio = (fPlus.frequency - freqMin) / (freqMax - freqMin)
+  const plusX = margins.left + plusFreqRatio * naturalWidth
+  const plusY = margins.top + (1 - plusTimeRatio) * naturalHeight
   
-  // Draw vertical line from f+ to top of spectrogram (highest time value)
-  const verticalLine = createSVGLine(
+  // Convert f- to SVG coordinates
+  const minusTimeRatio = (fMinus.time - timeMin) / (timeMax - timeMin)
+  const minusFreqRatio = (fMinus.frequency - freqMin) / (freqMax - freqMin)
+  const minusX = margins.left + minusFreqRatio * naturalWidth
+  const minusY = margins.top + (1 - minusTimeRatio) * naturalHeight
+  
+  // Draw vertical line from f+ upward to top of spectrogram (highest time value)
+  const plusExtension = createSVGLine(
     plusX, plusY,
     plusX, margins.top,
     'gram-frame-doppler-extension'
   )
-  verticalLine.setAttribute('stroke', '#ff0000')
-  verticalLine.setAttribute('stroke-width', '2')
-  verticalLine.setAttribute('fill', 'none')
+  plusExtension.setAttribute('stroke', '#ff0000')
+  plusExtension.setAttribute('stroke-width', '2')
+  plusExtension.setAttribute('fill', 'none')
   
-  instance.cursorGroup.appendChild(verticalLine)
+  // Draw vertical line from f- downward to bottom of spectrogram (lowest time value)
+  const minusExtension = createSVGLine(
+    minusX, minusY,
+    minusX, margins.top + naturalHeight,
+    'gram-frame-doppler-extension'
+  )
+  minusExtension.setAttribute('stroke', '#ff0000')
+  minusExtension.setAttribute('stroke-width', '2')
+  minusExtension.setAttribute('fill', 'none')
+  
+  instance.cursorGroup.appendChild(plusExtension)
+  instance.cursorGroup.appendChild(minusExtension)
+}
+
+/**
+ * Draw preview of Doppler curve during initial drag
+ * @param {Object} instance - GramFrame instance
+ * @param {Object} startPoint - Starting drag point
+ * @param {Object} endPoint - Current drag end point
+ */
+export function drawDopplerPreview(instance, startPoint, endPoint) {
+  const margins = instance.state.axes.margins
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
+  
+  // Determine which point is f- and f+ based on time
+  let fMinus, fPlus
+  if (startPoint.time < endPoint.time) {
+    fMinus = startPoint
+    fPlus = endPoint
+  } else {
+    fMinus = endPoint
+    fPlus = startPoint
+  }
+  
+  // Calculate preview f₀ as midpoint
+  const fZero = {
+    time: (fMinus.time + fPlus.time) / 2,
+    frequency: (fMinus.frequency + fPlus.frequency) / 2
+  }
+  
+  // Convert points to SVG coordinates
+  const convertToSVG = (point) => {
+    const timeRatio = (point.time - timeMin) / (timeMax - timeMin)
+    const freqRatio = (point.frequency - freqMin) / (freqMax - freqMin)
+    return {
+      x: margins.left + freqRatio * naturalWidth,
+      y: margins.top + (1 - timeRatio) * naturalHeight
+    }
+  }
+  
+  const minusSVG = convertToSVG(fMinus)
+  const plusSVG = convertToSVG(fPlus)
+  const zeroSVG = convertToSVG(fZero)
+  
+  // Draw preview markers (semi-transparent)
+  drawPreviewMarker(instance, minusSVG, 'f−')
+  drawPreviewMarker(instance, plusSVG, 'f+')
+  drawPreviewMarker(instance, zeroSVG, 'f₀')
+  
+  // Draw preview curve (semi-transparent)
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  
+  // Simple S-curve with vertical tangents
+  const controlPoint1X = minusSVG.x
+  const controlPoint1Y = minusSVG.y + (zeroSVG.y - minusSVG.y) * 0.7
+  const controlPoint2X = plusSVG.x  
+  const controlPoint2Y = plusSVG.y + (zeroSVG.y - plusSVG.y) * 0.7
+  
+  const pathData = `
+    M ${minusSVG.x} ${minusSVG.y}
+    C ${controlPoint1X} ${controlPoint1Y} ${controlPoint2X} ${controlPoint2Y} ${plusSVG.x} ${plusSVG.y}
+  `
+  
+  path.setAttribute('d', pathData.replace(/\s+/g, ' ').trim())
+  path.setAttribute('stroke', '#ff0000')
+  path.setAttribute('stroke-width', '2')
+  path.setAttribute('fill', 'none')
+  path.setAttribute('opacity', '0.6')
+  path.setAttribute('class', 'gram-frame-doppler-preview')
+  
+  instance.cursorGroup.appendChild(path)
+}
+
+/**
+ * Draw a preview marker during drag
+ * @param {Object} instance - GramFrame instance
+ * @param {Object} svgPos - SVG position {x, y}
+ * @param {string} label - Marker label
+ */
+function drawPreviewMarker(instance, svgPos, label) {
+  if (label === 'f₀') {
+    // Draw cross-hair for f₀ preview
+    const horizontalLine = createSVGLine(
+      svgPos.x - 6, svgPos.y, svgPos.x + 6, svgPos.y, 
+      'gram-frame-doppler-preview'
+    )
+    const verticalLine = createSVGLine(
+      svgPos.x, svgPos.y - 6, svgPos.x, svgPos.y + 6, 
+      'gram-frame-doppler-preview'
+    )
+    horizontalLine.setAttribute('stroke', '#00ff00')
+    verticalLine.setAttribute('stroke', '#00ff00')
+    horizontalLine.setAttribute('stroke-width', '1')
+    verticalLine.setAttribute('stroke-width', '1')
+    horizontalLine.setAttribute('opacity', '0.6')
+    verticalLine.setAttribute('opacity', '0.6')
+    instance.cursorGroup.appendChild(horizontalLine)
+    instance.cursorGroup.appendChild(verticalLine)
+  } else {
+    // Draw dot for f+ and f- preview
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    circle.setAttribute('cx', String(svgPos.x))
+    circle.setAttribute('cy', String(svgPos.y))
+    circle.setAttribute('r', '3')
+    circle.setAttribute('fill', '#ff0000')
+    circle.setAttribute('opacity', '0.6')
+    circle.setAttribute('class', 'gram-frame-doppler-preview')
+    instance.cursorGroup.appendChild(circle)
+  }
+  
+  // Add preview label
+  const labelText = createSVGText(
+    svgPos.x + 8, svgPos.y - 5,
+    label,
+    'gram-frame-doppler-preview',
+    'start'
+  )
+  labelText.setAttribute('fill', label === 'f₀' ? '#00ff00' : '#ff0000')
+  labelText.setAttribute('font-size', '12')
+  labelText.setAttribute('opacity', '0.6')
+  instance.cursorGroup.appendChild(labelText)
 }
 
 

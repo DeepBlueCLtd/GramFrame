@@ -94,6 +94,9 @@
  * @property {string|null} draggedMarker - Which marker is being dragged ('fPlus', 'fMinus', 'fZero')
  * @property {boolean} isPlacingMarkers - Whether in marker placement mode
  * @property {number} markersPlaced - Number of markers placed (0-2)
+ * @property {DopplerPoint|null} tempFirst - Temporary storage for first marker during placement
+ * @property {boolean} isPreviewDrag - Whether currently dragging to preview curve
+ * @property {DopplerPoint|null} previewEnd - End point for preview drag
  */
 
 /**

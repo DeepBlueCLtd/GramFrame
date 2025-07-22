@@ -182,6 +182,10 @@ export function handleMouseMove(instance, event) {
   if (instance.state.mode === 'doppler' && instance.state.doppler.isDragging) {
     handleDopplerMarkerDrag(instance)
   }
+  // In Doppler mode, handle preview drag
+  else if (instance.state.mode === 'doppler' && instance.state.doppler.isPreviewDrag) {
+    handleDopplerPreviewDrag(instance)
+  }
   // In Harmonics mode, handle dragging interactions
   else if (instance.state.mode === 'harmonics' && instance.state.dragState.isDragging) {
     if (instance.state.dragState.draggedHarmonicSetId) {
@@ -345,8 +349,41 @@ export function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseUp(instance, event) {
+  // End Doppler preview drag and place markers
+  if (instance.state.mode === 'doppler' && instance.state.doppler.isPreviewDrag) {
+    const firstMarker = instance.state.doppler.tempFirst
+    const secondMarker = instance.state.doppler.previewEnd
+    
+    // Assign f- and f+ based on time order (f- = earlier, f+ = later)
+    if (firstMarker.time < secondMarker.time) {
+      instance.state.doppler.fMinus = firstMarker  // earlier time = f-
+      instance.state.doppler.fPlus = secondMarker  // later time = f+
+    } else {
+      instance.state.doppler.fMinus = secondMarker  // earlier time = f-
+      instance.state.doppler.fPlus = firstMarker   // later time = f+
+    }
+    
+    // Calculate initial f₀ as midpoint
+    instance.state.doppler.fZero = {
+      time: (instance.state.doppler.fMinus.time + instance.state.doppler.fPlus.time) / 2,
+      frequency: (instance.state.doppler.fMinus.frequency + instance.state.doppler.fPlus.frequency) / 2
+    }
+    
+    // Calculate initial speed
+    calculateAndUpdateDopplerSpeed(instance)
+    
+    // Clean up preview state
+    instance.state.doppler.isPreviewDrag = false
+    instance.state.doppler.tempFirst = null
+    instance.state.doppler.previewEnd = null
+    instance.state.doppler.markersPlaced = 2
+    
+    // Update displays
+    updateCursorIndicators(instance)
+    notifyStateListeners(instance.state, instance.stateListeners)
+  }
   // End Doppler drag state
-  if (instance.state.mode === 'doppler' && instance.state.doppler.isDragging) {
+  else if (instance.state.mode === 'doppler' && instance.state.doppler.isDragging) {
     instance.state.doppler.isDragging = false
     instance.state.doppler.draggedMarker = null
     notifyStateListeners(instance.state, instance.stateListeners)
@@ -443,18 +480,32 @@ export function handleDopplerClick(instance, event) {
     }
     
     if (doppler.markersPlaced === 0) {
-      // Place f- (first marker)
-      instance.state.doppler.fMinus = dataCoords
-      instance.state.doppler.markersPlaced = 1
+      // Start drag preview mode - don't place marker yet
+      instance.state.doppler.tempFirst = dataCoords
+      instance.state.doppler.isPreviewDrag = true
+      instance.state.doppler.previewEnd = dataCoords
     } else if (doppler.markersPlaced === 1) {
-      // Place f+ (second marker)
-      instance.state.doppler.fPlus = dataCoords
+      // Place second marker and determine which is f+ vs f- based on time
+      const firstMarker = instance.state.doppler.tempFirst
+      const secondMarker = dataCoords
+      
+      // Assign f- and f+ based on time order (f- = earlier, f+ = later)
+      if (firstMarker.time < secondMarker.time) {
+        instance.state.doppler.fMinus = firstMarker  // earlier time = f-
+        instance.state.doppler.fPlus = secondMarker  // later time = f+
+      } else {
+        instance.state.doppler.fMinus = secondMarker  // earlier time = f-
+        instance.state.doppler.fPlus = firstMarker   // later time = f+
+      }
+      
+      // Clean up temporary marker
+      instance.state.doppler.tempFirst = null
       instance.state.doppler.markersPlaced = 2
       
       // Calculate initial f₀ as midpoint
       instance.state.doppler.fZero = {
-        time: (instance.state.doppler.fMinus.time + dataCoords.time) / 2,
-        frequency: (instance.state.doppler.fMinus.frequency + dataCoords.frequency) / 2
+        time: (instance.state.doppler.fMinus.time + instance.state.doppler.fPlus.time) / 2,
+        frequency: (instance.state.doppler.fMinus.frequency + instance.state.doppler.fPlus.frequency) / 2
       }
       
       // Calculate initial speed
@@ -542,6 +593,23 @@ function handleDopplerMarkerDrag(instance) {
   
   // Recalculate speed
   calculateAndUpdateDopplerSpeed(instance)
+  
+  // Update display
+  updateCursorIndicators(instance)
+}
+
+/**
+ * Handle Doppler preview drag during initial line drawing
+ * @param {Object} instance - GramFrame instance
+ */
+function handleDopplerPreviewDrag(instance) {
+  if (!instance.state.cursorPosition) return
+  
+  // Update preview end point to current cursor position
+  instance.state.doppler.previewEnd = {
+    time: instance.state.cursorPosition.time,
+    frequency: instance.state.cursorPosition.freq
+  }
   
   // Update display
   updateCursorIndicators(instance)
