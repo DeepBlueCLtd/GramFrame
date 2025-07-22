@@ -265,7 +265,7 @@ export function drawDopplerMode(instance) {
   // Draw the curve if both f+ and f- exist
   if (doppler.fPlus && doppler.fMinus) {
     drawDopplerCurve(instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
-    drawVerticalGuides(instance, doppler.fPlus, doppler.fMinus)
+    drawDopplerVerticalExtension(instance, doppler.fPlus)
   }
 }
 
@@ -304,6 +304,18 @@ export function drawDopplerMarker(instance, point, type) {
     verticalLine.setAttribute('stroke-width', '2')
     instance.cursorGroup.appendChild(horizontalLine)
     instance.cursorGroup.appendChild(verticalLine)
+    
+    // Add f₀ label
+    const label = createSVGText(
+      svgX + 12, svgY - 5,
+      'f₀',
+      'gram-frame-doppler-label',
+      'start'
+    )
+    label.setAttribute('fill', '#00ff00')
+    label.setAttribute('font-size', '14')
+    label.setAttribute('font-weight', 'bold')
+    instance.cursorGroup.appendChild(label)
   } else {
     // Draw dot for f+ and f-
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
@@ -312,13 +324,31 @@ export function drawDopplerMarker(instance, point, type) {
     circle.setAttribute('r', '4')
     circle.setAttribute('class', `gram-frame-doppler-${type}`)
     
+    let color = '#000000'
+    let labelText = ''
+    
     if (type === 'fPlus') {
-      circle.setAttribute('fill', '#ff0000')
+      color = '#ff0000'
+      labelText = 'f+'
     } else if (type === 'fMinus') {
-      circle.setAttribute('fill', '#0000ff')
+      color = '#ff0000'
+      labelText = 'f−'
     }
     
+    circle.setAttribute('fill', color)
     instance.cursorGroup.appendChild(circle)
+    
+    // Add label
+    const label = createSVGText(
+      svgX + 8, svgY - 5,
+      labelText,
+      'gram-frame-doppler-label',
+      'start'
+    )
+    label.setAttribute('fill', color)
+    label.setAttribute('font-size', '14')
+    label.setAttribute('font-weight', 'bold')
+    instance.cursorGroup.appendChild(label)
   }
 }
 
@@ -383,43 +413,32 @@ export function drawDopplerCurve(instance, fPlus, fMinus, fZero) {
 }
 
 /**
- * Draw vertical guide lines from f+ and f- markers
+ * Draw vertical extension from f+ marker to top of spectrogram
  * @param {Object} instance - GramFrame instance
  * @param {Object} fPlus - f+ point
- * @param {Object} fMinus - f- point
  */
-export function drawVerticalGuides(instance, fPlus, fMinus) {
+export function drawDopplerVerticalExtension(instance, fPlus) {
   const margins = instance.state.axes.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
   
-  // Convert frequency positions to SVG X coordinates
-  const plusX = margins.left + ((fPlus.frequency - freqMin) / (freqMax - freqMin)) * naturalWidth
-  const minusX = margins.left + ((fMinus.frequency - freqMin) / (freqMax - freqMin)) * naturalWidth
+  // Convert f+ to SVG coordinates
+  const timeRatio = (fPlus.time - timeMin) / (timeMax - timeMin)
+  const freqRatio = (fPlus.frequency - freqMin) / (freqMax - freqMin)
+  const plusX = margins.left + freqRatio * naturalWidth
+  const plusY = margins.top + (1 - timeRatio) * naturalHeight
   
-  // Draw vertical lines extending full height
-  const plusLine = createSVGLine(
+  // Draw vertical line from f+ to top of spectrogram (highest time value)
+  const verticalLine = createSVGLine(
+    plusX, plusY,
     plusX, margins.top,
-    plusX, margins.top + naturalHeight,
-    'gram-frame-doppler-guide'
+    'gram-frame-doppler-extension'
   )
-  plusLine.setAttribute('stroke', '#ff0000')
-  plusLine.setAttribute('stroke-width', '1')
-  plusLine.setAttribute('stroke-dasharray', '5,5')
-  plusLine.setAttribute('opacity', '0.7')
+  verticalLine.setAttribute('stroke', '#ff0000')
+  verticalLine.setAttribute('stroke-width', '2')
+  verticalLine.setAttribute('fill', 'none')
   
-  const minusLine = createSVGLine(
-    minusX, margins.top,
-    minusX, margins.top + naturalHeight,
-    'gram-frame-doppler-guide'
-  )
-  minusLine.setAttribute('stroke', '#0000ff')
-  minusLine.setAttribute('stroke-width', '1')
-  minusLine.setAttribute('stroke-dasharray', '5,5')
-  minusLine.setAttribute('opacity', '0.7')
-  
-  instance.cursorGroup.appendChild(plusLine)
-  instance.cursorGroup.appendChild(minusLine)
+  instance.cursorGroup.appendChild(verticalLine)
 }
 
 

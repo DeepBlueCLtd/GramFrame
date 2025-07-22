@@ -609,3 +609,8 @@
 .gram-frame-doppler-guide {
   pointer-events: none;
 }
+
+.gram-frame-doppler-label {
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+}
