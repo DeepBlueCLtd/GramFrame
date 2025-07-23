@@ -134,4 +134,12 @@ export class BaseMode {
     // Default implementation - override in subclasses
     return {}
   }
+
+  /**
+   * Show manual modal dialog (default: no action)
+   * This is primarily used by HarmonicsMode
+   */
+  showManualHarmonicModal() {
+    // Default implementation does nothing
+  }
 }

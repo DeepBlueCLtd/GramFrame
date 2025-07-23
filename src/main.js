@@ -29,12 +29,9 @@ import {
 
 import {
   createLEDDisplays,
-  updateDisplayVisibility,
   createModeSwitchingUI,
   createRateInput,
-  updateLEDDisplays,
-  updateGuidanceContent,
-  createManualHarmonicModal
+  updateLEDDisplays
 } from './components/UIComponents.js'
 
 import {
@@ -61,9 +58,7 @@ import {
 } from './rendering/axes.js'
 
 import {
-  updateCursorIndicators,
-  drawAnalysisMode,
-  drawHarmonicsMode
+  updateCursorIndicators
 } from './rendering/cursors.js'
 
 import {
@@ -122,7 +117,9 @@ export class GramFrame {
     // Setup manual harmonic button event listener
     if (this.manualButton) {
       this.manualButton.addEventListener('click', () => {
-        this._showManualHarmonicModal()
+        if (this.state.mode === 'harmonics' && this.currentMode && this.currentMode.showManualHarmonicModal) {
+          this.currentMode.showManualHarmonicModal()
+        }
       })
     }
     
@@ -233,7 +230,6 @@ export class GramFrame {
       this.state.doppler.previewEnd = null
       
       // Speed LED display is now handled by standard LED system
-      // No cleanup needed - it will be hidden by updateDisplayVisibility
     }
     
     
@@ -313,159 +309,17 @@ export class GramFrame {
     notifyStateListeners(this.state, this.stateListeners)
   }
 
-  /**
-   * Color palette for harmonic sets
-   * @type {string[]}
-   */
-  static harmonicColors = ['#ff6b6b', '#2ecc71', '#f39c12', '#9b59b6', '#ffc93c', '#ff9ff3', '#45b7d1', '#e67e22']
+  // Harmonic set management methods moved to HarmonicsMode class
 
-  /**
-   * Add a new harmonic set
-   * @param {number} anchorTime - Time position in seconds
-   * @param {number} spacing - Frequency spacing in Hz
-   * @returns {HarmonicSet} The created harmonic set
-   */
-  _addHarmonicSet(anchorTime, spacing) {
-    const id = `harmonic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    const colorIndex = this.state.harmonics.harmonicSets.length % GramFrame.harmonicColors.length
-    const color = GramFrame.harmonicColors[colorIndex]
-    
-    const harmonicSet = {
-      id,
-      color,
-      anchorTime,
-      spacing
-    }
-    
-    this.state.harmonics.harmonicSets.push(harmonicSet)
-    
-    // Update display and notify listeners
-    updateCursorIndicators(this)
-    if (this.harmonicPanel) {
-      updateHarmonicPanelContent(this.harmonicPanel, this)
-    }
-    notifyStateListeners(this.state, this.stateListeners)
-    
-    return harmonicSet
-  }
+  // Manual harmonic modal method moved to HarmonicsMode class
 
-  /**
-   * Show manual harmonic spacing modal dialog
-   */
-  _showManualHarmonicModal() {
-    if (this.state.mode !== 'harmonics') {
-      return
-    }
+  // Harmonic set update method moved to HarmonicsMode class
 
-    createManualHarmonicModal(
-      (spacing) => {
-        // Get time anchor: current cursor Y position if available, otherwise midpoint
-        let anchorTime
-        if (this.state.cursorPosition && this.state.cursorPosition.time !== null) {
-          anchorTime = this.state.cursorPosition.time
-        } else {
-          // Use midpoint of image time range
-          anchorTime = (this.state.config.timeMin + this.state.config.timeMax) / 2
-        }
-        
-        // Create the harmonic set
-        this._addHarmonicSet(anchorTime, spacing)
-      },
-      () => {
-        // Cancel callback - no action needed
-      }
-    )
-  }
+  // Harmonic set removal method moved to HarmonicsMode class
 
-  /**
-   * Update an existing harmonic set
-   * @param {string} id - Harmonic set ID
-   * @param {Partial<HarmonicSet>} updates - Properties to update
-   */
-  _updateHarmonicSet(id, updates) {
-    const setIndex = this.state.harmonics.harmonicSets.findIndex(set => set.id === id)
-    if (setIndex !== -1) {
-      Object.assign(this.state.harmonics.harmonicSets[setIndex], updates)
-      
-      // Update display and notify listeners
-      updateCursorIndicators(this)
-      if (this.harmonicPanel) {
-        updateHarmonicPanelContent(this.harmonicPanel, this)
-      }
-      notifyStateListeners(this.state, this.stateListeners)
-    }
-  }
-
-  /**
-   * Remove a harmonic set
-   * @param {string} id - Harmonic set ID
-   */
-  _removeHarmonicSet(id) {
-    const setIndex = this.state.harmonics.harmonicSets.findIndex(set => set.id === id)
-    if (setIndex !== -1) {
-      this.state.harmonics.harmonicSets.splice(setIndex, 1)
-      
-      // Update display and notify listeners
-      updateCursorIndicators(this)
-      if (this.harmonicPanel) {
-        updateHarmonicPanelContent(this.harmonicPanel, this)
-      }
-      notifyStateListeners(this.state, this.stateListeners)
-    }
-  }
-
-  /**
-   * Find harmonic set containing given frequency coordinate
-   * @param {number} freq - Frequency in Hz to check
-   * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
-   */
-  _findHarmonicSetAtFrequency(freq) {
-    for (const harmonicSet of this.state.harmonics.harmonicSets) {
-      // Check if frequency is close to any harmonic line in this set
-      if (harmonicSet.spacing > 0) {
-        // Only consider harmonics within the visible frequency range
-        const freqMin = this.state.config.freqMin
-        const freqMax = this.state.config.freqMax
-        
-        const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
-        const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
-        
-        for (let h = minHarmonic; h <= maxHarmonic; h++) {
-          const expectedFreq = h * harmonicSet.spacing
-          const tolerance = harmonicSet.spacing * 0.02 // 2% tolerance
-          
-          if (Math.abs(freq - expectedFreq) < tolerance) {
-            return harmonicSet
-          }
-        }
-      }
-    }
-    return null
-  }
+  // Harmonic set frequency search method moved to HarmonicsMode class
   
-  /**
-   * Reset Doppler mode - clear all markers and calculations
-   */
-  _resetDoppler() {
-    this.state.doppler.fPlus = null
-    this.state.doppler.fMinus = null
-    this.state.doppler.fZero = null
-    this.state.doppler.speed = null
-    this.state.doppler.isDragging = false
-    this.state.doppler.draggedMarker = null
-    this.state.doppler.isPlacingMarkers = false
-    this.state.doppler.markersPlaced = 0
-    this.state.doppler.tempFirst = null
-    this.state.doppler.isPreviewDrag = false
-    this.state.doppler.previewEnd = null
-    
-    // Speed LED display is now handled by standard LED system
-    // No cleanup needed - it will be hidden by updateDisplayVisibility
-    
-    // Update displays
-    updateCursorIndicators(this)
-    notifyStateListeners(this.state, this.stateListeners)
-  }
+  // Doppler reset method moved to DopplerMode class
   
   /**
    * Update cursor visual indicators based on current mode and state

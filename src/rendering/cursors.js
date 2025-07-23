@@ -20,15 +20,9 @@ export function updateCursorIndicators(instance) {
     return
   }
   
-  // Handle different modes using polymorphic pattern
+  // Handle all modes using polymorphic pattern
   if (instance.currentMode) {
-    if (instance.state.mode === 'doppler') {
-      // For doppler mode, still use existing drawDopplerMode until Phase 5 cleanup
-      drawDopplerMode(instance)
-    } else {
-      // Use new mode pattern for analysis and harmonics modes
-      instance.currentMode.render(instance.svg)
-    }
+    instance.currentMode.render(instance.svg)
   }
 }
 
@@ -243,37 +237,7 @@ export function drawHarmonicLabels(instance, harmonic, isMainLine) {
   instance.cursorGroup.appendChild(frequencyLabel)
 }
 
-/**
- * Draw Doppler mode indicators and curve
- * @param {Object} instance - GramFrame instance
- */
-export function drawDopplerMode(instance) {
-  const doppler = instance.state.doppler
-  
-  // Draw preview during drag
-  if (doppler.isPreviewDrag && doppler.tempFirst && doppler.previewEnd) {
-    drawDopplerPreview(instance, doppler.tempFirst, doppler.previewEnd)
-  }
-  // Draw final markers and curve if placed
-  else {
-    // Draw markers if they exist
-    if (doppler.fMinus) {
-      drawDopplerMarker(instance, doppler.fMinus, 'fMinus')
-    }
-    if (doppler.fPlus) {
-      drawDopplerMarker(instance, doppler.fPlus, 'fPlus')
-    }
-    if (doppler.fZero) {
-      drawDopplerMarker(instance, doppler.fZero, 'fZero')
-    }
-    
-    // Draw the curve if both f+ and f- exist
-    if (doppler.fPlus && doppler.fMinus) {
-      drawDopplerCurve(instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
-      drawDopplerVerticalExtensions(instance, doppler.fPlus, doppler.fMinus)
-    }
-  }
-}
+// drawDopplerMode function removed - now handled by DopplerMode.render()
 
 /**
  * Draw a Doppler marker

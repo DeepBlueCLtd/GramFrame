@@ -8,6 +8,13 @@ import {
   isNearMarker,
   dopplerDataToSVG
 } from '../../utils/doppler.js'
+// Import Doppler rendering functions
+import {
+  drawDopplerMarker,
+  drawDopplerCurve,
+  drawDopplerVerticalExtensions,
+  drawDopplerPreview
+} from '../../rendering/cursors.js'
 
 /**
  * Doppler mode implementation
@@ -197,12 +204,35 @@ export class DopplerMode extends BaseMode {
   }
 
   /**
-   * Render doppler mode - delegate to existing drawDopplerMode
+   * Render doppler mode indicators and curve
    * @param {SVGElement} svg - The SVG container element
    */
   render(svg) {
-    // Doppler mode rendering is handled by existing drawDopplerMode function
-    // This will be cleaned up in Phase 5
+    const doppler = this.state.doppler
+    
+    // Draw preview during drag
+    if (doppler.isPreviewDrag && doppler.tempFirst && doppler.previewEnd) {
+      drawDopplerPreview(this.instance, doppler.tempFirst, doppler.previewEnd)
+    }
+    // Draw final markers and curve if placed
+    else {
+      // Draw markers if they exist
+      if (doppler.fMinus) {
+        drawDopplerMarker(this.instance, doppler.fMinus, 'fMinus')
+      }
+      if (doppler.fPlus) {
+        drawDopplerMarker(this.instance, doppler.fPlus, 'fPlus')
+      }
+      if (doppler.fZero) {
+        drawDopplerMarker(this.instance, doppler.fZero, 'fZero')
+      }
+      
+      // Draw the curve if both f+ and f- exist
+      if (doppler.fPlus && doppler.fMinus) {
+        drawDopplerCurve(this.instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
+        drawDopplerVerticalExtensions(this.instance, doppler.fPlus, doppler.fMinus)
+      }
+    }
   }
 
   /**

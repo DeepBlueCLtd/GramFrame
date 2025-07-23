@@ -4,6 +4,7 @@ import { drawAnalysisMode } from '../../rendering/cursors.js'
 import { updateHarmonicPanelContent } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
+import { createManualHarmonicModal } from '../../components/UIComponents.js'
 
 /**
  * Harmonics mode implementation
@@ -324,6 +325,30 @@ export class HarmonicsMode extends BaseMode {
     if (this.instance.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
     }
+  }
+
+  /**
+   * Show manual harmonic spacing modal dialog
+   */
+  showManualHarmonicModal() {
+    createManualHarmonicModal(
+      (spacing) => {
+        // Get time anchor: current cursor Y position if available, otherwise midpoint
+        let anchorTime
+        if (this.state.cursorPosition && this.state.cursorPosition.time !== null) {
+          anchorTime = this.state.cursorPosition.time
+        } else {
+          // Use midpoint of image time range
+          anchorTime = (this.state.config.timeMin + this.state.config.timeMax) / 2
+        }
+        
+        // Create the harmonic set
+        this.addHarmonicSet(anchorTime, spacing)
+      },
+      () => {
+        // Cancel callback - no action needed
+      }
+    )
   }
 
   /**
