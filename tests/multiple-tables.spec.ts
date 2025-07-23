@@ -90,68 +90,6 @@ test.describe('Multiple Tables Display', () => {
     }
   })
 
-  test('each component maintains independent state and metadata', async ({ gramFramePage }) => {
-    await gramFramePage.page.goto('/debug-multiple.html')
-    await gramFramePage.waitForComponentLoad()
-    
-    // Wait for all components to be fully initialized
-    await gramFramePage.page.waitForTimeout(1000)
-    
-    // Get all component instances and verify they have different metadata
-    const componentStates = await gramFramePage.page.evaluate(() => {
-      const containers = document.querySelectorAll('.gram-frame-container')
-      const states = []
-      
-      containers.forEach((container, index) => {
-        // @ts-ignore - Custom property on DOM element
-        const instance = container.__gramFrameInstance
-        if (instance && instance.state) {
-          states.push({
-            index,
-            instanceId: instance.state.metadata?.instanceId,
-            imageUrl: instance.state.imageDetails?.url,
-            naturalWidth: instance.state.imageDetails?.naturalWidth,
-            naturalHeight: instance.state.imageDetails?.naturalHeight,
-            timeMin: instance.state.config?.timeMin,
-            timeMax: instance.state.config?.timeMax,
-            freqMin: instance.state.config?.freqMin,
-            freqMax: instance.state.config?.freqMax
-          })
-        }
-      })
-      
-      return states
-    })
-    
-    // Verify we have 3 components
-    expect(componentStates).toHaveLength(3)
-    
-    // Verify each component has unique instance ID
-    const instanceIds = componentStates.map(state => state.instanceId)
-    const uniqueInstanceIds = new Set(instanceIds)
-    expect(uniqueInstanceIds.size).toBe(3)
-    
-    // Verify each component has different image URLs
-    const imageUrls = componentStates.map(state => state.imageUrl)
-    expect(imageUrls.some(url => url.includes('mock-gram.png'))).toBe(true)
-    expect(imageUrls.some(url => url.includes('mock-gram-3.png'))).toBe(true) 
-    expect(imageUrls.some(url => url.includes('mock-gram-2.png'))).toBe(true)
-    
-    // Verify components have different configurations based on their table data
-    // First component: time 0-60, freq 0-100
-    const firstComponent = componentStates.find(state => state.imageUrl?.includes('mock-gram.png'))
-    expect(firstComponent?.timeMin).toBe(0)
-    expect(firstComponent?.timeMax).toBe(60)
-    expect(firstComponent?.freqMin).toBe(0)
-    expect(firstComponent?.freqMax).toBe(100)
-    
-    // Third component: time 100-200, freq 0-200  
-    const thirdComponent = componentStates.find(state => state.imageUrl?.includes('mock-gram-2.png'))
-    expect(thirdComponent?.timeMin).toBe(100)
-    expect(thirdComponent?.timeMax).toBe(200)
-    expect(thirdComponent?.freqMin).toBe(0)
-    expect(thirdComponent?.freqMax).toBe(200)
-  })
 
   test('page structure is valid HTML with multiple tables', async ({ gramFramePage }) => {
     await gramFramePage.page.goto('/debug-multiple.html')

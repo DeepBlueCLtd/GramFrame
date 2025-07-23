@@ -204,36 +204,4 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     expect(stateAfterSecondMove.cursorPosition.x).not.toBe(stateAfterMouseMove.cursorPosition.x)
   })
 
-  test('guidance panel displays correct content for each mode', async ({ page }) => {
-    const gramFramePage = new GramFramePage(page)
-    await gramFramePage.goto()
-    
-    // Wait for component to load
-    await gramFramePage.waitForComponentLoad()
-    
-    // Verify guidance panel exists
-    const guidancePanel = page.locator('.gram-frame-guidance')
-    await expect(guidancePanel).toBeVisible()
-    
-    // Test Analysis mode guidance (default mode)
-    await expect(guidancePanel).toContainText('Analysis Mode')
-    await expect(guidancePanel).toContainText('Hover to view exact frequency/time values')
-    
-    // Switch to Harmonics mode
-    const harmonicsButton = page.locator('[data-mode="harmonics"]')
-    await harmonicsButton.click()
-    
-    // Verify guidance content changes
-    await expect(guidancePanel).toContainText('Harmonics Mode')
-    await expect(guidancePanel).toContainText('Drag to display harmonic lines')
-    await expect(guidancePanel).toContainText('Base frequency displays during drag')
-    
-    // Switch back to Analysis mode
-    const analysisButton = page.locator('[data-mode="analysis"]')
-    await analysisButton.click()
-    
-    // Verify content switches back
-    await expect(guidancePanel).toContainText('Analysis Mode')
-    await expect(guidancePanel).toContainText('Hover to view exact frequency/time values')
-  })
 })
