@@ -167,7 +167,7 @@ export function updateGuidanceContent(guidancePanel, mode) {
     guidancePanel.innerHTML = `
       <h4>Harmonics Mode</h4>
       <p>• Click & drag to generate harmonic lines</p>
-      <p>• Drag existing harmonic lines to adjust spacing interval updates during drag</p>
+      <p>• Drag existing harmonic lines to adjust spacing interval updates</p>
       <p>• Manually add harmonic lines using [+ Manual] button</p>
     `
   } else if (mode === 'doppler') {
