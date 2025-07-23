@@ -9,12 +9,7 @@ import {
   imageToDataCoordinates
 } from '../utils/coordinates.js'
 
-import { 
-  calculateDopplerSpeed,
-  screenToDopplerData,
-  isNearMarker,
-  dopplerDataToSVG
-} from '../utils/doppler.js'
+// Doppler utilities now imported by DopplerMode class
 
 import { updateLEDDisplays } from '../components/UIComponents.js'
 import { notifyStateListeners } from './state.js'
@@ -43,12 +38,10 @@ export function setupEventListeners(instance) {
   instance.svg.addEventListener('mousedown', instance._boundHandleMouseDown)
   instance.svg.addEventListener('mouseup', instance._boundHandleMouseUp)
   
-  // Add right-click handler for Doppler mode reset
+  // Add right-click handler for Doppler mode reset using new mode pattern
   instance.svg.addEventListener('contextmenu', (event) => {
-    if (instance.state.mode === 'doppler') {
-      event.preventDefault()
-      instance._resetDoppler()
-      return false
+    if (instance.state.mode === 'doppler' && instance.currentMode && instance.currentMode.handleContextMenu) {
+      return instance.currentMode.handleContextMenu(event)
     }
   })
   
@@ -178,13 +171,15 @@ export function handleMouseMove(instance, event) {
   // Update visual cursor indicators
   updateCursorIndicators(instance)
   
-  // In Doppler mode, handle dragging interactions
-  if (instance.state.mode === 'doppler' && instance.state.doppler.isDragging) {
-    handleDopplerMarkerDrag(instance)
-  }
-  // In Doppler mode, handle preview drag
-  else if (instance.state.mode === 'doppler' && instance.state.doppler.isPreviewDrag) {
-    handleDopplerPreviewDrag(instance)
+  // In Doppler mode, handle dragging interactions using new mode pattern
+  if (instance.state.mode === 'doppler' && (instance.state.doppler.isDragging || instance.state.doppler.isPreviewDrag)) {
+    if (instance.currentMode && instance.currentMode.handleMouseMove) {
+      instance.currentMode.handleMouseMove(event, {
+        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
+        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
+        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
+      })
+    }
   }
   // In Harmonics mode, handle dragging interactions using new mode pattern
   else if (instance.state.mode === 'harmonics' && instance.state.dragState.isDragging) {
@@ -235,9 +230,15 @@ export function handleMouseDown(instance, event) {
   // Only process if we have valid image details
   if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
   
-  // Handle Doppler mode drag interactions
-  if (instance.state.mode === 'doppler' && instance.state.cursorPosition) {
-    handleDopplerMouseDown(instance, event)
+  // Handle Doppler mode drag interactions using new mode pattern
+  else if (instance.state.mode === 'doppler' && instance.state.cursorPosition) {
+    if (instance.currentMode && instance.currentMode.handleMouseDown) {
+      instance.currentMode.handleMouseDown(event, {
+        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
+        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
+        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
+      })
+    }
   } 
   // Handle Harmonics mode drag interactions using new mode pattern
   else if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
@@ -257,44 +258,15 @@ export function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseUp(instance, event) {
-  // End Doppler preview drag and place markers
-  if (instance.state.mode === 'doppler' && instance.state.doppler.isPreviewDrag) {
-    const firstMarker = instance.state.doppler.tempFirst
-    const secondMarker = instance.state.doppler.previewEnd
-    
-    // Assign f- and f+ based on time order (f- = earlier, f+ = later)
-    if (firstMarker.time < secondMarker.time) {
-      instance.state.doppler.fMinus = firstMarker  // earlier time = f-
-      instance.state.doppler.fPlus = secondMarker  // later time = f+
-    } else {
-      instance.state.doppler.fMinus = secondMarker  // earlier time = f-
-      instance.state.doppler.fPlus = firstMarker   // later time = f+
+  // End Doppler drag state using new mode pattern
+  if (instance.state.mode === 'doppler' && (instance.state.doppler.isPreviewDrag || instance.state.doppler.isDragging)) {
+    if (instance.currentMode && instance.currentMode.handleMouseUp) {
+      instance.currentMode.handleMouseUp(event, {
+        svgCoords: { x: instance.state.cursorPosition?.svgX || 0, y: instance.state.cursorPosition?.svgY || 0 },
+        dataCoords: { time: instance.state.cursorPosition?.time || 0, freq: instance.state.cursorPosition?.freq || 0 },
+        imageCoords: { x: instance.state.cursorPosition?.imageX || 0, y: instance.state.cursorPosition?.imageY || 0 }
+      })
     }
-    
-    // Calculate initial f₀ as midpoint
-    instance.state.doppler.fZero = {
-      time: (instance.state.doppler.fMinus.time + instance.state.doppler.fPlus.time) / 2,
-      frequency: (instance.state.doppler.fMinus.frequency + instance.state.doppler.fPlus.frequency) / 2
-    }
-    
-    // Calculate initial speed
-    calculateAndUpdateDopplerSpeed(instance)
-    
-    // Clean up preview state
-    instance.state.doppler.isPreviewDrag = false
-    instance.state.doppler.tempFirst = null
-    instance.state.doppler.previewEnd = null
-    instance.state.doppler.markersPlaced = 2
-    
-    // Update displays
-    updateCursorIndicators(instance)
-    notifyStateListeners(instance.state, instance.stateListeners)
-  }
-  // End Doppler drag state
-  else if (instance.state.mode === 'doppler' && instance.state.doppler.isDragging) {
-    instance.state.doppler.isDragging = false
-    instance.state.doppler.draggedMarker = null
-    notifyStateListeners(instance.state, instance.stateListeners)
   }
   
   // End harmonics drag state using new mode pattern
@@ -362,7 +334,13 @@ export function handleClick(instance, event) {
       })
     }
   } else if (instance.state.mode === 'doppler') {
-    handleDopplerClick(instance, event)
+    if (instance.currentMode && instance.currentMode.handleClick) {
+      instance.currentMode.handleClick(event, {
+        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
+        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
+        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
+      })
+    }
   }
 }
 
@@ -379,182 +357,17 @@ function updateHarmonicPanel(instance) {
   }
 }
 
-/**
- * Handle Doppler mode clicks for marker placement
- * @param {Object} instance - GramFrame instance
- * @param {MouseEvent} event - Mouse event
- */
-export function handleDopplerClick(instance, event) {
-  const doppler = instance.state.doppler
-  
-  // If we're placing markers
-  if (doppler.markersPlaced < 2) {
-    const dataCoords = {
-      time: instance.state.cursorPosition.time,
-      frequency: instance.state.cursorPosition.freq
-    }
-    
-    if (doppler.markersPlaced === 0) {
-      // Start drag preview mode - don't place marker yet
-      instance.state.doppler.tempFirst = dataCoords
-      instance.state.doppler.isPreviewDrag = true
-      instance.state.doppler.previewEnd = dataCoords
-    } else if (doppler.markersPlaced === 1) {
-      // Place second marker and determine which is f+ vs f- based on time
-      const firstMarker = instance.state.doppler.tempFirst
-      const secondMarker = dataCoords
-      
-      // Assign f- and f+ based on time order (f- = earlier, f+ = later)
-      if (firstMarker.time < secondMarker.time) {
-        instance.state.doppler.fMinus = firstMarker  // earlier time = f-
-        instance.state.doppler.fPlus = secondMarker  // later time = f+
-      } else {
-        instance.state.doppler.fMinus = secondMarker  // earlier time = f-
-        instance.state.doppler.fPlus = firstMarker   // later time = f+
-      }
-      
-      // Clean up temporary marker
-      instance.state.doppler.tempFirst = null
-      instance.state.doppler.markersPlaced = 2
-      
-      // Calculate initial f₀ as midpoint
-      instance.state.doppler.fZero = {
-        time: (instance.state.doppler.fMinus.time + instance.state.doppler.fPlus.time) / 2,
-        frequency: (instance.state.doppler.fMinus.frequency + instance.state.doppler.fPlus.frequency) / 2
-      }
-      
-      // Calculate initial speed
-      calculateAndUpdateDopplerSpeed(instance)
-    }
-    
-    // Update displays
-    updateCursorIndicators(instance)
-    notifyStateListeners(instance.state, instance.stateListeners)
-  }
-}
+// handleDopplerClick function removed - now handled by DopplerMode.handleClick()
 
-/**
- * Handle Doppler mouse down events for marker dragging
- * @param {Object} instance - GramFrame instance
- * @param {MouseEvent} event - Mouse event
- */
-function handleDopplerMouseDown(instance, event) {
-  const doppler = instance.state.doppler
-  const cursorPos = { 
-    x: instance.state.cursorPosition.svgX,
-    y: instance.state.cursorPosition.svgY 
-  }
-  
-  // Check if we're clicking near any existing markers for dragging
-  if (doppler.fPlus) {
-    const fPlusSVG = dopplerDataToSVG(doppler.fPlus, instance)
-    if (isNearMarker(cursorPos, fPlusSVG, 15)) {
-      instance.state.doppler.isDragging = true
-      instance.state.doppler.draggedMarker = 'fPlus'
-      return
-    }
-  }
-  
-  if (doppler.fMinus) {
-    const fMinusSVG = dopplerDataToSVG(doppler.fMinus, instance)
-    if (isNearMarker(cursorPos, fMinusSVG, 15)) {
-      instance.state.doppler.isDragging = true
-      instance.state.doppler.draggedMarker = 'fMinus'
-      return
-    }
-  }
-  
-  if (doppler.fZero) {
-    const fZeroSVG = dopplerDataToSVG(doppler.fZero, instance)
-    if (isNearMarker(cursorPos, fZeroSVG, 15)) {
-      instance.state.doppler.isDragging = true
-      instance.state.doppler.draggedMarker = 'fZero'
-      return
-    }
-  }
-  
-  // If not near any markers, handle normal click for placement
-  handleDopplerClick(instance, event)
-}
+// handleDopplerMouseDown function removed - now handled by DopplerMode.handleMouseDown()
 
-/**
- * Handle dragging of Doppler markers
- * @param {Object} instance - GramFrame instance
- */
-function handleDopplerMarkerDrag(instance) {
-  const doppler = instance.state.doppler
-  const draggedMarker = doppler.draggedMarker
-  
-  if (!draggedMarker || !instance.state.cursorPosition) return
-  
-  // Convert current cursor position to data coordinates
-  const newDataCoords = {
-    time: instance.state.cursorPosition.time,
-    frequency: instance.state.cursorPosition.freq
-  }
-  
-  // Update the dragged marker
-  instance.state.doppler[draggedMarker] = newDataCoords
-  
-  // If dragging f+ or f-, update f₀ to midpoint
-  if (draggedMarker === 'fPlus' || draggedMarker === 'fMinus') {
-    if (doppler.fPlus && doppler.fMinus) {
-      instance.state.doppler.fZero = {
-        time: (doppler.fPlus.time + doppler.fMinus.time) / 2,
-        frequency: (doppler.fPlus.frequency + doppler.fMinus.frequency) / 2
-      }
-    }
-  }
-  
-  // Recalculate speed
-  calculateAndUpdateDopplerSpeed(instance)
-  
-  // Update display
-  updateCursorIndicators(instance)
-}
+// handleDopplerMarkerDrag function removed - now handled by DopplerMode.handleDopplerMarkerDrag()
 
-/**
- * Handle Doppler preview drag during initial line drawing
- * @param {Object} instance - GramFrame instance
- */
-function handleDopplerPreviewDrag(instance) {
-  if (!instance.state.cursorPosition) return
-  
-  // Update preview end point to current cursor position
-  instance.state.doppler.previewEnd = {
-    time: instance.state.cursorPosition.time,
-    frequency: instance.state.cursorPosition.freq
-  }
-  
-  // Update display
-  updateCursorIndicators(instance)
-}
+// handleDopplerPreviewDrag function removed - now handled by DopplerMode.handleDopplerPreviewDrag()
 
-/**
- * Calculate and update Doppler speed
- * @param {Object} instance - GramFrame instance
- */
-function calculateAndUpdateDopplerSpeed(instance) {
-  const doppler = instance.state.doppler
-  
-  if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
-    const speed = calculateDopplerSpeed(doppler.fPlus, doppler.fMinus, doppler.fZero)
-    instance.state.doppler.speed = speed
-    
-    // Update LED displays with speed
-    updateDopplerDisplays(instance)
-    notifyStateListeners(instance.state, instance.stateListeners)
-  }
-}
+// calculateAndUpdateDopplerSpeed function removed - now handled by DopplerMode.calculateAndUpdateDopplerSpeed()
 
-/**
- * Update LED displays with Doppler-specific information
- * @param {Object} instance - GramFrame instance
- */
-function updateDopplerDisplays(instance) {
-  // Speed display is now handled by the standard LED display system
-  updateLEDDisplays(instance, instance.state)
-}
+// updateDopplerDisplays function removed - now handled by DopplerMode and standard LED system
 
 /**
  * Clean up event listeners (called when component is destroyed)

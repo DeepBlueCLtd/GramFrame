@@ -1,6 +1,7 @@
 import { BaseMode } from './BaseMode.js'
 import { AnalysisMode } from './analysis/AnalysisMode.js'
 import { HarmonicsMode } from './harmonics/HarmonicsMode.js'
+import { DopplerMode } from './doppler/DopplerMode.js'
 
 /**
  * Factory for creating mode instances
@@ -25,8 +26,7 @@ export class ModeFactory {
           return new HarmonicsMode(instance, state)
         
         case 'doppler':
-          // For Phase 1, return base mode. Will be replaced in Phase 4.
-          return new BaseMode(instance, state)
+          return new DopplerMode(instance, state)
         
         default:
           throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, doppler`)

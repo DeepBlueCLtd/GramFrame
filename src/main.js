@@ -267,38 +267,23 @@ export class GramFrame {
       this.container.classList.add(`gram-frame-${mode}-mode`)
     }
     
-    // Switch to new mode instance and activate it
-    if (mode === 'analysis' || mode === 'harmonics') {
-      // Use new mode pattern for analysis and harmonics modes
-      if (this.currentMode) {
-        this.currentMode.deactivate()
-      }
-      this.currentMode = this.modes[mode]
-      this.currentMode.activate()
-      
-      // Update guidance panel using mode's guidance text
-      if (this.guidancePanel) {
-        this.guidancePanel.innerHTML = this.currentMode.getGuidanceText()
-      }
-      
-      // Update LED display visibility
-      this.currentMode.updateLEDs()
-      
-      // Update LED display values
-      updateLEDDisplays(this, this.state)
-    } else {
-      // Keep existing conditional logic for doppler mode
-      // Update LED display
-      updateLEDDisplays(this, this.state)
-      
-      // Update display visibility based on new mode
-      updateDisplayVisibility(this, this.state.mode)
-      
-      // Update guidance panel content
-      if (this.guidancePanel) {
-        updateGuidanceContent(this.guidancePanel, mode)
-      }
+    // Switch to new mode instance and activate it (all modes now use polymorphic pattern)
+    if (this.currentMode) {
+      this.currentMode.deactivate()
     }
+    this.currentMode = this.modes[mode]
+    this.currentMode.activate()
+    
+    // Update guidance panel using mode's guidance text
+    if (this.guidancePanel) {
+      this.guidancePanel.innerHTML = this.currentMode.getGuidanceText()
+    }
+    
+    // Update LED display visibility
+    this.currentMode.updateLEDs()
+    
+    // Update LED display values
+    updateLEDDisplays(this, this.state)
     
     // Clear existing cursor indicators and redraw for new mode
     updateCursorIndicators(this)
