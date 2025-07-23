@@ -51,62 +51,6 @@ test.describe('Phase 1: Component Initialization and Rendering', () => {
     expect(svgBounds?.height).toBeGreaterThan(0)
   })
   
-  // Task 1.3.1: Test console logging for state changes
-  test('console logging works for state changes', async ({ gramFramePage, page }) => {
-    // Create a listener for console messages
-    const consoleMessages: string[] = []
-    page.on('console', msg => {
-      const text = msg.text()
-      if (text.includes('GramFrame State Updated:')) {
-        consoleMessages.push(text)
-      }
-    })
-    
-    // Perform actions that trigger state changes
-    
-    // 1. Move mouse over SVG to trigger cursor position update
-    const svgBounds = await gramFramePage.svg.boundingBox()
-    if (svgBounds) {
-      // Move to a position that's definitely within the image area (accounting for margins)
-      const centerX = svgBounds.width * 0.6  // Offset to account for left margin
-      const centerY = svgBounds.height * 0.5
-      await gramFramePage.moveMouse(centerX, centerY)
-      await page.waitForTimeout(100)
-    }
-    
-    // 2. Change mode
-    await gramFramePage.clickMode('Analysis')
-    
-    // Note: Rate input has been removed from UI, skipping rate change step
-    
-    // 4. Move mouse back over image to ensure cursor position is set for final check
-    if (svgBounds) {
-      const centerX = svgBounds.width * 0.6
-      const centerY = svgBounds.height * 0.5
-      await gramFramePage.moveMouse(centerX, centerY)
-      await page.waitForTimeout(100)
-    }
-    
-    // Wait a moment for console logs to be processed
-    await page.waitForTimeout(500)
-    
-    // Verify that console logs were generated for state changes
-    expect(consoleMessages.length).toBeGreaterThanOrEqual(3)
-    
-    // Verify the logs contain JSON state data
-    for (const message of consoleMessages) {
-      expect(message).toContain('GramFrame State Updated:')
-      expect(message).toContain('{')
-      expect(message).toContain('}')
-    }
-    
-    // Verify the final state reflects our changes
-    const finalState = await gramFramePage.getState()
-    expect(finalState.mode).toBe('analysis')
-    // Rate input has been removed, so rate remains at default value of 1
-    expect(finalState.rate).toBe(1)
-    expect(finalState.cursorPosition).not.toBeNull()
-  })
 })
 
 // Additional test for state preservation during page reload

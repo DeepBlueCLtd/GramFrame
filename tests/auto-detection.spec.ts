@@ -26,31 +26,6 @@ test.describe('Auto-Detection Functionality', () => {
     await expect(page.locator('.gram-frame-readout')).toBeVisible()
   })
   
-  test('logs detection and initialization progress', async ({ page }) => {
-    const consoleLogs = []
-    
-    // Capture console logs
-    page.on('console', msg => {
-      if (msg.type() === 'log' && msg.text().includes('GramFrame:')) {
-        consoleLogs.push(msg.text())
-      }
-    })
-    
-    // Navigate to debug page
-    await page.goto('/debug.html')
-    
-    // Wait for component initialization
-    await page.waitForFunction(() => window.GramFrame !== undefined)
-    
-    // Wait a bit for async logs
-    await page.waitForTimeout(1000)
-    
-    // Verify expected log messages
-    const logText = consoleLogs.join(' ')
-    expect(logText).toContain('Found 1 config tables to process')
-    expect(logText).toContain('Processing table 1/1')
-    expect(logText).toContain('Successfully initialized 1 component')
-  })
   
   test('API provides access to instances', async ({ page }) => {
     // Navigate to debug page

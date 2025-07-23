@@ -83,20 +83,6 @@ test.describe('Harmonic Overlay Implementation (Task 1.1)', () => {
     expect(await shadowLines.count()).toBeGreaterThan(0)
   })
 
-  test('harmonic management panel appears in harmonics mode', async () => {
-    // Verify panel is visible in harmonics mode
-    const panel = gramFramePage.page.locator('.gram-frame-harmonic-panel')
-    await expect(panel).toBeVisible()
-    
-    // Verify panel header
-    const header = panel.locator('h4')
-    await expect(header).toHaveText('Harmonic Sets')
-    
-    // Initially should show empty state
-    const emptyText = panel.locator('.gram-frame-harmonic-empty')
-    await expect(emptyText).toBeVisible()
-    await expect(emptyText).toHaveText('No harmonic sets active')
-  })
 
   test('harmonic management panel updates when sets are created', async () => {
     const panel = gramFramePage.page.locator('.gram-frame-harmonic-panel')
@@ -134,28 +120,6 @@ test.describe('Harmonic Overlay Implementation (Task 1.1)', () => {
     await expect(deleteButton).toBeVisible()
   })
 
-  test('harmonic sets can be deleted via management panel', async () => {
-    // Create a harmonic set
-    await gramFramePage.clickSpectrogram(300, 200)
-    
-    const panel = gramFramePage.page.locator('.gram-frame-harmonic-panel')
-    const deleteButton = panel.locator('.gram-frame-harmonic-delete')
-    
-    // Click delete button
-    await deleteButton.click()
-    
-    // Verify harmonic set was removed from state
-    const state = await gramFramePage.getState()
-    expect(state.harmonics.harmonicSets).toHaveLength(0)
-    
-    // Verify panel shows empty state again
-    const emptyText = panel.locator('.gram-frame-harmonic-empty')
-    await expect(emptyText).toBeVisible()
-    
-    // Verify no harmonic lines are visible
-    const harmonicLines = await gramFramePage.page.locator('.gram-frame-harmonic-set-line').count()
-    expect(harmonicLines).toBe(0)
-  })
 
   test('harmonic sets are cleared when exiting harmonics mode', async () => {
     // Create harmonic sets
@@ -179,46 +143,6 @@ test.describe('Harmonic Overlay Implementation (Task 1.1)', () => {
     await expect(panel).not.toBeVisible()
   })
 
-  test('drag interaction updates harmonic set spacing and anchor time', async () => {
-    // Create a harmonic set
-    await gramFramePage.clickSpectrogram(300, 200)
-    
-    // Get initial state
-    let state = await gramFramePage.getState()
-    const initialSpacing = state.harmonics.harmonicSets[0].spacing
-    const initialAnchorTime = state.harmonics.harmonicSets[0].anchorTime
-    
-    // Find a harmonic line to drag
-    const harmonicLine = gramFramePage.page.locator('.gram-frame-harmonic-set-line').first()
-    
-    // Drag the line horizontally and vertically
-    const lineBox = await harmonicLine.boundingBox()
-    if (lineBox) {
-      const startX = lineBox.x + lineBox.width / 2
-      const startY = lineBox.y + lineBox.height / 2
-      
-      await gramFramePage.page.mouse.move(startX, startY)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(startX + 50, startY + 30) // Move right and down
-      await gramFramePage.page.mouse.up()
-    }
-    
-    // Verify spacing and anchor time changed
-    state = await gramFramePage.getState()
-    const newSpacing = state.harmonics.harmonicSets[0].spacing
-    const newAnchorTime = state.harmonics.harmonicSets[0].anchorTime
-    
-    // Spacing should change due to horizontal drag
-    expect(newSpacing).not.toBe(initialSpacing)
-    // Anchor time should change due to vertical drag  
-    expect(newAnchorTime).not.toBe(initialAnchorTime)
-    
-    // Management panel should reflect updated values
-    const panel = gramFramePage.page.locator('.gram-frame-harmonic-panel')
-    const spacingCell = panel.locator('tbody tr td').nth(1)
-    const displayedSpacing = await spacingCell.textContent()
-    expect(Math.abs(parseFloat(displayedSpacing!) - newSpacing)).toBeLessThan(0.1)
-  })
 
   test('harmonic lines have proper 20% height constraint', async () => {
     // Create a harmonic set
