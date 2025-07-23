@@ -183,6 +183,15 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Clean up harmonics-specific state when switching away from harmonics mode
+   */
+  cleanup() {
+    this.state.harmonics.baseFrequency = null
+    this.state.harmonics.harmonicData = []
+    this.state.harmonics.harmonicSets = []
+  }
+
+  /**
    * Add a new harmonic set
    * @param {number} anchorTime - Time position in seconds
    * @param {number} spacing - Frequency spacing in Hz

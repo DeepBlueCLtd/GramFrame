@@ -277,6 +277,23 @@ export class DopplerMode extends BaseMode {
   }
 
   /**
+   * Clean up doppler-specific state when switching away from doppler mode
+   */
+  cleanup() {
+    this.state.doppler.fPlus = null
+    this.state.doppler.fMinus = null
+    this.state.doppler.fZero = null
+    this.state.doppler.speed = null
+    this.state.doppler.isDragging = false
+    this.state.doppler.draggedMarker = null
+    this.state.doppler.isPlacingMarkers = false
+    this.state.doppler.markersPlaced = 0
+    this.state.doppler.tempFirst = null
+    this.state.doppler.isPreviewDrag = false
+    this.state.doppler.previewEnd = null
+  }
+
+  /**
    * Handle dragging of Doppler markers
    * @param {Object} coords - Current cursor coordinates
    */

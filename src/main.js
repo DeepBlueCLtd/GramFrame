@@ -208,31 +208,6 @@ export class GramFrame {
     // Update state
     this.state.mode = mode
     
-    // Clear harmonics state when switching away from harmonics mode
-    if (mode !== 'harmonics') {
-      this.state.harmonics.baseFrequency = null
-      this.state.harmonics.harmonicData = []
-      this.state.harmonics.harmonicSets = []
-    }
-    
-    // Clear Doppler state when switching away from Doppler mode
-    if (mode !== 'doppler') {
-      this.state.doppler.fPlus = null
-      this.state.doppler.fMinus = null
-      this.state.doppler.fZero = null
-      this.state.doppler.speed = null
-      this.state.doppler.isDragging = false
-      this.state.doppler.draggedMarker = null
-      this.state.doppler.isPlacingMarkers = false
-      this.state.doppler.markersPlaced = 0
-      this.state.doppler.tempFirst = null
-      this.state.doppler.isPreviewDrag = false
-      this.state.doppler.previewEnd = null
-      
-      // Speed LED display is now handled by standard LED system
-    }
-    
-    
     // Clear drag state when switching modes
     this.state.dragState.isDragging = false
     this.state.dragState.dragStartPosition = null
@@ -265,6 +240,7 @@ export class GramFrame {
     
     // Switch to new mode instance and activate it (all modes now use polymorphic pattern)
     if (this.currentMode) {
+      this.currentMode.cleanup()
       this.currentMode.deactivate()
     }
     this.currentMode = this.modes[mode]

@@ -127,6 +127,14 @@ export class BaseMode {
   }
 
   /**
+   * Clean up mode-specific state when switching away from this mode
+   * Override in subclasses to perform mode-specific state cleanup
+   */
+  cleanup() {
+    // Default implementation - override in subclasses
+  }
+
+  /**
    * Get a snapshot of current mode-specific state
    * @returns {Object} Mode-specific state snapshot
    */

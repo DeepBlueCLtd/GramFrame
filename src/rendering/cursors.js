@@ -3,6 +3,8 @@
  */
 
 /// <reference path="../types.js" />
+/// <reference path="../modes/harmonics/types.js" />
+/// <reference path="../modes/doppler/types.js" />
 
 import { dataToSVGCoordinates } from '../utils/coordinates.js'
 import { createSVGLine, createSVGText } from '../utils/svg.js'
