@@ -18,11 +18,16 @@ import { capitalizeFirstLetter } from '../utils/calculations.js'
 export function createLEDDisplays(readoutPanel, state) {
   const ledElements = {}
   
+  // Create Manual Harmonic button for harmonics mode (first in order)
+  ledElements.manualButton = createManualHarmonicButton()
+  ledElements.manualButton.style.display = 'none'
+  readoutPanel.appendChild(ledElements.manualButton)
+  
   // Time display - shown in both modes
   ledElements.timeLED = createLEDDisplay('Time (s)', '0.00')
   readoutPanel.appendChild(ledElements.timeLED)
   
-  // Frequency display - shown in both modes
+  // Frequency display - shown in both modes (second in harmonics mode)
   ledElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
   readoutPanel.appendChild(ledElements.freqLED)
 
@@ -60,12 +65,18 @@ export function updateDisplayVisibility(ledElements, mode) {
     if (ledElements.speedLED) {
       ledElements.speedLED.style.display = 'none'
     }
+    if (ledElements.manualButton) {
+      ledElements.manualButton.style.display = 'none'
+    }
   } else if (mode === 'harmonics') {
     // Harmonics mode: show Frequency only, Time is not needed
     ledElements.timeLED.style.display = 'none'
     ledElements.freqLED.style.display = ''
     if (ledElements.speedLED) {
       ledElements.speedLED.style.display = 'none'
+    }
+    if (ledElements.manualButton) {
+      ledElements.manualButton.style.display = ''
     }
   } else if (mode === 'doppler') {
     // Doppler mode: show Time, Frequency, and Speed
@@ -74,12 +85,18 @@ export function updateDisplayVisibility(ledElements, mode) {
     if (ledElements.speedLED) {
       ledElements.speedLED.style.display = ''
     }
+    if (ledElements.manualButton) {
+      ledElements.manualButton.style.display = 'none'
+    }
   } else {
     // Default: show Time and Frequency
     ledElements.timeLED.style.display = ''
     ledElements.freqLED.style.display = ''
     if (ledElements.speedLED) {
       ledElements.speedLED.style.display = 'none'
+    }
+    if (ledElements.manualButton) {
+      ledElements.manualButton.style.display = 'none'
     }
   }
 }
@@ -150,9 +167,9 @@ export function updateGuidanceContent(guidancePanel, mode) {
   } else if (mode === 'harmonics') {
     guidancePanel.innerHTML = `
       <h4>Harmonics Mode</h4>
-      <p>• Drag to generate harmonic lines</p>
-      <p>• Drag existing harmonic lines to adjust</p>
-      <p>• Spacing interval updates during drag</p>
+      <p>• Click & drag to generate harmonic lines</p>
+      <p>• Drag existing harmonic lines to adjust spacing interval updates</p>
+      <p>• Manually add harmonic lines using [+ Manual] button</p>
     `
   } else if (mode === 'doppler') {
     guidancePanel.innerHTML = `
@@ -288,4 +305,120 @@ export function updateLEDDisplays(ledElements, state) {
   }
 }
 
+/**
+ * Creates the + Manual button for harmonics mode
+ * @returns {HTMLButtonElement} The manual harmonic button element
+ */
+export function createManualHarmonicButton() {
+  const button = document.createElement('button')
+  button.className = 'gram-frame-manual-button'
+  button.textContent = '+ Manual'
+  button.title = 'Add manual harmonic spacing'
+  return button
+}
 
+/**
+ * Creates and shows the manual harmonic spacing modal dialog
+ * @param {Function} onAdd - Callback function when Add is clicked with valid spacing
+ * @param {Function} onCancel - Callback function when Cancel is clicked
+ * @returns {HTMLElement} The modal element
+ */
+export function createManualHarmonicModal(onAdd, onCancel) {
+  // Create modal overlay
+  const modalOverlay = document.createElement('div')
+  modalOverlay.className = 'gram-frame-modal-overlay'
+  
+  // Create modal dialog
+  const modal = document.createElement('div')
+  modal.className = 'gram-frame-modal'
+  
+  // Create modal content
+  modal.innerHTML = `
+    <div class="gram-frame-modal-header">
+      <h3>Manual Harmonic Spacing</h3>
+    </div>
+    <div class="gram-frame-modal-body">
+      <div class="gram-frame-modal-input-group">
+        <label for="harmonic-spacing-input">Harmonic spacing (Hz):</label>
+        <input type="number" id="harmonic-spacing-input" min="1.0" step="0.1" placeholder="73.5">
+        <div class="gram-frame-modal-error" style="display: none;">Please enter a number ≥ 1.0</div>
+      </div>
+    </div>
+    <div class="gram-frame-modal-footer">
+      <button class="gram-frame-modal-btn gram-frame-modal-cancel">❌ Cancel</button>
+      <button class="gram-frame-modal-btn gram-frame-modal-add" disabled>✅ Add</button>
+    </div>
+  `
+  
+  modalOverlay.appendChild(modal)
+  
+  // Get elements for interaction
+  /** @type {HTMLInputElement} */
+  const input = modal.querySelector('#harmonic-spacing-input')
+  /** @type {HTMLDivElement} */
+  const errorDiv = modal.querySelector('.gram-frame-modal-error')
+  /** @type {HTMLButtonElement} */
+  const addButton = modal.querySelector('.gram-frame-modal-add')
+  /** @type {HTMLButtonElement} */
+  const cancelButton = modal.querySelector('.gram-frame-modal-cancel')
+  
+  // Input validation function
+  function validateInput() {
+    const value = parseFloat(input.value)
+    const isValid = !isNaN(value) && value >= 1.0
+    
+    if (input.value === '') {
+      // Empty input - hide error, disable button
+      errorDiv.style.display = 'none'
+      addButton.disabled = true
+    } else if (isValid) {
+      // Valid input - hide error, enable button
+      errorDiv.style.display = 'none'
+      addButton.disabled = false
+    } else {
+      // Invalid input - show error, disable button
+      errorDiv.style.display = 'block'
+      addButton.disabled = true
+    }
+  }
+  
+  // Add input event listeners
+  input.addEventListener('input', validateInput)
+  input.addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
+    if (e.key === 'Enter' && !addButton.disabled) {
+      handleAdd()
+    } else if (e.key === 'Escape') {
+      handleCancel()
+    }
+  })
+  
+  // Add button event handlers
+  function handleAdd() {
+    const spacing = parseFloat(input.value)
+    if (!isNaN(spacing) && spacing >= 1.0) {
+      onAdd(spacing)
+      document.body.removeChild(modalOverlay)
+    }
+  }
+  
+  function handleCancel() {
+    onCancel()
+    document.body.removeChild(modalOverlay)
+  }
+  
+  addButton.addEventListener('click', handleAdd)
+  cancelButton.addEventListener('click', handleCancel)
+  
+  // Close modal when clicking overlay (outside modal)
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) {
+      handleCancel()
+    }
+  })
+  
+  // Add to DOM and focus input
+  document.body.appendChild(modalOverlay)
+  input.focus()
+  
+  return modalOverlay
+}

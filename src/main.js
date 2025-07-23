@@ -33,7 +33,8 @@ import {
   createModeSwitchingUI,
   createRateInput,
   updateLEDDisplays,
-  updateGuidanceContent
+  updateGuidanceContent,
+  createManualHarmonicModal
 } from './components/UIComponents.js'
 
 import {
@@ -103,6 +104,8 @@ export class GramFrame {
     this.readoutPanel = null
     /** @type {HTMLDivElement} */
     this.modeCell = null
+    /** @type {HTMLButtonElement} */
+    this.manualButton = null
     
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)
@@ -113,6 +116,13 @@ export class GramFrame {
     // Create initial LED displays
     const ledElements = createLEDDisplays(this.readoutPanel, this.state)
     Object.assign(this, ledElements)
+    
+    // Setup manual harmonic button event listener
+    if (this.manualButton) {
+      this.manualButton.addEventListener('click', () => {
+        this._showManualHarmonicModal()
+      })
+    }
     
     // Create mode switching UI
     const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
@@ -313,6 +323,34 @@ export class GramFrame {
     notifyStateListeners(this.state, this.stateListeners)
     
     return harmonicSet
+  }
+
+  /**
+   * Show manual harmonic spacing modal dialog
+   */
+  _showManualHarmonicModal() {
+    if (this.state.mode !== 'harmonics') {
+      return
+    }
+
+    createManualHarmonicModal(
+      (spacing) => {
+        // Get time anchor: current cursor Y position if available, otherwise midpoint
+        let anchorTime
+        if (this.state.cursorPosition && this.state.cursorPosition.time !== null) {
+          anchorTime = this.state.cursorPosition.time
+        } else {
+          // Use midpoint of image time range
+          anchorTime = (this.state.config.timeMin + this.state.config.timeMax) / 2
+        }
+        
+        // Create the harmonic set
+        this._addHarmonicSet(anchorTime, spacing)
+      },
+      () => {
+        // Cancel callback - no action needed
+      }
+    )
   }
 
   /**

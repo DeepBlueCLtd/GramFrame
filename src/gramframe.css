@@ -131,9 +131,16 @@
   max-width: 500px;
 }
 
-/* Harmonics mode: position frequency box at top of panel */
+/* Harmonics mode: arrange controls horizontally at top */
 .gram-frame-harmonics-mode .gram-frame-readout {
   align-items: flex-start;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+}
+
+/* Remove top margin from harmonic panel in harmonics mode for proper alignment */
+.gram-frame-harmonics-mode .gram-frame-harmonic-panel {
+  margin-top: 0;
 }
 
 /* Military-style display windows */
@@ -183,6 +190,41 @@
   font-size: 14px;
   font-weight: bold;
   text-shadow: 0 0 4px #00ff00;
+}
+
+/* Manual harmonic button */
+.gram-frame-manual-button {
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);
+  color: #ddd;
+  border: 2px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.2),
+    inset 0 -1px 2px rgba(0,0,0,0.3),
+    0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.1s ease;
+  min-width: 80px;
+}
+
+.gram-frame-manual-button:hover {
+  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.3),
+    inset 0 -1px 2px rgba(0,0,0,0.4),
+    0 3px 6px rgba(0,0,0,0.4);
+}
+
+.gram-frame-manual-button:active {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.4),
+    0 1px 2px rgba(0,0,0,0.2);
 }
 
 /* Military-style mode selection header */
@@ -613,4 +655,129 @@
 .gram-frame-doppler-label {
   pointer-events: none;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+}
+
+/* Modal dialog styles */
+.gram-frame-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.gram-frame-modal {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  border: 2px solid #555;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  min-width: 350px;
+  max-width: 500px;
+  color: #ddd;
+}
+
+.gram-frame-modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #444;
+  background: linear-gradient(180deg, #444 0%, #333 100%);
+  border-radius: 6px 6px 0 0;
+}
+
+.gram-frame-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+  text-align: center;
+}
+
+.gram-frame-modal-body {
+  padding: 20px;
+}
+
+.gram-frame-modal-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gram-frame-modal-input-group label {
+  font-weight: bold;
+  color: #ccc;
+  font-size: 14px;
+}
+
+.gram-frame-modal-input-group input {
+  padding: 10px 12px;
+  border: 2px solid #555;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  color: #fff;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+.gram-frame-modal-input-group input:focus {
+  outline: none;
+  border-color: #777;
+  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);
+}
+
+.gram-frame-modal-error {
+  color: #ff6b6b;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.gram-frame-modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #444;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-radius: 0 0 6px 6px;
+}
+
+.gram-frame-modal-btn {
+  padding: 8px 16px;
+  border: 2px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+  transition: all 0.1s ease;
+  min-width: 80px;
+}
+
+.gram-frame-modal-cancel {
+  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);
+  color: #ffaaaa;
+}
+
+.gram-frame-modal-cancel:hover {
+  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);
+}
+
+.gram-frame-modal-add {
+  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);
+  color: #aaffaa;
+}
+
+.gram-frame-modal-add:hover {
+  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);
+}
+
+.gram-frame-modal-add:disabled {
+  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);
+  color: #666;
+  cursor: not-allowed;
+}
+
+.gram-frame-modal-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
