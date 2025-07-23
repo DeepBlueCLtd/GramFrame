@@ -1,5 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
-import { updateLEDDisplays } from '../../components/UIComponents.js'
+import { updateLEDDisplays, createLEDDisplay } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
 import { 
@@ -236,23 +236,27 @@ export class DopplerMode extends BaseMode {
   }
 
   /**
+   * Create UI elements for doppler mode
+   * @param {HTMLElement} readoutPanel - Container for UI elements
+   */
+  createUI(readoutPanel) {
+    this.uiElements = {}
+    
+    // Create Speed LED display
+    this.uiElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
+    readoutPanel.appendChild(this.uiElements.speedLED)
+    
+    // Store references on instance for compatibility
+    this.instance.speedLED = this.uiElements.speedLED
+  }
+
+  /**
    * Update LED displays for doppler mode
    * @param {Object} coords - Current cursor coordinates
    */
   updateLEDs(coords) {
-    // Doppler mode: show Speed LED only, hide Time and Frequency
-    if (this.instance.timeLED) {
-      this.instance.timeLED.style.display = 'none'
-    }
-    if (this.instance.freqLED) {
-      this.instance.freqLED.style.display = 'none'
-    }
-    if (this.instance.speedLED) {
-      this.instance.speedLED.style.display = ''
-    }
-    if (this.instance.manualButton) {
-      this.instance.manualButton.style.display = 'none'
-    }
+    // Doppler mode shows Speed LED only (created in createUI)
+    // No need to show/hide since only relevant elements exist
   }
 
   /**

@@ -135,6 +135,32 @@ export class BaseMode {
   }
 
   /**
+   * Create mode-specific UI elements when entering this mode
+   * Override in subclasses to create mode-specific UI elements
+   * @param {HTMLElement} readoutPanel - Container for UI elements
+   */
+  createUI(readoutPanel) {
+    // Default implementation - override in subclasses
+    this.uiElements = {}
+  }
+
+  /**
+   * Destroy mode-specific UI elements when leaving this mode
+   * Override in subclasses to clean up mode-specific UI elements
+   */
+  destroyUI() {
+    // Default implementation - remove all UI elements created by this mode
+    if (this.uiElements) {
+      Object.values(this.uiElements).forEach(element => {
+        if (element && element.parentNode) {
+          element.parentNode.removeChild(element)
+        }
+      })
+      this.uiElements = {}
+    }
+  }
+
+  /**
    * Get a snapshot of current mode-specific state
    * @returns {Object} Mode-specific state snapshot
    */

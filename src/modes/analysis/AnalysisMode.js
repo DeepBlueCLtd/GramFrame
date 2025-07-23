@@ -1,5 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
 import { createSVGLine } from '../../utils/svg.js'
+import { createLEDDisplay } from '../../components/UIComponents.js'
 
 /**
  * Analysis mode implementation
@@ -79,19 +80,31 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
+   * Create UI elements for analysis mode
+   * @param {HTMLElement} readoutPanel - Container for UI elements
+   */
+  createUI(readoutPanel) {
+    this.uiElements = {}
+    
+    // Create Time LED display
+    this.uiElements.timeLED = createLEDDisplay('Time (s)', '0.00')
+    readoutPanel.appendChild(this.uiElements.timeLED)
+    
+    // Create Frequency LED display
+    this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
+    readoutPanel.appendChild(this.uiElements.freqLED)
+    
+    // Store references on instance for compatibility
+    this.instance.timeLED = this.uiElements.timeLED
+    this.instance.freqLED = this.uiElements.freqLED
+  }
+
+  /**
    * Update LED displays for analysis mode
    * @param {Object} coords - Current cursor coordinates
    */
   updateLEDs(coords) {
-    // Show Time and Frequency LEDs only for analysis mode
-    if (this.instance.timeLED) {
-      this.instance.timeLED.style.display = ''
-    }
-    if (this.instance.freqLED) {
-      this.instance.freqLED.style.display = ''
-    }
-    if (this.instance.speedLED) {
-      this.instance.speedLED.style.display = 'none'
-    }
+    // Analysis mode shows Time and Frequency LEDs (created in createUI)
+    // No need to show/hide since only relevant elements exist
   }
 }

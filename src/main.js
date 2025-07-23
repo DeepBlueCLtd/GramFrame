@@ -28,17 +28,12 @@ import {
 } from './core/state.js'
 
 import {
-  createLEDDisplays,
   createModeSwitchingUI,
   createRateInput,
-  updateLEDDisplays
+  updateLEDDisplays,
+  createLEDDisplay
 } from './components/UIComponents.js'
-
-import {
-  createHarmonicPanel,
-  updateHarmonicPanelContent,
-  toggleHarmonicPanelVisibility
-} from './components/HarmonicPanel.js'
+import { capitalizeFirstLetter } from './utils/calculations.js'
 
 import {
   triggerHarmonicsDisplay
@@ -110,18 +105,9 @@ export class GramFrame {
     // Create complete component table structure including DOM and SVG
     setupComponentTable(this, configTable)
     
-    // Create initial LED displays
-    const ledElements = createLEDDisplays(this.readoutPanel, this.state)
-    Object.assign(this, ledElements)
-    
-    // Setup manual harmonic button event listener
-    if (this.manualButton) {
-      this.manualButton.addEventListener('click', () => {
-        if (this.state.mode === 'harmonics' && this.currentMode && this.currentMode.showManualHarmonicModal) {
-          this.currentMode.showManualHarmonicModal()
-        }
-      })
-    }
+    // Create global status LEDs (mode and rate - shared across all modes)
+    const globalLEDs = this.createGlobalStatusLEDs()
+    Object.assign(this, globalLEDs)
     
     // Create mode switching UI
     const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
@@ -135,8 +121,7 @@ export class GramFrame {
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
-    // Create harmonic management panel (add to readout panel)
-    this.harmonicPanel = createHarmonicPanel(this.readoutPanel, this)
+    // Harmonic management panel will be created by HarmonicsMode when activated
     
     // Initialize mode infrastructure
     /** @type {Object<string, import('./modes/BaseMode.js').BaseMode>} */
@@ -152,6 +137,7 @@ export class GramFrame {
     
     // Set initial mode (analysis by default)
     this.currentMode = this.modes['analysis']
+    this.currentMode.createUI(this.readoutPanel)
     
     // Apply any globally registered listeners to this new instance
     getGlobalStateListeners().forEach(listener => {
@@ -241,9 +227,11 @@ export class GramFrame {
     // Switch to new mode instance and activate it (all modes now use polymorphic pattern)
     if (this.currentMode) {
       this.currentMode.cleanup()
+      this.currentMode.destroyUI()
       this.currentMode.deactivate()
     }
     this.currentMode = this.modes[mode]
+    this.currentMode.createUI(this.readoutPanel)
     this.currentMode.activate()
     
     // Update guidance panel using mode's guidance text
@@ -257,17 +245,36 @@ export class GramFrame {
     // Update LED display values
     updateLEDDisplays(this, this.state)
     
+    // Update global status LEDs
+    if (this.modeLED) {
+      this.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(mode)
+    }
+    
     // Clear existing cursor indicators and redraw for new mode
     updateCursorIndicators(this)
     
-    // Update harmonic panel visibility and content
-    if (this.harmonicPanel) {
-      toggleHarmonicPanelVisibility(this.harmonicPanel, mode)
-      updateHarmonicPanelContent(this.harmonicPanel, this)
-    }
-    
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
+  }
+
+  /**
+   * Create global status LEDs (mode and rate displays)
+   * @returns {Object} Object containing global LED element references
+   */
+  createGlobalStatusLEDs() {
+    const globalLEDs = {}
+    
+    // Create Mode LED display (hidden by default, shown by tests)
+    globalLEDs.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(this.state.mode))
+    globalLEDs.modeLED.style.display = 'none'
+    this.readoutPanel.appendChild(globalLEDs.modeLED)
+    
+    // Create Rate LED display (hidden by default)
+    globalLEDs.rateLED = createLEDDisplay('Rate (Hz/s)', `${this.state.rate}`)
+    globalLEDs.rateLED.style.display = 'none'
+    this.readoutPanel.appendChild(globalLEDs.rateLED)
+    
+    return globalLEDs
   }
   
   /**

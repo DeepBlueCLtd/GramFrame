@@ -1,10 +1,10 @@
 import { BaseMode } from '../BaseMode.js'
 import { createSVGLine, createSVGText } from '../../utils/svg.js'
 import { drawAnalysisMode } from '../../rendering/cursors.js'
-import { updateHarmonicPanelContent } from '../../components/HarmonicPanel.js'
+import { updateHarmonicPanelContent, createHarmonicPanel, toggleHarmonicPanelVisibility } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
-import { createManualHarmonicModal } from '../../components/UIComponents.js'
+import { createManualHarmonicModal, createLEDDisplay, createManualHarmonicButton } from '../../components/UIComponents.js'
 
 /**
  * Harmonics mode implementation
@@ -154,23 +154,44 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Create UI elements for harmonics mode
+   * @param {HTMLElement} readoutPanel - Container for UI elements
+   */
+  createUI(readoutPanel) {
+    this.uiElements = {}
+    
+    // Create Manual Harmonic button (first in order)
+    this.uiElements.manualButton = createManualHarmonicButton()
+    readoutPanel.appendChild(this.uiElements.manualButton)
+    
+    // Create Frequency LED display
+    this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
+    readoutPanel.appendChild(this.uiElements.freqLED)
+    
+    // Create harmonic management panel
+    this.uiElements.harmonicPanel = createHarmonicPanel(readoutPanel, this.instance)
+    
+    // Show the harmonic panel for harmonics mode
+    toggleHarmonicPanelVisibility(this.uiElements.harmonicPanel, 'harmonics')
+    
+    // Store references on instance for compatibility
+    this.instance.freqLED = this.uiElements.freqLED
+    this.instance.manualButton = this.uiElements.manualButton
+    this.instance.harmonicPanel = this.uiElements.harmonicPanel
+    
+    // Setup manual harmonic button event listener
+    this.uiElements.manualButton.addEventListener('click', () => {
+      this.showManualHarmonicModal()
+    })
+  }
+
+  /**
    * Update LED displays for harmonics mode
    * @param {Object} coords - Current cursor coordinates
    */
   updateLEDs(coords) {
-    // Harmonics mode: show Manual button and Frequency only, Time is not needed
-    if (this.instance.timeLED) {
-      this.instance.timeLED.style.display = 'none'
-    }
-    if (this.instance.freqLED) {
-      this.instance.freqLED.style.display = ''
-    }
-    if (this.instance.speedLED) {
-      this.instance.speedLED.style.display = 'none'
-    }
-    if (this.instance.manualButton) {
-      this.instance.manualButton.style.display = ''
-    }
+    // Harmonics mode shows Manual button and Frequency LED (created in createUI)
+    // No need to show/hide since only relevant elements exist
   }
 
   /**
