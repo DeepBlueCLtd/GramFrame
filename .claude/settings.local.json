@@ -48,7 +48,8 @@
       "Bash(ls:*)",
       "Bash(awk:*)",
       "WebFetch(domain:docs.anthropic.com)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git rebase:*)"
     ],
     "deny": [],
     "exec_confirmed_commands": [
