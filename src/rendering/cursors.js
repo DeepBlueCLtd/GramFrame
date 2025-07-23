@@ -21,13 +21,11 @@ export function updateCursorIndicators(instance) {
   }
   
   // Handle different modes
-  if (instance.state.mode === 'analysis') {
-    // Use new mode pattern for analysis mode
+  if (instance.state.mode === 'analysis' || instance.state.mode === 'harmonics') {
+    // Use new mode pattern for analysis and harmonics modes
     if (instance.currentMode) {
       instance.currentMode.render(instance.svg)
     }
-  } else if (instance.state.mode === 'harmonics') {
-    drawHarmonicsMode(instance)
   } else if (instance.state.mode === 'doppler') {
     drawDopplerMode(instance)
   }

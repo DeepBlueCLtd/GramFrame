@@ -1,5 +1,6 @@
 import { BaseMode } from './BaseMode.js'
 import { AnalysisMode } from './analysis/AnalysisMode.js'
+import { HarmonicsMode } from './harmonics/HarmonicsMode.js'
 
 /**
  * Factory for creating mode instances
@@ -21,8 +22,7 @@ export class ModeFactory {
           return new AnalysisMode(instance, state)
         
         case 'harmonics':
-          // For Phase 1, return base mode. Will be replaced in Phase 3.
-          return new BaseMode(instance, state)
+          return new HarmonicsMode(instance, state)
         
         case 'doppler':
           // For Phase 1, return base mode. Will be replaced in Phase 4.

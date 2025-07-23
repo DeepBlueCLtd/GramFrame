@@ -268,8 +268,8 @@ export class GramFrame {
     }
     
     // Switch to new mode instance and activate it
-    if (mode === 'analysis') {
-      // Use new mode pattern for analysis mode
+    if (mode === 'analysis' || mode === 'harmonics') {
+      // Use new mode pattern for analysis and harmonics modes
       if (this.currentMode) {
         this.currentMode.deactivate()
       }
@@ -287,7 +287,7 @@ export class GramFrame {
       // Update LED display values
       updateLEDDisplays(this, this.state)
     } else {
-      // Keep existing conditional logic for harmonics and doppler modes
+      // Keep existing conditional logic for doppler mode
       // Update LED display
       updateLEDDisplays(this, this.state)
       
