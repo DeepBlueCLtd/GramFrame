@@ -32,8 +32,22 @@ export class ModeFactory {
           throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, doppler`)
       }
     } catch (error) {
-      console.error(`Error creating mode "${modeName}":`, error)
-      // Fallback to base mode to prevent complete failure
+      console.error(`CRITICAL ERROR: Failed to create mode "${modeName}":`, error)
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        modeName,
+        instanceType: instance?.constructor?.name,
+        stateExists: !!state
+      })
+      
+      // In test environments, throw the error to fail fast
+      if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
+        throw new Error(`Mode creation failed for "${modeName}": ${error.message}`)
+      }
+      
+      // Fallback to base mode to prevent complete failure in production
+      console.warn(`Falling back to BaseMode for "${modeName}" due to error`)
       return new BaseMode(instance, state)
     }
   }
