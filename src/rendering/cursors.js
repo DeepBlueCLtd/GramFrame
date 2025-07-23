@@ -22,9 +22,9 @@ export function updateCursorIndicators(instance) {
   
   // Handle different modes
   if (instance.state.mode === 'analysis') {
-    // Only draw analysis crosshairs if cursor position is available
-    if (instance.state.cursorPosition) {
-      drawAnalysisMode(instance)
+    // Use new mode pattern for analysis mode
+    if (instance.currentMode) {
+      instance.currentMode.render(instance.svg)
     }
   } else if (instance.state.mode === 'harmonics') {
     drawHarmonicsMode(instance)

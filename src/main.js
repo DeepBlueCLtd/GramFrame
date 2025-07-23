@@ -50,6 +50,8 @@ import { extractConfigData } from './core/configuration.js'
 
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
+import { ModeFactory } from './modes/ModeFactory.js'
+
 import { 
   drawAxes,
   clearAxes,
@@ -128,6 +130,21 @@ export class GramFrame {
     
     // Create harmonic management panel (add to readout panel)
     this.harmonicPanel = createHarmonicPanel(this.readoutPanel, this)
+    
+    // Initialize mode infrastructure
+    /** @type {Object<string, import('./modes/BaseMode.js').BaseMode>} */
+    this.modes = {}
+    /** @type {import('./modes/BaseMode.js').BaseMode} */
+    this.currentMode = null
+    
+    // Initialize all modes using factory
+    const availableModes = ModeFactory.getAvailableModes()
+    availableModes.forEach(modeName => {
+      this.modes[modeName] = ModeFactory.createMode(modeName, this, this.state)
+    })
+    
+    // Set initial mode (analysis by default)
+    this.currentMode = this.modes['analysis']
     
     // Apply any globally registered listeners to this new instance
     getGlobalStateListeners().forEach(listener => {
@@ -240,19 +257,41 @@ export class GramFrame {
       this.container.classList.add(`gram-frame-${mode}-mode`)
     }
     
+    // Switch to new mode instance and activate it
+    if (mode === 'analysis') {
+      // Use new mode pattern for analysis mode
+      if (this.currentMode) {
+        this.currentMode.deactivate()
+      }
+      this.currentMode = this.modes[mode]
+      this.currentMode.activate()
+      
+      // Update guidance panel using mode's guidance text
+      if (this.guidancePanel) {
+        this.guidancePanel.innerHTML = this.currentMode.getGuidanceText()
+      }
+      
+      // Update LED display visibility
+      this.currentMode.updateLEDs()
+      
+      // Update LED display values
+      updateLEDDisplays(this, this.state)
+    } else {
+      // Keep existing conditional logic for harmonics and doppler modes
+      // Update LED display
+      updateLEDDisplays(this, this.state)
+      
+      // Update display visibility based on new mode
+      updateDisplayVisibility(this, this.state.mode)
+      
+      // Update guidance panel content
+      if (this.guidancePanel) {
+        updateGuidanceContent(this.guidancePanel, mode)
+      }
+    }
+    
     // Clear existing cursor indicators and redraw for new mode
     updateCursorIndicators(this)
-    
-    // Update LED display
-    updateLEDDisplays(this, this.state)
-    
-    // Update display visibility based on new mode
-    updateDisplayVisibility(this, this.state.mode)
-    
-    // Update guidance panel content
-    if (this.guidancePanel) {
-      updateGuidanceContent(this.guidancePanel, mode)
-    }
     
     // Update harmonic panel visibility and content
     if (this.harmonicPanel) {
