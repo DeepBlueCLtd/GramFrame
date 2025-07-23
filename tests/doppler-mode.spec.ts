@@ -185,18 +185,10 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       const fPlusMarker = gramFramePage.page.locator('.gram-frame-doppler-fPlus')
       await expect(fPlusMarker).toBeVisible()
       
-      // Get current marker position and drag to new position
-      const markerBox = await fPlusMarker.boundingBox()
-      expect(markerBox).not.toBeNull()
-      
-      // Drag from current position to new position using mouse API
-      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width/2, markerBox!.y + markerBox!.height/2)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(svgBox!.x + 250, svgBox!.y + 150)
-      await gramFramePage.page.mouse.up()
-      
-      // Wait for the drag to be processed
-      await gramFramePage.page.waitForTimeout(200)
+      // Drag marker to new position
+      await fPlusMarker.dragTo(gramFramePage.svg, { 
+        targetPosition: { x: 250, y: 150 } 
+      })
 
       // Verify marker position changed
       const updatedState = await gramFramePage.getState()
@@ -226,18 +218,9 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       // Check crosshair exists and has correct styling instead of toBeVisible
       await expect(f0Marker).toHaveAttribute('stroke', '#00ff00')
       
-      // Get crosshair position and drag to new position using mouse API
-      const crosshairBox = await f0Marker.boundingBox()
-      expect(crosshairBox).not.toBeNull()
-      
-      // Drag from current position to new position
-      await gramFramePage.page.mouse.move(crosshairBox!.x + crosshairBox!.width/2, crosshairBox!.y + crosshairBox!.height/2)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(svgBox!.x + 300, svgBox!.y + 150)
-      await gramFramePage.page.mouse.up()
-      
-      // Wait for the drag to be processed
-      await gramFramePage.page.waitForTimeout(200)
+      await f0Marker.dragTo(gramFramePage.svg, {
+        targetPosition: { x: 300, y: 150 }
+      })
 
       // Verify f₀ position changed independently
       const updatedState = await gramFramePage.getState()
@@ -287,25 +270,15 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       await gramFramePage.page.mouse.move(svgBox!.x + 200, svgBox!.y + 200)
       await gramFramePage.page.mouse.up()
 
-      // Wait for initial markers to be placed
-      await gramFramePage.page.waitForTimeout(300)
-
       // Get initial curve path
       const curve = gramFramePage.page.locator('.gram-frame-doppler-curve')
       const initialPath = await curve.getAttribute('d')
 
-      // Drag a marker to new position using mouse API
+      // Drag a marker to new position
       const fPlusMarker = gramFramePage.page.locator('.gram-frame-doppler-fPlus')
-      const markerBox = await fPlusMarker.boundingBox()
-      expect(markerBox).not.toBeNull()
-      
-      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width/2, markerBox!.y + markerBox!.height/2)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(svgBox!.x + 250, svgBox!.y + 150)
-      await gramFramePage.page.mouse.up()
-      
-      // Wait for curve to update
-      await gramFramePage.page.waitForTimeout(200)
+      await fPlusMarker.dragTo(gramFramePage.svg, {
+        targetPosition: { x: 250, y: 150 }
+      })
 
       // Verify curve path changed
       const updatedPath = await curve.getAttribute('d')
@@ -332,10 +305,8 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
         const y1 = await guide.getAttribute('y1')
         const y2 = await guide.getAttribute('y2') 
         
-        // Should extend towards panel boundaries (y values should be different, indicating extension)
-        const y1Num = parseFloat(y1 || '0')
-        const y2Num = parseFloat(y2 || '0')
-        expect(Math.abs(y1Num - y2Num)).toBeGreaterThan(10) // Lines should extend vertically
+        // One should extend to top (y1 or y2 = 0) and other to bottom
+        expect(y1 === '0' || y2 === '0').toBeTruthy()
       }
     })
   })
@@ -367,14 +338,9 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
 
       // Move a marker and verify speed updates
       const fPlusMarker = gramFramePage.page.locator('.gram-frame-doppler-fPlus')
-      const markerBox = await fPlusMarker.boundingBox()
-      expect(markerBox).not.toBeNull()
-      
-      // Drag using mouse API
-      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width/2, markerBox!.y + markerBox!.height/2)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(svgBox!.x + 300, svgBox!.y + 180)
-      await gramFramePage.page.mouse.up()
+      await fPlusMarker.dragTo(gramFramePage.svg, {
+        targetPosition: { x: 300, y: 180 }
+      })
 
       // Speed should update (allowing brief time for calculation)
       await gramFramePage.page.waitForTimeout(100)
@@ -400,14 +366,13 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       const fMinus = state.doppler.fMinus.frequency
       const f0 = state.doppler.fZero.frequency
       
-      // Instead of exact formula match (which depends on coordinate system), 
-      // verify that speed is calculated and is a reasonable value
-      expect(state.doppler.speed).not.toBeNull()
-      expect(state.doppler.speed).toBeGreaterThan(0)
-      expect(typeof state.doppler.speed).toBe('number')
+      // Manual calculation: Δf = (f+ - f-)/2, v = (c/f₀) × Δf, c = 1500 m/s
+      const deltaF = (fPlus - fMinus) / 2
+      const speedMs = (1500 / f0) * deltaF
+      const speedKnots = speedMs * 1.94384 // Convert m/s to knots
       
-      // Verify speed is within a realistic range for sonar analysis (0-1000 knots)
-      expect(state.doppler.speed).toBeLessThan(1000)
+      // Verify calculated speed matches (within reasonable tolerance)
+      expect(Math.abs(state.doppler.speed - speedKnots)).toBeLessThan(0.1)
     })
   })
 
@@ -429,22 +394,10 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       // Verify markers are present
       await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).toBeVisible()
       await expect(gramFramePage.page.locator('.gram-frame-doppler-fMinus')).toBeVisible()
-      // Check crosshair exists with correct styling
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-crosshair').first()).toHaveAttribute('stroke', '#00ff00')
+      await expect(gramFramePage.page.locator('.gram-frame-doppler-crosshair').first()).toBeVisible()
 
       // Right-click to reset
       await gramFramePage.svg.click({ button: 'right', position: { x: 150, y: 150 } })
-
-      // Wait for reset to be processed
-      await gramFramePage.page.waitForTimeout(300)
-
-      // Verify state is cleared first (more reliable than UI checks)
-      const state = await gramFramePage.getState()
-      expect(state.doppler.fPlus).toBeNull()
-      expect(state.doppler.fMinus).toBeNull()
-      expect(state.doppler.fZero).toBeNull()
-      expect(state.doppler.speed).toBeNull()
-      expect(state.doppler.markersPlaced).toBe(0)
 
       // Verify markers are cleared
       await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).not.toBeVisible()
@@ -452,8 +405,17 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       await expect(gramFramePage.page.locator('.gram-frame-doppler-crosshair')).not.toBeVisible()
       await expect(gramFramePage.page.locator('.gram-frame-doppler-curve')).not.toBeVisible()
 
-      // The main verification is that the state is properly reset
-      // LED display update may have timing issues, but state reset is the critical functionality
+      // Verify state is cleared
+      const state = await gramFramePage.getState()
+      expect(state.doppler.fPlus).toBeNull()
+      expect(state.doppler.fMinus).toBeNull()
+      expect(state.doppler.fZero).toBeNull()
+      expect(state.doppler.speed).toBeNull()
+      expect(state.doppler.markersPlaced).toBe(0)
+
+      // Verify speed LED shows "0.0" again
+      const speedLED = gramFramePage.page.locator('.gram-frame-led:has(.gram-frame-led-label:text-is("Speed (knots)"))')
+      await expect(speedLED.locator('.gram-frame-led-value')).toContainText('0.0')
     })
 
     test('switching out of Doppler mode clears all overlays', async () => {
@@ -548,16 +510,22 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       await gramFramePage.page.mouse.move(svgBox!.x + 200, svgBox!.y + 200)
       await gramFramePage.page.mouse.up()
 
-      // Test f+ marker cursor
+      // Hover over f+ marker and check cursor
       const fPlusMarker = gramFramePage.page.locator('.gram-frame-doppler-fPlus')
+      await fPlusMarker.hover()
+      
+      // Note: Cursor checking in Playwright can be challenging
+      // Instead verify marker has grab cursor styling
       await expect(fPlusMarker).toHaveCSS('cursor', 'grab')
 
-      // Test f- marker cursor
+      // Test f- marker
       const fMinusMarker = gramFramePage.page.locator('.gram-frame-doppler-fMinus')
+      await fMinusMarker.hover()
       await expect(fMinusMarker).toHaveCSS('cursor', 'grab')
 
-      // Test f₀ crosshair cursor - check CSS without hovering (since Playwright sees it as hidden)
+      // Test f₀ crosshair
       const f0Marker = gramFramePage.page.locator('.gram-frame-doppler-crosshair').first()
+      await f0Marker.hover()
       await expect(f0Marker).toHaveCSS('cursor', 'grab')
     })
 
@@ -605,25 +573,16 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
     test('Doppler mode works on different screen sizes', async ({ page }) => {
       // Test desktop size (default)
       await gramFramePage.page.setViewportSize({ width: 1200, height: 800 })
-      await gramFramePage.page.waitForTimeout(500) // Wait for resize to complete
       
-      // Place markers using relative positioning
+      // Place markers
       const svgBox = await gramFramePage.svg.boundingBox()
       expect(svgBox).not.toBeNull()
 
-      // Use relative positioning to ensure markers are placed within spectrogram bounds
-      const startX = svgBox!.width * 0.3  // 30% from left
-      const startY = svgBox!.height * 0.3  // 30% from top
-      const endX = svgBox!.width * 0.7    // 70% from left
-      const endY = svgBox!.height * 0.7    // 70% from top
-
-      await gramFramePage.page.mouse.move(svgBox!.x + startX, svgBox!.y + startY)
+      await gramFramePage.page.mouse.move(svgBox!.x + 100, svgBox!.y + 100)
       await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(svgBox!.x + endX, svgBox!.y + endY)
+      await gramFramePage.page.mouse.move(svgBox!.x + 200, svgBox!.y + 200)
       await gramFramePage.page.mouse.up()
 
-      // Wait for markers to be placed and rendered
-      await gramFramePage.page.waitForTimeout(300)
       await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).toBeVisible()
 
       // Test tablet size
@@ -635,21 +594,9 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       
       // Should be able to drag markers at new size
       const fPlusMarker = gramFramePage.page.locator('.gram-frame-doppler-fPlus')
-      const markerBox = await fPlusMarker.boundingBox()
-      expect(markerBox).not.toBeNull()
-      
-      // Get updated SVG box after resize
-      const resizedSvgBox = await gramFramePage.svg.boundingBox()
-      expect(resizedSvgBox).not.toBeNull()
-      
-      // Drag using mouse API
-      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width/2, markerBox!.y + markerBox!.height/2)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(resizedSvgBox!.x + 250, resizedSvgBox!.y + 150)
-      await gramFramePage.page.mouse.up()
-      
-      // Wait for drag to process
-      await gramFramePage.page.waitForTimeout(200)
+      await fPlusMarker.dragTo(gramFramePage.svg, {
+        targetPosition: { x: 250, y: 150 }
+      })
 
       const state = await gramFramePage.getState()
       expect(state.doppler.speed).not.toBeNull()
@@ -676,12 +623,9 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       // Verify mode buttons have proper accessibility attributes
       const dopplerBtn = gramFramePage.page.locator('.gram-frame-mode-btn:text("Doppler")')
       
-      // Check for proper button element (HTML button elements don't need explicit role)
+      // Check for proper button role and attributes
+      await expect(dopplerBtn).toHaveAttribute('role', /button|[^role]/) // Either explicit button role or implicit
       await expect(dopplerBtn).toBeEnabled()
-      
-      // Verify it's actually a button element
-      const tagName = await dopplerBtn.evaluate(el => el.tagName.toLowerCase())
-      expect(tagName).toBe('button')
       
       // When active, should have appropriate state indication
       await gramFramePage.clickMode('Doppler')
@@ -699,12 +643,8 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
     })
 
     test('Doppler mode preserves other state properties when switching', async () => {
-      // Start by switching to Analysis mode first (since beforeEach puts us in Doppler)
-      await gramFramePage.clickMode('Analysis')
-      
-      // Get initial state (in Analysis mode)
+      // Get initial state
       const initialState = await gramFramePage.getState()
-      expect(initialState.mode).toBe('analysis')
       
       // Switch to Doppler mode
       await gramFramePage.clickMode('Doppler')
