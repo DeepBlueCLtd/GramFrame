@@ -31,7 +31,9 @@ import {
   createModeSwitchingUI,
   createRateInput,
   updateLEDDisplays,
-  createLEDDisplay
+  createLEDDisplay,
+  updateGuidanceContent,
+  createManualHarmonicModal
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'
 
@@ -112,6 +114,16 @@ export class GramFrame {
     // Create global status LEDs (mode and rate - shared across all modes)
     const globalLEDs = this.createGlobalStatusLEDs()
     Object.assign(this, globalLEDs)
+    
+    // Setup manual harmonic button event listener
+    if (this.manualButton) {
+      this.manualButton.addEventListener('click', () => {
+        // Delegate to current mode (only HarmonicsMode handles this)
+        if (this.currentMode && typeof this.currentMode.showManualHarmonicModal === 'function') {
+          this.currentMode.showManualHarmonicModal()
+        }
+      })
+    }
     
     // Create mode switching UI
     const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
@@ -304,8 +316,6 @@ export class GramFrame {
   // Harmonic set management methods moved to HarmonicsMode class
 
   // Manual harmonic modal method moved to HarmonicsMode class
-
-  // Harmonic set update method moved to HarmonicsMode class
 
   // Harmonic set removal method moved to HarmonicsMode class
 

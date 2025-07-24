@@ -9,7 +9,97 @@
 
 import { capitalizeFirstLetter } from '../utils/calculations.js'
 
+/**
+ * Create LED display elements for showing measurement values
+ * @param {HTMLElement} readoutPanel - Container element for LED displays
+ * @param {GramFrameState} state - Current state object
+ * @returns {Object} Object containing references to all LED elements
+ */
+export function createLEDDisplays(readoutPanel, state) {
+  const ledElements = {}
+  
+  // Create Manual Harmonic button for harmonics mode (first in order)
+  ledElements.manualButton = createManualHarmonicButton()
+  ledElements.manualButton.style.display = 'none'
+  readoutPanel.appendChild(ledElements.manualButton)
+  
+  // Time display - shown in both modes
+  ledElements.timeLED = createLEDDisplay('Time (s)', '0.00')
+  readoutPanel.appendChild(ledElements.timeLED)
+  
+  // Frequency display - shown in both modes (second in harmonics mode)
+  ledElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
+  readoutPanel.appendChild(ledElements.freqLED)
 
+  
+  // Speed display for Doppler mode
+  ledElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
+  ledElements.speedLED.style.display = 'none'
+  readoutPanel.appendChild(ledElements.speedLED)
+  
+  // Hide other displays for backward compatibility
+  ledElements.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(state.mode))
+  ledElements.modeLED.style.display = 'none'
+  readoutPanel.appendChild(ledElements.modeLED)
+  
+  ledElements.rateLED = createLEDDisplay('Rate (Hz/s)', `${state.rate}`)
+  ledElements.rateLED.style.display = 'none'
+  readoutPanel.appendChild(ledElements.rateLED)
+  
+  // Set initial display state based on current mode
+  updateDisplayVisibility(ledElements, state.mode)
+  
+  return ledElements
+}
+
+/**
+ * Updates display visibility based on current mode
+ * @param {Object} ledElements - Object containing LED element references
+ * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
+ */
+export function updateDisplayVisibility(ledElements, mode) {
+  if (mode === 'analysis') {
+    // Analysis mode: show Time and Frequency only
+    ledElements.timeLED.style.display = ''
+    ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
+    if (ledElements.manualButton) {
+      ledElements.manualButton.style.display = 'none'
+    }
+  } else if (mode === 'harmonics') {
+    // Harmonics mode: show Frequency only, Time is not needed
+    ledElements.timeLED.style.display = 'none'
+    ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
+    if (ledElements.manualButton) {
+      ledElements.manualButton.style.display = ''
+    }
+  } else if (mode === 'doppler') {
+    // Doppler mode: show Time, Frequency, and Speed
+    ledElements.timeLED.style.display = ''
+    ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = ''
+    }
+    if (ledElements.manualButton) {
+      ledElements.manualButton.style.display = 'none'
+    }
+  } else {
+    // Default: show Time and Frequency
+    ledElements.timeLED.style.display = ''
+    ledElements.freqLED.style.display = ''
+    if (ledElements.speedLED) {
+      ledElements.speedLED.style.display = 'none'
+    }
+    if (ledElements.manualButton) {
+      ledElements.manualButton.style.display = 'none'
+    }
+  }
+}
 
 /**
  * Creates mode switching button UI
@@ -62,6 +152,33 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   }
 }
 
+/**
+ * Updates guidance content based on current mode
+ * @param {HTMLElement} guidancePanel - The guidance panel element
+ * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
+ */
+export function updateGuidanceContent(guidancePanel, mode) {
+  if (mode === 'analysis') {
+    guidancePanel.innerHTML = `
+      <h4>Analysis Mode</h4>
+      <p>• Hover to view exact frequency/time values</p>
+    `
+  } else if (mode === 'harmonics') {
+    guidancePanel.innerHTML = `
+      <h4>Harmonics Mode</h4>
+      <p>• Click & drag to generate harmonic lines</p>
+      <p>• Drag existing harmonic lines to adjust spacing interval updates during drag</p>
+      <p>• Manually add harmonic lines using [+ Manual] button</p>
+    `
+  } else if (mode === 'doppler') {
+    guidancePanel.innerHTML = `
+      <h4>Doppler Mode</h4>
+      <p>• Drag line to give overall doppler curve</p>
+      <p>• Drag markers to adjust curve</p>
+      <p>• Right-click to reset</p>
+    `
+  }
+}
 
 /**
  * Creates rate input control
