@@ -414,6 +414,29 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Get initial state for harmonics mode
+   * @returns {Object} Harmonics-specific initial state
+   */
+  getInitialState() {
+    return {
+      harmonics: {
+        baseFrequency: null,
+        harmonicData: [],
+        harmonicSets: []
+      },
+      dragState: {
+        isDragging: false,
+        dragStartPosition: null,
+        draggedHarmonicSetId: null,
+        originalSpacing: null,
+        originalAnchorTime: null,
+        clickedHarmonicNumber: null,
+        isCreatingNewHarmonicSet: false
+      }
+    }
+  }
+
+  /**
    * Draw harmonic set lines
    * @param {Object} harmonicSet - Harmonic set to render
    */

@@ -378,6 +378,28 @@ export class DopplerMode extends BaseMode {
   }
 
   /**
+   * Get initial state for doppler mode
+   * @returns {Object} Doppler-specific initial state
+   */
+  getInitialState() {
+    return {
+      doppler: {
+        fPlus: null,  // DopplerPoint: { time, frequency }
+        fMinus: null, // DopplerPoint: { time, frequency }
+        fZero: null,  // DopplerPoint: { time, frequency }
+        speed: null,  // calculated speed in m/s
+        isDragging: false,
+        draggedMarker: null, // 'fPlus', 'fMinus', 'fZero'
+        isPlacingMarkers: false,
+        markersPlaced: 0, // 0 = none, 1 = first placed, 2 = both placed
+        tempFirst: null, // temporary storage for first marker during placement
+        isPreviewDrag: false, // whether currently dragging to preview curve
+        previewEnd: null // end point for preview drag
+      }
+    }
+  }
+
+  /**
    * Update the speed LED display with current speed value
    */
   updateSpeedLED() {

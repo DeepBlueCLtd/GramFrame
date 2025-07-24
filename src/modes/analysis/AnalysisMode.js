@@ -109,6 +109,14 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
+   * Get initial state for analysis mode
+   * @returns {Object} Analysis mode has no specific state
+   */
+  getInitialState() {
+    return {}
+  }
+
+  /**
    * Update mode-specific LED values based on cursor position
    */
   updateModeSpecificLEDs() {

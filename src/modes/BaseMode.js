@@ -176,4 +176,14 @@ export class BaseMode {
   showManualHarmonicModal() {
     // Default implementation does nothing
   }
+
+  /**
+   * Get initial state for this mode
+   * Override in subclasses to provide mode-specific initial state
+   * @returns {Object} Mode-specific initial state object
+   */
+  getInitialState() {
+    // Default implementation - override in subclasses
+    return {}
+  }
 }

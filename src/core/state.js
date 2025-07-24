@@ -7,6 +7,31 @@
 
 /// <reference path="../types.js" />
 
+import { AnalysisMode } from '../modes/analysis/AnalysisMode.js'
+import { HarmonicsMode } from '../modes/harmonics/HarmonicsMode.js'
+import { DopplerMode } from '../modes/doppler/DopplerMode.js'
+
+/**
+ * Build mode-specific initial state by collecting from all mode classes
+ * @returns {Object} Combined initial state from all modes
+ */
+function buildModeInitialState() {
+  // Create temporary mode instances to get their initial state
+  // Note: These are just used for getting initial state, not actual mode instances
+  const tempAnalysisMode = new AnalysisMode(null, null)
+  const tempHarmonicsMode = new HarmonicsMode(null, null)
+  const tempDopplerMode = new DopplerMode(null, null)
+  
+  const modeStates = [
+    tempAnalysisMode.getInitialState(),
+    tempHarmonicsMode.getInitialState(),
+    tempDopplerMode.getInitialState()
+  ]
+  
+  // Merge all mode states
+  return Object.assign({}, ...modeStates)
+}
+
 /**
  * Initial state object for GramFrame component
  * @type {GramFrameState}
@@ -21,33 +46,6 @@ export const initialState = {
   rate: 1,
   cursorPosition: null,
   cursors: [],
-  harmonics: {
-    baseFrequency: null,
-    harmonicData: [],
-    harmonicSets: []
-  },
-  doppler: {
-    fPlus: null,  // DopplerPoint: { time, frequency }
-    fMinus: null, // DopplerPoint: { time, frequency }
-    fZero: null,  // DopplerPoint: { time, frequency }
-    speed: null,  // calculated speed in m/s
-    isDragging: false,
-    draggedMarker: null, // 'fPlus', 'fMinus', 'fZero'
-    isPlacingMarkers: false,
-    markersPlaced: 0, // 0 = none, 1 = first placed, 2 = both placed
-    tempFirst: null, // temporary storage for first marker during placement
-    isPreviewDrag: false, // whether currently dragging to preview curve
-    previewEnd: null // end point for preview drag
-  },
-  dragState: {
-    isDragging: false,
-    dragStartPosition: null,
-    draggedHarmonicSetId: null,
-    originalSpacing: null,
-    originalAnchorTime: null,
-    clickedHarmonicNumber: null,
-    isCreatingNewHarmonicSet: false
-  },
   imageDetails: {
     url: '',
     naturalWidth: 0,  // Original dimensions of the image
@@ -70,7 +68,9 @@ export const initialState = {
       right: 15,   // Small right margin
       top: 15      // Small top margin
     }
-  }
+  },
+  // Add mode-specific state from mode classes
+  ...buildModeInitialState()
 }
 
 /**
