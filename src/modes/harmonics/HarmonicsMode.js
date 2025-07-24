@@ -309,6 +309,10 @@ export class HarmonicsMode extends BaseMode {
    * @returns {Object|null} The harmonic set if found, null otherwise
    */
   findHarmonicSetAtFrequency(freq) {
+    if (!this.state.cursorPosition) return null
+    
+    const cursorTime = this.state.cursorPosition.time
+    
     for (const harmonicSet of this.state.harmonics.harmonicSets) {
       // Check if frequency is close to any harmonic line in this set
       if (harmonicSet.spacing > 0) {
@@ -321,10 +325,22 @@ export class HarmonicsMode extends BaseMode {
         
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          const tolerance = harmonicSet.spacing * 0.02 // 2% tolerance
+          const tolerance = harmonicSet.spacing * 0.1 // 10% tolerance
           
           if (Math.abs(freq - expectedFreq) < tolerance) {
-            return harmonicSet
+            // Also check if cursor is within the vertical range of the harmonic line
+            // Harmonic lines have 20% of SVG height, centered on anchor time
+            const { naturalHeight } = this.state.imageDetails
+            const lineHeight = naturalHeight * 0.2
+            const timeRange = this.state.config.timeMax - this.state.config.timeMin
+            const lineHeightInTime = (lineHeight / naturalHeight) * timeRange
+            
+            const lineStartTime = harmonicSet.anchorTime - lineHeightInTime / 2
+            const lineEndTime = harmonicSet.anchorTime + lineHeightInTime / 2
+            
+            if (cursorTime >= lineStartTime && cursorTime <= lineEndTime) {
+              return harmonicSet
+            }
           }
         }
       }
