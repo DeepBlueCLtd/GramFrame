@@ -4,7 +4,7 @@ import { drawAnalysisMode } from '../../rendering/cursors.js'
 import { updateHarmonicPanelContent, createHarmonicPanel, toggleHarmonicPanelVisibility } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
-import { createManualHarmonicModal, createLEDDisplay, createManualHarmonicButton } from '../../components/UIComponents.js'
+import { createLEDDisplay } from '../../components/UIComponents.js'
 
 /**
  * Harmonics mode implementation

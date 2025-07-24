@@ -28,12 +28,9 @@ import {
 } from './core/state.js'
 
 import {
-  createModeSwitchingUI,
   createRateInput,
   updateLEDDisplays,
-  createLEDDisplay,
-  updateGuidanceContent,
-  createManualHarmonicModal
+  createLEDDisplay
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'
 
