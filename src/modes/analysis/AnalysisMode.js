@@ -165,7 +165,7 @@ export class AnalysisMode extends BaseMode {
       'gram-frame-marker-line'
     )
     verticalLine.setAttribute('stroke', marker.color)
-    verticalLine.setAttribute('stroke-width', '2')
+    verticalLine.setAttribute('stroke-width', '3')
     this.instance.cursorGroup.appendChild(verticalLine)
     
     // Horizontal line
@@ -177,7 +177,7 @@ export class AnalysisMode extends BaseMode {
       'gram-frame-marker-line'
     )
     horizontalLine.setAttribute('stroke', marker.color)
-    horizontalLine.setAttribute('stroke-width', '2')
+    horizontalLine.setAttribute('stroke-width', '3')
     this.instance.cursorGroup.appendChild(horizontalLine)
     
     // Center point
