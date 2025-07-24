@@ -34,8 +34,8 @@ export class ModeFactory {
     } catch (error) {
       console.error(`CRITICAL ERROR: Failed to create mode "${modeName}":`, error)
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
         modeName,
         instanceType: instance?.constructor?.name,
         stateExists: !!state
@@ -43,7 +43,7 @@ export class ModeFactory {
       
       // In test environments, throw the error to fail fast
       if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
-        throw new Error(`Mode creation failed for "${modeName}": ${error.message}`)
+        throw new Error(`Mode creation failed for "${modeName}": ${error instanceof Error ? error.message : String(error)}`)
       }
       
       // Fallback to base mode to prevent complete failure in production

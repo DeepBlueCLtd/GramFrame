@@ -105,7 +105,7 @@ export function extractConfigData(instance) {
     }
     instance.spectrogramImage.src = imgElement.src
   } catch (error) {
-    console.error('GramFrame: Error setting up image:', error.message)
+    console.error('GramFrame: Error setting up image:', error instanceof Error ? error.message : String(error))
   }
   
   // Extract min/max values from the table rows with error handling
@@ -148,7 +148,7 @@ export function extractConfigData(instance) {
           }
         }
       } catch (error) {
-        console.warn(`GramFrame: Error parsing row ${index + 1}:`, error.message)
+        console.warn(`GramFrame: Error parsing row ${index + 1}:`, error instanceof Error ? error.message : String(error))
       }
     })
     
@@ -166,7 +166,7 @@ export function extractConfigData(instance) {
     }
     
   } catch (error) {
-    console.error('GramFrame: Error extracting configuration data:', error.message)
+    console.error('GramFrame: Error extracting configuration data:', error instanceof Error ? error.message : String(error))
     // Set safe defaults
     instance.state.config = {
       timeMin: 0,

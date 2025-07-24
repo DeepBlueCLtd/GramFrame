@@ -3,14 +3,14 @@
     "checkJs": true,
     "allowJs": true,
     "noEmit": true,
-    "strict": false,
+    "strict": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "strictFunctionTypes": false,
-    "strictBindCallApply": false,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
     "strictPropertyInitialization": false,
-    "noImplicitReturns": false,
-    "noImplicitThis": false
+    "noImplicitReturns": true,
+    "noImplicitThis": true
   },
   "include": ["src/**/*.js"]
 }
