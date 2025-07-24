@@ -54,7 +54,7 @@ export class ModeFactory {
 
   /**
    * Get list of available mode names
-   * @returns {string[]} Array of mode names
+   * @returns {ModeType[]} Array of mode names
    */
   static getAvailableModes() {
     return ['analysis', 'harmonics', 'doppler']
@@ -62,7 +62,7 @@ export class ModeFactory {
 
   /**
    * Validate if a mode name is supported
-   * @param {string} modeName - Mode name to validate
+   * @param {ModeType} modeName - Mode name to validate
    * @returns {boolean} True if mode is supported
    */
   static isValidMode(modeName) {
