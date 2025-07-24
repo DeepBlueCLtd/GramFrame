@@ -10,7 +10,7 @@ import { DopplerMode } from './doppler/DopplerMode.js'
 export class ModeFactory {
   /**
    * Create a mode instance based on mode name
-   * @param {string} modeName - Name of the mode ('analysis', 'harmonics', 'doppler')
+   * @param {ModeType} modeName - Name of the mode
    * @param {Object} instance - GramFrame instance
    * @param {Object} state - GramFrame state object
    * @returns {BaseMode} Mode instance

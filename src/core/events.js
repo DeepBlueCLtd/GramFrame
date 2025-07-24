@@ -48,7 +48,7 @@ export function setupEventListeners(instance) {
     const button = instance.modeButtons[mode]
     if (button) {
       button.addEventListener('click', () => {
-        instance._switchMode(/** @type {'analysis'|'harmonics'|'doppler'} */ (mode))
+        instance._switchMode(/** @type {ModeType} */ (mode))
       })
     }
   })

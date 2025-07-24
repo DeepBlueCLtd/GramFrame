@@ -56,6 +56,11 @@
  */
 
 /**
+ * Analysis mode type
+ * @typedef {'analysis'|'harmonics'|'doppler'} ModeType
+ */
+
+/**
  * Axes margin configuration
  * @typedef {Object} AxesMargins
  * @property {number} left - Left margin for time axis labels
@@ -77,7 +82,7 @@
  * @property {string} timestamp - Timestamp of state creation
  * @property {Object} metadata - Component instance metadata
  * @property {string} metadata.instanceId - Unique instance identifier
- * @property {'analysis'|'harmonics'|'doppler'} mode - Current analysis mode
+ * @property {ModeType} mode - Current analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)

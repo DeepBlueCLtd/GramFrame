@@ -192,7 +192,7 @@ export class GramFrame {
   
   /**
    * Switch between analysis modes
-   * @param {'analysis'|'harmonics'|'doppler'} mode - Target mode
+   * @param {ModeType} mode - Target mode
    */
   _switchMode(mode) {
     // Update state
