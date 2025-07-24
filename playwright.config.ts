@@ -13,7 +13,7 @@ export default defineConfig({
   reporter: 'list',
   // Don't open the HTML report after the test run
   quiet: true,
-  
+  timeout: 3000, // Reduced global test timeout to 3 seconds
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
