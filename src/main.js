@@ -297,9 +297,8 @@ export class GramFrame {
     globalLEDs.rateLED.style.display = 'none'
     this.readoutPanel.appendChild(globalLEDs.rateLED)
     
-    // Create color picker for harmonics (only visible in harmonics mode)
-    globalLEDs.colorPicker = createColorPicker(this.state)
-    this.readoutPanel.appendChild(globalLEDs.colorPicker)
+    // Color picker is now created by individual modes (harmonics and analysis)
+    // to ensure proper labels and mode-specific behavior
     
     return globalLEDs
   }

@@ -36,9 +36,7 @@ export function createLEDDisplays(readoutPanel, state) {
   ledElements.rateLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.rateLED)
   
-  // Color picker for harmonics (only visible in harmonics mode)
-  ledElements.colorPicker = createColorPicker(state)
-  readoutPanel.appendChild(ledElements.colorPicker)
+  // Color picker is now created by individual modes (harmonics and analysis)
   
   return ledElements
 }
@@ -210,10 +208,7 @@ export function updateLEDDisplays(instance, state) {
     instance.rateLED.querySelector('.gram-frame-led-value').textContent = `${state.rate}`
   }
   
-  // Update color picker visibility based on mode
-  if (instance.colorPicker) {
-    instance.colorPicker.style.display = state.mode === 'harmonics' ? 'block' : 'none'
-  }
+  // Color picker visibility is now managed by individual modes
 }
 
 /**
@@ -224,7 +219,7 @@ export function updateLEDDisplays(instance, state) {
 export function createColorPicker(state) {
   const container = document.createElement('div')
   container.className = 'gram-frame-color-picker'
-  container.style.display = state.mode === 'harmonics' ? 'block' : 'none'
+  container.style.display = (state.mode === 'harmonics' || state.mode === 'analysis') ? 'block' : 'none'
   
   // Label
   const label = document.createElement('div')
