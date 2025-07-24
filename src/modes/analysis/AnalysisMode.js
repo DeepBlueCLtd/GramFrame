@@ -2,6 +2,7 @@ import { BaseMode } from '../BaseMode.js'
 import { createSVGLine } from '../../utils/svg.js'
 import { createLEDDisplay, createColorPicker } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
+import { updateCursorIndicators } from '../../rendering/cursors.js'
 
 /**
  * Analysis mode implementation
@@ -60,6 +61,9 @@ export class AnalysisMode extends BaseMode {
    * @param {SVGElement} svg - The SVG container element
    */
   render(svg) {
+    // Clear existing cursor indicators first
+    this.instance.cursorGroup.innerHTML = ''
+    
     // Render temporary cursor crosshair if cursor position is available
     if (this.state.cursorPosition) {
       this.renderCursor()
@@ -391,6 +395,9 @@ export class AnalysisMode extends BaseMode {
     // Update markers table
     this.updateMarkersTable()
     
+    // Trigger visual re-render to update marker display immediately
+    updateCursorIndicators(this.instance)
+    
     // Notify listeners
     notifyStateListeners(this.state, this.instance.stateListeners)
   }
@@ -409,6 +416,9 @@ export class AnalysisMode extends BaseMode {
       
       // Update markers table
       this.updateMarkersTable()
+      
+      // Trigger visual re-render to update marker display immediately
+      updateCursorIndicators(this.instance)
       
       // Notify listeners
       notifyStateListeners(this.state, this.instance.stateListeners)
@@ -446,7 +456,7 @@ export class AnalysisMode extends BaseMode {
     if (!this.state.analysis || !this.state.analysis.markers) return
     
     // Add rows for each marker
-    this.state.analysis.markers.forEach((marker) => {
+    this.state.analysis.markers.forEach((marker, markerIndex) => {
       const row = document.createElement('tr')
       
       // Color swatch cell
@@ -482,8 +492,12 @@ export class AnalysisMode extends BaseMode {
       deleteButton.style.cursor = 'pointer'
       deleteButton.style.fontSize = '16px'
       deleteButton.style.fontWeight = 'bold'
-      deleteButton.addEventListener('click', () => {
-        this.removeMarker(marker.id)
+      // Capture the marker ID in a closure to avoid scope issues
+      const markerId = marker.id
+      deleteButton.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        this.removeMarker(markerId)
       })
       deleteCell.appendChild(deleteButton)
       row.appendChild(deleteCell)
