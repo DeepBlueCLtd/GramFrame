@@ -16,6 +16,9 @@ import {
   drawDopplerPreview
 } from '../../rendering/cursors.js'
 
+// Constants
+const MS_TO_KNOTS_CONVERSION = 1.94384
+
 /**
  * Doppler mode implementation
  * Handles Doppler marker placement, dragging, and speed calculations
@@ -405,7 +408,7 @@ export class DopplerMode extends BaseMode {
   updateSpeedLED() {
     if (this.uiElements.speedLED && this.state.doppler.speed !== null) {
       // Convert m/s to knots: 1 m/s = 1.94384 knots
-      const speedInKnots = this.state.doppler.speed * 1.94384
+      const speedInKnots = this.state.doppler.speed * MS_TO_KNOTS_CONVERSION
       this.uiElements.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
     } else if (this.uiElements.speedLED) {
       this.uiElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
