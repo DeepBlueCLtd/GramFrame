@@ -62,7 +62,7 @@ export function createGramFrameAPI(GramFrame) {
           instances.push(instance)
           
         } catch (error) {
-          const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error.message}`
+          const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error instanceof Error ? error.message : String(error)}`
           console.error('GramFrame Error:', errorMsg, error)
           errors.push({ table, error: errorMsg, index })
           

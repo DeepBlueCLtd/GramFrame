@@ -97,8 +97,8 @@ export function updateHarmonicPanelContent(panel, instance) {
     button.addEventListener('click', (e) => {
       e.preventDefault()
       const harmonicId = button.getAttribute('data-harmonic-id')
-      if (harmonicId) {
-        instance._removeHarmonicSet(harmonicId)
+      if (harmonicId && instance.currentMode && instance.currentMode.removeHarmonicSet) {
+        instance.currentMode.removeHarmonicSet(harmonicId)
         // Panel will be updated automatically by the remove method
       }
     })

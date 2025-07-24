@@ -6,6 +6,7 @@
  */
 
 /// <reference path="../types.js" />
+/// <reference path="../modes/harmonics/types.js" />
 
 /**
  * Calculate harmonic frequencies and positions for display

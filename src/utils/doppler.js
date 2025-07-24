@@ -45,7 +45,7 @@ export function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound 
  * @param {number} threshold - Distance threshold in pixels (default: 15)
  * @returns {boolean} True if mouse is near the marker
  */
-export function isNearMarker(mousePos, markerSVG, threshold = 15) {
+export function isNearMarker(mousePos, markerSVG, threshold = 25) {
   const dx = mousePos.x - markerSVG.x
   const dy = mousePos.y - markerSVG.y
   const distance = Math.sqrt(dx * dx + dy * dy)

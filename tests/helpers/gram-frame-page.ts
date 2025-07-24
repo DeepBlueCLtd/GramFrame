@@ -180,7 +180,10 @@ export class GramFramePage {
    * @param mode The mode to switch to (e.g., "Analysis", "Harmonics")
    */
   async clickMode(mode: string) {
-    await this.page.locator(`.gram-frame-mode-btn:text("${mode}")`).click()
+    // Wait for button to be available and interactable
+    const modeButton = this.page.locator(`.gram-frame-mode-btn:text("${mode}")`)
+    await modeButton.waitFor({ state: 'visible' })
+    await modeButton.click()
   }
 
   /**

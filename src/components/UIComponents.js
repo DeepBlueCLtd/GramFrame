@@ -18,95 +18,36 @@ import { capitalizeFirstLetter } from '../utils/calculations.js'
 export function createLEDDisplays(readoutPanel, state) {
   const ledElements = {}
   
-  // Create Manual Harmonic button for harmonics mode (first in order)
-  ledElements.manualButton = createManualHarmonicButton()
-  ledElements.manualButton.style.display = 'none'
-  readoutPanel.appendChild(ledElements.manualButton)
-  
-  // Time display - shown in both modes
+  // Time display
   ledElements.timeLED = createLEDDisplay('Time (s)', '0.00')
   readoutPanel.appendChild(ledElements.timeLED)
   
-  // Frequency display - shown in both modes (second in harmonics mode)
+  // Frequency display
   ledElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
   readoutPanel.appendChild(ledElements.freqLED)
-
   
-  // Speed display for Doppler mode
-  ledElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
-  ledElements.speedLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.speedLED)
-  
-  // Hide other displays for backward compatibility
+  // Mode display
   ledElements.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(state.mode))
   ledElements.modeLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.modeLED)
   
+  // Rate display
   ledElements.rateLED = createLEDDisplay('Rate (Hz/s)', `${state.rate}`)
   ledElements.rateLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.rateLED)
   
-  // Set initial display state based on current mode
-  updateDisplayVisibility(ledElements, state.mode)
-  
   return ledElements
 }
 
-/**
- * Updates display visibility based on current mode
- * @param {Object} ledElements - Object containing LED element references
- * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
- */
-export function updateDisplayVisibility(ledElements, mode) {
-  if (mode === 'analysis') {
-    // Analysis mode: show Time and Frequency only
-    ledElements.timeLED.style.display = ''
-    ledElements.freqLED.style.display = ''
-    if (ledElements.speedLED) {
-      ledElements.speedLED.style.display = 'none'
-    }
-    if (ledElements.manualButton) {
-      ledElements.manualButton.style.display = 'none'
-    }
-  } else if (mode === 'harmonics') {
-    // Harmonics mode: show Frequency only, Time is not needed
-    ledElements.timeLED.style.display = 'none'
-    ledElements.freqLED.style.display = ''
-    if (ledElements.speedLED) {
-      ledElements.speedLED.style.display = 'none'
-    }
-    if (ledElements.manualButton) {
-      ledElements.manualButton.style.display = ''
-    }
-  } else if (mode === 'doppler') {
-    // Doppler mode: show Time, Frequency, and Speed
-    ledElements.timeLED.style.display = ''
-    ledElements.freqLED.style.display = ''
-    if (ledElements.speedLED) {
-      ledElements.speedLED.style.display = ''
-    }
-    if (ledElements.manualButton) {
-      ledElements.manualButton.style.display = 'none'
-    }
-  } else {
-    // Default: show Time and Frequency
-    ledElements.timeLED.style.display = ''
-    ledElements.freqLED.style.display = ''
-    if (ledElements.speedLED) {
-      ledElements.speedLED.style.display = 'none'
-    }
-    if (ledElements.manualButton) {
-      ledElements.manualButton.style.display = 'none'
-    }
-  }
-}
+
+
 
 /**
- * Creates mode switching button UI
- * @param {HTMLElement} modeCell - Container element for mode buttons
+ * Create mode switching UI with buttons and guidance panel
+ * @param {HTMLElement} modeCell - Container element for mode UI
  * @param {GramFrameState} state - Current state object
- * @param {Function} modeSwitchCallback - Callback function for mode switching
- * @returns {Object} Object containing mode UI elements
+ * @param {Function} modeSwitchCallback - Callback function for mode changes
+ * @returns {Object} Object containing references to mode UI elements
  */
 export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   // Create mode buttons container
@@ -129,7 +70,8 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
     }
     
     // Add click handler
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault()
       modeSwitchCallback(mode)
     })
     
@@ -137,10 +79,9 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
     modesContainer.appendChild(button)
   })
   
-  // Create guidance panel
+  // Create guidance panel (content will be set by current mode)
   const guidancePanel = document.createElement('div')
   guidancePanel.className = 'gram-frame-guidance'
-  updateGuidanceContent(guidancePanel, state.mode)
   
   // Append all to mode header
   modeCell.appendChild(modesContainer)
@@ -168,7 +109,7 @@ export function updateGuidanceContent(guidancePanel, mode) {
     guidancePanel.innerHTML = `
       <h4>Harmonics Mode</h4>
       <p>• Click & drag to generate harmonic lines</p>
-      <p>• Drag existing harmonic lines to adjust spacing interval updates</p>
+      <p>• Drag existing harmonic lines to adjust spacing</p>
       <p>• Manually add harmonic lines using [+ Manual] button</p>
     `
   } else if (mode === 'doppler') {
@@ -249,176 +190,22 @@ export function createLEDDisplay(label, value) {
 }
 
 /**
- * Update all LED displays based on current state
- * @param {Object} ledElements - Object containing LED element references
+ * Update global LED displays (mode and rate only)
+ * Mode-specific LEDs are now managed by individual modes
+ * @param {Object} instance - GramFrame instance with global LEDs
  * @param {GramFrameState} state - Current state object
  */
-export function updateLEDDisplays(ledElements, state) {
-  // Update mode LED display
-  if (ledElements.modeLED) {
-    ledElements.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(state.mode)
+export function updateLEDDisplays(instance, state) {
+  // Update global mode LED display
+  if (instance.modeLED) {
+    instance.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(state.mode)
   }
   
-  // Update frequency label based on mode and state
-  const freqLabel = ledElements.freqLED.querySelector('.gram-frame-led-label')
-  if (state.mode === 'harmonics' && state.dragState.isDragging && state.harmonics.baseFrequency !== null) {
-    freqLabel.textContent = 'Base Freq (Hz)'
-  } else {
-    freqLabel.textContent = 'Frequency (Hz)'
+  // Update global rate LED display
+  if (instance.rateLED) {
+    instance.rateLED.querySelector('.gram-frame-led-value').textContent = `${state.rate}`
   }
   
-  if (!state.cursorPosition) {
-    // Show default values when no cursor position
-    ledElements.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-    ledElements.timeLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-    return
-  }
-  
-  // Mode-specific LED formatting
-  if (state.mode === 'harmonics' && state.dragState.isDragging && state.harmonics.baseFrequency !== null) {
-    // For Harmonics mode during drag, show base frequency for harmonics
-    const baseFreqValue = state.harmonics.baseFrequency.toFixed(1)
-    ledElements.freqLED.querySelector('.gram-frame-led-value').textContent = baseFreqValue
-    
-    // Still show time
-    const timeValue = state.cursorPosition.time.toFixed(2)
-    ledElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
-  } else {
-    // For normal mode operation - use 1 decimal place for frequency as per spec
-    const freqValue = state.cursorPosition.freq.toFixed(1)
-    ledElements.freqLED.querySelector('.gram-frame-led-value').textContent = freqValue
-    
-    // Update time LED - use 2 decimal places as per spec
-    const timeValue = state.cursorPosition.time.toFixed(2)
-    ledElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
-  }
-  
-  // Update speed LED for Doppler mode
-  if (state.mode === 'doppler' && ledElements.speedLED) {
-    if (state.doppler.speed !== null) {
-      // Convert m/s to knots: 1 m/s = 1.94384 knots
-      const speedInKnots = state.doppler.speed * 1.94384
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
-    } else {
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
-    }
-  }
 }
 
-/**
- * Creates the + Manual button for harmonics mode
- * @returns {HTMLButtonElement} The manual harmonic button element
- */
-export function createManualHarmonicButton() {
-  const button = document.createElement('button')
-  button.className = 'gram-frame-manual-button'
-  button.textContent = '+ Manual'
-  button.title = 'Add manual harmonic spacing'
-  return button
-}
 
-/**
- * Creates and shows the manual harmonic spacing modal dialog
- * @param {Function} onAdd - Callback function when Add is clicked with valid spacing
- * @param {Function} onCancel - Callback function when Cancel is clicked
- * @returns {HTMLElement} The modal element
- */
-export function createManualHarmonicModal(onAdd, onCancel) {
-  // Create modal overlay
-  const modalOverlay = document.createElement('div')
-  modalOverlay.className = 'gram-frame-modal-overlay'
-  
-  // Create modal dialog
-  const modal = document.createElement('div')
-  modal.className = 'gram-frame-modal'
-  
-  // Create modal content
-  modal.innerHTML = `
-    <div class="gram-frame-modal-header">
-      <h3>Manual Harmonic Spacing</h3>
-    </div>
-    <div class="gram-frame-modal-body">
-      <div class="gram-frame-modal-input-group">
-        <label for="harmonic-spacing-input">Harmonic spacing (Hz):</label>
-        <input type="number" id="harmonic-spacing-input" min="1.0" step="0.1" placeholder="73.5">
-        <div class="gram-frame-modal-error" style="display: none;">Please enter a number ≥ 1.0</div>
-      </div>
-    </div>
-    <div class="gram-frame-modal-footer">
-      <button class="gram-frame-modal-btn gram-frame-modal-cancel">❌ Cancel</button>
-      <button class="gram-frame-modal-btn gram-frame-modal-add" disabled>✅ Add</button>
-    </div>
-  `
-  
-  modalOverlay.appendChild(modal)
-  
-  // Get elements for interaction
-  /** @type {HTMLInputElement} */
-  const input = modal.querySelector('#harmonic-spacing-input')
-  /** @type {HTMLDivElement} */
-  const errorDiv = modal.querySelector('.gram-frame-modal-error')
-  /** @type {HTMLButtonElement} */
-  const addButton = modal.querySelector('.gram-frame-modal-add')
-  /** @type {HTMLButtonElement} */
-  const cancelButton = modal.querySelector('.gram-frame-modal-cancel')
-  
-  // Input validation function
-  function validateInput() {
-    const value = parseFloat(input.value)
-    const isValid = !isNaN(value) && value >= 1.0
-    
-    if (input.value === '') {
-      // Empty input - hide error, disable button
-      errorDiv.style.display = 'none'
-      addButton.disabled = true
-    } else if (isValid) {
-      // Valid input - hide error, enable button
-      errorDiv.style.display = 'none'
-      addButton.disabled = false
-    } else {
-      // Invalid input - show error, disable button
-      errorDiv.style.display = 'block'
-      addButton.disabled = true
-    }
-  }
-  
-  // Add input event listeners
-  input.addEventListener('input', validateInput)
-  input.addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
-    if (e.key === 'Enter' && !addButton.disabled) {
-      handleAdd()
-    } else if (e.key === 'Escape') {
-      handleCancel()
-    }
-  })
-  
-  // Add button event handlers
-  function handleAdd() {
-    const spacing = parseFloat(input.value)
-    if (!isNaN(spacing) && spacing >= 1.0) {
-      onAdd(spacing)
-      document.body.removeChild(modalOverlay)
-    }
-  }
-  
-  function handleCancel() {
-    onCancel()
-    document.body.removeChild(modalOverlay)
-  }
-  
-  addButton.addEventListener('click', handleAdd)
-  cancelButton.addEventListener('click', handleCancel)
-  
-  // Close modal when clicking overlay (outside modal)
-  modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) {
-      handleCancel()
-    }
-  })
-  
-  // Add to DOM and focus input
-  document.body.appendChild(modalOverlay)
-  input.focus()
-  
-  return modalOverlay
-}

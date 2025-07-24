@@ -42,62 +42,6 @@
 
 
 
-/**
- * Individual harmonic data
- * @typedef {Object} HarmonicData
- * @property {number} number - Harmonic number (1x, 2x, 3x, etc.)
- * @property {number} frequency - Frequency value in Hz
- * @property {number} svgX - SVG x coordinate for drawing
- */
-
-/**
- * Harmonic set definition for interactive overlays
- * @typedef {Object} HarmonicSet
- * @property {string} id - Unique identifier for the harmonic set
- * @property {string} color - Display color for harmonic lines
- * @property {number} anchorTime - Time position (Y-axis) in seconds
- * @property {number} spacing - Frequency spacing between harmonics in Hz
- */
-
-/**
- * Harmonics mode state
- * @typedef {Object} HarmonicsState
- * @property {number|null} baseFrequency - Base frequency for harmonic calculations
- * @property {HarmonicData[]} harmonicData - Array of calculated harmonic data
- * @property {HarmonicSet[]} harmonicSets - Array of harmonic sets with persistent overlays
- */
-
-/**
- * Doppler point with time and frequency coordinates
- * @typedef {Object} DopplerPoint
- * @property {number} time - Time in seconds
- * @property {number} frequency - Frequency in Hz
- */
-
-/**
- * Doppler fit data with all markers and calculated speed
- * @typedef {Object} DopplerFit
- * @property {DopplerPoint} fPlus - f+ marker (end frequency)
- * @property {DopplerPoint} fMinus - f- marker (start frequency)
- * @property {DopplerPoint} fZero - f₀ marker (inflexion point)
- * @property {number} speed - Calculated speed in m/s
- */
-
-/**
- * Doppler mode state
- * @typedef {Object} DopplerState
- * @property {DopplerPoint|null} fPlus - f+ marker position
- * @property {DopplerPoint|null} fMinus - f- marker position
- * @property {DopplerPoint|null} fZero - f₀ marker position
- * @property {number|null} speed - Calculated speed in m/s
- * @property {boolean} isDragging - Whether currently dragging a marker
- * @property {string|null} draggedMarker - Which marker is being dragged ('fPlus', 'fMinus', 'fZero')
- * @property {boolean} isPlacingMarkers - Whether in marker placement mode
- * @property {number} markersPlaced - Number of markers placed (0-2)
- * @property {DopplerPoint|null} tempFirst - Temporary storage for first marker during placement
- * @property {boolean} isPreviewDrag - Whether currently dragging to preview curve
- * @property {DopplerPoint|null} previewEnd - End point for preview drag
- */
 
 /**
  * Drag interaction state
@@ -109,6 +53,11 @@
  * @property {number|null} originalAnchorTime - Original anchor time of dragged harmonic set  
  * @property {number|null} clickedHarmonicNumber - Which harmonic number was clicked for dragging
  * @property {boolean} isCreatingNewHarmonicSet - Whether currently creating a new harmonic set via drag
+ */
+
+/**
+ * Analysis mode type
+ * @typedef {'analysis'|'harmonics'|'doppler'} ModeType
  */
 
 /**
@@ -133,7 +82,7 @@
  * @property {string} timestamp - Timestamp of state creation
  * @property {Object} metadata - Component instance metadata
  * @property {string} metadata.instanceId - Unique instance identifier
- * @property {'analysis'|'harmonics'|'doppler'} mode - Current analysis mode
+ * @property {ModeType} mode - Current analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
