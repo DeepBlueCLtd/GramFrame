@@ -143,6 +143,11 @@ export class GramFrame {
     this.currentMode = this.modes['analysis']
     this.currentMode.createUI(this.readoutPanel)
     
+    // Initialize guidance panel with analysis mode guidance
+    if (this.guidancePanel) {
+      this.guidancePanel.innerHTML = this.currentMode.getGuidanceText()
+    }
+    
     // Apply any globally registered listeners to this new instance
     getGlobalStateListeners().forEach(listener => {
       if (!this.stateListeners.includes(listener)) {
