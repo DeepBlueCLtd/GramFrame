@@ -193,21 +193,68 @@ export class AnalysisMode extends BaseMode {
   createUI(readoutPanel) {
     this.uiElements = {}
     
+    // Create horizontal layout container
+    const layoutContainer = document.createElement('div')
+    layoutContainer.className = 'gram-frame-analysis-layout'
+    layoutContainer.style.display = 'flex'
+    layoutContainer.style.gap = '12px'
+    layoutContainer.style.height = '100%'
+    
+    // Create left column for controls
+    const leftColumn = document.createElement('div')
+    leftColumn.className = 'gram-frame-analysis-controls'
+    leftColumn.style.display = 'flex'
+    leftColumn.style.flexDirection = 'column'
+    leftColumn.style.gap = '8px'
+    leftColumn.style.minWidth = '160px'
+    leftColumn.style.flexShrink = '0'
+    
+    // Create horizontal container for LEDs
+    const ledsContainer = document.createElement('div')
+    ledsContainer.className = 'gram-frame-analysis-leds'
+    ledsContainer.style.display = 'flex'
+    ledsContainer.style.gap = '6px'
+    
     // Create Time LED display
     this.uiElements.timeLED = createLEDDisplay('Time (s)', '0.00')
-    readoutPanel.appendChild(this.uiElements.timeLED)
+    this.uiElements.timeLED.style.flex = '1'
+    this.uiElements.timeLED.style.minWidth = '0'
+    ledsContainer.appendChild(this.uiElements.timeLED)
     
     // Create Frequency LED display
     this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
-    readoutPanel.appendChild(this.uiElements.freqLED)
+    this.uiElements.freqLED.style.flex = '1'
+    this.uiElements.freqLED.style.minWidth = '0'
+    ledsContainer.appendChild(this.uiElements.freqLED)
+    
+    leftColumn.appendChild(ledsContainer)
     
     // Create color picker for marker colors
     this.uiElements.colorPicker = createColorPicker(this.state)
     this.uiElements.colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Marker Color'
-    readoutPanel.appendChild(this.uiElements.colorPicker)
+    leftColumn.appendChild(this.uiElements.colorPicker)
     
-    // Create markers table
-    this.createMarkersTable(readoutPanel)
+    // Create right column for markers table
+    const rightColumn = document.createElement('div')
+    rightColumn.className = 'gram-frame-analysis-markers'
+    rightColumn.style.flex = '1'
+    rightColumn.style.display = 'flex'
+    rightColumn.style.flexDirection = 'column'
+    rightColumn.style.minHeight = '0' // Allow flex shrinking
+    
+    // Create markers table in right column
+    this.createMarkersTable(rightColumn)
+    
+    // Assemble layout
+    layoutContainer.appendChild(leftColumn)
+    layoutContainer.appendChild(rightColumn)
+    readoutPanel.appendChild(layoutContainer)
+    
+    // Store layout containers for cleanup
+    this.uiElements.layoutContainer = layoutContainer
+    this.uiElements.leftColumn = leftColumn
+    this.uiElements.rightColumn = rightColumn
+    this.uiElements.ledsContainer = ledsContainer
     
     // Store references on instance for compatibility
     this.instance.timeLED = this.uiElements.timeLED
@@ -217,19 +264,31 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Create markers table for displaying active markers
-   * @param {HTMLElement} readoutPanel - Container for UI elements
+   * @param {HTMLElement} rightColumn - Container for UI elements
    */
-  createMarkersTable(readoutPanel) {
+  createMarkersTable(rightColumn) {
     const tableContainer = document.createElement('div')
     tableContainer.className = 'gram-frame-markers-container'
+    tableContainer.style.flex = '1'
+    tableContainer.style.display = 'flex'
+    tableContainer.style.flexDirection = 'column'
+    tableContainer.style.minHeight = '0'
     
     const tableLabel = document.createElement('h4')
     tableLabel.textContent = 'Active Markers'
     tableLabel.className = 'gram-frame-markers-label'
+    tableLabel.style.margin = '0 0 8px 0'
+    tableLabel.style.flexShrink = '0'
     tableContainer.appendChild(tableLabel)
+    
+    const tableWrapper = document.createElement('div')
+    tableWrapper.style.flex = '1'
+    tableWrapper.style.overflow = 'auto'
+    tableWrapper.style.minHeight = '0'
     
     const table = document.createElement('table')
     table.className = 'gram-frame-markers-table'
+    table.style.height = '100%'
     
     // Create table header
     const thead = document.createElement('thead')
@@ -237,18 +296,22 @@ export class AnalysisMode extends BaseMode {
     
     const colorHeader = document.createElement('th')
     colorHeader.textContent = 'Color'
+    colorHeader.style.width = '20%'
     headerRow.appendChild(colorHeader)
     
     const timeHeader = document.createElement('th')
     timeHeader.textContent = 'Time (s)'
+    timeHeader.style.width = '30%'
     headerRow.appendChild(timeHeader)
     
     const freqHeader = document.createElement('th')
     freqHeader.textContent = 'Freq (Hz)'
+    freqHeader.style.width = '30%'
     headerRow.appendChild(freqHeader)
     
     const deleteHeader = document.createElement('th')
-    deleteHeader.textContent = 'Delete'
+    deleteHeader.textContent = 'Del'
+    deleteHeader.style.width = '20%'
     headerRow.appendChild(deleteHeader)
     
     thead.appendChild(headerRow)
@@ -258,8 +321,9 @@ export class AnalysisMode extends BaseMode {
     const tbody = document.createElement('tbody')
     table.appendChild(tbody)
     
-    tableContainer.appendChild(table)
-    readoutPanel.appendChild(tableContainer)
+    tableWrapper.appendChild(table)
+    tableContainer.appendChild(tableWrapper)
+    rightColumn.appendChild(tableContainer)
     
     // Store all UI elements for proper cleanup
     this.uiElements.markersContainer = tableContainer

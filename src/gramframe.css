@@ -277,9 +277,34 @@
   box-shadow: 0 0 2px rgba(0,0,0,0.8);
 }
 
+/* Analysis mode layout styles */
+.gram-frame-analysis-layout {
+  height: 100%;
+}
+
+.gram-frame-analysis-controls {
+  align-self: flex-start;
+}
+
+.gram-frame-analysis-leds {
+  /* Side-by-side LEDs container */
+}
+
+.gram-frame-analysis-leds .gram-frame-led {
+  /* Ensure LEDs in the horizontal container are sized properly */
+  font-size: 9px; /* Slightly smaller to fit side-by-side */
+}
+
+.gram-frame-analysis-leds .gram-frame-led-label {
+  font-size: 8px; /* Smaller label text */
+}
+
+.gram-frame-analysis-markers {
+  height: 100%;
+}
+
 /* Markers table styles */
 .gram-frame-markers-container {
-  margin-top: 12px;
   padding: 8px;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
   border: 2px solid #333;
@@ -305,6 +330,7 @@
   border-collapse: collapse;
   font-size: 10px;
   color: #ccc;
+  table-layout: fixed;
 }
 
 .gram-frame-markers-table th {
