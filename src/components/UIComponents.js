@@ -283,14 +283,13 @@ export function createColorPicker(state) {
     // Update current color display
     currentColor.style.backgroundColor = color
     
-    // Update indicator position (use original x for visual positioning)
-    updateIndicatorPosition(indicator, x, rect.width)
+    // Update indicator position using the same canvasX coordinate for consistency
+    updateIndicatorPosition(indicator, canvasX, canvas.width)
   })
   
-  // Initialize indicator position
+  // Initialize indicator position (use canvas coordinates directly)
   const initialPosition = getPositionFromColor(state.harmonics.selectedColor, canvas.width)
-  const rect = canvas.getBoundingClientRect()
-  updateIndicatorPosition(indicator, initialPosition * (rect.width / canvas.width), rect.width)
+  updateIndicatorPosition(indicator, initialPosition, canvas.width)
   
   return container
 }
@@ -339,8 +338,54 @@ function drawColorPalette(canvas, selectedColor) {
  * @returns {string} Hex color string
  */
 function getColorFromPosition(x, width) {
-  const hue = (x / width) * 360
-  return hslToHex(hue, 75, 60) // 75% saturation, 60% lightness for good visibility
+  // Use the same color array as drawColorPalette for consistency
+  const colors = [
+    '#ff0000', // Red
+    '#ff8000', // Orange
+    '#ffff00', // Yellow
+    '#80ff00', // Yellow-green
+    '#00ff00', // Green
+    '#00ff80', // Green-cyan
+    '#00ffff', // Cyan
+    '#0080ff', // Cyan-blue
+    '#0000ff', // Blue
+    '#8000ff', // Blue-purple
+    '#ff00ff', // Purple
+    '#ff0080'  // Purple-red
+  ]
+  
+  const position = Math.max(0, Math.min(1, x / width))
+  const segmentSize = 1 / (colors.length - 1)
+  const segmentIndex = position / segmentSize
+  const lowerIndex = Math.floor(segmentIndex)
+  const upperIndex = Math.min(lowerIndex + 1, colors.length - 1)
+  const t = segmentIndex - lowerIndex
+  
+  if (lowerIndex === upperIndex) {
+    return colors[lowerIndex]
+  }
+  
+  // Interpolate between the two colors
+  const color1 = hexToRgb(colors[lowerIndex])
+  const color2 = hexToRgb(colors[upperIndex])
+  
+  const r = Math.round(color1.r * (1 - t) + color2.r * t)
+  const g = Math.round(color1.g * (1 - t) + color2.g * t)
+  const b = Math.round(color1.b * (1 - t) + color2.b * t)
+  
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
+/**
+ * Convert hex color to RGB
+ * @param {string} hex - Hex color string
+ * @returns {Object} RGB object with r, g, b properties
+ */
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return { r, g, b }
 }
 
 /**
@@ -350,8 +395,44 @@ function getColorFromPosition(x, width) {
  * @returns {number} X position
  */
 function getPositionFromColor(hexColor, width) {
-  const hsl = hexToHsl(hexColor)
-  return (hsl.h / 360) * width
+  const colors = [
+    '#ff0000', // Red
+    '#ff8000', // Orange
+    '#ffff00', // Yellow
+    '#80ff00', // Yellow-green
+    '#00ff00', // Green
+    '#00ff80', // Green-cyan
+    '#00ffff', // Cyan
+    '#0080ff', // Cyan-blue
+    '#0000ff', // Blue
+    '#8000ff', // Blue-purple
+    '#ff00ff', // Purple
+    '#ff0080'  // Purple-red
+  ]
+  
+  const targetRgb = hexToRgb(hexColor)
+  let closestIndex = 0
+  let minDistance = Infinity
+  
+  // Find the closest color in our palette
+  colors.forEach((color, index) => {
+    const colorRgb = hexToRgb(color)
+    const distance = Math.sqrt(
+      Math.pow(targetRgb.r - colorRgb.r, 2) +
+      Math.pow(targetRgb.g - colorRgb.g, 2) +
+      Math.pow(targetRgb.b - colorRgb.b, 2)
+    )
+    
+    if (distance < minDistance) {
+      minDistance = distance
+      closestIndex = index
+    }
+  })
+  
+  // Convert index to position
+  const segmentSize = 1 / (colors.length - 1)
+  const position = closestIndex * segmentSize
+  return position * width
 }
 
 /**

@@ -456,7 +456,7 @@ export class AnalysisMode extends BaseMode {
     if (!this.state.analysis || !this.state.analysis.markers) return
     
     // Add rows for each marker
-    this.state.analysis.markers.forEach((marker, markerIndex) => {
+    this.state.analysis.markers.forEach((marker) => {
       const row = document.createElement('tr')
       
       // Color swatch cell
