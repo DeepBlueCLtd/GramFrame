@@ -32,7 +32,8 @@ import {
   updateLEDDisplays,
   createLEDDisplay,
   createModeSwitchingUI,
-  updateGuidanceContent
+  updateGuidanceContent,
+  createColorPicker
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'
 
@@ -103,6 +104,8 @@ export class GramFrame {
     this.modeLED = null
     /** @type {HTMLElement} */
     this.rateLED = null
+    /** @type {HTMLElement} */
+    this.colorPicker = null
     
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)
@@ -293,6 +296,10 @@ export class GramFrame {
     globalLEDs.rateLED = createLEDDisplay('Rate (Hz/s)', `${this.state.rate}`)
     globalLEDs.rateLED.style.display = 'none'
     this.readoutPanel.appendChild(globalLEDs.rateLED)
+    
+    // Create color picker for harmonics (only visible in harmonics mode)
+    globalLEDs.colorPicker = createColorPicker(this.state)
+    this.readoutPanel.appendChild(globalLEDs.colorPicker)
     
     return globalLEDs
   }

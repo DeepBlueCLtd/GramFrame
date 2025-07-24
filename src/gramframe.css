@@ -227,6 +227,64 @@
     0 1px 2px rgba(0,0,0,0.2);
 }
 
+/* Color picker for harmonics */
+.gram-frame-color-picker {
+  margin-top: 8px;
+  padding: 8px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+}
+
+.gram-frame-color-picker-label {
+  font-size: 10px;
+  color: #888;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.gram-frame-color-palette {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.gram-frame-color-canvas {
+  width: 100%;
+  height: 20px;
+  border: 1px solid #555;
+  border-radius: 2px;
+  cursor: pointer;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.gram-frame-color-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 26px;
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 1px;
+  pointer-events: none;
+  box-shadow: 0 0 2px rgba(0,0,0,0.8);
+}
+
+.gram-frame-current-color {
+  width: 100%;
+  height: 16px;
+  border: 1px solid #555;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
 /* Military-style mode selection header */
 .gram-frame-mode-header {
   padding: 10px;

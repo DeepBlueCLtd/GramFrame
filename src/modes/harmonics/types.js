@@ -26,4 +26,5 @@
  * @property {number|null} baseFrequency - Base frequency for harmonic calculations
  * @property {HarmonicData[]} harmonicData - Array of calculated harmonic data
  * @property {HarmonicSet[]} harmonicSets - Array of harmonic sets with persistent overlays
+ * @property {string} selectedColor - Currently selected color for new harmonic sets
  */

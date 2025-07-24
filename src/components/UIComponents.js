@@ -36,6 +36,10 @@ export function createLEDDisplays(readoutPanel, state) {
   ledElements.rateLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.rateLED)
   
+  // Color picker for harmonics (only visible in harmonics mode)
+  ledElements.colorPicker = createColorPicker(state)
+  readoutPanel.appendChild(ledElements.colorPicker)
+  
   return ledElements
 }
 
@@ -206,6 +210,243 @@ export function updateLEDDisplays(instance, state) {
     instance.rateLED.querySelector('.gram-frame-led-value').textContent = `${state.rate}`
   }
   
+  // Update color picker visibility based on mode
+  if (instance.colorPicker) {
+    instance.colorPicker.style.display = state.mode === 'harmonics' ? 'block' : 'none'
+  }
+}
+
+/**
+ * Create a color picker component for harmonic selection
+ * @param {GramFrameState} state - Current state object
+ * @returns {HTMLDivElement} The color picker element
+ */
+export function createColorPicker(state) {
+  const container = document.createElement('div')
+  container.className = 'gram-frame-color-picker'
+  container.style.display = state.mode === 'harmonics' ? 'block' : 'none'
+  
+  // Label
+  const label = document.createElement('div')
+  label.className = 'gram-frame-color-picker-label'
+  label.textContent = 'Harmonic Color'
+  container.appendChild(label)
+  
+  // Color palette container
+  const paletteContainer = document.createElement('div')
+  paletteContainer.className = 'gram-frame-color-palette'
+  container.appendChild(paletteContainer)
+  
+  // Create continuous color palette using canvas
+  const canvas = document.createElement('canvas')
+  canvas.width = 200
+  canvas.height = 20
+  canvas.className = 'gram-frame-color-canvas'
+  paletteContainer.appendChild(canvas)
+  
+  // Initialize default color
+  if (!state.harmonics) {
+    state.harmonics = {
+      baseFrequency: null,
+      harmonicData: [],
+      harmonicSets: [],
+      selectedColor: '#ff6b6b' // Default first color
+    }
+  }
+  if (!state.harmonics.selectedColor) {
+    state.harmonics.selectedColor = '#ff6b6b' // Default first color
+  }
+  
+  // Draw the color palette
+  drawColorPalette(canvas, state.harmonics.selectedColor)
+  
+  // Color selection indicator
+  const indicator = document.createElement('div')
+  indicator.className = 'gram-frame-color-indicator'
+  paletteContainer.appendChild(indicator)
+  
+  // Current color display
+  const currentColor = document.createElement('div')
+  currentColor.className = 'gram-frame-current-color'
+  currentColor.style.backgroundColor = state.harmonics.selectedColor
+  container.appendChild(currentColor)
+  
+  // Add click handler for color selection
+  canvas.addEventListener('click', (event) => {
+    const rect = canvas.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    
+    // Scale x coordinate to canvas dimensions if CSS scaling differs
+    const scaleX = canvas.width / rect.width
+    const canvasX = x * scaleX
+    
+    const color = getColorFromPosition(canvasX, canvas.width)
+    
+    // Update state
+    state.harmonics.selectedColor = color
+    
+    // Update current color display
+    currentColor.style.backgroundColor = color
+    
+    // Update indicator position (use original x for visual positioning)
+    updateIndicatorPosition(indicator, x, rect.width)
+  })
+  
+  // Initialize indicator position
+  const initialPosition = getPositionFromColor(state.harmonics.selectedColor, canvas.width)
+  const rect = canvas.getBoundingClientRect()
+  updateIndicatorPosition(indicator, initialPosition * (rect.width / canvas.width), rect.width)
+  
+  return container
+}
+
+/**
+ * Draw a continuous color palette on canvas
+ * @param {HTMLCanvasElement} canvas - Canvas element
+ * @param {string} selectedColor - Currently selected color
+ */
+function drawColorPalette(canvas, selectedColor) {
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  // Create gradient with HSV color space for better color distribution
+  const gradient = ctx.createLinearGradient(0, 0, width, 0)
+  
+  // Create a rainbow gradient
+  const colors = [
+    '#ff0000', // Red
+    '#ff8000', // Orange
+    '#ffff00', // Yellow
+    '#80ff00', // Yellow-green
+    '#00ff00', // Green
+    '#00ff80', // Green-cyan
+    '#00ffff', // Cyan
+    '#0080ff', // Cyan-blue
+    '#0000ff', // Blue
+    '#8000ff', // Blue-purple
+    '#ff00ff', // Purple
+    '#ff0080'  // Purple-red
+  ]
+  
+  colors.forEach((color, index) => {
+    gradient.addColorStop(index / (colors.length - 1), color)
+  })
+  
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, width, height)
+}
+
+/**
+ * Get color from position on the palette
+ * @param {number} x - X position on canvas
+ * @param {number} width - Canvas width
+ * @returns {string} Hex color string
+ */
+function getColorFromPosition(x, width) {
+  const hue = (x / width) * 360
+  return hslToHex(hue, 75, 60) // 75% saturation, 60% lightness for good visibility
+}
+
+/**
+ * Get position from color
+ * @param {string} hexColor - Hex color string
+ * @param {number} width - Canvas width
+ * @returns {number} X position
+ */
+function getPositionFromColor(hexColor, width) {
+  const hsl = hexToHsl(hexColor)
+  return (hsl.h / 360) * width
+}
+
+/**
+ * Update indicator position
+ * @param {HTMLElement} indicator - Indicator element
+ * @param {number} x - X position
+ * @param {number} width - Canvas width
+ */
+function updateIndicatorPosition(indicator, x, width) {
+  const percentage = (x / width) * 100
+  indicator.style.left = `${Math.max(0, Math.min(100, percentage))}%`
+}
+
+/**
+ * Convert HSL to hex color
+ * @param {number} h - Hue (0-360)
+ * @param {number} s - Saturation (0-100)
+ * @param {number} l - Lightness (0-100)
+ * @returns {string} Hex color string
+ */
+function hslToHex(h, s, l) {
+  const hslToRgb = (h, s, l) => {
+    h /= 360
+    s /= 100
+    l /= 100
+    
+    const c = (1 - Math.abs(2 * l - 1)) * s
+    const x = c * (1 - Math.abs((h * 6) % 2 - 1))
+    const m = l - c / 2
+    
+    let r, g, b
+    
+    if (h < 1/6) {
+      r = c; g = x; b = 0
+    } else if (h < 2/6) {
+      r = x; g = c; b = 0
+    } else if (h < 3/6) {
+      r = 0; g = c; b = x
+    } else if (h < 4/6) {
+      r = 0; g = x; b = c
+    } else if (h < 5/6) {
+      r = x; g = 0; b = c
+    } else {
+      r = c; g = 0; b = x
+    }
+    
+    r = Math.round((r + m) * 255)
+    g = Math.round((g + m) * 255)
+    b = Math.round((b + m) * 255)
+    
+    return { r, g, b }
+  }
+  
+  const { r, g, b } = hslToRgb(h, s, l)
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
+/**
+ * Convert hex color to HSL
+ * @param {string} hex - Hex color string
+ * @returns {Object} HSL object with h, s, l properties
+ */
+function hexToHsl(hex) {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const diff = max - min
+  const sum = max + min
+  
+  const l = sum / 2
+  
+  if (diff === 0) {
+    return { h: 0, s: 0, l: l * 100 }
+  }
+  
+  const s = l > 0.5 ? diff / (2 - sum) : diff / sum
+  
+  let h
+  if (max === r) {
+    h = ((g - b) / diff + (g < b ? 6 : 0)) / 6
+  } else if (max === g) {
+    h = ((b - r) / diff + 2) / 6
+  } else {
+    h = ((r - g) / diff + 4) / 6
+  }
+  
+  return { h: h * 360, s: s * 100, l: l * 100 }
 }
 
 
