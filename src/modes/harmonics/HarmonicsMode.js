@@ -417,7 +417,7 @@ export class HarmonicsMode extends BaseMode {
    * Get initial state for harmonics mode
    * @returns {Object} Harmonics-specific initial state
    */
-  getInitialState() {
+  static getInitialState() {
     return {
       harmonics: {
         baseFrequency: null,

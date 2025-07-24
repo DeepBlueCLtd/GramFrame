@@ -182,7 +182,7 @@ export class BaseMode {
    * Override in subclasses to provide mode-specific initial state
    * @returns {Object} Mode-specific initial state object
    */
-  getInitialState() {
+  static getInitialState() {
     // Default implementation - override in subclasses
     return {}
   }

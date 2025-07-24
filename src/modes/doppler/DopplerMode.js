@@ -384,7 +384,7 @@ export class DopplerMode extends BaseMode {
    * Get initial state for doppler mode
    * @returns {Object} Doppler-specific initial state
    */
-  getInitialState() {
+  static getInitialState() {
     return {
       doppler: {
         fPlus: null,  // DopplerPoint: { time, frequency }

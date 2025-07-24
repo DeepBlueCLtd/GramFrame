@@ -16,16 +16,11 @@ import { DopplerMode } from '../modes/doppler/DopplerMode.js'
  * @returns {Object} Combined initial state from all modes
  */
 function buildModeInitialState() {
-  // Create temporary mode instances to get their initial state
-  // Note: These are just used for getting initial state, not actual mode instances
-  const tempAnalysisMode = new AnalysisMode(null, null)
-  const tempHarmonicsMode = new HarmonicsMode(null, null)
-  const tempDopplerMode = new DopplerMode(null, null)
-  
+  // Get initial state from static methods (no need for temporary instances)
   const modeStates = [
-    tempAnalysisMode.getInitialState(),
-    tempHarmonicsMode.getInitialState(),
-    tempDopplerMode.getInitialState()
+    AnalysisMode.getInitialState(),
+    HarmonicsMode.getInitialState(),
+    DopplerMode.getInitialState()
   ]
   
   // Merge all mode states
