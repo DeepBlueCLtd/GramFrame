@@ -160,9 +160,7 @@ export class HarmonicsMode extends BaseMode {
   createUI(readoutPanel) {
     this.uiElements = {}
     
-    // Create Manual Harmonic button (first in order)
-    this.uiElements.manualButton = createManualHarmonicButton()
-    readoutPanel.appendChild(this.uiElements.manualButton)
+    // Manual harmonic button removed - functionality moved elsewhere
     
     // Create Frequency LED display
     this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
@@ -389,29 +387,6 @@ export class HarmonicsMode extends BaseMode {
     }
   }
 
-  /**
-   * Show manual harmonic spacing modal dialog
-   */
-  showManualHarmonicModal() {
-    createManualHarmonicModal(
-      (spacing) => {
-        // Get time anchor: current cursor Y position if available, otherwise midpoint
-        let anchorTime
-        if (this.state.cursorPosition && this.state.cursorPosition.time !== null) {
-          anchorTime = this.state.cursorPosition.time
-        } else {
-          // Use midpoint of image time range
-          anchorTime = (this.state.config.timeMin + this.state.config.timeMax) / 2
-        }
-        
-        // Create the harmonic set
-        this.addHarmonicSet(anchorTime, spacing)
-      },
-      () => {
-        // Cancel callback - no action needed
-      }
-    )
-  }
 
   /**
    * Get initial state for harmonics mode

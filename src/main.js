@@ -122,11 +122,7 @@ export class GramFrame {
       })
     }
     
-    // Create mode switching UI
-    const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
-    this.modesContainer = modeUI.modesContainer
-    this.modeButtons = modeUI.modeButtons
-    this.guidancePanel = modeUI.guidancePanel
+    // Mode switching UI removed - handled by individual modes
     
     // Append LED readout panel to mode cell
     this.modeCell.appendChild(this.readoutPanel)
@@ -152,10 +148,7 @@ export class GramFrame {
     this.currentMode = this.modes['analysis']
     this.currentMode.createUI(this.readoutPanel)
     
-    // Initialize guidance panel with analysis mode guidance
-    if (this.guidancePanel) {
-      this.guidancePanel.innerHTML = this.currentMode.getGuidanceText()
-    }
+    // Guidance panel removed - handled by individual modes
     
     // Apply any globally registered listeners to this new instance
     getGlobalStateListeners().forEach(listener => {
@@ -220,19 +213,7 @@ export class GramFrame {
     this.state.dragState.originalAnchorTime = null
     this.state.dragState.clickedHarmonicNumber = null
     
-    // Update UI
-    if (this.modeButtons) {
-      Object.keys(this.modeButtons).forEach(m => {
-        const button = this.modeButtons[m]
-        if (button) {
-          if (m === mode) {
-            button.classList.add('active')
-          } else {
-            button.classList.remove('active')
-          }
-        }
-      })
-    }
+    // Mode button UI removed - handled by individual modes
     
     // Update container class for mode-specific styling
     if (this.container) {
@@ -252,10 +233,7 @@ export class GramFrame {
     this.currentMode.createUI(this.readoutPanel)
     this.currentMode.activate()
     
-    // Update guidance panel using mode's guidance text
-    if (this.guidancePanel) {
-      this.guidancePanel.innerHTML = this.currentMode.getGuidanceText()
-    }
+    // Guidance panel removed - handled by individual modes
     
     // Update LED display visibility
     this.currentMode.updateLEDs()
