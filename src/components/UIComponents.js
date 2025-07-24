@@ -10,6 +10,25 @@
 import { capitalizeFirstLetter } from '../utils/calculations.js'
 
 /**
+ * Standard color palette used for color picker gradient and calculations
+ * @type {string[]}
+ */
+const COLOR_PALETTE = [
+  '#ff0000', // Red
+  '#ff8000', // Orange
+  '#ffff00', // Yellow
+  '#80ff00', // Yellow-green
+  '#00ff00', // Green
+  '#00ff80', // Green-cyan
+  '#00ffff', // Cyan
+  '#0080ff', // Cyan-blue
+  '#0000ff', // Blue
+  '#8000ff', // Blue-purple
+  '#ff00ff', // Purple
+  '#ff0080'  // Purple-red
+]
+
+/**
  * Create LED display elements for showing measurement values
  * @param {HTMLElement} readoutPanel - Container element for LED displays
  * @param {GramFrameState} state - Current state object
@@ -307,24 +326,9 @@ function drawColorPalette(canvas, selectedColor) {
   // Create gradient with HSV color space for better color distribution
   const gradient = ctx.createLinearGradient(0, 0, width, 0)
   
-  // Create a rainbow gradient
-  const colors = [
-    '#ff0000', // Red
-    '#ff8000', // Orange
-    '#ffff00', // Yellow
-    '#80ff00', // Yellow-green
-    '#00ff00', // Green
-    '#00ff80', // Green-cyan
-    '#00ffff', // Cyan
-    '#0080ff', // Cyan-blue
-    '#0000ff', // Blue
-    '#8000ff', // Blue-purple
-    '#ff00ff', // Purple
-    '#ff0080'  // Purple-red
-  ]
-  
-  colors.forEach((color, index) => {
-    gradient.addColorStop(index / (colors.length - 1), color)
+  // Create a rainbow gradient using the standard color palette
+  COLOR_PALETTE.forEach((color, index) => {
+    gradient.addColorStop(index / (COLOR_PALETTE.length - 1), color)
   })
   
   ctx.fillStyle = gradient
@@ -338,36 +342,20 @@ function drawColorPalette(canvas, selectedColor) {
  * @returns {string} Hex color string
  */
 function getColorFromPosition(x, width) {
-  // Use the same color array as drawColorPalette for consistency
-  const colors = [
-    '#ff0000', // Red
-    '#ff8000', // Orange
-    '#ffff00', // Yellow
-    '#80ff00', // Yellow-green
-    '#00ff00', // Green
-    '#00ff80', // Green-cyan
-    '#00ffff', // Cyan
-    '#0080ff', // Cyan-blue
-    '#0000ff', // Blue
-    '#8000ff', // Blue-purple
-    '#ff00ff', // Purple
-    '#ff0080'  // Purple-red
-  ]
-  
   const position = Math.max(0, Math.min(1, x / width))
-  const segmentSize = 1 / (colors.length - 1)
+  const segmentSize = 1 / (COLOR_PALETTE.length - 1)
   const segmentIndex = position / segmentSize
   const lowerIndex = Math.floor(segmentIndex)
-  const upperIndex = Math.min(lowerIndex + 1, colors.length - 1)
+  const upperIndex = Math.min(lowerIndex + 1, COLOR_PALETTE.length - 1)
   const t = segmentIndex - lowerIndex
   
   if (lowerIndex === upperIndex) {
-    return colors[lowerIndex]
+    return COLOR_PALETTE[lowerIndex]
   }
   
   // Interpolate between the two colors
-  const color1 = hexToRgb(colors[lowerIndex])
-  const color2 = hexToRgb(colors[upperIndex])
+  const color1 = hexToRgb(COLOR_PALETTE[lowerIndex])
+  const color2 = hexToRgb(COLOR_PALETTE[upperIndex])
   
   const r = Math.round(color1.r * (1 - t) + color2.r * t)
   const g = Math.round(color1.g * (1 - t) + color2.g * t)
@@ -395,27 +383,12 @@ function hexToRgb(hex) {
  * @returns {number} X position
  */
 function getPositionFromColor(hexColor, width) {
-  const colors = [
-    '#ff0000', // Red
-    '#ff8000', // Orange
-    '#ffff00', // Yellow
-    '#80ff00', // Yellow-green
-    '#00ff00', // Green
-    '#00ff80', // Green-cyan
-    '#00ffff', // Cyan
-    '#0080ff', // Cyan-blue
-    '#0000ff', // Blue
-    '#8000ff', // Blue-purple
-    '#ff00ff', // Purple
-    '#ff0080'  // Purple-red
-  ]
-  
   const targetRgb = hexToRgb(hexColor)
   let closestIndex = 0
   let minDistance = Infinity
   
   // Find the closest color in our palette
-  colors.forEach((color, index) => {
+  COLOR_PALETTE.forEach((color, index) => {
     const colorRgb = hexToRgb(color)
     const distance = Math.sqrt(
       Math.pow(targetRgb.r - colorRgb.r, 2) +
@@ -430,7 +403,7 @@ function getPositionFromColor(hexColor, width) {
   })
   
   // Convert index to position
-  const segmentSize = 1 / (colors.length - 1)
+  const segmentSize = 1 / (COLOR_PALETTE.length - 1)
   const position = closestIndex * segmentSize
   return position * width
 }
