@@ -105,6 +105,34 @@ export class AnalysisMode extends BaseMode {
    */
   updateLEDs(coords) {
     // Analysis mode shows Time and Frequency LEDs (created in createUI)
-    // No need to show/hide since only relevant elements exist
+    this.updateModeSpecificLEDs()
+  }
+
+  /**
+   * Update mode-specific LED values based on cursor position
+   */
+  updateModeSpecificLEDs() {
+    if (!this.state.cursorPosition) {
+      // Show default values when no cursor position
+      if (this.uiElements.freqLED) {
+        this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00'
+      }
+      if (this.uiElements.timeLED) {
+        this.uiElements.timeLED.querySelector('.gram-frame-led-value').textContent = '0.00'
+      }
+      return
+    }
+
+    // Update frequency LED
+    if (this.uiElements.freqLED) {
+      const freqValue = this.state.cursorPosition.freq.toFixed(1)
+      this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = freqValue
+    }
+
+    // Update time LED
+    if (this.uiElements.timeLED) {
+      const timeValue = this.state.cursorPosition.time.toFixed(2)
+      this.uiElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
+    }
   }
 }

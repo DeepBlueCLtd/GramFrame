@@ -98,6 +98,10 @@ export class GramFrame {
     this.modeCell = null
     /** @type {HTMLButtonElement} */
     this.manualButton = null
+    /** @type {HTMLElement} */
+    this.modeLED = null
+    /** @type {HTMLElement} */
+    this.rateLED = null
     
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)

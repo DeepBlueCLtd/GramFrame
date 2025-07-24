@@ -9,97 +9,7 @@
 
 import { capitalizeFirstLetter } from '../utils/calculations.js'
 
-/**
- * Create LED display elements for showing measurement values
- * @param {HTMLElement} readoutPanel - Container element for LED displays
- * @param {GramFrameState} state - Current state object
- * @returns {Object} Object containing references to all LED elements
- */
-export function createLEDDisplays(readoutPanel, state) {
-  const ledElements = {}
-  
-  // Create Manual Harmonic button for harmonics mode (first in order)
-  ledElements.manualButton = createManualHarmonicButton()
-  ledElements.manualButton.style.display = 'none'
-  readoutPanel.appendChild(ledElements.manualButton)
-  
-  // Time display - shown in both modes
-  ledElements.timeLED = createLEDDisplay('Time (s)', '0.00')
-  readoutPanel.appendChild(ledElements.timeLED)
-  
-  // Frequency display - shown in both modes (second in harmonics mode)
-  ledElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
-  readoutPanel.appendChild(ledElements.freqLED)
 
-  
-  // Speed display for Doppler mode
-  ledElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
-  ledElements.speedLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.speedLED)
-  
-  // Hide other displays for backward compatibility
-  ledElements.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(state.mode))
-  ledElements.modeLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.modeLED)
-  
-  ledElements.rateLED = createLEDDisplay('Rate (Hz/s)', `${state.rate}`)
-  ledElements.rateLED.style.display = 'none'
-  readoutPanel.appendChild(ledElements.rateLED)
-  
-  // Set initial display state based on current mode
-  updateDisplayVisibility(ledElements, state.mode)
-  
-  return ledElements
-}
-
-/**
- * Updates display visibility based on current mode
- * @param {Object} ledElements - Object containing LED element references
- * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
- */
-export function updateDisplayVisibility(ledElements, mode) {
-  if (mode === 'analysis') {
-    // Analysis mode: show Time and Frequency only
-    ledElements.timeLED.style.display = ''
-    ledElements.freqLED.style.display = ''
-    if (ledElements.speedLED) {
-      ledElements.speedLED.style.display = 'none'
-    }
-    if (ledElements.manualButton) {
-      ledElements.manualButton.style.display = 'none'
-    }
-  } else if (mode === 'harmonics') {
-    // Harmonics mode: show Frequency only, Time is not needed
-    ledElements.timeLED.style.display = 'none'
-    ledElements.freqLED.style.display = ''
-    if (ledElements.speedLED) {
-      ledElements.speedLED.style.display = 'none'
-    }
-    if (ledElements.manualButton) {
-      ledElements.manualButton.style.display = ''
-    }
-  } else if (mode === 'doppler') {
-    // Doppler mode: show Time, Frequency, and Speed
-    ledElements.timeLED.style.display = ''
-    ledElements.freqLED.style.display = ''
-    if (ledElements.speedLED) {
-      ledElements.speedLED.style.display = ''
-    }
-    if (ledElements.manualButton) {
-      ledElements.manualButton.style.display = 'none'
-    }
-  } else {
-    // Default: show Time and Frequency
-    ledElements.timeLED.style.display = ''
-    ledElements.freqLED.style.display = ''
-    if (ledElements.speedLED) {
-      ledElements.speedLED.style.display = 'none'
-    }
-    if (ledElements.manualButton) {
-      ledElements.manualButton.style.display = 'none'
-    }
-  }
-}
 
 /**
  * Creates mode switching button UI
@@ -249,60 +159,22 @@ export function createLEDDisplay(label, value) {
 }
 
 /**
- * Update all LED displays based on current state
- * @param {Object} ledElements - Object containing LED element references
+ * Update global LED displays (mode and rate only)
+ * Mode-specific LEDs are now managed by individual modes
+ * @param {Object} instance - GramFrame instance with global LEDs
  * @param {GramFrameState} state - Current state object
  */
-export function updateLEDDisplays(ledElements, state) {
-  // Update mode LED display
-  if (ledElements.modeLED) {
-    ledElements.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(state.mode)
+export function updateLEDDisplays(instance, state) {
+  // Update global mode LED display
+  if (instance.modeLED) {
+    instance.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(state.mode)
   }
   
-  // Update frequency label based on mode and state
-  const freqLabel = ledElements.freqLED.querySelector('.gram-frame-led-label')
-  if (state.mode === 'harmonics' && state.dragState.isDragging && state.harmonics.baseFrequency !== null) {
-    freqLabel.textContent = 'Base Freq (Hz)'
-  } else {
-    freqLabel.textContent = 'Frequency (Hz)'
+  // Update global rate LED display
+  if (instance.rateLED) {
+    instance.rateLED.querySelector('.gram-frame-led-value').textContent = `${state.rate}`
   }
   
-  if (!state.cursorPosition) {
-    // Show default values when no cursor position
-    ledElements.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-    ledElements.timeLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-    return
-  }
-  
-  // Mode-specific LED formatting
-  if (state.mode === 'harmonics' && state.dragState.isDragging && state.harmonics.baseFrequency !== null) {
-    // For Harmonics mode during drag, show base frequency for harmonics
-    const baseFreqValue = state.harmonics.baseFrequency.toFixed(1)
-    ledElements.freqLED.querySelector('.gram-frame-led-value').textContent = baseFreqValue
-    
-    // Still show time
-    const timeValue = state.cursorPosition.time.toFixed(2)
-    ledElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
-  } else {
-    // For normal mode operation - use 1 decimal place for frequency as per spec
-    const freqValue = state.cursorPosition.freq.toFixed(1)
-    ledElements.freqLED.querySelector('.gram-frame-led-value').textContent = freqValue
-    
-    // Update time LED - use 2 decimal places as per spec
-    const timeValue = state.cursorPosition.time.toFixed(2)
-    ledElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
-  }
-  
-  // Update speed LED for Doppler mode
-  if (state.mode === 'doppler' && ledElements.speedLED) {
-    if (state.doppler.speed !== null) {
-      // Convert m/s to knots: 1 m/s = 1.94384 knots
-      const speedInKnots = state.doppler.speed * 1.94384
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
-    } else {
-      ledElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
-    }
-  }
 }
 
 /**

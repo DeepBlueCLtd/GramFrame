@@ -38,9 +38,9 @@ export function setupEventListeners(instance) {
   instance.svg.addEventListener('mousedown', instance._boundHandleMouseDown)
   instance.svg.addEventListener('mouseup', instance._boundHandleMouseUp)
   
-  // Add right-click handler for Doppler mode reset using new mode pattern
+  // Add right-click handler using polymorphic mode pattern
   instance.svg.addEventListener('contextmenu', (event) => {
-    if (instance.state.mode === 'doppler' && instance.currentMode && instance.currentMode.handleContextMenu) {
+    if (instance.currentMode && instance.currentMode.handleContextMenu) {
       return instance.currentMode.handleContextMenu(event)
     }
   })
@@ -141,6 +141,12 @@ export function handleMouseMove(instance, event) {
     // Clear cursor position when mouse is outside image bounds
     instance.state.cursorPosition = null
     updateLEDDisplays(instance, instance.state)
+    
+    // Update mode-specific LEDs
+    if (instance.currentMode && instance.currentMode.updateModeSpecificLEDs) {
+      instance.currentMode.updateModeSpecificLEDs()
+    }
+    
     notifyStateListeners(instance.state, instance.stateListeners)
     return
   }
@@ -168,28 +174,21 @@ export function handleMouseMove(instance, event) {
   // Update LED displays
   updateLEDDisplays(instance, instance.state)
   
+  // Update mode-specific LEDs
+  if (instance.currentMode && instance.currentMode.updateModeSpecificLEDs) {
+    instance.currentMode.updateModeSpecificLEDs()
+  }
+  
   // Update visual cursor indicators
   updateCursorIndicators(instance)
   
-  // In Doppler mode, handle dragging interactions using new mode pattern
-  if (instance.state.mode === 'doppler' && (instance.state.doppler.isDragging || instance.state.doppler.isPreviewDrag)) {
-    if (instance.currentMode && instance.currentMode.handleMouseMove) {
-      instance.currentMode.handleMouseMove(event, {
-        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-      })
-    }
-  }
-  // In Harmonics mode, handle dragging interactions using new mode pattern
-  else if (instance.state.mode === 'harmonics' && instance.state.dragState.isDragging) {
-    if (instance.currentMode && instance.currentMode.handleMouseMove) {
-      instance.currentMode.handleMouseMove(event, {
-        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-      })
-    }
+  // Handle mode-specific dragging interactions using polymorphic pattern
+  if (instance.currentMode && instance.currentMode.handleMouseMove) {
+    instance.currentMode.handleMouseMove(event, {
+      svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
+      dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
+      imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
+    })
   }
   
   // Live rate displays are now handled by the HarmonicsMode class
@@ -214,6 +213,11 @@ export function handleMouseLeave(instance, event) {
   // Update LED displays to show no position
   updateLEDDisplays(instance, instance.state)
   
+  // Update mode-specific LEDs
+  if (instance.currentMode && instance.currentMode.updateModeSpecificLEDs) {
+    instance.currentMode.updateModeSpecificLEDs()
+  }
+  
   // Clear visual cursor indicators
   updateCursorIndicators(instance)
   
@@ -230,25 +234,13 @@ export function handleMouseDown(instance, event) {
   // Only process if we have valid image details
   if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
   
-  // Handle Doppler mode drag interactions using new mode pattern
-  else if (instance.state.mode === 'doppler' && instance.state.cursorPosition) {
-    if (instance.currentMode && instance.currentMode.handleMouseDown) {
-      instance.currentMode.handleMouseDown(event, {
-        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-      })
-    }
-  } 
-  // Handle Harmonics mode drag interactions using new mode pattern
-  else if (instance.state.mode === 'harmonics' && instance.state.cursorPosition) {
-    if (instance.currentMode && instance.currentMode.handleMouseDown) {
-      instance.currentMode.handleMouseDown(event, {
-        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-      })
-    }
+  // Handle mode-specific interactions using polymorphic pattern
+  if (instance.currentMode && instance.currentMode.handleMouseDown && instance.state.cursorPosition) {
+    instance.currentMode.handleMouseDown(event, {
+      svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
+      dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
+      imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
+    })
   }
 }
 
@@ -258,26 +250,13 @@ export function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseUp(instance, event) {
-  // End Doppler drag state using new mode pattern
-  if (instance.state.mode === 'doppler' && (instance.state.doppler.isPreviewDrag || instance.state.doppler.isDragging)) {
-    if (instance.currentMode && instance.currentMode.handleMouseUp) {
-      instance.currentMode.handleMouseUp(event, {
-        svgCoords: { x: instance.state.cursorPosition?.svgX || 0, y: instance.state.cursorPosition?.svgY || 0 },
-        dataCoords: { time: instance.state.cursorPosition?.time || 0, freq: instance.state.cursorPosition?.freq || 0 },
-        imageCoords: { x: instance.state.cursorPosition?.imageX || 0, y: instance.state.cursorPosition?.imageY || 0 }
-      })
-    }
-  }
-  
-  // End harmonics drag state using new mode pattern
-  if (instance.state.mode === 'harmonics' && instance.state.dragState.isDragging) {
-    if (instance.currentMode && instance.currentMode.handleMouseUp) {
-      instance.currentMode.handleMouseUp(event, {
-        svgCoords: { x: instance.state.cursorPosition?.svgX || 0, y: instance.state.cursorPosition?.svgY || 0 },
-        dataCoords: { time: instance.state.cursorPosition?.time || 0, freq: instance.state.cursorPosition?.freq || 0 },
-        imageCoords: { x: instance.state.cursorPosition?.imageX || 0, y: instance.state.cursorPosition?.imageY || 0 }
-      })
-    }
+  // Handle mode-specific mouse up interactions using polymorphic pattern
+  if (instance.currentMode && instance.currentMode.handleMouseUp) {
+    instance.currentMode.handleMouseUp(event, {
+      svgCoords: { x: instance.state.cursorPosition?.svgX || 0, y: instance.state.cursorPosition?.svgY || 0 },
+      dataCoords: { time: instance.state.cursorPosition?.time || 0, freq: instance.state.cursorPosition?.freq || 0 },
+      imageCoords: { x: instance.state.cursorPosition?.imageX || 0, y: instance.state.cursorPosition?.imageY || 0 }
+    })
   }
   // Legacy drag state cleanup for other modes
   else if (instance.state.dragState.isDragging) {
@@ -324,23 +303,13 @@ export function handleClick(instance, event) {
     return
   }
   
-  // Handle mode-specific clicks using new mode pattern for harmonics
-  if (instance.state.mode === 'harmonics') {
-    if (instance.currentMode && instance.currentMode.handleClick) {
-      instance.currentMode.handleClick(event, {
-        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-      })
-    }
-  } else if (instance.state.mode === 'doppler') {
-    if (instance.currentMode && instance.currentMode.handleClick) {
-      instance.currentMode.handleClick(event, {
-        svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-        dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-        imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-      })
-    }
+  // Handle mode-specific clicks using polymorphic pattern
+  if (instance.currentMode && instance.currentMode.handleClick) {
+    instance.currentMode.handleClick(event, {
+      svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
+      dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
+      imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
+    })
   }
 }
 

@@ -256,7 +256,15 @@ export class DopplerMode extends BaseMode {
    */
   updateLEDs(coords) {
     // Doppler mode shows Speed LED only (created in createUI)
-    // No need to show/hide since only relevant elements exist
+    this.updateModeSpecificLEDs()
+  }
+
+  /**
+   * Update mode-specific LED values based on current state
+   */
+  updateModeSpecificLEDs() {
+    // Speed LED is updated via updateSpeedLED() when speed is calculated
+    // No cursor-based updates needed for doppler mode
   }
 
   /**
@@ -360,9 +368,25 @@ export class DopplerMode extends BaseMode {
       const speed = calculateDopplerSpeed(doppler.fPlus, doppler.fMinus, doppler.fZero)
       this.state.doppler.speed = speed
       
+      // Update speed LED with calculated value
+      this.updateSpeedLED()
+      
       // Update LED displays with speed
       updateLEDDisplays(this.instance, this.state)
       notifyStateListeners(this.state, this.instance.stateListeners)
+    }
+  }
+
+  /**
+   * Update the speed LED display with current speed value
+   */
+  updateSpeedLED() {
+    if (this.uiElements.speedLED && this.state.doppler.speed !== null) {
+      // Convert m/s to knots: 1 m/s = 1.94384 knots
+      const speedInKnots = this.state.doppler.speed * 1.94384
+      this.uiElements.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
+    } else if (this.uiElements.speedLED) {
+      this.uiElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
     }
   }
 }

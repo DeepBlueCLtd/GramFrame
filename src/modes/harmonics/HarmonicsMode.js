@@ -191,7 +191,39 @@ export class HarmonicsMode extends BaseMode {
    */
   updateLEDs(coords) {
     // Harmonics mode shows Manual button and Frequency LED (created in createUI)
-    // No need to show/hide since only relevant elements exist
+    this.updateModeSpecificLEDs()
+  }
+
+  /**
+   * Update mode-specific LED values and labels based on current state
+   */
+  updateModeSpecificLEDs() {
+    if (!this.uiElements.freqLED) return
+
+    // Update frequency label based on state
+    const freqLabel = this.uiElements.freqLED.querySelector('.gram-frame-led-label')
+    if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
+      freqLabel.textContent = 'Base Freq (Hz)'
+    } else {
+      freqLabel.textContent = 'Frequency (Hz)'
+    }
+
+    if (!this.state.cursorPosition) {
+      // Show default values when no cursor position
+      this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00'
+      return
+    }
+
+    // Mode-specific LED formatting
+    if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
+      // For Harmonics mode during drag, show base frequency for harmonics
+      const baseFreqValue = this.state.harmonics.baseFrequency.toFixed(1)
+      this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = baseFreqValue
+    } else {
+      // Standard frequency display
+      const freqValue = this.state.cursorPosition.freq.toFixed(1)
+      this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = freqValue
+    }
   }
 
   /**
