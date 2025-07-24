@@ -38,6 +38,9 @@ test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
     // Test switching to Harmonics mode
     await gramFramePage.clickMode('Harmonics')
     
+    // Wait for state to update
+    await gramFramePage.page.waitForTimeout(100)
+    
     // Verify button state changes
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Analysis")')).not.toHaveClass(/active/)
     await expect(gramFramePage.page.locator('.gram-frame-mode-btn:text("Harmonics")')).toHaveClass(/active/)

@@ -174,13 +174,7 @@ export class HarmonicsMode extends BaseMode {
     
     // Store references on instance for compatibility
     this.instance.freqLED = this.uiElements.freqLED
-    this.instance.manualButton = this.uiElements.manualButton
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
-    
-    // Setup manual harmonic button event listener
-    this.uiElements.manualButton.addEventListener('click', () => {
-      this.showManualHarmonicModal()
-    })
   }
 
   /**
