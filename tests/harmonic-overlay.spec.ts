@@ -44,7 +44,7 @@ test.describe('Harmonic Overlay Implementation (Task 1.1)', () => {
     expect(harmonicLines).toBeGreaterThan(0)
   })
 
-  test('multiple harmonic sets can be created with distinct colors', async () => {
+  test('multiple harmonic sets use selected color from color picker', async () => {
     // Create first harmonic set at low frequency
     await gramFramePage.clickSpectrogram(100, 100)
     
@@ -57,11 +57,12 @@ test.describe('Harmonic Overlay Implementation (Task 1.1)', () => {
     const state = await gramFramePage.getState()
     expect(state.harmonics.harmonicSets).toHaveLength(2)
     
-    // Verify different colors
+    // Verify both sets use the same selected color (new behavior)
     const colors = state.harmonics.harmonicSets.map(set => set.color)
-    expect(colors[0]).not.toBe(colors[1])
+    expect(colors[0]).toBe(colors[1])
+    expect(colors[0]).toBe(state.harmonics.selectedColor)
     
-    // Verify both sets have different properties
+    // Verify both sets have different properties (but same color)
     expect(state.harmonics.harmonicSets[0].id).not.toBe(state.harmonics.harmonicSets[1].id)
   })
 
@@ -169,6 +170,35 @@ test.describe('Harmonic Overlay Implementation (Task 1.1)', () => {
         expect(Math.abs(actualHeight - expectedHeight)).toBeLessThan(Math.max(10, expectedHeight * 0.3))
       }
     }
+  })
+
+  test('color picker is visible in harmonics mode with all components', async () => {
+    // Verify color picker is visible in harmonics mode
+    const colorPicker = gramFramePage.page.locator('.gram-frame-color-picker')
+    await expect(colorPicker).toBeVisible()
+    
+    // Verify color picker components are present
+    const colorCanvas = gramFramePage.page.locator('.gram-frame-color-canvas')
+    const currentColor = gramFramePage.page.locator('.gram-frame-current-color')
+    const colorIndicator = gramFramePage.page.locator('.gram-frame-color-indicator')
+    const colorLabel = gramFramePage.page.locator('.gram-frame-color-picker-label')
+    
+    await expect(colorCanvas).toBeVisible()
+    await expect(currentColor).toBeVisible() 
+    await expect(colorIndicator).toBeVisible()
+    await expect(colorLabel).toBeVisible()
+    
+    // Verify state has selectedColor property
+    const state = await gramFramePage.getState()
+    expect(state.harmonics.selectedColor).toBeTruthy()
+    expect(state.harmonics.selectedColor).toMatch(/^#[0-9a-f]{6}$/i) // Valid hex color
+    
+    // Create a harmonic set and verify it uses the selected color
+    await gramFramePage.clickSpectrogram(300, 200)
+    
+    const finalState = await gramFramePage.getState()
+    expect(finalState.harmonics.harmonicSets).toHaveLength(1)
+    expect(finalState.harmonics.harmonicSets[0].color).toBe(finalState.harmonics.selectedColor)
   })
 
   test('initial spacing calculation follows specification', async () => {
