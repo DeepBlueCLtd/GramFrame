@@ -10,11 +10,6 @@ import { updateCursorIndicators } from '../../rendering/cursors.js'
  */
 export class AnalysisMode extends BaseMode {
   /**
-   * Color palette for markers (reusing harmonics colors)
-   * @type {string[]}
-   */
-  static markerColors = ['#ff6b6b', '#2ecc71', '#f39c12', '#9b59b6', '#ffc93c', '#ff9ff3', '#45b7d1', '#e67e22']
-  /**
    * Get guidance text for analysis mode
    * @returns {string} HTML content for the guidance panel
    */
@@ -351,11 +346,10 @@ export class AnalysisMode extends BaseMode {
   static getInitialState() {
     return {
       analysis: {
-        markers: [],
-        nextColorIndex: 0
+        markers: []
       },
       harmonics: {
-        selectedColor: AnalysisMode.markerColors[0] // Default color for markers
+        selectedColor: '#ff6b6b' // Default color for markers
       }
     }
   }
@@ -366,17 +360,11 @@ export class AnalysisMode extends BaseMode {
    */
   addMarker(position) {
     if (!this.state.analysis) {
-      this.state.analysis = { markers: [], nextColorIndex: 0 }
+      this.state.analysis = { markers: [] }
     }
     
-    // Get color from color picker or use next color in rotation
-    let color
-    if (this.state.harmonics && this.state.harmonics.selectedColor) {
-      color = this.state.harmonics.selectedColor
-    } else {
-      color = AnalysisMode.markerColors[this.state.analysis.nextColorIndex % AnalysisMode.markerColors.length]
-      this.state.analysis.nextColorIndex++
-    }
+    // Get color from color picker
+    const color = this.state.harmonics?.selectedColor || '#ff6b6b'
     
     const marker = {
       id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
@@ -541,7 +529,6 @@ export class AnalysisMode extends BaseMode {
     // Clear all markers when leaving analysis mode
     if (this.state.analysis) {
       this.state.analysis.markers = []
-      this.state.analysis.nextColorIndex = 0
       this.updateMarkersTable()
     }
   }
@@ -571,7 +558,6 @@ export class AnalysisMode extends BaseMode {
   resetState() {
     if (this.state.analysis) {
       this.state.analysis.markers = []
-      this.state.analysis.nextColorIndex = 0
       this.updateMarkersTable()
     }
   }
