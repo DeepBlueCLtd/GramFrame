@@ -9,8 +9,6 @@ import {
   imageToDataCoordinates
 } from '../utils/coordinates.js'
 
-// Doppler utilities now imported by DopplerMode class
-
 import { updateLEDDisplays } from '../components/UIComponents.js'
 import { notifyStateListeners } from './state.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
@@ -38,7 +36,7 @@ export function setupEventListeners(instance) {
   instance.svg.addEventListener('mousedown', instance._boundHandleMouseDown)
   instance.svg.addEventListener('mouseup', instance._boundHandleMouseUp)
   
-  // Add right-click handler using polymorphic mode pattern
+  // Add right-click handler
   instance.svg.addEventListener('contextmenu', (event) => {
     if (instance.currentMode && instance.currentMode.handleContextMenu) {
       return instance.currentMode.handleContextMenu(event)
@@ -182,7 +180,7 @@ export function handleMouseMove(instance, event) {
   // Update visual cursor indicators
   updateCursorIndicators(instance)
   
-  // Handle mode-specific dragging interactions using polymorphic pattern
+  // Handle mode-specific dragging interactions
   if (instance.currentMode && instance.currentMode.handleMouseMove) {
     instance.currentMode.handleMouseMove(event, {
       svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
@@ -191,15 +189,9 @@ export function handleMouseMove(instance, event) {
     })
   }
   
-  // Live rate displays are now handled by the HarmonicsMode class
-  
   // Notify listeners
   notifyStateListeners(instance.state, instance.stateListeners)
 }
-
-// updateHarmonicRatesLive function removed - now handled by HarmonicsMode class
-
-// handleHarmonicSetDrag function removed - now handled by HarmonicsMode.handleHarmonicSetDrag()
 
 /**
  * Handle mouse leave events
@@ -234,7 +226,7 @@ export function handleMouseDown(instance, event) {
   // Only process if we have valid image details
   if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
   
-  // Handle mode-specific interactions using polymorphic pattern
+  // Handle mode-specific interactions
   if (instance.currentMode && instance.currentMode.handleMouseDown && instance.state.cursorPosition) {
     instance.currentMode.handleMouseDown(event, {
       svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
@@ -250,7 +242,7 @@ export function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseUp(instance, event) {
-  // Handle mode-specific mouse up interactions using polymorphic pattern
+  // Handle mode-specific mouse up interactions
   if (instance.currentMode && instance.currentMode.handleMouseUp) {
     instance.currentMode.handleMouseUp(event, {
       svgCoords: { x: instance.state.cursorPosition?.svgX || 0, y: instance.state.cursorPosition?.svgY || 0 },
@@ -303,7 +295,7 @@ export function handleClick(instance, event) {
     return
   }
   
-  // Handle mode-specific clicks using polymorphic pattern
+  // Handle mode-specific clicks
   if (instance.currentMode && instance.currentMode.handleClick) {
     instance.currentMode.handleClick(event, {
       svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
@@ -314,8 +306,6 @@ export function handleClick(instance, event) {
 }
 
 
-// handleHarmonicsClick function removed - now handled by HarmonicsMode.handleClick()
-
 /**
  * Update harmonic management panel
  * @param {Object} instance - GramFrame instance
@@ -325,18 +315,6 @@ function updateHarmonicPanel(instance) {
     updateHarmonicPanelContent(instance.harmonicPanel, instance)
   }
 }
-
-// handleDopplerClick function removed - now handled by DopplerMode.handleClick()
-
-// handleDopplerMouseDown function removed - now handled by DopplerMode.handleMouseDown()
-
-// handleDopplerMarkerDrag function removed - now handled by DopplerMode.handleDopplerMarkerDrag()
-
-// handleDopplerPreviewDrag function removed - now handled by DopplerMode.handleDopplerPreviewDrag()
-
-// calculateAndUpdateDopplerSpeed function removed - now handled by DopplerMode.calculateAndUpdateDopplerSpeed()
-
-// updateDopplerDisplays function removed - now handled by DopplerMode and standard LED system
 
 /**
  * Clean up event listeners (called when component is destroyed)
