@@ -4,7 +4,7 @@ import { drawAnalysisMode } from '../../rendering/cursors.js'
 import { updateHarmonicPanelContent, createHarmonicPanel, toggleHarmonicPanelVisibility } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
-import { createLEDDisplay } from '../../components/UIComponents.js'
+import { createLEDDisplay, createColorPicker } from '../../components/UIComponents.js'
 
 /**
  * Harmonics mode implementation
@@ -166,6 +166,11 @@ export class HarmonicsMode extends BaseMode {
     this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
     readoutPanel.appendChild(this.uiElements.freqLED)
     
+    // Create color picker for harmonics
+    this.uiElements.colorPicker = createColorPicker(this.state)
+    // Keep the default "Harmonic Color" label
+    readoutPanel.appendChild(this.uiElements.colorPicker)
+    
     // Create harmonic management panel
     this.uiElements.harmonicPanel = createHarmonicPanel(readoutPanel, this.instance)
     
@@ -174,6 +179,7 @@ export class HarmonicsMode extends BaseMode {
     
     // Store references on instance for compatibility
     this.instance.freqLED = this.uiElements.freqLED
+    this.instance.colorPicker = this.uiElements.colorPicker
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
   }
 
@@ -234,6 +240,25 @@ export class HarmonicsMode extends BaseMode {
     this.state.harmonics.baseFrequency = null
     this.state.harmonics.harmonicData = []
     this.state.harmonics.harmonicSets = []
+  }
+
+  /**
+   * Destroy mode-specific UI elements when leaving this mode
+   */
+  destroyUI() {
+    // Remove instance references
+    if (this.instance.freqLED === this.uiElements.freqLED) {
+      this.instance.freqLED = null
+    }
+    if (this.instance.colorPicker === this.uiElements.colorPicker) {
+      this.instance.colorPicker = null
+    }
+    if (this.instance.harmonicPanel === this.uiElements.harmonicPanel) {
+      this.instance.harmonicPanel = null
+    }
+    
+    // Call parent destroy to remove all UI elements
+    super.destroyUI()
   }
 
   /**

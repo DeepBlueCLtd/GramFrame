@@ -10,6 +10,25 @@
 import { capitalizeFirstLetter } from '../utils/calculations.js'
 
 /**
+ * Standard color palette used for color picker gradient and calculations
+ * @type {string[]}
+ */
+const COLOR_PALETTE = [
+  '#ff0000', // Red
+  '#ff8000', // Orange
+  '#ffff00', // Yellow
+  '#80ff00', // Yellow-green
+  '#00ff00', // Green
+  '#00ff80', // Green-cyan
+  '#00ffff', // Cyan
+  '#0080ff', // Cyan-blue
+  '#0000ff', // Blue
+  '#8000ff', // Blue-purple
+  '#ff00ff', // Purple
+  '#ff0080'  // Purple-red
+]
+
+/**
  * Create LED display elements for showing measurement values
  * @param {HTMLElement} readoutPanel - Container element for LED displays
  * @param {GramFrameState} state - Current state object
@@ -36,9 +55,7 @@ export function createLEDDisplays(readoutPanel, state) {
   ledElements.rateLED.style.display = 'none'
   readoutPanel.appendChild(ledElements.rateLED)
   
-  // Color picker for harmonics (only visible in harmonics mode)
-  ledElements.colorPicker = createColorPicker(state)
-  readoutPanel.appendChild(ledElements.colorPicker)
+  // Color picker is now created by individual modes (harmonics and analysis)
   
   return ledElements
 }
@@ -210,10 +227,7 @@ export function updateLEDDisplays(instance, state) {
     instance.rateLED.querySelector('.gram-frame-led-value').textContent = `${state.rate}`
   }
   
-  // Update color picker visibility based on mode
-  if (instance.colorPicker) {
-    instance.colorPicker.style.display = state.mode === 'harmonics' ? 'block' : 'none'
-  }
+  // Color picker visibility is now managed by individual modes
 }
 
 /**
@@ -224,7 +238,7 @@ export function updateLEDDisplays(instance, state) {
 export function createColorPicker(state) {
   const container = document.createElement('div')
   container.className = 'gram-frame-color-picker'
-  container.style.display = state.mode === 'harmonics' ? 'block' : 'none'
+  container.style.display = (state.mode === 'harmonics' || state.mode === 'analysis') ? 'block' : 'none'
   
   // Label
   const label = document.createElement('div')
@@ -288,14 +302,13 @@ export function createColorPicker(state) {
     // Update current color display
     currentColor.style.backgroundColor = color
     
-    // Update indicator position (use original x for visual positioning)
-    updateIndicatorPosition(indicator, x, rect.width)
+    // Update indicator position using the same canvasX coordinate for consistency
+    updateIndicatorPosition(indicator, canvasX, canvas.width)
   })
   
-  // Initialize indicator position
+  // Initialize indicator position (use canvas coordinates directly)
   const initialPosition = getPositionFromColor(state.harmonics.selectedColor, canvas.width)
-  const rect = canvas.getBoundingClientRect()
-  updateIndicatorPosition(indicator, initialPosition * (rect.width / canvas.width), rect.width)
+  updateIndicatorPosition(indicator, initialPosition, canvas.width)
   
   return container
 }
@@ -313,24 +326,9 @@ function drawColorPalette(canvas, selectedColor) {
   // Create gradient with HSV color space for better color distribution
   const gradient = ctx.createLinearGradient(0, 0, width, 0)
   
-  // Create a rainbow gradient
-  const colors = [
-    '#ff0000', // Red
-    '#ff8000', // Orange
-    '#ffff00', // Yellow
-    '#80ff00', // Yellow-green
-    '#00ff00', // Green
-    '#00ff80', // Green-cyan
-    '#00ffff', // Cyan
-    '#0080ff', // Cyan-blue
-    '#0000ff', // Blue
-    '#8000ff', // Blue-purple
-    '#ff00ff', // Purple
-    '#ff0080'  // Purple-red
-  ]
-  
-  colors.forEach((color, index) => {
-    gradient.addColorStop(index / (colors.length - 1), color)
+  // Create a rainbow gradient using the standard color palette
+  COLOR_PALETTE.forEach((color, index) => {
+    gradient.addColorStop(index / (COLOR_PALETTE.length - 1), color)
   })
   
   ctx.fillStyle = gradient
@@ -344,8 +342,38 @@ function drawColorPalette(canvas, selectedColor) {
  * @returns {string} Hex color string
  */
 function getColorFromPosition(x, width) {
-  const hue = (x / width) * 360
-  return hslToHex(hue, 75, 60) // 75% saturation, 60% lightness for good visibility
+  const position = Math.max(0, Math.min(1, x / width))
+  const segmentSize = 1 / (COLOR_PALETTE.length - 1)
+  const segmentIndex = position / segmentSize
+  const lowerIndex = Math.floor(segmentIndex)
+  const upperIndex = Math.min(lowerIndex + 1, COLOR_PALETTE.length - 1)
+  const t = segmentIndex - lowerIndex
+  
+  if (lowerIndex === upperIndex) {
+    return COLOR_PALETTE[lowerIndex]
+  }
+  
+  // Interpolate between the two colors
+  const color1 = hexToRgb(COLOR_PALETTE[lowerIndex])
+  const color2 = hexToRgb(COLOR_PALETTE[upperIndex])
+  
+  const r = Math.round(color1.r * (1 - t) + color2.r * t)
+  const g = Math.round(color1.g * (1 - t) + color2.g * t)
+  const b = Math.round(color1.b * (1 - t) + color2.b * t)
+  
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
+/**
+ * Convert hex color to RGB
+ * @param {string} hex - Hex color string
+ * @returns {Object} RGB object with r, g, b properties
+ */
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return { r, g, b }
 }
 
 /**
@@ -355,8 +383,29 @@ function getColorFromPosition(x, width) {
  * @returns {number} X position
  */
 function getPositionFromColor(hexColor, width) {
-  const hsl = hexToHsl(hexColor)
-  return (hsl.h / 360) * width
+  const targetRgb = hexToRgb(hexColor)
+  let closestIndex = 0
+  let minDistance = Infinity
+  
+  // Find the closest color in our palette
+  COLOR_PALETTE.forEach((color, index) => {
+    const colorRgb = hexToRgb(color)
+    const distance = Math.sqrt(
+      Math.pow(targetRgb.r - colorRgb.r, 2) +
+      Math.pow(targetRgb.g - colorRgb.g, 2) +
+      Math.pow(targetRgb.b - colorRgb.b, 2)
+    )
+    
+    if (distance < minDistance) {
+      minDistance = distance
+      closestIndex = index
+    }
+  })
+  
+  // Convert index to position
+  const segmentSize = 1 / (COLOR_PALETTE.length - 1)
+  const position = closestIndex * segmentSize
+  return position * width
 }
 
 /**
@@ -370,83 +419,5 @@ function updateIndicatorPosition(indicator, x, width) {
   indicator.style.left = `${Math.max(0, Math.min(100, percentage))}%`
 }
 
-/**
- * Convert HSL to hex color
- * @param {number} h - Hue (0-360)
- * @param {number} s - Saturation (0-100)
- * @param {number} l - Lightness (0-100)
- * @returns {string} Hex color string
- */
-function hslToHex(h, s, l) {
-  const hslToRgb = (h, s, l) => {
-    h /= 360
-    s /= 100
-    l /= 100
-    
-    const c = (1 - Math.abs(2 * l - 1)) * s
-    const x = c * (1 - Math.abs((h * 6) % 2 - 1))
-    const m = l - c / 2
-    
-    let r, g, b
-    
-    if (h < 1/6) {
-      r = c; g = x; b = 0
-    } else if (h < 2/6) {
-      r = x; g = c; b = 0
-    } else if (h < 3/6) {
-      r = 0; g = c; b = x
-    } else if (h < 4/6) {
-      r = 0; g = x; b = c
-    } else if (h < 5/6) {
-      r = x; g = 0; b = c
-    } else {
-      r = c; g = 0; b = x
-    }
-    
-    r = Math.round((r + m) * 255)
-    g = Math.round((g + m) * 255)
-    b = Math.round((b + m) * 255)
-    
-    return { r, g, b }
-  }
-  
-  const { r, g, b } = hslToRgb(h, s, l)
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
-}
-
-/**
- * Convert hex color to HSL
- * @param {string} hex - Hex color string
- * @returns {Object} HSL object with h, s, l properties
- */
-function hexToHsl(hex) {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  
-  const max = Math.max(r, g, b)
-  const min = Math.min(r, g, b)
-  const diff = max - min
-  const sum = max + min
-  
-  const l = sum / 2
-  
-  if (diff === 0) {
-    return { h: 0, s: 0, l: l * 100 }
-  }
-  
-  const s = l > 0.5 ? diff / (2 - sum) : diff / sum
-  
-  let h
-  if (max === r) {
-    h = ((g - b) / diff + (g < b ? 6 : 0)) / 6
-  } else if (max === g) {
-    h = ((b - r) / diff + 2) / 6
-  } else {
-    h = ((r - g) / diff + 4) / 6
-  }
-  
-  return { h: h * 360, s: s * 100, l: l * 100 }
-}
 
 
