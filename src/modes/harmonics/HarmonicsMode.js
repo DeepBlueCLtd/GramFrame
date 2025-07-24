@@ -325,7 +325,7 @@ export class HarmonicsMode extends BaseMode {
         
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          const tolerance = harmonicSet.spacing * 0.02 // 2% tolerance
+          const tolerance = harmonicSet.spacing * 0.1 // 10% tolerance
           
           if (Math.abs(freq - expectedFreq) < tolerance) {
             // Also check if cursor is within the vertical range of the harmonic line
