@@ -108,34 +108,9 @@ export function setupResizeObserver(instance) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseMove(instance, event) {
-  // Only process if we have valid image details
-  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
+  const coords = calculateEventCoordinates(instance, event)
   
-  // Use SVG's built-in coordinate transformation for accurate positioning
-  let svgCoords
-  try {
-    const pt = instance.svg.createSVGPoint()
-    pt.x = event.clientX
-    pt.y = event.clientY
-    const transformedPt = pt.matrixTransform(instance.svg.getScreenCTM().inverse())
-    svgCoords = { x: transformedPt.x, y: transformedPt.y }
-  } catch (e) {
-    // Fallback to manual calculation
-    const rect = instance.svg.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
-    svgCoords = screenToSVGCoordinates(x, y, instance.svg, instance.state.imageDetails)
-  }
-  
-  // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
-  const margins = instance.state.axes.margins
-  const imageRelativeX = svgCoords.x - margins.left
-  const imageRelativeY = svgCoords.y - margins.top
-  
-  // Only process if mouse is within the image area
-  if (imageRelativeX < 0 || imageRelativeY < 0 || 
-      imageRelativeX > instance.state.imageDetails.naturalWidth || 
-      imageRelativeY > instance.state.imageDetails.naturalHeight) {
+  if (!coords) {
     // Clear cursor position when mouse is outside image bounds
     instance.state.cursorPosition = null
     updateLEDDisplays(instance, instance.state)
@@ -148,10 +123,7 @@ export function handleMouseMove(instance, event) {
     notifyStateListeners(instance.state, instance.stateListeners)
     return
   }
-  
-  // Convert image-relative coordinates to data coordinates
-  const dataCoords = imageToDataCoordinates(imageRelativeX, imageRelativeY, instance.state.config, instance.state.imageDetails, instance.state.rate)
-  
+
   // Calculate screen coordinates for state (relative to SVG)
   const rect = instance.svg.getBoundingClientRect()
   const screenX = event.clientX - rect.left
@@ -161,12 +133,12 @@ export function handleMouseMove(instance, event) {
   instance.state.cursorPosition = { 
     x: Math.round(screenX), 
     y: Math.round(screenY), 
-    svgX: Math.round(svgCoords.x),
-    svgY: Math.round(svgCoords.y),
-    imageX: Math.round(imageRelativeX),
-    imageY: Math.round(imageRelativeY),
-    time: parseFloat(dataCoords.time.toFixed(2)), 
-    freq: parseFloat(dataCoords.freq.toFixed(2))
+    svgX: coords.svgCoords.x,
+    svgY: coords.svgCoords.y,
+    imageX: coords.imageCoords.x,
+    imageY: coords.imageCoords.y,
+    time: coords.dataCoords.time, 
+    freq: coords.dataCoords.freq
   }
   
   // Update LED displays
@@ -182,11 +154,7 @@ export function handleMouseMove(instance, event) {
   
   // Handle mode-specific dragging interactions
   if (instance.currentMode && instance.currentMode.handleMouseMove) {
-    instance.currentMode.handleMouseMove(event, {
-      svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-      dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-      imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-    })
+    instance.currentMode.handleMouseMove(event, coords)
   }
   
   // Notify listeners
@@ -223,16 +191,13 @@ export function handleMouseLeave(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseDown(instance, event) {
-  // Only process if we have valid image details
-  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return
+  // Calculate coordinates from the event
+  const coords = calculateEventCoordinates(instance, event)
+  if (!coords) return
   
   // Handle mode-specific interactions
-  if (instance.currentMode && instance.currentMode.handleMouseDown && instance.state.cursorPosition) {
-    instance.currentMode.handleMouseDown(event, {
-      svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-      dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-      imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-    })
+  if (instance.currentMode && instance.currentMode.handleMouseDown) {
+    instance.currentMode.handleMouseDown(event, coords)
   }
 }
 
@@ -242,13 +207,18 @@ export function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 export function handleMouseUp(instance, event) {
+  // Calculate coordinates from the event
+  const coords = calculateEventCoordinates(instance, event)
+  
   // Handle mode-specific mouse up interactions
   if (instance.currentMode && instance.currentMode.handleMouseUp) {
-    instance.currentMode.handleMouseUp(event, {
+    // Use calculated coordinates if available, otherwise use fallback coordinates
+    const eventCoords = coords || {
       svgCoords: { x: instance.state.cursorPosition?.svgX || 0, y: instance.state.cursorPosition?.svgY || 0 },
       dataCoords: { time: instance.state.cursorPosition?.time || 0, freq: instance.state.cursorPosition?.freq || 0 },
       imageCoords: { x: instance.state.cursorPosition?.imageX || 0, y: instance.state.cursorPosition?.imageY || 0 }
-    })
+    }
+    instance.currentMode.handleMouseUp(event, eventCoords)
   }
   // Legacy drag state cleanup for other modes
   else if (instance.state.dragState.isDragging) {
@@ -313,6 +283,59 @@ export function handleClick(instance, event) {
 function updateHarmonicPanel(instance) {
   if (instance.harmonicPanel) {
     updateHarmonicPanelContent(instance.harmonicPanel, instance)
+  }
+}
+
+/**
+ * Calculate coordinates from mouse event
+ * @param {Object} instance - GramFrame instance
+ * @param {MouseEvent} event - Mouse event
+ * @returns {{svgCoords: {x: number, y: number}, dataCoords: {time: number, freq: number}, imageCoords: {x: number, y: number}} | null} Calculated coordinates or null if outside bounds
+ */
+function calculateEventCoordinates(instance, event) {
+  // Only process if we have valid image details
+  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return null
+  
+  // Use SVG's built-in coordinate transformation for accurate positioning
+  let svgCoords
+  try {
+    const pt = instance.svg.createSVGPoint()
+    pt.x = event.clientX
+    pt.y = event.clientY
+    const transformedPt = pt.matrixTransform(instance.svg.getScreenCTM().inverse())
+    svgCoords = { x: transformedPt.x, y: transformedPt.y }
+  } catch (e) {
+    // Fallback to manual calculation
+    const rect = instance.svg.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    svgCoords = screenToSVGCoordinates(x, y, instance.svg, instance.state.imageDetails)
+  }
+  
+  // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
+  const margins = instance.state.axes.margins
+  const imageRelativeX = svgCoords.x - margins.left
+  const imageRelativeY = svgCoords.y - margins.top
+  
+  // Check if mouse is within the image area - for drag operations, allow slightly outside bounds
+  const tolerance = 10 // pixel tolerance for drag operations
+  if (imageRelativeX < -tolerance || imageRelativeY < -tolerance || 
+      imageRelativeX > instance.state.imageDetails.naturalWidth + tolerance || 
+      imageRelativeY > instance.state.imageDetails.naturalHeight + tolerance) {
+    return null
+  }
+  
+  // Clamp coordinates to image bounds for data calculation
+  const clampedImageX = Math.max(0, Math.min(instance.state.imageDetails.naturalWidth, imageRelativeX))
+  const clampedImageY = Math.max(0, Math.min(instance.state.imageDetails.naturalHeight, imageRelativeY))
+  
+  // Convert image-relative coordinates to data coordinates
+  const dataCoords = imageToDataCoordinates(clampedImageX, clampedImageY, instance.state.config, instance.state.imageDetails, instance.state.rate)
+  
+  return {
+    svgCoords: { x: Math.round(svgCoords.x), y: Math.round(svgCoords.y) },
+    dataCoords: { time: parseFloat(dataCoords.time.toFixed(2)), freq: parseFloat(dataCoords.freq.toFixed(2)) },
+    imageCoords: { x: Math.round(imageRelativeX), y: Math.round(imageRelativeY) }
   }
 }
 

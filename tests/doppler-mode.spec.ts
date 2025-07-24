@@ -190,7 +190,7 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       expect(markerBox).not.toBeNull()
       
       // Drag from current position to new position using mouse API
-      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width/2, markerBox!.y + markerBox!.height/2)
+      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width / 2, markerBox!.y + markerBox!.height / 2)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(svgBox!.x + 250, svgBox!.y + 150)
       await gramFramePage.page.mouse.up()
@@ -231,7 +231,7 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       expect(crosshairBox).not.toBeNull()
       
       // Drag from current position to new position
-      await gramFramePage.page.mouse.move(crosshairBox!.x + crosshairBox!.width/2, crosshairBox!.y + crosshairBox!.height/2)
+      await gramFramePage.page.mouse.move(crosshairBox!.x + crosshairBox!.width / 2, crosshairBox!.y + crosshairBox!.height / 2)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(svgBox!.x + 300, svgBox!.y + 150)
       await gramFramePage.page.mouse.up()
@@ -299,7 +299,7 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       const markerBox = await fPlusMarker.boundingBox()
       expect(markerBox).not.toBeNull()
       
-      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width/2, markerBox!.y + markerBox!.height/2)
+      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width / 2, markerBox!.y + markerBox!.height / 2)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(svgBox!.x + 250, svgBox!.y + 150)
       await gramFramePage.page.mouse.up()
@@ -371,7 +371,7 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       expect(markerBox).not.toBeNull()
       
       // Drag using mouse API
-      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width/2, markerBox!.y + markerBox!.height/2)
+      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width / 2, markerBox!.y + markerBox!.height / 2)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(svgBox!.x + 300, svgBox!.y + 180)
       await gramFramePage.page.mouse.up()
@@ -643,7 +643,7 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       expect(resizedSvgBox).not.toBeNull()
       
       // Drag using mouse API
-      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width/2, markerBox!.y + markerBox!.height/2)
+      await gramFramePage.page.mouse.move(markerBox!.x + markerBox!.width / 2, markerBox!.y + markerBox!.height / 2)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(resizedSvgBox!.x + 250, resizedSvgBox!.y + 150)
       await gramFramePage.page.mouse.up()
