@@ -32,7 +32,6 @@ import {
   updateLEDDisplays,
   createLEDDisplay,
   createModeSwitchingUI,
-  updateGuidanceContent,
   createColorPicker
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'

@@ -10,7 +10,7 @@
 import { capitalizeFirstLetter } from '../utils/calculations.js'
 import { createColorPicker } from './ColorPicker.js'
 import { createLEDDisplays, createLEDDisplay, updateLEDDisplays } from './LEDDisplay.js'
-import { createModeSwitchingUI, updateGuidanceContent } from './ModeButtons.js'
+import { createModeSwitchingUI } from './ModeButtons.js'
 
 
 // Re-export LED display functions from LEDDisplay module
@@ -20,7 +20,7 @@ export { createLEDDisplays, createLEDDisplay, updateLEDDisplays }
 
 
 // Re-export mode switching functions from ModeButtons module
-export { createModeSwitchingUI, updateGuidanceContent }
+export { createModeSwitchingUI }
 
 /**
  * Creates rate input control

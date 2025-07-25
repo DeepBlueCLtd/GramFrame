@@ -61,30 +61,3 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   }
 }
 
-/**
- * Updates guidance content based on current mode
- * @param {HTMLElement} guidancePanel - The guidance panel element
- * @param {string} mode - Current mode ('analysis', 'harmonics', 'doppler')
- */
-export function updateGuidanceContent(guidancePanel, mode) {
-  if (mode === 'analysis') {
-    guidancePanel.innerHTML = `
-      <h4>Analysis Mode</h4>
-      <p>• Hover to view exact frequency/time values</p>
-    `
-  } else if (mode === 'harmonics') {
-    guidancePanel.innerHTML = `
-      <h4>Harmonics Mode</h4>
-      <p>• Click & drag to generate harmonic lines</p>
-      <p>• Drag existing harmonic lines to adjust spacing</p>
-      <p>• Manually add harmonic lines using [+ Manual] button</p>
-    `
-  } else if (mode === 'doppler') {
-    guidancePanel.innerHTML = `
-      <h4>Doppler Mode</h4>
-      <p>• Drag line to give overall doppler curve</p>
-      <p>• Drag markers to adjust curve</p>
-      <p>• Right-click to reset</p>
-    `
-  }
-}

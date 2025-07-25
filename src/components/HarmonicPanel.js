@@ -104,18 +104,3 @@ export function updateHarmonicPanelContent(panel, instance) {
     })
   })
 }
-
-/**
- * Show or hide the harmonic panel based on mode
- * @param {HTMLElement} panel - Panel element
- * @param {string} mode - Current mode
- */
-export function toggleHarmonicPanelVisibility(panel, mode) {
-  if (!panel) return
-  
-  if (mode === 'harmonics') {
-    panel.style.display = 'block'
-  } else {
-    panel.style.display = 'none'
-  }
-}

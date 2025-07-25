@@ -1,7 +1,7 @@
 import { BaseMode } from '../BaseMode.js'
 import { createSVGLine, createSVGText } from '../../utils/svg.js'
 import { drawAnalysisMode } from '../../rendering/cursors.js'
-import { updateHarmonicPanelContent, createHarmonicPanel, toggleHarmonicPanelVisibility } from '../../components/HarmonicPanel.js'
+import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
 import { createLEDDisplay, createColorPicker } from '../../components/UIComponents.js'
@@ -173,9 +173,6 @@ export class HarmonicsMode extends BaseMode {
     
     // Create harmonic management panel
     this.uiElements.harmonicPanel = createHarmonicPanel(readoutPanel, this.instance)
-    
-    // Show the harmonic panel for harmonics mode
-    toggleHarmonicPanelVisibility(this.uiElements.harmonicPanel, 'harmonics')
     
     // Store references on instance for compatibility
     this.instance.freqLED = this.uiElements.freqLED
