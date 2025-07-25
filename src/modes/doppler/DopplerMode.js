@@ -327,16 +327,6 @@ export class DopplerMode extends BaseMode {
     // Update the dragged marker
     this.state.doppler[draggedMarker] = newDataCoords
     
-    // If dragging f+ or f-, update f₀ to midpoint
-    if (draggedMarker === 'fPlus' || draggedMarker === 'fMinus') {
-      if (doppler.fPlus && doppler.fMinus) {
-        this.state.doppler.fZero = {
-          time: (doppler.fPlus.time + doppler.fMinus.time) / 2,
-          frequency: (doppler.fPlus.frequency + doppler.fMinus.frequency) / 2
-        }
-      }
-    }
-    
     // Recalculate speed
     this.calculateAndUpdateDopplerSpeed()
     
