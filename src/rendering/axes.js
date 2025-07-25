@@ -79,7 +79,7 @@ export function drawTimeAxis(instance) {
     // Label (in the left margin)
     const label = createSVGText(
       margins.left - 8,
-      yPos + 4, // Slight offset for better alignment
+      yPos - 5, // Align with tick mark position
       formatTimeWithDecimals(timeValue, 0),
       'gram-frame-axis-label',
       'end'
