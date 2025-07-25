@@ -301,7 +301,7 @@ function calculateEventCoordinates(instance, event) {
     pt.y = event.clientY
     const transformedPt = pt.matrixTransform(instance.svg.getScreenCTM().inverse())
     svgCoords = { x: transformedPt.x, y: transformedPt.y }
-  } catch (e) {
+  } catch {
     // Fallback to manual calculation
     const rect = instance.svg.getBoundingClientRect()
     const x = event.clientX - rect.left

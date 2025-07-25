@@ -4,13 +4,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "yarn lint && vite build",
     "test": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && yarn lint",
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@types/node": "^24.0.14",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.31.0",
     "husky": "^9.1.7",
     "typescript": "^5.8.3",
     "vite": "^5.0.0"
