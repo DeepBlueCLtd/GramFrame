@@ -18,7 +18,7 @@ export function createLEDDisplays(readoutPanel, state) {
   const ledElements = {}
   
   // Time display
-  ledElements.timeLED = createLEDDisplay('Time (s)', '0.00')
+  ledElements.timeLED = createLEDDisplay('Time (mm:ss)', '00:00')
   readoutPanel.appendChild(ledElements.timeLED)
   
   // Frequency display
