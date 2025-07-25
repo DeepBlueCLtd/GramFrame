@@ -67,7 +67,7 @@ export function createColorPicker(state) {
   }
   
   // Draw the color palette
-  drawColorPalette(canvas, state.harmonics.selectedColor)
+  drawColorPalette(canvas)
   
   // Color selection indicator
   const indicator = document.createElement('div')
@@ -111,9 +111,8 @@ export function createColorPicker(state) {
 /**
  * Draw a continuous color palette on canvas
  * @param {HTMLCanvasElement} canvas - Canvas element
- * @param {string} selectedColor - Currently selected color
  */
-function drawColorPalette(canvas, selectedColor) {
+function drawColorPalette(canvas) {
   const ctx = canvas.getContext('2d')
   const width = canvas.width
   const height = canvas.height

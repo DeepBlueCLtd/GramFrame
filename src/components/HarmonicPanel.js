@@ -7,10 +7,9 @@
 /**
  * Create harmonic management panel
  * @param {HTMLElement} container - Container element to append the panel to
- * @param {Object} instance - GramFrame instance
  * @returns {HTMLElement} The created panel element
  */
-export function createHarmonicPanel(container, instance) {
+export function createHarmonicPanel(container) {
   const panel = document.createElement('div')
   panel.className = 'gram-frame-harmonic-panel'
   panel.innerHTML = `

@@ -6,7 +6,6 @@
 /// <reference path="../modes/harmonics/types.js" />
 /// <reference path="../modes/doppler/types.js" />
 
-import { dataToSVGCoordinates } from '../utils/coordinates.js'
 import { createSVGLine, createSVGText } from '../utils/svg.js'
 
 /**
@@ -212,9 +211,9 @@ export function drawHarmonicLine(instance, harmonic, isMainLine) {
  * Draw labels for a harmonic line
  * @param {Object} instance - GramFrame instance
  * @param {HarmonicData} harmonic - Harmonic data
- * @param {boolean} isMainLine - Whether this is the main (1x) line
+ * @param {boolean} _isMainLine - Whether this is the main (1x) line
  */
-export function drawHarmonicLabels(instance, harmonic, isMainLine) {
+export function drawHarmonicLabels(instance, harmonic, _isMainLine) {
   const margins = instance.state.axes.margins
   const labelY = margins.top + 15 // Position labels near the top
   
@@ -285,14 +284,11 @@ export function drawDopplerMarker(instance, point, type) {
     circle.setAttribute('class', `gram-frame-doppler-${type}`)
     
     let color = '#000000'
-    let labelText = ''
     
     if (type === 'fPlus') {
       color = '#ff0000'
-      labelText = 'f+'
     } else if (type === 'fMinus') {
       color = '#ff0000'
-      labelText = 'f−'
     }
     
     circle.setAttribute('fill', color)

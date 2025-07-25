@@ -24,10 +24,10 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Handle mouse click events - create persistent markers
-   * @param {MouseEvent} event - The mouse click event
-   * @param {Object} coords - Coordinate information
+   * @param {MouseEvent} _event - The mouse click event
+   * @param {Object} _coords - Coordinate information
    */
-  handleClick(event, coords) {
+  handleClick(_event, _coords) {
     if (!this.state.cursorPosition) return
     
     // Left-click: add new marker
@@ -37,9 +37,9 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle context menu (right-click) events
    * @param {MouseEvent} event - The context menu event
-   * @param {Object} coords - Coordinate information
+   * @param {Object} _coords - Coordinate information
    */
-  handleContextMenu(event, coords) {
+  handleContextMenu(event, _coords) {
     if (!this.state.cursorPosition) return
     
     // Find marker at cursor position (within tolerance)
@@ -53,9 +53,9 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Render analysis mode cursor indicators and persistent markers
-   * @param {SVGElement} svg - The SVG container element
+   * @param {SVGElement} _svg - The SVG container element
    */
-  render(svg) {
+  render(_svg) {
     // Clear existing cursor indicators first
     this.instance.cursorGroup.innerHTML = ''
     
@@ -332,9 +332,9 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Update LED displays for analysis mode
-   * @param {Object} coords - Current cursor coordinates
+   * @param {Object} _coords - Current cursor coordinates
    */
-  updateLEDs(coords) {
+  updateLEDs(_coords) {
     // Analysis mode shows Time and Frequency LEDs (created in createUI)
     this.updateModeSpecificLEDs()
   }

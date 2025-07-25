@@ -7,7 +7,6 @@
 
 /// <reference path="../types.js" />
 
-import { capitalizeFirstLetter } from '../utils/calculations.js'
 import { createColorPicker } from './ColorPicker.js'
 import { createLEDDisplays, createLEDDisplay, updateLEDDisplays } from './LEDDisplay.js'
 import { createModeSwitchingUI } from './ModeButtons.js'

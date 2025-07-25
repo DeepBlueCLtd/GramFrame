@@ -4,7 +4,6 @@ import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
 import { 
   calculateDopplerSpeed,
-  screenToDopplerData,
   isNearMarker,
   dopplerDataToSVG
 } from '../../utils/doppler.js'
@@ -40,10 +39,10 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Handle mouse click events - place Doppler markers
-   * @param {MouseEvent} event - The mouse click event
+   * @param {MouseEvent} _event - The mouse click event
    * @param {Object} coords - Coordinate information
    */
-  handleClick(event, coords) {
+  handleClick(_event, coords) {
     const doppler = this.state.doppler
     
     // If we're placing markers
@@ -138,10 +137,10 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Handle mouse move events during dragging
-   * @param {MouseEvent} event - The mouse move event
+   * @param {MouseEvent} _event - The mouse move event
    * @param {Object} coords - Coordinate information
    */
-  handleMouseMove(event, coords) {
+  handleMouseMove(_event, coords) {
     if (this.state.doppler.isDragging) {
       this.handleDopplerMarkerDrag(coords)
     } else if (this.state.doppler.isPreviewDrag) {
@@ -151,10 +150,10 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Handle mouse up events - end dragging or place markers
-   * @param {MouseEvent} event - The mouse up event
-   * @param {Object} coords - Coordinate information
+   * @param {MouseEvent} _event - The mouse up event
+   * @param {Object} _coords - Coordinate information
    */
-  handleMouseUp(event, coords) {
+  handleMouseUp(_event, _coords) {
     // End Doppler preview drag and place markers
     if (this.state.doppler.isPreviewDrag) {
       const firstMarker = this.state.doppler.tempFirst
@@ -208,9 +207,9 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Render doppler mode indicators and curve
-   * @param {SVGElement} svg - The SVG container element
+   * @param {SVGElement} _svg - The SVG container element
    */
-  render(svg) {
+  render(_svg) {
     const doppler = this.state.doppler
     
     // Draw preview during drag
@@ -255,9 +254,9 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Update LED displays for doppler mode
-   * @param {Object} coords - Current cursor coordinates
+   * @param {Object} _coords - Current cursor coordinates
    */
-  updateLEDs(coords) {
+  updateLEDs(_coords) {
     // Doppler mode shows Speed LED only (created in createUI)
     this.updateModeSpecificLEDs()
   }

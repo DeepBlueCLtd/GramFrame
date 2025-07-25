@@ -32,10 +32,10 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Handle mouse click events - create harmonic sets
-   * @param {MouseEvent} event - The mouse click event
-   * @param {Object} coords - Coordinate information
+   * @param {MouseEvent} _event - The mouse click event
+   * @param {Object} _coords - Coordinate information
    */
-  handleClick(event, coords) {
+  handleClick(_event, _coords) {
     // Harmonics are now created via click-and-drag in handleMouseDown
     // This function is kept for backward compatibility but no longer creates harmonics
     // The creation logic has been moved to the mousedown handler for live drag creation
@@ -43,10 +43,10 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Handle mouse down events for harmonic set dragging
-   * @param {MouseEvent} event - The mouse down event
-   * @param {Object} coords - Coordinate information
+   * @param {MouseEvent} _event - The mouse down event
+   * @param {Object} _coords - Coordinate information
    */
-  handleMouseDown(event, coords) {
+  handleMouseDown(_event, _coords) {
     if (!this.state.cursorPosition) return
 
     const cursorFreq = this.state.cursorPosition.freq
@@ -93,10 +93,10 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Handle mouse move events during dragging
-   * @param {MouseEvent} event - The mouse move event
-   * @param {Object} coords - Coordinate information
+   * @param {MouseEvent} _event - The mouse move event
+   * @param {Object} _coords - Coordinate information
    */
-  handleMouseMove(event, coords) {
+  handleMouseMove(_event, _coords) {
     if (this.state.dragState.isDragging) {
       this.handleHarmonicSetDrag()
     }
@@ -104,13 +104,11 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Handle mouse up events - end dragging
-   * @param {MouseEvent} event - The mouse up event
-   * @param {Object} coords - Coordinate information
+   * @param {MouseEvent} _event - The mouse up event
+   * @param {Object} _coords - Coordinate information
    */
-  handleMouseUp(event, coords) {
+  handleMouseUp(_event, _coords) {
     if (this.state.dragState.isDragging) {
-      const wasDraggingHarmonicSet = !!this.state.dragState.draggedHarmonicSetId
-      
       // Clear drag state
       this.state.dragState.isDragging = false
       this.state.dragState.dragStartPosition = null
@@ -138,9 +136,9 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Render harmonics mode - draw crosshairs and harmonic sets
-   * @param {SVGElement} svg - The SVG container element
+   * @param {SVGElement} _svg - The SVG container element
    */
-  render(svg) {
+  render(_svg) {
     // Draw cross-hairs if cursor position is available, but not when dragging harmonics
     // (dragging harmonics would obscure the harmonic sets with the cross-hairs)
     if (this.state.cursorPosition && !this.state.dragState.isDragging) {
@@ -172,7 +170,7 @@ export class HarmonicsMode extends BaseMode {
     readoutPanel.appendChild(this.uiElements.colorPicker)
     
     // Create harmonic management panel
-    this.uiElements.harmonicPanel = createHarmonicPanel(readoutPanel, this.instance)
+    this.uiElements.harmonicPanel = createHarmonicPanel(readoutPanel)
     
     // Store references on instance for compatibility
     this.instance.freqLED = this.uiElements.freqLED
@@ -182,9 +180,9 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Update LED displays for harmonics mode
-   * @param {Object} coords - Current cursor coordinates
+   * @param {Object} _coords - Current cursor coordinates
    */
-  updateLEDs(coords) {
+  updateLEDs(_coords) {
     // Harmonics mode shows Manual button and Frequency LED (created in createUI)
     this.updateModeSpecificLEDs()
   }

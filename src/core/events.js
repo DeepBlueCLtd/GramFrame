@@ -13,7 +13,6 @@ import { updateLEDDisplays } from '../components/UIComponents.js'
 import { notifyStateListeners } from './state.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
 import { handleResize, handleSVGResize } from '../rendering/axes.js'
-import { triggerHarmonicsDisplay } from './analysis.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 
 /**
@@ -23,7 +22,7 @@ import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 export function setupEventListeners(instance) {
   // Bind event handlers to maintain proper 'this' context
   instance._boundHandleMouseMove = (event) => handleMouseMove(instance, event)
-  instance._boundHandleMouseLeave = (event) => handleMouseLeave(instance, event)
+  instance._boundHandleMouseLeave = () => handleMouseLeave(instance)
   instance._boundHandleClick = (event) => handleClick(instance, event)
   instance._boundHandleMouseDown = (event) => handleMouseDown(instance, event)
   instance._boundHandleMouseUp = (event) => handleMouseUp(instance, event)
@@ -164,9 +163,8 @@ export function handleMouseMove(instance, event) {
 /**
  * Handle mouse leave events
  * @param {Object} instance - GramFrame instance
- * @param {MouseEvent} event - Mouse event
  */
-export function handleMouseLeave(instance, event) {
+export function handleMouseLeave(instance) {
   // Clear cursor position when mouse leaves the SVG area
   instance.state.cursorPosition = null
   
@@ -222,7 +220,6 @@ export function handleMouseUp(instance, event) {
   }
   // Legacy drag state cleanup for other modes
   else if (instance.state.dragState.isDragging) {
-    const wasDraggingHarmonicSet = !!instance.state.dragState.draggedHarmonicSetId
     
     // Clear drag state
     instance.state.dragState.isDragging = false
