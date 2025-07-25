@@ -77,7 +77,7 @@ export function drawTimeAxis(instance) {
     // Label (in the left margin)
     const label = createSVGText(
       margins.left - 8,
-      yPos + 4, // Slight offset for better alignment
+      yPos - 5, // Align with tick mark position
       timeValue.toFixed(1) + 's',
       'gram-frame-axis-label',
       'end'
