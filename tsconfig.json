@@ -10,7 +10,9 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": false,
     "noImplicitReturns": true,
-    "noImplicitThis": true
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "include": ["src/**/*.js"]
 }
