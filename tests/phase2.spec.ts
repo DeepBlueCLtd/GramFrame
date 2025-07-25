@@ -63,7 +63,7 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
     
     // Verify initial LED values (numerical only)
     await expect(gramFramePage.freqLED.locator('.gram-frame-led-value')).toContainText('0.00')
-    await expect(gramFramePage.timeLED.locator('.gram-frame-led-value')).toContainText('0.00')
+    await expect(gramFramePage.timeLED.locator('.gram-frame-led-value')).toContainText('00:00')
     await expect(gramFramePage.modeLED.locator('.gram-frame-led-value')).toContainText('Analysis')
     
     // Test LED updates when mouse moves
@@ -79,7 +79,7 @@ test.describe('Phase 2: Image Loading and Basic Display', () => {
       const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
       
       expect(freqText).toMatch(/\d+\.\d$/)
-      expect(timeText).toMatch(/\d+\.\d{2}$/)
+      expect(timeText).toMatch(/\d{2}:\d{2}$/)
     }
   })
 })
@@ -256,7 +256,7 @@ test.describe('Phase 2: Comprehensive Integration', () => {
       const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
       const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
       expect(freqText).toMatch(/\d+\.\d$/)
-      expect(timeText).toMatch(/\d+\.\d{2}$/)
+      expect(timeText).toMatch(/\d{2}:\d{2}$/)
       
       // Verify diagnostics panel updated
       const mouseCanvasPos = await page.locator('#mouse-canvas-pos').textContent()

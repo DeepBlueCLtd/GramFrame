@@ -45,3 +45,13 @@ export function formatTimeWithDecimals(seconds, decimals = 0) {
   
   return `${paddedMinutes}:${formattedSeconds}`;
 }
+
+/**
+ * Formats time as decimal seconds (for LED displays)
+ * @param {number} seconds - The time in seconds
+ * @param {number} decimals - Number of decimal places (default: 2)
+ * @returns {string} Time formatted as decimal seconds (e.g., "1.23")
+ */
+export function formatTimeAsDecimal(seconds, decimals = 2) {
+  return seconds.toFixed(decimals);
+}

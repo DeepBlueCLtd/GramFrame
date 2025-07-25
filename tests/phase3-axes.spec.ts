@@ -39,9 +39,9 @@ test.describe('Phase 3: SVG Axes Implementation', () => {
     const labelCount = await timeAxisLabels.count()
     expect(labelCount).toBe(tickCount)
     
-    // Labels should contain time values with 's' suffix
+    // Labels should contain time values in mm:ss format
     const firstLabel = await timeAxisLabels.first().textContent()
-    expect(firstLabel).toMatch(/\d+\.\d+s/)
+    expect(firstLabel).toMatch(/\d{2}:\d{2}/)
   })
   
   test('frequency axis renders with correct tick marks and labels', async ({ gramFramePage }) => {
