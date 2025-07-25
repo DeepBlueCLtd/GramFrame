@@ -13,13 +13,12 @@ import { dataToSVGCoordinates } from '../utils/coordinates.js'
 /**
  * Trigger harmonics display calculation and state updates
  * @param {GramFrameState} state - Current state object (will be modified)
- * @param {Function} updateLEDDisplays - LED update callback function
  * @param {Function} updateCursorIndicators - Cursor update callback function
  * @param {Function} notifyStateListeners - State notification callback function
  * @param {Array} stateListeners - Array of state listeners
  * @returns {boolean} True if harmonics were calculated, false if conditions not met
  */
-export function triggerHarmonicsDisplay(state, updateLEDDisplays, updateCursorIndicators, notifyStateListeners, stateListeners) {
+export function triggerHarmonicsDisplay(state, updateCursorIndicators, notifyStateListeners, stateListeners) {
   // Only trigger if we have a cursor position, are in harmonics mode, and are dragging
   if (!state.cursorPosition || state.mode !== 'harmonics' || !state.dragState.isDragging) {
     return false
@@ -41,7 +40,7 @@ export function triggerHarmonicsDisplay(state, updateLEDDisplays, updateCursorIn
   state.harmonics.harmonicData = harmonics
   
   // Update LED displays to show base frequency
-  updateLEDDisplays()
+  // Note: LED displays are updated by modes themselves
   
   // Redraw cursor indicators to show harmonics
   updateCursorIndicators()
