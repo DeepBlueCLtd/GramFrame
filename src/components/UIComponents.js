@@ -8,12 +8,12 @@
 /// <reference path="../types.js" />
 
 import { createColorPicker } from './ColorPicker.js'
-import { createLEDDisplays, createLEDDisplay, updateLEDDisplays } from './LEDDisplay.js'
+import { createLEDDisplay, updateLEDDisplays } from './LEDDisplay.js'
 import { createModeSwitchingUI } from './ModeButtons.js'
 
 
 // Re-export LED display functions from LEDDisplay module
-export { createLEDDisplays, createLEDDisplay, updateLEDDisplays }
+export { createLEDDisplay, updateLEDDisplays }
 
 
 
