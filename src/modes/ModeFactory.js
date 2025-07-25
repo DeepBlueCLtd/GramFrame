@@ -47,7 +47,7 @@ export class ModeFactory {
       }
       
       // Fallback to base mode to prevent complete failure in production
-      console.warn(`Falling back to BaseMode for "${modeName}" due to error`)
+      // Falling back to BaseMode due to error - removed console.warn
       return new BaseMode(instance, state)
     }
   }

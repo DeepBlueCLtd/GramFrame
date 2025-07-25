@@ -21,11 +21,11 @@ import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
  */
 export function setupEventListeners(instance) {
   // Bind event handlers to maintain proper 'this' context
-  instance._boundHandleMouseMove = (event) => handleMouseMove(instance, event)
+  instance._boundHandleMouseMove = (/** @type {MouseEvent} */ event) => handleMouseMove(instance, event)
   instance._boundHandleMouseLeave = () => handleMouseLeave(instance)
-  instance._boundHandleClick = (event) => handleClick(instance, event)
-  instance._boundHandleMouseDown = (event) => handleMouseDown(instance, event)
-  instance._boundHandleMouseUp = (event) => handleMouseUp(instance, event)
+  instance._boundHandleClick = (/** @type {MouseEvent} */ event) => handleClick(instance, event)
+  instance._boundHandleMouseDown = (/** @type {MouseEvent} */ event) => handleMouseDown(instance, event)
+  instance._boundHandleMouseUp = (/** @type {MouseEvent} */ event) => handleMouseUp(instance, event)
   instance._boundHandleResize = () => handleResize(instance)
   
   // SVG mouse events
@@ -36,7 +36,7 @@ export function setupEventListeners(instance) {
   instance.svg.addEventListener('mouseup', instance._boundHandleMouseUp)
   
   // Add right-click handler
-  instance.svg.addEventListener('contextmenu', (event) => {
+  instance.svg.addEventListener('contextmenu', (/** @type {MouseEvent} */ event) => {
     if (instance.currentMode && instance.currentMode.handleContextMenu) {
       return instance.currentMode.handleContextMenu(event)
     }

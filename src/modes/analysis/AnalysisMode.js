@@ -377,8 +377,7 @@ export class AnalysisMode extends BaseMode {
     
     this.state.analysis.markers.push(marker)
     
-    // Log marker addition for debugging
-    console.log(`Added marker at time: ${marker.time.toFixed(2)}s, freq: ${marker.freq.toFixed(1)}Hz, color: ${marker.color}`)
+    // Marker added - removed console.log
     
     // Update markers table
     this.updateMarkersTable()
@@ -399,8 +398,8 @@ export class AnalysisMode extends BaseMode {
     
     const index = this.state.analysis.markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
-      const removedMarker = this.state.analysis.markers.splice(index, 1)[0]
-      console.log(`Removed marker at time: ${removedMarker.time.toFixed(2)}s, freq: ${removedMarker.freq.toFixed(1)}Hz`)
+      this.state.analysis.markers.splice(index, 1)
+      // Marker removed - removed console.log
       
       // Update markers table
       this.updateMarkersTable()

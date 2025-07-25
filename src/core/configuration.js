@@ -14,7 +14,7 @@ import { drawAxes } from '../rendering/axes.js'
  */
 export function extractConfigData(instance) {
   if (!instance.configTable) {
-    console.warn('GramFrame: No config table provided for configuration extraction')
+    // No config table provided - removed console.warn
     return
   }
   
@@ -114,7 +114,7 @@ export function extractConfigData(instance) {
     let foundTimeConfig = false
     let foundFreqConfig = false
     
-    rows.forEach((row, index) => {
+    rows.forEach((row, _index) => {
       try {
         const cells = row.querySelectorAll('td')
         if (cells.length >= 3) {
@@ -126,12 +126,12 @@ export function extractConfigData(instance) {
           const max = parseFloat(maxText)
           
           if (isNaN(min) || isNaN(max)) {
-            console.warn(`GramFrame: Invalid numeric values in row ${index + 1}: min="${minText}", max="${maxText}"`)
+            // Invalid numeric values - removed console.warn
             return
           }
           
           if (min >= max) {
-            console.warn(`GramFrame: Invalid range in row ${index + 1}: min (${min}) >= max (${max})`)
+            // Invalid range - removed console.warn
             return
           }
           
@@ -147,20 +147,20 @@ export function extractConfigData(instance) {
 
           }
         }
-      } catch (error) {
-        console.warn(`GramFrame: Error parsing row ${index + 1}:`, error instanceof Error ? error.message : String(error))
+      } catch {
+        // Error parsing row - removed console.warn
       }
     })
     
     // Validate that we found required configuration
     if (!foundTimeConfig) {
-      console.warn('GramFrame: No valid time configuration found, using defaults (0-60s)')
+      // No valid time configuration found, using defaults - removed console.warn
       instance.state.config.timeMin = 0
       instance.state.config.timeMax = 60
     }
     
     if (!foundFreqConfig) {
-      console.warn('GramFrame: No valid frequency configuration found, using defaults (0-100Hz)')
+      // No valid frequency configuration found, using defaults - removed console.warn
       instance.state.config.freqMin = 0
       instance.state.config.freqMax = 100
     }

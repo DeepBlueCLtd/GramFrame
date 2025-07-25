@@ -331,7 +331,7 @@ window.GramFrame = GramFrameAPI
 if (import.meta.hot) {
   // @ts-ignore - Vite HMR API
   import.meta.hot.accept(() => {
-    console.log('🔄 GramFrame component updated - Hot reloading')
+    // Hot reloading - removed console.log
     
     // Store old state listeners before replacing the API
     const oldListeners = getGlobalStateListeners()
@@ -347,6 +347,6 @@ if (import.meta.hot) {
       GramFrameAPI.addStateListener(listener)
     })
     
-    console.log('✅ GramFrame hot reload complete')
+    // Hot reload complete - removed console.log
   })
 }

@@ -47,7 +47,7 @@ export default [
       }],
       'no-undef': 'error',
       'no-redeclare': 'error',
-      'no-console': 'warn', // Allow console for now, but warn
+      'no-console': ['warn', { allow: ['error'] }], // Allow console.error, warn on others
       
       // Disable some rules that might be too strict for your existing codebase
       'no-var': 'off', // Allow var declarations for now
