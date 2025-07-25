@@ -32,78 +32,78 @@ export class BaseMode {
 
   /**
    * Handle mouse click events
-   * @param {MouseEvent} event - The mouse click event
-   * @param {Object} coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * @param {MouseEvent} _event - The mouse click event
+   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
    */
-  handleClick(event, coords) {
+  handleClick(_event, _coords) {
     // Default implementation - override in subclasses
   }
 
   /**
    * Handle mouse down events
-   * @param {MouseEvent} event - The mouse down event
-   * @param {Object} coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * @param {MouseEvent} _event - The mouse down event
+   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
    */
-  handleMouseDown(event, coords) {
+  handleMouseDown(_event, _coords) {
     // Default implementation - override in subclasses
   }
 
   /**
    * Handle mouse move events
-   * @param {MouseEvent} event - The mouse move event
-   * @param {Object} coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * @param {MouseEvent} _event - The mouse move event
+   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
    */
-  handleMouseMove(event, coords) {
+  handleMouseMove(_event, _coords) {
     // Default implementation - override in subclasses
   }
 
   /**
    * Handle mouse up events
-   * @param {MouseEvent} event - The mouse up event
-   * @param {Object} coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * @param {MouseEvent} _event - The mouse up event
+   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
    */
-  handleMouseUp(event, coords) {
+  handleMouseUp(_event, _coords) {
     // Default implementation - override in subclasses
   }
 
   /**
    * Handle context menu (right-click) events
-   * @param {MouseEvent} event - The context menu event
-   * @param {Object} coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * @param {MouseEvent} _event - The context menu event
+   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
    */
-  handleContextMenu(event, coords) {
+  handleContextMenu(_event, _coords) {
     // Default implementation - override in subclasses
   }
 
   /**
    * Render mode-specific cursor indicators and overlays
-   * @param {SVGElement} svg - The SVG container element
+   * @param {SVGElement} _svg - The SVG container element
    */
-  render(svg) {
+  render(_svg) {
     // Default implementation - override in subclasses
   }
 
   /**
    * Update cursor position and related visual indicators
-   * @param {Object} coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
+   * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
    */
-  updateCursor(coords) {
+  updateCursor(_coords) {
     // Default implementation - override in subclasses
   }
 
   /**
    * Update the readout panel with mode-specific information
-   * @param {Object} coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
+   * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
    */
-  updateReadout(coords) {
+  updateReadout(_coords) {
     // Default implementation - override in subclasses
   }
 
   /**
    * Update LED displays with mode-specific values
-   * @param {Object} coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
+   * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
    */
-  updateLEDs(coords) {
+  updateLEDs(_coords) {
     // Default implementation - override in subclasses
   }
 
@@ -137,9 +137,9 @@ export class BaseMode {
   /**
    * Create mode-specific UI elements when entering this mode
    * Override in subclasses to create mode-specific UI elements
-   * @param {HTMLElement} readoutPanel - Container for UI elements
+   * @param {HTMLElement} _readoutPanel - Container for UI elements
    */
-  createUI(readoutPanel) {
+  createUI(_readoutPanel) {
     // Default implementation - override in subclasses
     this.uiElements = {}
   }

@@ -138,8 +138,9 @@
   flex-wrap: nowrap;
 }
 
-/* Remove top margin from harmonic panel in harmonics mode for proper alignment */
+/* Show harmonic panel in harmonics mode and remove top margin for proper alignment */
 .gram-frame-harmonics-mode .gram-frame-harmonic-panel {
+  display: block;
   margin-top: 0;
 }
 

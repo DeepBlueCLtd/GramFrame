@@ -201,9 +201,8 @@ export function createGramFrameAPI(GramFrame) {
     
     /**
      * Set debug grid visibility (future implementation)
-     * @param {boolean} visible - Whether to show the debug grid
      */
-    setDebugGrid(visible) {
+    setDebugGrid() {
       // This will be implemented in Phase 5
 
     },

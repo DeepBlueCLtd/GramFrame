@@ -4,25 +4,9 @@
 
 /// <reference path="./types.js" />
 
-import { 
-  screenToSVGCoordinates,
-  imageToDataCoordinates,
-  dataToSVGCoordinates
-} from './utils/coordinates.js'
-
-import {
-  createSVGLine,
-  createSVGText,
-  calculateLayoutDimensions,
-  withMarginOffset
-} from './utils/svg.js'
-
-
 import {
   createInitialState,
   notifyStateListeners,
-  addGlobalStateListener,
-  removeGlobalStateListener,
   getGlobalStateListeners,
   clearGlobalStateListeners
 } from './core/state.js'
@@ -31,28 +15,15 @@ import {
   createRateInput,
   updateLEDDisplays,
   createLEDDisplay,
-  createModeSwitchingUI,
-  updateGuidanceContent,
-  createColorPicker
+  createModeSwitchingUI
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'
-
-import {
-  triggerHarmonicsDisplay
-} from './core/analysis.js'
 
 import { extractConfigData } from './core/configuration.js'
 
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
 import { ModeFactory } from './modes/ModeFactory.js'
-
-import { 
-  drawAxes,
-  clearAxes,
-  handleResize,
-  handleSVGResize
-} from './rendering/axes.js'
 
 import {
   updateCursorIndicators
@@ -65,7 +36,6 @@ import {
 } from './core/events.js'
 
 import { setupComponentTable } from './components/table.js'
-
 
 /**
  * GramFrame class - Main component implementation
@@ -370,7 +340,7 @@ if (import.meta.hot) {
     clearGlobalStateListeners()
     
     // Re-initialize the component
-    const instances = GramFrameAPI.init()
+    GramFrameAPI.init()
     
     // Restore state listeners
     oldListeners.forEach(listener => {

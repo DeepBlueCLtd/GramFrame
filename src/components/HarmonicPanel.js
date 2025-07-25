@@ -7,10 +7,9 @@
 /**
  * Create harmonic management panel
  * @param {HTMLElement} container - Container element to append the panel to
- * @param {Object} instance - GramFrame instance
  * @returns {HTMLElement} The created panel element
  */
-export function createHarmonicPanel(container, instance) {
+export function createHarmonicPanel(container) {
   const panel = document.createElement('div')
   panel.className = 'gram-frame-harmonic-panel'
   panel.innerHTML = `
@@ -103,19 +102,4 @@ export function updateHarmonicPanelContent(panel, instance) {
       }
     })
   })
-}
-
-/**
- * Show or hide the harmonic panel based on mode
- * @param {HTMLElement} panel - Panel element
- * @param {string} mode - Current mode
- */
-export function toggleHarmonicPanelVisibility(panel, mode) {
-  if (!panel) return
-  
-  if (mode === 'harmonics') {
-    panel.style.display = 'block'
-  } else {
-    panel.style.display = 'none'
-  }
 }
