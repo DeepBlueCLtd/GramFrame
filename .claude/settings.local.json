@@ -49,7 +49,8 @@
       "Bash(awk:*)",
       "WebFetch(domain:docs.anthropic.com)",
       "Bash(git stash:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [
       "Bash(git add:*)",
