@@ -3,6 +3,7 @@ import { createSVGLine } from '../../utils/svg.js'
 import { createLEDDisplay, createColorPicker } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
+import { formatTime } from '../../utils/timeFormatter.js'
 
 /**
  * Analysis mode implementation
@@ -215,7 +216,7 @@ export class AnalysisMode extends BaseMode {
     ledsContainer.style.gap = '6px'
     
     // Create Time LED display
-    this.uiElements.timeLED = createLEDDisplay('Time (s)', '0.00')
+    this.uiElements.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
     this.uiElements.timeLED.style.flex = '1'
     this.uiElements.timeLED.style.minWidth = '0'
     ledsContainer.appendChild(this.uiElements.timeLED)
@@ -299,7 +300,7 @@ export class AnalysisMode extends BaseMode {
     headerRow.appendChild(colorHeader)
     
     const timeHeader = document.createElement('th')
-    timeHeader.textContent = 'Time (s)'
+    timeHeader.textContent = 'Time (mm:ss)'
     timeHeader.style.width = '30%'
     headerRow.appendChild(timeHeader)
     
@@ -461,7 +462,7 @@ export class AnalysisMode extends BaseMode {
       
       // Time cell
       const timeCell = document.createElement('td')
-      timeCell.textContent = marker.time.toFixed(2)
+      timeCell.textContent = formatTime(marker.time)
       row.appendChild(timeCell)
       
       // Frequency cell
@@ -504,7 +505,7 @@ export class AnalysisMode extends BaseMode {
         this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00'
       }
       if (this.uiElements.timeLED) {
-        this.uiElements.timeLED.querySelector('.gram-frame-led-value').textContent = '0.00'
+        this.uiElements.timeLED.querySelector('.gram-frame-led-value').textContent = formatTime(0)
       }
       return
     }
@@ -517,7 +518,7 @@ export class AnalysisMode extends BaseMode {
 
     // Update time LED
     if (this.uiElements.timeLED) {
-      const timeValue = this.state.cursorPosition.time.toFixed(2)
+      const timeValue = formatTime(this.state.cursorPosition.time)
       this.uiElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
     }
   }

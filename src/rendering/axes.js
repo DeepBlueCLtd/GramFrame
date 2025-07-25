@@ -10,6 +10,8 @@ import {
   calculateLayoutDimensions
 } from '../utils/svg.js'
 
+import { formatTime } from '../utils/timeFormatter.js'
+
 import { notifyStateListeners } from '../core/state.js'
 
 /**
@@ -78,7 +80,7 @@ export function drawTimeAxis(instance) {
     const label = createSVGText(
       margins.left - 8,
       yPos - 5, // Align with tick mark position
-      timeValue.toFixed(1) + 's',
+      formatTime(timeValue),
       'gram-frame-axis-label',
       'end'
     )

@@ -92,7 +92,7 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     
     // According to new LED format: numerical values only
     expect(freqText).toMatch(/\d+\.\d$/)  // 1 decimal place for frequency (numerical only)
-    expect(timeText).toMatch(/\d+\.\d{2}$/)  // 2 decimal places for time (numerical only)
+    expect(timeText).toMatch(/\d{2}:\d{2}$/)  // mm:ss format for time (numerical only)
     
     // Verify format structure - no units in values
     expect(freqText).not.toContain('Freq: ')
@@ -116,7 +116,7 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
     
     expect(freqText).toBe('0.00')
-    expect(timeText).toBe('0.00')
+    expect(timeText).toBe('00:00')
   })
 
   test('Analysis mode operates on hover only with no click interactions', async () => {
@@ -263,7 +263,7 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
       const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
       
       expect(freqText).toMatch(/\d+\.\d$/)
-      expect(timeText).toMatch(/\d+\.\d{2}$/)
+      expect(timeText).toMatch(/\d{2}:\d{2}$/)
     }
   })
 })

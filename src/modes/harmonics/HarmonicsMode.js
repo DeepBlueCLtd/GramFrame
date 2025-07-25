@@ -4,7 +4,7 @@ import { drawAnalysisMode } from '../../rendering/cursors.js'
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
-import { createLEDDisplay, createColorPicker } from '../../components/UIComponents.js'
+import { createLEDDisplay, createColorPicker, updateLEDDisplays } from '../../components/UIComponents.js'
 
 /**
  * Harmonics mode implementation
@@ -123,7 +123,7 @@ export class HarmonicsMode extends BaseMode {
       this.state.harmonics.harmonicData = []
       
       // Update displays and indicators
-      this.instance.updateLEDDisplays(this.instance, this.state)
+      updateLEDDisplays(this.instance, this.state)
       updateCursorIndicators(this.instance)
       
       // Update harmonic panel
@@ -217,6 +217,9 @@ export class HarmonicsMode extends BaseMode {
       const freqValue = this.state.cursorPosition.freq.toFixed(1)
       this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = freqValue
     }
+    
+    // Update harmonic panel to show current rate values
+    this.updateHarmonicPanel()
   }
 
   /**

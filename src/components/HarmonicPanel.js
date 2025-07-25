@@ -52,10 +52,15 @@ export function updateHarmonicPanelContent(panel, instance) {
   // Always create table structure with headers, populate tbody based on harmonic sets
   const tableBodyHTML = harmonicSets.length === 0 ? '' : harmonicSets.map(harmonicSet => {
     // Calculate rate: cursor frequency / spacing
-    // For display, we'll show a representative rate based on a middle harmonic
-    const representativeHarmonic = 5
-    const representativeFreq = representativeHarmonic * harmonicSet.spacing
-    const rate = (representativeFreq / harmonicSet.spacing).toFixed(2)
+    // If cursor position is available, use it; otherwise show a representative rate
+    let rate
+    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
+      rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(2)
+    } else {
+      // Fallback: show a representative rate based on a middle harmonic
+      const representativeHarmonic = 5
+      rate = representativeHarmonic.toFixed(2)
+    }
     
     return `
       <tr data-harmonic-id="${harmonicSet.id}">
