@@ -123,7 +123,7 @@ export function extractConfigData(instance) {
     rows.forEach((row, index) => {
       try {
         const cells = row.querySelectorAll('td')
-        if (cells.length >= 2) {
+        if (cells.length == 2) {
           const param = cells[0].textContent?.trim() || ''
           const valueText = cells[1].textContent?.trim() || '0'
           

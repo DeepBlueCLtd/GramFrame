@@ -282,7 +282,7 @@ export function createGramFrameAPI(GramFrame) {
       
       rows.forEach(row => {
         const cells = row.querySelectorAll('td')
-        if (cells.length >= 2) {
+        if (cells.length == 2) {
           const param = cells[0].textContent?.trim().toLowerCase()
           const value = cells[1].textContent?.trim()
           
