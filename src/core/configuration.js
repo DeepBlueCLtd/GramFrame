@@ -111,40 +111,37 @@ export function extractConfigData(instance) {
   // Extract min/max values from the table rows with error handling
   try {
     const rows = instance.configTable.querySelectorAll('tr')
-    let foundTimeConfig = false
-    let foundFreqConfig = false
+    /** @type {number | null} */
+    let timeStart = null
+    /** @type {number | null} */
+    let timeEnd = null
+    /** @type {number | null} */
+    let freqStart = null
+    /** @type {number | null} */
+    let freqEnd = null
     
     rows.forEach((row, index) => {
       try {
         const cells = row.querySelectorAll('td')
-        if (cells.length >= 3) {
+        if (cells.length === 2) {
           const param = cells[0].textContent?.trim() || ''
-          const minText = cells[1].textContent?.trim() || '0'
-          const maxText = cells[2].textContent?.trim() || '0'
+          const valueText = cells[1].textContent?.trim() || '0'
           
-          const min = parseFloat(minText)
-          const max = parseFloat(maxText)
+          const value = parseFloat(valueText)
           
-          if (isNaN(min) || isNaN(max)) {
-            console.warn(`GramFrame: Invalid numeric values in row ${index + 1}: min="${minText}", max="${maxText}"`)
+          if (isNaN(value)) {
+            console.warn(`GramFrame: Invalid numeric value in row ${index + 1}: value="${valueText}"`)
             return
           }
           
-          if (min >= max) {
-            console.warn(`GramFrame: Invalid range in row ${index + 1}: min (${min}) >= max (${max})`)
-            return
-          }
-          
-          if (param === 'time') {
-            instance.state.config.timeMin = min
-            instance.state.config.timeMax = max
-            foundTimeConfig = true
-
-          } else if (param === 'freq') {
-            instance.state.config.freqMin = min
-            instance.state.config.freqMax = max
-            foundFreqConfig = true
-
+          if (param === 'time-start') {
+            timeStart = value
+          } else if (param === 'time-end') {
+            timeEnd = value
+          } else if (param === 'freq-start') {
+            freqStart = value
+          } else if (param === 'freq-end') {
+            freqEnd = value
           }
         }
       } catch (error) {
@@ -152,27 +149,32 @@ export function extractConfigData(instance) {
       }
     })
     
-    // Validate that we found required configuration
-    if (!foundTimeConfig) {
-      console.warn('GramFrame: No valid time configuration found, using defaults (0-60s)')
-      instance.state.config.timeMin = 0
-      instance.state.config.timeMax = 60
+    // Set time configuration - require both start and end
+    if (timeStart === null || timeEnd === null) {
+      throw new Error('Missing required time configuration: both time-start and time-end must be present with valid numeric values')
     }
     
-    if (!foundFreqConfig) {
-      console.warn('GramFrame: No valid frequency configuration found, using defaults (0-100Hz)')
-      instance.state.config.freqMin = 0
-      instance.state.config.freqMax = 100
+    if (timeStart >= timeEnd) {
+      throw new Error(`Invalid time range: start (${timeStart}) must be less than end (${timeEnd})`)
     }
+    
+    instance.state.config.timeMin = timeStart
+    instance.state.config.timeMax = timeEnd
+    
+    // Set frequency configuration - require both start and end
+    if (freqStart === null || freqEnd === null) {
+      throw new Error('Missing required frequency configuration: both freq-start and freq-end must be present with valid numeric values')
+    }
+    
+    if (freqStart >= freqEnd) {
+      throw new Error(`Invalid frequency range: start (${freqStart}) must be less than end (${freqEnd})`)
+    }
+    
+    instance.state.config.freqMin = freqStart
+    instance.state.config.freqMax = freqEnd
     
   } catch (error) {
-    console.error('GramFrame: Error extracting configuration data:', error instanceof Error ? error.message : String(error))
-    // Set safe defaults
-    instance.state.config = {
-      timeMin: 0,
-      timeMax: 60,
-      freqMin: 0,
-      freqMax: 100
-    }
+    // Re-throw the error so createGramFrameAPI can handle it and show error to user
+    throw error
   }
 }
