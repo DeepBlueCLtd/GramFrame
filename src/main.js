@@ -184,6 +184,17 @@ export class GramFrame {
    * @param {ModeType} mode - Target mode
    */
   _switchMode(mode) {
+    const previousMode = this.state.mode
+    
+    // Log mode switch event for debugging and memory log
+    console.log(`Mode switch: ${previousMode} → ${mode}`, {
+      timestamp: new Date().toISOString(),
+      event: 'mode_switch',
+      previousMode,
+      newMode: mode,
+      instanceId: this.instanceId
+    })
+    
     // Update state
     this.state.mode = mode
     

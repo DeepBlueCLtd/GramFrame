@@ -1,5 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
-import { createSVGLine } from '../../utils/svg.js'
+import { createSVGLine, createSVGText } from '../../utils/svg.js'
 import { createLEDDisplay, createColorPicker } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
@@ -65,8 +65,8 @@ export class AnalysisMode extends BaseMode {
       this.renderCursor()
     }
     
-    // Render all persistent markers
-    this.renderMarkers()
+    // Render all persistent features from ALL modes for cross-mode visibility
+    this.renderAllPersistentFeatures()
   }
 
   /**
@@ -184,6 +184,147 @@ export class AnalysisMode extends BaseMode {
     centerPoint.setAttribute('fill', marker.color)
     centerPoint.setAttribute('class', 'gram-frame-marker-point')
     this.instance.cursorGroup.appendChild(centerPoint)
+  }
+
+  /**
+   * Render all persistent features from all modes for cross-mode visibility
+   */
+  renderAllPersistentFeatures() {
+    try {
+      // Render analysis markers (always visible)
+      this.renderMarkers()
+      
+      // Render harmonic sets from harmonics mode (always visible)
+      this.renderHarmonicSets()
+      
+      // Render doppler markers (always visible) 
+      this.renderDopplerMarkers()
+      
+      console.log('AnalysisMode: rendered all persistent features for cross-mode visibility')
+    } catch (error) {
+      console.error('Error rendering persistent features in AnalysisMode:', error)
+    }
+  }
+
+  /**
+   * Render harmonic sets from harmonics mode
+   */
+  renderHarmonicSets() {
+    if (!this.state.harmonics || !this.state.harmonics.harmonicSets) return
+    
+    // Use the proper harmonic rendering logic from HarmonicsMode
+    this.state.harmonics.harmonicSets.forEach(harmonicSet => {
+      this.drawHarmonicSetLines(harmonicSet)
+    })
+  }
+
+  /**
+   * Draw harmonic set lines (reusing HarmonicsMode logic)
+   * @param {Object} harmonicSet - Harmonic set to render
+   */
+  drawHarmonicSetLines(harmonicSet) {
+    const margins = this.state.axes.margins
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    const { freqMin, freqMax } = this.state.config
+    
+    // Calculate visible harmonic lines
+    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
+    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
+    
+    // Calculate vertical extent (20% of SVG height, centered on anchor time)
+    const lineHeight = naturalHeight * 0.2
+    const timeRange = this.state.config.timeMax - this.state.config.timeMin
+    const timeRatio = (harmonicSet.anchorTime - this.state.config.timeMin) / timeRange
+    // Invert the Y coordinate since Y=0 is at top but timeMin should be at bottom
+    const anchorSVGY = margins.top + (1 - timeRatio) * naturalHeight
+    const lineStartY = anchorSVGY - lineHeight / 2
+    const lineEndY = anchorSVGY + lineHeight / 2
+    
+    // Draw harmonic lines
+    for (let harmonic = minHarmonic; harmonic <= maxHarmonic; harmonic++) {
+      const freq = harmonic * harmonicSet.spacing
+      
+      // Convert frequency to SVG x coordinate
+      const freqRatio = (freq - freqMin) / (freqMax - freqMin)
+      const svgX = margins.left + freqRatio * naturalWidth
+      
+      // Draw shadow line for visibility
+      const shadowLine = createSVGLine(
+        svgX,
+        lineStartY,
+        svgX,
+        lineEndY,
+        'gram-frame-harmonic-set-shadow'
+      )
+      this.instance.cursorGroup.appendChild(shadowLine)
+      
+      // Draw main line with harmonic set color
+      const mainLine = createSVGLine(
+        svgX,
+        lineStartY,
+        svgX,
+        lineEndY,
+        'gram-frame-harmonic-set-line'
+      )
+      mainLine.setAttribute('stroke', harmonicSet.color)
+      this.instance.cursorGroup.appendChild(mainLine)
+    }
+  }
+
+  /**
+   * Render doppler markers from doppler mode
+   */
+  renderDopplerMarkers() {
+    if (!this.state.doppler) return
+    
+    // Render fMinus marker
+    if (this.state.doppler.fMinus) {
+      this.renderDopplerMarker(this.state.doppler.fMinus, '#ff4444', 'f-')
+    }
+    
+    // Render fPlus marker  
+    if (this.state.doppler.fPlus) {
+      this.renderDopplerMarker(this.state.doppler.fPlus, '#44ff44', 'f+')
+    }
+    
+    // Render fZero marker
+    if (this.state.doppler.fZero) {
+      this.renderDopplerMarker(this.state.doppler.fZero, '#4444ff', 'f₀')
+    }
+  }
+
+  /**
+   * Render a single doppler marker
+   */
+  renderDopplerMarker(marker, color, label) {
+    const margins = this.state.axes.margins
+    
+    // Convert data coordinates to image coordinates
+    const imageX = (marker.time - this.state.config.timeMin) / 
+      (this.state.config.timeMax - this.state.config.timeMin) * this.state.imageDetails.naturalWidth
+    const imageY = (this.state.config.freqMax - marker.frequency) / 
+      (this.state.config.freqMax - this.state.config.freqMin) * this.state.imageDetails.naturalHeight
+    
+    const markerSVGX = margins.left + imageX
+    const markerSVGY = margins.top + imageY
+    
+    // Create circle marker
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    circle.setAttribute('cx', String(markerSVGX))
+    circle.setAttribute('cy', String(markerSVGY))
+    circle.setAttribute('r', '6')
+    circle.setAttribute('fill', color)
+    circle.setAttribute('stroke', '#ffffff')
+    circle.setAttribute('stroke-width', '2')
+    circle.setAttribute('opacity', '0.8')
+    circle.setAttribute('class', 'gram-frame-doppler-marker')
+    this.instance.cursorGroup.appendChild(circle)
+    
+    // Add label
+    const text = createSVGText(markerSVGX + 10, markerSVGY - 10, label, 'gram-frame-doppler-label')
+    text.setAttribute('fill', color)
+    text.setAttribute('font-weight', 'bold')
+    this.instance.cursorGroup.appendChild(text)
   }
 
   /**
@@ -329,6 +470,9 @@ export class AnalysisMode extends BaseMode {
     this.uiElements.markersContainer = tableContainer
     this.uiElements.markersTable = table
     this.uiElements.markersTableBody = tbody
+    
+    // Populate table with existing markers when UI is created
+    this.updateMarkersTable()
   }
 
   /**
@@ -378,8 +522,16 @@ export class AnalysisMode extends BaseMode {
     
     this.state.analysis.markers.push(marker)
     
-    // Log marker addition for debugging
-    console.log(`Added marker at time: ${marker.time.toFixed(2)}s, freq: ${marker.freq.toFixed(1)}Hz, color: ${marker.color}`)
+    // Log marker creation for debugging and memory log
+    console.log(`Feature created: Analysis marker ${marker.id}`, {
+      timestamp: new Date().toISOString(),
+      event: 'feature_creation',
+      featureType: 'analysis_marker',
+      featureId: marker.id,
+      mode: 'analysis',
+      position: { time: marker.time, frequency: marker.freq },
+      color: marker.color
+    })
     
     // Update markers table
     this.updateMarkersTable()
@@ -401,7 +553,17 @@ export class AnalysisMode extends BaseMode {
     const index = this.state.analysis.markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
       const removedMarker = this.state.analysis.markers.splice(index, 1)[0]
-      console.log(`Removed marker at time: ${removedMarker.time.toFixed(2)}s, freq: ${removedMarker.freq.toFixed(1)}Hz`)
+      
+      // Log marker deletion for debugging and memory log
+      console.log(`Feature deleted: Analysis marker ${removedMarker.id}`, {
+        timestamp: new Date().toISOString(),
+        event: 'feature_deletion',
+        featureType: 'analysis_marker',
+        featureId: removedMarker.id,
+        mode: 'analysis',
+        position: { time: removedMarker.time, frequency: removedMarker.freq },
+        color: removedMarker.color
+      })
       
       // Update markers table
       this.updateMarkersTable()
@@ -527,11 +689,9 @@ export class AnalysisMode extends BaseMode {
    * Clean up analysis mode state
    */
   cleanup() {
-    // Clear all markers when leaving analysis mode
-    if (this.state.analysis) {
-      this.state.analysis.markers = []
-      this.updateMarkersTable()
-    }
+    // Note: Markers are now persistent across mode switches
+    // No longer clearing markers when leaving analysis mode
+    console.log('AnalysisMode cleanup: preserving markers for cross-mode persistence')
   }
 
   /**
@@ -557,9 +717,8 @@ export class AnalysisMode extends BaseMode {
    * Reset analysis mode state
    */
   resetState() {
-    if (this.state.analysis) {
-      this.state.analysis.markers = []
-      this.updateMarkersTable()
-    }
+    // Note: resetState is only called by user action (not mode switching)
+    // Markers should only be cleared when explicitly requested
+    console.log('AnalysisMode resetState: preserving markers (resetState should only clear when explicitly requested)')
   }
 }

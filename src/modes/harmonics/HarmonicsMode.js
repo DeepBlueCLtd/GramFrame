@@ -145,10 +145,145 @@ export class HarmonicsMode extends BaseMode {
       drawAnalysisMode(this.instance)
     }
     
-    // Draw persistent harmonic sets (always visible)
-    this.state.harmonics.harmonicSets.forEach(harmonicSet => {
-      this.drawHarmonicSetLines(harmonicSet)
+    // Render all persistent features from ALL modes for cross-mode visibility
+    this.renderAllPersistentFeatures()
+  }
+
+  /**
+   * Render all persistent features from all modes for cross-mode visibility
+   */
+  renderAllPersistentFeatures() {
+    try {
+      // Render analysis markers (always visible)
+      this.renderAnalysisMarkers()
+      
+      // Render harmonic sets (always visible)
+      if (this.state.harmonics && this.state.harmonics.harmonicSets) {
+        this.state.harmonics.harmonicSets.forEach(harmonicSet => {
+          this.drawHarmonicSetLines(harmonicSet)
+        })
+      }
+      
+      // Render doppler markers (always visible)
+      this.renderDopplerMarkers()
+      
+      console.log('HarmonicsMode: rendered all persistent features for cross-mode visibility')
+    } catch (error) {
+      console.error('Error rendering persistent features in HarmonicsMode:', error)
+    }
+  }
+
+  /**
+   * Render analysis markers from analysis mode
+   */
+  renderAnalysisMarkers() {
+    if (!this.state.analysis || !this.state.analysis.markers) return
+    
+    const margins = this.state.axes.margins
+    
+    this.state.analysis.markers.forEach(marker => {
+      this.renderAnalysisMarker(marker, margins)
     })
+  }
+
+  /**
+   * Render a single analysis marker
+   */
+  renderAnalysisMarker(marker, margins) {
+    const markerSVGX = margins.left + marker.imageX
+    const markerSVGY = margins.top + marker.imageY
+    
+    // Create crosshair with marker color (20x20px size)
+    const crosshairSize = 10 // Half size for each direction
+    
+    // Vertical line
+    const verticalLine = createSVGLine(
+      markerSVGX,
+      markerSVGY - crosshairSize,
+      markerSVGX,
+      markerSVGY + crosshairSize,
+      'gram-frame-marker-line'
+    )
+    verticalLine.setAttribute('stroke', marker.color)
+    verticalLine.setAttribute('stroke-width', '3')
+    this.instance.cursorGroup.appendChild(verticalLine)
+    
+    // Horizontal line
+    const horizontalLine = createSVGLine(
+      markerSVGX - crosshairSize,
+      markerSVGY,
+      markerSVGX + crosshairSize,
+      markerSVGY,
+      'gram-frame-marker-line'
+    )
+    horizontalLine.setAttribute('stroke', marker.color)
+    horizontalLine.setAttribute('stroke-width', '3')
+    this.instance.cursorGroup.appendChild(horizontalLine)
+    
+    // Center point
+    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    centerPoint.setAttribute('cx', String(markerSVGX))
+    centerPoint.setAttribute('cy', String(markerSVGY))
+    centerPoint.setAttribute('r', '2')
+    centerPoint.setAttribute('fill', marker.color)
+    centerPoint.setAttribute('class', 'gram-frame-marker-point')
+    this.instance.cursorGroup.appendChild(centerPoint)
+  }
+
+  /**
+   * Render doppler markers from doppler mode
+   */
+  renderDopplerMarkers() {
+    if (!this.state.doppler) return
+    
+    // Render fMinus marker
+    if (this.state.doppler.fMinus) {
+      this.renderDopplerMarker(this.state.doppler.fMinus, '#ff4444', 'f-')
+    }
+    
+    // Render fPlus marker  
+    if (this.state.doppler.fPlus) {
+      this.renderDopplerMarker(this.state.doppler.fPlus, '#44ff44', 'f+')
+    }
+    
+    // Render fZero marker
+    if (this.state.doppler.fZero) {
+      this.renderDopplerMarker(this.state.doppler.fZero, '#4444ff', 'f₀')
+    }
+  }
+
+  /**
+   * Render a single doppler marker
+   */
+  renderDopplerMarker(marker, color, label) {
+    const margins = this.state.axes.margins
+    
+    // Convert data coordinates to image coordinates
+    const imageX = (marker.time - this.state.config.timeMin) / 
+      (this.state.config.timeMax - this.state.config.timeMin) * this.state.imageDetails.naturalWidth
+    const imageY = (this.state.config.freqMax - marker.frequency) / 
+      (this.state.config.freqMax - this.state.config.freqMin) * this.state.imageDetails.naturalHeight
+    
+    const markerSVGX = margins.left + imageX
+    const markerSVGY = margins.top + imageY
+    
+    // Create circle marker
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    circle.setAttribute('cx', String(markerSVGX))
+    circle.setAttribute('cy', String(markerSVGY))
+    circle.setAttribute('r', '6')
+    circle.setAttribute('fill', color)
+    circle.setAttribute('stroke', '#ffffff')
+    circle.setAttribute('stroke-width', '2')
+    circle.setAttribute('opacity', '0.8')
+    circle.setAttribute('class', 'gram-frame-doppler-marker')
+    this.instance.cursorGroup.appendChild(circle)
+    
+    // Add label
+    const text = createSVGText(markerSVGX + 10, markerSVGY - 10, label, 'gram-frame-doppler-label')
+    text.setAttribute('fill', color)
+    text.setAttribute('font-weight', 'bold')
+    this.instance.cursorGroup.appendChild(text)
   }
 
   /**
@@ -176,6 +311,9 @@ export class HarmonicsMode extends BaseMode {
     this.instance.freqLED = this.uiElements.freqLED
     this.instance.colorPicker = this.uiElements.colorPicker
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
+    
+    // Populate panel with existing harmonic sets when UI is created
+    this.updateHarmonicPanel()
   }
 
   /**
@@ -226,18 +364,22 @@ export class HarmonicsMode extends BaseMode {
    * Reset harmonics-specific state
    */
   resetState() {
+    // Note: resetState should only clear when explicitly requested
+    // Preserving harmonic sets for cross-mode persistence
     this.state.harmonics.baseFrequency = null
     this.state.harmonics.harmonicData = []
-    this.state.harmonics.harmonicSets = []
+    console.log('HarmonicsMode resetState: preserving harmonic sets (resetState should only clear when explicitly requested)')
   }
 
   /**
    * Clean up harmonics-specific state when switching away from harmonics mode
    */
   cleanup() {
+    // Note: Harmonic sets are now persistent across mode switches
+    // Only clear transient state, preserve harmonic sets
     this.state.harmonics.baseFrequency = null
     this.state.harmonics.harmonicData = []
-    this.state.harmonics.harmonicSets = []
+    console.log('HarmonicsMode cleanup: preserving harmonic sets for cross-mode persistence')
   }
 
   /**
@@ -286,6 +428,18 @@ export class HarmonicsMode extends BaseMode {
     
     this.state.harmonics.harmonicSets.push(harmonicSet)
     
+    // Log harmonic set creation for debugging and memory log
+    console.log(`Feature created: Harmonic set ${harmonicSet.id}`, {
+      timestamp: new Date().toISOString(),
+      event: 'feature_creation',
+      featureType: 'harmonic_set',
+      featureId: harmonicSet.id,
+      mode: 'harmonics',
+      anchorTime: harmonicSet.anchorTime,
+      spacing: harmonicSet.spacing,
+      color: harmonicSet.color
+    })
+    
     // Update display and notify listeners
     updateCursorIndicators(this.instance)
     if (this.instance.harmonicPanel) {
@@ -322,7 +476,19 @@ export class HarmonicsMode extends BaseMode {
   removeHarmonicSet(id) {
     const setIndex = this.state.harmonics.harmonicSets.findIndex(set => set.id === id)
     if (setIndex !== -1) {
-      this.state.harmonics.harmonicSets.splice(setIndex, 1)
+      const removedSet = this.state.harmonics.harmonicSets.splice(setIndex, 1)[0]
+      
+      // Log harmonic set deletion for debugging and memory log
+      console.log(`Feature deleted: Harmonic set ${removedSet.id}`, {
+        timestamp: new Date().toISOString(),
+        event: 'feature_deletion',
+        featureType: 'harmonic_set',
+        featureId: removedSet.id,
+        mode: 'harmonics',
+        anchorTime: removedSet.anchorTime,
+        spacing: removedSet.spacing,
+        color: removedSet.color
+      })
       
       // Update display and notify listeners
       updateCursorIndicators(this.instance)
