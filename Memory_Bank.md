@@ -1535,3 +1535,64 @@ None. Phase 1 completed exactly as specified with all validation checkpoints pas
 
 **Next Steps:**
 Ready to proceed with Phase 2: Extract Analysis Mode implementation.
+
+### GitHub Issue #32: Refactor Configuration Table Structure to Legacy Format (Completed)
+**Date: July 28, 2025**
+**Task Reference: Issue #32 - Reflect legacy config param structure**
+
+**Summary:**
+Refactored the GramFrame configuration table structure from the three-column format (param, min, max) to a simplified two-column format (param, value) that aligns with legacy HTML parameter structures.
+
+**Key Changes:**
+
+1. **Configuration Parsing (`src/core/configuration.js`)**:
+   - Updated `extractConfigData` function to parse two-column tables
+   - Changed from looking for `time` with min/max to `time-start` and `time-end`
+   - Changed from looking for `freq` with min/max to `freq-start` and `freq-end`
+   - Added explicit type annotations for TypeScript compatibility
+   - Maintained backward-compatible state structure
+
+2. **Validation Logic (`src/api/GramFrameAPI.js`)**:
+   - Updated `_validateConfigTable` to validate new parameter names
+   - Changed from checking for `time` and `freq` rows to checking for all four required rows
+   - Updated error messages to reflect new parameter names
+
+3. **HTML Updates**:
+   - `debug.html`: Updated table from three-column to two-column format
+   - `debug-multiple.html`: Updated all three config tables to new format
+   - `test-analysis-layout.html`: Updated to new format, preserved `rate` parameter
+   - Removed header row (`<th>param</th><th>min</th><th>max</th>`) from all tables
+
+**Table Structure Changes:**
+
+**Before:**
+```html
+<table class="gram-config">
+  <tr><td colspan="3"><img src="..."></td></tr>
+  <tr><th>param</th><th>min</th><th>max</th></tr>
+  <tr><td>time</td><td>0</td><td>60</td></tr>
+  <tr><td>freq</td><td>0</td><td>100</td></tr>
+</table>
+```
+
+**After:**
+```html
+<table class="gram-config">
+  <tr><td colspan="2"><img src="..."></td></tr>
+  <tr><td>time-start</td><td>0</td></tr>
+  <tr><td>time-end</td><td>60</td></tr>
+  <tr><td>freq-start</td><td>0</td></tr>
+  <tr><td>freq-end</td><td>100</td></tr>
+</table>
+```
+
+**Validation Results:**
+- **TypeScript:** All type checks pass (`yarn typecheck`)
+- **Tests:** All 95 tests pass (`yarn test`)
+- **Functionality:** Component properly parses and uses the new table format
+- **Backward Compatibility:** Internal state structure remains unchanged
+
+**Status:** Completed - Configuration table structure successfully refactored to legacy format
+
+**Issues/Blockers:**
+None. All changes implemented successfully with no regressions.

@@ -273,38 +273,55 @@ export function createGramFrameAPI(GramFrame) {
         errors.push('Image has no src attribute')
       }
       
-      // Check for parameter rows
+      // Check for parameter rows (new two-column format)
       const rows = table.querySelectorAll('tr')
-      let hasTimeRow = false
-      let hasFreqRow = false
+      let hasTimeStart = false
+      let hasTimeEnd = false
+      let hasFreqStart = false
+      let hasFreqEnd = false
       
       rows.forEach(row => {
         const cells = row.querySelectorAll('td')
-        if (cells.length >= 3) {
+        if (cells.length >= 2) {
           const param = cells[0].textContent?.trim().toLowerCase()
-          const min = cells[1].textContent?.trim()
-          const max = cells[2].textContent?.trim()
+          const value = cells[1].textContent?.trim()
           
-          if (param === 'time') {
-            hasTimeRow = true
-            if (isNaN(parseFloat(min)) || isNaN(parseFloat(max))) {
-              errors.push('Time row has invalid numeric values')
+          if (param === 'time-start') {
+            hasTimeStart = true
+            if (isNaN(parseFloat(value))) {
+              errors.push('time-start row has invalid numeric value')
             }
-          } else if (param === 'freq') {
-            hasFreqRow = true
-            if (isNaN(parseFloat(min)) || isNaN(parseFloat(max))) {
-              errors.push('Frequency row has invalid numeric values')
+          } else if (param === 'time-end') {
+            hasTimeEnd = true
+            if (isNaN(parseFloat(value))) {
+              errors.push('time-end row has invalid numeric value')
+            }
+          } else if (param === 'freq-start') {
+            hasFreqStart = true
+            if (isNaN(parseFloat(value))) {
+              errors.push('freq-start row has invalid numeric value')
+            }
+          } else if (param === 'freq-end') {
+            hasFreqEnd = true
+            if (isNaN(parseFloat(value))) {
+              errors.push('freq-end row has invalid numeric value')
             }
           }
         }
       })
       
-      if (!hasTimeRow) {
-        errors.push('Missing time parameter row')
+      if (!hasTimeStart) {
+        errors.push('Missing time-start parameter row')
+      }
+      if (!hasTimeEnd) {
+        errors.push('Missing time-end parameter row')
       }
       
-      if (!hasFreqRow) {
-        errors.push('Missing frequency parameter row')
+      if (!hasFreqStart) {
+        errors.push('Missing freq-start parameter row')
+      }
+      if (!hasFreqEnd) {
+        errors.push('Missing freq-end parameter row')
       }
       
       return {
