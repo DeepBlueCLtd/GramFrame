@@ -6,7 +6,7 @@
 /// <reference path="../modes/harmonics/types.js" />
 /// <reference path="../modes/doppler/types.js" />
 
-import { createSVGLine, createSVGText } from '../utils/svg.js'
+import { createSVGLine, createSVGText, createSVGCircle } from '../utils/svg.js'
 
 /**
  * Update cursor indicators based on current mode and state
@@ -86,11 +86,7 @@ export function drawAnalysisMode(instance) {
   instance.cursorGroup.appendChild(horizontalLine)
   
   // Create center point indicator
-  const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-  centerPoint.setAttribute('cx', String(cursorSVGX))
-  centerPoint.setAttribute('cy', String(cursorSVGY))
-  centerPoint.setAttribute('r', '3')
-  centerPoint.setAttribute('class', 'gram-frame-cursor-point')
+  const centerPoint = createSVGCircle(cursorSVGX, cursorSVGY, 3, 'gram-frame-cursor-point')
   instance.cursorGroup.appendChild(centerPoint)
 }
 
@@ -282,11 +278,7 @@ export function drawDopplerMarker(instance, point, type) {
     instance.cursorGroup.appendChild(verticalLine)
   } else {
     // Draw dot for f+ and f-
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    circle.setAttribute('cx', String(svgX))
-    circle.setAttribute('cy', String(svgY))
-    circle.setAttribute('r', '4')
-    circle.setAttribute('class', `gram-frame-doppler-${type}`)
+    const circle = createSVGCircle(svgX, svgY, 4, `gram-frame-doppler-${type}`)
     
     let color = '#000000'
     
@@ -505,13 +497,9 @@ function drawPreviewMarker(instance, svgPos, type) {
     instance.cursorGroup.appendChild(verticalLine)
   } else {
     // Draw dot for f+ and f- preview
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    circle.setAttribute('cx', String(svgPos.x))
-    circle.setAttribute('cy', String(svgPos.y))
-    circle.setAttribute('r', '3')
+    const circle = createSVGCircle(svgPos.x, svgPos.y, 3, 'gram-frame-doppler-preview')
     circle.setAttribute('fill', '#ff0000')
     circle.setAttribute('opacity', '1.0')
-    circle.setAttribute('class', 'gram-frame-doppler-preview')
     instance.cursorGroup.appendChild(circle)
   }
 }

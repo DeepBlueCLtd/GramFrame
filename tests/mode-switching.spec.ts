@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test'
 import { GramFramePage } from './helpers/gram-frame-page'
+import { standardSetup, verifyModeButtons } from './helpers/test-utils'
 
 test.describe('Mode Switching UI Implementation (Task 4.1)', () => {
   let gramFramePage: GramFramePage
 
   test.beforeEach(async ({ page }) => {
     gramFramePage = new GramFramePage(page)
-    await gramFramePage.goto()
+    await standardSetup(gramFramePage)
   })
 
   test('mode switching UI components are present and correctly styled', async () => {
