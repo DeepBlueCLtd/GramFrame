@@ -36,6 +36,34 @@ export function clearAxes(instance) {
 }
 
 /**
+ * Calculate a font size that remains visually consistent across different scales
+ * @param {Object} instance - GramFrame instance
+ * @returns {number} Font size adjusted for current scale
+ */
+function calculateScaleAdjustedFontSize(instance) {
+  // Base font size that looks good at 1:1 scale
+  const baseFontSize = 10
+  
+  // Get the viewBox dimensions from the SVG
+  const viewBox = instance.svg.getAttribute('viewBox')
+  if (!viewBox) return baseFontSize
+  
+  const [, , viewBoxWidth] = viewBox.split(' ').map(Number)
+  
+  // Get the actual display width
+  const displayWidth = parseFloat(instance.svg.getAttribute('width') || '0')
+  
+  if (displayWidth === 0 || viewBoxWidth === 0) return baseFontSize
+  
+  // Calculate scale factor: if viewBox is larger than display, text would be smaller
+  // So we need to increase font-size proportionally
+  const scaleFactor = viewBoxWidth / displayWidth
+  
+  // Adjust font size inversely to the scale factor to maintain visual consistency
+  return baseFontSize * scaleFactor
+}
+
+/**
  * Draw time axis (vertical, left)
  * @param {Object} instance - GramFrame instance
  */
@@ -49,6 +77,9 @@ export function drawTimeAxis(instance) {
   const targetTickCount = Math.floor(naturalHeight / 50) // Aim for ticks every ~50px
   const tickCount = Math.max(2, Math.min(targetTickCount, 8))
   const tickInterval = range / (tickCount - 1)
+  
+  // Calculate font size that remains visually consistent
+  const fontSize = calculateScaleAdjustedFontSize(instance)
   
   // Draw main axis line (along the left edge of the image)
   const axisLine = createSVGLine(
@@ -84,7 +115,7 @@ export function drawTimeAxis(instance) {
       'gram-frame-axis-label',
       'end'
     )
-    label.setAttribute('font-size', '10')
+    label.setAttribute('font-size', String(fontSize))
     instance.timeAxisGroup.appendChild(label)
   }
 }
@@ -118,6 +149,9 @@ export function drawFrequencyAxis(instance) {
   const startTick = Math.ceil(freqMin / tickInterval) * tickInterval
   const endTick = Math.floor(freqMax / tickInterval) * tickInterval
   const tickCount = Math.floor((endTick - startTick) / tickInterval) + 1
+  
+  // Calculate font size that remains visually consistent
+  const fontSize = calculateScaleAdjustedFontSize(instance)
   
   // Draw main axis line (along the bottom edge of the image)
   const axisLineY = margins.top + naturalHeight
@@ -155,7 +189,7 @@ export function drawFrequencyAxis(instance) {
       'gram-frame-axis-label',
       'middle'
     )
-    label.setAttribute('font-size', '10')
+    label.setAttribute('font-size', String(fontSize))
     instance.freqAxisGroup.appendChild(label)
   }
 }
