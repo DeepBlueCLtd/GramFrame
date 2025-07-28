@@ -1,6 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
 import { createSVGLine, createSVGText } from '../../utils/svg.js'
-import { drawAnalysisMode, drawDopplerMarker, drawDopplerCurve, drawDopplerVerticalExtensions } from '../../rendering/cursors.js'
+import { drawAnalysisMode } from '../../rendering/cursors.js'
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
@@ -145,114 +145,42 @@ export class HarmonicsMode extends BaseMode {
       drawAnalysisMode(this.instance)
     }
     
-    // Render all persistent features from ALL modes for cross-mode visibility
-    this.renderAllPersistentFeatures()
-  }
-
-  /**
-   * Render all persistent features from all modes for cross-mode visibility
-   */
-  renderAllPersistentFeatures() {
-    try {
-      // Render analysis markers (always visible)
-      this.renderAnalysisMarkers()
-      
-      // Render harmonic sets (always visible)
-      if (this.state.harmonics && this.state.harmonics.harmonicSets) {
-        this.state.harmonics.harmonicSets.forEach(harmonicSet => {
-          this.drawHarmonicSetLines(harmonicSet)
-        })
-      }
-      
-      // Render doppler markers (always visible)
-      this.renderDopplerMarkers()
-      
-      console.log('HarmonicsMode: rendered all persistent features for cross-mode visibility')
-    } catch (error) {
-      console.error('Error rendering persistent features in HarmonicsMode:', error)
+    // Cross-mode persistent features are now handled by FeatureRenderer
+    // Only render our own harmonic sets here
+    if (this.state.harmonics && this.state.harmonics.harmonicSets) {
+      this.state.harmonics.harmonicSets.forEach(harmonicSet => {
+        this.drawHarmonicSetLines(harmonicSet)
+      })
     }
   }
 
   /**
-   * Render analysis markers from analysis mode
+   * Render only harmonics mode's own persistent features
+   * Used by FeatureRenderer for centralized cross-mode rendering
+   * @param {SVGElement} _cursorGroup - The cursor group element (not used, we use this.instance.cursorGroup)
    */
-  renderAnalysisMarkers() {
-    if (!this.state.analysis || !this.state.analysis.markers) return
-    
-    const margins = this.state.axes.margins
-    
-    this.state.analysis.markers.forEach(marker => {
-      this.renderAnalysisMarker(marker, margins)
-    })
+  renderOwnFeatures(_cursorGroup) {
+    // Only render harmonic sets
+    if (this.state.harmonics && this.state.harmonics.harmonicSets) {
+      this.state.harmonics.harmonicSets.forEach(harmonicSet => {
+        this.drawHarmonicSetLines(harmonicSet)
+      })
+    }
   }
 
   /**
-   * Render a single analysis marker
+   * Render harmonics mode's own cursor indicators (temporary/hover state)
+   * Used by FeatureRenderer for current mode cursor rendering
    */
-  renderAnalysisMarker(marker, margins) {
-    const markerSVGX = margins.left + marker.imageX
-    const markerSVGY = margins.top + marker.imageY
-    
-    // Create crosshair with marker color (20x20px size)
-    const crosshairSize = 10 // Half size for each direction
-    
-    // Vertical line
-    const verticalLine = createSVGLine(
-      markerSVGX,
-      markerSVGY - crosshairSize,
-      markerSVGX,
-      markerSVGY + crosshairSize,
-      'gram-frame-marker-line'
-    )
-    verticalLine.setAttribute('stroke', marker.color)
-    verticalLine.setAttribute('stroke-width', '3')
-    this.instance.cursorGroup.appendChild(verticalLine)
-    
-    // Horizontal line
-    const horizontalLine = createSVGLine(
-      markerSVGX - crosshairSize,
-      markerSVGY,
-      markerSVGX + crosshairSize,
-      markerSVGY,
-      'gram-frame-marker-line'
-    )
-    horizontalLine.setAttribute('stroke', marker.color)
-    horizontalLine.setAttribute('stroke-width', '3')
-    this.instance.cursorGroup.appendChild(horizontalLine)
-    
-    // Center point
-    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    centerPoint.setAttribute('cx', String(markerSVGX))
-    centerPoint.setAttribute('cy', String(markerSVGY))
-    centerPoint.setAttribute('r', '2')
-    centerPoint.setAttribute('fill', marker.color)
-    centerPoint.setAttribute('class', 'gram-frame-marker-point')
-    this.instance.cursorGroup.appendChild(centerPoint)
+  renderOwnCursor() {
+    // Draw cross-hairs if cursor position is available, but not when dragging harmonics
+    if (this.state.cursorPosition && !this.state.dragState.isDragging) {
+      drawAnalysisMode(this.instance)
+    }
   }
 
-  /**
-   * Render doppler markers from doppler mode
-   */
-  renderDopplerMarkers() {
-    if (!this.state.doppler) return
-    
-    // Use the original doppler rendering functions to ensure consistency
-    if (this.state.doppler.fMinus) {
-      drawDopplerMarker(this.instance, this.state.doppler.fMinus, 'fMinus')
-    }
-    if (this.state.doppler.fPlus) {
-      drawDopplerMarker(this.instance, this.state.doppler.fPlus, 'fPlus')
-    }
-    if (this.state.doppler.fZero) {
-      drawDopplerMarker(this.instance, this.state.doppler.fZero, 'fZero')
-    }
-    
-    // Draw the curve if both f+ and f- exist
-    if (this.state.doppler.fPlus && this.state.doppler.fMinus) {
-      drawDopplerCurve(this.instance, this.state.doppler.fPlus, this.state.doppler.fMinus, this.state.doppler.fZero)
-      drawDopplerVerticalExtensions(this.instance, this.state.doppler.fPlus, this.state.doppler.fMinus)
-    }
-  }
+  // NOTE: Cross-mode rendering is now handled by FeatureRenderer in core/
+  // Each mode only renders its own features via renderOwnFeatures()
 
 
   /**

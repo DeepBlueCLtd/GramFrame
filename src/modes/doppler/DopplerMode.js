@@ -2,7 +2,7 @@ import { BaseMode } from '../BaseMode.js'
 import { updateLEDDisplays, createLEDDisplay } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
-import { createSVGLine } from '../../utils/svg.js'
+// createSVGLine import removed - no longer used after refactoring
 import { 
   calculateDopplerSpeed,
   isNearMarker,
@@ -229,156 +229,34 @@ export class DopplerMode extends BaseMode {
       drawDopplerPreview(this.instance, doppler.tempFirst, doppler.previewEnd)
     }
     
-    // Render all persistent features from ALL modes for cross-mode visibility
-    this.renderAllPersistentFeatures()
-  }
-
-  /**
-   * Render all persistent features from all modes for cross-mode visibility
-   */
-  renderAllPersistentFeatures() {
-    try {
-      // Render analysis markers (always visible)
-      this.renderAnalysisMarkers()
-      
-      // Render harmonic sets (always visible)
-      this.renderHarmonicSets()
-      
-      // Render doppler markers (always visible)
-      this.renderDopplerMarkers()
-      
-      console.log('DopplerMode: rendered all persistent features for cross-mode visibility')
-    } catch (error) {
-      console.error('Error rendering persistent features in DopplerMode:', error)
+    // Cross-mode persistent features are now handled by FeatureRenderer
+    // Only render our own doppler markers here
+    
+    // Draw markers if they exist using the original doppler rendering functions
+    if (doppler.fMinus) {
+      drawDopplerMarker(this.instance, doppler.fMinus, 'fMinus')
+    }
+    if (doppler.fPlus) {
+      drawDopplerMarker(this.instance, doppler.fPlus, 'fPlus')
+    }
+    if (doppler.fZero) {
+      drawDopplerMarker(this.instance, doppler.fZero, 'fZero')
+    }
+    
+    // Draw the curve if both f+ and f- exist
+    if (doppler.fPlus && doppler.fMinus) {
+      drawDopplerCurve(this.instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
+      drawDopplerVerticalExtensions(this.instance, doppler.fPlus, doppler.fMinus)
     }
   }
 
   /**
-   * Render analysis markers from analysis mode
+   * Render only doppler mode's own persistent features
+   * Used by FeatureRenderer for centralized cross-mode rendering
+   * @param {SVGElement} _cursorGroup - The cursor group element (not used, we use this.instance.cursorGroup)
    */
-  renderAnalysisMarkers() {
-    if (!this.state.analysis || !this.state.analysis.markers) return
-    
-    const margins = this.state.axes.margins
-    
-    this.state.analysis.markers.forEach(marker => {
-      this.renderAnalysisMarker(marker, margins)
-    })
-  }
-
-  /**
-   * Render a single analysis marker
-   */
-  renderAnalysisMarker(marker, margins) {
-    const markerSVGX = margins.left + marker.imageX
-    const markerSVGY = margins.top + marker.imageY
-    
-    // Create crosshair with marker color (20x20px size)
-    const crosshairSize = 10 // Half size for each direction
-    
-    // Vertical line
-    const verticalLine = createSVGLine(
-      markerSVGX,
-      markerSVGY - crosshairSize,
-      markerSVGX,
-      markerSVGY + crosshairSize,
-      'gram-frame-marker-line'
-    )
-    verticalLine.setAttribute('stroke', marker.color)
-    verticalLine.setAttribute('stroke-width', '3')
-    this.instance.cursorGroup.appendChild(verticalLine)
-    
-    // Horizontal line
-    const horizontalLine = createSVGLine(
-      markerSVGX - crosshairSize,
-      markerSVGY,
-      markerSVGX + crosshairSize,
-      markerSVGY,
-      'gram-frame-marker-line'
-    )
-    horizontalLine.setAttribute('stroke', marker.color)
-    horizontalLine.setAttribute('stroke-width', '3')
-    this.instance.cursorGroup.appendChild(horizontalLine)
-    
-    // Center point
-    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    centerPoint.setAttribute('cx', String(markerSVGX))
-    centerPoint.setAttribute('cy', String(markerSVGY))
-    centerPoint.setAttribute('r', '2')
-    centerPoint.setAttribute('fill', marker.color)
-    centerPoint.setAttribute('class', 'gram-frame-marker-point')
-    this.instance.cursorGroup.appendChild(centerPoint)
-  }
-
-  /**
-   * Render harmonic sets from harmonics mode
-   */
-  renderHarmonicSets() {
-    if (!this.state.harmonics || !this.state.harmonics.harmonicSets) return
-    
-    // Use the proper harmonic rendering logic from HarmonicsMode
-    this.state.harmonics.harmonicSets.forEach(harmonicSet => {
-      this.drawHarmonicSetLines(harmonicSet)
-    })
-  }
-
-  /**
-   * Draw harmonic set lines (reusing HarmonicsMode logic)
-   * @param {Object} harmonicSet - Harmonic set to render
-   */
-  drawHarmonicSetLines(harmonicSet) {
-    const margins = this.state.axes.margins
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    const { freqMin, freqMax } = this.state.config
-    
-    // Calculate visible harmonic lines
-    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
-    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
-    
-    // Calculate vertical extent (20% of SVG height, centered on anchor time)
-    const lineHeight = naturalHeight * 0.2
-    const timeRange = this.state.config.timeMax - this.state.config.timeMin
-    const timeRatio = (harmonicSet.anchorTime - this.state.config.timeMin) / timeRange
-    // Invert the Y coordinate since Y=0 is at top but timeMin should be at bottom
-    const anchorSVGY = margins.top + (1 - timeRatio) * naturalHeight
-    const lineStartY = anchorSVGY - lineHeight / 2
-    const lineEndY = anchorSVGY + lineHeight / 2
-    
-    // Draw harmonic lines
-    for (let harmonic = minHarmonic; harmonic <= maxHarmonic; harmonic++) {
-      const freq = harmonic * harmonicSet.spacing
-      
-      // Convert frequency to SVG x coordinate
-      const freqRatio = (freq - freqMin) / (freqMax - freqMin)
-      const svgX = margins.left + freqRatio * naturalWidth
-      
-      // Draw shadow line for visibility
-      const shadowLine = createSVGLine(
-        svgX,
-        lineStartY,
-        svgX,
-        lineEndY,
-        'gram-frame-harmonic-set-shadow'
-      )
-      this.instance.cursorGroup.appendChild(shadowLine)
-      
-      // Draw main line with harmonic set color
-      const mainLine = createSVGLine(
-        svgX,
-        lineStartY,
-        svgX,
-        lineEndY,
-        'gram-frame-harmonic-set-line'
-      )
-      mainLine.setAttribute('stroke', harmonicSet.color)
-      this.instance.cursorGroup.appendChild(mainLine)
-    }
-  }
-
-  /**
-   * Render doppler markers
-   */
-  renderDopplerMarkers() {
+  renderOwnFeatures(_cursorGroup) {
+    // Only render doppler markers
     const doppler = this.state.doppler
     
     // Draw markers if they exist using the original doppler rendering functions
@@ -398,6 +276,22 @@ export class DopplerMode extends BaseMode {
       drawDopplerVerticalExtensions(this.instance, doppler.fPlus, doppler.fMinus)
     }
   }
+
+  /**
+   * Render doppler mode's own cursor indicators (temporary/hover state)
+   * Used by FeatureRenderer for current mode cursor rendering
+   */
+  renderOwnCursor() {
+    const doppler = this.state.doppler
+    
+    // Draw preview during drag
+    if (doppler.isPreviewDrag && doppler.tempFirst && doppler.previewEnd) {
+      drawDopplerPreview(this.instance, doppler.tempFirst, doppler.previewEnd)
+    }
+  }
+
+  // NOTE: Cross-mode rendering is now handled by FeatureRenderer in core/
+  // Each mode only renders its own features via renderOwnFeatures()
 
   /**
    * Create UI elements for doppler mode

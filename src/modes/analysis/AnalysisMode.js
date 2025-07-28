@@ -2,7 +2,7 @@ import { BaseMode } from '../BaseMode.js'
 import { createSVGLine } from '../../utils/svg.js'
 import { createLEDDisplay, createColorPicker } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
-import { updateCursorIndicators, drawDopplerMarker, drawDopplerCurve, drawDopplerVerticalExtensions } from '../../rendering/cursors.js'
+import { updateCursorIndicators } from '../../rendering/cursors.js'
 import { formatTime } from '../../utils/timeFormatter.js'
 
 /**
@@ -65,8 +65,29 @@ export class AnalysisMode extends BaseMode {
       this.renderCursor()
     }
     
-    // Render all persistent features from ALL modes for cross-mode visibility
-    this.renderAllPersistentFeatures()
+    // Cross-mode persistent features are now handled by FeatureRenderer
+    // Only render our own markers here
+    this.renderMarkers()
+  }
+
+  /**
+   * Render only analysis mode's own persistent features
+   * Used by FeatureRenderer for centralized cross-mode rendering
+   * @param {SVGElement} _cursorGroup - The cursor group element (not used, we use this.instance.cursorGroup)
+   */
+  renderOwnFeatures(_cursorGroup) {
+    // Only render analysis markers
+    this.renderMarkers()
+  }
+
+  /**
+   * Render analysis mode's own cursor indicators (temporary/hover state)
+   * Used by FeatureRenderer for current mode cursor rendering
+   */
+  renderOwnCursor() {
+    if (this.state.cursorPosition) {
+      this.renderCursor()
+    }
   }
 
   /**
@@ -186,114 +207,8 @@ export class AnalysisMode extends BaseMode {
     this.instance.cursorGroup.appendChild(centerPoint)
   }
 
-  /**
-   * Render all persistent features from all modes for cross-mode visibility
-   */
-  renderAllPersistentFeatures() {
-    try {
-      // Render analysis markers (always visible)
-      this.renderMarkers()
-      
-      // Render harmonic sets from harmonics mode (always visible)
-      this.renderHarmonicSets()
-      
-      // Render doppler markers (always visible) 
-      this.renderDopplerMarkers()
-      
-      console.log('AnalysisMode: rendered all persistent features for cross-mode visibility')
-    } catch (error) {
-      console.error('Error rendering persistent features in AnalysisMode:', error)
-    }
-  }
-
-  /**
-   * Render harmonic sets from harmonics mode
-   */
-  renderHarmonicSets() {
-    if (!this.state.harmonics || !this.state.harmonics.harmonicSets) return
-    
-    // Use the proper harmonic rendering logic from HarmonicsMode
-    this.state.harmonics.harmonicSets.forEach(harmonicSet => {
-      this.drawHarmonicSetLines(harmonicSet)
-    })
-  }
-
-  /**
-   * Draw harmonic set lines (reusing HarmonicsMode logic)
-   * @param {Object} harmonicSet - Harmonic set to render
-   */
-  drawHarmonicSetLines(harmonicSet) {
-    const margins = this.state.axes.margins
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    const { freqMin, freqMax } = this.state.config
-    
-    // Calculate visible harmonic lines
-    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
-    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
-    
-    // Calculate vertical extent (20% of SVG height, centered on anchor time)
-    const lineHeight = naturalHeight * 0.2
-    const timeRange = this.state.config.timeMax - this.state.config.timeMin
-    const timeRatio = (harmonicSet.anchorTime - this.state.config.timeMin) / timeRange
-    // Invert the Y coordinate since Y=0 is at top but timeMin should be at bottom
-    const anchorSVGY = margins.top + (1 - timeRatio) * naturalHeight
-    const lineStartY = anchorSVGY - lineHeight / 2
-    const lineEndY = anchorSVGY + lineHeight / 2
-    
-    // Draw harmonic lines
-    for (let harmonic = minHarmonic; harmonic <= maxHarmonic; harmonic++) {
-      const freq = harmonic * harmonicSet.spacing
-      
-      // Convert frequency to SVG x coordinate
-      const freqRatio = (freq - freqMin) / (freqMax - freqMin)
-      const svgX = margins.left + freqRatio * naturalWidth
-      
-      // Draw shadow line for visibility
-      const shadowLine = createSVGLine(
-        svgX,
-        lineStartY,
-        svgX,
-        lineEndY,
-        'gram-frame-harmonic-set-shadow'
-      )
-      this.instance.cursorGroup.appendChild(shadowLine)
-      
-      // Draw main line with harmonic set color
-      const mainLine = createSVGLine(
-        svgX,
-        lineStartY,
-        svgX,
-        lineEndY,
-        'gram-frame-harmonic-set-line'
-      )
-      mainLine.setAttribute('stroke', harmonicSet.color)
-      this.instance.cursorGroup.appendChild(mainLine)
-    }
-  }
-
-  /**
-   * Render doppler markers from doppler mode
-   */
-  renderDopplerMarkers() {
-    if (!this.state.doppler) return
-    
-    // Use the original doppler rendering functions to ensure consistency
-    if (this.state.doppler.fMinus) {
-      drawDopplerMarker(this.instance, this.state.doppler.fMinus, 'fMinus')
-    }
-    if (this.state.doppler.fPlus) {
-      drawDopplerMarker(this.instance, this.state.doppler.fPlus, 'fPlus')
-    }
-    if (this.state.doppler.fZero) {
-      drawDopplerMarker(this.instance, this.state.doppler.fZero, 'fZero')
-    }
-    
-    // Draw the curve if both f+ and f- exist
-    if (this.state.doppler.fPlus && this.state.doppler.fMinus) {
-      drawDopplerCurve(this.instance, this.state.doppler.fPlus, this.state.doppler.fMinus, this.state.doppler.fZero)
-      drawDopplerVerticalExtensions(this.instance, this.state.doppler.fPlus, this.state.doppler.fMinus)
-    }
-  }
+  // NOTE: Cross-mode rendering is now handled by FeatureRenderer in core/
+  // Each mode only renders its own features via renderOwnFeatures()
 
 
   /**

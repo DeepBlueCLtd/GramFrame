@@ -24,6 +24,7 @@ import { extractConfigData } from './core/configuration.js'
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
 import { ModeFactory } from './modes/ModeFactory.js'
+import { FeatureRenderer } from './core/FeatureRenderer.js'
 
 import {
   updateCursorIndicators
@@ -116,6 +117,9 @@ export class GramFrame {
     this.modes = {}
     /** @type {import('./modes/BaseMode.js').BaseMode} */
     this.currentMode = null
+    
+    // Initialize centralized feature renderer
+    this.featureRenderer = new FeatureRenderer(this)
     
     // Initialize all modes using factory
     const availableModes = ModeFactory.getAvailableModes()

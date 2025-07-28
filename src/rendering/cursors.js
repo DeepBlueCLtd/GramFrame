@@ -13,17 +13,23 @@ import { createSVGLine, createSVGText } from '../utils/svg.js'
  * @param {Object} instance - GramFrame instance
  */
 export function updateCursorIndicators(instance) {
-  // Clear existing cursor indicators
-  instance.cursorGroup.innerHTML = ''
-  
   // Check if we have valid image dimensions
   if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) {
     return
   }
   
-  // Handle all modes using polymorphic pattern
-  if (instance.currentMode) {
-    instance.currentMode.render(instance.svg)
+  // Use centralized feature renderer for cross-mode persistent features
+  if (instance.featureRenderer) {
+    instance.featureRenderer.renderAllPersistentFeatures()
+    
+    // Render current mode's cursor indicators on top
+    instance.featureRenderer.renderCurrentModeCursor()
+  } else {
+    // Fallback to old approach if feature renderer not available
+    instance.cursorGroup.innerHTML = ''
+    if (instance.currentMode) {
+      instance.currentMode.render(instance.svg)
+    }
   }
 }
 
