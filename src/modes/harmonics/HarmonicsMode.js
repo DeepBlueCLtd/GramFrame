@@ -418,7 +418,9 @@ export class HarmonicsMode extends BaseMode {
         
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          const tolerance = harmonicSet.spacing * 0.1 // 10% tolerance
+          // Use a more generous tolerance with a reasonable minimum
+          // 10% of spacing OR at least 20Hz, whichever is larger
+          const tolerance = Math.max(harmonicSet.spacing * 0.1, 20)
           
           if (Math.abs(freq - expectedFreq) < tolerance) {
             // Also check if cursor is within the vertical range of the harmonic line
@@ -431,7 +433,11 @@ export class HarmonicsMode extends BaseMode {
             const lineStartTime = harmonicSet.anchorTime - lineHeightInTime / 2
             const lineEndTime = harmonicSet.anchorTime + lineHeightInTime / 2
             
-            if (cursorTime >= lineStartTime && cursorTime <= lineEndTime) {
+            // Add some extra tolerance to time range (±10% of line height)
+            const timeToleranceExtra = lineHeightInTime * 0.1
+            
+            if (cursorTime >= (lineStartTime - timeToleranceExtra) && 
+                cursorTime <= (lineEndTime + timeToleranceExtra)) {
               return harmonicSet
             }
           }
@@ -564,6 +570,11 @@ export class HarmonicsMode extends BaseMode {
       )
       mainLine.setAttribute('stroke', harmonicSet.color)
       mainLine.setAttribute('stroke-width', '2')
+      
+      // Ensure proper cursor behavior for existing harmonic sets
+      mainLine.style.pointerEvents = 'auto'
+      mainLine.style.cursor = 'grab'
+      
       this.instance.cursorGroup.appendChild(mainLine)
       
       // Add harmonic number label at the top of the line

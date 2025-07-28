@@ -599,18 +599,18 @@
 .gram-frame-harmonic-set-line {
   stroke-width: 2;
   fill: none;
-  pointer-events: auto;
-  cursor: grab;
+  pointer-events: auto !important;
+  cursor: grab !important;
   stroke-linecap: round;
 }
 
 .gram-frame-harmonic-set-line:hover {
   stroke-width: 3;
-  cursor: grab;
+  cursor: grab !important;
 }
 
 .gram-frame-harmonic-set-line:active {
-  cursor: grabbing;
+  cursor: grabbing !important;
 }
 
 /* Legacy harmonic styles (for backward compatibility) */
