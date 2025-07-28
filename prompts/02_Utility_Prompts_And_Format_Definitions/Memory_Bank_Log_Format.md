@@ -38,6 +38,7 @@ Each log entry must be clearly separated from the previous one using a Markdown 
     - Steps taken in logical order.
     - Rationale for significant decisions made during the task (especially if deviating or making choices).
     - Link actions back to specific requirements mentioned in the task description if applicable.
+    - For architectural decisions, reference relevant ADRs from docs/ADRs/ to provide context.
     - Observations or key findings.]
 
 **Output/Result:**

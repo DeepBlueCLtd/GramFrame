@@ -46,9 +46,11 @@ echo "Claude job done" | mail -s "Claude Update" "$CLAUDE_NOTIFY_EMAIL"
 ### Core Components
 
 - **Main Class**: `GramFrame` in `src/main.js` - Central component managing all functionality
-- **State Management**: Internal state object with listener pattern for external integration
-- **Auto-initialization**: Detects `.gram-config` tables and replaces them with interactive components
-- **Mode System**: Analysis mode (harmonics) and Doppler mode (speed calculations)
+- **Entry Point**: `src/index.js` - Main module export and global registration
+- **State Management**: `src/core/state.js` - Centralized state with listener pattern
+- **Mode System**: Modular architecture with Analysis, Harmonics, and Doppler modes
+- **Feature Rendering**: `src/core/FeatureRenderer.js` - Cross-mode feature coordination
+- **Mode Factory**: `src/modes/ModeFactory.js` - Centralized mode instantiation
 
 ### Key Architecture Patterns
 
@@ -60,12 +62,37 @@ echo "Claude job done" | mail -s "Claude Update" "$CLAUDE_NOTIFY_EMAIL"
 
 ### File Structure
 
-- `src/main.js` - Main component implementation (~2100 lines)
+- `src/index.js` - Main entry point and global export
+- `src/main.js` - GramFrame class implementation
 - `src/types.js` - TypeScript-style JSDoc type definitions
 - `src/gramframe.css` - Component styling
-- `src/core/` - Core modules (state, analysis, events, configuration)
-- `src/utils/` - Utility modules (coordinates, SVG, calculations)
-- `src/components/` - UI components and table handling
+- `src/core/` - Core system modules:
+  - `state.js` - State management and listeners
+  - `events.js` - Event handling and ResizeObserver setup
+  - `configuration.js` - Config table parsing
+  - `FeatureRenderer.js` - Cross-mode feature rendering
+- `src/modes/` - Mode system architecture:
+  - `BaseMode.js` - Abstract base class for all modes
+  - `ModeFactory.js` - Mode instantiation factory
+  - `analysis/AnalysisMode.js` - Analysis mode with marker persistence
+  - `harmonics/HarmonicsMode.js` - Harmonics calculation mode
+  - `doppler/DopplerMode.js` - Doppler speed calculation mode
+- `src/components/` - UI component modules:
+  - `UIComponents.js` - Rate input, LED displays, mode switching
+  - `ModeButtons.js` - Mode switching interface
+  - `HarmonicPanel.js` - Harmonics display panel
+  - `ColorPicker.js` - Color selection component
+  - `LEDDisplay.js` - Digital display component
+  - `table.js` - Configuration table handling
+- `src/rendering/` - Rendering system:
+  - `cursors.js` - Cursor and indicator rendering
+  - `axes.js` - Axis rendering and scaling
+- `src/utils/` - Utility modules:
+  - `coordinates.js` - Coordinate system transformations
+  - `calculations.js` - Mathematical calculations
+  - `doppler.js` - Doppler-specific calculations
+  - `svg.js` - SVG manipulation utilities
+  - `timeFormatter.js` - Time formatting utilities
 - `src/api/` - External API interface
 - `tests/` - Playwright test suite with helper utilities
 - `sample/` - Sample HTML files for testing
@@ -95,6 +122,13 @@ Components are configured via HTML tables with class `gram-config`:
 
 ## Important Implementation Notes
 
+### Architecture
+- **Modular Mode System**: Each mode (Analysis, Harmonics, Doppler) extends BaseMode
+- **Feature Persistence**: FeatureRenderer coordinates cross-mode feature visibility
+- **Factory Pattern**: ModeFactory centralizes mode instantiation and error handling
+- **Separation of Concerns**: Clear separation between rendering, state, events, and UI
+
+### Technical Details
 - Rate affects frequency calculations (acts as frequency divider)
 - Axes have configurable margins (left: 60px, bottom: 50px)
 - Harmonics are calculated dynamically during drag interactions
@@ -102,3 +136,8 @@ Components are configured via HTML tables with class `gram-config`:
 - HMR preserves state listeners across hot reloads
 - Build output is unminified for field debugging (`minify: false` in vite.config.js)
 - TypeScript checking with JSDoc annotations (no TypeScript compilation)
+
+### Mode-Specific Features
+- **Analysis Mode**: Persistent draggable markers with cross-mode visibility
+- **Harmonics Mode**: Real-time harmonic calculation and display
+- **Doppler Mode**: Speed calculation with bearing and time inputs

@@ -52,6 +52,7 @@ Below is a recommended structure. You should adapt this template, adding, removi
     *   This ensures that critical methodological choices from the plan are clearly communicated and elaborated upon for the executing agent.
 *   **Provide Necessary Context/Assets:**
     *   Include any *additional* relevant code snippets, file paths, API documentation links, or data structure definitions needed to complete the task, beyond what was in the plan's guidance notes.
+    *   **Reference Relevant ADRs:** For tasks involving architectural decisions or modifications, reference relevant Architectural Decision Records from `docs/ADRs/` to provide context on why certain approaches were chosen (e.g., "This task builds upon ADR-001: SVG-Based Rendering Architecture - review this ADR to understand the coordinate transformation requirements").
     *   Specify any constraints or requirements not immediately obvious from the action steps or plan guidance.
 
 ## 4. Expected Output & Deliverables
@@ -81,6 +82,7 @@ Below is a recommended structure. You should adapt this template, adding, removi
 
 *   **Task Granularity:** Ensure the assigned task corresponds to a manageable chunk of work as defined in the Implementation Plan. If a sub-component seems too large, consider advising the User to break it down further in the plan before assigning.
 *   **Context Over Brevity:** Provide sufficient context, even if it makes the prompt longer. Missing context is a primary cause of agent errors.
+*   **Architectural Context:** For tasks that involve system architecture, rendering, state management, or other core architectural concerns, reference the relevant ADRs from `docs/ADRs/` to help agents understand the established patterns and rationale.
 *   **Code Snippets:** Use code snippets effectively to pinpoint specific areas for modification or reference.
 *   **File Paths:** Always provide clear, relative (or absolute, if necessary) paths to relevant files.
 *   **Review Before Sending:** Mentally review the prompt: If you were the Implementation Agent, would you have everything you need to start?
