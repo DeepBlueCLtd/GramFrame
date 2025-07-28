@@ -36,9 +36,7 @@ export class HarmonicsMode extends BaseMode {
    * @param {Object} _coords - Coordinate information
    */
   handleClick(_event, _coords) {
-    // Harmonics are now created via click-and-drag in handleMouseDown
-    // This function is kept for backward compatibility but no longer creates harmonics
-    // The creation logic has been moved to the mousedown handler for live drag creation
+    // No-op: harmonic creation now handled in handleMouseDown
   }
 
   /**
@@ -145,11 +143,41 @@ export class HarmonicsMode extends BaseMode {
       drawAnalysisMode(this.instance)
     }
     
-    // Draw persistent harmonic sets (always visible)
-    this.state.harmonics.harmonicSets.forEach(harmonicSet => {
-      this.drawHarmonicSetLines(harmonicSet)
-    })
+    // Cross-mode persistent features are now handled by FeatureRenderer
+    // Only render our own harmonic sets here
+    if (this.state.harmonics && this.state.harmonics.harmonicSets) {
+      this.state.harmonics.harmonicSets.forEach(harmonicSet => {
+        this.drawHarmonicSetLines(harmonicSet)
+      })
+    }
   }
+
+  /**
+   * Render only harmonics mode's own persistent features
+   * Used by FeatureRenderer for centralized cross-mode rendering
+   * @param {SVGElement} _cursorGroup - The cursor group element (not used, we use this.instance.cursorGroup)
+   */
+  renderOwnFeatures(_cursorGroup) {
+    // Only render harmonic sets
+    if (this.state.harmonics && this.state.harmonics.harmonicSets) {
+      this.state.harmonics.harmonicSets.forEach(harmonicSet => {
+        this.drawHarmonicSetLines(harmonicSet)
+      })
+    }
+  }
+
+  /**
+   * Render harmonics mode's own cursor indicators (temporary/hover state)
+   * Used by FeatureRenderer for current mode cursor rendering
+   */
+  renderOwnCursor() {
+    // Draw cross-hairs if cursor position is available, but not when dragging harmonics
+    if (this.state.cursorPosition && !this.state.dragState.isDragging) {
+      drawAnalysisMode(this.instance)
+    }
+  }
+
+
 
   /**
    * Create UI elements for harmonics mode
@@ -158,7 +186,6 @@ export class HarmonicsMode extends BaseMode {
   createUI(readoutPanel) {
     this.uiElements = {}
     
-    // Manual harmonic button removed - functionality moved elsewhere
     
     // Create Frequency LED display
     this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
@@ -176,6 +203,9 @@ export class HarmonicsMode extends BaseMode {
     this.instance.freqLED = this.uiElements.freqLED
     this.instance.colorPicker = this.uiElements.colorPicker
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
+    
+    // Populate panel with existing harmonic sets when UI is created
+    this.updateHarmonicPanel()
   }
 
   /**
@@ -226,18 +256,20 @@ export class HarmonicsMode extends BaseMode {
    * Reset harmonics-specific state
    */
   resetState() {
+    // Only clear when explicitly requested by user (not during mode switches)
     this.state.harmonics.baseFrequency = null
     this.state.harmonics.harmonicData = []
-    this.state.harmonics.harmonicSets = []
+    // Note: harmonicSets are only cleared by explicit user action, not by resetState
   }
 
   /**
    * Clean up harmonics-specific state when switching away from harmonics mode
    */
   cleanup() {
+    // Only clear transient state, preserve harmonic sets for cross-mode persistence
     this.state.harmonics.baseFrequency = null
     this.state.harmonics.harmonicData = []
-    this.state.harmonics.harmonicSets = []
+    // Note: harmonicSets are intentionally preserved
   }
 
   /**
@@ -286,6 +318,7 @@ export class HarmonicsMode extends BaseMode {
     
     this.state.harmonics.harmonicSets.push(harmonicSet)
     
+    
     // Update display and notify listeners
     updateCursorIndicators(this.instance)
     if (this.instance.harmonicPanel) {
@@ -324,6 +357,7 @@ export class HarmonicsMode extends BaseMode {
     if (setIndex !== -1) {
       this.state.harmonics.harmonicSets.splice(setIndex, 1)
       
+      
       // Update display and notify listeners
       updateCursorIndicators(this.instance)
       if (this.instance.harmonicPanel) {
@@ -355,7 +389,9 @@ export class HarmonicsMode extends BaseMode {
         
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          const tolerance = harmonicSet.spacing * 0.1 // 10% tolerance
+          // Use a more generous tolerance with a reasonable minimum
+          // 10% of spacing OR at least 20Hz, whichever is larger
+          const tolerance = Math.max(harmonicSet.spacing * 0.1, 20)
           
           if (Math.abs(freq - expectedFreq) < tolerance) {
             // Also check if cursor is within the vertical range of the harmonic line
@@ -368,7 +404,11 @@ export class HarmonicsMode extends BaseMode {
             const lineStartTime = harmonicSet.anchorTime - lineHeightInTime / 2
             const lineEndTime = harmonicSet.anchorTime + lineHeightInTime / 2
             
-            if (cursorTime >= lineStartTime && cursorTime <= lineEndTime) {
+            // Add some extra tolerance to time range (±10% of line height)
+            const timeToleranceExtra = lineHeightInTime * 0.1
+            
+            if (cursorTime >= (lineStartTime - timeToleranceExtra) && 
+                cursorTime <= (lineEndTime + timeToleranceExtra)) {
               return harmonicSet
             }
           }
@@ -501,6 +541,11 @@ export class HarmonicsMode extends BaseMode {
       )
       mainLine.setAttribute('stroke', harmonicSet.color)
       mainLine.setAttribute('stroke-width', '2')
+      
+      // Ensure proper cursor behavior for existing harmonic sets
+      mainLine.style.pointerEvents = 'auto'
+      mainLine.style.cursor = 'grab'
+      
       this.instance.cursorGroup.appendChild(mainLine)
       
       // Add harmonic number label at the top of the line

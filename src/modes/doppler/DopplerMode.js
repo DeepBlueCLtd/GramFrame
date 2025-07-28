@@ -83,6 +83,7 @@ export class DopplerMode extends BaseMode {
         
         // Calculate initial speed
         this.calculateAndUpdateDopplerSpeed()
+        
       }
       
       // Update displays
@@ -216,26 +217,68 @@ export class DopplerMode extends BaseMode {
     if (doppler.isPreviewDrag && doppler.tempFirst && doppler.previewEnd) {
       drawDopplerPreview(this.instance, doppler.tempFirst, doppler.previewEnd)
     }
-    // Draw final markers and curve if placed
-    else {
-      // Draw markers if they exist
-      if (doppler.fMinus) {
-        drawDopplerMarker(this.instance, doppler.fMinus, 'fMinus')
-      }
-      if (doppler.fPlus) {
-        drawDopplerMarker(this.instance, doppler.fPlus, 'fPlus')
-      }
-      if (doppler.fZero) {
-        drawDopplerMarker(this.instance, doppler.fZero, 'fZero')
-      }
-      
-      // Draw the curve if both f+ and f- exist
-      if (doppler.fPlus && doppler.fMinus) {
-        drawDopplerCurve(this.instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
-        drawDopplerVerticalExtensions(this.instance, doppler.fPlus, doppler.fMinus)
-      }
+    
+    // Cross-mode persistent features are now handled by FeatureRenderer
+    // Only render our own doppler markers here
+    
+    // Draw markers if they exist using the original doppler rendering functions
+    if (doppler.fMinus) {
+      drawDopplerMarker(this.instance, doppler.fMinus, 'fMinus')
+    }
+    if (doppler.fPlus) {
+      drawDopplerMarker(this.instance, doppler.fPlus, 'fPlus')
+    }
+    if (doppler.fZero) {
+      drawDopplerMarker(this.instance, doppler.fZero, 'fZero')
+    }
+    
+    // Draw the curve if both f+ and f- exist
+    if (doppler.fPlus && doppler.fMinus) {
+      drawDopplerCurve(this.instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
+      drawDopplerVerticalExtensions(this.instance, doppler.fPlus, doppler.fMinus)
     }
   }
+
+  /**
+   * Render only doppler mode's own persistent features
+   * Used by FeatureRenderer for centralized cross-mode rendering
+   * @param {SVGElement} _cursorGroup - The cursor group element (not used, we use this.instance.cursorGroup)
+   */
+  renderOwnFeatures(_cursorGroup) {
+    // Only render doppler markers
+    const doppler = this.state.doppler
+    
+    // Draw markers if they exist using the original doppler rendering functions
+    if (doppler.fMinus) {
+      drawDopplerMarker(this.instance, doppler.fMinus, 'fMinus')
+    }
+    if (doppler.fPlus) {
+      drawDopplerMarker(this.instance, doppler.fPlus, 'fPlus')
+    }
+    if (doppler.fZero) {
+      drawDopplerMarker(this.instance, doppler.fZero, 'fZero')
+    }
+    
+    // Draw the curve if both f+ and f- exist
+    if (doppler.fPlus && doppler.fMinus) {
+      drawDopplerCurve(this.instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
+      drawDopplerVerticalExtensions(this.instance, doppler.fPlus, doppler.fMinus)
+    }
+  }
+
+  /**
+   * Render doppler mode's own cursor indicators (temporary/hover state)
+   * Used by FeatureRenderer for current mode cursor rendering
+   */
+  renderOwnCursor() {
+    const doppler = this.state.doppler
+    
+    // Draw preview during drag
+    if (doppler.isPreviewDrag && doppler.tempFirst && doppler.previewEnd) {
+      drawDopplerPreview(this.instance, doppler.tempFirst, doppler.previewEnd)
+    }
+  }
+
 
   /**
    * Create UI elements for doppler mode
@@ -273,6 +316,7 @@ export class DopplerMode extends BaseMode {
    * Reset doppler-specific state
    */
   resetState() {
+    
     this.state.doppler.fPlus = null
     this.state.doppler.fMinus = null
     this.state.doppler.fZero = null
@@ -294,14 +338,10 @@ export class DopplerMode extends BaseMode {
    * Clean up doppler-specific state when switching away from doppler mode
    */
   cleanup() {
-    this.state.doppler.fPlus = null
-    this.state.doppler.fMinus = null
-    this.state.doppler.fZero = null
-    this.state.doppler.speed = null
+    // Only clear transient drag state, preserve marker positions
     this.state.doppler.isDragging = false
     this.state.doppler.draggedMarker = null
     this.state.doppler.isPlacingMarkers = false
-    this.state.doppler.markersPlaced = 0
     this.state.doppler.tempFirst = null
     this.state.doppler.isPreviewDrag = false
     this.state.doppler.previewEnd = null

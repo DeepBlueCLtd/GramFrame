@@ -65,8 +65,29 @@ export class AnalysisMode extends BaseMode {
       this.renderCursor()
     }
     
-    // Render all persistent markers
+    // Cross-mode persistent features are now handled by FeatureRenderer
+    // Only render our own markers here
     this.renderMarkers()
+  }
+
+  /**
+   * Render only analysis mode's own persistent features
+   * Used by FeatureRenderer for centralized cross-mode rendering
+   * @param {SVGElement} _cursorGroup - The cursor group element (not used, we use this.instance.cursorGroup)
+   */
+  renderOwnFeatures(_cursorGroup) {
+    // Only render analysis markers
+    this.renderMarkers()
+  }
+
+  /**
+   * Render analysis mode's own cursor indicators (temporary/hover state)
+   * Used by FeatureRenderer for current mode cursor rendering
+   */
+  renderOwnCursor() {
+    if (this.state.cursorPosition) {
+      this.renderCursor()
+    }
   }
 
   /**
@@ -185,6 +206,8 @@ export class AnalysisMode extends BaseMode {
     centerPoint.setAttribute('class', 'gram-frame-marker-point')
     this.instance.cursorGroup.appendChild(centerPoint)
   }
+
+
 
   /**
    * Create UI elements for analysis mode
@@ -329,6 +352,9 @@ export class AnalysisMode extends BaseMode {
     this.uiElements.markersContainer = tableContainer
     this.uiElements.markersTable = table
     this.uiElements.markersTableBody = tbody
+    
+    // Populate table with existing markers when UI is created
+    this.updateMarkersTable()
   }
 
   /**
@@ -378,8 +404,6 @@ export class AnalysisMode extends BaseMode {
     
     this.state.analysis.markers.push(marker)
     
-    // Log marker addition for debugging
-    console.log(`Added marker at time: ${marker.time.toFixed(2)}s, freq: ${marker.freq.toFixed(1)}Hz, color: ${marker.color}`)
     
     // Update markers table
     this.updateMarkersTable()
@@ -400,8 +424,8 @@ export class AnalysisMode extends BaseMode {
     
     const index = this.state.analysis.markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
-      const removedMarker = this.state.analysis.markers.splice(index, 1)[0]
-      console.log(`Removed marker at time: ${removedMarker.time.toFixed(2)}s, freq: ${removedMarker.freq.toFixed(1)}Hz`)
+      this.state.analysis.markers.splice(index, 1)
+      
       
       // Update markers table
       this.updateMarkersTable()
@@ -527,11 +551,6 @@ export class AnalysisMode extends BaseMode {
    * Clean up analysis mode state
    */
   cleanup() {
-    // Clear all markers when leaving analysis mode
-    if (this.state.analysis) {
-      this.state.analysis.markers = []
-      this.updateMarkersTable()
-    }
   }
 
   /**
@@ -557,9 +576,5 @@ export class AnalysisMode extends BaseMode {
    * Reset analysis mode state
    */
   resetState() {
-    if (this.state.analysis) {
-      this.state.analysis.markers = []
-      this.updateMarkersTable()
-    }
   }
 }

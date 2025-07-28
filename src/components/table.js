@@ -38,7 +38,6 @@ export function createComponentStructure(instance) {
   instance.mainCell.className = 'gram-frame-cell gram-frame-main-panel'
   instance.mainRow.appendChild(instance.mainCell)
   
-  // Create LED readout panel in mode cell (moved from separate display row)
   instance.readoutPanel = document.createElement('div')
   instance.readoutPanel.className = 'gram-frame-readout'
   // Will be appended to modeCell in UIComponents.js

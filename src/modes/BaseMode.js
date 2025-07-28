@@ -84,6 +84,23 @@ export class BaseMode {
   }
 
   /**
+   * Render only this mode's own persistent features
+   * Used by FeatureRenderer for cross-mode rendering coordination
+   * @param {SVGElement} _cursorGroup - The cursor group element to render into
+   */
+  renderOwnFeatures(_cursorGroup) {
+    // Default implementation - override in subclasses to render mode-specific features
+  }
+
+  /**
+   * Render this mode's own cursor indicators (temporary/hover state)
+   * Used by FeatureRenderer for current mode cursor rendering
+   */
+  renderOwnCursor() {
+    // Default implementation - override in subclasses
+  }
+
+  /**
    * Update cursor position and related visual indicators
    * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
    */

@@ -24,6 +24,7 @@ import { extractConfigData } from './core/configuration.js'
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
 import { ModeFactory } from './modes/ModeFactory.js'
+import { FeatureRenderer } from './core/FeatureRenderer.js'
 
 import {
   updateCursorIndicators
@@ -116,6 +117,9 @@ export class GramFrame {
     this.modes = {}
     /** @type {import('./modes/BaseMode.js').BaseMode} */
     this.currentMode = null
+    
+    // Initialize centralized feature renderer
+    this.featureRenderer = new FeatureRenderer(this)
     
     // Initialize all modes using factory
     const availableModes = ModeFactory.getAvailableModes()
@@ -288,19 +292,6 @@ export class GramFrame {
     notifyStateListeners(this.state, this.stateListeners)
   }
 
-  // Harmonic set management methods moved to HarmonicsMode class
-
-  // Manual harmonic modal method moved to HarmonicsMode class
-
-  // Harmonic set removal method moved to HarmonicsMode class
-
-  // Harmonic set frequency search method moved to HarmonicsMode class
-  
-  // Doppler reset method moved to DopplerMode class
-  
-  /**
-   * Update cursor visual indicators based on current mode and state
-   */
   
   
 }
@@ -331,7 +322,6 @@ window.GramFrame = GramFrameAPI
 if (import.meta.hot) {
   // @ts-ignore - Vite HMR API
   import.meta.hot.accept(() => {
-    console.log('🔄 GramFrame component updated - Hot reloading')
     
     // Store old state listeners before replacing the API
     const oldListeners = getGlobalStateListeners()
@@ -347,6 +337,5 @@ if (import.meta.hot) {
       GramFrameAPI.addStateListener(listener)
     })
     
-    console.log('✅ GramFrame hot reload complete')
   })
 }
