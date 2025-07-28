@@ -64,7 +64,7 @@ Use your judgment to balance these factors. When in doubt for moderately complex
     
     ## Log Entries
     
-    *(All subsequent log entries in this file MUST follow the format defined in `prompts/02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md`)*
+    *(All subsequent log entries in this file MUST follow the format defined in `prompts/02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md`. For tasks involving architectural decisions, reference relevant ADRs from docs/ADRs/.)*
     ```
 
 ### 4.2. Option 2: Multi-File Directory System (`Memory/`)
@@ -87,6 +87,8 @@ Use your judgment to balance these factors. When in doubt for moderately complex
         - Logs for each major task from the `Implementation_Plan.md` are stored as individual `.md` files directly in this directory.)
         
         All log entries within these files adhere to the format defined in `prompts/02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md`.
+        
+        For tasks involving architectural decisions, agents should reference relevant Architectural Decision Records (ADRs) from `docs/ADRs/` in their logs to provide context on established patterns and rationale.
         ```
     3.  **Determine Sub-directory and File Naming Strategy based on `Implementation_Plan.md`:**
         *   **A. If `Implementation_Plan.md` has Phases (e.g., `## Phase 1: Backend Setup`):**
@@ -113,7 +115,7 @@ Use your judgment to balance these factors. When in doubt for moderately complex
         
         ## Log Entries
         
-        *(All subsequent log entries in this file MUST follow the format defined in `prompts/02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md`)*
+        *(All subsequent log entries in this file MUST follow the format defined in `prompts/02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md`. For tasks involving architectural decisions, reference relevant ADRs from docs/ADRs/.)*
         ```
     5.  As the MA, you are responsible for creating the `Memory/` directory, its `README.md`, and the *initial set* of phase subdirectories (if any) and task log files with their headers, corresponding to the initial tasks in the `Implementation_Plan.md`.
 
