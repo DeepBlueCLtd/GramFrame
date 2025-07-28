@@ -21,6 +21,7 @@ Modify GramFrame so that features (such as markers and harmonic sets) created in
 - Review and refactor the relevant state/data structures to ensure features are not lost on mode switch.
 - Update the mode-switching logic to preserve and display all persistent features, regardless of the current mode.
 - Maintain the existing workflow for deleting features via the appropriate mode’s table UI.
+- **Consider core changes:** Evaluate whether updates to the core `BaseMode` class (`src/modes/BaseMode.js`) are required to support persistent, cross-mode features and shared state. Ensure any common logic is placed at the appropriate abstraction level.
 - Add or update tests to verify that features persist and remain visible across all modes, and that deletion works as specified.
 - Log all significant state changes and mode transitions for debugging and traceability.
 - **Update the project memory log:** For every feature creation, deletion, and mode switch event, record a structured entry in the memory log. Each entry should include: timestamp, event type (creation, deletion, mode switch), feature ID(s), mode name(s), and any relevant context. Ensure the memory log is easily accessible for future agents or stakeholders.
@@ -38,6 +39,15 @@ Modify GramFrame so that features (such as markers and harmonic sets) created in
 - Each memory log entry must include: timestamp, event type, feature ID(s), mode name(s), and any relevant context.
 - Ensure logs and memory log entries are clear, structured, and accessible for debugging, auditing, and onboarding future agents.
 
-## 7. References
+## 7. Expected Files & Methods to Change
+- `src/modes/BaseMode.js`: Core mode lifecycle and shared state logic (e.g., `activate`, `deactivate`, and state management)
+- Mode subclass files, e.g.:
+  - `src/modes/analysis/AnalysisMode.js`
+  - `src/modes/harmonics/HarmonicsMode.js`
+  - `src/modes/doppler/DopplerMode.js`
+- Any files managing persistent feature state or memory log utilities
+- Associated UI components if they directly manage feature visibility or deletion tables
+
+## 8. References
 - [Issue #47: Persistent gram features](https://github.com/DeepBlueCLtd/GramFrame/issues/47)
 - Implementation Plan and related documentation as needed.
