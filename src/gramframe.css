@@ -131,17 +131,60 @@
   max-width: 500px;
 }
 
-/* Harmonics mode: arrange controls horizontally at top */
+/* Harmonics mode: reset readout panel to use full height */
 .gram-frame-harmonics-mode .gram-frame-readout {
-  align-items: flex-start;
-  justify-content: flex-start;
-  flex-wrap: nowrap;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-/* Show harmonic panel in harmonics mode and remove top margin for proper alignment */
+/* Harmonics layout container - two columns */
+.gram-frame-harmonics-layout {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+}
+
+/* Left column for controls - 40% width */
+.gram-frame-harmonics-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 0 0 40%;
+  max-width: 40%;
+}
+
+/* Top row in left column */
+.gram-frame-harmonics-top-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+/* Right column for table - 60% width */
+.gram-frame-harmonics-table-column {
+  flex: 0 0 60%;
+  max-width: 60%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Make color picker more compact in harmonics mode */
+.gram-frame-harmonics-mode .gram-frame-color-picker {
+  margin: 0;
+}
+
+/* Show harmonic panel in harmonics mode and use full height */
 .gram-frame-harmonics-mode .gram-frame-harmonic-panel {
-  display: block;
-  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  height: 100%;
+  flex: 1;
 }
 
 /* Military-style display windows */
@@ -692,6 +735,13 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: bold;
+}
+
+.gram-frame-harmonic-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 .gram-frame-harmonic-table {

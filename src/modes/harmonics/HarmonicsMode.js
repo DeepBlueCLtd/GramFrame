@@ -186,23 +186,69 @@ export class HarmonicsMode extends BaseMode {
   createUI(readoutPanel) {
     this.uiElements = {}
     
+    // Create main layout container with two columns
+    const layoutContainer = document.createElement('div')
+    layoutContainer.className = 'gram-frame-harmonics-layout'
+    layoutContainer.style.display = 'flex'
+    layoutContainer.style.gap = '10px'
+    layoutContainer.style.width = '100%'
+    layoutContainer.style.height = '100%'
+    
+    // Create left column for controls (40% width)
+    const leftColumn = document.createElement('div')
+    leftColumn.className = 'gram-frame-harmonics-controls'
+    leftColumn.style.display = 'flex'
+    leftColumn.style.flexDirection = 'column'
+    leftColumn.style.gap = '10px'
+    leftColumn.style.flex = '0 0 40%'
+    
+    // Create top row in left column (Frequency LED and Manual button)
+    const topRow = document.createElement('div')
+    topRow.className = 'gram-frame-harmonics-top-row'
+    topRow.style.display = 'flex'
+    topRow.style.gap = '10px'
     
     // Create Frequency LED display
     this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
-    readoutPanel.appendChild(this.uiElements.freqLED)
+    topRow.appendChild(this.uiElements.freqLED)
     
-    // Create color picker for harmonics
+    // Create Manual button and add to top row
+    this.uiElements.manualButton = this.createManualButton()
+    topRow.appendChild(this.uiElements.manualButton)
+    
+    // Add top row to left column
+    leftColumn.appendChild(topRow)
+    
+    // Create color picker for harmonics and add below
     this.uiElements.colorPicker = createColorPicker(this.state)
-    // Keep the default "Harmonic Color" label
-    readoutPanel.appendChild(this.uiElements.colorPicker)
+    leftColumn.appendChild(this.uiElements.colorPicker)
     
-    // Create harmonic management panel
-    this.uiElements.harmonicPanel = createHarmonicPanel(readoutPanel)
+    // Create right column for harmonic panel (60% width)
+    const rightColumn = document.createElement('div')
+    rightColumn.className = 'gram-frame-harmonics-table-column'
+    rightColumn.style.flex = '0 0 60%'
+    rightColumn.style.minWidth = '0'
+    rightColumn.style.display = 'flex'
+    rightColumn.style.flexDirection = 'column'
+    
+    // Add columns to layout container
+    layoutContainer.appendChild(leftColumn)
+    layoutContainer.appendChild(rightColumn)
+    
+    // Add layout container to readout panel
+    readoutPanel.appendChild(layoutContainer)
+    
+    // Create harmonic management panel in right column
+    this.uiElements.harmonicPanel = createHarmonicPanel(rightColumn)
     
     // Store references on instance for compatibility
     this.instance.freqLED = this.uiElements.freqLED
     this.instance.colorPicker = this.uiElements.colorPicker
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
+    this.instance.manualButton = this.uiElements.manualButton
+    
+    // Store layout container for cleanup
+    this.uiElements.layoutContainer = layoutContainer
     
     // Populate panel with existing harmonic sets when UI is created
     this.updateHarmonicPanel()
@@ -285,6 +331,9 @@ export class HarmonicsMode extends BaseMode {
     }
     if (this.instance.harmonicPanel === this.uiElements.harmonicPanel) {
       this.instance.harmonicPanel = null
+    }
+    if (this.instance.manualButton === this.uiElements.manualButton) {
+      this.instance.manualButton = null
     }
     
     // Call parent destroy to remove all UI elements
@@ -465,6 +514,131 @@ export class HarmonicsMode extends BaseMode {
     if (this.instance.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
     }
+  }
+
+  /**
+   * Create manual harmonic button
+   * @returns {HTMLElement} The manual button element
+   */
+  createManualButton() {
+    const button = document.createElement('button')
+    button.className = 'gram-frame-manual-button'
+    button.textContent = '+ Manual'
+    button.title = 'Manually add a set of harmonics at a specific spacing'
+    
+    button.addEventListener('click', () => {
+      this.showManualHarmonicModal()
+    })
+    
+    return button
+  }
+
+  /**
+   * Show manual harmonic modal dialog
+   */
+  showManualHarmonicModal() {
+    // Create modal overlay
+    const overlay = document.createElement('div')
+    overlay.className = 'gram-frame-modal-overlay'
+    
+    // Create modal dialog
+    const modal = document.createElement('div')
+    modal.className = 'gram-frame-modal'
+    
+    // Create modal content
+    modal.innerHTML = `
+      <div class="gram-frame-modal-header">
+        <h3>Add Manual Harmonics</h3>
+      </div>
+      <div class="gram-frame-modal-body">
+        <label for="harmonic-spacing-input">Harmonic spacing (Hz):</label>
+        <input type="number" id="harmonic-spacing-input" min="1.0" step="0.1" placeholder="Enter spacing in Hz">
+        <div class="gram-frame-modal-error" id="spacing-error" style="display: none; color: red; font-size: 12px; margin-top: 5px;">
+          Please enter a number ≥ 1.0
+        </div>
+      </div>
+      <div class="gram-frame-modal-footer">
+        <button class="gram-frame-modal-cancel" id="cancel-button">Cancel</button>
+        <button class="gram-frame-modal-add" id="add-button" disabled>Add</button>
+      </div>
+    `
+    
+    overlay.appendChild(modal)
+    document.body.appendChild(overlay)
+    
+    // Get modal elements
+    const spacingInput = /** @type {HTMLInputElement} */ (modal.querySelector('#harmonic-spacing-input'))
+    const errorDiv = /** @type {HTMLDivElement} */ (modal.querySelector('#spacing-error'))
+    const cancelButton = /** @type {HTMLButtonElement} */ (modal.querySelector('#cancel-button'))
+    const addButton = /** @type {HTMLButtonElement} */ (modal.querySelector('#add-button'))
+    
+    // Input validation
+    const validateInput = () => {
+      const value = parseFloat(spacingInput.value)
+      const isValid = !isNaN(value) && value >= 1.0
+      
+      if (spacingInput.value.trim() === '') {
+        // Empty input - hide error, disable button
+        errorDiv.style.display = 'none'
+        addButton.disabled = true
+      } else if (!isValid) {
+        // Invalid input - show error, disable button
+        errorDiv.style.display = 'block'
+        addButton.disabled = true
+      } else {
+        // Valid input - hide error, enable button
+        errorDiv.style.display = 'none'
+        addButton.disabled = false
+      }
+    }
+    
+    // Add input event listeners
+    spacingInput.addEventListener('input', validateInput)
+    spacingInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !addButton.disabled) {
+        addHarmonic()
+      } else if (e.key === 'Escape') {
+        closeModal()
+      }
+    })
+    
+    // Close modal function
+    const closeModal = () => {
+      document.body.removeChild(overlay)
+    }
+    
+    // Add harmonic function
+    const addHarmonic = () => {
+      const spacing = parseFloat(spacingInput.value)
+      if (!isNaN(spacing) && spacing >= 1.0) {
+        // Determine anchor time: use cursor position if available, otherwise midpoint
+        let anchorTime
+        if (this.state.cursorPosition) {
+          anchorTime = this.state.cursorPosition.time
+        } else {
+          // Use midpoint of time range
+          anchorTime = (this.state.config.timeMin + this.state.config.timeMax) / 2
+        }
+        
+        // Add the harmonic set
+        this.addHarmonicSet(anchorTime, spacing)
+        
+        // Close modal
+        closeModal()
+      }
+    }
+    
+    // Event listeners
+    cancelButton.addEventListener('click', closeModal)
+    addButton.addEventListener('click', addHarmonic)
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeModal()
+      }
+    })
+    
+    // Focus the input
+    spacingInput.focus()
   }
 
 
