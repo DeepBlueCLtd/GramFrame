@@ -43,13 +43,7 @@ export function createGramFrameAPI(GramFrame) {
           // Generate unique ID for each component instance
           const instanceId = `gramframe-${Date.now()}-${index}`
           
-          // Validate table structure before processing
-          const validationResult = this._validateConfigTable(table)
-          if (!validationResult.isValid) {
-            throw new Error(`Invalid config table structure: ${validationResult.errors.join(', ')}`)
-          }
-          
-          // Create GramFrame instance
+          // Create GramFrame instance - extractConfigData will handle validation
           const instance = new GramFrame(/** @type {HTMLTableElement} */ (table))
           
           // Store instance ID for debugging and API access
@@ -244,91 +238,6 @@ export function createGramFrameAPI(GramFrame) {
       return this._instances.find(instance => instance.instanceId === instanceId) || null
     },
     
-    /**
-     * Validate config table structure
-     * @private
-     * @param {HTMLTableElement} table - Table to validate
-     * @returns {{isValid: boolean, errors: string[]}} Validation result
-     */
-    _validateConfigTable(table) {
-      const errors = []
-      
-      // Check if table exists
-      if (!table) {
-        errors.push('Table element is null or undefined')
-        return { isValid: false, errors }
-      }
-      
-      // Check if it's actually a table
-      if (!(table instanceof HTMLTableElement)) {
-        errors.push('Element is not a table')
-        return { isValid: false, errors }
-      }
-      
-      // Check for image
-      const imgElement = table.querySelector('img')
-      if (!imgElement) {
-        errors.push('No image found in table')
-      } else if (!imgElement.src) {
-        errors.push('Image has no src attribute')
-      }
-      
-      // Check for parameter rows (new two-column format)
-      const rows = table.querySelectorAll('tr')
-      let hasTimeStart = false
-      let hasTimeEnd = false
-      let hasFreqStart = false
-      let hasFreqEnd = false
-      
-      rows.forEach(row => {
-        const cells = row.querySelectorAll('td')
-        if (cells.length == 2) {
-          const param = cells[0].textContent?.trim().toLowerCase()
-          const value = cells[1].textContent?.trim()
-          
-          if (param === 'time-start') {
-            hasTimeStart = true
-            if (isNaN(parseFloat(value))) {
-              errors.push('time-start row has invalid numeric value')
-            }
-          } else if (param === 'time-end') {
-            hasTimeEnd = true
-            if (isNaN(parseFloat(value))) {
-              errors.push('time-end row has invalid numeric value')
-            }
-          } else if (param === 'freq-start') {
-            hasFreqStart = true
-            if (isNaN(parseFloat(value))) {
-              errors.push('freq-start row has invalid numeric value')
-            }
-          } else if (param === 'freq-end') {
-            hasFreqEnd = true
-            if (isNaN(parseFloat(value))) {
-              errors.push('freq-end row has invalid numeric value')
-            }
-          }
-        }
-      })
-      
-      if (!hasTimeStart) {
-        errors.push('Missing time-start parameter row')
-      }
-      if (!hasTimeEnd) {
-        errors.push('Missing time-end parameter row')
-      }
-      
-      if (!hasFreqStart) {
-        errors.push('Missing freq-start parameter row')
-      }
-      if (!hasFreqEnd) {
-        errors.push('Missing freq-end parameter row')
-      }
-      
-      return {
-        isValid: errors.length === 0,
-        errors
-      }
-    },
     
     /**
      * Add error indicator to a table that failed to initialize

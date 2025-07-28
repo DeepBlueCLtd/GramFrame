@@ -149,42 +149,32 @@ export function extractConfigData(instance) {
       }
     })
     
-    // Set time configuration if both start and end were found
-    if (timeStart !== null && timeEnd !== null) {
-      if (timeStart >= timeEnd) {
-        console.warn(`GramFrame: Invalid time range: start (${timeStart}) >= end (${timeEnd})`)
-      } else {
-        instance.state.config.timeMin = timeStart
-        instance.state.config.timeMax = timeEnd
-      }
-    } else {
-      console.warn('GramFrame: No valid time configuration found, using defaults (0-60s)')
-      instance.state.config.timeMin = 0
-      instance.state.config.timeMax = 60
+    // Set time configuration - require both start and end
+    if (timeStart === null || timeEnd === null) {
+      throw new Error('Missing required time configuration: both time-start and time-end must be present with valid numeric values')
     }
     
-    // Set frequency configuration if both start and end were found
-    if (freqStart !== null && freqEnd !== null) {
-      if (freqStart >= freqEnd) {
-        console.warn(`GramFrame: Invalid frequency range: start (${freqStart}) >= end (${freqEnd})`)
-      } else {
-        instance.state.config.freqMin = freqStart
-        instance.state.config.freqMax = freqEnd
-      }
-    } else {
-      console.warn('GramFrame: No valid frequency configuration found, using defaults (0-100Hz)')
-      instance.state.config.freqMin = 0
-      instance.state.config.freqMax = 100
+    if (timeStart >= timeEnd) {
+      throw new Error(`Invalid time range: start (${timeStart}) must be less than end (${timeEnd})`)
     }
+    
+    instance.state.config.timeMin = timeStart
+    instance.state.config.timeMax = timeEnd
+    
+    // Set frequency configuration - require both start and end
+    if (freqStart === null || freqEnd === null) {
+      throw new Error('Missing required frequency configuration: both freq-start and freq-end must be present with valid numeric values')
+    }
+    
+    if (freqStart >= freqEnd) {
+      throw new Error(`Invalid frequency range: start (${freqStart}) must be less than end (${freqEnd})`)
+    }
+    
+    instance.state.config.freqMin = freqStart
+    instance.state.config.freqMax = freqEnd
     
   } catch (error) {
-    console.error('GramFrame: Error extracting configuration data:', error instanceof Error ? error.message : String(error))
-    // Set safe defaults
-    instance.state.config = {
-      timeMin: 0,
-      timeMax: 60,
-      freqMin: 0,
-      freqMax: 100
-    }
+    // Re-throw the error so createGramFrameAPI can handle it and show error to user
+    throw error
   }
 }

@@ -79,14 +79,7 @@ test.describe('Auto-Detection Functionality', () => {
     // Wait for component initialization
     await page.waitForFunction(() => window.GramFrame !== undefined)
     
-    // Test that private validation methods exist on the API object
-    const hasValidationMethod = await page.evaluate(() => {
-      return typeof window.GramFrame._validateConfigTable === 'function'
-    })
-    
-    expect(hasValidationMethod).toBe(true)
-    
-    // Test that error indicator method exists
+    // Test that error indicator method exists (validation is now handled internally by extractConfigData)
     const hasErrorMethod = await page.evaluate(() => {
       return typeof window.GramFrame._addErrorIndicator === 'function'
     })
