@@ -643,13 +643,13 @@
   stroke-width: 2;
   fill: none;
   pointer-events: auto !important;
-  cursor: grab !important;
+  /*cursor: grab !important;*/
   stroke-linecap: round;
 }
 
 .gram-frame-harmonic-set-line:hover {
   stroke-width: 3;
-  cursor: grab !important;
+  /* cursor: grab !important; */
 }
 
 .gram-frame-harmonic-set-line:active {

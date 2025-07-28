@@ -19,6 +19,7 @@ export class AnalysisMode extends BaseMode {
       <h4>Analysis Mode</h4>
       <p>• Hover to view exact frequency/time values</p>
       <p>• Click to place persistent markers</p>
+      <p>• Drag existing markers to reposition them</p>
       <p>• Right-click markers to delete them</p>
     `
   }
@@ -31,8 +32,85 @@ export class AnalysisMode extends BaseMode {
   handleClick(_event, _coords) {
     if (!this.state.cursorPosition) return
     
-    // Left-click: add new marker
-    this.addMarker(this.state.cursorPosition)
+    // Only add marker if we're not dragging
+    if (!this.state.dragState.isDragging) {
+      // Left-click: add new marker
+      this.addMarker(this.state.cursorPosition)
+    }
+  }
+
+  /**
+   * Handle mouse down events for marker dragging
+   * @param {MouseEvent} _event - The mouse down event
+   * @param {Object} _coords - Coordinate information
+   */
+  handleMouseDown(_event, _coords) {
+    if (!this.state.cursorPosition) return
+    
+    // Check if we're clicking on an existing marker
+    const existingMarker = this.findMarkerAtPosition(this.state.cursorPosition)
+    
+    if (existingMarker) {
+      // Start dragging existing marker
+      this.state.dragState.isDragging = true
+      this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
+      this.state.dragState.draggedMarkerId = existingMarker.id
+      this.state.dragState.originalMarkerPosition = {
+        time: existingMarker.time,
+        freq: existingMarker.freq,
+        imageX: existingMarker.imageX,
+        imageY: existingMarker.imageY
+      }
+    }
+  }
+
+  /**
+   * Handle mouse move events during dragging
+   * @param {MouseEvent} _event - The mouse move event
+   * @param {Object} _coords - Coordinate information
+   */
+  handleMouseMove(_event, _coords) {
+    if (!this.state.cursorPosition) return
+    
+    // Update cursor style when hovering over markers
+    const hoveredMarker = this.findMarkerAtPosition(this.state.cursorPosition)
+    if (hoveredMarker && !this.state.dragState.isDragging) {
+      this.instance.svg.style.cursor = 'grab'
+    } else if (!this.state.dragState.isDragging) {
+      this.instance.svg.style.cursor = 'crosshair'
+    }
+    
+    // Handle marker dragging
+    if (this.state.dragState.isDragging && this.state.dragState.draggedMarkerId) {
+      this.handleMarkerDrag()
+    }
+  }
+
+  /**
+   * Handle mouse up events - end dragging
+   * @param {MouseEvent} _event - The mouse up event
+   * @param {Object} _coords - Coordinate information
+   */
+  handleMouseUp(_event, _coords) {
+    if (this.state.dragState.isDragging) {
+      // Clear drag state
+      this.state.dragState.isDragging = false
+      this.state.dragState.dragStartPosition = null
+      this.state.dragState.draggedMarkerId = null
+      this.state.dragState.originalMarkerPosition = null
+      
+      // Reset cursor
+      this.instance.svg.style.cursor = 'crosshair'
+      
+      // Update markers table
+      this.updateMarkersTable()
+      
+      // Trigger visual re-render
+      updateCursorIndicators(this.instance)
+      
+      // Notify listeners of state change
+      notifyStateListeners(this.state, this.instance.stateListeners)
+    }
   }
 
   /**
@@ -53,6 +131,29 @@ export class AnalysisMode extends BaseMode {
 
 
   /**
+   * Handle marker dragging - update marker position based on cursor movement
+   */
+  handleMarkerDrag() {
+    if (!this.state.cursorPosition || !this.state.dragState.draggedMarkerId) return
+    
+    // Find the marker being dragged
+    const marker = this.state.analysis.markers.find(m => m.id === this.state.dragState.draggedMarkerId)
+    if (!marker) return
+    
+    // Update marker position to current cursor position
+    marker.time = this.state.cursorPosition.time
+    marker.freq = this.state.cursorPosition.freq
+    marker.imageX = this.state.cursorPosition.imageX
+    marker.imageY = this.state.cursorPosition.imageY
+    
+    // Update visual representation immediately
+    updateCursorIndicators(this.instance)
+    
+    // Update the SVG cursor during drag
+    this.instance.svg.style.cursor = 'grabbing'
+  }
+
+  /**
    * Render analysis mode cursor indicators and persistent markers
    * @param {SVGElement} _svg - The SVG container element
    */
@@ -61,7 +162,8 @@ export class AnalysisMode extends BaseMode {
     this.instance.cursorGroup.innerHTML = ''
     
     // Render temporary cursor crosshair if cursor position is available
-    if (this.state.cursorPosition) {
+    // Don't render crosshairs while dragging markers
+    if (this.state.cursorPosition && !this.state.dragState.isDragging) {
       this.renderCursor()
     }
     
@@ -173,6 +275,11 @@ export class AnalysisMode extends BaseMode {
     // Create crosshair with marker color (20x20px size)
     const crosshairSize = 10 // Half size for each direction
     
+    // Check if this mode is currently active to determine cursor style
+    const isActiveMode = this.instance.state.mode === 'analysis'
+    const cursorStyle = isActiveMode ? 'grab' : 'default'
+    const pointerEvents = isActiveMode ? 'auto' : 'none'
+    
     // Vertical line
     const verticalLine = createSVGLine(
       markerSVGX,
@@ -183,6 +290,8 @@ export class AnalysisMode extends BaseMode {
     )
     verticalLine.setAttribute('stroke', marker.color)
     verticalLine.setAttribute('stroke-width', '3')
+    verticalLine.style.pointerEvents = pointerEvents
+    verticalLine.style.cursor = cursorStyle
     this.instance.cursorGroup.appendChild(verticalLine)
     
     // Horizontal line
@@ -195,6 +304,8 @@ export class AnalysisMode extends BaseMode {
     )
     horizontalLine.setAttribute('stroke', marker.color)
     horizontalLine.setAttribute('stroke-width', '3')
+    horizontalLine.style.pointerEvents = pointerEvents
+    horizontalLine.style.cursor = cursorStyle
     this.instance.cursorGroup.appendChild(horizontalLine)
     
     // Center point
@@ -204,6 +315,8 @@ export class AnalysisMode extends BaseMode {
     centerPoint.setAttribute('r', '2')
     centerPoint.setAttribute('fill', marker.color)
     centerPoint.setAttribute('class', 'gram-frame-marker-point')
+    centerPoint.style.pointerEvents = pointerEvents
+    centerPoint.style.cursor = cursorStyle
     this.instance.cursorGroup.appendChild(centerPoint)
   }
 

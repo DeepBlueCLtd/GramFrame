@@ -77,6 +77,8 @@ export class GramFrame {
     this.rateLED = null
     /** @type {HTMLElement} */
     this.colorPicker = null
+    /** @type {SVGSVGElement} */
+    this.svg = null
     
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)
@@ -199,6 +201,11 @@ export class GramFrame {
     this.state.dragState.originalAnchorTime = null
     this.state.dragState.clickedHarmonicNumber = null
     
+    // Reset SVG cursor to default crosshair when switching modes
+    if (this.svg) {
+      this.svg.style.cursor = 'crosshair'
+    }
+    
     // Update UI
     if (this.modeButtons) {
       Object.keys(this.modeButtons).forEach(m => {
@@ -250,9 +257,12 @@ export class GramFrame {
     // Clear existing cursor indicators and redraw for new mode
     updateCursorIndicators(this)
     
+    // CSS now handles cursor behavior properly, no need for explicit reset
+    
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
   }
+
 
   /**
    * Create global status LEDs (mode and rate displays)

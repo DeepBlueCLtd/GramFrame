@@ -119,6 +119,136 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     expect(timeText).toBe('00:00')
   })
 
+  test('Analysis mode supports click to add persistent markers', async () => {
+    // Ensure we're in Analysis mode
+    await gramFramePage.clickMode('Analysis')
+    
+    // Get initial state
+    const initialState = await gramFramePage.getCurrentState()
+    expect(initialState.analysis?.markers || []).toHaveLength(0)
+    
+    // Click to add a marker
+    await gramFramePage.clickSVG(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Verify marker was added
+    const stateAfterClick = await gramFramePage.getCurrentState()
+    expect(stateAfterClick.analysis?.markers).toHaveLength(1)
+    expect(stateAfterClick.analysis.markers[0].freq).toBeGreaterThan(0)
+    expect(stateAfterClick.analysis.markers[0].time).toBeGreaterThan(0)
+    
+    // Add another marker
+    await gramFramePage.clickSVG(200, 150)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Verify second marker was added
+    const stateAfterSecondClick = await gramFramePage.getCurrentState()
+    expect(stateAfterSecondClick.analysis?.markers).toHaveLength(2)
+  })
+
+  test('Analysis mode markers can be dragged to new positions', async () => {
+    // Ensure we're in Analysis mode
+    await gramFramePage.clickMode('Analysis')
+    
+    // Add a marker
+    await gramFramePage.clickSVG(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Get initial marker position
+    const initialState = await gramFramePage.getCurrentState()
+    const initialMarker = initialState.analysis.markers[0]
+    const initialTime = initialMarker.time
+    const initialFreq = initialMarker.freq
+    
+    // Hover over the marker to verify cursor changes to grab
+    await gramFramePage.moveMouseToSpectrogram(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Drag the marker to a new position
+    await gramFramePage.page.mouse.down()
+    await gramFramePage.moveMouseToSpectrogram(200, 150)
+    await gramFramePage.page.mouse.up()
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Verify marker moved to new position
+    const finalState = await gramFramePage.getCurrentState()
+    const movedMarker = finalState.analysis.markers[0]
+    
+    expect(movedMarker.time).not.toBe(initialTime)
+    expect(movedMarker.freq).not.toBe(initialFreq)
+    // Check that the marker moved (coordinates should be different)
+    expect(Math.abs(movedMarker.time - initialTime)).toBeGreaterThan(0.1)
+    expect(Math.abs(movedMarker.freq - initialFreq)).toBeGreaterThan(0.1)
+  })
+
+  test('cursor changes to grab when hovering over markers', async () => {
+    // Ensure we're in Analysis mode
+    await gramFramePage.clickMode('Analysis')
+    
+    // Add a marker
+    await gramFramePage.clickSVG(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Move mouse away from marker
+    await gramFramePage.moveMouseToSpectrogram(50, 50)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Get current cursor style (should be crosshair)
+    const initialCursor = await gramFramePage.svg.evaluate(el => window.getComputedStyle(el).cursor)
+    expect(initialCursor).toBe('crosshair')
+    
+    // Move mouse over the marker
+    await gramFramePage.moveMouseToSpectrogram(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Verify cursor changed to grab
+    const hoverCursor = await gramFramePage.svg.evaluate(el => window.getComputedStyle(el).cursor)
+    expect(hoverCursor).toBe('grab')
+    
+    // Test the basic grab behavior - the important part is that hover works
+    // Dragging behavior is covered in the other test
+  })
+
+  test('analysis markers do not show grab cursor when in other modes', async () => {
+    // Start in Analysis mode and add a marker
+    await gramFramePage.clickMode('Analysis')
+    await gramFramePage.clickSVG(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Verify marker exists and shows grab cursor in Analysis mode
+    await gramFramePage.moveMouseToSpectrogram(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    const analysisModeCursor = await gramFramePage.svg.evaluate(el => window.getComputedStyle(el).cursor)
+    expect(analysisModeCursor).toBe('grab')
+    
+    // Switch to Harmonics mode
+    await gramFramePage.clickMode('Harmonics')
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Move mouse over the same position where the analysis marker is
+    await gramFramePage.moveMouseToSpectrogram(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Verify cursor does NOT show grab for analysis marker in Harmonics mode
+    // Check that the analysis marker elements have pointer-events disabled
+    const markerElements = await gramFramePage.page.locator('.gram-frame-marker-line').count()
+    expect(markerElements).toBeGreaterThan(0) // Marker should still be visible
+    
+    // Get the SVG cursor - should not be 'grab' since analysis markers are disabled
+    const harmonicsModeCursor = await gramFramePage.svg.evaluate(el => window.getComputedStyle(el).cursor)
+    expect(harmonicsModeCursor).not.toBe('grab')
+    
+    // Switch to Doppler mode and verify same behavior
+    await gramFramePage.clickMode('Doppler')
+    await gramFramePage.page.waitForTimeout(100)
+    
+    await gramFramePage.moveMouseToSpectrogram(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    const dopplerModeCursor = await gramFramePage.svg.evaluate(el => window.getComputedStyle(el).cursor)
+    expect(dopplerModeCursor).not.toBe('grab')
+  })
+
   test('Analysis mode operates on hover only with no click interactions', async () => {
     // Ensure we're in Analysis mode
     await gramFramePage.clickMode('Analysis')
@@ -134,16 +264,6 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     expect(stateAfterHover.cursorPosition).not.toBeNull()
     expect(stateAfterHover.cursorPosition.freq).toBeGreaterThan(0)
     expect(stateAfterHover.cursorPosition.time).toBeGreaterThan(0)
-    
-    // Click on the spectrogram
-    await gramFramePage.clickSVG(150, 100)
-    
-    // Verify clicking doesn't change the behavior or create persistent state
-    const stateAfterClick = await gramFramePage.getCurrentState()
-    
-    // In Analysis mode, click should not create any persistent state
-    // The cursor position should still be based on current mouse position
-    expect(stateAfterClick.cursorPosition).not.toBeNull()
     
     // Move mouse away and verify cursor position clears (hover-only behavior)
     await gramFramePage.page.mouse.move(10, 10) // Move outside

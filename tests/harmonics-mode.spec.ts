@@ -247,4 +247,47 @@ test.describe('Harmonics Mode Manual Features', () => {
     const deleteButton = rows.first().locator('.gram-frame-harmonic-delete')
     await expect(deleteButton).toBeVisible()
   })
+
+  test('harmonic sets do not show grab cursor when in other modes', async () => {
+    // Create a harmonic set by clicking
+    await gramFramePage.clickSpectrogram(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Verify harmonic set exists
+    const state = await gramFramePage.getCurrentState()
+    expect(state.harmonics.harmonicSets).toHaveLength(1)
+    
+    // Switch to Doppler mode first to isolate the issue
+    await gramFramePage.clickMode('Doppler')
+    await gramFramePage.page.waitForTimeout(300) // Give more time for re-rendering and cursor reset
+    
+    // Verify that the mode was actually switched
+    const stateAfterSwitch = await gramFramePage.getCurrentState()
+    expect(stateAfterSwitch.mode).toBe('doppler')
+    
+    // Move mouse over the same position where the harmonic set is
+    await gramFramePage.moveMouseToSpectrogram(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    // Verify cursor does NOT show grab for harmonic set in Doppler mode
+    const dopplerModeCursor = await gramFramePage.svg.evaluate(el => window.getComputedStyle(el).cursor)
+    expect(dopplerModeCursor).not.toBe('grab')
+    
+    // Also check if any harmonic lines have grab cursor set directly
+    const harmonicLinesWithGrab = await gramFramePage.page.locator('.gram-frame-harmonic-set-line').evaluateAll(lines => 
+      lines.filter(line => window.getComputedStyle(line).cursor === 'grab').length
+    )
+    expect(harmonicLinesWithGrab).toBe(0)
+    
+    // Also test Analysis mode
+    await gramFramePage.clickMode('Analysis')
+    await gramFramePage.page.waitForTimeout(200)
+    
+    await gramFramePage.moveMouseToSpectrogram(150, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    
+    const analysisModeCursor = await gramFramePage.svg.evaluate(el => window.getComputedStyle(el).cursor)
+    expect(analysisModeCursor).not.toBe('grab')
+    expect(analysisModeCursor).toBe('crosshair')
+  })
 })
