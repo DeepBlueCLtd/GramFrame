@@ -36,9 +36,7 @@ export class HarmonicsMode extends BaseMode {
    * @param {Object} _coords - Coordinate information
    */
   handleClick(_event, _coords) {
-    // Harmonics are now created via click-and-drag in handleMouseDown
-    // This function is kept for backward compatibility but no longer creates harmonics
-    // The creation logic has been moved to the mousedown handler for live drag creation
+    // No-op: harmonic creation now handled in handleMouseDown
   }
 
   /**
@@ -179,8 +177,6 @@ export class HarmonicsMode extends BaseMode {
     }
   }
 
-  // NOTE: Cross-mode rendering is now handled by FeatureRenderer in core/
-  // Each mode only renders its own features via renderOwnFeatures()
 
 
   /**
@@ -190,7 +186,6 @@ export class HarmonicsMode extends BaseMode {
   createUI(readoutPanel) {
     this.uiElements = {}
     
-    // Manual harmonic button removed - functionality moved elsewhere
     
     // Create Frequency LED display
     this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
@@ -261,22 +256,20 @@ export class HarmonicsMode extends BaseMode {
    * Reset harmonics-specific state
    */
   resetState() {
-    // Note: resetState should only clear when explicitly requested
-    // Preserving harmonic sets for cross-mode persistence
+    // Only clear when explicitly requested by user (not during mode switches)
     this.state.harmonics.baseFrequency = null
     this.state.harmonics.harmonicData = []
-    console.log('HarmonicsMode resetState: preserving harmonic sets (resetState should only clear when explicitly requested)')
+    // Note: harmonicSets are only cleared by explicit user action, not by resetState
   }
 
   /**
    * Clean up harmonics-specific state when switching away from harmonics mode
    */
   cleanup() {
-    // Note: Harmonic sets are now persistent across mode switches
-    // Only clear transient state, preserve harmonic sets
+    // Only clear transient state, preserve harmonic sets for cross-mode persistence
     this.state.harmonics.baseFrequency = null
     this.state.harmonics.harmonicData = []
-    console.log('HarmonicsMode cleanup: preserving harmonic sets for cross-mode persistence')
+    // Note: harmonicSets are intentionally preserved
   }
 
   /**
@@ -325,17 +318,6 @@ export class HarmonicsMode extends BaseMode {
     
     this.state.harmonics.harmonicSets.push(harmonicSet)
     
-    // Log harmonic set creation for debugging and memory log
-    console.log(`Feature created: Harmonic set ${harmonicSet.id}`, {
-      timestamp: new Date().toISOString(),
-      event: 'feature_creation',
-      featureType: 'harmonic_set',
-      featureId: harmonicSet.id,
-      mode: 'harmonics',
-      anchorTime: harmonicSet.anchorTime,
-      spacing: harmonicSet.spacing,
-      color: harmonicSet.color
-    })
     
     // Update display and notify listeners
     updateCursorIndicators(this.instance)
@@ -373,19 +355,8 @@ export class HarmonicsMode extends BaseMode {
   removeHarmonicSet(id) {
     const setIndex = this.state.harmonics.harmonicSets.findIndex(set => set.id === id)
     if (setIndex !== -1) {
-      const removedSet = this.state.harmonics.harmonicSets.splice(setIndex, 1)[0]
+      this.state.harmonics.harmonicSets.splice(setIndex, 1)
       
-      // Log harmonic set deletion for debugging and memory log
-      console.log(`Feature deleted: Harmonic set ${removedSet.id}`, {
-        timestamp: new Date().toISOString(),
-        event: 'feature_deletion',
-        featureType: 'harmonic_set',
-        featureId: removedSet.id,
-        mode: 'harmonics',
-        anchorTime: removedSet.anchorTime,
-        spacing: removedSet.spacing,
-        color: removedSet.color
-      })
       
       // Update display and notify listeners
       updateCursorIndicators(this.instance)

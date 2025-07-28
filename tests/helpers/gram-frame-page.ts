@@ -194,7 +194,6 @@ export class GramFramePage {
     // Rate input has been removed from UI
     // This method is kept as a stub to prevent test failures
     // but it no longer performs any action
-    console.log(`Rate input removed from UI - ignoring setRate(${rate})`)
   }
 
   /**

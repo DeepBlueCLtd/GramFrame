@@ -188,17 +188,6 @@ export class GramFrame {
    * @param {ModeType} mode - Target mode
    */
   _switchMode(mode) {
-    const previousMode = this.state.mode
-    
-    // Log mode switch event for debugging and memory log
-    console.log(`Mode switch: ${previousMode} → ${mode}`, {
-      timestamp: new Date().toISOString(),
-      event: 'mode_switch',
-      previousMode,
-      newMode: mode,
-      instanceId: this.instanceId
-    })
-    
     // Update state
     this.state.mode = mode
     
@@ -303,19 +292,6 @@ export class GramFrame {
     notifyStateListeners(this.state, this.stateListeners)
   }
 
-  // Harmonic set management methods moved to HarmonicsMode class
-
-  // Manual harmonic modal method moved to HarmonicsMode class
-
-  // Harmonic set removal method moved to HarmonicsMode class
-
-  // Harmonic set frequency search method moved to HarmonicsMode class
-  
-  // Doppler reset method moved to DopplerMode class
-  
-  /**
-   * Update cursor visual indicators based on current mode and state
-   */
   
   
 }
@@ -346,7 +322,6 @@ window.GramFrame = GramFrameAPI
 if (import.meta.hot) {
   // @ts-ignore - Vite HMR API
   import.meta.hot.accept(() => {
-    console.log('🔄 GramFrame component updated - Hot reloading')
     
     // Store old state listeners before replacing the API
     const oldListeners = getGlobalStateListeners()
@@ -362,6 +337,5 @@ if (import.meta.hot) {
       GramFrameAPI.addStateListener(listener)
     })
     
-    console.log('✅ GramFrame hot reload complete')
   })
 }

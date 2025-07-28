@@ -207,8 +207,6 @@ export class AnalysisMode extends BaseMode {
     this.instance.cursorGroup.appendChild(centerPoint)
   }
 
-  // NOTE: Cross-mode rendering is now handled by FeatureRenderer in core/
-  // Each mode only renders its own features via renderOwnFeatures()
 
 
   /**
@@ -406,16 +404,6 @@ export class AnalysisMode extends BaseMode {
     
     this.state.analysis.markers.push(marker)
     
-    // Log marker creation for debugging and memory log
-    console.log(`Feature created: Analysis marker ${marker.id}`, {
-      timestamp: new Date().toISOString(),
-      event: 'feature_creation',
-      featureType: 'analysis_marker',
-      featureId: marker.id,
-      mode: 'analysis',
-      position: { time: marker.time, frequency: marker.freq },
-      color: marker.color
-    })
     
     // Update markers table
     this.updateMarkersTable()
@@ -436,18 +424,8 @@ export class AnalysisMode extends BaseMode {
     
     const index = this.state.analysis.markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
-      const removedMarker = this.state.analysis.markers.splice(index, 1)[0]
+      this.state.analysis.markers.splice(index, 1)
       
-      // Log marker deletion for debugging and memory log
-      console.log(`Feature deleted: Analysis marker ${removedMarker.id}`, {
-        timestamp: new Date().toISOString(),
-        event: 'feature_deletion',
-        featureType: 'analysis_marker',
-        featureId: removedMarker.id,
-        mode: 'analysis',
-        position: { time: removedMarker.time, frequency: removedMarker.freq },
-        color: removedMarker.color
-      })
       
       // Update markers table
       this.updateMarkersTable()
@@ -573,9 +551,6 @@ export class AnalysisMode extends BaseMode {
    * Clean up analysis mode state
    */
   cleanup() {
-    // Note: Markers are now persistent across mode switches
-    // No longer clearing markers when leaving analysis mode
-    console.log('AnalysisMode cleanup: preserving markers for cross-mode persistence')
   }
 
   /**
@@ -601,8 +576,5 @@ export class AnalysisMode extends BaseMode {
    * Reset analysis mode state
    */
   resetState() {
-    // Note: resetState is only called by user action (not mode switching)
-    // Markers should only be cleared when explicitly requested
-    console.log('AnalysisMode resetState: preserving markers (resetState should only clear when explicitly requested)')
   }
 }

@@ -41,7 +41,6 @@ export class FeatureRenderer {
         modes.doppler.renderOwnFeatures(this.instance.cursorGroup)
       }
 
-      console.log('FeatureRenderer: rendered all persistent features via mode delegation')
     } catch (error) {
       console.error('Error in FeatureRenderer.renderAllPersistentFeatures:', error)
     }

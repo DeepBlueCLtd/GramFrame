@@ -244,7 +244,6 @@ export function drawHarmonicLabels(instance, harmonic, _isMainLine) {
   instance.cursorGroup.appendChild(frequencyLabel)
 }
 
-// drawDopplerMode function removed - now handled by DopplerMode.render()
 
 /**
  * Draw a Doppler marker

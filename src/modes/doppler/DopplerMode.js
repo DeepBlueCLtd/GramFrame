@@ -2,7 +2,6 @@ import { BaseMode } from '../BaseMode.js'
 import { updateLEDDisplays, createLEDDisplay } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
-// createSVGLine import removed - no longer used after refactoring
 import { 
   calculateDopplerSpeed,
   isNearMarker,
@@ -85,16 +84,6 @@ export class DopplerMode extends BaseMode {
         // Calculate initial speed
         this.calculateAndUpdateDopplerSpeed()
         
-        // Log doppler markers creation for debugging and memory log
-        console.log(`Feature created: Doppler markers set`, {
-          timestamp: new Date().toISOString(),
-          event: 'feature_creation',
-          featureType: 'doppler_markers',
-          mode: 'doppler',
-          fMinus: { time: this.state.doppler.fMinus.time, frequency: this.state.doppler.fMinus.frequency },
-          fPlus: { time: this.state.doppler.fPlus.time, frequency: this.state.doppler.fPlus.frequency },
-          fZero: { time: this.state.doppler.fZero.time, frequency: this.state.doppler.fZero.frequency }
-        })
       }
       
       // Update displays
@@ -290,8 +279,6 @@ export class DopplerMode extends BaseMode {
     }
   }
 
-  // NOTE: Cross-mode rendering is now handled by FeatureRenderer in core/
-  // Each mode only renders its own features via renderOwnFeatures()
 
   /**
    * Create UI elements for doppler mode
@@ -329,16 +316,6 @@ export class DopplerMode extends BaseMode {
    * Reset doppler-specific state
    */
   resetState() {
-    // Log doppler markers deletion if they exist
-    if (this.state.doppler.fPlus || this.state.doppler.fMinus || this.state.doppler.fZero) {
-      console.log(`Feature deleted: Doppler markers reset`, {
-        timestamp: new Date().toISOString(),
-        event: 'feature_deletion',
-        featureType: 'doppler_markers',
-        mode: 'doppler',
-        resetBy: 'user_action'
-      })
-    }
     
     this.state.doppler.fPlus = null
     this.state.doppler.fMinus = null
@@ -361,7 +338,6 @@ export class DopplerMode extends BaseMode {
    * Clean up doppler-specific state when switching away from doppler mode
    */
   cleanup() {
-    // Note: Doppler markers (fPlus, fMinus, fZero) are now persistent across mode switches
     // Only clear transient drag state, preserve marker positions
     this.state.doppler.isDragging = false
     this.state.doppler.draggedMarker = null
@@ -369,7 +345,6 @@ export class DopplerMode extends BaseMode {
     this.state.doppler.tempFirst = null
     this.state.doppler.isPreviewDrag = false
     this.state.doppler.previewEnd = null
-    console.log('DopplerMode cleanup: preserving doppler markers for cross-mode persistence')
   }
 
   /**
