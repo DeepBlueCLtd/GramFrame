@@ -77,6 +77,8 @@ export class GramFrame {
     this.rateLED = null
     /** @type {HTMLElement} */
     this.colorPicker = null
+    /** @type {SVGSVGElement} */
+    this.svg = null
     
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)
