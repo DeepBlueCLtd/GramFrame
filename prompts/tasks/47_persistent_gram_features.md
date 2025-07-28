@@ -46,7 +46,7 @@ Modify GramFrame so that features (such as markers and harmonic sets) created in
   - `src/modes/harmonics/HarmonicsMode.js`
   - `src/modes/doppler/DopplerMode.js`
 - Any files managing persistent feature state or memory log utilities
-- Associated UI components if they directly manage feature visibility or deletion tables
+- Associated UI components if they directly manage feature visibility or deletion tables.
 
 ## 8. References
 - [Issue #47: Persistent gram features](https://github.com/DeepBlueCLtd/GramFrame/issues/47)
