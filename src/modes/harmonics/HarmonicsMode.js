@@ -1,6 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
 import { createSVGLine, createSVGText } from '../../utils/svg.js'
-import { drawAnalysisMode } from '../../rendering/cursors.js'
+import { drawAnalysisMode, drawDopplerMarker, drawDopplerCurve, drawDopplerVerticalExtensions } from '../../rendering/cursors.js'
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
@@ -236,55 +236,24 @@ export class HarmonicsMode extends BaseMode {
   renderDopplerMarkers() {
     if (!this.state.doppler) return
     
-    // Render fMinus marker
+    // Use the original doppler rendering functions to ensure consistency
     if (this.state.doppler.fMinus) {
-      this.renderDopplerMarker(this.state.doppler.fMinus, '#ff4444', 'f-')
+      drawDopplerMarker(this.instance, this.state.doppler.fMinus, 'fMinus')
     }
-    
-    // Render fPlus marker  
     if (this.state.doppler.fPlus) {
-      this.renderDopplerMarker(this.state.doppler.fPlus, '#44ff44', 'f+')
+      drawDopplerMarker(this.instance, this.state.doppler.fPlus, 'fPlus')
+    }
+    if (this.state.doppler.fZero) {
+      drawDopplerMarker(this.instance, this.state.doppler.fZero, 'fZero')
     }
     
-    // Render fZero marker
-    if (this.state.doppler.fZero) {
-      this.renderDopplerMarker(this.state.doppler.fZero, '#4444ff', 'f₀')
+    // Draw the curve if both f+ and f- exist
+    if (this.state.doppler.fPlus && this.state.doppler.fMinus) {
+      drawDopplerCurve(this.instance, this.state.doppler.fPlus, this.state.doppler.fMinus, this.state.doppler.fZero)
+      drawDopplerVerticalExtensions(this.instance, this.state.doppler.fPlus, this.state.doppler.fMinus)
     }
   }
 
-  /**
-   * Render a single doppler marker
-   */
-  renderDopplerMarker(marker, color, label) {
-    const margins = this.state.axes.margins
-    
-    // Convert data coordinates to image coordinates
-    const imageX = (marker.time - this.state.config.timeMin) / 
-      (this.state.config.timeMax - this.state.config.timeMin) * this.state.imageDetails.naturalWidth
-    const imageY = (this.state.config.freqMax - marker.frequency) / 
-      (this.state.config.freqMax - this.state.config.freqMin) * this.state.imageDetails.naturalHeight
-    
-    const markerSVGX = margins.left + imageX
-    const markerSVGY = margins.top + imageY
-    
-    // Create circle marker
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    circle.setAttribute('cx', String(markerSVGX))
-    circle.setAttribute('cy', String(markerSVGY))
-    circle.setAttribute('r', '6')
-    circle.setAttribute('fill', color)
-    circle.setAttribute('stroke', '#ffffff')
-    circle.setAttribute('stroke-width', '2')
-    circle.setAttribute('opacity', '0.8')
-    circle.setAttribute('class', 'gram-frame-doppler-marker')
-    this.instance.cursorGroup.appendChild(circle)
-    
-    // Add label
-    const text = createSVGText(markerSVGX + 10, markerSVGY - 10, label, 'gram-frame-doppler-label')
-    text.setAttribute('fill', color)
-    text.setAttribute('font-weight', 'bold')
-    this.instance.cursorGroup.appendChild(text)
-  }
 
   /**
    * Create UI elements for harmonics mode

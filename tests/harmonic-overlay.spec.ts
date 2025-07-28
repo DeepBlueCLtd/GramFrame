@@ -122,7 +122,7 @@ test.describe('Harmonic Overlay Implementation (Task 1.1)', () => {
   })
 
 
-  test('harmonic sets are cleared when exiting harmonics mode', async () => {
+  test('harmonic sets persist when switching to other modes (persistent behavior)', async () => {
     // Create harmonic sets
     await gramFramePage.clickSpectrogram(100, 100)
     await gramFramePage.page.waitForTimeout(100)
@@ -135,15 +135,58 @@ test.describe('Harmonic Overlay Implementation (Task 1.1)', () => {
     // Switch to analysis mode
     await gramFramePage.clickMode('analysis')
     
-    // Verify harmonic sets were cleared
+    // Verify harmonic sets are PRESERVED (new persistent behavior)
     state = await gramFramePage.getState()
-    expect(state.harmonics.harmonicSets).toHaveLength(0)
+    expect(state.harmonics.harmonicSets).toHaveLength(2)
     
-    // Verify panel is hidden
+    // Verify harmonic lines exist in Analysis mode (cross-mode persistence)
+    const harmonicLineCount = await gramFramePage.page.locator('.gram-frame-harmonic-set-line').count()
+    expect(harmonicLineCount).toBeGreaterThan(0)
+    
+    // Verify analysis mode UI is visible (harmonic panel is hidden, which is correct)
     const panel = gramFramePage.page.locator('.gram-frame-harmonic-panel')
     await expect(panel).not.toBeVisible()
+    
+    // Switch to Doppler mode and verify harmonics are still there
+    await gramFramePage.clickMode('doppler')
+    state = await gramFramePage.getState()
+    expect(state.harmonics.harmonicSets).toHaveLength(2)
+    const harmonicLineCountInDoppler = await gramFramePage.page.locator('.gram-frame-harmonic-set-line').count()
+    expect(harmonicLineCountInDoppler).toBeGreaterThan(0)
   })
 
+  test('harmonic sets can still be deleted via harmonics mode UI', async () => {
+    // Create harmonic sets
+    await gramFramePage.clickSpectrogram(100, 100)
+    await gramFramePage.page.waitForTimeout(100)
+    await gramFramePage.clickSpectrogram(700, 200)
+    
+    // Switch to Analysis mode (sets should persist)
+    await gramFramePage.clickMode('analysis')
+    let state = await gramFramePage.getState()
+    expect(state.harmonics.harmonicSets).toHaveLength(2)
+    
+    // Switch back to Harmonics mode
+    await gramFramePage.clickMode('harmonics')
+    
+    // Verify sets are still there and UI shows them
+    state = await gramFramePage.getState()
+    expect(state.harmonics.harmonicSets).toHaveLength(2)
+    
+    // Delete one harmonic set via the UI
+    const deleteButton = gramFramePage.page.locator('.gram-frame-harmonic-delete').first()
+    await expect(deleteButton).toBeVisible()
+    await deleteButton.click()
+    
+    // Verify deletion worked
+    state = await gramFramePage.getState()
+    expect(state.harmonics.harmonicSets).toHaveLength(1)
+    
+    // Switch to Analysis mode and verify the deletion persisted
+    await gramFramePage.clickMode('analysis')
+    state = await gramFramePage.getState()
+    expect(state.harmonics.harmonicSets).toHaveLength(1)
+  })
 
   test('harmonic lines have proper 20% height constraint', async () => {
     // Create a harmonic set

@@ -456,8 +456,8 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       // LED display update may have timing issues, but state reset is the critical functionality
     })
 
-    test('switching out of Doppler mode clears all overlays', async () => {
-      // Place markers in Doppler mode
+    test('switching out of Doppler mode preserves all markers (persistent behavior)', async () => {
+      // Place markers in Doppler mode with proper timing
       const svgBox = await gramFramePage.svg.boundingBox()
       expect(svgBox).not.toBeNull()
 
@@ -465,31 +465,35 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(svgBox!.x + 200, svgBox!.y + 200)
       await gramFramePage.page.mouse.up()
+      
+      // Wait for markers to be placed
+      await gramFramePage.page.waitForTimeout(500)
 
-      // Verify markers are present
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).toBeVisible()
+      // Verify markers are present by checking state
+      let state = await gramFramePage.getState()
+      expect(state.doppler.fPlus).not.toBeNull()
+      expect(state.doppler.fMinus).not.toBeNull()
+      expect(state.doppler.markersPlaced).toBe(2)
 
       // Switch to Analysis mode
       await gramFramePage.clickMode('Analysis')
 
       // Verify mode changed
-      const state = await gramFramePage.getState()
+      state = await gramFramePage.getState()
       expect(state.mode).toBe('analysis')
 
-      // Verify all Doppler overlays are cleared
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).not.toBeVisible()
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-fMinus')).not.toBeVisible()
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-crosshair')).not.toBeVisible()
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-curve')).not.toBeVisible()
+      // Verify Doppler markers are PRESERVED (new persistent behavior)
+      expect(state.doppler.fPlus).not.toBeNull()
+      expect(state.doppler.fMinus).not.toBeNull()
+      expect(state.doppler.fZero).not.toBeNull()
+      expect(state.doppler.markersPlaced).toBe(2)
 
-      // Verify Doppler state is cleared
-      expect(state.doppler.fPlus).toBeNull()
-      expect(state.doppler.fMinus).toBeNull()
-      expect(state.doppler.fZero).toBeNull()
-      expect(state.doppler.markersPlaced).toBe(0)
+      // Verify Doppler markers exist in Analysis mode (cross-mode persistence)
+      const dopplerMarkerCount = await gramFramePage.page.locator('.gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-fZero').count()
+      expect(dopplerMarkerCount).toBeGreaterThan(0)
     })
 
-    test('switching back to Doppler mode starts with clean state', async () => {
+    test('switching back to Doppler mode maintains persistent state', async () => {
       // Place markers, then switch away and back
       const svgBox = await gramFramePage.svg.boundingBox()
       expect(svgBox).not.toBeNull()
@@ -498,23 +502,25 @@ test.describe('E2E Tests for Doppler Mode Feature (Task 2.6)', () => {
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(svgBox!.x + 200, svgBox!.y + 200)
       await gramFramePage.page.mouse.up()
+      
+      // Wait for markers to be placed
+      await gramFramePage.page.waitForTimeout(500)
 
       // Switch away and back
       await gramFramePage.clickMode('Analysis')
       await gramFramePage.clickMode('Doppler')
 
-      // Verify clean state
+      // Verify persistent state is maintained
       const state = await gramFramePage.getState()
       expect(state.mode).toBe('doppler')
-      expect(state.doppler.fPlus).toBeNull()
-      expect(state.doppler.fMinus).toBeNull()
-      expect(state.doppler.fZero).toBeNull()
-      expect(state.doppler.markersPlaced).toBe(0)
+      expect(state.doppler.fPlus).not.toBeNull()
+      expect(state.doppler.fMinus).not.toBeNull()
+      expect(state.doppler.fZero).not.toBeNull()
+      expect(state.doppler.markersPlaced).toBe(2)
 
-      // Verify no markers visible
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).not.toBeVisible()
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-fMinus')).not.toBeVisible()
-      await expect(gramFramePage.page.locator('.gram-frame-doppler-crosshair')).not.toBeVisible()
+      // Verify markers exist (checking count instead of individual visibility)
+      const dopplerMarkerCount = await gramFramePage.page.locator('.gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-fZero').count()
+      expect(dopplerMarkerCount).toBeGreaterThan(0)
     })
   })
 
