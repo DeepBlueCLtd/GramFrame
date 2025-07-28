@@ -717,8 +717,10 @@ export class HarmonicsMode extends BaseMode {
       mainLine.setAttribute('stroke-width', '2')
       
       // Ensure proper cursor behavior for existing harmonic sets
-      mainLine.style.pointerEvents = 'auto'
-      mainLine.style.cursor = 'grab'
+      // Only enable interaction when this mode is active
+      const isActiveMode = this.instance.state.mode === 'harmonics'
+      mainLine.style.pointerEvents = isActiveMode ? 'auto' : 'none'
+      mainLine.style.cursor = isActiveMode ? 'grab' : 'default'
       
       this.instance.cursorGroup.appendChild(mainLine)
       
