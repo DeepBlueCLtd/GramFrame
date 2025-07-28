@@ -1596,3 +1596,100 @@ Refactored the GramFrame configuration table structure from the three-column for
 
 **Issues/Blockers:**
 None. All changes implemented successfully with no regressions.
+
+### GitHub Issue #44: Fix Axis Text Labels Resize Issue (Completed)  
+**Date: July 28, 2025**
+**Task Reference: APM Task Assignment: Fix Axis Text Labels Resize Issue**
+
+**Summary:**
+Fixed axis text label scaling behavior so that text labels maintain consistent font size when the gram image is resized, preventing them from becoming invisible during page resizing operations.
+
+**Problem Identified:**
+The axis labels were using SVG coordinates that scale with the image. When the SVG viewBox was resized, the font-size attribute set to "10" scaled proportionally with the viewBox, making the text become smaller and potentially invisible.
+
+**Key Changes:**
+
+1. **Scale-Adjusted Font Size Calculation (`src/rendering/axes.js`)**:
+   - Added `calculateScaleAdjustedFontSize()` function that calculates font size based on viewBox to display size ratio
+   - Base font size of 10px is adjusted inversely to the scale factor to maintain visual consistency
+   - Handles edge cases where viewBox or display dimensions are invalid
+
+2. **Time Axis Enhancement (`drawTimeAxis`)**:
+   - Integrated scale-adjusted font size calculation
+   - Labels now maintain consistent visual size regardless of SVG scaling
+   - Replaced hardcoded `font-size="10"` with dynamic `fontSize` calculation
+
+3. **Frequency Axis Enhancement (`drawFrequencyAxis`)**:
+   - Applied same scale-adjusted font size calculation
+   - Frequency labels maintain readability at all zoom levels
+   - Consistent with time axis implementation
+
+**Technical Implementation:**
+
+```javascript
+/**
+ * Calculate a font size that remains visually consistent across different scales
+ * @param {Object} instance - GramFrame instance
+ * @returns {number} Font size adjusted for current scale
+ */
+function calculateScaleAdjustedFontSize(instance) {
+  // Base font size that looks good at 1:1 scale
+  const baseFontSize = 10
+  
+  // Get the viewBox dimensions from the SVG
+  const viewBox = instance.svg.getAttribute('viewBox')
+  if (!viewBox) return baseFontSize
+  
+  const [, , viewBoxWidth] = viewBox.split(' ').map(Number)
+  
+  // Get the actual display width
+  const displayWidth = parseFloat(instance.svg.getAttribute('width') || '0')
+  
+  if (displayWidth === 0 || viewBoxWidth === 0) return baseFontSize
+  
+  // Calculate scale factor: if viewBox is larger than display, text would be smaller
+  // So we need to increase font-size proportionally
+  const scaleFactor = viewBoxWidth / displayWidth
+  
+  // Adjust font size inversely to the scale factor to maintain visual consistency
+  return baseFontSize * scaleFactor
+}
+```
+
+**Implementation Details:**
+- **Font Size Calculation**: Uses ratio between viewBox width and display width to determine scaling factor
+- **Inverse Scaling**: Font size increases when display is smaller than viewBox to maintain visual consistency
+- **Error Handling**: Returns base font size when dimensions are invalid or unavailable
+- **Integration**: Applied to both time axis (vertical labels) and frequency axis (horizontal labels)
+
+**Code Locations Modified:**
+- `src/rendering/axes.js:43-64` - Added `calculateScaleAdjustedFontSize()` function
+- `src/rendering/axes.js:82` - Updated time axis to use dynamic font size  
+- `src/rendering/axes.js:118` - Updated time axis label creation
+- `src/rendering/axes.js:154` - Updated frequency axis to use dynamic font size
+- `src/rendering/axes.js:192` - Updated frequency axis label creation
+
+**Validation Results:**
+- **TypeScript:** All type checks pass (`yarn typecheck`)
+- **Functionality:** Axis labels remain visible and readable during page resize operations
+- **Both Axes:** Fix works for both time (vertical) and frequency (horizontal) axis labels
+- **Zoom Levels:** Text maintains consistent readability across different screen sizes and zoom levels
+- **Component Integration:** Other components (cursors, overlays) continue to scale properly
+- **Responsive Design:** Maintains compatibility with ResizeObserver-based responsive system
+
+**Success Criteria Achieved:**
+✅ **Axis text labels maintain consistent, readable font size during image resize operations**  
+✅ **Labels do not become invisible when the gram image shrinks**  
+✅ **Overall component functionality remains intact**  
+✅ **Fix works for both time and frequency axis labels**  
+✅ **Maintains existing axis margins (left: 60px, bottom: 50px)**  
+✅ **Integrates seamlessly with SVG-based rendering system**  
+✅ **Compatible with responsive design using ResizeObserver**
+
+**Technical Approach:**
+The solution calculates the scale factor between the SVG viewBox dimensions and the actual display dimensions, then adjusts the font-size inversely to maintain visual consistency. This approach ensures that as the SVG scales down (making elements smaller), the font-size increases proportionally to maintain readability.
+
+**Status:** Completed - Axis text labels now maintain consistent font size during resize operations
+
+**Issues/Blockers:**
+None. Implementation successfully resolves the issue while maintaining all existing functionality.
