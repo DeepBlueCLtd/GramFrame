@@ -75,11 +75,32 @@ export function calculateLayoutDimensions(containerWidth, aspectRatio, originalW
 }
 
 /**
- * Calculates position with margin offset
- * @param {number} value - Base value
- * @param {number} marginOffset - Margin offset to add
- * @returns {number} Position with margin offset
+ * Creates an SVG circle element with the specified coordinates and class
+ * @param {number} cx - Center x coordinate
+ * @param {number} cy - Center y coordinate
+ * @param {number} r - Radius
+ * @param {string} className - CSS class name
+ * @returns {SVGCircleElement} The created circle element
  */
-export function withMarginOffset(value, marginOffset) {
-  return value + marginOffset
+export function createSVGCircle(cx, cy, r, className) {
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+  circle.setAttribute('cx', String(cx))
+  circle.setAttribute('cy', String(cy))
+  circle.setAttribute('r', String(r))
+  circle.setAttribute('class', className)
+  return circle
 }
+
+/**
+ * Creates an SVG path element with the specified path data and class
+ * @param {string} pathData - SVG path data string
+ * @param {string} className - CSS class name
+ * @returns {SVGPathElement} The created path element
+ */
+export function createSVGPath(pathData, className) {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  path.setAttribute('d', pathData)
+  path.setAttribute('class', className)
+  return path
+}
+

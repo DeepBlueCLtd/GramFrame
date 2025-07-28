@@ -4,7 +4,7 @@ import { drawAnalysisMode } from '../../rendering/cursors.js'
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
-import { createLEDDisplay, createColorPicker, updateLEDDisplays } from '../../components/UIComponents.js'
+import { createLEDDisplay, createColorPicker, updateLEDDisplays, createFullFlexLayout, createFlexColumn, createFlexLayout } from '../../components/UIComponents.js'
 
 /**
  * Harmonics mode implementation
@@ -187,26 +187,14 @@ export class HarmonicsMode extends BaseMode {
     this.uiElements = {}
     
     // Create main layout container with two columns
-    const layoutContainer = document.createElement('div')
-    layoutContainer.className = 'gram-frame-harmonics-layout'
-    layoutContainer.style.display = 'flex'
-    layoutContainer.style.gap = '10px'
-    layoutContainer.style.width = '100%'
-    layoutContainer.style.height = '100%'
+    const layoutContainer = createFullFlexLayout('gram-frame-harmonics-layout', '10px')
     
     // Create left column for controls (40% width)
-    const leftColumn = document.createElement('div')
-    leftColumn.className = 'gram-frame-harmonics-controls'
-    leftColumn.style.display = 'flex'
-    leftColumn.style.flexDirection = 'column'
-    leftColumn.style.gap = '10px'
+    const leftColumn = createFlexColumn('gram-frame-harmonics-controls', '10px')
     leftColumn.style.flex = '0 0 40%'
     
     // Create top row in left column (Frequency LED and Manual button)
-    const topRow = document.createElement('div')
-    topRow.className = 'gram-frame-harmonics-top-row'
-    topRow.style.display = 'flex'
-    topRow.style.gap = '10px'
+    const topRow = createFlexLayout('gram-frame-harmonics-top-row', '10px')
     
     // Create Frequency LED display
     this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
@@ -224,12 +212,9 @@ export class HarmonicsMode extends BaseMode {
     leftColumn.appendChild(this.uiElements.colorPicker)
     
     // Create right column for harmonic panel (60% width)
-    const rightColumn = document.createElement('div')
-    rightColumn.className = 'gram-frame-harmonics-table-column'
+    const rightColumn = createFlexColumn('gram-frame-harmonics-table-column')
     rightColumn.style.flex = '0 0 60%'
     rightColumn.style.minWidth = '0'
-    rightColumn.style.display = 'flex'
-    rightColumn.style.flexDirection = 'column'
     
     // Add columns to layout container
     layoutContainer.appendChild(leftColumn)

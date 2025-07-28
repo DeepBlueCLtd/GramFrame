@@ -1,13 +1,21 @@
 import { test, expect } from '@playwright/test'
 import { GramFramePage } from './helpers/gram-frame-page'
+import { 
+  standardSetup, 
+  verifyStandardLEDs, 
+  verifyCrosshairs, 
+  expectValidCursor,
+  verifyModeButtons,
+  calculateTestPositions,
+  TEST_PATTERNS
+} from './helpers/test-utils'
 
 test.describe('Analysis Mode Implementation (Task 4.2)', () => {
   let gramFramePage: GramFramePage
 
   test.beforeEach(async ({ page }) => {
     gramFramePage = new GramFramePage(page)
-    await gramFramePage.goto()
-    await gramFramePage.waitForImageLoad()
+    await standardSetup(gramFramePage)
   })
 
   test('cross-hairs appear in Analysis mode', async () => {
@@ -18,16 +26,13 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     // Move mouse over spectrogram to trigger cross-hairs
     const svgBounds = await gramFramePage.svg.boundingBox()
     if (svgBounds) {
-      const centerX = svgBounds.width * 0.5
-      const centerY = svgBounds.height * 0.5
+      const { centerX, centerY } = calculateTestPositions(svgBounds)
       await gramFramePage.moveMouse(centerX, centerY)
       await gramFramePage.page.waitForTimeout(100)
     }
     
     // Verify cross-hairs are present (vertical and horizontal lines)
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-vertical')).toHaveCount(1)
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-horizontal')).toHaveCount(1)
-    await expect(gramFramePage.page.locator('.gram-frame-cursor-point')).toHaveCount(1)
+    await verifyCrosshairs(gramFramePage.page)
     
     // Switch to Harmonics mode to verify cross-hairs still appear
     await gramFramePage.clickMode('Harmonics')
@@ -87,14 +92,11 @@ test.describe('Analysis Mode Implementation (Task 4.2)', () => {
     await gramFramePage.moveMouseToSpectrogram(150, 100)
     
     // Verify LED displays show the correct format as per spec
-    const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
-    const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
-    
-    // According to new LED format: numerical values only
-    expect(freqText).toMatch(/\d+\.\d$/)  // 1 decimal place for frequency (numerical only)
-    expect(timeText).toMatch(/\d{2}:\d{2}$/)  // mm:ss format for time (numerical only)
+    await verifyStandardLEDs(gramFramePage)
     
     // Verify format structure - no units in values
+    const freqText = await gramFramePage.freqLED.locator('.gram-frame-led-value').textContent()
+    const timeText = await gramFramePage.timeLED.locator('.gram-frame-led-value').textContent()
     expect(freqText).not.toContain('Freq: ')
     expect(freqText).not.toContain(' Hz')
     expect(timeText).not.toContain('Time: ')

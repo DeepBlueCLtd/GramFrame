@@ -1,6 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
-import { createSVGLine } from '../../utils/svg.js'
-import { createLEDDisplay, createColorPicker } from '../../components/UIComponents.js'
+import { createSVGLine, createSVGCircle } from '../../utils/svg.js'
+import { createLEDDisplay, createColorPicker, createFullFlexLayout, createFlexColumn } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { updateCursorIndicators } from '../../rendering/cursors.js'
 import { formatTime } from '../../utils/timeFormatter.js'
@@ -242,11 +242,7 @@ export class AnalysisMode extends BaseMode {
     this.instance.cursorGroup.appendChild(horizontalLine)
     
     // Create center point indicator
-    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    centerPoint.setAttribute('cx', String(cursorSVGX))
-    centerPoint.setAttribute('cy', String(cursorSVGY))
-    centerPoint.setAttribute('r', '3')
-    centerPoint.setAttribute('class', 'gram-frame-cursor-point')
+    const centerPoint = createSVGCircle(cursorSVGX, cursorSVGY, 3, 'gram-frame-cursor-point')
     this.instance.cursorGroup.appendChild(centerPoint)
   }
 
@@ -309,12 +305,8 @@ export class AnalysisMode extends BaseMode {
     this.instance.cursorGroup.appendChild(horizontalLine)
     
     // Center point
-    const centerPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    centerPoint.setAttribute('cx', String(markerSVGX))
-    centerPoint.setAttribute('cy', String(markerSVGY))
-    centerPoint.setAttribute('r', '2')
+    const centerPoint = createSVGCircle(markerSVGX, markerSVGY, 2, 'gram-frame-marker-point')
     centerPoint.setAttribute('fill', marker.color)
-    centerPoint.setAttribute('class', 'gram-frame-marker-point')
     centerPoint.style.pointerEvents = pointerEvents
     centerPoint.style.cursor = cursorStyle
     this.instance.cursorGroup.appendChild(centerPoint)
@@ -330,26 +322,15 @@ export class AnalysisMode extends BaseMode {
     this.uiElements = {}
     
     // Create horizontal layout container
-    const layoutContainer = document.createElement('div')
-    layoutContainer.className = 'gram-frame-analysis-layout'
-    layoutContainer.style.display = 'flex'
-    layoutContainer.style.gap = '12px'
-    layoutContainer.style.height = '100%'
+    const layoutContainer = createFullFlexLayout('gram-frame-analysis-layout', '12px')
     
     // Create left column for controls
-    const leftColumn = document.createElement('div')
-    leftColumn.className = 'gram-frame-analysis-controls'
-    leftColumn.style.display = 'flex'
-    leftColumn.style.flexDirection = 'column'
-    leftColumn.style.gap = '8px'
+    const leftColumn = createFlexColumn('gram-frame-analysis-controls', '8px')
     leftColumn.style.minWidth = '160px'
     leftColumn.style.flexShrink = '0'
     
     // Create horizontal container for LEDs
-    const ledsContainer = document.createElement('div')
-    ledsContainer.className = 'gram-frame-analysis-leds'
-    ledsContainer.style.display = 'flex'
-    ledsContainer.style.gap = '6px'
+    const ledsContainer = createFullFlexLayout('gram-frame-analysis-leds', '6px')
     
     // Create Time LED display
     this.uiElements.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
@@ -371,11 +352,8 @@ export class AnalysisMode extends BaseMode {
     leftColumn.appendChild(this.uiElements.colorPicker)
     
     // Create right column for markers table
-    const rightColumn = document.createElement('div')
-    rightColumn.className = 'gram-frame-analysis-markers'
+    const rightColumn = createFlexColumn('gram-frame-analysis-markers')
     rightColumn.style.flex = '1'
-    rightColumn.style.display = 'flex'
-    rightColumn.style.flexDirection = 'column'
     rightColumn.style.minHeight = '0' // Allow flex shrinking
     
     // Create markers table in right column
