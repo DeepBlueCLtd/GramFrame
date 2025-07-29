@@ -1,92 +1,108 @@
-# APM Task Assignment: Viewport-Based Zoom Implementation
+# APM Task Assignment: Viewport-Based Zoom Implementation - SUSPENDED
+
+## ❌ **TASK STATUS: SUSPENDED**
+
+**Date Suspended:** 2025-01-29  
+**Suspension Reason:** Architectural mismatch between viewport-based zoom approach and existing codebase architecture
+
+## **Implementation Attempt Summary**
+
+**Completed Work:**
+- ✅ Basic viewport-based zoom infrastructure (viewBox manipulation)
+- ✅ Zoom controls UI (zoom in/out/reset buttons)
+- ✅ Zoom state management and integration with main state system
+- ✅ Partial axes rendering updates for zoom support
+
+**Critical Issues Encountered:**
+- **Coordinate System Chaos**: Multiple conflicting coordinate systems (SVG element dimensions, viewBox coordinates, natural image dimensions, zoom state)
+- **Complex Integration Problems**: Each fix breaks other functionality (frequency axis visibility, time label alignment, axis positioning)
+- **Architectural Mismatch**: Retrofit approach conflicts with legacy code assumptions about coordinate spaces
+- **Increasing Complexity**: Exponential growth in edge cases and system interactions
 
 ## 1. Agent Role & APM Context
 
 You are activated as an Implementation Agent within the Agentic Project Management (APM) framework for the GramFrame spectrogram analysis project. Your role is to execute assigned tasks diligently and log your work meticulously to the project's Memory Bank. You will receive task assignments from the Manager Agent (via the User) and must communicate any issues or clarifications needed before proceeding.
 
-## 2. Task Assignment
+## 2. Task Assignment - REQUIRES REASSESSMENT
 
 **Reference Implementation Plan:** This assignment corresponds to a new Phase 6 in the Implementation Plan - "Viewport-Based Zoom Architecture Implementation". This phase implements the architectural decision documented in ADR-015: Viewport-Based Zoom Architecture.
 
-**Objective:** Implement a complete viewport-based zoom system that replaces the current SVG rendering architecture with a new structure managed by `table.js`, using SVG viewBox manipulation instead of transforms to achieve zoom functionality while maintaining perfect alignment between image features and overlays.
+**Original Objective:** ~~Implement a complete viewport-based zoom system that replaces the current SVG rendering architecture with a new structure managed by `table.js`, using SVG viewBox manipulation instead of transforms to achieve zoom functionality while maintaining perfect alignment between image features and overlays.~~
 
-**Detailed Action Steps:**
+**⚠️ RECOMMENDATION: ARCHITECTURAL APPROACH REASSESSMENT REQUIRED**
 
-### Phase 6.1: Foundation (Minimal Viable Zoom)
+**Alternative Approaches to Consider:**
 
-1. **Initialize SVG Architecture Restructure**
-   - Create new `instance.svg` object structure within `table.js`
-   - Begin migration of rendering responsibilities from GramFrame main class to table-level SVG management
-   - **Immediately delete any e2e test sub-components that break** due to missing spectrogram functionality during restructure
-   - **Add clear obsolescence warnings to Memory_Bank.md** for sections that reference the old SVG architecture
-   - Guidance: The new structure should completely replace existing SVG rendering, not augment it
+### **Option A: Clean Slate Zoom-First Architecture**
+- Build new zoom-aware rendering system from scratch
+- Design coordinate systems specifically for zoom from the beginning
+- Migrate modes incrementally to new system
+- Keep existing system operational during transition
 
-2. **Implement Core Viewport-Based Zoom**
-   - Implement `instance.svg` with SVG viewBox manipulation for zoom functionality
-   - Create zoom state management that tracks current viewBox parameters (x, y, width, height)
-   - Implement zoom level calculations that modify viewBox to show smaller portions of coordinate space
-   - **Add comprehensive e2e tests for zoom functionality** including viewBox parameter validation and zoom level calculations
-   - Guidance: Use `svg.setAttribute('viewBox', '250 150 500 300')` pattern for 2x zoom of center portion
+### **Option B: Simple Transform-Based Zoom**
+- Use CSS `transform: scale()` on container around SVG
+- Keep axes outside transform container (no scaling)
+- Minimal changes to existing coordinate systems
+- Lower complexity, higher compatibility
 
-3. **Add Zoom Control Interface**
-   - Implement zoom +/- buttons and pan controls in the existing UI structure
-   - Connect controls to viewBox manipulation functions
-   - Ensure controls provide smooth, predictable zoom behavior with consistent zoom factors
-   - **Add e2e tests for zoom controls** including button interactions and expected viewBox changes
-   - Guidance: Integrate with existing UIComponents structure, maintain current styling patterns
+### **Option C: Pause and Redesign**
+- Document lessons learned from current approach
+- Reassess ADR-015 assumptions and alternatives
+- Choose fundamentally different zoom strategy
+- Start with clearer architectural foundation
 
-4. **Implement Axes and Labels with Zoom**
-   - Ensure time/frequency axis rendering works correctly at all zoom levels
-   - Implement axis scaling and label updating for zoomed viewports
-   - Maintain proper axis margins (left: 60px, bottom: 50px) as specified in architecture
-   - Display accurate time/frequency values that correspond to visible viewport
-   - **Add e2e tests for axis rendering with zoom** including label accuracy and margin preservation
-   - Guidance: Axes must be redrawn for visible coordinate range, similar to current approach but adapted for viewBox
+## **Lessons Learned from Implementation Attempt**
 
-### Phase 6.2: Feature Migration
+### **Technical Challenges Identified:**
+1. **Multiple Coordinate System Conflicts**: SVG element dimensions vs viewBox coordinates vs natural image dimensions created complex interdependencies
+2. **Legacy Integration Brittleness**: Existing axis rendering, mouse tracking, and mode systems assumed fixed coordinate mappings
+3. **Compound Complexity**: Each zoom fix revealed multiple downstream issues requiring additional fixes
+4. **Test System Instability**: Changes to core rendering broke existing test assumptions about element positioning
 
-5. **Migrate Analysis Mode to New Structure**
-   - Move Analysis mode marker functionality to work with new SVG structure
-   - Ensure persistent draggable markers maintain correct positioning with zoom
-   - Preserve cross-mode marker visibility and interactions
-   - **Add e2e tests for marker creation/dragging with zoom** including position accuracy and persistence
-   - Guidance: Coordinate transformation utilities should remain largely unchanged per ADR-015
+### **Architectural Insights:**
+- **ViewBox Approach**: While theoretically sound, requires complete redesign of coordinate handling throughout the system
+- **State Management**: Zoom state integration works well when isolated, but interacts poorly with legacy rendering code  
+- **UI Integration**: Zoom controls integrate cleanly - this aspect was successful
+- **Performance**: Basic viewBox manipulation performance was acceptable
 
-6. **Migrate Harmonics Mode to New Structure**
-   - Move Harmonics mode calculations and display to new SVG architecture
-   - Ensure real-time harmonic calculation works during zoom interactions
-   - Maintain harmonic line rendering accuracy across zoom levels
-   - **Add e2e tests for harmonics functionality with zoom** including calculation accuracy and line rendering
-   - Guidance: Harmonic calculations should work unchanged since they use coordinate utilities
+## **SUSPENDED WORK - ORIGINAL PLAN BELOW**
 
-7. **Migrate Doppler Mode to New Structure**
-   - Move Doppler mode speed calculations to new SVG structure
-   - Ensure bearing and time inputs work correctly with zoomed viewports
-   - Maintain calculation accuracy across all zoom levels
-   - **Add e2e tests for Doppler functionality with zoom** including speed calculations and input handling
-   - Guidance: Mode should work without modification per ADR-015 principles
+*The following sections represent the original plan that proved architecturally incompatible with the existing codebase:*
 
-### Phase 6.3: Integration & Polish
+### ~~Phase 6.1: Foundation (Minimal Viable Zoom)~~ - PARTIALLY COMPLETED
 
-8. **Integrate Zoom State with GramFrame State Management**
-   - Ensure zoom state integrates seamlessly with existing state management system
-   - Implement state listener notifications for zoom changes
-   - Maintain state broadcasting pattern for external systems
-   - **Add e2e tests for state persistence** including zoom state in listener notifications
-   - Guidance: Deep-copy zoom state before passing to listeners to prevent mutations
+1. **~~Initialize SVG Architecture Restructure~~** - ✅ COMPLETED
+   - ✅ Created zoom state structure in `table.js`
+   - ✅ Basic zoom infrastructure implemented
+   - ❌ Clean migration to table-level management (conflicts with existing architecture)
 
-9. **Performance Optimization and Comprehensive Testing**
-   - Optimize viewBox update performance for smooth zoom interactions
-   - Implement proper clipping of content to axis boundaries
-   - Ensure efficient handling of frequent viewBox changes
-   - **Add comprehensive e2e test coverage** for all zoom scenarios and edge cases
-   - Guidance: Modern browsers handle SVG viewBox changes efficiently per ADR-015
+2. **~~Implement Core Viewport-Based Zoom~~** - ✅ COMPLETED  
+   - ✅ ViewBox manipulation functional
+   - ✅ Zoom level calculations working
+   - ✅ Basic e2e tests passing
 
-10. **Final Integration and Memory Bank Update**
-    - Complete integration testing with full regression test suite
-    - Validate all modes work correctly with zoom functionality
-    - **Update Memory_Bank.md with new architecture details** removing obsolescence warnings
-    - Document any architectural changes or lessons learned
+3. **~~Add Zoom Control Interface~~** - ✅ COMPLETED
+   - ✅ Zoom buttons implemented and functional
+   - ✅ UI integration successful
+   - ✅ Tests passing
+
+4. **~~Implement Axes and Labels with Zoom~~** - ❌ PROBLEMATIC
+   - ⚠️ Axes positioning conflicts between coordinate systems
+   - ⚠️ Frequency axis visibility issues
+   - ⚠️ Time label alignment problems
+   - ❌ Architectural mismatch preventing clean solution
+
+### ~~Phase 6.2: Feature Migration~~ - NOT ATTEMPTED
+
+5. **~~Migrate Analysis Mode~~** - WOULD LIKELY ENCOUNTER SIMILAR ISSUES
+6. **~~Migrate Harmonics Mode~~** - WOULD LIKELY ENCOUNTER SIMILAR ISSUES  
+7. **~~Migrate Doppler Mode~~** - WOULD LIKELY ENCOUNTER SIMILAR ISSUES
+
+### ~~Phase 6.3: Integration & Polish~~ - NOT ATTEMPTED
+
+8. **~~Integrate Zoom State~~** - ✅ PARTIALLY COMPLETED (state management works)
+9. **~~Performance Optimization~~** - NOT REACHED
+10. **~~Final Integration~~** - NOT REACHED
 
 **Provide Necessary Context/Assets:**
 
