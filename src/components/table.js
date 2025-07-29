@@ -170,7 +170,6 @@ async function setZoomLevel(instance, level) {
   // Clamp zoom level to reasonable bounds
   level = Math.max(0.5, Math.min(10.0, level))
   
-  const oldLevel = instance.zoomState.level
   instance.zoomState.level = level
   
   // Update main state
