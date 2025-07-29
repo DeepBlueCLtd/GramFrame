@@ -28,7 +28,7 @@ This file should be structured using clear Markdown headings to organize the dum
 *   **Incoming Agent ID:** [e.g., Manager_Instance_2, Implementer_B_v2] (If known)
 *   **Reason for Handover:** [e.g., Context Limit Reached, Task Completion & Reassignment, Strategic Replacement]
 *   **Memory Bank Configuration:**
-    *   **Location(s):** [List the relative path(s) to the project's Memory_Bank.md file(s) or `Memory/` directory, e.g., `./Memory_Bank.md` or `./Memory/`]
+    *   **Location(s):** [List the relative path(s) to the project's [Memory_Bank.md](../../Memory_Bank.md) file(s) or `Memory/` directory, e.g., `./Memory_Bank.md` or `./Memory/`]
     *   **Structure:** [e.g., Single file, Multi-file directory per phase]
 *   **Brief Project Status Summary:** [1-3 sentences on the current overall state relevant to the handover scope. For specialized agents, focus on their specific task area.]
 
@@ -38,7 +38,7 @@ This file should be structured using clear Markdown headings to organize the dum
 
 ## Section 3: Implementation Plan Status (Relevant Scope)
 
-*   **Link to Main Plan:** [Relative path to the `Implementation_Plan.md`]
+*   **Link to Main Plan:** [Relative path to the [Implementation_Plan.md](../../Implementation_Plan.md)]
 *   **Current Phase/Focus:** [e.g., Phase 2: Frontend Development OR Task: Debugging login flow]
 *   **Completed Tasks (within current scope or recently):**
     *   [Task ID/Reference from Plan relevant to this handover] - Status: Completed

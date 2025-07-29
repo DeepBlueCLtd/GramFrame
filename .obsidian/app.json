@@ -1,0 +1,9 @@
+{
+  "userIgnoreFilters": [
+    "node_modules/"
+  ],
+  "useMarkdownLinks": true,
+  "newLinkFormat": "relative",
+  "alwaysUpdateLinks": true,
+  "newFileLocation": "current"
+}

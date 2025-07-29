@@ -1,0 +1,205 @@
+{
+  "main": {
+    "id": "761cddcd332c704c",
+    "type": "split",
+    "children": [
+      {
+        "id": "e744e8b990216afc",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1662204c4a4c8830",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Memory_Bank.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Memory_Bank"
+            }
+          },
+          {
+            "id": "01876e2cf294a216",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "prompts/01_Manager_Agent_Core_Guides/02_Memory_Bank_Guide.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "02_Memory_Bank_Guide"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "5649cc50f2f0dca9",
+    "type": "split",
+    "children": [
+      {
+        "id": "b58bda83192dba95",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f447d66c2d1026dd",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "1e6105d0317188ef",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "matches",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "bcb78afb667a8a51",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "95f28873641397c5",
+    "type": "split",
+    "children": [
+      {
+        "id": "d31e8b22b0e4e063",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "350e54d74bfa254e",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Memory_Bank.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Memory_Bank"
+            }
+          },
+          {
+            "id": "b301e7a8111774e6",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Memory_Bank.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Memory_Bank"
+            }
+          },
+          {
+            "id": "237df943f7dbc9fa",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "257995511be9cc8f",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Memory_Bank.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Memory_Bank"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "01876e2cf294a216",
+  "lastOpenFiles": [
+    "backtick-fix-log.txt",
+    "fix-backtick-links.cjs",
+    "Memory_Bank.md",
+    "prompts/00_Initial_Manager_Setup/01_Initiation_Prompt.md",
+    "docs/Gram-Modes.md",
+    "prompts/01_Manager_Agent_Core_Guides/02_Memory_Bank_Guide.md",
+    "prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md",
+    "conversion-log.txt",
+    "convert-md-links.cjs.tmp.79377.1753782676875",
+    "convert-md-links.cjs",
+    "convert-md-links.js",
+    "docs/ADRs/ADR-012-Scale-Adjusted-Font-Sizing.md",
+    "node_modules/acorn/README.md",
+    "Implementation_Plan.md",
+    "docs/Component-Strategy.md"
+  ]
+}
