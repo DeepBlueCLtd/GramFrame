@@ -6,6 +6,8 @@ Accepted
 ## Context
 GramFrame operates across different coordinate spaces: screen pixels, SVG coordinates, image coordinates, and data coordinates (time/frequency). A robust transformation system was needed to maintain precision across these different coordinate systems.
 
+With the introduction of viewport-based zoom (ADR-015), the coordinate system architecture maintains its core principles while leveraging SVG viewBox manipulation for zoom functionality.
+
 ## Decision
 Implement a comprehensive coordinate transformation system with dedicated conversion methods between all coordinate spaces.
 
@@ -21,6 +23,7 @@ Implement a comprehensive coordinate transformation system with dedicated conver
 - Accurate positioning across all zoom levels and screen sizes
 - Easy to add new coordinate systems or modify existing ones
 - Better separation of concerns between rendering and data logic
+- Compatible with viewport-based zoom approach (viewBox manipulation)
 
 ### Negative
 - Additional complexity in coordinate calculations
@@ -40,3 +43,4 @@ Each method includes proper bounds checking and margin handling.
 ## Related Decisions
 - ADR-001: SVG-Based Rendering Architecture
 - ADR-003: Responsive Design with ResizeObserver
+- ADR-015: Viewport-Based Zoom Architecture
