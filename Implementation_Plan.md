@@ -11,7 +11,7 @@ This project utilizes two primary agent roles within the Agentic Project Managem
 - **Implementation Agent**: Responsible for developing features according to specifications
 - **Testing Agent**: Responsible for creating test specifications and verifying implementation quality
 
-For a detailed description of the Testing Agent's role and the project's testing strategy, refer to [Testing-Strategy.md](/Users/ian/git/GramFrame/docs/Testing-Strategy.md).
+For a detailed description of the Testing Agent's role and the project's testing strategy, refer to [Testing-Strategy.md](docs/Testing-Strategy.md).
 
 ## Testing Philosophy
 

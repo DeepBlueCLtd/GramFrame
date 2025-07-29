@@ -145,9 +145,9 @@ You have been assigned to work on testing tasks as specified in the Implementati
 
 ## Reference Materials
 
-- [Testing-Strategy.md](/Users/ian/git/GramFrame/docs/Testing-Strategy.md)
-- [Implementation_Plan.md](/Users/ian/git/GramFrame/Implementation_Plan.md)
-- [Testing_Template.md](/Users/ian/git/GramFrame/Memory/Testing_Template.md)
+- [Testing-Strategy.md](../docs/Testing-Strategy.md)
+- [Implementation_Plan.md](../Implementation_Plan.md)
+- [Testing_Template.md](../Memory/Testing_Template.md)
 
 ## Getting Started
 
