@@ -54,7 +54,7 @@ export function createComponentStructure(instance) {
 }
 
 /**
- * Create SVG structure and groups for rendering with viewport-based zoom support
+ * Create SVG structure and groups for rendering
  * @param {Object} instance - GramFrame instance to populate with SVG elements
  * @returns {Object} Object containing all created SVG elements
  */
@@ -67,8 +67,6 @@ export function createSVGStructure(instance) {
   instance.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
   instance.mainCell.appendChild(instance.svg)
   
-  // Initialize viewport-based zoom structure
-  setupViewportZoom(instance)
   
   // Create main group for content with margins for axes
   instance.mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
@@ -104,233 +102,11 @@ export function createSVGStructure(instance) {
   }
 }
 
-/**
- * Setup viewport-based zoom structure and state management
- * @param {Object} instance - GramFrame instance
- */
-function setupViewportZoom(instance) {
-  // Initialize zoom state in instance
-  instance.zoomState = {
-    level: 1.0,          // Current zoom level (1.0 = no zoom)
-    viewBox: {           // Current viewBox parameters
-      x: 0,
-      y: 0, 
-      width: 1000,       // Will be updated based on actual image dimensions
-      height: 600        // Will be updated based on actual image dimensions
-    },
-    originalViewBox: {   // Original full-view viewBox for reference
-      x: 0,
-      y: 0,
-      width: 1000,
-      height: 600
-    },
-    panOffset: {         // Pan offset for zoomed views
-      x: 0,
-      y: 0
-    }
-  }
-  
-  // Add zoom control methods to instance
-  instance.zoomIn = async function() {
-    await setZoomLevel(instance, instance.zoomState.level * 1.5)
-  }
-  
-  instance.zoomOut = async function() {
-    await setZoomLevel(instance, instance.zoomState.level / 1.5)
-  }
-  
-  instance.resetZoom = async function() {
-    await setZoomLevel(instance, 1.0)
-    await resetPan(instance)
-  }
-  
-  instance.panBy = async function(deltaX, deltaY) {
-    await panViewport(instance, deltaX, deltaY)
-  }
-  
-  instance.setZoomLevel = async function(level) {
-    await setZoomLevel(instance, level)
-  }
-  
-  // Add renderAxes method reference for zoom system
-  instance.renderAxes = function() {
-    // Import drawAxes dynamically to avoid circular dependency
-    import('../rendering/axes.js').then(({ drawAxes }) => {
-      drawAxes(instance)
-    })
-  }
-}
 
-/**
- * Set zoom level and update viewBox accordingly
- * @param {Object} instance - GramFrame instance
- * @param {number} level - Zoom level (1.0 = no zoom, 2.0 = 2x zoom)
- */
-async function setZoomLevel(instance, level) {
-  // Clamp zoom level to reasonable bounds
-  level = Math.max(0.5, Math.min(10.0, level))
-  
-  instance.zoomState.level = level
-  
-  // Update main state
-  instance.state.zoom.level = level
-  
-  // Calculate new viewBox dimensions based on zoom level
-  const originalWidth = instance.zoomState.originalViewBox.width
-  const originalHeight = instance.zoomState.originalViewBox.height
-  
-  const newWidth = originalWidth / level
-  const newHeight = originalHeight / level
-  
-  // Keep the center point the same when zooming (zoom to center)
-  const currentCenterX = instance.zoomState.viewBox.x + instance.zoomState.viewBox.width / 2
-  const currentCenterY = instance.zoomState.viewBox.y + instance.zoomState.viewBox.height / 2
-  
-  const newX = currentCenterX - newWidth / 2
-  const newY = currentCenterY - newHeight / 2
-  
-  // Update viewBox state
-  instance.zoomState.viewBox = {
-    x: newX,
-    y: newY,
-    width: newWidth,
-    height: newHeight
-  }
-  
-  // Sync with main state
-  instance.state.zoom.viewBox = { ...instance.zoomState.viewBox }
-  
-  // Apply viewBox to SVG
-  updateSVGViewBox(instance)
-  
-  // Trigger axis re-rendering for new visible range
-  if (instance.renderAxes) {
-    instance.renderAxes()
-  }
-  
-  // Notify state listeners of zoom change
-  const { notifyStateListeners } = await import('../core/state.js')
-  notifyStateListeners(instance.state, instance.stateListeners)
-}
 
-/**
- * Pan the viewport by given delta amounts
- * @param {Object} instance - GramFrame instance  
- * @param {number} deltaX - Pan delta in X direction
- * @param {number} deltaY - Pan delta in Y direction
- */
-async function panViewport(instance, deltaX, deltaY) {
-  // Convert screen delta to data coordinate delta based on current zoom
-  const scaleX = instance.zoomState.viewBox.width / instance.svg.clientWidth
-  const scaleY = instance.zoomState.viewBox.height / instance.svg.clientHeight
-  
-  const dataDeltaX = deltaX * scaleX
-  const dataDeltaY = deltaY * scaleY
-  
-  // Update viewBox position
-  instance.zoomState.viewBox.x += dataDeltaX
-  instance.zoomState.viewBox.y += dataDeltaY
-  
-  // Clamp to bounds to prevent panning outside the original image
-  const minX = instance.zoomState.originalViewBox.x
-  const minY = instance.zoomState.originalViewBox.y
-  const maxX = instance.zoomState.originalViewBox.x + instance.zoomState.originalViewBox.width - instance.zoomState.viewBox.width
-  const maxY = instance.zoomState.originalViewBox.y + instance.zoomState.originalViewBox.height - instance.zoomState.viewBox.height
-  
-  instance.zoomState.viewBox.x = Math.max(minX, Math.min(maxX, instance.zoomState.viewBox.x))
-  instance.zoomState.viewBox.y = Math.max(minY, Math.min(maxY, instance.zoomState.viewBox.y))
-  
-  // Sync with main state
-  instance.state.zoom.viewBox = { ...instance.zoomState.viewBox }
-  instance.state.zoom.panOffset.x = instance.zoomState.viewBox.x - instance.zoomState.originalViewBox.x
-  instance.state.zoom.panOffset.y = instance.zoomState.viewBox.y - instance.zoomState.originalViewBox.y
-  
-  // Apply viewBox to SVG
-  updateSVGViewBox(instance)
-  
-  // Trigger axis re-rendering for new visible range
-  if (instance.renderAxes) {
-    instance.renderAxes()
-  }
-  
-  // Notify state listeners of pan change
-  const { notifyStateListeners } = await import('../core/state.js')
-  notifyStateListeners(instance.state, instance.stateListeners)
-}
 
-/**
- * Reset pan offset to center
- * @param {Object} instance - GramFrame instance
- */
-async function resetPan(instance) {
-  const centerX = instance.zoomState.originalViewBox.x + (instance.zoomState.originalViewBox.width - instance.zoomState.viewBox.width) / 2
-  const centerY = instance.zoomState.originalViewBox.y + (instance.zoomState.originalViewBox.height - instance.zoomState.viewBox.height) / 2
-  
-  instance.zoomState.viewBox.x = centerX
-  instance.zoomState.viewBox.y = centerY
-  
-  // Sync with main state
-  instance.state.zoom.viewBox = { ...instance.zoomState.viewBox }
-  instance.state.zoom.panOffset.x = 0
-  instance.state.zoom.panOffset.y = 0
-  
-  updateSVGViewBox(instance)
-  
-  if (instance.renderAxes) {
-    instance.renderAxes()
-  }
-  
-  // Notify state listeners of pan reset
-  const { notifyStateListeners } = await import('../core/state.js')
-  notifyStateListeners(instance.state, instance.stateListeners)
-}
 
-/**
- * Update the SVG viewBox attribute based on current zoom state
- * @param {Object} instance - GramFrame instance
- */
-function updateSVGViewBox(instance) {
-  const vb = instance.zoomState.viewBox
-  const viewBoxString = `${vb.x} ${vb.y} ${vb.width} ${vb.height}`
-  instance.svg.setAttribute('viewBox', viewBoxString)
-}
 
-/**
- * Initialize zoom state based on actual image dimensions
- * @param {Object} instance - GramFrame instance
- * @param {number} imageWidth - Natural width of spectrogram image
- * @param {number} imageHeight - Natural height of spectrogram image
- */
-export function initializeZoomForImageDimensions(instance, imageWidth, imageHeight) {
-  // Update original viewBox to match actual image dimensions with margins
-  const margins = instance.state.axes.margins
-  const totalWidth = imageWidth + margins.left + margins.right
-  const totalHeight = imageHeight + margins.top + margins.bottom
-  
-  instance.zoomState.originalViewBox = {
-    x: 0,
-    y: 0,
-    width: totalWidth,
-    height: totalHeight
-  }
-  
-  // Initialize current viewBox to show full image
-  instance.zoomState.viewBox = {
-    x: 0,
-    y: 0,
-    width: totalWidth,
-    height: totalHeight
-  }
-  
-  // Sync with main state
-  instance.state.zoom.originalViewBox = { ...instance.zoomState.originalViewBox }
-  instance.state.zoom.viewBox = { ...instance.zoomState.viewBox }
-  instance.state.zoom.level = 1.0
-  instance.state.zoom.panOffset = { x: 0, y: 0 }
-  
-  // Set initial viewBox on SVG
-  updateSVGViewBox(instance)
-}
 
 /**
  * Replace the original config table with the new component structure

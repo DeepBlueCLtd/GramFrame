@@ -1693,3 +1693,76 @@ The solution calculates the scale factor between the SVG viewBox dimensions and 
 
 **Issues/Blockers:**
 None. Implementation successfully resolves the issue while maintaining all existing functionality.
+
+---
+
+### Phase 6: Zoom Infrastructure Cleanup (Completed)
+**Date: July 29, 2025**  
+**Agent:** Implementation Agent  
+**Task Reference:** Task 6.1 Viewport-Based Zoom Implementation (Cleanup)
+
+**Summary:**
+Successfully removed all problematic viewport-based zoom infrastructure that was causing architectural conflicts, returning the codebase to a clean state ready for future zoom implementation using a different approach.
+
+**Context:**
+The Task 6.1 Viewport-Based Zoom Implementation had been suspended due to critical architectural conflicts:
+- Multiple conflicting coordinate systems (SVG element dimensions, viewBox coordinates, natural image dimensions, zoom state)
+- Complex integration problems where each fix broke other functionality
+- Architectural mismatch between the retrofit zoom approach and existing coordinate system assumptions
+- Exponential growth in edge cases and system interactions
+
+**Cleanup Actions Performed:**
+
+1. **State Management Cleanup**
+   - Removed zoom state object from `src/core/state.js` (lines 67-85)
+   - Eliminated all zoom-related state properties: level, viewBox, originalViewBox, panOffset
+
+2. **Infrastructure Removal**
+   - Removed entire zoom infrastructure from `src/components/table.js`:
+     - `setupViewportZoom()` function and all related zoom methods
+     - `setZoomLevel()`, `panViewport()`, `resetPan()`, `updateSVGViewBox()` functions
+     - `initializeZoomForImageDimensions()` export function
+     - All zoom method attachments to instance objects
+
+3. **UI Component Cleanup**
+   - Removed `createZoomControls()` function from `src/components/UIComponents.js`
+   - Eliminated zoom control UI elements: zoom in/out buttons, reset button, zoom level display
+   - Removed zoom state listeners and event handlers
+
+4. **Main Module Cleanup**
+   - Removed `createZoomControls` import from `src/main.js`
+   - Eliminated zoom control instantiation code
+
+5. **Styling Cleanup**
+   - Removed all zoom-related CSS from `src/gramframe.css`:
+     - `.gram-frame-zoom-controls`, `.gram-frame-zoom-btn`, `.gram-frame-zoom-display` styles
+     - All hover, active, and reset button styling
+
+6. **Configuration Cleanup**
+   - Removed `initializeZoomForImageDimensions` import and usage from `src/core/configuration.js`
+   - Cleaned up viewport-based zoom initialization calls
+
+**Files Modified:**
+- `src/core/state.js` - Removed zoom state object
+- `src/components/table.js` - Removed all zoom infrastructure (major cleanup)
+- `src/components/UIComponents.js` - Removed createZoomControls function
+- `src/main.js` - Removed zoom control references
+- `src/gramframe.css` - Removed zoom styling
+- `src/core/configuration.js` - Removed zoom initialization calls
+
+**Verification:**
+- All 95 tests continue to pass after cleanup
+- No regression in existing functionality
+- Clean codebase ready for alternative zoom implementation approach
+
+**Architectural Recommendation:**
+Based on analysis, recommended **Option B: Simple Transform-Based Zoom** as the most pragmatic approach:
+- Uses CSS `transform: scale()` on container around SVG
+- Keeps axes outside transform container (no scaling issues)
+- Minimal disruption to existing coordinate systems
+- Lower implementation risk and complexity
+
+**Next Steps:**
+Codebase is now in clean state for implementing zoom functionality using transform-based approach rather than viewBox manipulation, avoiding the architectural conflicts encountered with viewport-based approach.
+
+**Status:** Completed - All problematic zoom code successfully removed, 95/95 tests passing
