@@ -15,7 +15,8 @@ import {
   createRateInput,
   updateLEDDisplays,
   createLEDDisplay,
-  createModeSwitchingUI
+  createModeSwitchingUI,
+  createZoomControls
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'
 
@@ -111,6 +112,9 @@ export class GramFrame {
     
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
+    
+    // Create zoom controls
+    this.zoomControls = createZoomControls(this.modeCell, this)
     
     // Harmonic management panel will be created by HarmonicsMode when activated
     

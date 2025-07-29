@@ -64,6 +64,25 @@ export const initialState = {
       top: 15      // Small top margin
     }
   },
+  zoom: {
+    level: 1.0,          // Current zoom level (1.0 = no zoom)
+    viewBox: {           // Current viewBox parameters
+      x: 0,
+      y: 0, 
+      width: 1000,       // Will be updated based on actual image dimensions
+      height: 600        // Will be updated based on actual image dimensions
+    },
+    originalViewBox: {   // Original full-view viewBox for reference
+      x: 0,
+      y: 0,
+      width: 1000,
+      height: 600
+    },
+    panOffset: {         // Pan offset for zoomed views
+      x: 0,
+      y: 0
+    }
+  },
   // Add mode-specific state from mode classes
   ...buildModeInitialState()
 }

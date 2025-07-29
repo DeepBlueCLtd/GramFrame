@@ -7,6 +7,7 @@
 import { calculateLayoutDimensions } from '../utils/svg.js'
 import { notifyStateListeners } from './state.js'
 import { drawAxes } from '../rendering/axes.js'
+import { initializeZoomForImageDimensions } from '../components/table.js'
 
 /**
  * Extract configuration data from HTML table and set up image loading
@@ -92,6 +93,8 @@ export function extractConfigData(instance) {
         instance.svgImage.setAttribute('x', String(margins.left))
         instance.svgImage.setAttribute('y', String(margins.top))
         
+          // Initialize viewport-based zoom for image dimensions
+          initializeZoomForImageDimensions(instance, instance.spectrogramImage.naturalWidth, instance.spectrogramImage.naturalHeight)
           
           // Draw initial axes
           drawAxes(instance)
