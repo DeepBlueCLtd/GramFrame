@@ -64,6 +64,12 @@ export const initialState = {
       top: 15      // Small top margin
     }
   },
+  // Simple zoom state for transform-based zoom
+  zoom: {
+    level: 1.0,  // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
+    centerX: 0.5, // Center point X (0-1 normalized)
+    centerY: 0.5  // Center point Y (0-1 normalized)
+  },
   // Add mode-specific state from mode classes
   ...buildModeInitialState()
 }

@@ -309,10 +309,25 @@ function calculateEventCoordinates(instance, event) {
     svgCoords = screenToSVGCoordinates(x, y, instance.svg, instance.state.imageDetails)
   }
   
-  // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
+  // Get coordinates relative to image accounting for zoom
   const margins = instance.state.axes.margins
-  const imageRelativeX = svgCoords.x - margins.left
-  const imageRelativeY = svgCoords.y - margins.top
+  const zoom = instance.state.zoom || { level: 1, centerX: 0.5, centerY: 0.5 }
+  
+  // Get actual image position from attributes (includes zoom offset)
+  let imageX = margins.left
+  let imageY = margins.top
+  let imageScale = 1
+  
+  if (instance.svgImage) {
+    imageX = parseFloat(instance.svgImage.getAttribute('x') || margins.left.toString())
+    imageY = parseFloat(instance.svgImage.getAttribute('y') || margins.top.toString())
+    const imageWidth = parseFloat(instance.svgImage.getAttribute('width') || instance.state.imageDetails.naturalWidth.toString())
+    imageScale = imageWidth / instance.state.imageDetails.naturalWidth
+  }
+  
+  // Calculate image-relative coordinates accounting for zoom
+  const imageRelativeX = (svgCoords.x - imageX) / imageScale
+  const imageRelativeY = (svgCoords.y - imageY) / imageScale
   
   // Check if mouse is within the image area - for drag operations, allow slightly outside bounds
   const tolerance = 10 // pixel tolerance for drag operations

@@ -92,6 +92,13 @@ export function extractConfigData(instance) {
         instance.svgImage.setAttribute('x', String(margins.left))
         instance.svgImage.setAttribute('y', String(margins.top))
         
+          // Initialize clip rect dimensions
+          if (instance.clipRect) {
+            instance.clipRect.setAttribute('x', String(margins.left))
+            instance.clipRect.setAttribute('y', String(margins.top))
+            instance.clipRect.setAttribute('width', String(instance.spectrogramImage.naturalWidth))
+            instance.clipRect.setAttribute('height', String(instance.spectrogramImage.naturalHeight))
+          }
           
           // Draw initial axes
           drawAxes(instance)

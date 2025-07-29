@@ -15,7 +15,8 @@ import {
   createRateInput,
   updateLEDDisplays,
   createLEDDisplay,
-  createModeSwitchingUI
+  createModeSwitchingUI,
+  createZoomControls
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'
 
@@ -112,6 +113,8 @@ export class GramFrame {
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
+    // Create zoom controls
+    this.zoomControls = createZoomControls(this.modeCell, this)
     
     // Harmonic management panel will be created by HarmonicsMode when activated
     
@@ -298,6 +301,67 @@ export class GramFrame {
     
     // Update rate LED display (handled by updateLEDDisplays)
     
+    
+    // Notify listeners
+    notifyStateListeners(this.state, this.stateListeners)
+  }
+
+  /**
+   * Set zoom level by scaling and positioning the image
+   * @param {number} level - Zoom level (1.0 = no zoom, 2.0 = 2x zoom)
+   */
+  setZoomLevel(level) {
+    // Clamp zoom level to reasonable bounds
+    level = Math.max(0.5, Math.min(5.0, level))
+    
+    // Update state
+    this.state.zoom.level = level
+    
+    // Apply zoom by scaling and positioning the image
+    if (this.svgImage && this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
+      const margins = this.state.axes.margins
+      const imageWidth = this.state.imageDetails.naturalWidth
+      const imageHeight = this.state.imageDetails.naturalHeight
+      
+      // Calculate scaled dimensions
+      const scaledWidth = imageWidth * level
+      const scaledHeight = imageHeight * level
+      
+      // Calculate offset to keep center point
+      const centerX = this.state.zoom.centerX
+      const centerY = this.state.zoom.centerY
+      
+      // Calculate position offset (negative to pan the zoomed image)
+      const offsetX = -(scaledWidth - imageWidth) * centerX
+      const offsetY = -(scaledHeight - imageHeight) * centerY
+      
+      // Update image size and position
+      this.svgImage.setAttribute('width', String(scaledWidth))
+      this.svgImage.setAttribute('height', String(scaledHeight))
+      this.svgImage.setAttribute('x', String(margins.left + offsetX))
+      this.svgImage.setAttribute('y', String(margins.top + offsetY))
+      
+      // Clear any transform on cursor group - it will be positioned relative to zoom container
+      if (this.cursorGroup) {
+        this.cursorGroup.removeAttribute('transform')
+      }
+    }
+    
+    // Update clip rect to image area only
+    if (this.clipRect && this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
+      const margins = this.state.axes.margins
+      this.clipRect.setAttribute('x', margins.left.toString())
+      this.clipRect.setAttribute('y', margins.top.toString())
+      this.clipRect.setAttribute('width', this.state.imageDetails.naturalWidth.toString())
+      this.clipRect.setAttribute('height', this.state.imageDetails.naturalHeight.toString())
+    }
+    
+    // Redraw axes with new scale
+    if (this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
+      import('./rendering/axes.js').then(({ drawAxes }) => {
+        drawAxes(this)
+      })
+    }
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)

@@ -43,9 +43,9 @@ export function drawAnalysisMode(instance) {
   const margins = instance.state.axes.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   
-  // Calculate cursor position in SVG coordinates (accounting for margins)
-  const cursorSVGX = margins.left + instance.state.cursorPosition.imageX
-  const cursorSVGY = margins.top + instance.state.cursorPosition.imageY
+  // Use the actual SVG coordinates where the mouse cursor is positioned
+  const cursorSVGX = instance.state.cursorPosition.svgX
+  const cursorSVGY = instance.state.cursorPosition.svgY
   
   // Create vertical crosshair lines (time indicator) - shadow first, then main line
   const verticalShadow = createSVGLine(

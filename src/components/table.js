@@ -67,18 +67,41 @@ export function createSVGStructure(instance) {
   instance.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
   instance.mainCell.appendChild(instance.svg)
   
+  // Create defs for clipping path
+  instance.defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+  instance.svg.appendChild(instance.defs)
   
-  // Create main group for content with margins for axes
+  // Create clip path for content area
+  instance.clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
+  instance.clipPath.setAttribute('id', `gram-frame-clip-${Math.random().toString(36).substr(2, 9)}`)
+  instance.defs.appendChild(instance.clipPath)
+  
+  // Create clip rect (will be updated with proper dimensions)
+  instance.clipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+  instance.clipPath.appendChild(instance.clipRect)
+  
+  // Create zoom container for scalable content
+  instance.zoomContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  instance.zoomContainer.setAttribute('class', 'gram-frame-zoom-container')
+  instance.zoomContainer.setAttribute('clip-path', `url(#${instance.clipPath.getAttribute('id')})`)
+  instance.svg.appendChild(instance.zoomContainer)
+  
+  // Create main group for content with margins for axes (inside zoom container)
   instance.mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   instance.mainGroup.setAttribute('class', 'gram-frame-main-group')
-  instance.svg.appendChild(instance.mainGroup)
+  instance.zoomContainer.appendChild(instance.mainGroup)
   
   // Create image element within main group for spectrogram
   instance.svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
   instance.svgImage.setAttribute('class', 'gram-frame-image')
   instance.mainGroup.appendChild(instance.svgImage)
   
-  // Create groups for axes
+  // Create cursor indicator group (inside zoom container to scale with content)
+  instance.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  instance.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
+  instance.zoomContainer.appendChild(instance.cursorGroup)
+  
+  // Create groups for axes (outside zoom container - they don't scale)
   instance.timeAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   instance.timeAxisGroup.setAttribute('class', 'gram-frame-time-axis')
   instance.svg.appendChild(instance.timeAxisGroup)
@@ -87,13 +110,9 @@ export function createSVGStructure(instance) {
   instance.freqAxisGroup.setAttribute('class', 'gram-frame-freq-axis')
   instance.svg.appendChild(instance.freqAxisGroup)
   
-  // Create cursor indicator group
-  instance.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
-  instance.svg.appendChild(instance.cursorGroup)
-  
   return {
     svg: instance.svg,
+    zoomContainer: instance.zoomContainer,
     mainGroup: instance.mainGroup,
     svgImage: instance.svgImage,
     timeAxisGroup: instance.timeAxisGroup,
