@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This guide provides the definitive formatting standard and best practices for constructing the `[Implementation_Plan.md](../../Implementation_Plan.md)` file within the Agentic Project Management (APM) framework. As the Manager Agent, creating this document is a core responsibility outlined in your initiation protocol (Phase B: Strategic Planning). Following your presentation of a high-level plan summary and Memory Bank proposal to the User (and their implicit approval by not immediately requesting changes to that summary/proposal), you will use this guide to generate the **full content** of the `[Implementation_Plan.md](../../Implementation_Plan.md)` file. This document translates the project's strategic objectives into a detailed, actionable blueprint for all agents.
+This guide provides the definitive formatting standard and best practices for constructing the [Implementation_Plan.md](../../Implementation_Plan.md) file within the Agentic Project Management (APM) framework. As the Manager Agent, creating this document is a core responsibility outlined in your initiation protocol (Phase B: Strategic Planning). Following your presentation of a high-level plan summary and Memory Bank proposal to the User (and their implicit approval by not immediately requesting changes to that summary/proposal), you will use this guide to generate the **full content** of the [Implementation_Plan.md](../../Implementation_Plan.md) file. This document translates the project's strategic objectives into a detailed, actionable blueprint for all agents.
 
 Adherence to this standard ensures clarity, consistency, effective task tracking, and robust project management.
 
@@ -59,7 +59,7 @@ Utilize standard Markdown syntax. The following structure is mandated:
         *   `- Store processed data.`
             *   `Guidance: Output to a Parquet file named 'processed_reviews.parquet'.`
     *   These guiding notes ensure that subsequent agents don't have to guess critical choices made earlier or go down an incompatible path.
-    *   The detailed breakdown and these guiding notes are crucial as they directly inform the content of the `Task Assignment Prompts` (see `[03_Task_Assignment_Prompts_Guide.md](03_Task_Assignment_Prompts_Guide.md)`).
+    *   The detailed breakdown and these guiding notes are crucial as they directly inform the content of the `Task Assignment Prompts` (see [03_Task_Assignment_Prompts_Guide.md](03_Task_Assignment_Prompts_Guide.md)).
 *   Each nested bullet point (and its optional guiding note) should represent a distinct, actionable step or check for the Implementation Agent.
 *   **Appropriate Detail and Context:** Ensure the nested action steps (and their guiding notes) reflect specifics derived from the project discovery, requirements, and approved plan. Incorporate necessary high-level details like critical error handling specifics to be considered, key validation rules, or integration points.
 *   For tasks with multiple assigned agents, clearly mark which agent is responsible for each **numbered sub-component** using parentheses.
@@ -190,19 +190,19 @@ Objective: Build the user interface components for interacting with the backend 
 *   **Consistency is Key:** Ensure uniform application of headings, lists, agent assignments, and formatting throughout the document.
 *   **Generate After High-Level Summary:** Generate this file's full content based on the high-level plan structure and Memory Bank concept you have already summarized to the User. The User will be invited to review and suggest modifications to *this generated file* subsequently.
 *   **Clarity and Detail:** While the initial summary to the User is high-level, *this file* must contain sufficient detail for Implementation Agents to understand their tasks, scope, and objectives clearly.
-*   **Memory Bank Structure Record:** Crucially, after the Memory Bank system (single-file or multi-file directory) has been determined and proposed by you (the Manager Agent) by following `prompts/01_Manager_Agent_Core_Guides/02_Memory_Bank_Guide.md`, and subsequently agreed upon with the User, you **must** include a dedicated subsection within this `[Implementation_Plan.md](../../Implementation_Plan.md)` (e.g., under "General Project Notes" or as a distinct section if complex). This subsection must explicitly state the agreed-upon Memory Bank structure (e.g., "Memory Bank System: Single file `[Memory_Bank.md](../../Memory_Bank.md)`" or "Memory Bank System: Directory `/Memory/` with log files per phase, such as `Memory/Phase1_Design_Log.md`, as detailed in `Memory/README.md`."). This ensures all agents are aware of the established logging structure and where to find or create log entries.
+*   **Memory Bank Structure Record:** Crucially, after the Memory Bank system (single-file or multi-file directory) has been determined and proposed by you (the Manager Agent) by following `prompts/01_Manager_Agent_Core_Guides/02_Memory_Bank_Guide.md`, and subsequently agreed upon with the User, you **must** include a dedicated subsection within this [Implementation_Plan.md](../../Implementation_Plan.md) (e.g., under "General Project Notes" or as a distinct section if complex). This subsection must explicitly state the agreed-upon Memory Bank structure (e.g., "Memory Bank System: Single file [Memory_Bank.md](../../Memory_Bank.md)" or "Memory Bank System: Directory `/Memory/` with log files per phase, such as `Memory/Phase1_Design_Log.md`, as detailed in `Memory/README.md`."). This ensures all agents are aware of the established logging structure and where to find or create log entries.
 *   **Iterative Refinement:** Be prepared to update this document based on User feedback or as the project evolves (following appropriate change management discussions).
 
-By following this guide, you will produce `[Implementation_Plan.md](../../Implementation_Plan.md)` files that are comprehensive, clear, and serve as a reliable foundation for project execution.
+By following this guide, you will produce [Implementation_Plan.md](../../Implementation_Plan.md) files that are comprehensive, clear, and serve as a reliable foundation for project execution.
 
 ## 6. Post-Plan Generation: Next Steps & Ongoing Management
 
-Once the `[Implementation_Plan.md](../../Implementation_Plan.md)` is created and approved:
+Once the [Implementation_Plan.md](../../Implementation_Plan.md) is created and approved:
 
 *   **Task Assignment Prompt Generation:** For each task assigned to an Implementation Agent, you will assist the User in crafting a precise prompt. Refer to the `prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md` (if available) for detailed instructions on structuring these prompts effectively. If the guide is unavailable, generate clear, actionable prompts based on the task and sub-task details in this plan.
 *   **Review and Feedback Cycle:** As Implementation Agents complete tasks and log their work to the Memory Bank, you are responsible for reviewing their outputs. Refer to the `prompts/01_Manager_Agent_Core_Guides/04_Review_And_Feedback_Guide.md` (if available) for guidance on conducting reviews and providing constructive feedback. If unavailable, perform reviews based on the task objectives and general best practices.
-*   **Handover Protocol Reference (Crucial):** To ensure project continuity and awareness of context management procedures, you **must include** a dedicated section at the *end* of the generated `[Implementation_Plan.md](../../Implementation_Plan.md)` file itself. This section should briefly explain the purpose of the Handover Protocol and provide an explicit reference to its detailed guide.
-    *   **Example text to include in `[Implementation_Plan.md](../../Implementation_Plan.md)`:**
+*   **Handover Protocol Reference (Crucial):** To ensure project continuity and awareness of context management procedures, you **must include** a dedicated section at the *end* of the generated [Implementation_Plan.md](../../Implementation_Plan.md) file itself. This section should briefly explain the purpose of the Handover Protocol and provide an explicit reference to its detailed guide.
+    *   **Example text to include in [Implementation_Plan.md](../../Implementation_Plan.md):**
         ```markdown
         ---
         ## Note on Handover Protocol
@@ -214,4 +214,4 @@ Once the `[Implementation_Plan.md](../../Implementation_Plan.md)` is created and
         The current Manager Agent or the User should initiate this protocol as needed.
         ```
 
-Proceed with generating the `[Implementation_Plan.md](../../Implementation_Plan.md)` content, meticulously applying these formatting standards and including the Handover Protocol reference section. 
+Proceed with generating the [Implementation_Plan.md](../../Implementation_Plan.md) content, meticulously applying these formatting standards and including the Handover Protocol reference section. 

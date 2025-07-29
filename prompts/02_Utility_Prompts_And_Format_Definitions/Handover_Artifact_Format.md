@@ -38,7 +38,7 @@ This file should be structured using clear Markdown headings to organize the dum
 
 ## Section 3: Implementation Plan Status (Relevant Scope)
 
-*   **Link to Main Plan:** [Relative path to the `[Implementation_Plan.md](../../Implementation_Plan.md)`]
+*   **Link to Main Plan:** [Relative path to the [Implementation_Plan.md](../../Implementation_Plan.md)]
 *   **Current Phase/Focus:** [e.g., Phase 2: Frontend Development OR Task: Debugging login flow]
 *   **Completed Tasks (within current scope or recently):**
     *   [Task ID/Reference from Plan relevant to this handover] - Status: Completed

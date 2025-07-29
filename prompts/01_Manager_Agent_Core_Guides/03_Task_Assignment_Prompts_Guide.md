@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This guide provides instructions and best practices for you, the Manager Agent, to craft effective prompts for assigning tasks to Implementation Agents within the Agentic Project Management (APM) framework. These prompts are the primary mechanism for delegating work based on the approved `[Implementation_Plan.md](../../Implementation_Plan.md)`.
+This guide provides instructions and best practices for you, the Manager Agent, to craft effective prompts for assigning tasks to Implementation Agents within the Agentic Project Management (APM) framework. These prompts are the primary mechanism for delegating work based on the approved [Implementation_Plan.md](../../Implementation_Plan.md).
 
 ## 2. Core Principles
 
@@ -38,11 +38,11 @@ Below is a recommended structure. You should adapt this template, adding, removi
 
 ## 3. Task Assignment
 
-*   **Reference Implementation Plan:** Explicitly link the task to the `[Implementation_Plan.md](../../Implementation_Plan.md)`. Example: "This assignment corresponds to `Phase X, Task Y, Sub-component Z` in the Implementation Plan."
+*   **Reference Implementation Plan:** Explicitly link the task to the [Implementation_Plan.md](../../Implementation_Plan.md). Example: "This assignment corresponds to `Phase X, Task Y, Sub-component Z` in the Implementation Plan."
 *   **Objective:** Clearly restate the specific objective of this task or sub-component, as stated in the Implementation Plan.
 *   **Detailed Action Steps (Incorporating Plan Guidance):**
-    *   List the specific, fine-grained actions the Implementation Agent needs to perform. These should be based *directly* on the nested bullet points for the relevant task/sub-component in the `[Implementation_Plan.md](../../Implementation_Plan.md)`.
-    *   **Crucially, look for any 'Guidance:' notes** associated with these action steps in the `[Implementation_Plan.md](../../Implementation_Plan.md)`. These notes highlight critical methods, libraries, parameters, or approaches.
+    *   List the specific, fine-grained actions the Implementation Agent needs to perform. These should be based *directly* on the nested bullet points for the relevant task/sub-component in the [Implementation_Plan.md](../../Implementation_Plan.md).
+    *   **Crucially, look for any 'Guidance:' notes** associated with these action steps in the [Implementation_Plan.md](../../Implementation_Plan.md). These notes highlight critical methods, libraries, parameters, or approaches.
     *   **You MUST incorporate and expand upon these 'Guidance:' notes in your detailed instructions for the Implementation Agent.** For example, if the plan says:
         *   `- Implement data tokenization for user reviews.`
             *   `Guidance: Use DistilBERT tokenizer ('distilbert-base-uncased').`
@@ -63,14 +63,14 @@ Below is a recommended structure. You should adapt this template, adding, removi
 
 ## 5. Memory Bank Logging Instructions (Mandatory)
 
-*   **Instruction:** "Upon successful completion of this task, you **must** log your work comprehensively to the project's `[Memory_Bank.md](../../Memory_Bank.md)` file."
+*   **Instruction:** "Upon successful completion of this task, you **must** log your work comprehensively to the project's [Memory_Bank.md](../../Memory_Bank.md) file."
 *   **Format Adherence:** "Adhere strictly to the established logging format. Ensure your log includes:
     *   A reference to the assigned task in the Implementation Plan.
     *   A clear description of the actions taken.
     *   Any code snippets generated or modified.
     *   Any key decisions made or challenges encountered.
     *   Confirmation of successful execution (e.g., tests passing, output generated)."
-*   **Note:** *If a dedicated `[Memory_Bank_Log_Format.md](../02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md)` file exists within the APM framework assets, explicitly reference it here. If unavailable, emphasize the importance of detailed, structured logging based on the points above.* 
+*   **Note:** *If a dedicated [Memory_Bank_Log_Format.md](../02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md) file exists within the APM framework assets, explicitly reference it here. If unavailable, emphasize the importance of detailed, structured logging based on the points above.* 
 
 ## 6. Clarification Instruction
 
@@ -92,8 +92,8 @@ Below is a recommended structure. You should adapt this template, adding, removi
 
 When assigning tasks to specialized agents, especially those involving file/directory creation or substantive work requiring documentation, explicitly remind them of their obligations regarding the Memory Bank and logging procedures:
 
-*   **Memory Bank Structure:** "Ensure all Memory Bank directory and file creations strictly adhere to the naming conventions and structural guidelines detailed in the [02_Memory_Bank_Guide](02_Memory_Bank_Guide.md)  `[02_Memory_Bank_Guide.md](02_Memory_Bank_Guide.md)`. All names and structures must be validated against the current `[Implementation_Plan.md](../../Implementation_Plan.md)` **before** creation. If there is any ambiguity, consult back with the Manager Agent."
-*   **Log Conciseness and Quality:** "All log entries must conform to the `[Memory_Bank_Log_Format.md](../02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md)`. Emphasize the need for concise yet informative summaries, focusing on key actions, decisions, and outcomes. Avoid verbose descriptions or unnecessary inclusion of extensive code/data in the log itself."
+*   **Memory Bank Structure:** "Ensure all Memory Bank directory and file creations strictly adhere to the naming conventions and structural guidelines detailed in the [02_Memory_Bank_Guide](02_Memory_Bank_Guide.md)  [02_Memory_Bank_Guide.md](02_Memory_Bank_Guide.md). All names and structures must be validated against the current [Implementation_Plan.md](../../Implementation_Plan.md) **before** creation. If there is any ambiguity, consult back with the Manager Agent."
+*   **Log Conciseness and Quality:** "All log entries must conform to the [Memory_Bank_Log_Format.md](../02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md). Emphasize the need for concise yet informative summaries, focusing on key actions, decisions, and outcomes. Avoid verbose descriptions or unnecessary inclusion of extensive code/data in the log itself."
 
 Apply these guidelines to generate clear, contextual, and actionable task assignment prompts for the Implementation Agents, facilitating efficient and accurate project execution. 
 *    **Prompt Stprage:**  The task assignment prompt should be stored in the `prompts/tasks/` directory, with a filename that follows the pattern `Task_X.Y_Z.md`, where X is the phase number, Y is the task number, and Z is a short task title.
