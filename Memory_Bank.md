@@ -712,7 +712,7 @@ Ready to proceed with Task 4.2: Analysis Mode Implementation.
 **Task Reference:** Phase 4, Task 4.2: Analysis Mode Implementation
 
 **Summary:**
-Implemented Analysis mode functionality with mode-specific cross-hair display, enhanced LED formatting, and comprehensive test coverage ensuring cross-hairs only appear in Analysis mode as per Gram-Modes.md specifications.
+Implemented Analysis mode functionality with mode-specific cross-hair display, enhanced LED formatting, and comprehensive test coverage ensuring cross-hairs only appear in Analysis mode as per [Gram-Modes.md](docs/Gram-Modes.md) specifications.
 
 **Details:**
 - **Cross-hair Mode Restriction:** Modified `_updateCursorIndicators()` to only display cross-hairs when `this.state.mode === 'analysis'`
@@ -783,7 +783,7 @@ _updateLEDDisplays() {
 **Test Results:**
 - All 9 new Analysis mode tests pass
 - Complete test suite (53 tests total) passes with no regressions
-- Verified Analysis mode behavior matches Gram-Modes.md specifications:
+- Verified Analysis mode behavior matches [02_Memory_Bank_Guide](prompts/01_Manager_Agent_Core_Guides/02_Memory_Bank_Guide.md) specifications:
   - Cross-hairs appear only in Analysis mode
   - LED format matches "Freq: 734.2 Hz" and "Time: 5.84 s" specification
   - Hover-only interaction confirmed
@@ -802,7 +802,7 @@ Ready to proceed with Task 4.3: Harmonics Mode Implementation.
 **Task Reference:** Phase 4, Task 4.3: Harmonics Mode Implementation
 
 **Summary:**
-Implemented Harmonics mode functionality with click-based harmonic line display, base frequency tracking, harmonic label rendering, and comprehensive test coverage per Gram-Modes.md specifications.
+Implemented Harmonics mode functionality with click-based harmonic line display, base frequency tracking, harmonic label rendering, and comprehensive test coverage per [Gram-Modes.md](docs/Gram-Modes.md) specifications.
 
 **Details:**
 - **Click-Based Interaction:** Implemented click-to-trigger harmonics display (corrected from initial hover-based approach per user feedback)
@@ -987,7 +987,7 @@ Created comprehensive test suite `tests/harmonics-mode.spec.ts` with 12 test cas
 **Test Results:**
 - All 12 harmonics mode tests pass
 - Complete test suite (65 tests total) passes with no regressions
-- Verified harmonics behavior matches Gram-Modes.md specifications:
+- Verified harmonics behavior matches [Gram-Modes.md](docs/Gram-Modes.md) specifications:
   - Click-based interaction (not hover)
   - Vertical lines at integer multiples of base frequency
   - Main line distinct styling (dark + light shadow)
@@ -1009,7 +1009,7 @@ Ready to proceed with other Phase 4 tasks.
 **Task Reference:** Phase 4, Task 4.3: Harmonics Mode Implementation - Updated to Analysis Mode Drag Interaction
 
 **Summary:**
-Updated Harmonics implementation to integrate with Analysis mode using drag interaction instead of separate Harmonics mode, per updated Gram-Modes.md specifications.
+Updated Harmonics implementation to integrate with Analysis mode using drag interaction instead of separate Harmonics mode, per updated [Gram-Modes.md](docs/Gram-Modes.md) specifications.
 
 **Details:**
 - **Integration with Analysis Mode:** Harmonics functionality is now part of Analysis mode rather than a separate mode
@@ -1137,7 +1137,7 @@ Revised test suite to focus on Analysis mode drag functionality:
 - LED display format switching validated
 
 **Specification Compliance:**
-Implementation now matches updated Gram-Modes.md specification:
+Implementation now matches updated [Gram-Modes.md](docs/Gram-Modes.md) specification:
 - Analysis mode supports both hover (basic) and drag (harmonics) interactions
 - Harmonics appear as vertical lines at integer multiples during drag
 - Main line (1×) has distinct gold styling

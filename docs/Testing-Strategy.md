@@ -14,7 +14,7 @@ The Testing Agent is a dedicated role within the Agentic Project Management (APM
    - Create detailed test specifications before implementation begins
    - Define expected behaviors, inputs, and outputs for each feature
    - Identify edge cases and potential failure scenarios
-   - Document test specifications using the Testing_Template.md format
+   - Document test specifications using the [Testing_Template.md](Testing_Template.md) format
 
 2. **Test Implementation**
    - Develop unit tests for individual functions and components
@@ -102,7 +102,7 @@ The GramFrame project follows a test-driven development approach:
 
 ## Test Documentation
 
-All testing activities must be documented in the Memory Bank following the Testing_Template.md format. Documentation should include:
+All testing activities must be documented in the Memory Bank following the [Testing_Template.md](Testing_Template.md) format. Documentation should include:
 
 - Test specifications
 - Test implementation details

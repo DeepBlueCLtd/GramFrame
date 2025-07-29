@@ -2,5 +2,8 @@
   "userIgnoreFilters": [
     "node_modules/"
   ],
-  "useMarkdownLinks": true
+  "useMarkdownLinks": true,
+  "newLinkFormat": "relative",
+  "alwaysUpdateLinks": true,
+  "newFileLocation": "current"
 }

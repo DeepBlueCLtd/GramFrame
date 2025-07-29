@@ -1,4 +1,4 @@
-# Component-Strategy.md
+# [Component-Strategy.md](Component-Strategy.md)
 
 ## Purpose
 

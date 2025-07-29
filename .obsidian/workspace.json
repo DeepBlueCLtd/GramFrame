@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md",
+                "file": "prompts/00_Initial_Manager_Setup/01_Initiation_Prompt.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "03_Task_Assignment_Prompts_Guide"
+              "title": "01_Initiation_Prompt"
             }
           }
         ]
@@ -95,7 +95,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md",
+                "file": "Memory_Bank.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -105,7 +105,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 03_Task_Assignment_Prompts_Guide"
+              "title": "Backlinks for Memory_Bank"
             }
           },
           {
@@ -114,12 +114,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md",
+                "file": "Memory_Bank.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 03_Task_Assignment_Prompts_Guide"
+              "title": "Outgoing links from Memory_Bank"
             }
           },
           {
@@ -143,13 +143,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md",
+                "file": "Memory_Bank.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 03_Task_Assignment_Prompts_Guide"
+              "title": "Outline of Memory_Bank"
             }
           }
         ]
@@ -171,6 +171,14 @@
   },
   "active": "1662204c4a4c8830",
   "lastOpenFiles": [
+    "Memory_Bank.md",
+    "docs/Gram-Modes.md",
+    "prompts/01_Manager_Agent_Core_Guides/02_Memory_Bank_Guide.md",
+    "prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md",
+    "conversion-log.txt",
+    "convert-md-links.cjs.tmp.79377.1753782676875",
+    "convert-md-links.cjs",
+    "convert-md-links.js",
     "docs/ADRs/ADR-012-Scale-Adjusted-Font-Sizing.md",
     "node_modules/acorn/README.md",
     "Implementation_Plan.md",

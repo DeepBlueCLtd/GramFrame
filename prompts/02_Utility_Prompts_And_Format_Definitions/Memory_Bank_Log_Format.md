@@ -6,18 +6,18 @@ Log entries are crucial for project tracking, context preservation, and effectiv
 
 ## 1. Purpose
 
-This document defines the standard format for all entries made to the project's `Memory_Bank.md` file(s) within the Agentic Project Management (APM) framework. It also provides direct instructions for any agent tasked with logging their work.
+This document defines the standard format for all entries made to the project's `[Memory_Bank.md](../../Memory_Bank.md)` file(s) within the Agentic Project Management (APM) framework. It also provides direct instructions for any agent tasked with logging their work.
 
 **Adherence to this format is mandatory** to ensure consistency, facilitate review by the Manager Agent and User, enable effective context handovers, maintain a clear project history, and provide traceability between tasks and outcomes.
 
 ## 2. Instructions for Logging Agents (Implementation, Specialized, etc.)
 
-*   **When to Log:** You MUST add an entry to the designated `Memory_Bank.md` file IMMEDIATELY upon completing any assigned task or sub-task, reaching a significant milestone (e.g., completing a major function, finishing a complex module setup), encountering a blocker, or generating a notable result/output pertinent to your task. **Crucially, you will need to inform the User about the state of your task and he shall decide whether to log and report back to the Manager or not.**
+*   **When to Log:** You MUST add an entry to the designated `[Memory_Bank.md](../../Memory_Bank.md)` file IMMEDIATELY upon completing any assigned task or sub-task, reaching a significant milestone (e.g., completing a major function, finishing a complex module setup), encountering a blocker, or generating a notable result/output pertinent to your task. **Crucially, you will need to inform the User about the state of your task and he shall decide whether to log and report back to the Manager or not.**
 *   **Consult Your Prompt:** Your task assignment prompt, provided by the Manager Agent via the User, should explicitly instruct you to log your work according to this guide upon completion. Refer back to it if unsure about task scope.
-*   **Locate the Memory Bank:** The Manager Agent or User will specify the path to the correct `Memory_Bank.md` file (there might be multiple for large projects). If unsure, ask for clarification. Log entries should typically be appended to the end of the file.
+*   **Locate the Memory Bank:** The Manager Agent or User will specify the path to the correct `[Memory_Bank.md](../../Memory_Bank.md)` file (there might be multiple for large projects). If unsure, ask for clarification. Log entries should typically be appended to the end of the file.
 *   **Use the Defined Format:** Structure your log entry precisely according to the Markdown format outlined in Section 3 below. Pay close attention to required fields and formatting.
 *   **Be Clear and Concise:** Provide enough detail for the Manager Agent to understand *what* you did, *why* (linking to task requirements), *what* the outcome was, and any issues encountered. Avoid excessive verbosity but ensure all critical information is present.
-*   **Use Exact Task Reference:** Copy the *exact* Task Identifier (e.g., `Phase 1 / Task A / Item 2`) from the `Implementation_Plan.md` or your assignment prompt into the `Task Reference` field.
+*   **Use Exact Task Reference:** Copy the *exact* Task Identifier (e.g., `Phase 1 / Task A / Item 2`) from the `[Implementation_Plan.md](../../Implementation_Plan.md)` or your assignment prompt into the `Task Reference` field.
 *   **Code Changes:** When logging code modifications, use standard code blocks (` ` and ``` ```). Clearly indicate the file modified. Providing the changed snippets is often more useful than the entire file. Use diff-like syntax (`+` for additions, `-` for deletions) within the code block *if it adds clarity*, but do not use the specific `diff` language specifier in the code block fence (```diff).
 *   **Errors and Blockers:** If the log is about an error or a blockage then clearly state any errors encountered or reasons why a task could not be completed. Provide relevant error messages or stack traces within the `Output/Result` or `Issues/Blockers` section. If blocked, explain the blocker clearly so the Manager Agent can understand the impediment.
 
@@ -28,7 +28,7 @@ Each log entry must be clearly separated from the previous one using a Markdown 
 ```markdown
 ---
 **Agent:** [Your Assigned Agent ID, e.g., Agent B, Debugger 1 - Use the identifier assigned by the Manager Agent]
-**Task Reference:** [Exact reference from Implementation_Plan.md, e.g., Task B, Sub-task 2 OR Phase 1 / Task C / Item 3]
+**Task Reference:** [Exact reference from [Implementation_Plan.md](../../Implementation_Plan.md), e.g., Task B, Sub-task 2 OR Phase 1 / Task C / Item 3]
 
 **Summary:**
 [A brief (1-2 sentence) high-level summary of the action taken or the result logged. What was the main point?]
@@ -140,8 +140,8 @@ To ensure logs are valuable without being overwhelming, adhere to the following 
     *   Do NOT include lengthy blocks of boilerplate code, common library calls that can be easily inferred, or extensive script outputs.
     *   If extensive code needs to be referenced (e.g., a utility function written), state that it was created/modified and committed to the relevant script file, then reference that file.
 
-*   **Avoid Redundancy:** If information is clearly documented and accessible in another primary project artifact (e.g., the `Implementation_Plan.md` outlines the task goal, a committed script contains the full code), briefly reference that artifact instead of repeating its content extensively in the log.
-    *   *Example:* "Implemented the preprocessing steps as defined in Task 2.3 of `Implementation_Plan.md`. The core function `preprocess_text()` was added to `scripts/preprocessing_utils.py`."
+*   **Avoid Redundancy:** If information is clearly documented and accessible in another primary project artifact (e.g., the `[Implementation_Plan.md](../../Implementation_Plan.md)` outlines the task goal, a committed script contains the full code), briefly reference that artifact instead of repeating its content extensively in the log.
+    *   *Example:* "Implemented the preprocessing steps as defined in Task 2.3 of `[Implementation_Plan.md](../../Implementation_Plan.md)`. The core function `preprocess_text()` was added to `scripts/preprocessing_utils.py`."
 
 ## Examples of Log Entry Detail
 
