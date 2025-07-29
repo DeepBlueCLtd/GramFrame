@@ -92,7 +92,7 @@ Below is a recommended structure. You should adapt this template, adding, removi
 
 When assigning tasks to specialized agents, especially those involving file/directory creation or substantive work requiring documentation, explicitly remind them of their obligations regarding the Memory Bank and logging procedures:
 
-*   **Memory Bank Structure:** "Ensure all Memory Bank directory and file creations strictly adhere to the naming conventions and structural guidelines detailed in the `02_Memory_Bank_Guide.md`. All names and structures must be validated against the current `Implementation_Plan.md` **before** creation. If there is any ambiguity, consult back with the Manager Agent."
+*   **Memory Bank Structure:** "Ensure all Memory Bank directory and file creations strictly adhere to the naming conventions and structural guidelines detailed in the [[02_Memory_Bank_Guide]]  `02_Memory_Bank_Guide.md`. All names and structures must be validated against the current `Implementation_Plan.md` **before** creation. If there is any ambiguity, consult back with the Manager Agent."
 *   **Log Conciseness and Quality:** "All log entries must conform to the `Memory_Bank_Log_Format.md`. Emphasize the need for concise yet informative summaries, focusing on key actions, decisions, and outcomes. Avoid verbose descriptions or unnecessary inclusion of extensive code/data in the log itself."
 
 Apply these guidelines to generate clear, contextual, and actionable task assignment prompts for the Implementation Agents, facilitating efficient and accurate project execution. 
