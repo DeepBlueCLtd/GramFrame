@@ -111,7 +111,6 @@ export class HarmonicsMode extends BaseMode {
     // Store references on instance for compatibility (removed freqLED)
     this.instance.colorPicker = this.uiElements.colorPicker
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
-    this.instance.manualButton = this.uiElements.manualButton
     
     // Store layout container for cleanup
     this.uiElements.layoutContainer = layoutContainer

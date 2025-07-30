@@ -96,15 +96,6 @@ export class GramFrame {
     const globalLEDs = this.createGlobalStatusLEDs()
     Object.assign(this, globalLEDs)
     
-    // Setup manual harmonic button event listener
-    if (this.manualButton) {
-      this.manualButton.addEventListener('click', () => {
-        // Delegate to current mode (only HarmonicsMode handles this)
-        if (this.currentMode && typeof this.currentMode.showManualHarmonicModal === 'function') {
-          this.currentMode.showManualHarmonicModal()
-        }
-      })
-    }
     
     // Create mode switching UI
     const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
