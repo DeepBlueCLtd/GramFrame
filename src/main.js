@@ -15,8 +15,7 @@ import {
   createRateInput,
   updateLEDDisplays,
   createLEDDisplay,
-  createModeSwitchingUI,
-  createZoomControls
+  createModeSwitchingUI
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'
 
@@ -27,9 +26,7 @@ import { createGramFrameAPI } from './api/GramFrameAPI.js'
 import { ModeFactory } from './modes/ModeFactory.js'
 import { FeatureRenderer } from './core/FeatureRenderer.js'
 
-import {
-  updateCursorIndicators
-} from './rendering/cursors.js'
+// Cursor indicators removed - using CSS cursor only
 
 import {
   setupEventListeners,
@@ -78,8 +75,7 @@ export class GramFrame {
     this.rateLED = null
     /** @type {HTMLElement} */
     this.colorPicker = null
-    /** @type {SVGSVGElement} */
-    this.svg = null
+    // SVG removed - no display element
     
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)
@@ -113,8 +109,7 @@ export class GramFrame {
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
-    // Create zoom controls
-    this.zoomControls = createZoomControls(this.modeCell, this)
+    // Zoom controls removed - no display element
     
     // Harmonic management panel will be created by HarmonicsMode when activated
     
@@ -205,10 +200,7 @@ export class GramFrame {
     this.state.dragState.originalAnchorTime = null
     this.state.dragState.clickedHarmonicNumber = null
     
-    // Reset SVG cursor to default crosshair when switching modes
-    if (this.svg) {
-      this.svg.style.cursor = 'crosshair'
-    }
+    // Cursor styling removed - no display element
     
     // Update UI
     if (this.modeButtons) {
@@ -258,8 +250,7 @@ export class GramFrame {
       this.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(mode)
     }
     
-    // Clear existing cursor indicators and redraw for new mode
-    updateCursorIndicators(this)
+    // Cursor indicators removed - using CSS cursor only
     
     // CSS now handles cursor behavior properly, no need for explicit reset
     
@@ -306,66 +297,7 @@ export class GramFrame {
     notifyStateListeners(this.state, this.stateListeners)
   }
 
-  /**
-   * Set zoom level by scaling and positioning the image
-   * @param {number} level - Zoom level (1.0 = no zoom, 2.0 = 2x zoom)
-   */
-  setZoomLevel(level) {
-    // Clamp zoom level to reasonable bounds
-    level = Math.max(0.5, Math.min(5.0, level))
-    
-    // Update state
-    this.state.zoom.level = level
-    
-    // Apply zoom by scaling and positioning the image
-    if (this.svgImage && this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
-      const margins = this.state.axes.margins
-      const imageWidth = this.state.imageDetails.naturalWidth
-      const imageHeight = this.state.imageDetails.naturalHeight
-      
-      // Calculate scaled dimensions
-      const scaledWidth = imageWidth * level
-      const scaledHeight = imageHeight * level
-      
-      // Calculate offset to keep center point
-      const centerX = this.state.zoom.centerX
-      const centerY = this.state.zoom.centerY
-      
-      // Calculate position offset (negative to pan the zoomed image)
-      const offsetX = -(scaledWidth - imageWidth) * centerX
-      const offsetY = -(scaledHeight - imageHeight) * centerY
-      
-      // Update image size and position
-      this.svgImage.setAttribute('width', String(scaledWidth))
-      this.svgImage.setAttribute('height', String(scaledHeight))
-      this.svgImage.setAttribute('x', String(margins.left + offsetX))
-      this.svgImage.setAttribute('y', String(margins.top + offsetY))
-      
-      // Clear any transform on cursor group - it will be positioned relative to zoom container
-      if (this.cursorGroup) {
-        this.cursorGroup.removeAttribute('transform')
-      }
-    }
-    
-    // Update clip rect to image area only
-    if (this.clipRect && this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
-      const margins = this.state.axes.margins
-      this.clipRect.setAttribute('x', margins.left.toString())
-      this.clipRect.setAttribute('y', margins.top.toString())
-      this.clipRect.setAttribute('width', this.state.imageDetails.naturalWidth.toString())
-      this.clipRect.setAttribute('height', this.state.imageDetails.naturalHeight.toString())
-    }
-    
-    // Redraw axes with new scale
-    if (this.state.imageDetails.naturalWidth && this.state.imageDetails.naturalHeight) {
-      import('./rendering/axes.js').then(({ drawAxes }) => {
-        drawAxes(this)
-      })
-    }
-    
-    // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
-  }
+  // Zoom functionality removed - no display element
 
   
   

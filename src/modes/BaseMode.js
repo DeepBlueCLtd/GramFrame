@@ -30,91 +30,9 @@ export class BaseMode {
     // Default implementation - override in subclasses
   }
 
-  /**
-   * Handle mouse click events
-   * @param {MouseEvent} _event - The mouse click event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
-   */
-  handleClick(_event, _coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Handle mouse down events
-   * @param {MouseEvent} _event - The mouse down event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
-   */
-  handleMouseDown(_event, _coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Handle mouse move events
-   * @param {MouseEvent} _event - The mouse move event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
-   */
-  handleMouseMove(_event, _coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Handle mouse up events
-   * @param {MouseEvent} _event - The mouse up event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
-   */
-  handleMouseUp(_event, _coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Handle context menu (right-click) events
-   * @param {MouseEvent} _event - The context menu event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
-   */
-  handleContextMenu(_event, _coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Render mode-specific cursor indicators and overlays
-   * @param {SVGElement} _svg - The SVG container element
-   */
-  render(_svg) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Render only this mode's own persistent features
-   * Used by FeatureRenderer for cross-mode rendering coordination
-   * @param {SVGElement} _cursorGroup - The cursor group element to render into
-   */
-  renderOwnFeatures(_cursorGroup) {
-    // Default implementation - override in subclasses to render mode-specific features
-  }
-
-  /**
-   * Render this mode's own cursor indicators (temporary/hover state)
-   * Used by FeatureRenderer for current mode cursor rendering
-   */
-  renderOwnCursor() {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Update cursor position and related visual indicators
-   * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
-   */
-  updateCursor(_coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Update the readout panel with mode-specific information
-   * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
-   */
-  updateReadout(_coords) {
-    // Default implementation - override in subclasses
-  }
+  // Mouse event handlers removed - no display element
+  
+  // Rendering methods removed - no display element
 
   /**
    * Update LED displays with mode-specific values

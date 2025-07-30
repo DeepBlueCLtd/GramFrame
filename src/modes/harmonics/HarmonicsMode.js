@@ -1,10 +1,8 @@
 import { BaseMode } from '../BaseMode.js'
-import { createSVGLine, createSVGText } from '../../utils/svg.js'
-import { drawAnalysisMode } from '../../rendering/cursors.js'
+// SVG utilities removed - no display element
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { notifyStateListeners } from '../../core/state.js'
-import { updateCursorIndicators } from '../../rendering/cursors.js'
-import { createLEDDisplay, createColorPicker, updateLEDDisplays, createFullFlexLayout, createFlexColumn, createFlexLayout } from '../../components/UIComponents.js'
+import { createLEDDisplay, createColorPicker, createFullFlexLayout, createFlexColumn, createFlexLayout } from '../../components/UIComponents.js'
 
 /**
  * Harmonics mode implementation
@@ -30,152 +28,13 @@ export class HarmonicsMode extends BaseMode {
     `
   }
 
-  /**
-   * Handle mouse click events - create harmonic sets
-   * @param {MouseEvent} _event - The mouse click event
-   * @param {Object} _coords - Coordinate information
-   */
-  handleClick(_event, _coords) {
-    // No-op: harmonic creation now handled in handleMouseDown
-  }
+  // Mouse event handlers removed - no display element
 
-  /**
-   * Handle mouse down events for harmonic set dragging
-   * @param {MouseEvent} _event - The mouse down event
-   * @param {Object} _coords - Coordinate information
-   */
-  handleMouseDown(_event, _coords) {
-    if (!this.state.cursorPosition) return
 
-    const cursorFreq = this.state.cursorPosition.freq
-    
-    // Check if we're clicking on an existing harmonic set
-    const existingSet = this.findHarmonicSetAtFrequency(cursorFreq)
-    
-    if (existingSet) {
-      // Start dragging existing harmonic set
-      this.state.dragState.isDragging = true
-      this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
-      this.state.dragState.draggedHarmonicSetId = existingSet.id
-      this.state.dragState.originalSpacing = existingSet.spacing
-      this.state.dragState.originalAnchorTime = existingSet.anchorTime
-      
-      // Find which harmonic number was clicked
-      const harmonicNumber = Math.round(cursorFreq / existingSet.spacing)
-      this.state.dragState.clickedHarmonicNumber = harmonicNumber
-    } else {
-      // Start creating a new harmonic set with click-and-drag
-      this.state.dragState.isDragging = true
-      this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
-      this.state.dragState.isCreatingNewHarmonicSet = true
-      
-      // Create initial harmonic set at click position
-      const cursorFreq = this.state.cursorPosition.freq
-      const cursorTime = this.state.cursorPosition.time
-      const freqOrigin = this.state.config.freqMin
-      const initialHarmonicNumber = freqOrigin > 0 ? 10 : 5
-      const initialSpacing = cursorFreq / initialHarmonicNumber
-      
-      // Create the harmonic set and store its ID for live updating
-      const harmonicSet = this.addHarmonicSet(cursorTime, initialSpacing)
-      this.state.dragState.draggedHarmonicSetId = harmonicSet.id
-      this.state.dragState.originalSpacing = initialSpacing
-      this.state.dragState.originalAnchorTime = cursorTime
-      this.state.dragState.clickedHarmonicNumber = initialHarmonicNumber
-      
-      // Update displays immediately for the new harmonic set
-      updateCursorIndicators(this.instance)
-      this.updateHarmonicPanel()
-    }
-  }
 
-  /**
-   * Handle mouse move events during dragging
-   * @param {MouseEvent} _event - The mouse move event
-   * @param {Object} _coords - Coordinate information
-   */
-  handleMouseMove(_event, _coords) {
-    if (this.state.dragState.isDragging) {
-      this.handleHarmonicSetDrag()
-    }
-  }
 
-  /**
-   * Handle mouse up events - end dragging
-   * @param {MouseEvent} _event - The mouse up event
-   * @param {Object} _coords - Coordinate information
-   */
-  handleMouseUp(_event, _coords) {
-    if (this.state.dragState.isDragging) {
-      // Clear drag state
-      this.state.dragState.isDragging = false
-      this.state.dragState.dragStartPosition = null
-      this.state.dragState.draggedHarmonicSetId = null
-      this.state.dragState.originalSpacing = null
-      this.state.dragState.originalAnchorTime = null
-      this.state.dragState.clickedHarmonicNumber = null
-      this.state.dragState.isCreatingNewHarmonicSet = false
-      
-      // Clear old harmonics system state (for backward compatibility)
-      this.state.harmonics.baseFrequency = null
-      this.state.harmonics.harmonicData = []
-      
-      // Update displays and indicators
-      updateLEDDisplays(this.instance, this.state)
-      updateCursorIndicators(this.instance)
-      
-      // Update harmonic panel
-      this.updateHarmonicPanel()
-      
-      // Notify listeners of state change
-      notifyStateListeners(this.state, this.instance.stateListeners)
-    }
-  }
 
-  /**
-   * Render harmonics mode - draw crosshairs and harmonic sets
-   * @param {SVGElement} _svg - The SVG container element
-   */
-  render(_svg) {
-    // Draw cross-hairs if cursor position is available, but not when dragging harmonics
-    // (dragging harmonics would obscure the harmonic sets with the cross-hairs)
-    if (this.state.cursorPosition && !this.state.dragState.isDragging) {
-      drawAnalysisMode(this.instance)
-    }
-    
-    // Cross-mode persistent features are now handled by FeatureRenderer
-    // Only render our own harmonic sets here
-    if (this.state.harmonics && this.state.harmonics.harmonicSets) {
-      this.state.harmonics.harmonicSets.forEach(harmonicSet => {
-        this.drawHarmonicSetLines(harmonicSet)
-      })
-    }
-  }
 
-  /**
-   * Render only harmonics mode's own persistent features
-   * Used by FeatureRenderer for centralized cross-mode rendering
-   * @param {SVGElement} _cursorGroup - The cursor group element (not used, we use this.instance.cursorGroup)
-   */
-  renderOwnFeatures(_cursorGroup) {
-    // Only render harmonic sets
-    if (this.state.harmonics && this.state.harmonics.harmonicSets) {
-      this.state.harmonics.harmonicSets.forEach(harmonicSet => {
-        this.drawHarmonicSetLines(harmonicSet)
-      })
-    }
-  }
-
-  /**
-   * Render harmonics mode's own cursor indicators (temporary/hover state)
-   * Used by FeatureRenderer for current mode cursor rendering
-   */
-  renderOwnCursor() {
-    // Draw cross-hairs if cursor position is available, but not when dragging harmonics
-    if (this.state.cursorPosition && !this.state.dragState.isDragging) {
-      drawAnalysisMode(this.instance)
-    }
-  }
 
 
 
@@ -353,8 +212,7 @@ export class HarmonicsMode extends BaseMode {
     this.state.harmonics.harmonicSets.push(harmonicSet)
     
     
-    // Update display and notify listeners
-    updateCursorIndicators(this.instance)
+    // Visual updates removed - no display element
     if (this.instance.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
     }
@@ -373,8 +231,7 @@ export class HarmonicsMode extends BaseMode {
     if (setIndex !== -1) {
       Object.assign(this.state.harmonics.harmonicSets[setIndex], updates)
       
-      // Update display and notify listeners
-      updateCursorIndicators(this.instance)
+      // Visual updates removed - no display element
       if (this.instance.harmonicPanel) {
         updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
       }
@@ -392,8 +249,7 @@ export class HarmonicsMode extends BaseMode {
       this.state.harmonics.harmonicSets.splice(setIndex, 1)
       
       
-      // Update display and notify listeners
-      updateCursorIndicators(this.instance)
+      // Visual updates removed - no display element
       if (this.instance.harmonicPanel) {
         updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
       }
@@ -650,77 +506,4 @@ export class HarmonicsMode extends BaseMode {
     }
   }
 
-  /**
-   * Draw harmonic set lines
-   * @param {Object} harmonicSet - Harmonic set to render
-   */
-  drawHarmonicSetLines(harmonicSet) {
-    const margins = this.state.axes.margins
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    const { freqMin, freqMax } = this.state.config
-    
-    // Calculate visible harmonic lines
-    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
-    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
-    
-    // Calculate vertical extent (20% of SVG height, centered on anchor time)
-    const lineHeight = naturalHeight * 0.2
-    const timeRange = this.state.config.timeMax - this.state.config.timeMin
-    const timeRatio = (harmonicSet.anchorTime - this.state.config.timeMin) / timeRange
-    // Invert the Y coordinate since Y=0 is at top but timeMin should be at bottom
-    const anchorSVGY = margins.top + (1 - timeRatio) * naturalHeight
-    const lineStartY = anchorSVGY - lineHeight / 2
-    const lineEndY = anchorSVGY + lineHeight / 2
-    
-    // Draw harmonic lines
-    for (let harmonic = minHarmonic; harmonic <= maxHarmonic; harmonic++) {
-      const freq = harmonic * harmonicSet.spacing
-      
-      // Convert frequency to SVG x coordinate
-      const freqRatio = (freq - freqMin) / (freqMax - freqMin)
-      const svgX = margins.left + freqRatio * naturalWidth
-      
-      // Draw shadow line for visibility
-      const shadowLine = createSVGLine(
-        svgX,
-        lineStartY,
-        svgX,
-        lineEndY,
-        'gram-frame-harmonic-set-shadow'
-      )
-      this.instance.cursorGroup.appendChild(shadowLine)
-      
-      // Draw main line with harmonic set color
-      const mainLine = createSVGLine(
-        svgX,
-        lineStartY,
-        svgX,
-        lineEndY,
-        'gram-frame-harmonic-set-line'
-      )
-      mainLine.setAttribute('stroke', harmonicSet.color)
-      mainLine.setAttribute('stroke-width', '2')
-      
-      // Ensure proper cursor behavior for existing harmonic sets
-      // Only enable interaction when this mode is active
-      const isActiveMode = this.instance.state.mode === 'harmonics'
-      mainLine.style.pointerEvents = isActiveMode ? 'auto' : 'none'
-      mainLine.style.cursor = isActiveMode ? 'grab' : 'default'
-      
-      this.instance.cursorGroup.appendChild(mainLine)
-      
-      // Add harmonic number label at the top of the line
-      const label = createSVGText(
-        svgX + 3, // Slight offset to the right of the line
-        lineStartY - 3, // Slightly above the line
-        String(harmonic),
-        'gram-frame-harmonic-label',
-        'start'
-      )
-      label.setAttribute('fill', harmonicSet.color)
-      label.setAttribute('font-size', '12')
-      label.setAttribute('font-weight', 'bold')
-      this.instance.cursorGroup.appendChild(label)
-    }
-  }
 }

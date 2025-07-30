@@ -21,29 +21,7 @@ export class FeatureRenderer {
    * Delegates to each mode's specialized rendering methods
    */
   renderAllPersistentFeatures() {
-    try {
-      // Clear existing indicators first
-      this.instance.cursorGroup.innerHTML = ''
-
-      // Get all available modes
-      const modes = this.instance.modes
-
-      // Delegate rendering to each mode for their own features
-      if (modes.analysis && this.hasAnalysisFeatures()) {
-        modes.analysis.renderOwnFeatures(this.instance.cursorGroup)
-      }
-
-      if (modes.harmonics && this.hasHarmonicFeatures()) {
-        modes.harmonics.renderOwnFeatures(this.instance.cursorGroup)
-      }
-
-      if (modes.doppler && this.hasDopplerFeatures()) {
-        modes.doppler.renderOwnFeatures(this.instance.cursorGroup)
-      }
-
-    } catch (error) {
-      console.error('Error in FeatureRenderer.renderAllPersistentFeatures:', error)
-    }
+    // Feature rendering removed - no display element
   }
 
   /**
@@ -82,11 +60,6 @@ export class FeatureRenderer {
    * Delegates to the current active mode
    */
   renderCurrentModeCursor() {
-    if (this.instance.currentMode && this.instance.state.cursorPosition) {
-      // Let the current mode render its cursor indicators
-      if (typeof this.instance.currentMode.renderOwnCursor === 'function') {
-        this.instance.currentMode.renderOwnCursor()
-      }
-    }
+    // Cursor rendering removed - no display element
   }
 }

@@ -53,73 +53,7 @@ export function createComponentStructure(instance) {
   }
 }
 
-/**
- * Create SVG structure and groups for rendering
- * @param {Object} instance - GramFrame instance to populate with SVG elements
- * @returns {Object} Object containing all created SVG elements
- */
-export function createSVGStructure(instance) {
-  // Create SVG element for rendering inside main panel
-  instance.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  instance.svg.setAttribute('class', 'gram-frame-svg')
-  instance.svg.setAttribute('width', '100%')
-  instance.svg.setAttribute('height', 'auto')
-  instance.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
-  instance.mainCell.appendChild(instance.svg)
-  
-  // Create defs for clipping path
-  instance.defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
-  instance.svg.appendChild(instance.defs)
-  
-  // Create clip path for content area
-  instance.clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
-  instance.clipPath.setAttribute('id', `gram-frame-clip-${Math.random().toString(36).substr(2, 9)}`)
-  instance.defs.appendChild(instance.clipPath)
-  
-  // Create clip rect (will be updated with proper dimensions)
-  instance.clipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-  instance.clipPath.appendChild(instance.clipRect)
-  
-  // Create zoom container for scalable content
-  instance.zoomContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.zoomContainer.setAttribute('class', 'gram-frame-zoom-container')
-  instance.zoomContainer.setAttribute('clip-path', `url(#${instance.clipPath.getAttribute('id')})`)
-  instance.svg.appendChild(instance.zoomContainer)
-  
-  // Create main group for content with margins for axes (inside zoom container)
-  instance.mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.mainGroup.setAttribute('class', 'gram-frame-main-group')
-  instance.zoomContainer.appendChild(instance.mainGroup)
-  
-  // Create image element within main group for spectrogram
-  instance.svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
-  instance.svgImage.setAttribute('class', 'gram-frame-image')
-  instance.mainGroup.appendChild(instance.svgImage)
-  
-  // Create cursor indicator group (inside zoom container to scale with content)
-  instance.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
-  instance.zoomContainer.appendChild(instance.cursorGroup)
-  
-  // Create groups for axes (outside zoom container - they don't scale)
-  instance.timeAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.timeAxisGroup.setAttribute('class', 'gram-frame-time-axis')
-  instance.svg.appendChild(instance.timeAxisGroup)
-  
-  instance.freqAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.freqAxisGroup.setAttribute('class', 'gram-frame-freq-axis')
-  instance.svg.appendChild(instance.freqAxisGroup)
-  
-  return {
-    svg: instance.svg,
-    zoomContainer: instance.zoomContainer,
-    mainGroup: instance.mainGroup,
-    svgImage: instance.svgImage,
-    timeAxisGroup: instance.timeAxisGroup,
-    freqAxisGroup: instance.freqAxisGroup,
-    cursorGroup: instance.cursorGroup
-  }
-}
+// Image display removed - component stripped to minimum
 
 
 
@@ -145,23 +79,17 @@ export function replaceConfigTable(instance, configTable) {
 }
 
 /**
- * Create complete component table structure including DOM and SVG
+ * Create minimal component table structure
  * @param {Object} instance - GramFrame instance
  * @param {HTMLTableElement} configTable - Original table to replace
  * @returns {Object} Object containing all created elements
  */
 export function setupComponentTable(instance, configTable) {
-  // Create DOM structure
+  // Create DOM structure only
   const domElements = createComponentStructure(instance)
-  
-  // Create SVG structure
-  const svgElements = createSVGStructure(instance)
   
   // Replace original table
   replaceConfigTable(instance, configTable)
   
-  return {
-    ...domElements,
-    ...svgElements
-  }
+  return domElements
 }

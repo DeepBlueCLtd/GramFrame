@@ -13,81 +13,24 @@ import { createSVGLine, createSVGText, createSVGCircle } from '../utils/svg.js'
  * @param {Object} instance - GramFrame instance
  */
 export function updateCursorIndicators(instance) {
-  // Check if we have valid image dimensions
-  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) {
-    return
+  // Clear any existing cursor visuals
+  if (instance.cursorGroup) {
+    instance.cursorGroup.innerHTML = ''
   }
   
-  // Use centralized feature renderer for cross-mode persistent features
+  // Only render persistent features and mode-specific elements (no cursor crosshairs)
   if (instance.featureRenderer) {
     instance.featureRenderer.renderAllPersistentFeatures()
-    
-    // Render current mode's cursor indicators on top
-    instance.featureRenderer.renderCurrentModeCursor()
-  } else {
-    // Fallback to old approach if feature renderer not available
-    instance.cursorGroup.innerHTML = ''
-    if (instance.currentMode) {
-      instance.currentMode.render(instance.svg)
-    }
   }
 }
 
 /**
  * Draw cursor indicators for analysis mode
- * @param {Object} instance - GramFrame instance
+ * @param {Object} _instance - GramFrame instance
  */
-export function drawAnalysisMode(instance) {
-  if (!instance.state.cursorPosition) return
-  
-  const margins = instance.state.axes.margins
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  
-  // Use the actual SVG coordinates where the mouse cursor is positioned
-  const cursorSVGX = instance.state.cursorPosition.svgX
-  const cursorSVGY = instance.state.cursorPosition.svgY
-  
-  // Create vertical crosshair lines (time indicator) - shadow first, then main line
-  const verticalShadow = createSVGLine(
-    cursorSVGX,
-    margins.top,
-    cursorSVGX,
-    margins.top + naturalHeight,
-    'gram-frame-cursor-shadow'
-  )
-  instance.cursorGroup.appendChild(verticalShadow)
-  
-  const verticalLine = createSVGLine(
-    cursorSVGX,
-    margins.top,
-    cursorSVGX,
-    margins.top + naturalHeight,
-    'gram-frame-cursor-vertical'
-  )
-  instance.cursorGroup.appendChild(verticalLine)
-  
-  // Create horizontal crosshair lines (frequency indicator) - shadow first, then main line
-  const horizontalShadow = createSVGLine(
-    margins.left,
-    cursorSVGY,
-    margins.left + naturalWidth,
-    cursorSVGY,
-    'gram-frame-cursor-shadow'
-  )
-  instance.cursorGroup.appendChild(horizontalShadow)
-  
-  const horizontalLine = createSVGLine(
-    margins.left,
-    cursorSVGY,
-    margins.left + naturalWidth,
-    cursorSVGY,
-    'gram-frame-cursor-horizontal'
-  )
-  instance.cursorGroup.appendChild(horizontalLine)
-  
-  // Create center point indicator
-  const centerPoint = createSVGCircle(cursorSVGX, cursorSVGY, 3, 'gram-frame-cursor-point')
-  instance.cursorGroup.appendChild(centerPoint)
+export function drawAnalysisMode(_instance) {
+  // Analysis mode uses CSS cursor only - no SVG rendering
+  return
 }
 
 /**
@@ -95,11 +38,7 @@ export function drawAnalysisMode(instance) {
  * @param {Object} instance - GramFrame instance
  */
 export function drawHarmonicsMode(instance) {
-  // Draw cross-hairs if cursor position is available, but not when dragging harmonics
-  // (dragging harmonics would obscure the harmonic sets with the cross-hairs)
-  if (instance.state.cursorPosition && !instance.state.dragState.isDragging) {
-    drawAnalysisMode(instance)
-  }
+  // Harmonics mode shows harmonic sets only - no crosshairs
   
   // Draw persistent harmonic sets (always visible)
   instance.state.harmonics.harmonicSets.forEach(harmonicSet => {
