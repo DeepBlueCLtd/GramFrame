@@ -20,6 +20,17 @@
  */
 
 /**
+ * @enum {string}
+ * Doppler marker names for drag state
+ * @readonly
+ */
+const DopplerDraggedMarker = {
+  fPlus: 'fPlus',
+  fMinus: 'fMinus',
+  fZero: 'fZero'
+};
+
+/**
  * Doppler mode state
  * @typedef {Object} DopplerState
  * @property {DopplerPoint|null} fPlus - f+ marker position
@@ -27,10 +38,14 @@
  * @property {DopplerPoint|null} fZero - f₀ marker position
  * @property {number|null} speed - Calculated speed in m/s
  * @property {boolean} isDragging - Whether currently dragging a marker
- * @property {string|null} draggedMarker - Which marker is being dragged ('fPlus', 'fMinus', 'fZero')
+ * @property {DopplerDraggedMarker|null} draggedMarker - Which marker is being dragged
  * @property {boolean} isPlacingMarkers - Whether in marker placement mode
  * @property {number} markersPlaced - Number of markers placed (0-2)
  * @property {DopplerPoint|null} tempFirst - Temporary storage for first marker during placement
  * @property {boolean} isPreviewDrag - Whether currently dragging to preview curve
  * @property {DopplerPoint|null} previewEnd - End point for preview drag
  */
+
+export { DopplerDraggedMarker }
+
+// Note: DopplerState typedef is available for TypeScript through JSDoc

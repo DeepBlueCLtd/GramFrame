@@ -34,9 +34,7 @@ function buildModeInitialState() {
 export const initialState = {
   version: '0.0.1',
   timestamp: new Date().toISOString(),
-  metadata: {
-    instanceId: ''
-  },
+  instanceId: '',
   mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
   rate: 1,
   cursorPosition: null,

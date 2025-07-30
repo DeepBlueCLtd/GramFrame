@@ -10,6 +10,7 @@ import { calculateMidpoint } from '../../utils/doppler.js'
 import { 
   drawDopplerPreview
 } from '../../rendering/cursors.js'
+import { DopplerDraggedMarker } from './types.js'
 
 // Constants
 const MS_TO_KNOTS_CONVERSION = 1.94384
@@ -36,7 +37,7 @@ export class DopplerMode extends BaseMode {
   /**
    * Handle mouse move events in doppler mode
    * @param {MouseEvent} event - Mouse event
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(event, dataCoords) {
     const doppler = this.state.doppler
@@ -67,11 +68,11 @@ export class DopplerMode extends BaseMode {
         frequency: dataCoords.freq
       }
       
-      if (doppler.draggedMarker === 'fPlus') {
+      if (doppler.draggedMarker === DopplerDraggedMarker.fPlus) {
         doppler.fPlus = newPoint
-      } else if (doppler.draggedMarker === 'fMinus') {
+      } else if (doppler.draggedMarker === DopplerDraggedMarker.fMinus) {
         doppler.fMinus = newPoint
-      } else if (doppler.draggedMarker === 'fZero') {
+      } else if (doppler.draggedMarker === DopplerDraggedMarker.fZero) {
         doppler.fZero = newPoint
       }
       
@@ -98,7 +99,7 @@ export class DopplerMode extends BaseMode {
           const distance = this.getMarkerDistance(mousePos, fPlusSVG)
           if (distance < closestDistance) {
             closestDistance = distance
-            closestMarker = 'fPlus'
+            closestMarker = DopplerDraggedMarker.fPlus
           }
         }
       }
@@ -109,7 +110,7 @@ export class DopplerMode extends BaseMode {
           const distance = this.getMarkerDistance(mousePos, fMinusSVG)
           if (distance < closestDistance) {
             closestDistance = distance
-            closestMarker = 'fMinus'
+            closestMarker = DopplerDraggedMarker.fMinus
           }
         }
       }
@@ -120,7 +121,7 @@ export class DopplerMode extends BaseMode {
           const distance = this.getMarkerDistance(mousePos, fZeroSVG)
           if (distance < closestDistance) {
             closestDistance = distance
-            closestMarker = 'fZero'
+            closestMarker = DopplerDraggedMarker.fZero
           }
         }
       }
@@ -132,7 +133,7 @@ export class DopplerMode extends BaseMode {
   /**
    * Handle mouse down events in doppler mode
    * @param {MouseEvent} event - Mouse event
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseDown(event, dataCoords) {
     const doppler = this.state.doppler
@@ -142,6 +143,7 @@ export class DopplerMode extends BaseMode {
       const mousePos = this.getMousePosition(event)
       
       // Find the closest marker that's within range
+      /** @type {DopplerDraggedMarker|null} */
       let closestMarker = null
       let closestDistance = Infinity
       
@@ -151,7 +153,7 @@ export class DopplerMode extends BaseMode {
           const distance = this.getMarkerDistance(mousePos, fPlusSVG)
           if (distance < closestDistance) {
             closestDistance = distance
-            closestMarker = 'fPlus'
+            closestMarker = DopplerDraggedMarker.fPlus
           }
         }
       }
@@ -162,7 +164,7 @@ export class DopplerMode extends BaseMode {
           const distance = this.getMarkerDistance(mousePos, fMinusSVG)
           if (distance < closestDistance) {
             closestDistance = distance
-            closestMarker = 'fMinus'
+            closestMarker = DopplerDraggedMarker.fMinus
           }
         }
       }
@@ -173,7 +175,7 @@ export class DopplerMode extends BaseMode {
           const distance = this.getMarkerDistance(mousePos, fZeroSVG)
           if (distance < closestDistance) {
             closestDistance = distance
-            closestMarker = 'fZero'
+            closestMarker = DopplerDraggedMarker.fZero
           }
         }
       }
@@ -216,7 +218,7 @@ export class DopplerMode extends BaseMode {
   /**
    * Handle mouse up events in doppler mode
    * @param {MouseEvent} _event - Mouse event (unused)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused)
    */
   handleMouseUp(_event, _dataCoords) {
     const doppler = this.state.doppler

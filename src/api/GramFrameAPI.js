@@ -48,10 +48,7 @@ export function createGramFrameAPI(GramFrame) {
           
           // Store instance ID for debugging and API access
           instance.instanceId = instanceId
-          instance.state.metadata = {
-            ...instance.state.metadata,
-            instanceId: instanceId
-          }
+          instance.state.instanceId = instanceId
           
           instances.push(instance)
           

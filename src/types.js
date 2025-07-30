@@ -4,6 +4,29 @@
  */
 
 /**
+ * Doppler point with time and frequency coordinates
+ * @typedef {Object} DopplerPoint
+ * @property {number} time - Time in seconds
+ * @property {number} frequency - Frequency in Hz
+ */
+
+/**
+ * Doppler mode state
+ * @typedef {Object} DopplerState
+ * @property {DopplerPoint|null} fPlus - f+ marker position
+ * @property {DopplerPoint|null} fMinus - f- marker position
+ * @property {DopplerPoint|null} fZero - f₀ marker position
+ * @property {number|null} speed - Calculated speed in m/s
+ * @property {boolean} isDragging - Whether currently dragging a marker
+ * @property {string|null} draggedMarker - Which marker is being dragged
+ * @property {boolean} isPlacingMarkers - Whether in marker placement mode
+ * @property {number} markersPlaced - Number of markers placed (0-2)
+ * @property {DopplerPoint|null} tempFirst - Temporary storage for first marker during placement
+ * @property {boolean} isPreviewDrag - Whether currently dragging to preview curve
+ * @property {DopplerPoint|null} previewEnd - End point for preview drag
+ */
+
+/**
  * Configuration object for min/max values of time and frequency
  * @typedef {Object} Config
  * @property {number} timeMin - Minimum time value in seconds
@@ -89,8 +112,7 @@
  * @typedef {Object} GramFrameState
  * @property {string} version - Component version
  * @property {string} timestamp - Timestamp of state creation
- * @property {Object} metadata - Component instance metadata
- * @property {string} metadata.instanceId - Unique instance identifier
+ * @property {string} instanceId - Unique instance identifier
  * @property {ModeType} mode - Current analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
