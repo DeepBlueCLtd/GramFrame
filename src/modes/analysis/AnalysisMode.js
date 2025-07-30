@@ -26,9 +26,8 @@ export class AnalysisMode extends BaseMode {
    * Handle mouse move events in analysis mode
    * @param {MouseEvent} event - Mouse event
    * @param {Object} dataCoords - Data coordinates {freq, time}
-   * @param {Object} svgCoords - SVG coordinates {x, y}
    */
-  handleMouseMove(event, dataCoords, svgCoords) {
+  handleMouseMove(event, dataCoords) {
     // Update cursor position in existing LED displays
     this.updateCursorPosition(dataCoords)
     
@@ -37,22 +36,25 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Handle mouse down events in analysis mode
-   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
-   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
+   * @param {MouseEvent} event - Mouse event
+   * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseDown(_event, _dataCoords, _svgCoords) {
-    // Analysis mode specific click handling (e.g., placing markers)
-    // This will be implemented in future phases
+  handleMouseDown(event, dataCoords) {
+    // Only handle left clicks for marker creation
+    if (event.button !== 0) {
+      return
+    }
+    
+    // Create marker at click location
+    this.createMarkerAtPosition(dataCoords)
   }
 
   /**
    * Handle mouse up events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
    * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
-   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
    */
-  handleMouseUp(_event, _dataCoords, _svgCoords) {
+  handleMouseUp(_event, _dataCoords) {
     // Analysis mode specific handling
   }
 
@@ -104,10 +106,126 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
+   * Create a marker at the specified position
+   * @param {Object} dataCoords - Data coordinates {freq, time}
+   */
+  createMarkerAtPosition(dataCoords) {
+    // Get the current marker color from the color picker
+    const color = this.state.harmonics?.selectedColor || '#ff6b6b'
+    
+    // Create marker object (we only need time/freq for positioning)
+    const marker = {
+      id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      color,
+      time: dataCoords.time,
+      freq: dataCoords.freq
+    }
+    
+    // Add marker to state
+    this.addMarker(marker)
+  }
+
+  /**
    * Render persistent features for analysis mode
    */
   renderPersistentFeatures() {
-    // Analysis mode persistent features (markers) will be implemented in future phases
+    if (!this.instance.cursorGroup || !this.state.analysis?.markers) {
+      return
+    }
+    
+    // Clear existing analysis markers
+    const existingMarkers = this.instance.cursorGroup.querySelectorAll('.gram-frame-analysis-marker')
+    existingMarkers.forEach(marker => marker.remove())
+    
+    // Render all markers
+    this.state.analysis.markers.forEach(marker => {
+      this.renderMarker(marker)
+    })
+  }
+
+  /**
+   * Render a single marker as a crosshair
+   * @param {Object} marker - Marker object
+   */
+  renderMarker(marker) {
+    if (!this.instance.cursorGroup) {
+      return
+    }
+    
+    // Calculate current position based on time/freq values and current zoom/pan state
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    const margins = this.state.axes.margins
+    const zoomLevel = this.state.zoom.level
+    
+    // Convert time/freq to normalized coordinates (0-1)
+    const { timeMin, timeMax, freqMin, freqMax } = this.state.config
+    const normalizedX = (marker.freq - freqMin) / (freqMax - freqMin)
+    const normalizedY = 1.0 - (marker.time - timeMin) / (timeMax - timeMin) // Invert Y for SVG coordinates
+    
+    let currentX, currentY
+    
+    if (zoomLevel === 1.0) {
+      // No zoom - use base image position
+      currentX = margins.left + normalizedX * naturalWidth
+      currentY = margins.top + normalizedY * naturalHeight
+    } else {
+      // Zoomed - calculate position based on current image transform
+      if (this.instance.spectrogramImage) {
+        const imageLeft = parseFloat(this.instance.spectrogramImage.getAttribute('x') || String(margins.left))
+        const imageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
+        const imageWidth = parseFloat(this.instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
+        const imageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+        
+        currentX = imageLeft + normalizedX * imageWidth
+        currentY = imageTop + normalizedY * imageHeight
+      } else {
+        currentX = margins.left + normalizedX * naturalWidth
+        currentY = margins.top + normalizedY * naturalHeight
+      }
+    }
+    
+    // Create marker group
+    const markerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    markerGroup.setAttribute('class', 'gram-frame-analysis-marker')
+    markerGroup.setAttribute('data-marker-id', marker.id)
+    
+    // Create crosshair lines
+    const crosshairSize = 15
+    
+    // Horizontal line
+    const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    hLine.setAttribute('x1', String(currentX - crosshairSize))
+    hLine.setAttribute('y1', String(currentY))
+    hLine.setAttribute('x2', String(currentX + crosshairSize))
+    hLine.setAttribute('y2', String(currentY))
+    hLine.setAttribute('stroke', marker.color)
+    hLine.setAttribute('stroke-width', '2')
+    hLine.setAttribute('stroke-linecap', 'round')
+    
+    // Vertical line
+    const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    vLine.setAttribute('x1', String(currentX))
+    vLine.setAttribute('y1', String(currentY - crosshairSize))
+    vLine.setAttribute('x2', String(currentX))
+    vLine.setAttribute('y2', String(currentY + crosshairSize))
+    vLine.setAttribute('stroke', marker.color)
+    vLine.setAttribute('stroke-width', '2')
+    vLine.setAttribute('stroke-linecap', 'round')
+    
+    // Center circle
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    circle.setAttribute('cx', String(currentX))
+    circle.setAttribute('cy', String(currentY))
+    circle.setAttribute('r', '3')
+    circle.setAttribute('fill', marker.color)
+    circle.setAttribute('stroke', '#fff')
+    circle.setAttribute('stroke-width', '1')
+    
+    markerGroup.appendChild(hLine)
+    markerGroup.appendChild(vLine)
+    markerGroup.appendChild(circle)
+    
+    this.instance.cursorGroup.appendChild(markerGroup)
   }
 
 
@@ -279,32 +397,22 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Add a new persistent marker
-   * @param {Object} position - Cursor position data
+   * @param {Object} marker - Marker object with all properties
    */
-  addMarker(position) {
+  addMarker(marker) {
     if (!this.state.analysis) {
       this.state.analysis = { markers: [] }
     }
     
-    // Get color from color picker
-    const color = this.state.harmonics?.selectedColor || '#ff6b6b'
-    
-    const marker = {
-      id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-      color,
-      time: position.time,
-      freq: position.freq,
-      imageX: position.imageX,
-      imageY: position.imageY
-    }
-    
     this.state.analysis.markers.push(marker)
-    
     
     // Update markers table
     this.updateMarkersTable()
     
-    // Visual re-render removed - no display element
+    // Re-render all persistent features to show the new marker
+    if (this.instance.featureRenderer) {
+      this.instance.featureRenderer.renderAllPersistentFeatures()
+    }
     
     // Notify listeners
     notifyStateListeners(this.state, this.instance.stateListeners)
@@ -321,11 +429,13 @@ export class AnalysisMode extends BaseMode {
     if (index !== -1) {
       this.state.analysis.markers.splice(index, 1)
       
-      
       // Update markers table
       this.updateMarkersTable()
       
-      // Visual re-render removed - no display element
+      // Re-render all persistent features to remove the marker
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures()
+      }
       
       // Notify listeners
       notifyStateListeners(this.state, this.instance.stateListeners)

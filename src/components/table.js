@@ -191,6 +191,12 @@ export function applyZoomTransform(instance) {
     
     // Update axes to show full data range
     renderAxes(instance)
+    
+    // Re-render all persistent features to update positions for reset zoom
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures()
+    }
+    
     return
   }
   
@@ -214,6 +220,11 @@ export function applyZoomTransform(instance) {
   
   // Update axes to reflect the new visible data range
   renderAxes(instance)
+  
+  // Re-render all persistent features to update positions for zoom/pan
+  if (instance.featureRenderer) {
+    instance.featureRenderer.renderAllPersistentFeatures()
+  }
 }
 
 /**

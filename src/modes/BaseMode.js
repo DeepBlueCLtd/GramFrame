@@ -34,9 +34,8 @@ export class BaseMode {
    * Handle mouse move events
    * @param {MouseEvent} _event - Mouse event (unused in base implementation)
    * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
-   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in base implementation)
    */
-  handleMouseMove(_event, _dataCoords, _svgCoords) {
+  handleMouseMove(_event, _dataCoords) {
     // Default implementation - override in subclasses for mode-specific behavior
   }
 
@@ -44,9 +43,8 @@ export class BaseMode {
    * Handle mouse down events
    * @param {MouseEvent} _event - Mouse event (unused in base implementation)
    * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
-   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in base implementation)
    */
-  handleMouseDown(_event, _dataCoords, _svgCoords) {
+  handleMouseDown(_event, _dataCoords) {
     // Default implementation - override in subclasses for mode-specific behavior
   }
 
@@ -54,9 +52,8 @@ export class BaseMode {
    * Handle mouse up events
    * @param {MouseEvent} _event - Mouse event (unused in base implementation)
    * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
-   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in base implementation)
    */
-  handleMouseUp(_event, _dataCoords, _svgCoords) {
+  handleMouseUp(_event, _dataCoords) {
     // Default implementation - override in subclasses for mode-specific behavior
   }
 

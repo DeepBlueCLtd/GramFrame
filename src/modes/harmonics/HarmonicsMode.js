@@ -32,9 +32,8 @@ export class HarmonicsMode extends BaseMode {
    * Handle mouse move events in harmonics mode
    * @param {MouseEvent} event - Mouse event
    * @param {Object} dataCoords - Data coordinates {freq, time}
-   * @param {Object} svgCoords - SVG coordinates {x, y}
    */
-  handleMouseMove(event, dataCoords, svgCoords) {
+  handleMouseMove(event, dataCoords) {
     // Harmonics mode specific handling can be added here
   }
 
@@ -42,9 +41,8 @@ export class HarmonicsMode extends BaseMode {
    * Handle mouse down events in harmonics mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
    * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
-   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
    */
-  handleMouseDown(_event, _dataCoords, _svgCoords) {
+  handleMouseDown(_event, _dataCoords) {
     // Harmonics mode specific handling
   }
 
@@ -52,9 +50,8 @@ export class HarmonicsMode extends BaseMode {
    * Handle mouse up events in harmonics mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
    * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
-   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
    */
-  handleMouseUp(_event, _dataCoords, _svgCoords) {
+  handleMouseUp(_event, _dataCoords) {
     // Harmonics mode specific handling
   }
 

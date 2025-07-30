@@ -207,7 +207,7 @@ function handleMouseMove(instance, event) {
     
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseMove === 'function') {
-      instance.currentMode.handleMouseMove(event, dataCoords, svgCoords)
+      instance.currentMode.handleMouseMove(event, dataCoords)
     }
   } else {
     // Clear cursor position if outside image bounds
@@ -254,7 +254,7 @@ function handleMouseDown(instance, event) {
     
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseDown === 'function') {
-      instance.currentMode.handleMouseDown(event, dataCoords, svgCoords)
+      instance.currentMode.handleMouseDown(event, dataCoords)
     }
   }
 }
@@ -284,7 +284,7 @@ function handleMouseUp(instance, event) {
     
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseUp === 'function') {
-      instance.currentMode.handleMouseUp(event, dataCoords, svgCoords)
+      instance.currentMode.handleMouseUp(event, dataCoords)
     }
   }
 }
