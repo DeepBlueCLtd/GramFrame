@@ -2,11 +2,10 @@
  * Manual Harmonic Modal
  * Extracted from HarmonicsMode.showManualHarmonicModal
  *
- * @param {Object} context - The HarmonicsMode instance or context object
- * @param {Object} state - Current harmonics mode state
+ * @param {GramFrameState} state - Current harmonics mode state
  * @param {Function} addHarmonicSet - Function to add a harmonic set (anchorTime, spacing)
  */
-export function showManualHarmonicModal(context, state, addHarmonicSet) {
+export function showManualHarmonicModal(state, addHarmonicSet) {
   // Create modal overlay
   const overlay = document.createElement('div')
   overlay.className = 'gram-frame-modal-overlay'

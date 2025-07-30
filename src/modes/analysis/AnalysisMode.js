@@ -52,7 +52,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle mouse up events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
    */
   handleMouseUp(_event, _dataCoords) {
     // Analysis mode specific handling

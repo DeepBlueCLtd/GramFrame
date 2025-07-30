@@ -7,7 +7,7 @@ export class BaseMode {
   /**
    * Constructor for base mode
    * @param {Object} instance - GramFrame instance
-   * @param {Object} state - GramFrame state object
+   * @param {GramFrameState} state - GramFrame state object
    */
   constructor(instance, state) {
     this.instance = instance
@@ -42,7 +42,7 @@ export class BaseMode {
   /**
    * Handle mouse down events
    * @param {MouseEvent} _event - Mouse event (unused in base implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
    */
   handleMouseDown(_event, _dataCoords) {
     // Default implementation - override in subclasses for mode-specific behavior
@@ -51,7 +51,7 @@ export class BaseMode {
   /**
    * Handle mouse up events
    * @param {MouseEvent} _event - Mouse event (unused in base implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
    */
   handleMouseUp(_event, _dataCoords) {
     // Default implementation - override in subclasses for mode-specific behavior
@@ -148,14 +148,6 @@ export class BaseMode {
   getStateSnapshot() {
     // Default implementation - override in subclasses
     return {}
-  }
-
-  /**
-   * Show manual modal dialog (default: no action)
-   * This is primarily used by HarmonicsMode
-   */
-  showManualHarmonicModal() {
-    // Default implementation does nothing
   }
 
   /**

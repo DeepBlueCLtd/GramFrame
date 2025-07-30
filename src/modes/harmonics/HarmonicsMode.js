@@ -371,7 +371,7 @@ export class HarmonicsMode extends BaseMode {
    * Show manual harmonic modal dialog
    */
   showManualHarmonicModal() {
-    showManualHarmonicModal(this, this.state, this.addHarmonicSet.bind(this))
+    showManualHarmonicModal(this.state, this.addHarmonicSet.bind(this))
   }
 
 

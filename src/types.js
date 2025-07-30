@@ -97,6 +97,7 @@
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {HarmonicsState} harmonics - Harmonics mode state
  * @property {DopplerState} doppler - Doppler mode state
+ * @property {AnalysisState} analysis - Analysis mode state
  * @property {DragState} dragState - Drag interaction state
  * @property {ImageDetails} imageDetails - Image source and dimensions
  * @property {Config} config - Time and frequency configuration
