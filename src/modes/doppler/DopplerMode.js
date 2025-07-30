@@ -279,12 +279,7 @@ export class DopplerMode extends BaseMode {
     // Initialize uiElements
     this.uiElements = {}
     
-    // Speed LED is now managed centrally in the unified layout
-    // Make the central speed LED visible when doppler mode is active
-    if (this.instance.speedLED) {
-      this.instance.speedLED.style.display = 'block'
-    }
-    
+    // Speed LED is now managed centrally in the unified layout and always visible
     // Store references for central speed LED
     this.instance.speedLED = this.instance.speedLED || null
   }
@@ -344,10 +339,7 @@ export class DopplerMode extends BaseMode {
    * Deactivate doppler mode - hide speed LED
    */
   deactivate() {
-    // Hide the central speed LED when leaving doppler mode
-    if (this.instance.speedLED) {
-      this.instance.speedLED.style.display = 'none'
-    }
+    // Speed LED now stays visible across all modes
   }
 
 

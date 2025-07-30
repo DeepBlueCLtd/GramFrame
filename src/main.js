@@ -222,12 +222,12 @@ export class GramFrame {
     this.freqLED = createLEDDisplay('Frequency (Hz)', '0.0')
     cursorContainer.appendChild(this.freqLED)
     
-    this.leftColumn.appendChild(cursorContainer)
-    
-    // Create doppler speed LED (initially hidden)
+    // Create doppler speed LED (spans full width)
     this.speedLED = createLEDDisplay('Speed (knots)', '0.0')
-    this.speedLED.style.display = 'none'
-    this.leftColumn.appendChild(this.speedLED)
+    this.speedLED.style.gridColumn = '1 / -1' // Span both columns
+    cursorContainer.appendChild(this.speedLED)
+    
+    this.leftColumn.appendChild(cursorContainer)
     
     // Create color picker
     this.colorPicker = createColorPicker(this.state)
@@ -250,6 +250,7 @@ export class GramFrame {
     const markersLabel = document.createElement('h4')
     markersLabel.textContent = 'Analysis Markers'
     markersLabel.style.margin = '0 0 8px 0'
+    markersLabel.style.textAlign = 'left'
     markersLabel.style.flexShrink = '0'
     this.markersContainer.appendChild(markersLabel)
     

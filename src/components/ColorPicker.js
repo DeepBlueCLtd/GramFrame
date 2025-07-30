@@ -41,17 +41,27 @@ export function createColorPicker(state) {
   label.textContent = 'Harmonic Color'
   container.appendChild(label)
   
-  // Color palette container
+  // Color palette container - now horizontal with slider and lozenge
   const paletteContainer = document.createElement('div')
   paletteContainer.className = 'gram-frame-color-palette'
+  paletteContainer.style.display = 'flex'
+  paletteContainer.style.alignItems = 'center'
+  paletteContainer.style.gap = '8px'
   container.appendChild(paletteContainer)
+  
+  // Slider container for canvas and indicator
+  const sliderContainer = document.createElement('div')
+  sliderContainer.className = 'gram-frame-color-slider'
+  sliderContainer.style.position = 'relative'
+  sliderContainer.style.flex = '1'
+  paletteContainer.appendChild(sliderContainer)
   
   // Create continuous color palette using canvas
   const canvas = document.createElement('canvas')
-  canvas.width = 200
+  canvas.width = 140
   canvas.height = 20
   canvas.className = 'gram-frame-color-canvas'
-  paletteContainer.appendChild(canvas)
+  sliderContainer.appendChild(canvas)
   
   // Initialize default color
   if (!state.harmonics) {
@@ -72,13 +82,17 @@ export function createColorPicker(state) {
   // Color selection indicator
   const indicator = document.createElement('div')
   indicator.className = 'gram-frame-color-indicator'
-  paletteContainer.appendChild(indicator)
+  sliderContainer.appendChild(indicator)
   
-  // Current color display
+  // Current color display - now a compact lozenge
   const currentColor = document.createElement('div')
   currentColor.className = 'gram-frame-current-color'
   currentColor.style.backgroundColor = state.harmonics.selectedColor
-  container.appendChild(currentColor)
+  currentColor.style.width = '30px'
+  currentColor.style.height = '20px'
+  currentColor.style.borderRadius = '10px'
+  currentColor.style.flexShrink = '0'
+  paletteContainer.appendChild(currentColor)
   
   // Add click handler for color selection
   canvas.addEventListener('click', (event) => {
