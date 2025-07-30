@@ -1037,16 +1037,24 @@
     inset 0 1px 2px rgba(255,255,255,0.2);
 }
 
-.gram-frame-zoom-btn:hover {
+.gram-frame-zoom-btn:hover:not(:disabled) {
   background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 50%, #3a3a3a 100%);
   border-color: #777;
 }
 
-.gram-frame-zoom-btn:active {
+.gram-frame-zoom-btn:active:not(:disabled) {
   transform: translateY(1px);
   box-shadow: 
     0 1px 2px rgba(0,0,0,0.4),
     inset 0 -1px 2px rgba(255,255,255,0.1);
+}
+
+.gram-frame-zoom-btn:disabled {
+  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);
+  color: #666;
+  border-color: #444;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .gram-frame-zoom-reset {

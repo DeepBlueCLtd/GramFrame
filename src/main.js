@@ -228,6 +228,9 @@ export class GramFrame {
       panToggleButton,
       zoomResetButton
     }
+    
+    // Set initial button states (all disabled except zoom in, since we start at 1:1)
+    this._updateZoomControlStates()
   }
   
   /**
@@ -305,23 +308,7 @@ export class GramFrame {
     }
     
     // Update zoom button states
-    if (this.zoomControls) {
-      this.zoomControls.zoomInButton.disabled = (level >= 10.0)
-      this.zoomControls.zoomOutButton.disabled = (level <= 1.0)
-      this.zoomControls.zoomResetButton.disabled = (level === 1.0)
-      
-      // Update pan button visibility based on zoom level
-      if (level <= 1.0) {
-        this.zoomControls.panToggleButton.style.display = 'none'
-        this.state.zoom.panMode = false
-        this.zoomControls.panToggleButton.classList.remove('active')
-        if (this.svg) {
-          this.svg.style.cursor = 'crosshair'
-        }
-      } else {
-        this.zoomControls.panToggleButton.style.display = 'flex'
-      }
-    }
+    this._updateZoomControlStates()
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
@@ -343,6 +330,38 @@ export class GramFrame {
     
     // Update zoom with new center point
     this._setZoom(this.state.zoom.level, newCenterX, newCenterY)
+  }
+  
+  /**
+   * Update zoom control button states based on current zoom level
+   */
+  _updateZoomControlStates() {
+    if (!this.zoomControls) {
+      return
+    }
+    
+    const level = this.state.zoom.level
+    
+    // Zoom in: disabled when at max zoom (10.0)
+    this.zoomControls.zoomInButton.disabled = (level >= 10.0)
+    
+    // Zoom out: disabled when at 1:1 scale or below
+    this.zoomControls.zoomOutButton.disabled = (level <= 1.0)
+    
+    // Reset zoom: disabled when already at 1:1 scale
+    this.zoomControls.zoomResetButton.disabled = (level === 1.0)
+    
+    // Pan toggle: disabled when at 1:1 scale
+    this.zoomControls.panToggleButton.disabled = (level <= 1.0)
+    
+    // Update pan mode and button state when zoom level changes
+    if (level <= 1.0) {
+      this.state.zoom.panMode = false
+      this.zoomControls.panToggleButton.classList.remove('active')
+      if (this.svg) {
+        this.svg.style.cursor = 'crosshair'
+      }
+    }
   }
   
   /**
