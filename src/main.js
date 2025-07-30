@@ -208,10 +208,10 @@ export class GramFrame {
     /** @type {HTMLDivElement} */
     this.unifiedLayoutContainer = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-unified-layout', '12px'))
     
-    // Left Column (30%) - Common controls
+    // Left Column (250px) - Common controls
     this.leftColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-left-column', '8px'))
-    this.leftColumn.style.flex = '0 0 30%'
-    this.leftColumn.style.minWidth = '200px'
+    this.leftColumn.style.flex = '0 0 250px'
+    this.leftColumn.style.width = '250px'
     
     // Create universal cursor readouts
     const cursorContainer = document.createElement('div')
@@ -234,10 +234,10 @@ export class GramFrame {
     this.colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Color'
     this.leftColumn.appendChild(this.colorPicker)
     
-    // Middle Column (35%) - Analysis Markers table
+    // Middle Column (300px) - Analysis Markers table
     this.middleColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-middle-column'))
-    this.middleColumn.style.flex = '0 0 35%'
-    this.middleColumn.style.minWidth = '0'
+    this.middleColumn.style.flex = '0 0 270px'
+    this.middleColumn.style.width = '270px'
     
     // Create markers container in middle column
     this.markersContainer = document.createElement('div')
@@ -255,10 +255,10 @@ export class GramFrame {
     
     this.middleColumn.appendChild(this.markersContainer)
     
-    // Right Column (35%) - Harmonics sets table
+    // Right Column (300px) - Harmonics sets table
     this.rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
-    this.rightColumn.style.flex = '0 0 35%'
-    this.rightColumn.style.minWidth = '0'
+    this.rightColumn.style.flex = '0 0 300px'
+    this.rightColumn.style.width = '300px'
     
     // Create harmonics container in right column
     this.harmonicsContainer = document.createElement('div')
