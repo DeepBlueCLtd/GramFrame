@@ -53,7 +53,8 @@
       "mcp__ide__getDiagnostics",
       "WebFetch(domain:github.com)",
       "Bash(yarn dev:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(open debug-multiple.html)"
     ],
     "deny": [
       "Bash(git add:*)",

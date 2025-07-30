@@ -46,12 +46,13 @@ export function createComponentStructure(instance) {
   instance.svg.style.display = 'block'
   instance.mainCell.appendChild(instance.svg)
   
-  // Create clipping path for image
+  // Create clipping path for image with unique ID
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
   instance.svg.appendChild(defs)
   
+  const clipPathId = `imageClip-${instance.instanceId || Date.now()}`
   const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
-  clipPath.setAttribute('id', 'imageClip')
+  clipPath.setAttribute('id', clipPathId)
   defs.appendChild(clipPath)
   
   instance.imageClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
@@ -60,7 +61,7 @@ export function createComponentStructure(instance) {
   // Create image element within SVG
   instance.spectrogramImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
   instance.spectrogramImage.setAttribute('class', 'gram-frame-spectrogram-image')
-  instance.spectrogramImage.setAttribute('clip-path', 'url(#imageClip)')
+  instance.spectrogramImage.setAttribute('clip-path', `url(#${clipPathId})`)
   instance.svg.appendChild(instance.spectrogramImage)
   
   // Create cursor group for overlays
@@ -142,26 +143,38 @@ export function updateSVGLayout(instance) {
     return
   }
   
-  // Calculate total SVG dimensions including margins
-  const totalWidth = naturalWidth + margins.left + margins.right
-  const totalHeight = naturalHeight + margins.top + margins.bottom
+  // Use the image's natural dimensions as the axes area
+  // This way each image fills its axes completely
+  const axesWidth = naturalWidth
+  const axesHeight = naturalHeight
   
-  // Set viewBox to encompass image plus margins
+  // Calculate total container dimensions = image + decorations (margins)
+  const totalWidth = axesWidth + margins.left + margins.right
+  const totalHeight = axesHeight + margins.top + margins.bottom
+  
+  // Let the container size naturally, but ensure SVG is properly sized
+  instance.container.style.width = 'auto'
+  instance.container.style.height = 'auto'
+  instance.container.style.aspectRatio = 'unset' // Remove aspect ratio constraint
+  
+  // Set SVG to explicit dimensions so container wraps around it naturally
+  instance.svg.style.width = `${totalWidth}px`
+  instance.svg.style.height = `${totalHeight}px`
   instance.svg.setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight}`)
   instance.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
   
-  // Position image within margins
+  // Position image to fill the axes area completely
   instance.spectrogramImage.setAttribute('x', String(margins.left))
   instance.spectrogramImage.setAttribute('y', String(margins.top))
-  instance.spectrogramImage.setAttribute('width', String(naturalWidth))
-  instance.spectrogramImage.setAttribute('height', String(naturalHeight))
+  instance.spectrogramImage.setAttribute('width', String(axesWidth))
+  instance.spectrogramImage.setAttribute('height', String(axesHeight))
   
-  // Set up clipping rectangle to constrain image to axis area
+  // Set up clipping rectangle to match axes area
   if (instance.imageClipRect) {
     instance.imageClipRect.setAttribute('x', String(margins.left))
     instance.imageClipRect.setAttribute('y', String(margins.top))
-    instance.imageClipRect.setAttribute('width', String(naturalWidth))
-    instance.imageClipRect.setAttribute('height', String(naturalHeight))
+    instance.imageClipRect.setAttribute('width', String(axesWidth))
+    instance.imageClipRect.setAttribute('height', String(axesHeight))
   }
   
   // Apply zoom if needed
