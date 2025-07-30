@@ -21,28 +21,26 @@ export class FeatureRenderer {
    * Delegates to each mode's specialized rendering methods
    */
   renderAllPersistentFeatures() {
-    try {
-      // Clear existing indicators first
-      this.instance.cursorGroup.innerHTML = ''
-
-      // Get all available modes
-      const modes = this.instance.modes
-
-      // Delegate rendering to each mode for their own features
-      if (modes.analysis && this.hasAnalysisFeatures()) {
-        modes.analysis.renderOwnFeatures(this.instance.cursorGroup)
-      }
-
-      if (modes.harmonics && this.hasHarmonicFeatures()) {
-        modes.harmonics.renderOwnFeatures(this.instance.cursorGroup)
-      }
-
-      if (modes.doppler && this.hasDopplerFeatures()) {
-        modes.doppler.renderOwnFeatures(this.instance.cursorGroup)
-      }
-
-    } catch (error) {
-      console.error('Error in FeatureRenderer.renderAllPersistentFeatures:', error)
+    if (!this.instance.cursorGroup) {
+      return
+    }
+    
+    // Clear existing features
+    this.instance.cursorGroup.innerHTML = ''
+    
+    // Render analysis mode features (persistent markers)
+    if (this.hasAnalysisFeatures() && this.instance.modes.analysis) {
+      this.instance.modes.analysis.renderPersistentFeatures()
+    }
+    
+    // Render harmonic mode features (harmonic sets)
+    if (this.hasHarmonicFeatures() && this.instance.modes.harmonics) {
+      this.instance.modes.harmonics.renderPersistentFeatures()
+    }
+    
+    // Render doppler mode features (f+, f-, f0 markers and curves)
+    if (this.hasDopplerFeatures() && this.instance.modes.doppler) {
+      this.instance.modes.doppler.renderPersistentFeatures()
     }
   }
 
@@ -82,11 +80,13 @@ export class FeatureRenderer {
    * Delegates to the current active mode
    */
   renderCurrentModeCursor() {
-    if (this.instance.currentMode && this.instance.state.cursorPosition) {
-      // Let the current mode render its cursor indicators
-      if (typeof this.instance.currentMode.renderOwnCursor === 'function') {
-        this.instance.currentMode.renderOwnCursor()
-      }
+    if (!this.instance.cursorGroup || !this.instance.currentMode) {
+      return
+    }
+    
+    // Delegate to current mode for cursor rendering
+    if (typeof this.instance.currentMode.renderCursor === 'function') {
+      this.instance.currentMode.renderCursor()
     }
   }
 }

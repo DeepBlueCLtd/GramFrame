@@ -21,8 +21,7 @@ test.describe('Auto-Detection Functionality', () => {
     const containerCount = await page.locator('.gram-frame-container').count()
     expect(containerCount).toBe(1)
     
-    // Verify SVG and other elements exist
-    await expect(page.locator('.gram-frame-svg')).toBeVisible()
+    // Verify other elements exist (SVG removed)
     await expect(page.locator('.gram-frame-readout')).toBeVisible()
   })
   

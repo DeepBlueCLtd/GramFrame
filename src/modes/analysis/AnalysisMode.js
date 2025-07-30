@@ -1,8 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
-import { createSVGLine, createSVGCircle } from '../../utils/svg.js'
 import { createLEDDisplay, createColorPicker, createFullFlexLayout, createFlexColumn } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
-import { updateCursorIndicators } from '../../rendering/cursors.js'
 import { formatTime } from '../../utils/timeFormatter.js'
 
 /**
@@ -25,292 +23,217 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
-   * Handle mouse click events - create persistent markers
-   * @param {MouseEvent} _event - The mouse click event
-   * @param {Object} _coords - Coordinate information
+   * Handle mouse move events in analysis mode
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleClick(_event, _coords) {
-    if (!this.state.cursorPosition) return
+  handleMouseMove(_event, dataCoords) {
+    // Update cursor position in existing LED displays
+    this.updateCursorPosition(dataCoords)
     
-    // Only add marker if we're not dragging
-    if (!this.state.dragState.isDragging) {
-      // Left-click: add new marker
-      this.addMarker(this.state.cursorPosition)
-    }
+    // Analysis mode specific handling can be added here
   }
 
   /**
-   * Handle mouse down events for marker dragging
-   * @param {MouseEvent} _event - The mouse down event
-   * @param {Object} _coords - Coordinate information
+   * Handle mouse down events in analysis mode
+   * @param {MouseEvent} event - Mouse event
+   * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseDown(_event, _coords) {
-    if (!this.state.cursorPosition) return
+  handleMouseDown(event, dataCoords) {
+    // Only handle left clicks for marker creation
+    if (event.button !== 0) {
+      return
+    }
     
-    // Check if we're clicking on an existing marker
-    const existingMarker = this.findMarkerAtPosition(this.state.cursorPosition)
+    // Create marker at click location
+    this.createMarkerAtPosition(dataCoords)
+  }
+
+  /**
+   * Handle mouse up events in analysis mode
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   */
+  handleMouseUp(_event, _dataCoords) {
+    // Analysis mode specific handling
+  }
+
+  /**
+   * Handle mouse leave events in analysis mode
+   */
+  handleMouseLeave() {
+    // Clear cursor position displays
+    this.clearCursorPosition()
+  }
+
+  /**
+   * Update cursor position in LED displays
+   * @param {Object} dataCoords - Data coordinates {freq, time}
+   */
+  updateCursorPosition(dataCoords) {
+    if (this.uiElements.freqLED) {
+      const freqValue = this.uiElements.freqLED.querySelector('.gram-frame-led-value')
+      if (freqValue) {
+        freqValue.textContent = dataCoords.freq.toFixed(1)
+      }
+    }
     
-    if (existingMarker) {
-      // Start dragging existing marker
-      this.state.dragState.isDragging = true
-      this.state.dragState.dragStartPosition = { ...this.state.cursorPosition }
-      this.state.dragState.draggedMarkerId = existingMarker.id
-      this.state.dragState.originalMarkerPosition = {
-        time: existingMarker.time,
-        freq: existingMarker.freq,
-        imageX: existingMarker.imageX,
-        imageY: existingMarker.imageY
+    if (this.uiElements.timeLED) {
+      const timeValue = this.uiElements.timeLED.querySelector('.gram-frame-led-value')
+      if (timeValue) {
+        timeValue.textContent = formatTime(dataCoords.time)
       }
     }
   }
 
   /**
-   * Handle mouse move events during dragging
-   * @param {MouseEvent} _event - The mouse move event
-   * @param {Object} _coords - Coordinate information
+   * Clear cursor position displays
    */
-  handleMouseMove(_event, _coords) {
-    if (!this.state.cursorPosition) return
-    
-    // Update cursor style when hovering over markers
-    const hoveredMarker = this.findMarkerAtPosition(this.state.cursorPosition)
-    if (hoveredMarker && !this.state.dragState.isDragging) {
-      this.instance.svg.style.cursor = 'grab'
-    } else if (!this.state.dragState.isDragging) {
-      this.instance.svg.style.cursor = 'crosshair'
+  clearCursorPosition() {
+    if (this.uiElements.freqLED) {
+      const freqValue = this.uiElements.freqLED.querySelector('.gram-frame-led-value')
+      if (freqValue) {
+        freqValue.textContent = '0.00'
+      }
     }
     
-    // Handle marker dragging
-    if (this.state.dragState.isDragging && this.state.dragState.draggedMarkerId) {
-      this.handleMarkerDrag()
+    if (this.uiElements.timeLED) {
+      const timeValue = this.uiElements.timeLED.querySelector('.gram-frame-led-value')
+      if (timeValue) {
+        timeValue.textContent = formatTime(0)
+      }
     }
   }
 
   /**
-   * Handle mouse up events - end dragging
-   * @param {MouseEvent} _event - The mouse up event
-   * @param {Object} _coords - Coordinate information
+   * Create a marker at the specified position
+   * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseUp(_event, _coords) {
-    if (this.state.dragState.isDragging) {
-      // Clear drag state
-      this.state.dragState.isDragging = false
-      this.state.dragState.dragStartPosition = null
-      this.state.dragState.draggedMarkerId = null
-      this.state.dragState.originalMarkerPosition = null
-      
-      // Reset cursor
-      this.instance.svg.style.cursor = 'crosshair'
-      
-      // Update markers table
-      this.updateMarkersTable()
-      
-      // Trigger visual re-render
-      updateCursorIndicators(this.instance)
-      
-      // Notify listeners of state change
-      notifyStateListeners(this.state, this.instance.stateListeners)
-    }
-  }
-
-  /**
-   * Handle context menu (right-click) events
-   * @param {MouseEvent} event - The context menu event
-   * @param {Object} _coords - Coordinate information
-   */
-  handleContextMenu(event, _coords) {
-    if (!this.state.cursorPosition) return
+  createMarkerAtPosition(dataCoords) {
+    // Get the current marker color from the color picker
+    const color = this.state.harmonics?.selectedColor || '#ff6b6b'
     
-    // Find marker at cursor position (within tolerance)
-    const markerToDelete = this.findMarkerAtPosition(this.state.cursorPosition)
-    if (markerToDelete) {
-      this.removeMarker(markerToDelete.id)
-      event.preventDefault() // Prevent context menu
-    }
-  }
-
-
-  /**
-   * Handle marker dragging - update marker position based on cursor movement
-   */
-  handleMarkerDrag() {
-    if (!this.state.cursorPosition || !this.state.dragState.draggedMarkerId) return
-    
-    // Find the marker being dragged
-    const marker = this.state.analysis.markers.find(m => m.id === this.state.dragState.draggedMarkerId)
-    if (!marker) return
-    
-    // Update marker position to current cursor position
-    marker.time = this.state.cursorPosition.time
-    marker.freq = this.state.cursorPosition.freq
-    marker.imageX = this.state.cursorPosition.imageX
-    marker.imageY = this.state.cursorPosition.imageY
-    
-    // Update visual representation immediately
-    updateCursorIndicators(this.instance)
-    
-    // Update the SVG cursor during drag
-    this.instance.svg.style.cursor = 'grabbing'
-  }
-
-  /**
-   * Render analysis mode cursor indicators and persistent markers
-   * @param {SVGElement} _svg - The SVG container element
-   */
-  render(_svg) {
-    // Clear existing cursor indicators first
-    this.instance.cursorGroup.innerHTML = ''
-    
-    // Render temporary cursor crosshair if cursor position is available
-    // Don't render crosshairs while dragging markers
-    if (this.state.cursorPosition && !this.state.dragState.isDragging) {
-      this.renderCursor()
+    // Create marker object (we only need time/freq for positioning)
+    /** @type {AnalysisMarker} */
+    const marker = {
+      id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      color,
+      time: dataCoords.time,
+      freq: dataCoords.freq
     }
     
-    // Cross-mode persistent features are now handled by FeatureRenderer
-    // Only render our own markers here
-    this.renderMarkers()
+    // Add marker to state
+    this.addMarker(marker)
   }
 
   /**
-   * Render only analysis mode's own persistent features
-   * Used by FeatureRenderer for centralized cross-mode rendering
-   * @param {SVGElement} _cursorGroup - The cursor group element (not used, we use this.instance.cursorGroup)
+   * Render persistent features for analysis mode
    */
-  renderOwnFeatures(_cursorGroup) {
-    // Only render analysis markers
-    this.renderMarkers()
-  }
-
-  /**
-   * Render analysis mode's own cursor indicators (temporary/hover state)
-   * Used by FeatureRenderer for current mode cursor rendering
-   */
-  renderOwnCursor() {
-    if (this.state.cursorPosition) {
-      this.renderCursor()
+  renderPersistentFeatures() {
+    if (!this.instance.cursorGroup || !this.state.analysis?.markers) {
+      return
     }
-  }
-
-  /**
-   * Render temporary cursor crosshair
-   */
-  renderCursor() {
-    const margins = this.state.axes.margins
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
     
-    // Calculate cursor position in SVG coordinates (accounting for margins)
-    const cursorSVGX = margins.left + this.state.cursorPosition.imageX
-    const cursorSVGY = margins.top + this.state.cursorPosition.imageY
+    // Clear existing analysis markers
+    const existingMarkers = this.instance.cursorGroup.querySelectorAll('.gram-frame-analysis-marker')
+    existingMarkers.forEach(marker => marker.remove())
     
-    // Create vertical crosshair lines (time indicator) - shadow first, then main line
-    const verticalShadow = createSVGLine(
-      cursorSVGX,
-      margins.top,
-      cursorSVGX,
-      margins.top + naturalHeight,
-      'gram-frame-cursor-shadow'
-    )
-    this.instance.cursorGroup.appendChild(verticalShadow)
-    
-    const verticalLine = createSVGLine(
-      cursorSVGX,
-      margins.top,
-      cursorSVGX,
-      margins.top + naturalHeight,
-      'gram-frame-cursor-vertical'
-    )
-    this.instance.cursorGroup.appendChild(verticalLine)
-    
-    // Create horizontal crosshair lines (frequency indicator) - shadow first, then main line
-    const horizontalShadow = createSVGLine(
-      margins.left,
-      cursorSVGY,
-      margins.left + naturalWidth,
-      cursorSVGY,
-      'gram-frame-cursor-shadow'
-    )
-    this.instance.cursorGroup.appendChild(horizontalShadow)
-    
-    const horizontalLine = createSVGLine(
-      margins.left,
-      cursorSVGY,
-      margins.left + naturalWidth,
-      cursorSVGY,
-      'gram-frame-cursor-horizontal'
-    )
-    this.instance.cursorGroup.appendChild(horizontalLine)
-    
-    // Create center point indicator
-    const centerPoint = createSVGCircle(cursorSVGX, cursorSVGY, 3, 'gram-frame-cursor-point')
-    this.instance.cursorGroup.appendChild(centerPoint)
-  }
-
-  /**
-   * Render all persistent markers
-   */
-  renderMarkers() {
-    if (!this.state.analysis || !this.state.analysis.markers) return
-    
-    const margins = this.state.axes.margins
-    
+    // Render all markers
     this.state.analysis.markers.forEach(marker => {
-      this.renderMarker(marker, margins)
+      this.renderMarker(marker)
     })
   }
 
   /**
-   * Render a single persistent marker
-   * @param {{id: string, color: string, time: number, freq: number, imageX: number, imageY: number}} marker - Marker data
-   * @param {Object} margins - SVG margins
+   * Render a single marker as a crosshair
+   * @param {Object} marker - Marker object
    */
-  renderMarker(marker, margins) {
-    const markerSVGX = margins.left + marker.imageX
-    const markerSVGY = margins.top + marker.imageY
+  renderMarker(marker) {
+    if (!this.instance.cursorGroup) {
+      return
+    }
     
-    // Create crosshair with marker color (20x20px size)
-    const crosshairSize = 10 // Half size for each direction
+    // Calculate current position based on time/freq values and current zoom/pan state
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    const margins = this.state.axes.margins
+    const zoomLevel = this.state.zoom.level
     
-    // Check if this mode is currently active to determine cursor style
-    const isActiveMode = this.instance.state.mode === 'analysis'
-    const cursorStyle = isActiveMode ? 'grab' : 'default'
-    const pointerEvents = isActiveMode ? 'auto' : 'none'
+    // Convert time/freq to normalized coordinates (0-1)
+    const { timeMin, timeMax, freqMin, freqMax } = this.state.config
+    const normalizedX = (marker.freq - freqMin) / (freqMax - freqMin)
+    const normalizedY = 1.0 - (marker.time - timeMin) / (timeMax - timeMin) // Invert Y for SVG coordinates
     
-    // Vertical line
-    const verticalLine = createSVGLine(
-      markerSVGX,
-      markerSVGY - crosshairSize,
-      markerSVGX,
-      markerSVGY + crosshairSize,
-      'gram-frame-marker-line'
-    )
-    verticalLine.setAttribute('stroke', marker.color)
-    verticalLine.setAttribute('stroke-width', '3')
-    verticalLine.style.pointerEvents = pointerEvents
-    verticalLine.style.cursor = cursorStyle
-    this.instance.cursorGroup.appendChild(verticalLine)
+    let currentX, currentY
+    
+    if (zoomLevel === 1.0) {
+      // No zoom - use base image position
+      currentX = margins.left + normalizedX * naturalWidth
+      currentY = margins.top + normalizedY * naturalHeight
+    } else {
+      // Zoomed - calculate position based on current image transform
+      if (this.instance.spectrogramImage) {
+        const imageLeft = parseFloat(this.instance.spectrogramImage.getAttribute('x') || String(margins.left))
+        const imageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
+        const imageWidth = parseFloat(this.instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
+        const imageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+        
+        currentX = imageLeft + normalizedX * imageWidth
+        currentY = imageTop + normalizedY * imageHeight
+      } else {
+        currentX = margins.left + normalizedX * naturalWidth
+        currentY = margins.top + normalizedY * naturalHeight
+      }
+    }
+    
+    // Create marker group
+    const markerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    markerGroup.setAttribute('class', 'gram-frame-analysis-marker')
+    markerGroup.setAttribute('data-marker-id', marker.id)
+    
+    // Create crosshair lines
+    const crosshairSize = 15
     
     // Horizontal line
-    const horizontalLine = createSVGLine(
-      markerSVGX - crosshairSize,
-      markerSVGY,
-      markerSVGX + crosshairSize,
-      markerSVGY,
-      'gram-frame-marker-line'
-    )
-    horizontalLine.setAttribute('stroke', marker.color)
-    horizontalLine.setAttribute('stroke-width', '3')
-    horizontalLine.style.pointerEvents = pointerEvents
-    horizontalLine.style.cursor = cursorStyle
-    this.instance.cursorGroup.appendChild(horizontalLine)
+    const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    hLine.setAttribute('x1', String(currentX - crosshairSize))
+    hLine.setAttribute('y1', String(currentY))
+    hLine.setAttribute('x2', String(currentX + crosshairSize))
+    hLine.setAttribute('y2', String(currentY))
+    hLine.setAttribute('stroke', marker.color)
+    hLine.setAttribute('stroke-width', '2')
+    hLine.setAttribute('stroke-linecap', 'round')
     
-    // Center point
-    const centerPoint = createSVGCircle(markerSVGX, markerSVGY, 2, 'gram-frame-marker-point')
-    centerPoint.setAttribute('fill', marker.color)
-    centerPoint.style.pointerEvents = pointerEvents
-    centerPoint.style.cursor = cursorStyle
-    this.instance.cursorGroup.appendChild(centerPoint)
+    // Vertical line
+    const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    vLine.setAttribute('x1', String(currentX))
+    vLine.setAttribute('y1', String(currentY - crosshairSize))
+    vLine.setAttribute('x2', String(currentX))
+    vLine.setAttribute('y2', String(currentY + crosshairSize))
+    vLine.setAttribute('stroke', marker.color)
+    vLine.setAttribute('stroke-width', '2')
+    vLine.setAttribute('stroke-linecap', 'round')
+    
+    // Center circle
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+    circle.setAttribute('cx', String(currentX))
+    circle.setAttribute('cy', String(currentY))
+    circle.setAttribute('r', '3')
+    circle.setAttribute('fill', marker.color)
+    circle.setAttribute('stroke', '#fff')
+    circle.setAttribute('stroke-width', '1')
+    
+    markerGroup.appendChild(hLine)
+    markerGroup.appendChild(vLine)
+    markerGroup.appendChild(circle)
+    
+    this.instance.cursorGroup.appendChild(markerGroup)
   }
+
+
+
+
+
+
 
 
 
@@ -319,6 +242,7 @@ export class AnalysisMode extends BaseMode {
    * @param {HTMLElement} readoutPanel - Container for UI elements
    */
   createUI(readoutPanel) {
+    // Initialize uiElements
     this.uiElements = {}
     
     // Create horizontal layout container
@@ -474,33 +398,22 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Add a new persistent marker
-   * @param {Object} position - Cursor position data
+   * @param {Object} marker - Marker object with all properties
    */
-  addMarker(position) {
+  addMarker(marker) {
     if (!this.state.analysis) {
       this.state.analysis = { markers: [] }
     }
     
-    // Get color from color picker
-    const color = this.state.harmonics?.selectedColor || '#ff6b6b'
-    
-    const marker = {
-      id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-      color,
-      time: position.time,
-      freq: position.freq,
-      imageX: position.imageX,
-      imageY: position.imageY
-    }
-    
     this.state.analysis.markers.push(marker)
-    
     
     // Update markers table
     this.updateMarkersTable()
     
-    // Trigger visual re-render to update marker display immediately
-    updateCursorIndicators(this.instance)
+    // Re-render all persistent features to show the new marker
+    if (this.instance.featureRenderer) {
+      this.instance.featureRenderer.renderAllPersistentFeatures()
+    }
     
     // Notify listeners
     notifyStateListeners(this.state, this.instance.stateListeners)
@@ -517,12 +430,13 @@ export class AnalysisMode extends BaseMode {
     if (index !== -1) {
       this.state.analysis.markers.splice(index, 1)
       
-      
       // Update markers table
       this.updateMarkersTable()
       
-      // Trigger visual re-render to update marker display immediately
-      updateCursorIndicators(this.instance)
+      // Re-render all persistent features to remove the marker
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures()
+      }
       
       // Notify listeners
       notifyStateListeners(this.state, this.instance.stateListeners)

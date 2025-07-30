@@ -38,6 +38,42 @@ export function createComponentStructure(instance) {
   instance.mainCell.className = 'gram-frame-cell gram-frame-main-panel'
   instance.mainRow.appendChild(instance.mainCell)
   
+  // Create SVG container for spectrogram display
+  instance.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  instance.svg.setAttribute('class', 'gram-frame-svg')
+  instance.svg.style.width = '100%'
+  instance.svg.style.height = '100%'
+  instance.svg.style.display = 'block'
+  instance.mainCell.appendChild(instance.svg)
+  
+  // Create clipping path for image with unique ID
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+  instance.svg.appendChild(defs)
+  
+  const clipPathId = `imageClip-${instance.instanceId || Date.now()}`
+  const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
+  clipPath.setAttribute('id', clipPathId)
+  defs.appendChild(clipPath)
+  
+  instance.imageClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+  clipPath.appendChild(instance.imageClipRect)
+  
+  // Create image element within SVG
+  instance.spectrogramImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
+  instance.spectrogramImage.setAttribute('class', 'gram-frame-spectrogram-image')
+  instance.spectrogramImage.setAttribute('clip-path', `url(#${clipPathId})`)
+  instance.svg.appendChild(instance.spectrogramImage)
+  
+  // Create cursor group for overlays
+  instance.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  instance.cursorGroup.setAttribute('class', 'gram-frame-cursors')
+  instance.svg.appendChild(instance.cursorGroup)
+  
+  // Create axes group
+  instance.axesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  instance.axesGroup.setAttribute('class', 'gram-frame-axes')
+  instance.svg.appendChild(instance.axesGroup)
+  
   instance.readoutPanel = document.createElement('div')
   instance.readoutPanel.className = 'gram-frame-readout'
   // Will be appended to modeCell in UIComponents.js
@@ -49,57 +85,357 @@ export function createComponentStructure(instance) {
     modeCell: instance.modeCell,
     mainRow: instance.mainRow,
     mainCell: instance.mainCell,
-    readoutPanel: instance.readoutPanel
+    readoutPanel: instance.readoutPanel,
+    svg: instance.svg,
+    spectrogramImage: instance.spectrogramImage,
+    cursorGroup: instance.cursorGroup,
+    axesGroup: instance.axesGroup,
+    imageClipRect: instance.imageClipRect
   }
 }
 
 /**
- * Create SVG structure and groups for rendering
- * @param {Object} instance - GramFrame instance to populate with SVG elements
- * @returns {Object} Object containing all created SVG elements
+ * Set up spectrogram image display within SVG container
+ * @param {Object} instance - GramFrame instance
+ * @param {string} imageUrl - URL of the spectrogram image
  */
-export function createSVGStructure(instance) {
-  // Create SVG element for rendering inside main panel
-  instance.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  instance.svg.setAttribute('class', 'gram-frame-svg')
-  instance.svg.setAttribute('width', '100%')
-  instance.svg.setAttribute('height', 'auto')
+export function setupSpectrogramImage(instance, imageUrl) {
+  if (!instance.spectrogramImage || !imageUrl) {
+    return
+  }
+  
+  // Set image source
+  instance.spectrogramImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imageUrl)
+  
+  // Store URL in state
+  instance.state.imageDetails.url = imageUrl
+  
+  // Load image to get natural dimensions
+  const tempImg = new Image()
+  tempImg.onload = function() {
+    // Store natural dimensions
+    instance.state.imageDetails.naturalWidth = tempImg.naturalWidth
+    instance.state.imageDetails.naturalHeight = tempImg.naturalHeight
+    
+    // Update SVG layout
+    updateSVGLayout(instance)
+    
+    // Render axes
+    renderAxes(instance)
+    
+    // Notify listeners of updated dimensions
+    import('../core/state.js').then(({ notifyStateListeners }) => {
+      notifyStateListeners(instance.state, instance.stateListeners)
+    })
+  }
+  tempImg.src = imageUrl
+}
+
+/**
+ * Update SVG layout and viewBox based on image dimensions and margins
+ * @param {Object} instance - GramFrame instance
+ */
+export function updateSVGLayout(instance) {
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const margins = instance.state.axes.margins
+  
+  if (!naturalWidth || !naturalHeight) {
+    return
+  }
+  
+  // Use the image's natural dimensions as the axes area
+  // This way each image fills its axes completely
+  const axesWidth = naturalWidth
+  const axesHeight = naturalHeight
+  
+  // Calculate total container dimensions = image + decorations (margins)
+  const totalWidth = axesWidth + margins.left + margins.right
+  const totalHeight = axesHeight + margins.top + margins.bottom
+  
+  // Let the container size naturally, but ensure SVG is properly sized
+  instance.container.style.width = 'auto'
+  instance.container.style.height = 'auto'
+  instance.container.style.aspectRatio = 'unset' // Remove aspect ratio constraint
+  
+  // Set SVG to explicit dimensions so container wraps around it naturally
+  instance.svg.style.width = `${totalWidth}px`
+  instance.svg.style.height = `${totalHeight}px`
+  instance.svg.setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight}`)
   instance.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
-  instance.mainCell.appendChild(instance.svg)
   
-  // Create main group for content with margins for axes
-  instance.mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.mainGroup.setAttribute('class', 'gram-frame-main-group')
-  instance.svg.appendChild(instance.mainGroup)
+  // Position image to fill the axes area completely
+  instance.spectrogramImage.setAttribute('x', String(margins.left))
+  instance.spectrogramImage.setAttribute('y', String(margins.top))
+  instance.spectrogramImage.setAttribute('width', String(axesWidth))
+  instance.spectrogramImage.setAttribute('height', String(axesHeight))
   
-  // Create image element within main group for spectrogram
-  instance.svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
-  instance.svgImage.setAttribute('class', 'gram-frame-image')
-  instance.mainGroup.appendChild(instance.svgImage)
+  // Set up clipping rectangle to match axes area
+  if (instance.imageClipRect) {
+    instance.imageClipRect.setAttribute('x', String(margins.left))
+    instance.imageClipRect.setAttribute('y', String(margins.top))
+    instance.imageClipRect.setAttribute('width', String(axesWidth))
+    instance.imageClipRect.setAttribute('height', String(axesHeight))
+  }
   
-  // Create groups for axes
-  instance.timeAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.timeAxisGroup.setAttribute('class', 'gram-frame-time-axis')
-  instance.svg.appendChild(instance.timeAxisGroup)
+  // Apply zoom if needed
+  applyZoomTransform(instance)
+}
+
+/**
+ * Apply zoom transformation to spectrogram image only
+ * @param {Object} instance - GramFrame instance
+ */
+export function applyZoomTransform(instance) {
+  const { level, centerX, centerY } = instance.state.zoom
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const margins = instance.state.axes.margins
   
-  instance.freqAxisGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.freqAxisGroup.setAttribute('class', 'gram-frame-freq-axis')
-  instance.svg.appendChild(instance.freqAxisGroup)
+  if (!instance.spectrogramImage) {
+    return
+  }
   
-  // Create cursor indicator group
-  instance.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.cursorGroup.setAttribute('class', 'gram-frame-cursor-group')
-  instance.svg.appendChild(instance.cursorGroup)
+  if (level === 1.0) {
+    // No zoom - reset to axes position and size
+    instance.spectrogramImage.setAttribute('x', String(margins.left))
+    instance.spectrogramImage.setAttribute('y', String(margins.top))
+    instance.spectrogramImage.setAttribute('width', String(naturalWidth))
+    instance.spectrogramImage.setAttribute('height', String(naturalHeight))
+    instance.spectrogramImage.removeAttribute('transform')
+    
+    // Update axes to show full data range
+    renderAxes(instance)
+    
+    // Re-render all persistent features to update positions for reset zoom
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures()
+    }
+    
+    return
+  }
   
-  return {
-    svg: instance.svg,
-    mainGroup: instance.mainGroup,
-    svgImage: instance.svgImage,
-    timeAxisGroup: instance.timeAxisGroup,
-    freqAxisGroup: instance.freqAxisGroup,
-    cursorGroup: instance.cursorGroup
+  // Calculate zoom center in image coordinates (0-1 normalized to image pixels)
+  const centerImageX = centerX * naturalWidth
+  const centerImageY = centerY * naturalHeight
+  
+  // Calculate new image dimensions
+  const zoomedWidth = naturalWidth * level
+  const zoomedHeight = naturalHeight * level
+  
+  // Calculate new position to keep zoom center in the same place
+  const newX = margins.left + centerImageX - (centerImageX * level)
+  const newY = margins.top + centerImageY - (centerImageY * level)
+  
+  // Apply zoom to image only
+  instance.spectrogramImage.setAttribute('x', String(newX))
+  instance.spectrogramImage.setAttribute('y', String(newY))
+  instance.spectrogramImage.setAttribute('width', String(zoomedWidth))
+  instance.spectrogramImage.setAttribute('height', String(zoomedHeight))
+  
+  // Update axes to reflect the new visible data range
+  renderAxes(instance)
+  
+  // Re-render all persistent features to update positions for zoom/pan
+  if (instance.featureRenderer) {
+    instance.featureRenderer.renderAllPersistentFeatures()
   }
 }
+
+/**
+ * Render time and frequency axes
+ * @param {Object} instance - GramFrame instance
+ */
+export function renderAxes(instance) {
+  if (!instance.axesGroup) {
+    return
+  }
+  
+  // Clear existing axes
+  instance.axesGroup.innerHTML = ''
+  
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const margins = instance.state.axes.margins
+  
+  if (!naturalWidth || !naturalHeight) {
+    return
+  }
+  
+  // Calculate visible data range based on zoom
+  const visibleRange = calculateVisibleDataRange(instance)
+  
+  // Render frequency axis (bottom/horizontal - x-axis)
+  renderFrequencyAxis(instance, margins, naturalWidth, naturalHeight, visibleRange.freqMin, visibleRange.freqMax)
+  
+  // Render time axis (left/vertical - y-axis)
+  renderTimeAxis(instance, margins, naturalWidth, naturalHeight, visibleRange.timeMin, visibleRange.timeMax)
+}
+
+/**
+ * Calculate the visible data range based on current zoom level and position
+ * @param {Object} instance - GramFrame instance
+ * @returns {Object} Visible data range
+ */
+function calculateVisibleDataRange(instance) {
+  const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const margins = instance.state.axes.margins
+  const zoomLevel = instance.state.zoom.level
+  
+  if (zoomLevel === 1.0) {
+    // No zoom - return full range
+    return { timeMin, timeMax, freqMin, freqMax }
+  }
+  
+  // Get current image position and dimensions
+  let imageLeft = margins.left
+  let imageTop = margins.top
+  let imageWidth = naturalWidth
+  let imageHeight = naturalHeight
+  
+  if (instance.spectrogramImage) {
+    imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
+    imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
+    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
+    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+  }
+  
+  // Calculate visible bounds in image coordinates
+  const visibleLeft = Math.max(0, margins.left - imageLeft)
+  const visibleRight = Math.min(imageWidth, margins.left + naturalWidth - imageLeft)
+  const visibleTop = Math.max(0, margins.top - imageTop)
+  const visibleBottom = Math.min(imageHeight, margins.top + naturalHeight - imageTop)
+  
+  // Convert to data coordinates
+  const freqRange = freqMax - freqMin
+  const timeRange = timeMax - timeMin
+  
+  const visibleFreqMin = freqMin + (visibleLeft / imageWidth) * freqRange
+  const visibleFreqMax = freqMin + (visibleRight / imageWidth) * freqRange
+  const visibleTimeMax = timeMax - (visibleTop / imageHeight) * timeRange
+  const visibleTimeMin = timeMax - (visibleBottom / imageHeight) * timeRange
+  
+  return {
+    freqMin: visibleFreqMin,
+    freqMax: visibleFreqMax,
+    timeMin: visibleTimeMin,
+    timeMax: visibleTimeMax
+  }
+}
+
+/**
+ * Render time axis with ticks and labels (vertical - y-axis)
+ * @param {Object} instance - GramFrame instance
+ * @param {Object} margins - Margin configuration
+ * @param {number} _naturalWidth - Image natural width (unused)
+ * @param {number} naturalHeight - Image natural height
+ * @param {number} timeMin - Minimum time value
+ * @param {number} timeMax - Maximum time value
+ */
+function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin, timeMax) {
+  const axisX = margins.left
+  const axisStartY = margins.top
+  const axisEndY = margins.top + naturalHeight
+  
+  // Draw main axis line (vertical)
+  const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  axisLine.setAttribute('x1', String(axisX))
+  axisLine.setAttribute('y1', String(axisStartY))
+  axisLine.setAttribute('x2', String(axisX))
+  axisLine.setAttribute('y2', String(axisEndY))
+  axisLine.setAttribute('class', 'gram-frame-axis-line')
+  instance.axesGroup.appendChild(axisLine)
+  
+  // Calculate tick positions
+  const timeRange = timeMax - timeMin
+  const tickCount = 5 // Reasonable number of ticks
+  const tickInterval = timeRange / (tickCount - 1)
+  
+  for (let i = 0; i < tickCount; i++) {
+    const time = timeMin + (i * tickInterval)
+    // Note: Y coordinates are inverted (higher times at top)
+    const y = axisEndY - (i / (tickCount - 1)) * naturalHeight
+    
+    // Draw tick mark (horizontal extending left)
+    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    tick.setAttribute('x1', String(axisX - 8))
+    tick.setAttribute('y1', String(y))
+    tick.setAttribute('x2', String(axisX))
+    tick.setAttribute('y2', String(y))
+    tick.setAttribute('class', 'gram-frame-axis-tick')
+    instance.axesGroup.appendChild(tick)
+    
+    // Draw label
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('x', String(axisX - 12))
+    label.setAttribute('y', String(y + 4)) // Slight vertical offset for better alignment
+    label.setAttribute('text-anchor', 'end')
+    label.setAttribute('class', 'gram-frame-axis-label')
+    label.textContent = time.toFixed(1) + 's'
+    instance.axesGroup.appendChild(label)
+  }
+  
+}
+
+/**
+ * Render frequency axis with ticks and labels (horizontal - x-axis)
+ * @param {Object} instance - GramFrame instance
+ * @param {Object} margins - Margin configuration
+ * @param {number} naturalWidth - Image natural width
+ * @param {number} _naturalHeight - Image natural height (unused)
+ * @param {number} freqMin - Minimum frequency value
+ * @param {number} freqMax - Maximum frequency value
+ */
+function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
+  const axisY = margins.top + _naturalHeight
+  const axisStartX = margins.left
+  const axisEndX = margins.left + naturalWidth
+  
+  // Draw main axis line (horizontal)
+  const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  axisLine.setAttribute('x1', String(axisStartX))
+  axisLine.setAttribute('y1', String(axisY))
+  axisLine.setAttribute('x2', String(axisEndX))
+  axisLine.setAttribute('y2', String(axisY))
+  axisLine.setAttribute('class', 'gram-frame-axis-line')
+  instance.axesGroup.appendChild(axisLine)
+  
+  // Calculate tick positions (scaled by rate)
+  const rate = instance.state.rate
+  const displayFreqMin = freqMin / rate
+  const displayFreqMax = freqMax / rate
+  const freqRange = displayFreqMax - displayFreqMin
+  const tickCount = 5 // Reasonable number of ticks
+  const tickInterval = freqRange / (tickCount - 1)
+  
+  for (let i = 0; i < tickCount; i++) {
+    const freq = displayFreqMin + (i * tickInterval)
+    const x = axisStartX + (i / (tickCount - 1)) * naturalWidth
+    
+    // Draw tick mark (vertical extending down)
+    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    tick.setAttribute('x1', String(x))
+    tick.setAttribute('y1', String(axisY))
+    tick.setAttribute('x2', String(x))
+    tick.setAttribute('y2', String(axisY + 8))
+    tick.setAttribute('class', 'gram-frame-axis-tick')
+    instance.axesGroup.appendChild(tick)
+    
+    // Draw label
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('x', String(x))
+    label.setAttribute('y', String(axisY + 25))
+    label.setAttribute('text-anchor', 'middle')
+    label.setAttribute('class', 'gram-frame-axis-label')
+    label.textContent = Math.round(freq) + 'Hz'
+    instance.axesGroup.appendChild(label)
+  }
+  
+}
+
+
+
+
+
+
 
 /**
  * Replace the original config table with the new component structure
@@ -119,23 +455,17 @@ export function replaceConfigTable(instance, configTable) {
 }
 
 /**
- * Create complete component table structure including DOM and SVG
+ * Create minimal component table structure
  * @param {Object} instance - GramFrame instance
  * @param {HTMLTableElement} configTable - Original table to replace
  * @returns {Object} Object containing all created elements
  */
 export function setupComponentTable(instance, configTable) {
-  // Create DOM structure
+  // Create DOM structure only
   const domElements = createComponentStructure(instance)
-  
-  // Create SVG structure
-  const svgElements = createSVGStructure(instance)
   
   // Replace original table
   replaceConfigTable(instance, configTable)
   
-  return {
-    ...domElements,
-    ...svgElements
-  }
+  return domElements
 }

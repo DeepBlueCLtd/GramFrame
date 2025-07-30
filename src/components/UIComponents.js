@@ -76,6 +76,80 @@ export function createRateInput(container, state, rateChangeCallback) {
 export { createColorPicker }
 
 /**
+ * Creates simple zoom controls with transform-based zoom
+ * @param {HTMLElement} container - Container element for zoom controls
+ * @param {Object} instance - GramFrame instance
+ * @returns {Object} Object containing zoom control elements
+ */
+export function createZoomControls(container, instance) {
+  // Create zoom controls container
+  const zoomContainer = document.createElement('div')
+  zoomContainer.className = 'gram-frame-zoom-controls'
+  
+  // Create zoom out button
+  const zoomOutBtn = document.createElement('button')
+  zoomOutBtn.className = 'gram-frame-zoom-btn'
+  zoomOutBtn.textContent = '−'
+  zoomOutBtn.title = 'Zoom Out'
+  zoomOutBtn.addEventListener('click', () => {
+    const newLevel = Math.max(0.5, instance.state.zoom.level / 1.5)
+    instance.setZoomLevel(newLevel)
+  })
+  
+  // Create zoom level display
+  const zoomDisplay = document.createElement('span')
+  zoomDisplay.className = 'gram-frame-zoom-display'
+  zoomDisplay.textContent = '100%'
+  
+  // Create zoom in button
+  const zoomInBtn = document.createElement('button')
+  zoomInBtn.className = 'gram-frame-zoom-btn'
+  zoomInBtn.textContent = '+'
+  zoomInBtn.title = 'Zoom In'
+  zoomInBtn.addEventListener('click', () => {
+    const newLevel = Math.min(5.0, instance.state.zoom.level * 1.5)
+    instance.setZoomLevel(newLevel)
+  })
+  
+  // Create reset zoom button
+  const resetZoomBtn = document.createElement('button')
+  resetZoomBtn.className = 'gram-frame-zoom-btn gram-frame-zoom-reset'
+  resetZoomBtn.textContent = '1:1'
+  resetZoomBtn.title = 'Reset Zoom'
+  resetZoomBtn.addEventListener('click', () => {
+    instance.setZoomLevel(1.0)
+  })
+  
+  // Update zoom display when state changes
+  const updateZoomDisplay = (state) => {
+    if (state.zoom && state.zoom.level) {
+      zoomDisplay.textContent = `${Math.round(state.zoom.level * 100)}%`
+    }
+  }
+  
+  // Add state listener for zoom level updates
+  if (instance.stateListeners) {
+    instance.stateListeners.push(updateZoomDisplay)
+  }
+  
+  // Assemble controls
+  zoomContainer.appendChild(zoomOutBtn)
+  zoomContainer.appendChild(zoomDisplay)
+  zoomContainer.appendChild(zoomInBtn)
+  zoomContainer.appendChild(resetZoomBtn)
+  
+  container.appendChild(zoomContainer)
+  
+  return {
+    zoomContainer,
+    zoomInBtn,
+    zoomOutBtn,
+    resetZoomBtn,
+    zoomDisplay
+  }
+}
+
+/**
  * Creates a flex layout container with standard styling
  * @param {string} className - CSS class name for the container
  * @param {string} gap - Gap between flex items (default: '10px')

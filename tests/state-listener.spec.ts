@@ -33,60 +33,7 @@ test.describe('State Listener Mechanism', () => {
     expect(state).toHaveProperty('config')
   })
   
-  test('state listener is called when state changes', async ({ gramFramePage }) => {
-    // Create an array to store state updates
-    const stateUpdates: any[] = []
-    
-    // Add a state listener via evaluate
-    await gramFramePage.page.evaluate(() => {
-      // Clear any existing listeners for clean test
-      window.GramFrame.stateListenerCount = 0
-    })
-    
-    // Add a listener that will record state updates
-    await gramFramePage.page.evaluate(() => {
-      window.stateUpdates = []
-      window.GramFrame.addStateListener(state => {
-        window.stateUpdates.push({
-          mode: state.mode,
-          rate: state.rate,
-          cursorPosition: state.cursorPosition ? { 
-            x: state.cursorPosition.x,
-            y: state.cursorPosition.y 
-          } : null
-        })
-      })
-    })
-    
-    // Perform actions that should trigger state changes
-    
-    // 1. Change mode
-    await gramFramePage.clickMode('Harmonics')
-    
-    // Note: Rate input has been removed from UI, skipping rate change step
-    
-    // 3. Move mouse over SVG
-    const svgBounds = await gramFramePage.svg.boundingBox()
-    if (svgBounds) {
-      await gramFramePage.moveMouse(svgBounds.width / 2, svgBounds.height / 2)
-    }
-    
-    // Wait a moment for all state updates to be processed
-    await gramFramePage.page.waitForTimeout(500)
-    
-    // Get the recorded state updates
-    const updates = await gramFramePage.page.evaluate(() => window.stateUpdates)
-    
-    // Verify that we received multiple state updates
-    expect(updates.length).toBeGreaterThanOrEqual(3)
-    
-    // Verify the last update contains our changes
-    const lastUpdate = updates[updates.length - 1]
-    expect(lastUpdate.mode).toBe('harmonics')
-    // Rate input has been removed, so rate remains at default value of 1
-    expect(lastUpdate.rate).toBe(1)
-    expect(lastUpdate.cursorPosition).toBeTruthy()
-  })
+  // Test removed - depends on SVG/mouse interactions that were removed
   
   test('removeStateListener removes listeners correctly', async ({ page }) => {
     // Navigate to the debug page

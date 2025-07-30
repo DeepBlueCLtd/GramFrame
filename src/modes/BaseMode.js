@@ -7,7 +7,7 @@ export class BaseMode {
   /**
    * Constructor for base mode
    * @param {Object} instance - GramFrame instance
-   * @param {Object} state - GramFrame state object
+   * @param {GramFrameState} state - GramFrame state object
    */
   constructor(instance, state) {
     this.instance = instance
@@ -31,88 +31,52 @@ export class BaseMode {
   }
 
   /**
-   * Handle mouse click events
-   * @param {MouseEvent} _event - The mouse click event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * Handle mouse move events
+   * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
    */
-  handleClick(_event, _coords) {
-    // Default implementation - override in subclasses
+  handleMouseMove(_event, _dataCoords) {
+    // Default implementation - override in subclasses for mode-specific behavior
   }
 
   /**
    * Handle mouse down events
-   * @param {MouseEvent} _event - The mouse down event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
    */
-  handleMouseDown(_event, _coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Handle mouse move events
-   * @param {MouseEvent} _event - The mouse move event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
-   */
-  handleMouseMove(_event, _coords) {
-    // Default implementation - override in subclasses
+  handleMouseDown(_event, _dataCoords) {
+    // Default implementation - override in subclasses for mode-specific behavior
   }
 
   /**
    * Handle mouse up events
-   * @param {MouseEvent} _event - The mouse up event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
    */
-  handleMouseUp(_event, _coords) {
+  handleMouseUp(_event, _dataCoords) {
+    // Default implementation - override in subclasses for mode-specific behavior
+  }
+
+  /**
+   * Handle mouse leave events
+   */
+  handleMouseLeave() {
+    // Default implementation - override in subclasses for mode-specific behavior
+  }
+
+  /**
+   * Render persistent features for this mode
+   * Override in subclasses to render mode-specific persistent features
+   */
+  renderPersistentFeatures() {
     // Default implementation - override in subclasses
   }
 
   /**
-   * Handle context menu (right-click) events
-   * @param {MouseEvent} _event - The context menu event
-   * @param {Object} _coords - Coordinate information {svgCoords, dataCoords, imageCoords}
+   * Render current cursor for this mode
+   * Override in subclasses to render mode-specific cursor indicators
    */
-  handleContextMenu(_event, _coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Render mode-specific cursor indicators and overlays
-   * @param {SVGElement} _svg - The SVG container element
-   */
-  render(_svg) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Render only this mode's own persistent features
-   * Used by FeatureRenderer for cross-mode rendering coordination
-   * @param {SVGElement} _cursorGroup - The cursor group element to render into
-   */
-  renderOwnFeatures(_cursorGroup) {
-    // Default implementation - override in subclasses to render mode-specific features
-  }
-
-  /**
-   * Render this mode's own cursor indicators (temporary/hover state)
-   * Used by FeatureRenderer for current mode cursor rendering
-   */
-  renderOwnCursor() {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Update cursor position and related visual indicators
-   * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
-   */
-  updateCursor(_coords) {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Update the readout panel with mode-specific information
-   * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
-   */
-  updateReadout(_coords) {
+  renderCursor() {
     // Default implementation - override in subclasses
   }
 
@@ -154,10 +118,10 @@ export class BaseMode {
   /**
    * Create mode-specific UI elements when entering this mode
    * Override in subclasses to create mode-specific UI elements
-   * @param {HTMLElement} _readoutPanel - Container for UI elements
+   * @param {HTMLElement} _readoutPanel - Container for UI elements (unused in base implementation)
    */
   createUI(_readoutPanel) {
-    // Default implementation - override in subclasses
+    // Default implementation - initialize uiElements
     this.uiElements = {}
   }
 
@@ -184,14 +148,6 @@ export class BaseMode {
   getStateSnapshot() {
     // Default implementation - override in subclasses
     return {}
-  }
-
-  /**
-   * Show manual modal dialog (default: no action)
-   * This is primarily used by HarmonicsMode
-   */
-  showManualHarmonicModal() {
-    // Default implementation does nothing
   }
 
   /**

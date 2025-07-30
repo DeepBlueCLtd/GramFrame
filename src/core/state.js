@@ -34,9 +34,7 @@ function buildModeInitialState() {
 export const initialState = {
   version: '0.0.1',
   timestamp: new Date().toISOString(),
-  metadata: {
-    instanceId: ''
-  },
+  instanceId: '',
   mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
   rate: 1,
   cursorPosition: null,
@@ -63,6 +61,13 @@ export const initialState = {
       right: 15,   // Small right margin
       top: 15      // Small top margin
     }
+  },
+  // Simple zoom state for transform-based zoom
+  zoom: {
+    level: 1.0,  // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
+    centerX: 0.5, // Center point X (0-1 normalized)
+    centerY: 0.5,  // Center point Y (0-1 normalized)
+    panMode: false // Whether pan mode is active
   },
   // Add mode-specific state from mode classes
   ...buildModeInitialState()

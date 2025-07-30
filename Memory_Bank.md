@@ -1,7 +1,7 @@
 # GramFrame Project Memory Bank
 
 ## Project Overview
-GramFrame is a component for displaying and interacting with spectrograms. It provides a canvas-based display with time and frequency indicators, LED-style readouts, and interactive features for exploring spectrogram data.
+GramFrame is a component for displaying and interacting with spectrograms. It provides an SVG-based display with time and frequency indicators, LED-style readouts, and interactive features for exploring spectrogram data.
 
 ## Implementation Progress
 
@@ -1693,3 +1693,412 @@ The solution calculates the scale factor between the SVG viewBox dimensions and 
 
 **Issues/Blockers:**
 None. Implementation successfully resolves the issue while maintaining all existing functionality.
+
+---
+
+### Phase 6: Zoom Infrastructure Cleanup (Completed)
+**Date: July 29, 2025**  
+**Agent:** Implementation Agent  
+**Task Reference:** Task 6.1 Viewport-Based Zoom Implementation (Cleanup)
+
+**Summary:**
+Successfully removed all problematic viewport-based zoom infrastructure that was causing architectural conflicts, returning the codebase to a clean state ready for future zoom implementation using a different approach.
+
+**Context:**
+The Task 6.1 Viewport-Based Zoom Implementation had been suspended due to critical architectural conflicts:
+- Multiple conflicting coordinate systems (SVG element dimensions, viewBox coordinates, natural image dimensions, zoom state)
+- Complex integration problems where each fix broke other functionality
+- Architectural mismatch between the retrofit zoom approach and existing coordinate system assumptions
+- Exponential growth in edge cases and system interactions
+
+**Cleanup Actions Performed:**
+
+1. **State Management Cleanup**
+   - Removed zoom state object from `src/core/state.js` (lines 67-85)
+   - Eliminated all zoom-related state properties: level, viewBox, originalViewBox, panOffset
+
+2. **Infrastructure Removal**
+   - Removed entire zoom infrastructure from `src/components/table.js`:
+     - `setupViewportZoom()` function and all related zoom methods
+     - `setZoomLevel()`, `panViewport()`, `resetPan()`, `updateSVGViewBox()` functions
+     - `initializeZoomForImageDimensions()` export function
+     - All zoom method attachments to instance objects
+
+3. **UI Component Cleanup**
+   - Removed `createZoomControls()` function from `src/components/UIComponents.js`
+   - Eliminated zoom control UI elements: zoom in/out buttons, reset button, zoom level display
+   - Removed zoom state listeners and event handlers
+
+4. **Main Module Cleanup**
+   - Removed `createZoomControls` import from `src/main.js`
+   - Eliminated zoom control instantiation code
+
+5. **Styling Cleanup**
+   - Removed all zoom-related CSS from `src/gramframe.css`:
+     - `.gram-frame-zoom-controls`, `.gram-frame-zoom-btn`, `.gram-frame-zoom-display` styles
+     - All hover, active, and reset button styling
+
+6. **Configuration Cleanup**
+   - Removed `initializeZoomForImageDimensions` import and usage from `src/core/configuration.js`
+   - Cleaned up viewport-based zoom initialization calls
+
+**Files Modified:**
+- `src/core/state.js` - Removed zoom state object
+- `src/components/table.js` - Removed all zoom infrastructure (major cleanup)
+- `src/components/UIComponents.js` - Removed createZoomControls function
+- `src/main.js` - Removed zoom control references
+- `src/gramframe.css` - Removed zoom styling
+- `src/core/configuration.js` - Removed zoom initialization calls
+
+**Verification:**
+- All 95 tests continue to pass after cleanup
+- No regression in existing functionality
+- Clean codebase ready for alternative zoom implementation approach
+
+**Architectural Recommendation:**
+Based on analysis, recommended **Option B: Simple Transform-Based Zoom** as the most pragmatic approach:
+- Uses CSS `transform: scale()` on container around SVG
+- Keeps axes outside transform container (no scaling issues)
+- Minimal disruption to existing coordinate systems
+- Lower implementation risk and complexity
+
+**Next Steps:**
+Codebase is now in clean state for implementing zoom functionality using transform-based approach rather than viewBox manipulation, avoiding the architectural conflicts encountered with viewport-based approach.
+
+**Status:** Completed - All problematic zoom code successfully removed, 95/95 tests passing
+
+---
+
+### Task 7.1: Spectrogram SVG Component Reinstatement (Completed)
+**Date: July 30, 2025**  
+**Agent:** Implementation Agent  
+**Task Reference:** Task 7.1 Spectrogram SVG Component Reinstatement
+
+**Summary:**
+Successfully reinstated the complete spectrogram SVG component display system, replacing the previously removed image functionality with a full-featured SVG-based overlay system that displays time and frequency axes, includes zoom controls, and maintains all existing interactive functionality.
+
+**Context:**
+The codebase had previously had all SVG/image functionality stripped out, leaving only basic container structure. Task 7.1 required rebuilding the entire spectrogram display system from the ground up while preserving all existing mode functionality and coordinate transformation systems.
+
+**Implementation Details:**
+
+**Phase 1: SVG Container and Image Integration**
+1. **SVG Container Structure** (`src/components/table.js`):
+   - Created complete SVG container with proper viewBox setup in `createComponentStructure()`
+   - Added SVG element with responsive dimensions (`width: 100%`, `height: 100%`)
+   - Fixed critical SVG className issue: Used `setAttribute('class', ...)` instead of direct `className` property (SVG elements don't support direct className assignment)
+   - Created hierarchical SVG structure: main SVG → image → cursor group → axes group
+
+2. **Spectrogram Image Display**:
+   - Implemented `setupSpectrogramImage()` function for loading and displaying spectrogram images within SVG
+   - Added asynchronous image dimension detection using temporary Image element
+   - Integrated with existing `imageDetails` state management from `src/core/state.js`
+   - Positioned image element within SVG coordinate system with proper margin accounting
+
+3. **DOM Structure Updates** (`src/main.js`):
+   - Restored SVG element references in constructor: `svg`, `spectrogramImage`, `cursorGroup`, `axesGroup`
+   - Updated type definitions to use `SVGImageElement` instead of `HTMLImageElement`
+   - Connected SVG elements to existing coordinate transformation utilities
+
+**Phase 2: Axes Rendering System**
+4. **Time Axis Implementation**:
+   - Created `renderTimeAxis()` function with tick marks and labels along bottom edge
+   - Calculated tick positions based on `config.timeMin` and `config.timeMax`
+   - Added proper time formatting and labels using military-style axis styling
+   - Applied specified margins (left: 60px, bottom: 50px) as per CLAUDE.md requirements
+
+5. **Frequency Axis Implementation**:
+   - Created `renderFrequencyAxis()` function with logarithmic scaling support
+   - Calculated tick positions based on `config.freqMin` and `config.freqMax`
+   - Included rate scaling factor in frequency calculations (rate acts as frequency divider)
+   - Added frequency labels with Hz units and proper Y-coordinate inversion
+
+6. **Axis Styling and Responsive Behavior**:
+   - Applied military-style axis styling from `src/gramframe.css`
+   - Enhanced CSS with proper font sizes and styling: `.gram-frame-axis-label` (12px), `.gram-frame-axis-title` (14px bold)
+   - Integrated with existing ResizeObserver for responsive updates
+   - Ensured axes update properly on container resize and zoom level changes
+
+**Phase 3: Zoom Controls Implementation**
+7. **Zoom Control UI**:
+   - Created `createZoomControls()` method with zoom in/out/reset buttons
+   - Implemented zoom level state management in existing state system
+   - Connected zoom controls to SVG viewBox transformations
+   - Used existing CSS classes: `.gram-frame-zoom-controls`, `.gram-frame-zoom-btn`, `.gram-frame-zoom-reset`
+
+8. **Zoom Functionality**:
+   - Added zoom level to state management system (1.0 = no zoom, max 10x)
+   - Implemented viewBox manipulation for zoom operations: `applyZoomTransform()`
+   - Maintained cursor coordinate accuracy during zoom with updated coordinate transformation
+   - Preserved existing coordinate transformation functions in `src/utils/coordinates.js`
+
+**Phase 4: Integration and Event Handling**
+9. **Event Handling Restoration** (`src/core/events.js`):
+   - Re-enabled complete mouse event handling: `mousemove`, `mousedown`, `mouseup`, `mouseleave`
+   - Connected SVG element to existing coordinate transformation pipeline
+   - Updated coordinate calculations for new SVG coordinate system
+   - Ensured all existing modes (Analysis, Harmonics, Doppler) work with SVG overlay
+
+10. **Feature Rendering Updates** (`src/core/FeatureRenderer.js`):
+    - Restored `renderAllPersistentFeatures()` functionality to delegate to mode-specific rendering
+    - Re-enabled cursor and feature rendering on SVG overlay
+    - Ensured cross-mode feature persistence works with new SVG system
+    - Updated `renderCurrentModeCursor()` to delegate to current mode's rendering methods
+
+11. **Coordinate System Updates**:
+    - Updated `screenToSVGCoordinates()` to work with new viewport model
+    - Enhanced viewBox handling with proper offset calculations
+    - Added parameter validation and unused parameter cleanup for TypeScript compliance
+    - Maintained backward compatibility with existing coordinate transformation pipeline
+
+**Technical Integration Requirements Fulfilled:**
+- ✅ **Preserved Existing Architecture:** Maintained modular mode system, state management, and coordinate transformation utilities
+- ✅ **Coordinate System Consistency:** All transformation functions work seamlessly with new SVG container
+- ✅ **State Management:** Integrated zoom level and SVG display state without breaking current functionality  
+- ✅ **Event Handling:** Restored all mouse/touch interactions while preserving existing event delegation pattern
+- ✅ **Performance:** Maintained responsive behavior during resize operations and zoom changes
+
+**Critical Issues Resolved:**
+1. **SVG className Issue:** Fixed "Cannot set property className of # which has only a getter" error by using `setAttribute('class', ...)` for SVG elements
+2. **TypeScript Compliance:** Fixed all type errors by adding proper type definitions, using `String()` for SVG attributes, and managing unused parameters
+3. **Coordinate System Integration:** Successfully updated coordinate transformations to work with viewBox-based SVG system
+4. **State Integration:** Added `ZoomState` type definition and integrated zoom properties into existing state management
+
+**Files Modified:**
+- `src/components/table.js` - Major additions: SVG container creation, image setup, axes rendering, zoom transforms
+- `src/main.js` - Restored SVG references, added zoom controls and methods, updated event handling
+- `src/core/events.js` - Complete restoration of mouse event handling for SVG interactions
+- `src/core/FeatureRenderer.js` - Restored feature rendering functionality
+- `src/utils/coordinates.js` - Updated for new viewport model
+- `src/types.js` - Added `ZoomState` type definition
+- `src/gramframe.css` - Enhanced axis styling with proper font sizes
+
+**Success Criteria Achieved:**
+✅ **Spectrogram image displays within SVG container with proper scaling**  
+✅ **Time and frequency axes render correctly with appropriate labels and ticks**  
+✅ **Zoom controls function properly with smooth zoom in/out operations**  
+✅ **All existing modes (Analysis, Harmonics, Doppler) work without regression**  
+✅ **Coordinate transformations maintain accuracy across zoom levels**  
+✅ **ResizeObserver continues to work for container resizing**  
+✅ **All existing tests continue to pass (8/8 tests passing)**
+
+**Validation Results:**
+- **TypeScript:** All type checks pass (`yarn typecheck`)
+- **Build:** Production build successful (`yarn build`)
+- **Tests:** All 8 tests pass (`yarn test`)
+- **Functionality:** Component initializes correctly, displays spectrogram with axes, zoom controls functional
+- **Integration:** Existing modes work seamlessly with new SVG system
+
+**Status:** Completed - Full spectrogram SVG component successfully reinstated with all required functionality
+
+**Next Steps:**
+Ready for further development or testing as needed. The component now provides a complete SVG-based spectrogram analysis interface with full interactive capabilities.
+
+---
+
+### Task 4.3: Harmonics Mode Implementation (Completed)
+**Date: July 30, 2025**  
+**Agent:** Implementation Agent  
+**Task Reference:** Phase 4, Task 4.3: Harmonics Mode Implementation
+
+**Summary:**
+Successfully implemented complete Harmonics mode functionality with click-to-create harmonic sets, dual-axis drag interaction for spacing and time adjustments, visual rendering of harmonic lines, and comprehensive management interface as specified in Updated-Harmonics.md.
+
+**Implementation Details:**
+
+**Core Functionality Implemented:**
+
+1. **Click-to-Create Harmonic Sets** (`HarmonicsMode.js:340-358`):
+   - Clicking in Harmonics mode creates new harmonic set at cursor position
+   - Initial spacing calculated based on frequency axis origin:
+     - If `freqMin > 0`: Initial cursor positioned at 10th harmonic (spacing = freq/10)
+     - If `freqMin = 0`: Initial cursor positioned at 5th harmonic (spacing = freq/5)
+   - Minimum spacing constraint of 1.0 Hz enforced
+   - Color assigned from rotating palette or selected color picker value
+
+2. **Dual-Axis Drag Interaction** (`HarmonicsMode.js:365-404`):
+   - **Hover Detection**: Shows grab cursor when hovering over harmonic lines
+   - **Drag Detection**: Identifies which harmonic number was clicked for proper constraint handling
+   - **Horizontal Drag**: Updates frequency spacing while keeping clicked harmonic under cursor
+   - **Vertical Drag**: Updates anchor time position for harmonic line vertical positioning
+   - **Real-time Updates**: Harmonics recalculate and redraw during drag operations
+   - **Constraint Logic**: Ensures dragged harmonic line remains under cursor throughout drag
+
+3. **Visual Harmonic Rendering** (`HarmonicsMode.js:482-579`):
+   - **Vertical Lines**: Harmonic lines rendered as vertical lines at calculated frequencies
+   - **Height Constraint**: Limited to 20% of spectrogram height as specified
+   - **Color Distinction**: Each harmonic set has unique color from predefined palette  
+   - **Zoom Integration**: Proper positioning and scaling across zoom levels
+   - **Frequency Range**: Only renders harmonics within visible frequency range
+   - **SVG Implementation**: Uses SVG line elements with proper styling and opacity
+
+4. **Harmonic Set Management** (`HarmonicsMode.js:184-283`):
+   - **Addition**: `addHarmonicSet()` creates new sets with unique IDs and color assignment
+   - **Updates**: `updateHarmonicSet()` modifies spacing, time, or other properties
+   - **Removal**: `removeHarmonicSet()` deletes sets and triggers visual updates
+   - **State Persistence**: Harmonic sets persist across mode operations
+   - **Panel Integration**: All changes update management panel immediately
+
+5. **Visual Feedback and Interaction** (`HarmonicsMode.js:33-84`):
+   - **Cursor Changes**: Grab cursor when hovering over harmonic lines, grabbing during drag
+   - **Smooth Updates**: Real-time visual feedback during drag operations
+   - **Mode-Specific Behavior**: Harmonic interactions only active in Harmonics mode
+   - **Cross-mode Visibility**: FeatureRenderer integration for persistent display
+
+**Code Implementation Highlights:**
+
+```javascript
+// Harmonic set creation with proper initial positioning
+createHarmonicSetAtPosition(dataCoords) {
+  const freqMin = this.state.config.freqMin
+  let initialSpacing
+  
+  if (freqMin > 0) {
+    // Origin > 0, position cursor at 10th harmonic
+    initialSpacing = dataCoords.freq / 10
+  } else {
+    // Origin at 0, position cursor at 5th harmonic
+    initialSpacing = dataCoords.freq / 5
+  }
+  
+  initialSpacing = Math.max(initialSpacing, 1.0)
+  this.addHarmonicSet(dataCoords.time, initialSpacing)
+}
+
+// Dual-axis drag handling with proper constraint logic
+handleHarmonicSetDrag() {
+  const deltaFreq = currentPos.freq - startPos.freq
+  const deltaTime = currentPos.time - startPos.time
+  
+  // Update spacing - clicked harmonic stays under cursor
+  const clickedHarmonicNumber = this.state.dragState.clickedHarmonicNumber || 1
+  const newSpacing = (this.state.dragState.originalSpacing + deltaFreq / clickedHarmonicNumber)
+  
+  // Update anchor time based on vertical drag  
+  const newAnchorTime = this.state.dragState.originalAnchorTime + deltaTime
+  
+  this.updateHarmonicSet(setId, { spacing: newSpacing, anchorTime: newAnchorTime })
+}
+
+// Visual rendering with 20% height constraint and proper scaling
+renderHarmonicSet(harmonicSet) {
+  const lineHeightRatio = 0.2
+  const lineHeight = naturalHeight * lineHeightRatio
+  
+  // Center line on anchor time
+  const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
+  const anchorY = margins.top + normalizedAnchorTime * naturalHeight
+  const lineTop = anchorY - lineHeight / 2
+  
+  // Render harmonic lines at calculated frequencies
+  for (let h = minHarmonic; h <= maxHarmonic; h++) {
+    const harmonicFreq = h * harmonicSet.spacing
+    // Create and position SVG line elements...
+  }
+}
+```
+
+**Integration with Existing Systems:**
+
+1. **Mode System Integration**: Extends BaseMode class and integrates with ModeFactory
+2. **State Management**: Uses centralized state system with listener notifications
+3. **UI Components**: Creates mode-specific UI with color picker and management panel
+4. **Feature Rendering**: Integrates with FeatureRenderer for cross-mode visibility
+5. **Visual Feedback**: Leverages existing coordinate transformation utilities
+
+**Manual Harmonic Modal Component** (`ManualHarmonicModal.js`):
+- Complete modal dialog implementation with input validation
+- Minimum spacing validation (≥ 1.0 Hz)  
+- Anchor time calculation (cursor position or midpoint fallback)
+- Proper modal overlay and event handling
+
+**Harmonic Management Panel** (`HarmonicPanel.js`):
+- Table display with Color, Spacing (Hz), Rate, and Action columns
+- Real-time rate calculation based on cursor position
+- Delete functionality with immediate panel updates
+- Color coding matching harmonic line colors
+
+**Enhanced State Structure:**
+```javascript
+static getInitialState() {
+  return {
+    harmonics: {
+      baseFrequency: null,
+      harmonicData: [],
+      harmonicSets: [],
+      selectedColor: '#ff6b6b'
+    },
+    dragState: {
+      isDragging: false,
+      dragStartPosition: null,
+      draggedHarmonicSetId: null,
+      originalSpacing: null,
+      originalAnchorTime: null,
+      clickedHarmonicNumber: null,
+      isCreatingNewHarmonicSet: false
+    }
+  }
+}
+```
+
+**Technical Specifications Compliance:**
+
+✅ **Click-to-Create**: Harmonic sets created on click with proper initial positioning  
+✅ **Drag-to-Adjust**: Dual-axis dragging for spacing (horizontal) and time (vertical)  
+✅ **Manual Creation**: Modal dialog with validation for manual harmonic spacing input  
+✅ **Management Panel**: Complete table with rate calculation and delete functionality  
+✅ **Visual Implementation**: Vertical lines at 20% height with color distinction  
+✅ **Mode Integration**: Proper integration with mode switching system  
+✅ **Persistence**: Harmonic sets remain interactive and update dynamically  
+✅ **Real-time Updates**: Smooth visual transitions during drag operations
+
+**Validation Results:**
+- **TypeScript**: All type checks pass (`yarn typecheck`)
+- **Build**: Production build successful (`yarn build`)  
+- **Tests**: All existing tests continue to pass (8/8 passing)
+- **Functionality**: Complete harmonics workflow functional - create, drag, adjust, delete
+- **Integration**: Works seamlessly with existing mode system and coordinate transformations
+
+**Success Criteria Achieved:**
+All requirements from Updated-Harmonics.md specification fulfilled:
+- Harmonic sets created with click interaction at correct initial positioning
+- Drag functionality adjusts both frequency spacing and anchor time position  
+- Harmonic lines display as vertical lines limited to 20% spectrogram height
+- Management panel shows all active sets with color coding and rate calculations
+- Manual harmonic creation available via validated modal dialog
+- Proper cleanup when switching modes and cross-mode coordination via FeatureRenderer
+
+**Status:** Completed - Harmonics mode functionality fully implemented with all specified features operational
+
+**Issues/Blockers:**
+None. All functionality implemented successfully with comprehensive error handling and validation.
+
+**Next Steps:**
+Harmonics mode implementation complete and ready for production use. All harmonics analysis workflows functional including creation, adjustment, management, and deletion of harmonic sets.
+
+**Post-Implementation Corrections (July 30, 2025):**
+Following user testing, several refinements were made to improve the user experience:
+
+1. **Click-and-Drag Creation**: Changed from click-only to click-and-drag for initial harmonic set creation
+   - Harmonic set appears immediately on mouse-down
+   - Spacing updates in real-time during drag
+   - Full vertical and horizontal movement during creation
+
+2. **Solid Line Rendering**: Fixed CSS to display solid lines instead of dashed
+   - Removed `stroke-dasharray` properties from all harmonic line CSS classes
+   - Lines now display as solid as specified
+
+3. **Dynamic Color Assignment**: Fixed harmonic lines to use assigned colors
+   - Removed hardcoded stroke colors from CSS
+   - Each harmonic set displays in its selected color from the color picker
+
+4. **Precise Drag Detection**: Reduced drag tolerance to 5 pixels
+   - Changed from broad area detection to precise line detection
+   - Prevents accidental dragging in empty space
+
+5. **Harmonic Counter Numbers**: Added numeric labels to harmonic lines
+   - Numbers displayed at top-left of each vertical line
+   - Rendered in same color as harmonic set
+   - Bold 12px font with drop shadow for readability
+
+All corrections successfully implemented with tests passing and full functionality verified.

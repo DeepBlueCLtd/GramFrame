@@ -4,43 +4,104 @@
 
 /// <reference path="../types.js" />
 
-import { 
-  screenToSVGCoordinates,
-  imageToDataCoordinates
-} from '../utils/coordinates.js'
-
-import { updateLEDDisplays } from '../components/UIComponents.js'
-import { notifyStateListeners } from './state.js'
+import { screenToSVGCoordinates, imageToDataCoordinates } from '../utils/coordinates.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
-import { handleResize, handleSVGResize } from '../rendering/axes.js'
-import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
+
+/**
+ * Convert screen coordinates to data coordinates, accounting for zoom
+ * @param {Object} instance - GramFrame instance
+ * @param {MouseEvent} event - Mouse event
+ * @returns {Object|null} Object with svgCoords, imageX, imageY, dataCoords, and bounds check
+ */
+function screenToDataWithZoom(instance, event) {
+  const svgRect = instance.svg.getBoundingClientRect()
+  const screenX = event.clientX - svgRect.left
+  const screenY = event.clientY - svgRect.top
+  
+  // Convert to SVG coordinates
+  const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
+  
+  // Convert to data coordinates (accounting for margins and zoom)
+  const margins = instance.state.axes.margins
+  const zoomLevel = instance.state.zoom.level
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  
+  // Get current image position and dimensions (which may be zoomed)
+  let imageLeft = margins.left
+  let imageTop = margins.top
+  let imageWidth = naturalWidth
+  let imageHeight = naturalHeight
+  
+  if (zoomLevel !== 1.0 && instance.spectrogramImage) {
+    imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
+    imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
+    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
+    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+  }
+  
+  // Convert SVG coordinates to image-relative coordinates
+  const imageX = (svgCoords.x - imageLeft) * (naturalWidth / imageWidth)
+  const imageY = (svgCoords.y - imageTop) * (naturalHeight / imageHeight)
+  
+  // Check if within zoomed image bounds
+  const withinBounds = svgCoords.x >= imageLeft && svgCoords.x <= imageLeft + imageWidth &&
+                      svgCoords.y >= imageTop && svgCoords.y <= imageTop + imageHeight &&
+                      imageX >= 0 && imageX <= naturalWidth &&
+                      imageY >= 0 && imageY <= naturalHeight
+  
+  if (!withinBounds) {
+    return null
+  }
+  
+  const dataCoords = imageToDataCoordinates(
+    imageX, imageY,
+    instance.state.config,
+    instance.state.imageDetails,
+    instance.state.rate
+  )
+  
+  return { svgCoords, imageX, imageY, dataCoords }
+}
 
 /**
  * Set up event listeners for the GramFrame instance
  * @param {Object} instance - GramFrame instance
  */
 export function setupEventListeners(instance) {
-  // Bind event handlers to maintain proper 'this' context
-  instance._boundHandleMouseMove = (event) => handleMouseMove(instance, event)
-  instance._boundHandleMouseLeave = () => handleMouseLeave(instance)
-  instance._boundHandleClick = (event) => handleClick(instance, event)
-  instance._boundHandleMouseDown = (event) => handleMouseDown(instance, event)
-  instance._boundHandleMouseUp = (event) => handleMouseUp(instance, event)
-  instance._boundHandleResize = () => handleResize(instance)
+  // Mouse event listeners for SVG interaction
+  if (instance.svg) {
+    // Mouse move for cursor tracking
+    instance.svg.addEventListener('mousemove', (event) => {
+      handleMouseMove(instance, event)
+    })
+    
+    // Mouse down for starting drag operations
+    instance.svg.addEventListener('mousedown', (event) => {
+      handleMouseDown(instance, event)
+    })
+    
+    // Mouse up for ending drag operations
+    instance.svg.addEventListener('mouseup', (event) => {
+      handleMouseUp(instance, event)
+    })
+    
+    // Mouse leave to clear cursor position
+    instance.svg.addEventListener('mouseleave', () => {
+      handleMouseLeave(instance)
+    })
+    
+    // Context menu (right-click) for reset operations
+    instance.svg.addEventListener('contextmenu', (event) => {
+      handleContextMenu(instance, event)
+    })
+  }
   
-  // SVG mouse events
-  instance.svg.addEventListener('mousemove', instance._boundHandleMouseMove)
-  instance.svg.addEventListener('mouseleave', instance._boundHandleMouseLeave)
-  instance.svg.addEventListener('click', instance._boundHandleClick)
-  instance.svg.addEventListener('mousedown', instance._boundHandleMouseDown)
-  instance.svg.addEventListener('mouseup', instance._boundHandleMouseUp)
-  
-  // Add right-click handler
-  instance.svg.addEventListener('contextmenu', (event) => {
-    if (instance.currentMode && instance.currentMode.handleContextMenu) {
-      return instance.currentMode.handleContextMenu(event)
+  // Bind resize handler
+  instance._boundHandleResize = () => {
+    if (instance._handleResize) {
+      instance._handleResize()
     }
-  })
+  }
   
   // Mode button events
   Object.keys(instance.modeButtons || {}).forEach(mode => {
@@ -92,9 +153,10 @@ export function setupEventListeners(instance) {
 export function setupResizeObserver(instance) {
   // Use ResizeObserver to monitor SVG container dimensions
   if (typeof ResizeObserver !== 'undefined') {
-    instance.resizeObserver = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        handleSVGResize(instance, entry.contentRect)
+    instance.resizeObserver = new ResizeObserver(_entries => {
+      // Trigger resize handling
+      if (instance._handleResize) {
+        instance._handleResize()
       }
     })
     instance.resizeObserver.observe(instance.container)
@@ -102,237 +164,177 @@ export function setupResizeObserver(instance) {
 }
 
 /**
- * Handle mouse move events over the SVG
+ * Handle mouse move events on SVG
  * @param {Object} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
  */
-export function handleMouseMove(instance, event) {
-  const coords = calculateEventCoordinates(instance, event)
-  
-  if (!coords) {
-    // Clear cursor position when mouse is outside image bounds
-    instance.state.cursorPosition = null
-    updateLEDDisplays(instance, instance.state)
+function handleMouseMove(instance, event) {
+  // Handle panning if in pan mode and dragging
+  if (instance.state.zoom.panMode && instance.state.zoom.level > 1.0 && instance._panDragState?.isDragging) {
+    const deltaX = event.clientX - instance._panDragState.lastX
+    const deltaY = event.clientY - instance._panDragState.lastY
     
-    // Update mode-specific LEDs
-    if (instance.currentMode && instance.currentMode.updateModeSpecificLEDs) {
-      instance.currentMode.updateModeSpecificLEDs()
+    // Convert pixel delta to normalized delta (considering zoom level)
+    const { naturalWidth, naturalHeight } = instance.state.imageDetails
+    const margins = instance.state.axes.margins
+    const svgRect = instance.svg.getBoundingClientRect()
+    
+    // Scale factor based on current zoom and SVG size
+    const scaleX = (naturalWidth + margins.left + margins.right) / svgRect.width
+    const scaleY = (naturalHeight + margins.top + margins.bottom) / svgRect.height
+    
+    // Convert to normalized coordinates (adjust for zoom level)
+    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / instance.state.zoom.level
+    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / instance.state.zoom.level
+    
+    // Apply pan
+    instance._panImage(normalizedDeltaX, normalizedDeltaY)
+    
+    // Update drag state
+    instance._panDragState.lastX = event.clientX
+    instance._panDragState.lastY = event.clientY
+    
+    return // Skip normal cursor handling during pan drag
+  }
+  
+  const result = screenToDataWithZoom(instance, event)
+  
+  if (result) {
+    const { svgCoords, dataCoords } = result
+    
+    // Update cursor position in state
+    instance.state.cursorPosition = {
+      freq: dataCoords.freq,
+      time: dataCoords.time,
+      svgX: svgCoords.x,
+      svgY: svgCoords.y
     }
     
-    notifyStateListeners(instance.state, instance.stateListeners)
-    return
-  }
-
-  // Calculate screen coordinates for state (relative to SVG)
-  const rect = instance.svg.getBoundingClientRect()
-  const screenX = event.clientX - rect.left
-  const screenY = event.clientY - rect.top
-
-  // Update cursor position in state with normalized coordinates
-  instance.state.cursorPosition = { 
-    x: Math.round(screenX), 
-    y: Math.round(screenY), 
-    svgX: coords.svgCoords.x,
-    svgY: coords.svgCoords.y,
-    imageX: coords.imageCoords.x,
-    imageY: coords.imageCoords.y,
-    time: coords.dataCoords.time, 
-    freq: coords.dataCoords.freq
+    // Delegate to current mode for mode-specific handling
+    if (instance.currentMode && typeof instance.currentMode.handleMouseMove === 'function') {
+      instance.currentMode.handleMouseMove(event, dataCoords)
+    }
+  } else {
+    // Clear cursor position if outside image bounds
+    instance.state.cursorPosition = null
   }
   
-  // Update LED displays
-  updateLEDDisplays(instance, instance.state)
-  
-  // Update mode-specific LEDs
-  if (instance.currentMode && instance.currentMode.updateModeSpecificLEDs) {
-    instance.currentMode.updateModeSpecificLEDs()
-  }
-  
-  // Update visual cursor indicators
+  // Update cursor indicators
   updateCursorIndicators(instance)
   
-  // Handle mode-specific dragging interactions
-  if (instance.currentMode && instance.currentMode.handleMouseMove) {
-    instance.currentMode.handleMouseMove(event, coords)
-  }
-  
-  // Notify listeners
-  notifyStateListeners(instance.state, instance.stateListeners)
+  // Notify listeners of cursor position change
+  import('./state.js').then(({ notifyStateListeners }) => {
+    notifyStateListeners(instance.state, instance.stateListeners)
+  })
 }
 
 /**
- * Handle mouse leave events
+ * Handle mouse down events on SVG
+ * @param {Object} instance - GramFrame instance
+ * @param {MouseEvent} event - Mouse event
+ */
+function handleMouseDown(instance, event) {
+  // Start pan drag if in pan mode and zoomed
+  if (instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+    instance._panDragState = {
+      isDragging: true,
+      lastX: event.clientX,
+      lastY: event.clientY
+    }
+    
+    // Change cursor to grabbing
+    if (instance.svg) {
+      instance.svg.style.cursor = 'grabbing'
+    }
+    
+    // Prevent default to avoid text selection
+    event.preventDefault()
+    return
+  }
+  
+  const result = screenToDataWithZoom(instance, event)
+  
+  if (result) {
+    const { dataCoords } = result
+    
+    // Delegate to current mode for mode-specific handling
+    if (instance.currentMode && typeof instance.currentMode.handleMouseDown === 'function') {
+      instance.currentMode.handleMouseDown(event, dataCoords)
+    }
+  }
+}
+
+/**
+ * Handle mouse up events on SVG
+ * @param {Object} instance - GramFrame instance
+ * @param {MouseEvent} event - Mouse event
+ */
+function handleMouseUp(instance, event) {
+  // End pan drag if was dragging
+  if (instance._panDragState?.isDragging) {
+    instance._panDragState = { isDragging: false, lastX: 0, lastY: 0 }
+    
+    // Restore cursor to grab (pan mode still active)
+    if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+      instance.svg.style.cursor = 'grab'
+    }
+    
+    return
+  }
+  
+  const result = screenToDataWithZoom(instance, event)
+  
+  if (result) {
+    const { dataCoords } = result
+    
+    // Delegate to current mode for mode-specific handling
+    if (instance.currentMode && typeof instance.currentMode.handleMouseUp === 'function') {
+      instance.currentMode.handleMouseUp(event, dataCoords)
+    }
+  }
+}
+
+/**
+ * Handle mouse leave events on SVG
  * @param {Object} instance - GramFrame instance
  */
-export function handleMouseLeave(instance) {
-  // Clear cursor position when mouse leaves the SVG area
+function handleMouseLeave(instance) {
+  // Stop pan drag if was dragging
+  if (instance._panDragState?.isDragging) {
+    instance._panDragState = { isDragging: false, lastX: 0, lastY: 0 }
+    
+    // Restore cursor to grab (pan mode still active)
+    if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+      instance.svg.style.cursor = 'grab'
+    }
+  }
+  
+  // Clear cursor position
   instance.state.cursorPosition = null
   
-  // Update LED displays to show no position
-  updateLEDDisplays(instance, instance.state)
-  
-  // Update mode-specific LEDs
-  if (instance.currentMode && instance.currentMode.updateModeSpecificLEDs) {
-    instance.currentMode.updateModeSpecificLEDs()
-  }
-  
-  // Clear visual cursor indicators
+  // Update cursor indicators
   updateCursorIndicators(instance)
   
+  // Delegate to current mode
+  if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === 'function') {
+    instance.currentMode.handleMouseLeave()
+  }
+  
   // Notify listeners
-  notifyStateListeners(instance.state, instance.stateListeners)
-}
-
-/**
- * Handle mouse down events for drag interactions
- * @param {Object} instance - GramFrame instance
- * @param {MouseEvent} event - Mouse event
- */
-export function handleMouseDown(instance, event) {
-  // Calculate coordinates from the event
-  const coords = calculateEventCoordinates(instance, event)
-  if (!coords) return
-  
-  // Handle mode-specific interactions
-  if (instance.currentMode && instance.currentMode.handleMouseDown) {
-    instance.currentMode.handleMouseDown(event, coords)
-  }
-}
-
-/**
- * Handle mouse up events to end drag interactions
- * @param {Object} instance - GramFrame instance
- * @param {MouseEvent} event - Mouse event
- */
-export function handleMouseUp(instance, event) {
-  // Calculate coordinates from the event
-  const coords = calculateEventCoordinates(instance, event)
-  
-  // Handle mode-specific mouse up interactions
-  if (instance.currentMode && instance.currentMode.handleMouseUp) {
-    // Use calculated coordinates if available, otherwise use fallback coordinates
-    const eventCoords = coords || {
-      svgCoords: { x: instance.state.cursorPosition?.svgX || 0, y: instance.state.cursorPosition?.svgY || 0 },
-      dataCoords: { time: instance.state.cursorPosition?.time || 0, freq: instance.state.cursorPosition?.freq || 0 },
-      imageCoords: { x: instance.state.cursorPosition?.imageX || 0, y: instance.state.cursorPosition?.imageY || 0 }
-    }
-    instance.currentMode.handleMouseUp(event, eventCoords)
-  }
-  // Legacy drag state cleanup for other modes
-  else if (instance.state.dragState.isDragging) {
-    
-    // Clear drag state
-    instance.state.dragState.isDragging = false
-    instance.state.dragState.dragStartPosition = null
-    instance.state.dragState.draggedHarmonicSetId = null
-    instance.state.dragState.originalSpacing = null
-    instance.state.dragState.originalAnchorTime = null
-    instance.state.dragState.clickedHarmonicNumber = null
-    instance.state.dragState.isCreatingNewHarmonicSet = false
-    
-    // Clear old harmonics system state (for backward compatibility)
-    instance.state.harmonics.baseFrequency = null
-    instance.state.harmonics.harmonicData = []
-    
-    // Update displays and indicators
-    updateLEDDisplays(instance, instance.state)
-    updateCursorIndicators(instance)
-    
-    // Update harmonic panel
-    updateHarmonicPanel(instance)
-    
-    // Notify listeners of state change
+  import('./state.js').then(({ notifyStateListeners }) => {
     notifyStateListeners(instance.state, instance.stateListeners)
-  }
+  })
 }
 
 /**
- * Handle click events for mode-specific actions
+ * Handle context menu (right-click) events on SVG
  * @param {Object} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
  */
-export function handleClick(instance, event) {
-  // Only process if we have valid image details
-  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) {
-    return
-  }
-  
-  // Only process if mouse is within the image area
-  if (!instance.state.cursorPosition) {
-    return
-  }
-  
-  // Handle mode-specific clicks
-  if (instance.currentMode && instance.currentMode.handleClick) {
-    instance.currentMode.handleClick(event, {
-      svgCoords: { x: instance.state.cursorPosition.svgX, y: instance.state.cursorPosition.svgY },
-      dataCoords: { time: instance.state.cursorPosition.time, freq: instance.state.cursorPosition.freq },
-      imageCoords: { x: instance.state.cursorPosition.imageX, y: instance.state.cursorPosition.imageY }
-    })
-  }
-}
-
-
-/**
- * Update harmonic management panel
- * @param {Object} instance - GramFrame instance
- */
-function updateHarmonicPanel(instance) {
-  if (instance.harmonicPanel) {
-    updateHarmonicPanelContent(instance.harmonicPanel, instance)
-  }
-}
-
-/**
- * Calculate coordinates from mouse event
- * @param {Object} instance - GramFrame instance
- * @param {MouseEvent} event - Mouse event
- * @returns {{svgCoords: {x: number, y: number}, dataCoords: {time: number, freq: number}, imageCoords: {x: number, y: number}} | null} Calculated coordinates or null if outside bounds
- */
-function calculateEventCoordinates(instance, event) {
-  // Only process if we have valid image details
-  if (!instance.state.imageDetails.naturalWidth || !instance.state.imageDetails.naturalHeight) return null
-  
-  // Use SVG's built-in coordinate transformation for accurate positioning
-  let svgCoords
-  try {
-    const pt = instance.svg.createSVGPoint()
-    pt.x = event.clientX
-    pt.y = event.clientY
-    const transformedPt = pt.matrixTransform(instance.svg.getScreenCTM().inverse())
-    svgCoords = { x: transformedPt.x, y: transformedPt.y }
-  } catch (e) {
-    // Fallback to manual calculation
-    const rect = instance.svg.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
-    svgCoords = screenToSVGCoordinates(x, y, instance.svg, instance.state.imageDetails)
-  }
-  
-  // Get coordinates relative to image (image is now positioned at margins.left, margins.top)
-  const margins = instance.state.axes.margins
-  const imageRelativeX = svgCoords.x - margins.left
-  const imageRelativeY = svgCoords.y - margins.top
-  
-  // Check if mouse is within the image area - for drag operations, allow slightly outside bounds
-  const tolerance = 10 // pixel tolerance for drag operations
-  if (imageRelativeX < -tolerance || imageRelativeY < -tolerance || 
-      imageRelativeX > instance.state.imageDetails.naturalWidth + tolerance || 
-      imageRelativeY > instance.state.imageDetails.naturalHeight + tolerance) {
-    return null
-  }
-  
-  // Clamp coordinates to image bounds for data calculation
-  const clampedImageX = Math.max(0, Math.min(instance.state.imageDetails.naturalWidth, imageRelativeX))
-  const clampedImageY = Math.max(0, Math.min(instance.state.imageDetails.naturalHeight, imageRelativeY))
-  
-  // Convert image-relative coordinates to data coordinates
-  const dataCoords = imageToDataCoordinates(clampedImageX, clampedImageY, instance.state.config, instance.state.imageDetails, instance.state.rate)
-  
-  return {
-    svgCoords: { x: Math.round(svgCoords.x), y: Math.round(svgCoords.y) },
-    dataCoords: { time: parseFloat(dataCoords.time.toFixed(2)), freq: parseFloat(dataCoords.freq.toFixed(2)) },
-    imageCoords: { x: Math.round(imageRelativeX), y: Math.round(imageRelativeY) }
+function handleContextMenu(instance, event) {
+  // Delegate to current mode for mode-specific handling
+  if (instance.currentMode && typeof instance.currentMode.handleContextMenu === 'function') {
+    instance.currentMode.handleContextMenu(event)
   }
 }
 
@@ -341,22 +343,9 @@ function calculateEventCoordinates(instance, event) {
  * @param {Object} instance - GramFrame instance
  */
 export function cleanupEventListeners(instance) {
+  // Clean up SVG event listeners
   if (instance.svg) {
-    if (instance._boundHandleMouseMove) {
-      instance.svg.removeEventListener('mousemove', instance._boundHandleMouseMove)
-    }
-    if (instance._boundHandleMouseLeave) {
-      instance.svg.removeEventListener('mouseleave', instance._boundHandleMouseLeave)
-    }
-    if (instance._boundHandleClick) {
-      instance.svg.removeEventListener('click', instance._boundHandleClick)
-    }
-    if (instance._boundHandleMouseDown) {
-      instance.svg.removeEventListener('mousedown', instance._boundHandleMouseDown)
-    }
-    if (instance._boundHandleMouseUp) {
-      instance.svg.removeEventListener('mouseup', instance._boundHandleMouseUp)
-    }
+    // SVG events are cleaned up automatically when SVG is removed from DOM
   }
   
   if (instance._boundHandleResize) {

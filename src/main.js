@@ -26,9 +26,7 @@ import { createGramFrameAPI } from './api/GramFrameAPI.js'
 import { ModeFactory } from './modes/ModeFactory.js'
 import { FeatureRenderer } from './core/FeatureRenderer.js'
 
-import {
-  updateCursorIndicators
-} from './rendering/cursors.js'
+// Cursor indicators removed - using CSS cursor only
 
 import {
   setupEventListeners,
@@ -36,7 +34,7 @@ import {
   cleanupEventListeners
 } from './core/events.js'
 
-import { setupComponentTable } from './components/table.js'
+import { setupComponentTable, setupSpectrogramImage, updateSVGLayout, renderAxes } from './components/table.js'
 
 /**
  * GramFrame class - Main component implementation
@@ -59,7 +57,7 @@ export class GramFrame {
     /** @type {string} */
     this.instanceId = ''
     
-    /** @type {HTMLImageElement} */
+    /** @type {SVGImageElement} */
     this.spectrogramImage = null
     
     // Initialize DOM element properties (will be populated by setupComponentTable)
@@ -69,6 +67,8 @@ export class GramFrame {
     this.readoutPanel = null
     /** @type {HTMLDivElement} */
     this.modeCell = null
+    /** @type {HTMLDivElement} */
+    this.mainCell = null
     /** @type {HTMLButtonElement} */
     this.manualButton = null
     /** @type {HTMLElement} */
@@ -79,6 +79,12 @@ export class GramFrame {
     this.colorPicker = null
     /** @type {SVGSVGElement} */
     this.svg = null
+    /** @type {SVGGElement} */
+    this.cursorGroup = null
+    /** @type {SVGGElement} */
+    this.axesGroup = null
+    /** @type {SVGRectElement} */
+    this.imageClipRect = null
     
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)
@@ -90,15 +96,6 @@ export class GramFrame {
     const globalLEDs = this.createGlobalStatusLEDs()
     Object.assign(this, globalLEDs)
     
-    // Setup manual harmonic button event listener
-    if (this.manualButton) {
-      this.manualButton.addEventListener('click', () => {
-        // Delegate to current mode (only HarmonicsMode handles this)
-        if (this.currentMode && typeof this.currentMode.showManualHarmonicModal === 'function') {
-          this.currentMode.showManualHarmonicModal()
-        }
-      })
-    }
     
     // Create mode switching UI
     const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
@@ -111,6 +108,14 @@ export class GramFrame {
     
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
+    
+    // Create zoom controls
+    this.createZoomControls()
+    
+    // Set up spectrogram image if we have one from config extraction
+    if (this.state.imageDetails.url) {
+      setupSpectrogramImage(this, this.state.imageDetails.url)
+    }
     
     // Harmonic management panel will be created by HarmonicsMode when activated
     
@@ -165,6 +170,213 @@ export class GramFrame {
   
   
   /**
+   * Create zoom control UI
+   */
+  createZoomControls() {
+    // Create zoom controls container
+    const zoomContainer = document.createElement('div')
+    zoomContainer.className = 'gram-frame-zoom-controls'
+    
+    // Zoom in button
+    const zoomInButton = document.createElement('button')
+    zoomInButton.className = 'gram-frame-zoom-btn'
+    zoomInButton.textContent = '+'
+    zoomInButton.title = 'Zoom In'
+    zoomInButton.addEventListener('click', () => this._zoomIn())
+    
+    // Zoom out button
+    const zoomOutButton = document.createElement('button')
+    zoomOutButton.className = 'gram-frame-zoom-btn'
+    zoomOutButton.textContent = '−'
+    zoomOutButton.title = 'Zoom Out'
+    zoomOutButton.addEventListener('click', () => this._zoomOut())
+    
+    // Pan toggle button
+    const panToggleButton = document.createElement('button')
+    panToggleButton.className = 'gram-frame-zoom-btn gram-frame-pan-toggle'
+    panToggleButton.textContent = '↔' // Horizontal arrows
+    panToggleButton.title = 'Toggle Pan Mode'
+    panToggleButton.addEventListener('click', () => this._togglePan())
+    
+    // Reset zoom button
+    const zoomResetButton = document.createElement('button')
+    zoomResetButton.className = 'gram-frame-zoom-btn gram-frame-zoom-reset'
+    zoomResetButton.textContent = '1:1'
+    zoomResetButton.title = 'Reset Zoom'
+    zoomResetButton.addEventListener('click', () => this._zoomReset())
+    
+    zoomContainer.appendChild(zoomInButton)
+    zoomContainer.appendChild(zoomOutButton)
+    zoomContainer.appendChild(panToggleButton)
+    zoomContainer.appendChild(zoomResetButton)
+    
+    // Add to main panel (positioned over the spectrogram)
+    this.mainCell.appendChild(zoomContainer)
+    
+    // Store references
+    this.zoomControls = {
+      container: zoomContainer,
+      zoomInButton,
+      zoomOutButton,
+      panToggleButton,
+      zoomResetButton
+    }
+    
+    // Set initial button states (all disabled except zoom in, since we start at 1:1)
+    this._updateZoomControlStates()
+  }
+  
+  /**
+   * Zoom in by increasing zoom level
+   */
+  _zoomIn() {
+    const currentLevel = this.state.zoom.level
+    const newLevel = Math.min(currentLevel * 1.5, 10.0) // Max 10x zoom
+    this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+  }
+  
+  /**
+   * Zoom out by decreasing zoom level
+   */
+  _zoomOut() {
+    const currentLevel = this.state.zoom.level
+    const newLevel = Math.max(currentLevel / 1.5, 1.0) // Min 1x zoom
+    this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+  }
+  
+  /**
+   * Reset zoom to 1x
+   */
+  _zoomReset() {
+    this._setZoom(1.0, 0.5, 0.5)
+  }
+  
+  /**
+   * Toggle pan mode
+   */
+  _togglePan() {
+    this.state.zoom.panMode = !this.state.zoom.panMode
+    
+    // Update button appearance
+    if (this.zoomControls && this.zoomControls.panToggleButton) {
+      if (this.state.zoom.panMode) {
+        this.zoomControls.panToggleButton.classList.add('active')
+        this.zoomControls.panToggleButton.title = 'Pan Mode Active - Click to disable'
+      } else {
+        this.zoomControls.panToggleButton.classList.remove('active')
+        this.zoomControls.panToggleButton.title = 'Toggle Pan Mode'
+      }
+    }
+    
+    // Update cursor style for SVG
+    if (this.svg) {
+      if (this.state.zoom.panMode && this.state.zoom.level > 1.0) {
+        this.svg.style.cursor = 'grab'
+      } else {
+        this.svg.style.cursor = 'crosshair'
+      }
+    }
+    
+    // Notify listeners
+    notifyStateListeners(this.state, this.stateListeners)
+  }
+  
+  /**
+   * Set zoom level and center point
+   * @param {number} level - Zoom level (1.0 = no zoom)
+   * @param {number} centerX - Center X (0-1 normalized)
+   * @param {number} centerY - Center Y (0-1 normalized)
+   */
+  _setZoom(level, centerX, centerY) {
+    // Update state
+    this.state.zoom.level = level
+    this.state.zoom.centerX = centerX
+    this.state.zoom.centerY = centerY
+    
+    // Apply zoom transform
+    if (this.svg) {
+      import('./components/table.js').then(({ applyZoomTransform }) => {
+        applyZoomTransform(this)
+      })
+    }
+    
+    // Update zoom button states
+    this._updateZoomControlStates()
+    
+    // Notify listeners
+    notifyStateListeners(this.state, this.stateListeners)
+  }
+  
+  /**
+   * Pan the image by adjusting the center point
+   * @param {number} deltaX - Change in X position (normalized -1 to 1)
+   * @param {number} deltaY - Change in Y position (normalized -1 to 1)
+   */
+  _panImage(deltaX, deltaY) {
+    if (this.state.zoom.level <= 1.0) {
+      return // No panning when not zoomed
+    }
+    
+    // Calculate new center point, constrained to valid range
+    const newCenterX = Math.max(0, Math.min(1, this.state.zoom.centerX + deltaX))
+    const newCenterY = Math.max(0, Math.min(1, this.state.zoom.centerY + deltaY))
+    
+    // Update zoom with new center point
+    this._setZoom(this.state.zoom.level, newCenterX, newCenterY)
+  }
+  
+  /**
+   * Update zoom control button states based on current zoom level
+   */
+  _updateZoomControlStates() {
+    if (!this.zoomControls) {
+      return
+    }
+    
+    const level = this.state.zoom.level
+    
+    // Zoom in: disabled when at max zoom (10.0)
+    this.zoomControls.zoomInButton.disabled = (level >= 10.0)
+    
+    // Zoom out: disabled when at 1:1 scale or below
+    this.zoomControls.zoomOutButton.disabled = (level <= 1.0)
+    
+    // Reset zoom: disabled when already at 1:1 scale
+    this.zoomControls.zoomResetButton.disabled = (level === 1.0)
+    
+    // Pan toggle: disabled when at 1:1 scale
+    this.zoomControls.panToggleButton.disabled = (level <= 1.0)
+    
+    // Update pan mode and button state when zoom level changes
+    if (level <= 1.0) {
+      this.state.zoom.panMode = false
+      this.zoomControls.panToggleButton.classList.remove('active')
+      if (this.svg) {
+        this.svg.style.cursor = 'crosshair'
+      }
+    }
+  }
+  
+  /**
+   * Update axes when rate changes
+   */
+  _updateAxes() {
+    if (this.axesGroup) {
+      renderAxes(this)
+    }
+  }
+  
+  /**
+   * Handle resize events
+   */
+  _handleResize() {
+    if (this.svg) {
+      updateSVGLayout(this)
+      renderAxes(this)
+    }
+  }
+  
+  /**
    * Destroy the component and clean up resources
    */
   destroy() {
@@ -201,10 +413,7 @@ export class GramFrame {
     this.state.dragState.originalAnchorTime = null
     this.state.dragState.clickedHarmonicNumber = null
     
-    // Reset SVG cursor to default crosshair when switching modes
-    if (this.svg) {
-      this.svg.style.cursor = 'crosshair'
-    }
+    // Cursor styling removed - no display element
     
     // Update UI
     if (this.modeButtons) {
@@ -254,8 +463,12 @@ export class GramFrame {
       this.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(mode)
     }
     
-    // Clear existing cursor indicators and redraw for new mode
-    updateCursorIndicators(this)
+    // Update cursor indicators
+    if (this.featureRenderer) {
+      this.featureRenderer.renderAllPersistentFeatures()
+    }
+    
+    // Cursor indicators removed - using CSS cursor only
     
     // CSS now handles cursor behavior properly, no need for explicit reset
     
@@ -297,10 +510,14 @@ export class GramFrame {
     
     // Update rate LED display (handled by updateLEDDisplays)
     
+    // Update axes to reflect rate change
+    this._updateAxes()
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
   }
+
+  // Zoom functionality removed - no display element
 
   
   

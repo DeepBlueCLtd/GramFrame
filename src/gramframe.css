@@ -99,6 +99,15 @@
 
 .gram-frame-axis-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 12px;
+  fill: #fff;
+  dominant-baseline: central;
+}
+
+.gram-frame-axis-title {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
   fill: #fff;
   dominant-baseline: central;
 }
@@ -548,73 +557,28 @@
   font-style: italic;
 }
 
-/* SVG cursor indicator styles */
-.gram-frame-cursor-group {
-  pointer-events: none;
-}
-
-/* Cursor shadow lines - thicker white outline for contrast */
-.gram-frame-cursor-shadow {
-  stroke: rgba(255, 255, 255, 0.9);
-  stroke-width: 3;
-  stroke-dasharray: 6, 3;
-  fill: none;
-  pointer-events: none;
-  stroke-linecap: round;
-}
-
-/* Main cursor lines - thinner colored line on top */
-.gram-frame-cursor-vertical,
-.gram-frame-cursor-horizontal {
-  stroke: rgba(255, 0, 0, 0.9);
-  stroke-width: 1;
-  stroke-dasharray: 4, 2;
-  fill: none;
-  pointer-events: none;
-  stroke-linecap: round;
-}
-
-.gram-frame-cursor-point {
-  fill: rgba(255, 0, 0, 0.9);
-  stroke: rgba(255, 255, 255, 0.9);
-  stroke-width: 2;
-  pointer-events: none;
-}
-
-/* Legacy cursor styles (for backward compatibility) */
-.gram-frame-cursor {
-  position: absolute;
-  width: 2px;
-  background-color: rgba(255, 0, 0, 0.7);
-  pointer-events: none;
-}
+/* SVG cursor styles removed - using CSS cursor only */
 
 /* SVG Harmonic line styles */
 .gram-frame-harmonic-shadow {
-  stroke: rgba(255, 255, 255, 0.9);
   stroke-width: 3;
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
-  stroke-dasharray: 6, 3; /* Match the cross-hair shadow style */
 }
 
 .gram-frame-harmonic-main {
-  stroke: rgba(255, 215, 0, 0.9); /* Gold color for main line (1×) */
   stroke-width: 2;
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
-  stroke-dasharray: 4, 2; /* Match the cross-hair main line style */
 }
 
 .gram-frame-harmonic-line {
-  stroke: rgba(255, 255, 0, 0.8); /* Yellow for other harmonics */
-  stroke-width: 1;
+  stroke-width: 2;
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
-  stroke-dasharray: 4, 2; /* Match the cross-hair line style */
 }
 
 .gram-frame-harmonic-label {
@@ -629,6 +593,15 @@
   paint-order: stroke;
   pointer-events: none;
   dominant-baseline: central;
+}
+
+.gram-frame-harmonic-number {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+  /* Add text shadow for readability */
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
 }
 
 /* SVG Harmonic Set styles (new system) */
@@ -866,6 +839,46 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
 }
 
+/* Cursor position readout styles */
+.gram-frame-cursor-readout {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  border: 1px solid #444;
+  border-radius: 4px;
+}
+
+.gram-frame-readout-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.gram-frame-readout-label {
+  font-size: 10px;
+  color: #aaa;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+.gram-frame-readout-value {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  color: #00ff00;
+  background: #000;
+  padding: 4px 8px;
+  border: 1px solid #333;
+  border-radius: 2px;
+  text-align: center;
+  min-width: 60px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+}
+
 /* Modal dialog styles */
 .gram-frame-modal-overlay {
   position: fixed;
@@ -990,3 +1003,89 @@
 .gram-frame-modal-btn:active:not(:disabled) {
   transform: translateY(1px);
 }
+
+/* Transform-Based Zoom Controls */
+.gram-frame-zoom-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 2px solid #555;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.1),
+    inset 0 -1px 2px rgba(0,0,0,0.3),
+    0 4px 8px rgba(0,0,0,0.3);
+  z-index: 10;
+}
+
+.gram-frame-zoom-btn {
+  min-width: 32px;
+  height: 32px;
+  border: 2px solid #666;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 50%, #2a2a2a 100%);
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.3),
+    inset 0 1px 2px rgba(255,255,255,0.2);
+}
+
+.gram-frame-zoom-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 50%, #3a3a3a 100%);
+  border-color: #777;
+}
+
+.gram-frame-zoom-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 
+    0 1px 2px rgba(0,0,0,0.4),
+    inset 0 -1px 2px rgba(255,255,255,0.1);
+}
+
+.gram-frame-zoom-btn:disabled {
+  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);
+  color: #666;
+  border-color: #444;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gram-frame-zoom-reset {
+  font-size: 12px;
+  min-width: 40px;
+}
+
+.gram-frame-pan-toggle.active {
+  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);
+  color: #aaffaa;
+  border-color: #4a8a4a;
+  box-shadow: 
+    inset 0 1px 2px rgba(0,0,0,0.3),
+    inset 0 -1px 2px rgba(255,255,255,0.1),
+    0 0 4px rgba(74, 138, 74, 0.3);
+}
+
+.gram-frame-zoom-display {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  color: #00ff00;
+  text-shadow: 0 0 4px rgba(0,255,0,0.5);
+  min-width: 50px;
+  text-align: center;
+  background: rgba(0,0,0,0.3);
+  padding: 4px 8px;
+  border-radius: 3px;
+  border: 1px solid #333;
+}
+

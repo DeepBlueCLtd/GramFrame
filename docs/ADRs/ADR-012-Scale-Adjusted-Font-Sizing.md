@@ -6,6 +6,8 @@ Accepted
 ## Context
 Axis text labels were using fixed SVG font-size values that scaled with the SVG viewBox. When the component was resized, labels became unreadably small or disappeared entirely, compromising usability.
 
+With the adoption of viewport-based zoom (ADR-015), font sizing becomes even more critical as viewBox manipulation for zoom affects text scaling behavior.
+
 ## Decision
 Implement scale-adjusted font sizing that maintains consistent visual text size regardless of SVG scaling by calculating font size based on the viewBox-to-display size ratio.
 
@@ -21,6 +23,7 @@ Implement scale-adjusted font sizing that maintains consistent visual text size 
 - Consistent visual appearance across different screen sizes and zoom levels
 - Better user experience with reliable axis labeling
 - Professional appearance maintained at all scales
+- Compatible with viewport-based zoom approach using viewBox manipulation
 
 ### Negative
 - Additional complexity in font size calculations
@@ -57,3 +60,4 @@ Applied to both time axis (vertical labels) and frequency axis (horizontal label
 - ADR-001: SVG-Based Rendering Architecture
 - ADR-003: Responsive Design with ResizeObserver
 - ADR-002: Multiple Coordinate Systems
+- ADR-015: Viewport-Based Zoom Architecture
