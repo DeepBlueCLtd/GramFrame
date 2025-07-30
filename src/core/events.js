@@ -89,6 +89,11 @@ export function setupEventListeners(instance) {
     instance.svg.addEventListener('mouseleave', () => {
       handleMouseLeave(instance)
     })
+    
+    // Context menu (right-click) for reset operations
+    instance.svg.addEventListener('contextmenu', (event) => {
+      handleContextMenu(instance, event)
+    })
   }
   
   // Bind resize handler
@@ -319,6 +324,18 @@ function handleMouseLeave(instance) {
   import('./state.js').then(({ notifyStateListeners }) => {
     notifyStateListeners(instance.state, instance.stateListeners)
   })
+}
+
+/**
+ * Handle context menu (right-click) events on SVG
+ * @param {Object} instance - GramFrame instance
+ * @param {MouseEvent} event - Mouse event
+ */
+function handleContextMenu(instance, event) {
+  // Delegate to current mode for mode-specific handling
+  if (instance.currentMode && typeof instance.currentMode.handleContextMenu === 'function') {
+    instance.currentMode.handleContextMenu(event)
+  }
 }
 
 /**

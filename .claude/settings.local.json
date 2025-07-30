@@ -52,7 +52,8 @@
       "Bash(git rebase:*)",
       "mcp__ide__getDiagnostics",
       "WebFetch(domain:github.com)",
-      "Bash(yarn dev:*)"
+      "Bash(yarn dev:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [
       "Bash(git add:*)",
