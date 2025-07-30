@@ -4,14 +4,10 @@ import { notifyStateListeners } from '../../core/state.js'
 // Rendering imports removed - no display element
 import { 
   calculateDopplerSpeed,
-  isNearMarker,
-  dopplerDataToSVG
+  isNearMarker
 } from '../../utils/doppler.js'
 import { calculateMidpoint } from '../../utils/doppler.js'
 import { 
-  drawDopplerMarker,
-  drawDopplerCurve,
-  drawDopplerVerticalExtensions,
   drawDopplerPreview
 } from '../../rendering/cursors.js'
 
@@ -91,17 +87,45 @@ export class DopplerMode extends BaseMode {
     // Update cursor style when hovering over markers
     if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
       const mousePos = this.getMousePosition(event)
-      let nearMarker = false
       
-      if (doppler.fPlus && this.isNearMarker(mousePos, this.dataToSVG(doppler.fPlus))) {
-        nearMarker = true
-      } else if (doppler.fMinus && this.isNearMarker(mousePos, this.dataToSVG(doppler.fMinus))) {
-        nearMarker = true
-      } else if (doppler.fZero && this.isNearMarker(mousePos, this.dataToSVG(doppler.fZero))) {
-        nearMarker = true
+      // Find the closest marker within range (same logic as mouse down)
+      let closestMarker = null
+      let closestDistance = Infinity
+      
+      if (doppler.fPlus) {
+        const fPlusSVG = this.dataToSVG(doppler.fPlus)
+        if (this.isNearMarker(mousePos, fPlusSVG)) {
+          const distance = this.getMarkerDistance(mousePos, fPlusSVG)
+          if (distance < closestDistance) {
+            closestDistance = distance
+            closestMarker = 'fPlus'
+          }
+        }
       }
       
-      this.instance.svg.style.cursor = nearMarker ? 'move' : 'crosshair'
+      if (doppler.fMinus) {
+        const fMinusSVG = this.dataToSVG(doppler.fMinus)
+        if (this.isNearMarker(mousePos, fMinusSVG)) {
+          const distance = this.getMarkerDistance(mousePos, fMinusSVG)
+          if (distance < closestDistance) {
+            closestDistance = distance
+            closestMarker = 'fMinus'
+          }
+        }
+      }
+      
+      if (doppler.fZero) {
+        const fZeroSVG = this.dataToSVG(doppler.fZero)
+        if (this.isNearMarker(mousePos, fZeroSVG)) {
+          const distance = this.getMarkerDistance(mousePos, fZeroSVG)
+          if (distance < closestDistance) {
+            closestDistance = distance
+            closestMarker = 'fZero'
+          }
+        }
+      }
+      
+      this.instance.svg.style.cursor = closestMarker ? 'move' : 'crosshair'
     }
   }
 
@@ -117,38 +141,50 @@ export class DopplerMode extends BaseMode {
     if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
       const mousePos = this.getMousePosition(event)
       
-      // Check each marker for proximity
+      // Find the closest marker that's within range
+      let closestMarker = null
+      let closestDistance = Infinity
+      
       if (doppler.fPlus) {
         const fPlusSVG = this.dataToSVG(doppler.fPlus)
         if (this.isNearMarker(mousePos, fPlusSVG)) {
-          doppler.isDragging = true
-          doppler.draggedMarker = 'fPlus'
-          this.instance.svg.style.cursor = 'grabbing'
-          notifyStateListeners(this.state, this.instance.stateListeners)
-          return
+          const distance = this.getMarkerDistance(mousePos, fPlusSVG)
+          if (distance < closestDistance) {
+            closestDistance = distance
+            closestMarker = 'fPlus'
+          }
         }
       }
       
       if (doppler.fMinus) {
         const fMinusSVG = this.dataToSVG(doppler.fMinus)
         if (this.isNearMarker(mousePos, fMinusSVG)) {
-          doppler.isDragging = true
-          doppler.draggedMarker = 'fMinus'
-          this.instance.svg.style.cursor = 'grabbing'
-          notifyStateListeners(this.state, this.instance.stateListeners)
-          return
+          const distance = this.getMarkerDistance(mousePos, fMinusSVG)
+          if (distance < closestDistance) {
+            closestDistance = distance
+            closestMarker = 'fMinus'
+          }
         }
       }
       
       if (doppler.fZero) {
         const fZeroSVG = this.dataToSVG(doppler.fZero)
         if (this.isNearMarker(mousePos, fZeroSVG)) {
-          doppler.isDragging = true
-          doppler.draggedMarker = 'fZero'
-          this.instance.svg.style.cursor = 'grabbing'
-          notifyStateListeners(this.state, this.instance.stateListeners)
-          return
+          const distance = this.getMarkerDistance(mousePos, fZeroSVG)
+          if (distance < closestDistance) {
+            closestDistance = distance
+            closestMarker = 'fZero'
+          }
         }
+      }
+      
+      // Start dragging the closest marker
+      if (closestMarker) {
+        doppler.isDragging = true
+        doppler.draggedMarker = closestMarker
+        this.instance.svg.style.cursor = 'grabbing'
+        notifyStateListeners(this.state, this.instance.stateListeners)
+        return
       }
     }
     
@@ -388,12 +424,37 @@ export class DopplerMode extends BaseMode {
   }
 
   /**
-   * Convert data coordinates to SVG coordinates
+   * Convert data coordinates to SVG coordinates (zoom-aware)
    * @param {Object} dataPoint - Data point with time and frequency
    * @returns {Object} SVG coordinates with x, y
    */
   dataToSVG(dataPoint) {
-    return dopplerDataToSVG(dataPoint, this.instance)
+    const margins = this.instance.state.axes.margins
+    const { naturalWidth, naturalHeight } = this.instance.state.imageDetails
+    const { timeMin, timeMax, freqMin, freqMax } = this.instance.state.config
+    const zoomLevel = this.instance.state.zoom.level
+    
+    // Calculate ratios in data space
+    const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin)
+    const freqRatio = (dataPoint.frequency - freqMin) / (freqMax - freqMin)
+    
+    // Get current image position and dimensions (which may be zoomed)
+    let imageLeft = margins.left
+    let imageTop = margins.top  
+    let imageWidth = naturalWidth
+    let imageHeight = naturalHeight
+    
+    if (zoomLevel !== 1.0 && this.instance.spectrogramImage) {
+      imageLeft = parseFloat(this.instance.spectrogramImage.getAttribute('x') || String(margins.left))
+      imageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
+      imageWidth = parseFloat(this.instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
+      imageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+    }
+    
+    return {
+      x: imageLeft + freqRatio * imageWidth,
+      y: imageTop + (1 - timeRatio) * imageHeight // Invert Y coordinate
+    }
   }
 
   /**
@@ -403,8 +464,20 @@ export class DopplerMode extends BaseMode {
    * @returns {boolean} True if mouse is near the marker
    */
   isNearMarker(mousePos, markerSVG) {
-    // Use larger threshold for better user experience
-    return isNearMarker(mousePos, markerSVG, 40)
+    // Use smaller threshold to avoid overlap with small curves
+    return isNearMarker(mousePos, markerSVG, 20)
+  }
+
+  /**
+   * Calculate distance between mouse and marker
+   * @param {Object} mousePos - Mouse position with x, y coordinates
+   * @param {Object} markerSVG - Marker SVG position with x, y coordinates
+   * @returns {number} Distance in pixels
+   */
+  getMarkerDistance(mousePos, markerSVG) {
+    const dx = mousePos.x - markerSVG.x
+    const dy = mousePos.y - markerSVG.y
+    return Math.sqrt(dx * dx + dy * dy)
   }
 
   /**
@@ -469,35 +542,146 @@ export class DopplerMode extends BaseMode {
 
 
   /**
-   * Render doppler markers (f+, f-, f₀)
+   * Render doppler markers (f+, f-, f₀) with zoom awareness
    */
   renderMarkers() {
     const doppler = this.state.doppler
     
-    // Use the proper drawDopplerMarker function from cursors.js
+    // f+ marker (red dot)
     if (doppler.fPlus) {
-      drawDopplerMarker(this.instance, doppler.fPlus, 'fPlus')
+      const fPlusSVG = this.dataToSVG(doppler.fPlus)
+      const fPlusMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+      fPlusMarker.setAttribute('class', 'gram-frame-doppler-fPlus')
+      fPlusMarker.setAttribute('cx', fPlusSVG.x.toString())
+      fPlusMarker.setAttribute('cy', fPlusSVG.y.toString())
+      fPlusMarker.setAttribute('r', '4')
+      fPlusMarker.setAttribute('fill', '#ff0000')
+      fPlusMarker.setAttribute('stroke', '#ffffff')
+      fPlusMarker.setAttribute('stroke-width', '1')
+      this.instance.cursorGroup.appendChild(fPlusMarker)
     }
     
+    // f- marker (red dot)
     if (doppler.fMinus) {
-      drawDopplerMarker(this.instance, doppler.fMinus, 'fMinus')
+      const fMinusSVG = this.dataToSVG(doppler.fMinus)
+      const fMinusMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+      fMinusMarker.setAttribute('class', 'gram-frame-doppler-fMinus')
+      fMinusMarker.setAttribute('cx', fMinusSVG.x.toString())
+      fMinusMarker.setAttribute('cy', fMinusSVG.y.toString())
+      fMinusMarker.setAttribute('r', '4')
+      fMinusMarker.setAttribute('fill', '#ff0000')
+      fMinusMarker.setAttribute('stroke', '#ffffff')
+      fMinusMarker.setAttribute('stroke-width', '1')
+      this.instance.cursorGroup.appendChild(fMinusMarker)
     }
     
+    // f₀ marker (green crosshair)
     if (doppler.fZero) {
-      drawDopplerMarker(this.instance, doppler.fZero, 'fZero')
+      const fZeroSVG = this.dataToSVG(doppler.fZero)
+      
+      // Horizontal line
+      const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      hLine.setAttribute('class', 'gram-frame-doppler-crosshair')
+      hLine.setAttribute('x1', (fZeroSVG.x - 8).toString())
+      hLine.setAttribute('y1', fZeroSVG.y.toString())
+      hLine.setAttribute('x2', (fZeroSVG.x + 8).toString())
+      hLine.setAttribute('y2', fZeroSVG.y.toString())
+      hLine.setAttribute('stroke', '#00ff00')
+      hLine.setAttribute('stroke-width', '2')
+      this.instance.cursorGroup.appendChild(hLine)
+      
+      // Vertical line
+      const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      vLine.setAttribute('class', 'gram-frame-doppler-crosshair')
+      vLine.setAttribute('x1', fZeroSVG.x.toString())
+      vLine.setAttribute('y1', (fZeroSVG.y - 8).toString())
+      vLine.setAttribute('x2', fZeroSVG.x.toString())
+      vLine.setAttribute('y2', (fZeroSVG.y + 8).toString())
+      vLine.setAttribute('stroke', '#00ff00')
+      vLine.setAttribute('stroke-width', '2')
+      this.instance.cursorGroup.appendChild(vLine)
     }
   }
 
   /**
-   * Render Doppler curve between markers with vertical extensions
+   * Render Doppler curve between markers with vertical extensions (zoom-aware)
    */
   renderDopplerCurve() {
     const doppler = this.state.doppler
     if (!doppler.fPlus || !doppler.fMinus || !doppler.fZero) return
     
-    // Use the proper functions from cursors.js
-    drawDopplerCurve(this.instance, doppler.fPlus, doppler.fMinus, doppler.fZero)
-    drawDopplerVerticalExtensions(this.instance, doppler.fPlus, doppler.fMinus)
+    const fPlusSVG = this.dataToSVG(doppler.fPlus)
+    const fMinusSVG = this.dataToSVG(doppler.fMinus)
+    const fZeroSVG = this.dataToSVG(doppler.fZero)
+    
+    // Create S-curve path
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    path.setAttribute('class', 'gram-frame-doppler-curve')
+    
+    // Simple S-curve with vertical tangents (same logic as cursors.js but zoom-aware)
+    const controlPoint1X = fMinusSVG.x
+    const controlPoint1Y = fMinusSVG.y + (fZeroSVG.y - fMinusSVG.y) * 0.7
+    const controlPoint2X = fPlusSVG.x  
+    const controlPoint2Y = fPlusSVG.y + (fZeroSVG.y - fPlusSVG.y) * 0.7
+    
+    const pathData = `M ${fMinusSVG.x} ${fMinusSVG.y} C ${controlPoint1X} ${controlPoint1Y} ${controlPoint2X} ${controlPoint2Y} ${fPlusSVG.x} ${fPlusSVG.y}`
+    
+    path.setAttribute('d', pathData)
+    path.setAttribute('stroke', '#ff0000')
+    path.setAttribute('stroke-width', '2')
+    path.setAttribute('fill', 'none')
+    
+    this.instance.cursorGroup.appendChild(path)
+    
+    // Vertical extensions - clip to intersection of zoomed view and spectrogram data area
+    const margins = this.instance.state.axes.margins
+    const { naturalHeight } = this.instance.state.imageDetails
+    const zoomLevel = this.instance.state.zoom.level
+    
+    // Original spectrogram data bounds (never changes)
+    const spectrogramTop = margins.top
+    const spectrogramBottom = margins.top + naturalHeight
+    
+    // Get zoomed/panned view bounds
+    let zoomedTop = spectrogramTop
+    let zoomedBottom = spectrogramBottom
+    
+    if (zoomLevel !== 1.0 && this.instance.spectrogramImage) {
+      const zoomedImageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
+      const zoomedImageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+      zoomedTop = zoomedImageTop
+      zoomedBottom = zoomedImageTop + zoomedImageHeight
+    }
+    
+    // Calculate intersection bounds - extensions should not go beyond either limit
+    const clippedTop = Math.max(spectrogramTop, zoomedTop)
+    const clippedBottom = Math.min(spectrogramBottom, zoomedBottom)
+    
+    // Extension from f+ upward - only if f+ is below the clipped top
+    if (fPlusSVG.y > clippedTop) {
+      const fPlusExtension = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      fPlusExtension.setAttribute('class', 'gram-frame-doppler-extension')
+      fPlusExtension.setAttribute('x1', fPlusSVG.x.toString())
+      fPlusExtension.setAttribute('y1', fPlusSVG.y.toString())
+      fPlusExtension.setAttribute('x2', fPlusSVG.x.toString())
+      fPlusExtension.setAttribute('y2', clippedTop.toString())
+      fPlusExtension.setAttribute('stroke', '#ff0000')
+      fPlusExtension.setAttribute('stroke-width', '2')
+      this.instance.cursorGroup.appendChild(fPlusExtension)
+    }
+    
+    // Extension from f- downward - only if f- is above the clipped bottom
+    if (fMinusSVG.y < clippedBottom) {
+      const fMinusExtension = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      fMinusExtension.setAttribute('class', 'gram-frame-doppler-extension')
+      fMinusExtension.setAttribute('x1', fMinusSVG.x.toString())
+      fMinusExtension.setAttribute('y1', fMinusSVG.y.toString())
+      fMinusExtension.setAttribute('x2', fMinusSVG.x.toString())
+      fMinusExtension.setAttribute('y2', clippedBottom.toString())
+      fMinusExtension.setAttribute('stroke', '#ff0000')
+      fMinusExtension.setAttribute('stroke-width', '2')
+      this.instance.cursorGroup.appendChild(fMinusExtension)
+    }
   }
 
 
