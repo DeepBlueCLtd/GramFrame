@@ -195,7 +195,7 @@ export function applyZoomTransform(instance) {
   }
   
   if (level === 1.0) {
-    // No zoom - reset to original position and size
+    // No zoom - reset to axes position and size
     instance.spectrogramImage.setAttribute('x', String(margins.left))
     instance.spectrogramImage.setAttribute('y', String(margins.top))
     instance.spectrogramImage.setAttribute('width', String(naturalWidth))
