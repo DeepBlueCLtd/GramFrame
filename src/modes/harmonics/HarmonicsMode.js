@@ -117,26 +117,24 @@ export class HarmonicsMode extends BaseMode {
     // Use the provided persistent harmonics container (already has label)
     this.uiElements.harmonicsContainer = harmonicsContainer
     
+    // Find the button container created in main.js
+    const buttonContainer = harmonicsContainer.querySelector('.gram-frame-harmonics-button-container')
+    
     // Check if UI already exists to prevent duplicates
-    if (harmonicsContainer.querySelector('.gram-frame-harmonics-button-container')) {
+    if (buttonContainer && buttonContainer.querySelector('.gram-frame-manual-button')) {
       // Find existing elements and store references
-      this.uiElements.manualButton = harmonicsContainer.querySelector('.gram-frame-manual-button')
+      this.uiElements.manualButton = buttonContainer.querySelector('.gram-frame-manual-button')
       this.uiElements.harmonicPanel = harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
       console.log('Setting harmonicPanel reference (existing UI):', this.uiElements.harmonicPanel)
       this.instance.harmonicPanel = this.uiElements.harmonicPanel
       return
     }
     
-    // Create manual button container at the top
-    const buttonContainer = document.createElement('div')
-    buttonContainer.className = 'gram-frame-harmonics-button-container'
-    buttonContainer.style.marginBottom = '8px'
-    
-    // Create Manual button
+    // Create Manual button and add to existing container
     this.uiElements.manualButton = this.createManualButton()
-    buttonContainer.appendChild(this.uiElements.manualButton)
-    
-    harmonicsContainer.appendChild(buttonContainer)
+    if (buttonContainer) {
+      buttonContainer.appendChild(this.uiElements.manualButton)
+    }
     
     // Create harmonic management panel in the persistent container
     this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer)

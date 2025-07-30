@@ -268,11 +268,28 @@ export class GramFrame {
     this.harmonicsContainer.style.flexDirection = 'column'
     this.harmonicsContainer.style.minHeight = '0'
     
+    // Create header container with title and button area
+    const harmonicsHeader = document.createElement('div')
+    harmonicsHeader.className = 'gram-frame-harmonics-header'
+    harmonicsHeader.style.display = 'flex'
+    harmonicsHeader.style.justifyContent = 'space-between'
+    harmonicsHeader.style.alignItems = 'center'
+    harmonicsHeader.style.margin = '0 0 8px 0'
+    harmonicsHeader.style.flexShrink = '0'
+    
     const harmonicsLabel = document.createElement('h4')
     harmonicsLabel.textContent = 'Harmonic Sets'
-    harmonicsLabel.style.margin = '0 0 8px 0'
+    harmonicsLabel.style.margin = '0'
+    harmonicsLabel.style.textAlign = 'left'
     harmonicsLabel.style.flexShrink = '0'
-    this.harmonicsContainer.appendChild(harmonicsLabel)
+    
+    const harmonicsButtonContainer = document.createElement('div')
+    harmonicsButtonContainer.className = 'gram-frame-harmonics-button-container'
+    harmonicsButtonContainer.style.flexShrink = '0'
+    
+    harmonicsHeader.appendChild(harmonicsLabel)
+    harmonicsHeader.appendChild(harmonicsButtonContainer)
+    this.harmonicsContainer.appendChild(harmonicsHeader)
     
     this.rightColumn.appendChild(this.harmonicsContainer)
     
