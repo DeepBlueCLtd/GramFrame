@@ -32,27 +32,30 @@ export class HarmonicsMode extends BaseMode {
   /**
    * Handle mouse move events in harmonics mode
    * @param {MouseEvent} _event - Mouse event
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(_event, dataCoords) {
     // Update cursor style based on whether we're hovering over a harmonic line
     const harmonicSet = this.findHarmonicSetAtFrequency(dataCoords.freq)
-    if (harmonicSet && this.instance.spectrogramImage) {
+    if (harmonicSet && this.instance.spectrogramImage && !this.state.dragState.isDragging && !this.state.dragState.isCreatingNewHarmonicSet) {
       this.instance.spectrogramImage.style.cursor = 'grab'
-    } else {
+    } else if (!this.state.dragState.isDragging && !this.state.dragState.isCreatingNewHarmonicSet) {
       this.instance.spectrogramImage.style.cursor = 'crosshair'
     }
     
-    // Handle dragging if active
-    if (this.state.dragState.isDragging) {
+    // Handle dragging if active (existing harmonic sets or new creation)
+    if (this.state.dragState.isDragging || this.state.dragState.isCreatingNewHarmonicSet) {
       this.handleHarmonicSetDrag()
     }
+    
+    // Update harmonic panel during mouse movement for real-time rate calculation
+    this.updateHarmonicPanel()
   }
 
   /**
    * Handle mouse down events in harmonics mode
    * @param {MouseEvent} event - Mouse event
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseDown(event, dataCoords) {
     // Only handle left clicks
@@ -67,20 +70,25 @@ export class HarmonicsMode extends BaseMode {
       // Start dragging existing harmonic set
       this.startHarmonicSetDrag(existingHarmonicSet, dataCoords)
     } else {
-      // Create new harmonic set at click location
-      this.createHarmonicSetAtPosition(dataCoords)
+      // Start creating new harmonic set - wait for drag to complete
+      this.startNewHarmonicSetCreation(dataCoords)
     }
   }
 
   /**
    * Handle mouse up events in harmonics mode
    * @param {MouseEvent} _event - Mouse event
-   * @param {Object} _dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseUp(_event, _dataCoords) {
+  handleMouseUp(_event, dataCoords) {
     // End dragging if active
     if (this.state.dragState.isDragging) {
       this.endHarmonicSetDrag()
+    }
+    
+    // Complete new harmonic set creation if in creation mode
+    if (this.state.dragState.isCreatingNewHarmonicSet) {
+      this.completeNewHarmonicSetCreation(dataCoords)
     }
     
     // Reset cursor
@@ -320,9 +328,12 @@ export class HarmonicsMode extends BaseMode {
         
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          // Use a more generous tolerance with a reasonable minimum
-          // 10% of spacing OR at least 20Hz, whichever is larger
-          const tolerance = Math.max(harmonicSet.spacing * 0.1, 20)
+          // Use a 5-pixel tolerance for clicking on lines
+          const pixelTolerance = 5
+          const freqRange = freqMax - freqMin
+          const { naturalWidth } = this.state.imageDetails
+          // Convert pixel tolerance to frequency units
+          const tolerance = (pixelTolerance / naturalWidth) * freqRange
           
           if (Math.abs(freq - expectedFreq) < tolerance) {
             // Also check if cursor is within the vertical range of the harmonic line
@@ -335,11 +346,8 @@ export class HarmonicsMode extends BaseMode {
             const lineStartTime = harmonicSet.anchorTime - lineHeightInTime / 2
             const lineEndTime = harmonicSet.anchorTime + lineHeightInTime / 2
             
-            // Add some extra tolerance to time range (±10% of line height)
-            const timeToleranceExtra = lineHeightInTime * 0.1
-            
-            if (cursorTime >= (lineStartTime - timeToleranceExtra) && 
-                cursorTime <= (lineEndTime + timeToleranceExtra)) {
+            // Check if cursor is within the vertical range of the harmonic line
+            if (cursorTime >= lineStartTime && cursorTime <= lineEndTime) {
               return harmonicSet
             }
           }
@@ -350,27 +358,57 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Create a new harmonic set at the specified position
+   * Create a new harmonic set immediately and start drag mode for updates
    * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  createHarmonicSetAtPosition(dataCoords) {
-    // Determine initial spacing based on click position and axis origin
+  startNewHarmonicSetCreation(dataCoords) {
+    // Calculate initial spacing based on frequency axis origin
     const freqMin = this.state.config.freqMin
     let initialSpacing
+    let clickedHarmonicNumber
     
     if (freqMin > 0) {
-      // Origin > 0, position cursor at 10th harmonic
-      initialSpacing = dataCoords.freq / 10
+      // Origin > 0, position at 10th harmonic
+      clickedHarmonicNumber = 10
+      initialSpacing = dataCoords.freq / clickedHarmonicNumber
     } else {
-      // Origin at 0, position cursor at 5th harmonic
-      initialSpacing = dataCoords.freq / 5
+      // Origin at 0, position at 5th harmonic
+      clickedHarmonicNumber = 5
+      initialSpacing = dataCoords.freq / clickedHarmonicNumber
     }
     
     // Ensure minimum spacing
     initialSpacing = Math.max(initialSpacing, 1.0)
     
-    // Create harmonic set
-    this.addHarmonicSet(dataCoords.time, initialSpacing)
+    // Create the harmonic set immediately
+    const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing)
+    
+    // Set creation mode for drag updates
+    this.state.dragState.isCreatingNewHarmonicSet = true
+    this.state.dragState.dragStartPosition = { ...dataCoords }
+    this.state.dragState.draggedHarmonicSetId = harmonicSet.id
+    this.state.dragState.originalSpacing = initialSpacing
+    this.state.dragState.originalAnchorTime = dataCoords.time
+    this.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber
+    
+    // Change cursor to indicate drag interaction
+    if (this.instance.spectrogramImage) {
+      this.instance.spectrogramImage.style.cursor = 'grabbing'
+    }
+  }
+
+  /**
+   * Complete the drag update of the newly created harmonic set
+   * @param {Object} _dataCoords - Final drag position coordinates (unused)
+   */
+  completeNewHarmonicSetCreation(_dataCoords) {
+    // Just clear the creation state - harmonic set was already created and updated during drag
+    this.state.dragState.isCreatingNewHarmonicSet = false
+    this.state.dragState.dragStartPosition = null
+    this.state.dragState.draggedHarmonicSetId = null
+    this.state.dragState.originalSpacing = null
+    this.state.dragState.originalAnchorTime = null
+    this.state.dragState.clickedHarmonicNumber = null
   }
 
   /**
@@ -406,6 +444,7 @@ export class HarmonicsMode extends BaseMode {
     this.state.dragState.originalSpacing = null
     this.state.dragState.originalAnchorTime = null
     this.state.dragState.clickedHarmonicNumber = null
+    this.state.dragState.isCreatingNewHarmonicSet = false
   }
 
   /**
@@ -420,7 +459,7 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Handle harmonic set dragging
+   * Handle harmonic set dragging (both existing sets and new creation)
    */
   handleHarmonicSetDrag() {
     if (!this.state.cursorPosition || !this.state.dragState.dragStartPosition) return
@@ -434,17 +473,20 @@ export class HarmonicsMode extends BaseMode {
     const harmonicSet = this.state.harmonics.harmonicSets.find(set => set.id === setId)
     if (!harmonicSet) return
 
-    // Calculate changes from drag start
-    const deltaFreq = currentPos.freq - startPos.freq
-    const deltaTime = currentPos.time - startPos.time
+    let newSpacing, newAnchorTime
 
-    // Update spacing based on horizontal drag
-    // The dragged harmonic should stay under cursor
+    // For both new creation and existing drags, keep the clicked harmonic under the cursor
     const clickedHarmonicNumber = this.state.dragState.clickedHarmonicNumber || 1
-    const newSpacing = (this.state.dragState.originalSpacing + deltaFreq / clickedHarmonicNumber)
     
-    // Update anchor time based on vertical drag  
-    const newAnchorTime = this.state.dragState.originalAnchorTime + deltaTime
+    // Calculate spacing so the clicked harmonic stays at cursor position
+    newSpacing = currentPos.freq / clickedHarmonicNumber
+    
+    // Ensure minimum spacing
+    newSpacing = Math.max(newSpacing, 1.0)
+    
+    // Allow vertical movement for both new creation and existing drags
+    const deltaTime = currentPos.time - startPos.time
+    newAnchorTime = this.state.dragState.originalAnchorTime + deltaTime
 
     // Apply updates
     const updates = {}
@@ -576,7 +618,7 @@ export class HarmonicsMode extends BaseMode {
         }
       }
       
-      // Create harmonic line
+      // Create harmonic line (solid)
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
       line.setAttribute('class', 'gram-frame-harmonic-line')
       line.setAttribute('data-harmonic-set-id', harmonicSet.id)
@@ -588,9 +630,22 @@ export class HarmonicsMode extends BaseMode {
       line.setAttribute('stroke', harmonicSet.color)
       line.setAttribute('stroke-width', '2')
       line.setAttribute('stroke-linecap', 'round')
-      line.setAttribute('opacity', '0.8')
+      line.setAttribute('opacity', '0.9')
       
       this.instance.cursorGroup.appendChild(line)
+      
+      // Add harmonic number label at top-left of line
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      label.setAttribute('class', 'gram-frame-harmonic-number')
+      label.setAttribute('x', String(lineX + 3)) // 3 pixels to the right of line
+      label.setAttribute('y', String(lineTop + 12)) // 12 pixels down from top
+      label.setAttribute('fill', harmonicSet.color)
+      label.setAttribute('font-size', '12')
+      label.setAttribute('font-weight', 'bold')
+      label.setAttribute('font-family', 'Arial, sans-serif')
+      label.textContent = String(h)
+      
+      this.instance.cursorGroup.appendChild(label)
     }
   }
 

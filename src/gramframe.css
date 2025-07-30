@@ -561,30 +561,24 @@
 
 /* SVG Harmonic line styles */
 .gram-frame-harmonic-shadow {
-  stroke: rgba(255, 255, 255, 0.9);
   stroke-width: 3;
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
-  stroke-dasharray: 6, 3; /* Match the cross-hair shadow style */
 }
 
 .gram-frame-harmonic-main {
-  stroke: rgba(255, 215, 0, 0.9); /* Gold color for main line (1×) */
   stroke-width: 2;
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
-  stroke-dasharray: 4, 2; /* Match the cross-hair main line style */
 }
 
 .gram-frame-harmonic-line {
-  stroke: rgba(255, 255, 0, 0.8); /* Yellow for other harmonics */
-  stroke-width: 1;
+  stroke-width: 2;
   fill: none;
   pointer-events: none;
   stroke-linecap: round;
-  stroke-dasharray: 4, 2; /* Match the cross-hair line style */
 }
 
 .gram-frame-harmonic-label {
@@ -599,6 +593,15 @@
   paint-order: stroke;
   pointer-events: none;
   dominant-baseline: central;
+}
+
+.gram-frame-harmonic-number {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+  /* Add text shadow for readability */
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
 }
 
 /* SVG Harmonic Set styles (new system) */

@@ -2075,3 +2075,30 @@ None. All functionality implemented successfully with comprehensive error handli
 
 **Next Steps:**
 Harmonics mode implementation complete and ready for production use. All harmonics analysis workflows functional including creation, adjustment, management, and deletion of harmonic sets.
+
+**Post-Implementation Corrections (July 30, 2025):**
+Following user testing, several refinements were made to improve the user experience:
+
+1. **Click-and-Drag Creation**: Changed from click-only to click-and-drag for initial harmonic set creation
+   - Harmonic set appears immediately on mouse-down
+   - Spacing updates in real-time during drag
+   - Full vertical and horizontal movement during creation
+
+2. **Solid Line Rendering**: Fixed CSS to display solid lines instead of dashed
+   - Removed `stroke-dasharray` properties from all harmonic line CSS classes
+   - Lines now display as solid as specified
+
+3. **Dynamic Color Assignment**: Fixed harmonic lines to use assigned colors
+   - Removed hardcoded stroke colors from CSS
+   - Each harmonic set displays in its selected color from the color picker
+
+4. **Precise Drag Detection**: Reduced drag tolerance to 5 pixels
+   - Changed from broad area detection to precise line detection
+   - Prevents accidental dragging in empty space
+
+5. **Harmonic Counter Numbers**: Added numeric labels to harmonic lines
+   - Numbers displayed at top-left of each vertical line
+   - Rendered in same color as harmonic set
+   - Bold 12px font with drop shadow for readability
+
+All corrections successfully implemented with tests passing and full functionality verified.
