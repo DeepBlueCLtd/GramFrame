@@ -1,5 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
-import { updateLEDDisplays, createLEDDisplay } from '../../components/UIComponents.js'
+import { updateLEDDisplays } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 // Rendering imports removed - no display element
 import { 
@@ -273,18 +273,20 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Create UI elements for doppler mode
-   * @param {HTMLElement} readoutPanel - Container for UI elements
+   * @param {HTMLElement} _leftColumn - Container for UI elements (unused)
    */
-  createUI(readoutPanel) {
+  createUI(_leftColumn) {
     // Initialize uiElements
     this.uiElements = {}
     
-    // Create Speed LED display
-    this.uiElements.speedLED = createLEDDisplay('Speed (knots)', '0.0')
-    readoutPanel.appendChild(this.uiElements.speedLED)
+    // Speed LED is now managed centrally in the unified layout
+    // Make the central speed LED visible when doppler mode is active
+    if (this.instance.speedLED) {
+      this.instance.speedLED.style.display = 'block'
+    }
     
-    // Store references on instance for compatibility
-    this.instance.speedLED = this.uiElements.speedLED
+    // Store references for central speed LED
+    this.instance.speedLED = this.instance.speedLED || null
   }
 
   /**
@@ -337,6 +339,16 @@ export class DopplerMode extends BaseMode {
     this.state.doppler.isPreviewDrag = false
     this.state.doppler.previewEnd = null
   }
+  
+  /**
+   * Deactivate doppler mode - hide speed LED
+   */
+  deactivate() {
+    // Hide the central speed LED when leaving doppler mode
+    if (this.instance.speedLED) {
+      this.instance.speedLED.style.display = 'none'
+    }
+  }
 
 
 
@@ -385,12 +397,12 @@ export class DopplerMode extends BaseMode {
    * Update the speed LED display with current speed value
    */
   updateSpeedLED() {
-    if (this.uiElements.speedLED && this.state.doppler.speed !== null) {
+    if (this.instance.speedLED && this.state.doppler.speed !== null) {
       // Convert m/s to knots: 1 m/s = 1.94384 knots
       const speedInKnots = this.state.doppler.speed * MS_TO_KNOTS_CONVERSION
-      this.uiElements.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
-    } else if (this.uiElements.speedLED) {
-      this.uiElements.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
+      this.instance.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
+    } else if (this.instance.speedLED) {
+      this.instance.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
     }
   }
 
