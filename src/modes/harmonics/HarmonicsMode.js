@@ -198,17 +198,6 @@ export class HarmonicsMode extends BaseMode {
     
     // Don't call super.destroyUI() because it removes persistent elements from DOM
     // Instead, just clear references to non-persistent elements
-    if (this.uiElements) {
-      // Keep references to persistent elements
-      const persistentElements = {
-        harmonicsContainer: this.uiElements.harmonicsContainer,
-        harmonicPanel: this.uiElements.harmonicPanel,
-        manualButton: this.uiElements.manualButton
-      }
-      
-      // Only remove non-persistent elements (none in this case)
-      // this.uiElements = persistentElements
-    }
     
     console.log('HarmonicsMode destroyUI finished, harmonicPanel after:', this.instance.harmonicPanel)
   }
