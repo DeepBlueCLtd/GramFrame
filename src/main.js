@@ -201,7 +201,7 @@ export class GramFrame {
     // Pan toggle button
     const panToggleButton = document.createElement('button')
     panToggleButton.className = 'gram-frame-zoom-btn gram-frame-pan-toggle'
-    panToggleButton.textContent = '⟷'
+    panToggleButton.textContent = '↔' // Horizontal arrows
     panToggleButton.title = 'Toggle Pan Mode'
     panToggleButton.addEventListener('click', () => this._togglePan())
     
