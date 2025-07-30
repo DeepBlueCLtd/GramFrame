@@ -24,10 +24,10 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Handle mouse move events in analysis mode
-   * @param {MouseEvent} event - Mouse event
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
    * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseMove(event, dataCoords) {
+  handleMouseMove(_event, dataCoords) {
     // Update cursor position in existing LED displays
     this.updateCursorPosition(dataCoords)
     
@@ -114,6 +114,7 @@ export class AnalysisMode extends BaseMode {
     const color = this.state.harmonics?.selectedColor || '#ff6b6b'
     
     // Create marker object (we only need time/freq for positioning)
+    /** @type {AnalysisMarker} */
     const marker = {
       id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       color,

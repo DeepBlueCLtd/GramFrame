@@ -30,10 +30,10 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Handle mouse move events in doppler mode
-   * @param {MouseEvent} event - Mouse event
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
    */
-  handleMouseMove(event, dataCoords) {
+  handleMouseMove(_event, _dataCoords) {
     // Doppler mode specific handling can be added here
   }
 

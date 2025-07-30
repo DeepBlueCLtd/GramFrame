@@ -67,6 +67,8 @@ export class GramFrame {
     this.readoutPanel = null
     /** @type {HTMLDivElement} */
     this.modeCell = null
+    /** @type {HTMLDivElement} */
+    this.mainCell = null
     /** @type {HTMLButtonElement} */
     this.manualButton = null
     /** @type {HTMLElement} */

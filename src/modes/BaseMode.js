@@ -118,9 +118,9 @@ export class BaseMode {
   /**
    * Create mode-specific UI elements when entering this mode
    * Override in subclasses to create mode-specific UI elements
-   * @param {HTMLElement} readoutPanel - Container for UI elements
+   * @param {HTMLElement} _readoutPanel - Container for UI elements (unused in base implementation)
    */
-  createUI(readoutPanel) {
+  createUI(_readoutPanel) {
     // Default implementation - initialize uiElements
     this.uiElements = {}
   }

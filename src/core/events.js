@@ -250,7 +250,7 @@ function handleMouseDown(instance, event) {
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
-    const { svgCoords, dataCoords } = result
+    const { dataCoords } = result
     
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseDown === 'function') {
@@ -280,7 +280,7 @@ function handleMouseUp(instance, event) {
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
-    const { svgCoords, dataCoords } = result
+    const { dataCoords } = result
     
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseUp === 'function') {
