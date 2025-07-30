@@ -28,7 +28,35 @@ export class HarmonicsMode extends BaseMode {
     `
   }
 
-  // Mouse event handlers removed - no display element
+  /**
+   * Handle mouse move events in harmonics mode
+   * @param {MouseEvent} event - Mouse event
+   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {Object} svgCoords - SVG coordinates {x, y}
+   */
+  handleMouseMove(event, dataCoords, svgCoords) {
+    // Harmonics mode specific handling can be added here
+  }
+
+  /**
+   * Handle mouse down events in harmonics mode
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
+   */
+  handleMouseDown(_event, _dataCoords, _svgCoords) {
+    // Harmonics mode specific handling
+  }
+
+  /**
+   * Handle mouse up events in harmonics mode
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
+   */
+  handleMouseUp(_event, _dataCoords, _svgCoords) {
+    // Harmonics mode specific handling
+  }
 
 
 
@@ -43,6 +71,7 @@ export class HarmonicsMode extends BaseMode {
    * @param {HTMLElement} readoutPanel - Container for UI elements
    */
   createUI(readoutPanel) {
+    // Initialize uiElements
     this.uiElements = {}
     
     // Create main layout container with two columns
@@ -52,12 +81,8 @@ export class HarmonicsMode extends BaseMode {
     const leftColumn = createFlexColumn('gram-frame-harmonics-controls', '10px')
     leftColumn.style.flex = '0 0 40%'
     
-    // Create top row in left column (Frequency LED and Manual button)
+    // Create top row in left column (Manual button only)
     const topRow = createFlexLayout('gram-frame-harmonics-top-row', '10px')
-    
-    // Create Frequency LED display
-    this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
-    topRow.appendChild(this.uiElements.freqLED)
     
     // Create Manual button and add to top row
     this.uiElements.manualButton = this.createManualButton()
@@ -85,8 +110,7 @@ export class HarmonicsMode extends BaseMode {
     // Create harmonic management panel in right column
     this.uiElements.harmonicPanel = createHarmonicPanel(rightColumn)
     
-    // Store references on instance for compatibility
-    this.instance.freqLED = this.uiElements.freqLED
+    // Store references on instance for compatibility (removed freqLED)
     this.instance.colorPicker = this.uiElements.colorPicker
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
     this.instance.manualButton = this.uiElements.manualButton
@@ -103,7 +127,7 @@ export class HarmonicsMode extends BaseMode {
    * @param {Object} _coords - Current cursor coordinates
    */
   updateLEDs(_coords) {
-    // Harmonics mode shows Manual button and Frequency LED (created in createUI)
+    // Harmonics mode specific updates (harmonic panel refresh)
     this.updateModeSpecificLEDs()
   }
 
@@ -111,33 +135,6 @@ export class HarmonicsMode extends BaseMode {
    * Update mode-specific LED values and labels based on current state
    */
   updateModeSpecificLEDs() {
-    if (!this.uiElements.freqLED) return
-
-    // Update frequency label based on state
-    const freqLabel = this.uiElements.freqLED.querySelector('.gram-frame-led-label')
-    if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
-      freqLabel.textContent = 'Base Freq (Hz)'
-    } else {
-      freqLabel.textContent = 'Frequency (Hz)'
-    }
-
-    if (!this.state.cursorPosition) {
-      // Show default values when no cursor position
-      this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-      return
-    }
-
-    // Mode-specific LED formatting
-    if (this.state.dragState.isDragging && this.state.harmonics.baseFrequency !== null) {
-      // For Harmonics mode during drag, show base frequency for harmonics
-      const baseFreqValue = this.state.harmonics.baseFrequency.toFixed(1)
-      this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = baseFreqValue
-    } else {
-      // Standard frequency display
-      const freqValue = this.state.cursorPosition.freq.toFixed(1)
-      this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = freqValue
-    }
-    
     // Update harmonic panel to show current rate values
     this.updateHarmonicPanel()
   }
@@ -167,9 +164,6 @@ export class HarmonicsMode extends BaseMode {
    */
   destroyUI() {
     // Remove instance references
-    if (this.instance.freqLED === this.uiElements.freqLED) {
-      this.instance.freqLED = null
-    }
     if (this.instance.colorPicker === this.uiElements.colorPicker) {
       this.instance.colorPicker = null
     }

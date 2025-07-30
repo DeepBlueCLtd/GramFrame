@@ -14,6 +14,8 @@ You are activated as an Implementation Agent within the Agentic Project Manageme
 
 **Objective:** Reinstate the spectrogram component by replacing the image element with an SVG-based overlay system that displays time and frequency axes on the edges of the image, includes zoom controls, and maintains all existing interactive functionality.
 
+**Note**: We already have mature implementations of `BaseMode` children for Analysis, Harmonics and Doppler modes.  These have functionality for display of data in the `readout` panel, which should be re-used.  It is only SVG-related interactions that will need to be created for these modes.
+
 **Detailed Action Steps:**
 
 ### Phase 1: SVG Container and Image Integration

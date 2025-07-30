@@ -30,9 +30,58 @@ export class BaseMode {
     // Default implementation - override in subclasses
   }
 
-  // Mouse event handlers removed - no display element
-  
-  // Rendering methods removed - no display element
+  /**
+   * Handle mouse move events
+   * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in base implementation)
+   */
+  handleMouseMove(_event, _dataCoords, _svgCoords) {
+    // Default implementation - override in subclasses for mode-specific behavior
+  }
+
+  /**
+   * Handle mouse down events
+   * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in base implementation)
+   */
+  handleMouseDown(_event, _dataCoords, _svgCoords) {
+    // Default implementation - override in subclasses for mode-specific behavior
+  }
+
+  /**
+   * Handle mouse up events
+   * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in base implementation)
+   */
+  handleMouseUp(_event, _dataCoords, _svgCoords) {
+    // Default implementation - override in subclasses for mode-specific behavior
+  }
+
+  /**
+   * Handle mouse leave events
+   */
+  handleMouseLeave() {
+    // Default implementation - override in subclasses for mode-specific behavior
+  }
+
+  /**
+   * Render persistent features for this mode
+   * Override in subclasses to render mode-specific persistent features
+   */
+  renderPersistentFeatures() {
+    // Default implementation - override in subclasses
+  }
+
+  /**
+   * Render current cursor for this mode
+   * Override in subclasses to render mode-specific cursor indicators
+   */
+  renderCursor() {
+    // Default implementation - override in subclasses
+  }
 
   /**
    * Update LED displays with mode-specific values
@@ -72,10 +121,10 @@ export class BaseMode {
   /**
    * Create mode-specific UI elements when entering this mode
    * Override in subclasses to create mode-specific UI elements
-   * @param {HTMLElement} _readoutPanel - Container for UI elements
+   * @param {HTMLElement} readoutPanel - Container for UI elements
    */
-  createUI(_readoutPanel) {
-    // Default implementation - override in subclasses
+  createUI(readoutPanel) {
+    // Default implementation - initialize uiElements
     this.uiElements = {}
   }
 

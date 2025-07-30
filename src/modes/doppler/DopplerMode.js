@@ -28,7 +28,35 @@ export class DopplerMode extends BaseMode {
     `
   }
 
-  // Mouse event handlers removed - no display element
+  /**
+   * Handle mouse move events in doppler mode
+   * @param {MouseEvent} event - Mouse event
+   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {Object} svgCoords - SVG coordinates {x, y}
+   */
+  handleMouseMove(event, dataCoords, svgCoords) {
+    // Doppler mode specific handling can be added here
+  }
+
+  /**
+   * Handle mouse down events in doppler mode
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
+   */
+  handleMouseDown(_event, _dataCoords, _svgCoords) {
+    // Doppler mode specific handling
+  }
+
+  /**
+   * Handle mouse up events in doppler mode
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
+   */
+  handleMouseUp(_event, _dataCoords, _svgCoords) {
+    // Doppler mode specific handling
+  }
 
 
 
@@ -43,6 +71,7 @@ export class DopplerMode extends BaseMode {
    * @param {HTMLElement} readoutPanel - Container for UI elements
    */
   createUI(readoutPanel) {
+    // Initialize uiElements
     this.uiElements = {}
     
     // Create Speed LED display

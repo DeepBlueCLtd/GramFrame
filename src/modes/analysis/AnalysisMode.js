@@ -22,7 +22,93 @@ export class AnalysisMode extends BaseMode {
     `
   }
 
-  // Mouse event handlers removed - no display element
+  /**
+   * Handle mouse move events in analysis mode
+   * @param {MouseEvent} event - Mouse event
+   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {Object} svgCoords - SVG coordinates {x, y}
+   */
+  handleMouseMove(event, dataCoords, svgCoords) {
+    // Update cursor position in existing LED displays
+    this.updateCursorPosition(dataCoords)
+    
+    // Analysis mode specific handling can be added here
+  }
+
+  /**
+   * Handle mouse down events in analysis mode
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
+   */
+  handleMouseDown(_event, _dataCoords, _svgCoords) {
+    // Analysis mode specific click handling (e.g., placing markers)
+    // This will be implemented in future phases
+  }
+
+  /**
+   * Handle mouse up events in analysis mode
+   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {Object} _svgCoords - SVG coordinates {x, y} (unused in current implementation)
+   */
+  handleMouseUp(_event, _dataCoords, _svgCoords) {
+    // Analysis mode specific handling
+  }
+
+  /**
+   * Handle mouse leave events in analysis mode
+   */
+  handleMouseLeave() {
+    // Clear cursor position displays
+    this.clearCursorPosition()
+  }
+
+  /**
+   * Update cursor position in LED displays
+   * @param {Object} dataCoords - Data coordinates {freq, time}
+   */
+  updateCursorPosition(dataCoords) {
+    if (this.uiElements.freqLED) {
+      const freqValue = this.uiElements.freqLED.querySelector('.gram-frame-led-value')
+      if (freqValue) {
+        freqValue.textContent = dataCoords.freq.toFixed(1)
+      }
+    }
+    
+    if (this.uiElements.timeLED) {
+      const timeValue = this.uiElements.timeLED.querySelector('.gram-frame-led-value')
+      if (timeValue) {
+        timeValue.textContent = formatTime(dataCoords.time)
+      }
+    }
+  }
+
+  /**
+   * Clear cursor position displays
+   */
+  clearCursorPosition() {
+    if (this.uiElements.freqLED) {
+      const freqValue = this.uiElements.freqLED.querySelector('.gram-frame-led-value')
+      if (freqValue) {
+        freqValue.textContent = '0.00'
+      }
+    }
+    
+    if (this.uiElements.timeLED) {
+      const timeValue = this.uiElements.timeLED.querySelector('.gram-frame-led-value')
+      if (timeValue) {
+        timeValue.textContent = formatTime(0)
+      }
+    }
+  }
+
+  /**
+   * Render persistent features for analysis mode
+   */
+  renderPersistentFeatures() {
+    // Analysis mode persistent features (markers) will be implemented in future phases
+  }
 
 
 
@@ -37,6 +123,7 @@ export class AnalysisMode extends BaseMode {
    * @param {HTMLElement} readoutPanel - Container for UI elements
    */
   createUI(readoutPanel) {
+    // Initialize uiElements
     this.uiElements = {}
     
     // Create horizontal layout container
