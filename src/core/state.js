@@ -68,7 +68,8 @@ export const initialState = {
   zoom: {
     level: 1.0,  // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
     centerX: 0.5, // Center point X (0-1 normalized)
-    centerY: 0.5  // Center point Y (0-1 normalized)
+    centerY: 0.5,  // Center point Y (0-1 normalized)
+    panMode: false // Whether pan mode is active
   },
   // Add mode-specific state from mode classes
   ...buildModeInitialState()

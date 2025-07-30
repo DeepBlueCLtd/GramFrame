@@ -349,15 +349,6 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
     instance.axesGroup.appendChild(label)
   }
   
-  // Add axis title (rotated)
-  const title = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-  title.setAttribute('x', String(axisX - 45))
-  title.setAttribute('y', String(axisStartY + naturalHeight / 2))
-  title.setAttribute('text-anchor', 'middle')
-  title.setAttribute('class', 'gram-frame-axis-title')
-  title.setAttribute('transform', `rotate(-90, ${String(axisX - 45)}, ${String(axisStartY + naturalHeight / 2)})`)
-  title.textContent = 'Time'
-  instance.axesGroup.appendChild(title)
 }
 
 /**
@@ -414,14 +405,6 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
     instance.axesGroup.appendChild(label)
   }
   
-  // Add axis title
-  const title = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-  title.setAttribute('x', String(axisStartX + naturalWidth / 2))
-  title.setAttribute('y', String(axisY + 45))
-  title.setAttribute('text-anchor', 'middle')
-  title.setAttribute('class', 'gram-frame-axis-title')
-  title.textContent = 'Frequency'
-  instance.axesGroup.appendChild(title)
 }
 
 

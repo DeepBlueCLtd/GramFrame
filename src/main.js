@@ -198,6 +198,13 @@ export class GramFrame {
     zoomOutButton.title = 'Zoom Out'
     zoomOutButton.addEventListener('click', () => this._zoomOut())
     
+    // Pan toggle button
+    const panToggleButton = document.createElement('button')
+    panToggleButton.className = 'gram-frame-zoom-btn gram-frame-pan-toggle'
+    panToggleButton.textContent = '⟷'
+    panToggleButton.title = 'Toggle Pan Mode'
+    panToggleButton.addEventListener('click', () => this._togglePan())
+    
     // Reset zoom button
     const zoomResetButton = document.createElement('button')
     zoomResetButton.className = 'gram-frame-zoom-btn gram-frame-zoom-reset'
@@ -207,16 +214,18 @@ export class GramFrame {
     
     zoomContainer.appendChild(zoomInButton)
     zoomContainer.appendChild(zoomOutButton)
+    zoomContainer.appendChild(panToggleButton)
     zoomContainer.appendChild(zoomResetButton)
     
-    // Add to mode cell (next to other controls)
-    this.modeCell.appendChild(zoomContainer)
+    // Add to main panel (positioned over the spectrogram)
+    this.mainCell.appendChild(zoomContainer)
     
     // Store references
     this.zoomControls = {
       container: zoomContainer,
       zoomInButton,
       zoomOutButton,
+      panToggleButton,
       zoomResetButton
     }
   }
@@ -247,6 +256,36 @@ export class GramFrame {
   }
   
   /**
+   * Toggle pan mode
+   */
+  _togglePan() {
+    this.state.zoom.panMode = !this.state.zoom.panMode
+    
+    // Update button appearance
+    if (this.zoomControls && this.zoomControls.panToggleButton) {
+      if (this.state.zoom.panMode) {
+        this.zoomControls.panToggleButton.classList.add('active')
+        this.zoomControls.panToggleButton.title = 'Pan Mode Active - Click to disable'
+      } else {
+        this.zoomControls.panToggleButton.classList.remove('active')
+        this.zoomControls.panToggleButton.title = 'Toggle Pan Mode'
+      }
+    }
+    
+    // Update cursor style for SVG
+    if (this.svg) {
+      if (this.state.zoom.panMode && this.state.zoom.level > 1.0) {
+        this.svg.style.cursor = 'grab'
+      } else {
+        this.svg.style.cursor = 'crosshair'
+      }
+    }
+    
+    // Notify listeners
+    notifyStateListeners(this.state, this.stateListeners)
+  }
+  
+  /**
    * Set zoom level and center point
    * @param {number} level - Zoom level (1.0 = no zoom)
    * @param {number} centerX - Center X (0-1 normalized)
@@ -270,10 +309,40 @@ export class GramFrame {
       this.zoomControls.zoomInButton.disabled = (level >= 10.0)
       this.zoomControls.zoomOutButton.disabled = (level <= 1.0)
       this.zoomControls.zoomResetButton.disabled = (level === 1.0)
+      
+      // Update pan button visibility based on zoom level
+      if (level <= 1.0) {
+        this.zoomControls.panToggleButton.style.display = 'none'
+        this.state.zoom.panMode = false
+        this.zoomControls.panToggleButton.classList.remove('active')
+        if (this.svg) {
+          this.svg.style.cursor = 'crosshair'
+        }
+      } else {
+        this.zoomControls.panToggleButton.style.display = 'flex'
+      }
     }
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)
+  }
+  
+  /**
+   * Pan the image by adjusting the center point
+   * @param {number} deltaX - Change in X position (normalized -1 to 1)
+   * @param {number} deltaY - Change in Y position (normalized -1 to 1)
+   */
+  _panImage(deltaX, deltaY) {
+    if (this.state.zoom.level <= 1.0) {
+      return // No panning when not zoomed
+    }
+    
+    // Calculate new center point, constrained to valid range
+    const newCenterX = Math.max(0, Math.min(1, this.state.zoom.centerX + deltaX))
+    const newCenterY = Math.max(0, Math.min(1, this.state.zoom.centerY + deltaY))
+    
+    // Update zoom with new center point
+    this._setZoom(this.state.zoom.level, newCenterX, newCenterY)
   }
   
   /**

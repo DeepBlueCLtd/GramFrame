@@ -81,6 +81,7 @@
  * @property {number} level - Current zoom level (1.0 = no zoom)
  * @property {number} centerX - Center point X (0-1 normalized)
  * @property {number} centerY - Center point Y (0-1 normalized)
+ * @property {boolean} panMode - Whether pan mode is active
  */
 
 /**
