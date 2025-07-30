@@ -31,29 +31,62 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Handle mouse move events in harmonics mode
-   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {MouseEvent} _event - Mouse event
+   * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseMove(_event, _dataCoords) {
-    // Harmonics mode specific handling can be added here
+  handleMouseMove(_event, dataCoords) {
+    // Update cursor style based on whether we're hovering over a harmonic line
+    const harmonicSet = this.findHarmonicSetAtFrequency(dataCoords.freq)
+    if (harmonicSet && this.instance.spectrogramImage) {
+      this.instance.spectrogramImage.style.cursor = 'grab'
+    } else {
+      this.instance.spectrogramImage.style.cursor = 'crosshair'
+    }
+    
+    // Handle dragging if active
+    if (this.state.dragState.isDragging) {
+      this.handleHarmonicSetDrag()
+    }
   }
 
   /**
    * Handle mouse down events in harmonics mode
-   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {MouseEvent} event - Mouse event
+   * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseDown(_event, _dataCoords) {
-    // Harmonics mode specific handling
+  handleMouseDown(event, dataCoords) {
+    // Only handle left clicks
+    if (event.button !== 0) {
+      return
+    }
+    
+    // Check if clicking on existing harmonic line for dragging
+    const existingHarmonicSet = this.findHarmonicSetAtFrequency(dataCoords.freq)
+    
+    if (existingHarmonicSet) {
+      // Start dragging existing harmonic set
+      this.startHarmonicSetDrag(existingHarmonicSet, dataCoords)
+    } else {
+      // Create new harmonic set at click location
+      this.createHarmonicSetAtPosition(dataCoords)
+    }
   }
 
   /**
    * Handle mouse up events in harmonics mode
-   * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {MouseEvent} _event - Mouse event
+   * @param {Object} _dataCoords - Data coordinates {freq, time}
    */
   handleMouseUp(_event, _dataCoords) {
-    // Harmonics mode specific handling
+    // End dragging if active
+    if (this.state.dragState.isDragging) {
+      this.endHarmonicSetDrag()
+    }
+    
+    // Reset cursor
+    if (this.instance.spectrogramImage) {
+      this.instance.spectrogramImage.style.cursor = 'crosshair'
+    }
   }
 
 
@@ -203,11 +236,16 @@ export class HarmonicsMode extends BaseMode {
     
     this.state.harmonics.harmonicSets.push(harmonicSet)
     
-    
-    // Visual updates removed - no display element
+    // Update visual elements
     if (this.instance.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
     }
+    
+    // Trigger re-render of persistent features to show the new harmonic set
+    if (this.instance.featureRenderer) {
+      this.instance.featureRenderer.renderAllPersistentFeatures()
+    }
+    
     notifyStateListeners(this.state, this.instance.stateListeners)
     
     return harmonicSet
@@ -223,10 +261,16 @@ export class HarmonicsMode extends BaseMode {
     if (setIndex !== -1) {
       Object.assign(this.state.harmonics.harmonicSets[setIndex], updates)
       
-      // Visual updates removed - no display element
+      // Update visual elements
       if (this.instance.harmonicPanel) {
         updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
       }
+      
+      // Trigger re-render of persistent features to show updated harmonic set
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures()
+      }
+      
       notifyStateListeners(this.state, this.instance.stateListeners)
     }
   }
@@ -240,11 +284,16 @@ export class HarmonicsMode extends BaseMode {
     if (setIndex !== -1) {
       this.state.harmonics.harmonicSets.splice(setIndex, 1)
       
-      
-      // Visual updates removed - no display element
+      // Update visual elements
       if (this.instance.harmonicPanel) {
         updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
       }
+      
+      // Trigger re-render of persistent features to remove the harmonic set
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures()
+      }
+      
       notifyStateListeners(this.state, this.instance.stateListeners)
     }
   }
@@ -298,6 +347,76 @@ export class HarmonicsMode extends BaseMode {
       }
     }
     return null
+  }
+
+  /**
+   * Create a new harmonic set at the specified position
+   * @param {Object} dataCoords - Data coordinates {freq, time}
+   */
+  createHarmonicSetAtPosition(dataCoords) {
+    // Determine initial spacing based on click position and axis origin
+    const freqMin = this.state.config.freqMin
+    let initialSpacing
+    
+    if (freqMin > 0) {
+      // Origin > 0, position cursor at 10th harmonic
+      initialSpacing = dataCoords.freq / 10
+    } else {
+      // Origin at 0, position cursor at 5th harmonic
+      initialSpacing = dataCoords.freq / 5
+    }
+    
+    // Ensure minimum spacing
+    initialSpacing = Math.max(initialSpacing, 1.0)
+    
+    // Create harmonic set
+    this.addHarmonicSet(dataCoords.time, initialSpacing)
+  }
+
+  /**
+   * Start dragging a harmonic set
+   * @param {Object} harmonicSet - The harmonic set to drag
+   * @param {Object} dataCoords - Current cursor coordinates
+   */
+  startHarmonicSetDrag(harmonicSet, dataCoords) {
+    // Find which harmonic number the user clicked on
+    const clickedHarmonicNumber = this.findClickedHarmonicNumber(harmonicSet, dataCoords.freq)
+    
+    // Initialize drag state
+    this.state.dragState.isDragging = true
+    this.state.dragState.dragStartPosition = { ...dataCoords }
+    this.state.dragState.draggedHarmonicSetId = harmonicSet.id
+    this.state.dragState.originalSpacing = harmonicSet.spacing
+    this.state.dragState.originalAnchorTime = harmonicSet.anchorTime
+    this.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber
+    
+    // Change cursor to grabbing
+    if (this.instance.spectrogramImage) {
+      this.instance.spectrogramImage.style.cursor = 'grabbing'
+    }
+  }
+
+  /**
+   * End dragging a harmonic set
+   */
+  endHarmonicSetDrag() {
+    this.state.dragState.isDragging = false
+    this.state.dragState.dragStartPosition = null
+    this.state.dragState.draggedHarmonicSetId = null
+    this.state.dragState.originalSpacing = null
+    this.state.dragState.originalAnchorTime = null
+    this.state.dragState.clickedHarmonicNumber = null
+  }
+
+  /**
+   * Find which harmonic number was clicked
+   * @param {Object} harmonicSet - The harmonic set
+   * @param {number} freq - The clicked frequency
+   * @returns {number} The harmonic number (1, 2, 3, etc.)
+   */
+  findClickedHarmonicNumber(harmonicSet, freq) {
+    const harmonicNumber = Math.round(freq / harmonicSet.spacing)
+    return Math.max(1, harmonicNumber)
   }
 
   /**
@@ -373,6 +492,107 @@ export class HarmonicsMode extends BaseMode {
     showManualHarmonicModal(this.state, this.addHarmonicSet.bind(this))
   }
 
+  /**
+   * Render persistent features for harmonics mode
+   */
+  renderPersistentFeatures() {
+    if (!this.instance.cursorGroup || !this.state.harmonics?.harmonicSets) {
+      return
+    }
+    
+    // Clear existing harmonic lines
+    const existingHarmonics = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-line')
+    existingHarmonics.forEach(line => line.remove())
+    
+    // Render all harmonic sets
+    this.state.harmonics.harmonicSets.forEach(harmonicSet => {
+      this.renderHarmonicSet(harmonicSet)
+    })
+  }
+
+  /**
+   * Render a single harmonic set as vertical lines
+   * @param {Object} harmonicSet - Harmonic set to render
+   */
+  renderHarmonicSet(harmonicSet) {
+    if (!this.instance.cursorGroup) {
+      return
+    }
+    
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    const margins = this.state.axes.margins
+    const zoomLevel = this.state.zoom.level
+    const { timeMin, timeMax, freqMin, freqMax } = this.state.config
+    
+    // Calculate harmonic line height (20% of spectrogram height)
+    const lineHeightRatio = 0.2
+    let lineHeight, lineTop
+    
+    if (zoomLevel === 1.0) {
+      lineHeight = naturalHeight * lineHeightRatio
+      // Center the line on anchor time
+      const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
+      const anchorY = margins.top + normalizedAnchorTime * naturalHeight
+      lineTop = anchorY - lineHeight / 2
+    } else {
+      // Zoomed - calculate position based on current image transform
+      if (this.instance.spectrogramImage) {
+        const imageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
+        const imageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+        
+        lineHeight = imageHeight * lineHeightRatio
+        const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
+        const anchorY = imageTop + normalizedAnchorTime * imageHeight
+        lineTop = anchorY - lineHeight / 2
+      } else {
+        lineHeight = naturalHeight * lineHeightRatio
+        const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
+        const anchorY = margins.top + normalizedAnchorTime * naturalHeight
+        lineTop = anchorY - lineHeight / 2
+      }
+    }
+    
+    // Calculate frequency range to render
+    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
+    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
+    
+    // Render each harmonic line in this set
+    for (let h = minHarmonic; h <= maxHarmonic; h++) {
+      const harmonicFreq = h * harmonicSet.spacing
+      
+      // Calculate X position
+      const normalizedX = (harmonicFreq - freqMin) / (freqMax - freqMin)
+      let lineX
+      
+      if (zoomLevel === 1.0) {
+        lineX = margins.left + normalizedX * naturalWidth
+      } else {
+        if (this.instance.spectrogramImage) {
+          const imageLeft = parseFloat(this.instance.spectrogramImage.getAttribute('x') || String(margins.left))
+          const imageWidth = parseFloat(this.instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
+          lineX = imageLeft + normalizedX * imageWidth
+        } else {
+          lineX = margins.left + normalizedX * naturalWidth
+        }
+      }
+      
+      // Create harmonic line
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      line.setAttribute('class', 'gram-frame-harmonic-line')
+      line.setAttribute('data-harmonic-set-id', harmonicSet.id)
+      line.setAttribute('data-harmonic-number', String(h))
+      line.setAttribute('x1', String(lineX))
+      line.setAttribute('y1', String(lineTop))
+      line.setAttribute('x2', String(lineX))
+      line.setAttribute('y2', String(lineTop + lineHeight))
+      line.setAttribute('stroke', harmonicSet.color)
+      line.setAttribute('stroke-width', '2')
+      line.setAttribute('stroke-linecap', 'round')
+      line.setAttribute('opacity', '0.8')
+      
+      this.instance.cursorGroup.appendChild(line)
+    }
+  }
 
   /**
    * Get initial state for harmonics mode
@@ -383,7 +603,8 @@ export class HarmonicsMode extends BaseMode {
       harmonics: {
         baseFrequency: null,
         harmonicData: [],
-        harmonicSets: []
+        harmonicSets: [],
+        selectedColor: '#ff6b6b'
       },
       dragState: {
         isDragging: false,
