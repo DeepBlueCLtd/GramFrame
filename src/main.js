@@ -34,7 +34,7 @@ import {
   cleanupEventListeners
 } from './core/events.js'
 
-import { setupComponentTable } from './components/table.js'
+import { setupComponentTable, setupSpectrogramImage, updateSVGLayout, renderAxes } from './components/table.js'
 
 /**
  * GramFrame class - Main component implementation
@@ -57,7 +57,7 @@ export class GramFrame {
     /** @type {string} */
     this.instanceId = ''
     
-    /** @type {HTMLImageElement} */
+    /** @type {SVGImageElement} */
     this.spectrogramImage = null
     
     // Initialize DOM element properties (will be populated by setupComponentTable)
@@ -75,7 +75,14 @@ export class GramFrame {
     this.rateLED = null
     /** @type {HTMLElement} */
     this.colorPicker = null
-    // SVG removed - no display element
+    /** @type {SVGSVGElement} */
+    this.svg = null
+    /** @type {SVGGElement} */
+    this.cursorGroup = null
+    /** @type {SVGGElement} */
+    this.axesGroup = null
+    /** @type {SVGRectElement} */
+    this.imageClipRect = null
     
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)
@@ -109,7 +116,13 @@ export class GramFrame {
     // Create rate input
     this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
     
-    // Zoom controls removed - no display element
+    // Create zoom controls
+    this.createZoomControls()
+    
+    // Set up spectrogram image if we have one from config extraction
+    if (this.state.imageDetails.url) {
+      setupSpectrogramImage(this, this.state.imageDetails.url)
+    }
     
     // Harmonic management panel will be created by HarmonicsMode when activated
     
@@ -162,6 +175,125 @@ export class GramFrame {
   
   
   
+  
+  /**
+   * Create zoom control UI
+   */
+  createZoomControls() {
+    // Create zoom controls container
+    const zoomContainer = document.createElement('div')
+    zoomContainer.className = 'gram-frame-zoom-controls'
+    
+    // Zoom in button
+    const zoomInButton = document.createElement('button')
+    zoomInButton.className = 'gram-frame-zoom-btn'
+    zoomInButton.textContent = '+'
+    zoomInButton.title = 'Zoom In'
+    zoomInButton.addEventListener('click', () => this._zoomIn())
+    
+    // Zoom out button
+    const zoomOutButton = document.createElement('button')
+    zoomOutButton.className = 'gram-frame-zoom-btn'
+    zoomOutButton.textContent = '−'
+    zoomOutButton.title = 'Zoom Out'
+    zoomOutButton.addEventListener('click', () => this._zoomOut())
+    
+    // Reset zoom button
+    const zoomResetButton = document.createElement('button')
+    zoomResetButton.className = 'gram-frame-zoom-btn gram-frame-zoom-reset'
+    zoomResetButton.textContent = '1:1'
+    zoomResetButton.title = 'Reset Zoom'
+    zoomResetButton.addEventListener('click', () => this._zoomReset())
+    
+    zoomContainer.appendChild(zoomInButton)
+    zoomContainer.appendChild(zoomOutButton)
+    zoomContainer.appendChild(zoomResetButton)
+    
+    // Add to mode cell (next to other controls)
+    this.modeCell.appendChild(zoomContainer)
+    
+    // Store references
+    this.zoomControls = {
+      container: zoomContainer,
+      zoomInButton,
+      zoomOutButton,
+      zoomResetButton
+    }
+  }
+  
+  /**
+   * Zoom in by increasing zoom level
+   */
+  _zoomIn() {
+    const currentLevel = this.state.zoom.level
+    const newLevel = Math.min(currentLevel * 1.5, 10.0) // Max 10x zoom
+    this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+  }
+  
+  /**
+   * Zoom out by decreasing zoom level
+   */
+  _zoomOut() {
+    const currentLevel = this.state.zoom.level
+    const newLevel = Math.max(currentLevel / 1.5, 1.0) // Min 1x zoom
+    this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+  }
+  
+  /**
+   * Reset zoom to 1x
+   */
+  _zoomReset() {
+    this._setZoom(1.0, 0.5, 0.5)
+  }
+  
+  /**
+   * Set zoom level and center point
+   * @param {number} level - Zoom level (1.0 = no zoom)
+   * @param {number} centerX - Center X (0-1 normalized)
+   * @param {number} centerY - Center Y (0-1 normalized)
+   */
+  _setZoom(level, centerX, centerY) {
+    // Update state
+    this.state.zoom.level = level
+    this.state.zoom.centerX = centerX
+    this.state.zoom.centerY = centerY
+    
+    // Apply zoom transform
+    if (this.svg) {
+      import('./components/table.js').then(({ applyZoomTransform }) => {
+        applyZoomTransform(this)
+      })
+    }
+    
+    // Update zoom button states
+    if (this.zoomControls) {
+      this.zoomControls.zoomInButton.disabled = (level >= 10.0)
+      this.zoomControls.zoomOutButton.disabled = (level <= 1.0)
+      this.zoomControls.zoomResetButton.disabled = (level === 1.0)
+    }
+    
+    // Notify listeners
+    notifyStateListeners(this.state, this.stateListeners)
+  }
+  
+  /**
+   * Update axes when rate changes
+   */
+  _updateAxes() {
+    if (this.axesGroup) {
+      renderAxes(this)
+    }
+  }
+  
+  /**
+   * Handle resize events
+   */
+  _handleResize() {
+    if (this.svg) {
+      updateSVGLayout(this)
+      renderAxes(this)
+    }
+  }
   
   /**
    * Destroy the component and clean up resources
@@ -250,6 +382,11 @@ export class GramFrame {
       this.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(mode)
     }
     
+    // Update cursor indicators
+    if (this.featureRenderer) {
+      this.featureRenderer.renderAllPersistentFeatures()
+    }
+    
     // Cursor indicators removed - using CSS cursor only
     
     // CSS now handles cursor behavior properly, no need for explicit reset
@@ -292,6 +429,8 @@ export class GramFrame {
     
     // Update rate LED display (handled by updateLEDDisplays)
     
+    // Update axes to reflect rate change
+    this._updateAxes()
     
     // Notify listeners
     notifyStateListeners(this.state, this.stateListeners)

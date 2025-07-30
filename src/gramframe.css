@@ -99,6 +99,15 @@
 
 .gram-frame-axis-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 12px;
+  fill: #fff;
+  dominant-baseline: central;
+}
+
+.gram-frame-axis-title {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
   fill: #fff;
   dominant-baseline: central;
 }

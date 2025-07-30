@@ -21,7 +21,27 @@ export class FeatureRenderer {
    * Delegates to each mode's specialized rendering methods
    */
   renderAllPersistentFeatures() {
-    // Feature rendering removed - no display element
+    if (!this.instance.cursorGroup) {
+      return
+    }
+    
+    // Clear existing features
+    this.instance.cursorGroup.innerHTML = ''
+    
+    // Render analysis mode features (persistent markers)
+    if (this.hasAnalysisFeatures() && this.instance.modes.analysis) {
+      this.instance.modes.analysis.renderPersistentFeatures()
+    }
+    
+    // Render harmonic mode features (harmonic sets)
+    if (this.hasHarmonicFeatures() && this.instance.modes.harmonics) {
+      this.instance.modes.harmonics.renderPersistentFeatures()
+    }
+    
+    // Render doppler mode features (f+, f-, f0 markers and curves)
+    if (this.hasDopplerFeatures() && this.instance.modes.doppler) {
+      this.instance.modes.doppler.renderPersistentFeatures()
+    }
   }
 
   /**
@@ -60,6 +80,13 @@ export class FeatureRenderer {
    * Delegates to the current active mode
    */
   renderCurrentModeCursor() {
-    // Cursor rendering removed - no display element
+    if (!this.instance.cursorGroup || !this.instance.currentMode) {
+      return
+    }
+    
+    // Delegate to current mode for cursor rendering
+    if (typeof this.instance.currentMode.renderCursor === 'function') {
+      this.instance.currentMode.renderCursor()
+    }
   }
 }

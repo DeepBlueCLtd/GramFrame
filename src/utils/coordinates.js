@@ -12,46 +12,38 @@
 
 /**
  * Convert screen coordinates to SVG coordinates
- * @param {number} screenX - Screen X coordinate
- * @param {number} screenY - Screen Y coordinate
+ * @param {number} screenX - Screen X coordinate relative to SVG element
+ * @param {number} screenY - Screen Y coordinate relative to SVG element
  * @param {SVGSVGElement} svg - SVG element reference
  * @param {Object} imageDetails - Image dimensions
  * @param {number} imageDetails.naturalWidth - Natural width of image
  * @param {number} imageDetails.naturalHeight - Natural height of image
  * @returns {SVGCoordinates} SVG coordinates
  */
-export function screenToSVGCoordinates(screenX, screenY, svg, imageDetails) {
+export function screenToSVGCoordinates(screenX, screenY, svg, _imageDetails) {
   const svgRect = svg.getBoundingClientRect()
   const viewBox = svg.viewBox.baseVal
   
-  // If viewBox is not set, fall back to using image natural dimensions
-  if (!viewBox || viewBox.width === 0 || viewBox.height === 0) {
-    if (imageDetails.naturalWidth && imageDetails.naturalHeight) {
-      const scaleX = imageDetails.naturalWidth / svgRect.width
-      const scaleY = imageDetails.naturalHeight / svgRect.height
-      return {
-        x: screenX * scaleX,
-        y: screenY * scaleY
-      }
+  // Use viewBox if available, otherwise calculate from image dimensions + margins
+  if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+    // Scale factors between screen and SVG coordinates
+    const scaleX = viewBox.width / svgRect.width
+    const scaleY = viewBox.height / svgRect.height
+    
+    return {
+      x: (screenX * scaleX) + viewBox.x,
+      y: (screenY * scaleY) + viewBox.y
     }
-    // Default fallback - use screen coordinates
-    return { x: screenX, y: screenY }
   }
   
-  // Scale factors between screen and SVG coordinates
-  const scaleX = viewBox.width / svgRect.width
-  const scaleY = viewBox.height / svgRect.height
-  
-  return {
-    x: screenX * scaleX,
-    y: screenY * scaleY
-  }
+  // Fallback: assume SVG coordinates match screen coordinates
+  return { x: screenX, y: screenY }
 }
 
 
 /**
  * Convert image-relative coordinates to data coordinates (time and frequency)
- * @param {number} imageX - Image X coordinate
+ * @param {number} imageX - Image X coordinate  
  * @param {number} imageY - Image Y coordinate
  * @param {Object} config - Configuration object
  * @param {number} config.freqMin - Minimum frequency
@@ -73,7 +65,9 @@ export function imageToDataCoordinates(imageX, imageY, config, imageDetails, rat
   const boundedY = Math.max(0, Math.min(imageY, naturalHeight))
   
   // Convert to data coordinates
+  // X-axis = Frequency (horizontal)
   const rawFreq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
+  // Y-axis = Time (vertical, with time increasing upward, Y=0 at top)
   const time = timeMax - (boundedY / naturalHeight) * (timeMax - timeMin)
   
   // Apply rate scaling to frequency - rate acts as a frequency divider
@@ -104,7 +98,9 @@ export function dataToSVGCoordinates(freq, time, config, imageDetails, rate) {
   // Convert frequency back to raw frequency space for positioning
   const rawFreq = freq * rate
   
+  // X-axis = Frequency (horizontal)
   const x = ((rawFreq - freqMin) / (freqMax - freqMin)) * naturalWidth
+  // Y-axis = Time (vertical, with time increasing upward, Y=0 at top)
   const y = naturalHeight - ((time - timeMin) / (timeMax - timeMin)) * naturalHeight
   
   return { x, y }

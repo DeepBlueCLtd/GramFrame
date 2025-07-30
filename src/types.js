@@ -76,6 +76,14 @@
  */
 
 /**
+ * Zoom state configuration
+ * @typedef {Object} ZoomState
+ * @property {number} level - Current zoom level (1.0 = no zoom)
+ * @property {number} centerX - Center point X (0-1 normalized)
+ * @property {number} centerY - Center point Y (0-1 normalized)
+ */
+
+/**
  * Main component state object
  * @typedef {Object} GramFrameState
  * @property {string} version - Component version
@@ -93,6 +101,7 @@
  * @property {Config} config - Time and frequency configuration
  * @property {DisplayDimensions} displayDimensions - Current display dimensions
  * @property {AxesConfig} axes - Axes configuration
+ * @property {ZoomState} zoom - Zoom state configuration
  */
 
 /**
