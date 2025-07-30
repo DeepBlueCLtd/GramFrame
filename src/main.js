@@ -159,11 +159,15 @@ export class GramFrame {
       this.modes[modeName] = ModeFactory.createMode(modeName, this, this.state)
     })
     
+    // Initialize all persistent containers with their respective content
+    // Analysis markers in middle column (always visible)
+    this.modes['analysis'].createUI(this.markersContainer)
+    
+    // Harmonics sets in right column (always visible)  
+    this.modes['harmonics'].createUI(this.harmonicsContainer)
+    
     // Set initial mode (analysis by default)
     this.currentMode = this.modes['analysis']
-    
-    // Initialize mode-specific content in the unified layout
-    this.currentMode.createUI(this.middleColumn) // Analysis markers go in middle column
     
     // Initialize guidance panel with analysis mode guidance
     if (this.guidancePanel) {
@@ -210,15 +214,12 @@ export class GramFrame {
     this.leftColumn.style.minWidth = '200px'
     
     // Create universal cursor readouts
-    const cursorContainer = createFullFlexLayout('gram-frame-cursor-leds', '6px')
+    const cursorContainer = document.createElement('div')
+    cursorContainer.className = 'gram-frame-cursor-leds'
     this.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
-    this.timeLED.style.flex = '1'
-    this.timeLED.style.minWidth = '0'
     cursorContainer.appendChild(this.timeLED)
     
     this.freqLED = createLEDDisplay('Frequency (Hz)', '0.0')
-    this.freqLED.style.flex = '1' 
-    this.freqLED.style.minWidth = '0'
     cursorContainer.appendChild(this.freqLED)
     
     this.leftColumn.appendChild(cursorContainer)
@@ -297,6 +298,38 @@ export class GramFrame {
       const freqValue = this.freqLED.querySelector('.gram-frame-led-value')
       if (freqValue) {
         freqValue.textContent = dataCoords.freq.toFixed(1)
+      }
+    }
+  }
+  
+  /**
+   * Update persistent panels (markers and harmonics) regardless of active mode
+   */
+  updatePersistentPanels() {
+    // Update analysis markers table
+    const analysisMode = /** @type {any} */ (this.modes['analysis'])
+    if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
+      analysisMode.updateMarkersTable()
+    }
+    
+    // Update harmonics panel - ensure panel reference is always available
+    const harmonicsMode = /** @type {any} */ (this.modes['harmonics'])
+    if (harmonicsMode) {
+      console.log('updatePersistentPanels: harmonicsMode.instance.harmonicPanel:', harmonicsMode.instance.harmonicPanel)
+      console.log('harmonicsContainer display style:', this.harmonicsContainer ? this.harmonicsContainer.style.display : 'no container')
+      console.log('harmonicsContainer visibility:', this.harmonicsContainer ? getComputedStyle(this.harmonicsContainer).visibility : 'no container')
+      // Make sure the panel reference is set
+      if (!harmonicsMode.instance.harmonicPanel && this.harmonicsContainer) {
+        const existingPanel = this.harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
+        console.log('Found existing panel in container:', existingPanel)
+        if (existingPanel) {
+          console.log('Restoring harmonicPanel reference:', existingPanel)
+          harmonicsMode.instance.harmonicPanel = existingPanel
+        }
+      }
+      
+      if (typeof harmonicsMode.updateHarmonicPanel === 'function') {
+        harmonicsMode.updateHarmonicPanel()
       }
     }
   }
@@ -571,31 +604,15 @@ export class GramFrame {
     
     // Switch to new mode instance and activate it (all modes now use polymorphic pattern)
     if (this.currentMode) {
+      console.log('Before cleanup/deactivate, harmonics panel:', this.modes['harmonics'].instance.harmonicPanel)
       this.currentMode.cleanup()
       this.currentMode.deactivate()
+      console.log('After cleanup/deactivate, harmonics panel:', this.modes['harmonics'].instance.harmonicPanel)
     }
     this.currentMode = this.modes[mode]
     
-    // Clear mode-specific containers without destroying the unified layout
-    if (this.markersContainer) {
-      // Keep the label, clear only the content
-      const children = Array.from(this.markersContainer.children)
-      children.slice(1).forEach(child => child.remove()) // Remove all but the first child (label)
-    }
-    if (this.harmonicsContainer) {
-      // Keep the label, clear only the content  
-      const children = Array.from(this.harmonicsContainer.children)
-      children.slice(1).forEach(child => child.remove()) // Remove all but the first child (label)
-    }
-    
-    // Create UI for new mode in appropriate container
-    if (mode === 'analysis') {
-      this.currentMode.createUI(this.markersContainer)
-    } else if (mode === 'harmonics') {
-      this.currentMode.createUI(this.harmonicsContainer)
-    } else if (mode === 'doppler') {
-      this.currentMode.createUI(this.leftColumn) // Doppler uses left column for speed display
-    }
+    // The unified layout containers should always display their content
+    // No need to clear/recreate UI since all tables should be persistent
     
     this.currentMode.activate()
     
@@ -614,6 +631,9 @@ export class GramFrame {
     if (this.modeLED) {
       this.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(mode)
     }
+    
+    // Update persistent panels regardless of active mode
+    this.updatePersistentPanels()
     
     // Update cursor indicators
     if (this.featureRenderer) {

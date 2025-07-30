@@ -212,6 +212,10 @@ export class AnalysisMode extends BaseMode {
     // Create markers table in the persistent container
     this.createMarkersTable(markersContainer)
     
+    // Store references to existing table elements if they exist
+    this.uiElements.markersTable = markersContainer.querySelector('.gram-frame-markers-table')
+    this.uiElements.markersTableBody = markersContainer.querySelector('.gram-frame-markers-table tbody')
+    
     // Store references for central color picker and LEDs (managed by unified layout)
     this.instance.colorPicker = this.instance.colorPicker || null
     this.instance.timeLED = this.instance.timeLED || null
@@ -223,6 +227,11 @@ export class AnalysisMode extends BaseMode {
    * @param {HTMLElement} markersContainer - Persistent container for markers (already has label)
    */
   createMarkersTable(markersContainer) {
+    // Check if table already exists to prevent duplicates
+    if (markersContainer.querySelector('.gram-frame-markers-table')) {
+      return
+    }
+    
     // The container already has a label, so we just add the table wrapper
     
     const tableWrapper = document.createElement('div')
@@ -447,10 +456,10 @@ export class AnalysisMode extends BaseMode {
    */
   destroyUI() {
     // Central LEDs and color picker are managed by unified layout
-    // Only clean up mode-specific elements
+    // Markers table and container are persistent and should not be removed
     
-    // Call parent destroy to remove all UI elements
-    super.destroyUI()
+    // Don't call super.destroyUI() because it removes persistent elements from DOM
+    // Analysis mode elements are all persistent, so no cleanup needed
   }
 
   /**

@@ -128,24 +128,12 @@
 }
 
 .gram-frame-readout {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex: 0 1 auto;
   padding: 0;
   background: transparent;
-  justify-content: flex-end;
-  align-items: center;
-  flex-shrink: 0;
-  width: 500px;
-  max-width: 500px;
 }
 
-/* Harmonics mode: reset readout panel to use full height */
-.gram-frame-harmonics-mode .gram-frame-readout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
+/* Harmonics mode CSS removed - now using unified layout */
 
 /* Harmonics layout container - two columns */
 .gram-frame-harmonics-layout {
@@ -206,6 +194,7 @@
   border-radius: 4px;
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   min-width: 100px;
   text-align: center;
   box-shadow: 
@@ -214,6 +203,7 @@
     0 2px 4px rgba(0,0,0,0.5);
   position: relative;
   font-size: 11px;
+  height: fit-content;
 }
 
 .gram-frame-led:before {
@@ -291,6 +281,8 @@
     inset 0 2px 6px rgba(0,0,0,0.8),
     inset 0 -1px 2px rgba(255,255,255,0.05),
     0 2px 4px rgba(0,0,0,0.5);
+  max-width: 200px;
+  flex-shrink: 0;
 }
 
 .gram-frame-color-picker-label {
@@ -309,7 +301,8 @@
 }
 
 .gram-frame-color-canvas {
-  width: 100%;
+  width: 180px;
+  max-width: 180px;
   height: 20px;
   border: 1px solid #555;
   border-radius: 2px;
@@ -446,7 +439,7 @@
   display: flex;
   gap: 20px;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .gram-frame-modes {
@@ -455,6 +448,7 @@
   gap: 8px;
   justify-content: center;
   align-items: stretch;
+  flex: 0 0 auto;
   flex-shrink: 0;
 }
 
@@ -1138,6 +1132,10 @@
 .gram-frame-cursor-leds {
   display: flex;
   gap: 6px;
+  flex-direction: row;
+  align-items: flex-start;
+  flex: 0 0 auto;
+  height: fit-content;
 }
 
 .gram-frame-markers-persistent-container,

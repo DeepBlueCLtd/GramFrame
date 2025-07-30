@@ -111,9 +111,21 @@ export class HarmonicsMode extends BaseMode {
   createUI(harmonicsContainer) {
     // Initialize uiElements
     this.uiElements = {}
+
+    console.log('create harmonics tabke')
     
     // Use the provided persistent harmonics container (already has label)
     this.uiElements.harmonicsContainer = harmonicsContainer
+    
+    // Check if UI already exists to prevent duplicates
+    if (harmonicsContainer.querySelector('.gram-frame-harmonics-button-container')) {
+      // Find existing elements and store references
+      this.uiElements.manualButton = harmonicsContainer.querySelector('.gram-frame-manual-button')
+      this.uiElements.harmonicPanel = harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
+      console.log('Setting harmonicPanel reference (existing UI):', this.uiElements.harmonicPanel)
+      this.instance.harmonicPanel = this.uiElements.harmonicPanel
+      return
+    }
     
     // Create manual button container at the top
     const buttonContainer = document.createElement('div')
@@ -130,6 +142,7 @@ export class HarmonicsMode extends BaseMode {
     this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer)
     
     // Store references on instance for compatibility
+    console.log('Setting harmonicPanel reference (new UI):', this.uiElements.harmonicPanel)
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
     
     // Central color picker is managed by unified layout
@@ -180,14 +193,26 @@ export class HarmonicsMode extends BaseMode {
    * Destroy mode-specific UI elements when leaving this mode
    */
   destroyUI() {
+    console.log('HarmonicsMode destroyUI called, harmonicPanel before:', this.instance.harmonicPanel)
     // Central color picker is managed by unified layout
-    // Only clean up mode-specific elements
-    if (this.instance.harmonicPanel === this.uiElements.harmonicPanel) {
-      this.instance.harmonicPanel = null
+    // Harmonics panel and container are persistent and should not be removed
+    // Only remove non-persistent elements if any
+    
+    // Don't call super.destroyUI() because it removes persistent elements from DOM
+    // Instead, just clear references to non-persistent elements
+    if (this.uiElements) {
+      // Keep references to persistent elements
+      const persistentElements = {
+        harmonicsContainer: this.uiElements.harmonicsContainer,
+        harmonicPanel: this.uiElements.harmonicPanel,
+        manualButton: this.uiElements.manualButton
+      }
+      
+      // Only remove non-persistent elements (none in this case)
+      // this.uiElements = persistentElements
     }
     
-    // Call parent destroy to remove all UI elements
-    super.destroyUI()
+    console.log('HarmonicsMode destroyUI finished, harmonicPanel after:', this.instance.harmonicPanel)
   }
 
   /**
@@ -479,8 +504,11 @@ export class HarmonicsMode extends BaseMode {
    * Update harmonic management panel
    */
   updateHarmonicPanel() {
+    console.log('updateHarmonicPanel called, harmonicPanel value:', this.instance.harmonicPanel)
     if (this.instance.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
+    } else {
+      console.log('harmonicPanel is null/undefined, cannot update')
     }
   }
 

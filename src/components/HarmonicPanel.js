@@ -13,9 +13,6 @@ export function createHarmonicPanel(container) {
   const panel = document.createElement('div')
   panel.className = 'gram-frame-harmonic-panel'
   panel.innerHTML = `
-    <div class="gram-frame-harmonic-header">
-      <h4>Harmonic Sets</h4>
-    </div>
     <div class="gram-frame-harmonic-list">
       <table class="gram-frame-harmonic-table">
         <thead>
@@ -42,12 +39,22 @@ export function createHarmonicPanel(container) {
  * @param {Object} instance - GramFrame instance
  */
 export function updateHarmonicPanelContent(panel, instance) {
-  if (!panel) return
+  console.log('updateHarmonicPanelContent called with panel:', panel)
+  if (!panel) {
+    console.log('panel is null/undefined, returning')
+    return
+  }
   
   const listContainer = panel.querySelector('.gram-frame-harmonic-list')
-  if (!listContainer) return
+  console.log('listContainer found:', listContainer)
+  if (!listContainer) {
+    console.log('listContainer not found, returning')
+    return
+  }
   
   const harmonicSets = instance.state.harmonics.harmonicSets
+  console.log('harmonicSets to display:', harmonicSets)
+  console.log('instance.state.harmonics:', instance.state.harmonics)
   
   // Always create table structure with headers, populate tbody based on harmonic sets
   const tableBodyHTML = harmonicSets.length === 0 ? '' : harmonicSets.map(harmonicSet => {
@@ -93,7 +100,9 @@ export function updateHarmonicPanelContent(panel, instance) {
     </table>
   `
   
+  console.log('Setting listContainer.innerHTML to:', tableHTML)
   listContainer.innerHTML = tableHTML
+  console.log('listContainer after setting innerHTML:', listContainer)
   
   // Add event listeners for delete buttons
   const deleteButtons = listContainer.querySelectorAll('.gram-frame-harmonic-delete')

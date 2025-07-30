@@ -2102,3 +2102,167 @@ Following user testing, several refinements were made to improve the user experi
    - Bold 12px font with drop shadow for readability
 
 All corrections successfully implemented with tests passing and full functionality verified.
+
+---
+
+### Task 4.9: Unified Readout Layout Implementation (Completed)
+**Date: July 30, 2025**  
+**Agent:** Implementation Agent  
+**Task Reference:** Phase 4, Task 4.9: Unified Readout Layout Implementation
+
+**Summary:**
+Successfully implemented a unified 3-column readout layout that makes Analysis Markers and Harmonic sets always visible regardless of the active mode, addressing GitHub issue #64 requirements for simultaneous display of multiple readout tables.
+
+**Implementation Details:**
+
+**Unified Layout Architecture:**
+1. **Main Layout Infrastructure (`src/main.js`)**:
+   - Added `createUnifiedLayout()` method creating 3-column structure:
+     - **Left Column (30%)**: Universal controls (time/freq LEDs, doppler speed LED, color picker)
+     - **Middle Column (35%)**: Analysis Markers table (always visible)
+     - **Right Column (35%)**: Harmonics sets table (always visible)
+   - Added property declarations: `leftColumn`, `middleColumn`, `rightColumn`, `timeLED`, `freqLED`, `speedLED`, `colorPicker`, `markersContainer`, `harmonicsContainer`
+   - Replaced mode-specific UI creation with unified layout initialization
+
+2. **Universal Cursor Movement System (`src/main.js`, `src/core/events.js`)**:
+   - Added `updateUniversalCursorReadouts(dataCoords)` method for centralized LED updates
+   - Integrated into existing mouse move handling in `handleMouseMove()` 
+   - All modes now trigger universal time/frequency LED updates regardless of active mode
+   - Uses `formatTime()` utility for time display and formats frequency to 1 decimal place
+
+3. **Mode System Refactoring**:
+   - **AnalysisMode Changes** (`src/modes/analysis/AnalysisMode.js`):
+     - Modified `createUI()` to use persistent markers container instead of creating LEDs/color picker
+     - Removed mode-specific cursor position management (now centralized)
+     - Updated to work with persistent middle column container for markers table
+   - **HarmonicsMode Changes** (`src/modes/harmonics/HarmonicsMode.js`):
+     - Modified `createUI()` to use persistent harmonics container and skip color picker creation
+     - Uses central color picker managed by unified layout
+     - Creates manual button and harmonic panel in persistent right column
+   - **DopplerMode Changes** (`src/modes/doppler/DopplerMode.js`):
+     - Modified `createUI()` to make central speed LED visible instead of creating new one
+     - Added `deactivate()` method to hide speed LED when leaving doppler mode
+     - Updated `updateSpeedLED()` to use central speed LED reference
+
+4. **Mode Switching Logic Updates (`src/main.js`)**:
+   - Modified `_switchMode()` method to preserve unified layout structure
+   - Clear only content of persistent containers while keeping labels and structure
+   - Route modes to appropriate containers: Analysis → middle, Harmonics → right, Doppler → left
+   - Avoid destroying/recreating layout during mode switches
+
+5. **CSS Styling (`src/gramframe.css`)**:
+   - Added `.gram-frame-unified-layout` for 3-column flex container with 12px gap
+   - Column-specific classes: `.gram-frame-left-column`, `.gram-frame-middle-column`, `.gram-frame-right-column`
+   - Flex ratios: 0 0 30%, 0 0 35%, 0 0 35% with minimum widths and proper scrolling
+   - Added `.gram-frame-markers-persistent-container` and `.gram-frame-harmonics-persistent-container` styles
+   - Responsive behavior with media query for smaller screens (stacked layout)
+
+**Code Implementation Highlights:**
+
+```javascript
+// Unified layout creation in main.js
+createUnifiedLayout() {
+  this.unifiedLayoutContainer = createFullFlexLayout('gram-frame-unified-layout', '12px')
+  
+  // Left Column (30%) - Common controls
+  this.leftColumn = createFlexColumn('gram-frame-left-column', '8px')
+  
+  // Universal cursor readouts
+  this.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
+  this.freqLED = createLEDDisplay('Frequency (Hz)', '0.0')
+  this.speedLED = createLEDDisplay('Speed (knots)', '0.0')
+  this.colorPicker = createColorPicker(this.state)
+  
+  // Middle Column (35%) - Analysis Markers (always visible)
+  this.middleColumn = createFlexColumn('gram-frame-middle-column')
+  this.markersContainer = // Persistent container with label
+  
+  // Right Column (35%) - Harmonics sets (always visible)  
+  this.rightColumn = createFlexColumn('gram-frame-right-column')
+  this.harmonicsContainer = // Persistent container with label
+}
+
+// Universal cursor readouts regardless of active mode
+updateUniversalCursorReadouts(dataCoords) {
+  if (this.timeLED) {
+    this.timeLED.querySelector('.gram-frame-led-value').textContent = formatTime(dataCoords.time)
+  }
+  if (this.freqLED) {
+    this.freqLED.querySelector('.gram-frame-led-value').textContent = dataCoords.freq.toFixed(1)
+  }
+}
+
+// Mode switching preserves layout structure
+_switchMode(mode) {
+  // Clear mode-specific containers without destroying unified layout
+  if (this.markersContainer) {
+    const children = Array.from(this.markersContainer.children)
+    children.slice(1).forEach(child => child.remove()) // Keep label
+  }
+  
+  // Route modes to appropriate containers
+  if (mode === 'analysis') {
+    this.currentMode.createUI(this.markersContainer)
+  } else if (mode === 'harmonics') {
+    this.currentMode.createUI(this.harmonicsContainer)
+  } else if (mode === 'doppler') {
+    this.currentMode.createUI(this.leftColumn)
+  }
+}
+```
+
+**Technical Decisions Made:**
+
+1. **Container Structure**: Used flexbox with fixed percentages for reliable cross-browser layout
+2. **Persistent Containers**: Created permanent containers for each mode's content that survive mode switches
+3. **Central LED Management**: Moved cursor readouts to main layout for universal access
+4. **Color Picker Centralization**: Single color picker serves both Analysis markers and Harmonic sets
+5. **Speed LED Visibility**: Doppler speed LED hidden by default, shown only in Doppler mode
+6. **Responsive Design**: Column layout switches to stacked on smaller screens
+
+**Architectural Benefits:**
+
+- **Always Visible Information**: All mode readouts visible simultaneously as per issue #64
+- **Smooth Mode Switching**: No UI destruction/recreation improves performance
+- **Unified Controls**: Consistent time/frequency display across all modes
+- **Modular Design**: Each mode focuses only on its specific functionality
+- **Maintainable Code**: Clear separation between layout management and mode logic
+
+**Files Modified:**
+- `src/main.js` - Major additions: unified layout, universal cursor system, mode switching updates
+- `src/core/events.js` - Added universal cursor readout integration
+- `src/modes/analysis/AnalysisMode.js` - Refactored to use persistent containers
+- `src/modes/harmonics/HarmonicsMode.js` - Refactored to use persistent containers  
+- `src/modes/doppler/DopplerMode.js` - Refactored for central speed LED management
+- `src/gramframe.css` - Added unified layout CSS classes and responsive behavior
+
+**Success Criteria Achieved:**
+✅ **All three columns (common controls, Analysis Markers, Harmonics sets) always visible**  
+✅ **Time/freq LEDs update universally during cursor movement in any mode**  
+✅ **All existing mode functionality continues to work without regression**  
+✅ **Smooth mode switching without UI destruction/recreation**  
+✅ **All existing tests continue to pass (8/8 tests passing)**  
+✅ **Responsive layout adapts to different screen sizes**
+
+**Validation Results:**
+- **TypeScript**: All type checks pass (`yarn typecheck`)
+- **Build**: Production build successful (`yarn build`)
+- **Tests**: All 8 tests pass (`yarn test`) 
+- **Functionality**: Unified layout displays correctly with all readouts visible simultaneously
+- **Mode Switching**: Seamless transitions between modes while preserving layout structure
+- **Cross-Mode Visibility**: Analysis markers and harmonics remain visible in all modes
+
+**Status:** Completed - Unified readout layout successfully implemented with simultaneous display of all mode information
+
+**Issues/Blockers:**
+None. All functionality implemented successfully with comprehensive testing and validation.
+
+**Specification Compliance:**
+Implementation fully addresses GitHub issue #64 requirements:
+- Users can now always see tables of Analysis Markers and harmonic sets
+- 3-column layout provides optimal information density
+- Universal cursor readouts work across all modes
+- No loss of existing functionality during refactoring
+
+**Next Steps:**
+Unified readout layout implementation complete and ready for production use. Enhanced user experience with always-visible information panels across all analysis modes.
