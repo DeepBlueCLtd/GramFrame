@@ -5,7 +5,7 @@
 * **Reference Implementation Plan:** This assignment corresponds to the Doppler Mode implementation as described in `docs/Doppler-Calc.md` and extends the modular mode system established in Phase 4.
 * **Objective:** Implement complete user interaction handling for Doppler mode, including marker placement, dragging, curve rendering, and speed calculations.
 * **Detailed Action Steps:**
-**Note:**  this file of legacy code includes functionality/code that could prove useful in implementation of this feature, including doppler curve creation, rendering, and dragging: https://github.com/DeepBlueCLtd/GramFrame/blob/main/src/modes/doppler/DopplerMode.js
+  **Note:**  this file of legacy code includes functionality/code that could prove useful in implementation of this feature, including doppler curve creation, rendering, and dragging: https://raw.githubusercontent.com/DeepBlueCLtd/GramFrame/refs/heads/main/src/modes/doppler/DopplerMode.js
 
   1. Implement marker placement interaction workflow
      - Handle first click to place f+ (fPlus) marker at cursor position
