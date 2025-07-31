@@ -65,6 +65,8 @@ export const initialState = {
   // Simple zoom state for transform-based zoom
   zoom: {
     level: 1.0,  // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
+    levelX: 1.0, // X-axis zoom level (for aspect ratio changes)
+    levelY: 1.0, // Y-axis zoom level (for aspect ratio changes)
     centerX: 0.5, // Center point X (0-1 normalized)
     centerY: 0.5,  // Center point Y (0-1 normalized)
     panMode: false, // Whether pan mode is active

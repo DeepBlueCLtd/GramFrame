@@ -447,12 +447,20 @@ export class GramFrame {
     // If we have zoom history, go back to previous state
     if (this.state.zoom.zoomHistory.length > 0) {
       const previousState = this.state.zoom.zoomHistory.pop()
-      this._setZoom(previousState.level, previousState.centerX, previousState.centerY)
+      if (previousState.levelX && previousState.levelY) {
+        // Restore separate X and Y levels if they exist
+        this._setZoomXY(previousState.levelX, previousState.levelY, previousState.centerX, previousState.centerY)
+      } else {
+        // Fallback to uniform zoom for older history entries
+        this._setZoom(previousState.level, previousState.centerX, previousState.centerY)
+      }
     } else {
       // Otherwise, just zoom out by factor
-      const currentLevel = this.state.zoom.level
-      const newLevel = Math.max(currentLevel / 1.5, 1.0) // Min 1x zoom
-      this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+      const currentLevelX = this.state.zoom.levelX || this.state.zoom.level
+      const currentLevelY = this.state.zoom.levelY || this.state.zoom.level
+      const newLevelX = Math.max(currentLevelX / 1.5, 1.0) // Min 1x zoom
+      const newLevelY = Math.max(currentLevelY / 1.5, 1.0) // Min 1x zoom
+      this._setZoomXY(newLevelX, newLevelY, this.state.zoom.centerX, this.state.zoom.centerY)
     }
   }
   
@@ -545,13 +553,44 @@ export class GramFrame {
   
   /**
    * Set zoom level and center point
-   * @param {number} level - Zoom level (1.0 = no zoom)
+   * @param {number} level - Uniform zoom level (1.0 = no zoom)
    * @param {number} centerX - Center X (0-1 normalized)
    * @param {number} centerY - Center Y (0-1 normalized)
    */
   _setZoom(level, centerX, centerY) {
-    // Update state
+    // Update state with uniform scaling
     this.state.zoom.level = level
+    this.state.zoom.levelX = level
+    this.state.zoom.levelY = level
+    this.state.zoom.centerX = centerX
+    this.state.zoom.centerY = centerY
+    
+    // Apply zoom transform
+    if (this.svg) {
+      import('./components/table.js').then(({ applyZoomTransform }) => {
+        applyZoomTransform(this)
+      })
+    }
+    
+    // Update zoom button states
+    this._updateZoomControlStates()
+    
+    // Notify listeners
+    notifyStateListeners(this.state, this.stateListeners)
+  }
+  
+  /**
+   * Set separate zoom levels for X and Y axes (aspect ratio change)
+   * @param {number} levelX - X-axis zoom level (1.0 = no zoom)
+   * @param {number} levelY - Y-axis zoom level (1.0 = no zoom)
+   * @param {number} centerX - Center X (0-1 normalized)
+   * @param {number} centerY - Center Y (0-1 normalized)
+   */
+  _setZoomXY(levelX, levelY, centerX, centerY) {
+    // Update state with separate X and Y scaling
+    this.state.zoom.level = Math.max(levelX, levelY) // Keep level for backward compatibility
+    this.state.zoom.levelX = levelX
+    this.state.zoom.levelY = levelY
     this.state.zoom.centerX = centerX
     this.state.zoom.centerY = centerY
     
@@ -575,7 +614,10 @@ export class GramFrame {
    * @param {number} deltaY - Change in Y position (normalized -1 to 1)
    */
   _panImage(deltaX, deltaY) {
-    if (this.state.zoom.level <= 1.0) {
+    const levelX = this.state.zoom.levelX || this.state.zoom.level
+    const levelY = this.state.zoom.levelY || this.state.zoom.level
+    
+    if (levelX <= 1.0 && levelY <= 1.0) {
       return // No panning when not zoomed
     }
     
@@ -583,8 +625,8 @@ export class GramFrame {
     const newCenterX = Math.max(0, Math.min(1, this.state.zoom.centerX + deltaX))
     const newCenterY = Math.max(0, Math.min(1, this.state.zoom.centerY + deltaY))
     
-    // Update zoom with new center point
-    this._setZoom(this.state.zoom.level, newCenterX, newCenterY)
+    // Update zoom with new center point, preserving separate X and Y levels
+    this._setZoomXY(levelX, levelY, newCenterX, newCenterY)
   }
   
   /**
@@ -680,23 +722,26 @@ export class GramFrame {
     // Save current zoom state to history
     this.state.zoom.zoomHistory.push({
       level: this.state.zoom.level,
+      levelX: this.state.zoom.levelX,
+      levelY: this.state.zoom.levelY,
       centerX: this.state.zoom.centerX,
       centerY: this.state.zoom.centerY
     })
     
-    // Calculate new zoom level and center based on selection
+    // Calculate new zoom levels for X and Y separately (aspect ratio change)
     const zoomX = naturalWidth / selectionWidth
     const zoomY = naturalHeight / selectionHeight
     
-    // Use the smaller zoom factor to ensure entire selection is visible
-    const newZoomLevel = Math.min(zoomX, zoomY, 10.0) // Cap at 10x zoom
+    // Cap zoom levels at 10.0 to prevent extreme zoom
+    const newZoomLevelX = Math.min(zoomX, 10.0)
+    const newZoomLevelY = Math.min(zoomY, 10.0)
     
     // Calculate center point of selection (normalized to 0-1)
     const centerX = (clampedX1 + selectionWidth / 2) / naturalWidth
     const centerY = (clampedY1 + selectionHeight / 2) / naturalHeight
     
-    // Apply the zoom
-    this._setZoom(newZoomLevel, centerX, centerY)
+    // Apply the zoom with separate X and Y levels
+    this._setZoomXY(newZoomLevelX, newZoomLevelY, centerX, centerY)
     
     // Clear selection
     this.state.zoom.isSelecting = false
@@ -720,22 +765,25 @@ export class GramFrame {
       return
     }
     
-    const level = this.state.zoom.level
+    const levelX = this.state.zoom.levelX || this.state.zoom.level
+    const levelY = this.state.zoom.levelY || this.state.zoom.level
+    const maxLevel = Math.max(levelX, levelY)
+    const isAtOriginalScale = levelX === 1.0 && levelY === 1.0
     
     // Zoom in: disabled when at max zoom (10.0)
-    this.zoomControls.zoomInButton.disabled = (level >= 10.0)
+    this.zoomControls.zoomInButton.disabled = (maxLevel >= 10.0)
     
     // Zoom out: disabled when at 1:1 scale or below and no zoom history
-    this.zoomControls.zoomOutButton.disabled = (level <= 1.0 && this.state.zoom.zoomHistory.length === 0)
+    this.zoomControls.zoomOutButton.disabled = (isAtOriginalScale && this.state.zoom.zoomHistory.length === 0)
     
     // Reset zoom: disabled when already at 1:1 scale
-    this.zoomControls.zoomResetButton.disabled = (level === 1.0)
+    this.zoomControls.zoomResetButton.disabled = isAtOriginalScale
     
     // Pan toggle: disabled when at 1:1 scale
-    this.zoomControls.panToggleButton.disabled = (level <= 1.0)
+    this.zoomControls.panToggleButton.disabled = isAtOriginalScale
     
     // Update pan mode and button state when zoom level changes
-    if (level <= 1.0) {
+    if (isAtOriginalScale) {
       this.state.zoom.panMode = false
       this.zoomControls.panToggleButton.classList.remove('active')
       if (this.svg) {

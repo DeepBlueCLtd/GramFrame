@@ -145,6 +145,8 @@
  * Zoom state configuration
  * @typedef {Object} ZoomState
  * @property {number} level - Current zoom level (1.0 = no zoom)
+ * @property {number} levelX - X-axis zoom level (for aspect ratio changes)
+ * @property {number} levelY - Y-axis zoom level (for aspect ratio changes)
  * @property {number} centerX - Center point X (0-1 normalized)
  * @property {number} centerY - Center point Y (0-1 normalized)
  * @property {boolean} panMode - Whether pan mode is active
@@ -152,7 +154,7 @@
  * @property {boolean} isSelecting - Whether user is actively selecting a region
  * @property {{x: number, y: number}|null} selectionStart - Start point of region selection in SVG coordinates
  * @property {{x: number, y: number}|null} selectionEnd - End point of region selection in SVG coordinates
- * @property {Array<{level: number, centerX: number, centerY: number}>} zoomHistory - Stack of previous zoom states for zoom out functionality
+ * @property {Array<{level: number, levelX: number, levelY: number, centerX: number, centerY: number}>} zoomHistory - Stack of previous zoom states for zoom out functionality
  */
 
 /**
@@ -284,6 +286,7 @@
  * @property {function(): void} [_clearSelectionVisual] - Clear region selection visual
  * @property {function(): void} [_updateSelectionVisual] - Update region selection visual
  * @property {function(): void} [_zoomToRegion] - Zoom to selected region
+ * @property {function(number, number, number, number): void} [_setZoomXY] - Set separate X and Y zoom levels
  */
 
 /**

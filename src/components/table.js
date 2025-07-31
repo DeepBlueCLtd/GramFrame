@@ -188,7 +188,7 @@ export function updateSVGLayout(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function applyZoomTransform(instance) {
-  const { level, centerX, centerY } = instance.state.zoom
+  const { level, levelX, levelY, centerX, centerY } = instance.state.zoom
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const margins = instance.state.axes.margins
   
@@ -196,7 +196,11 @@ export function applyZoomTransform(instance) {
     return
   }
   
-  if (level === 1.0) {
+  // Use separate X and Y levels if they exist, otherwise fall back to uniform level
+  const effectiveLevelX = levelX || level
+  const effectiveLevelY = levelY || level
+  
+  if (effectiveLevelX === 1.0 && effectiveLevelY === 1.0) {
     // No zoom - reset to axes position and size
     instance.spectrogramImage.setAttribute('x', String(margins.left))
     instance.spectrogramImage.setAttribute('y', String(margins.top))
@@ -219,15 +223,15 @@ export function applyZoomTransform(instance) {
   const centerImageX = centerX * naturalWidth
   const centerImageY = centerY * naturalHeight
   
-  // Calculate new image dimensions
-  const zoomedWidth = naturalWidth * level
-  const zoomedHeight = naturalHeight * level
+  // Calculate new image dimensions with separate X and Y scaling
+  const zoomedWidth = naturalWidth * effectiveLevelX
+  const zoomedHeight = naturalHeight * effectiveLevelY
   
   // Calculate new position to keep zoom center in the same place
-  const newX = margins.left + centerImageX - (centerImageX * level)
-  const newY = margins.top + centerImageY - (centerImageY * level)
+  const newX = margins.left + centerImageX - (centerImageX * effectiveLevelX)
+  const newY = margins.top + centerImageY - (centerImageY * effectiveLevelY)
   
-  // Apply zoom to image only
+  // Apply zoom to image with separate X and Y scaling
   instance.spectrogramImage.setAttribute('x', String(newX))
   instance.spectrogramImage.setAttribute('y', String(newY))
   instance.spectrogramImage.setAttribute('width', String(zoomedWidth))

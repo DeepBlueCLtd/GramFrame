@@ -23,7 +23,8 @@ function screenToDataWithZoom(instance, event) {
   
   // Convert to data coordinates (accounting for margins and zoom)
   const margins = instance.state.axes.margins
-  const zoomLevel = instance.state.zoom.level
+  const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+  const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   
   // Get current image position and dimensions (which may be zoomed)
@@ -32,7 +33,7 @@ function screenToDataWithZoom(instance, event) {
   let imageWidth = naturalWidth
   let imageHeight = naturalHeight
   
-  if (zoomLevel !== 1.0 && instance.spectrogramImage) {
+  if ((zoomLevelX !== 1.0 || zoomLevelY !== 1.0) && instance.spectrogramImage) {
     imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
     imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
     imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
@@ -143,7 +144,11 @@ export function setupResizeObserver(instance) {
  */
 function handleMouseMove(instance, event) {
   // Handle panning if in pan mode and dragging
-  if (instance.state.zoom.panMode && instance.state.zoom.level > 1.0 && instance._panDragState?.isDragging) {
+  const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+  const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
+  const isZoomed = zoomLevelX > 1.0 || zoomLevelY > 1.0
+  
+  if (instance.state.zoom.panMode && isZoomed && instance._panDragState?.isDragging) {
     const deltaX = event.clientX - instance._panDragState.lastX
     const deltaY = event.clientY - instance._panDragState.lastY
     
@@ -156,9 +161,9 @@ function handleMouseMove(instance, event) {
     const scaleX = (naturalWidth + margins.left + margins.right) / svgRect.width
     const scaleY = (naturalHeight + margins.top + margins.bottom) / svgRect.height
     
-    // Convert to normalized coordinates (adjust for zoom level)
-    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / instance.state.zoom.level
-    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / instance.state.zoom.level
+    // Convert to normalized coordinates (adjust for separate zoom levels)
+    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / zoomLevelX
+    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / zoomLevelY
     
     // Apply pan
     instance._panImage(normalizedDeltaX, normalizedDeltaY)
@@ -235,7 +240,11 @@ function handleMouseMove(instance, event) {
  */
 function handleMouseDown(instance, event) {
   // Start pan drag if in pan mode and zoomed
-  if (instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+  const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+  const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
+  const isZoomed = zoomLevelX > 1.0 || zoomLevelY > 1.0
+  
+  if (instance.state.zoom.panMode && isZoomed) {
     instance._panDragState = {
       isDragging: true,
       lastX: event.clientX,
@@ -292,7 +301,11 @@ function handleMouseUp(instance, event) {
     instance._panDragState = { isDragging: false, lastX: 0, lastY: 0 }
     
     // Restore cursor to grab (pan mode still active)
-    if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+    const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+    const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
+    const isZoomed = zoomLevelX > 1.0 || zoomLevelY > 1.0
+    
+    if (instance.svg && instance.state.zoom.panMode && isZoomed) {
       instance.svg.style.cursor = 'grab'
     }
     
@@ -352,7 +365,11 @@ function handleMouseLeave(instance) {
     instance._panDragState = { isDragging: false, lastX: 0, lastY: 0 }
     
     // Restore cursor to grab (pan mode still active)
-    if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+    const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+    const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
+    const isZoomed = zoomLevelX > 1.0 || zoomLevelY > 1.0
+    
+    if (instance.svg && instance.state.zoom.panMode && isZoomed) {
       instance.svg.style.cursor = 'grab'
     }
   }
