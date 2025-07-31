@@ -84,7 +84,7 @@ export function createGramFrameAPI(GramFrame) {
      * @example
      * // Basic usage
      * GramFrame.addStateListener(state => {
-     *   console.log('State updated:', state)
+     *   // State updated: state
      * })
      * 
      * // With error handling
@@ -142,7 +142,7 @@ export function createGramFrameAPI(GramFrame) {
      * @example
      * // Add a listener and store the reference
      * const myListener = GramFrame.addStateListener(state => {
-     *   console.log('State updated:', state)
+     *   // State updated: state
      * })
      * 
      * // Later, remove the listener

@@ -112,7 +112,7 @@ export class HarmonicsMode extends BaseMode {
     // Initialize uiElements
     this.uiElements = {}
 
-    console.log('create harmonics tabke')
+
     
     // Use the provided persistent harmonics container (already has label)
     this.uiElements.harmonicsContainer = harmonicsContainer
@@ -125,7 +125,7 @@ export class HarmonicsMode extends BaseMode {
       // Find existing elements and store references
       this.uiElements.manualButton = buttonContainer.querySelector('.gram-frame-manual-button')
       this.uiElements.harmonicPanel = harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
-      console.log('Setting harmonicPanel reference (existing UI):', this.uiElements.harmonicPanel)
+
       this.instance.harmonicPanel = this.uiElements.harmonicPanel
       return
     }
@@ -140,7 +140,7 @@ export class HarmonicsMode extends BaseMode {
     this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer)
     
     // Store references on instance for compatibility
-    console.log('Setting harmonicPanel reference (new UI):', this.uiElements.harmonicPanel)
+
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
     
     // Central color picker is managed by unified layout
@@ -191,7 +191,7 @@ export class HarmonicsMode extends BaseMode {
    * Destroy mode-specific UI elements when leaving this mode
    */
   destroyUI() {
-    console.log('HarmonicsMode destroyUI called, harmonicPanel before:', this.instance.harmonicPanel)
+
     // Central color picker is managed by unified layout
     // Harmonics panel and container are persistent and should not be removed
     // Only remove non-persistent elements if any
@@ -199,7 +199,7 @@ export class HarmonicsMode extends BaseMode {
     // Don't call super.destroyUI() because it removes persistent elements from DOM
     // Instead, just clear references to non-persistent elements
     
-    console.log('HarmonicsMode destroyUI finished, harmonicPanel after:', this.instance.harmonicPanel)
+
   }
 
   /**
@@ -491,11 +491,11 @@ export class HarmonicsMode extends BaseMode {
    * Update harmonic management panel
    */
   updateHarmonicPanel() {
-    console.log('updateHarmonicPanel called, harmonicPanel value:', this.instance.harmonicPanel)
+
     if (this.instance.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
     } else {
-      console.log('harmonicPanel is null/undefined, cannot update')
+
     }
   }
 

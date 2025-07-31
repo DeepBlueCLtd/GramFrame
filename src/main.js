@@ -333,15 +333,15 @@ export class GramFrame {
     // Update harmonics panel - ensure panel reference is always available
     const harmonicsMode = /** @type {any} */ (this.modes['harmonics'])
     if (harmonicsMode) {
-      console.log('updatePersistentPanels: harmonicsMode.instance.harmonicPanel:', harmonicsMode.instance.harmonicPanel)
-      console.log('harmonicsContainer display style:', this.harmonicsContainer ? this.harmonicsContainer.style.display : 'no container')
-      console.log('harmonicsContainer visibility:', this.harmonicsContainer ? getComputedStyle(this.harmonicsContainer).visibility : 'no container')
+
+
+
       // Make sure the panel reference is set
       if (!harmonicsMode.instance.harmonicPanel && this.harmonicsContainer) {
         const existingPanel = this.harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
-        console.log('Found existing panel in container:', existingPanel)
+
         if (existingPanel) {
-          console.log('Restoring harmonicPanel reference:', existingPanel)
+
           harmonicsMode.instance.harmonicPanel = existingPanel
         }
       }
@@ -622,10 +622,10 @@ export class GramFrame {
     
     // Switch to new mode instance and activate it (all modes now use polymorphic pattern)
     if (this.currentMode) {
-      console.log('Before cleanup/deactivate, harmonics panel:', this.modes['harmonics'].instance.harmonicPanel)
+
       this.currentMode.cleanup()
       this.currentMode.deactivate()
-      console.log('After cleanup/deactivate, harmonics panel:', this.modes['harmonics'].instance.harmonicPanel)
+
     }
     this.currentMode = this.modes[mode]
     
