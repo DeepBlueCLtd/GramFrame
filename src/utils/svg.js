@@ -40,39 +40,6 @@ export function createSVGText(x, y, textContent, className, textAnchor = 'start'
   return text
 }
 
-/**
- * Calculates layout dimensions including margins
- * @param {number} containerWidth - Width of the container
- * @param {number} aspectRatio - Image aspect ratio
- * @param {number} originalWidth - Original image width
- * @param {number} originalHeight - Original image height
- * @param {Object} margins - Margin object with left, right, top, bottom properties
- * @returns {Object} Layout dimensions object
- */
-export function calculateLayoutDimensions(containerWidth, aspectRatio, originalWidth, originalHeight, margins) {
-  const totalMarginWidth = margins.left + margins.right
-  const totalMarginHeight = margins.top + margins.bottom
-
-  const availableWidth = containerWidth - totalMarginWidth
-  const availableHeight = availableWidth / aspectRatio
-
-  const newWidth = availableWidth + totalMarginWidth
-  const newHeight = availableHeight + totalMarginHeight
-
-  const viewBoxWidth = originalWidth + totalMarginWidth
-  const viewBoxHeight = originalHeight + totalMarginHeight
-
-  return {
-    totalMarginWidth,
-    totalMarginHeight,
-    availableWidth,
-    availableHeight,
-    newWidth,
-    newHeight,
-    viewBoxWidth,
-    viewBoxHeight
-  }
-}
 
 /**
  * Creates an SVG circle element with the specified coordinates and class
@@ -91,16 +58,4 @@ export function createSVGCircle(cx, cy, r, className) {
   return circle
 }
 
-/**
- * Creates an SVG path element with the specified path data and class
- * @param {string} pathData - SVG path data string
- * @param {string} className - CSS class name
- * @returns {SVGPathElement} The created path element
- */
-export function createSVGPath(pathData, className) {
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  path.setAttribute('d', pathData)
-  path.setAttribute('class', className)
-  return path
-}
 
