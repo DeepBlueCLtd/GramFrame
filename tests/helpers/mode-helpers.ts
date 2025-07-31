@@ -6,9 +6,9 @@ import { GramFramePage } from './gram-frame-page'
  */
 
 /**
- * Analysis mode specific helpers
+ * Cross Cursor mode specific helpers
  */
-export class AnalysisModeHelpers {
+export class CrossCursorModeHelpers {
   constructor(private gramFramePage: GramFramePage) {}
 
   /**
@@ -406,13 +406,13 @@ export class ColorPickerHelpers {
  * Combined mode helpers class
  */
 export class ModeHelpers {
-  public analysis: AnalysisModeHelpers
+  public analysis: CrossCursorModeHelpers
   public harmonics: HarmonicsModeHelpers
   public doppler: DopplerModeHelpers
   public colorPicker: ColorPickerHelpers
 
   constructor(gramFramePage: GramFramePage) {
-    this.analysis = new AnalysisModeHelpers(gramFramePage)
+    this.analysis = new CrossCursorModeHelpers(gramFramePage)
     this.harmonics = new HarmonicsModeHelpers(gramFramePage)
     this.doppler = new DopplerModeHelpers(gramFramePage)
     this.colorPicker = new ColorPickerHelpers(gramFramePage)

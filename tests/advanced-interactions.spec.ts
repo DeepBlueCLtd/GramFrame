@@ -28,7 +28,7 @@ test.describe('Advanced Mouse Interactions - Comprehensive E2E Tests', () => {
   test.describe('Browser Compatibility Edge Cases', () => {
     
     test('should handle modifier key combinations', async ({ gramFramePage }) => {
-      await gramFramePage.clickMode('Analysis')
+      await gramFramePage.clickMode('Cross Cursor')
       
       const testPosition = { x: 200, y: 150 }
       

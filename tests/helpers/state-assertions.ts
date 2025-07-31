@@ -109,15 +109,32 @@ export function expectValidCursorPosition(state: any, shouldExist = true) {
 }
 
 /**
+ * Map display mode names to internal mode names
+ * @param displayMode The display mode name (e.g., "Cross Cursor")
+ * @returns The internal mode name (e.g., "analysis")
+ */
+function mapDisplayModeToInternalMode(displayMode: string): string {
+  const mapping: Record<string, string> = {
+    'cross cursor': 'analysis',
+    'harmonics': 'harmonics',
+    'doppler': 'doppler'
+  }
+  
+  return mapping[displayMode.toLowerCase()] || displayMode.toLowerCase()
+}
+
+/**
  * Verify that the state has a valid mode
  * @param state The GramFrame state object
- * @param expectedMode Optional expected mode
+ * @param expectedMode Optional expected mode (can be display name or internal name)
  */
 export function expectValidMode(state: any, expectedMode?: string) {
   expect(state).toHaveProperty('mode')
   
   if (expectedMode) {
-    expect(state.mode).toBe(expectedMode)
+    // Map display mode name to internal mode name
+    const internalMode = mapDisplayModeToInternalMode(expectedMode)
+    expect(state.mode).toBe(internalMode)
   } else {
     expect(['analysis', 'harmonics', 'doppler']).toContain(state.mode)
   }

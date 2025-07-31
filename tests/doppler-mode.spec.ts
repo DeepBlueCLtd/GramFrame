@@ -337,8 +337,8 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       let state = await gramFramePage.getState()
       const originalDopplerState = { ...state.doppler }
       
-      // Switch to Analysis mode
-      await gramFramePage.clickMode('Analysis')
+      // Switch to Cross Cursor mode
+      await gramFramePage.clickMode('Cross Cursor')
       
       // Verify Doppler state persists (if markers were created)
       state = await gramFramePage.getState()
@@ -371,9 +371,9 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       }
     })
     
-    test('should coexist with Analysis markers', async ({ gramFramePage }) => {
-      // Switch to Analysis mode and create markers
-      await gramFramePage.clickMode('Analysis')
+    test('should coexist with Cross Cursor markers', async ({ gramFramePage }) => {
+      // Switch to Cross Cursor mode and create markers
+      await gramFramePage.clickMode('Cross Cursor')
       await gramFramePage.clickSpectrogram(150, 100)
       
       // Switch back to Doppler mode
@@ -531,7 +531,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       // Perform complex sequence of operations
       await gramFramePage.page.mouse.move(200, 150)
       await gramFramePage.page.mouse.down() // Start creating markers
-      await gramFramePage.clickMode('Analysis') // Switch mode mid-operation
+      await gramFramePage.clickMode('Cross Cursor') // Switch mode mid-operation
       await gramFramePage.clickMode('Doppler') // Switch back
       await gramFramePage.page.mouse.move(300, 200) // Continue operation
       await gramFramePage.page.mouse.up() // Complete operation

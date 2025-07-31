@@ -6,7 +6,7 @@
 
 /// <reference path="../types.js" />
 
-import { capitalizeFirstLetter } from '../utils/calculations.js'
+import { getModeDisplayName } from '../utils/calculations.js'
 
 /**
  * Create mode switching UI with buttons and guidance panel
@@ -28,7 +28,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   modes.forEach(mode => {
     const button = document.createElement('button')
     button.className = 'gram-frame-mode-btn'
-    button.textContent = capitalizeFirstLetter(mode)
+    button.textContent = getModeDisplayName(mode)
     button.dataset.mode = mode
     
     // Set active state for current mode

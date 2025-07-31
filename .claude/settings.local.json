@@ -54,7 +54,8 @@
       "WebFetch(domain:github.com)",
       "Bash(yarn dev:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(open debug-multiple.html)"
+      "Bash(open debug-multiple.html)",
+      "Bash(sed:*)"
     ],
     "deny": [
       "Bash(git add:*)",
