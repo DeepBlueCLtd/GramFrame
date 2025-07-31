@@ -89,9 +89,15 @@
 - `src/core/state.js` - State management patterns
 - `src/modes/` - Mode-specific implementations
 
+**CRITICAL VALIDATION REQUIREMENT:**
+**DO NOT START ANY NEW PHASE WITHOUT BOTH `yarn typecheck` AND `yarn test` PASSING SUCCESSFULLY**
+
 **Validation Strategy:**
 ```bash
-# Before each phase
+# MANDATORY: Before starting ANY new phase
+yarn typecheck && yarn test
+
+# MANDATORY: After completing each phase
 yarn typecheck && yarn test
 
 # After each file modification  
@@ -100,6 +106,18 @@ yarn typecheck && npx playwright test [relevant-test]
 # Progress tracking
 echo "Remaining: $(grep -r '{Object}' src/ --include='*.js' | wc -l)"
 ```
+
+**Phase Transition Requirements:**
+- Phase 1 → Phase 2: Must pass `yarn typecheck && yarn test`
+- Phase 2a → Phase 2b: Must pass `yarn typecheck && yarn test`  
+- Phase 2b → Phase 2c: Must pass `yarn typecheck && yarn test`
+- Phase 2c → Phase 2d: Must pass `yarn typecheck && yarn test`
+- Phase 2d → Phase 2e: Must pass `yarn typecheck && yarn test`
+- Phase 2e → Phase 2f: Must pass `yarn typecheck && yarn test`
+- Phase 2f → Phase 3: Must pass `yarn typecheck && yarn test`
+- Before final completion: Must pass `yarn typecheck && yarn test`
+
+**Failure Protocol:** If either command fails, STOP immediately and fix issues before proceeding to the next phase.
 
 **Architectural Context:** This task builds upon the existing JSDoc type system established in `src/types.js`. The goal is to eliminate generic typing while leveraging the strong foundation already in place. Reference the coordinate transformation system and state management patterns when creating new type definitions.
 
