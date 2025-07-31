@@ -15,7 +15,7 @@ import {
 /**
  * Creates the GramFrame public API object
  * @param {any} GramFrame - The GramFrame class constructor
- * @returns {Object} The GramFrame API object
+ * @returns {GramFrameAPI} The GramFrame API object
  */
 export function createGramFrameAPI(GramFrame) {
   return {
@@ -24,7 +24,7 @@ export function createGramFrameAPI(GramFrame) {
      * @returns {GramFrame[]} Array of GramFrame instances
      */
     init() {
-      return this.detectAndReplaceConfigTables()
+      return this.detectAndReplaceConfigTables(document)
     },
     
     /**
@@ -58,7 +58,7 @@ export function createGramFrameAPI(GramFrame) {
           errors.push({ table, error: errorMsg, index })
           
           // Add error indicator to the table (don't replace it)
-          this._addErrorIndicator(table, errorMsg)
+          this._addErrorIndicator(/** @type {HTMLTableElement} */ (table), errorMsg)
         }
       })
       

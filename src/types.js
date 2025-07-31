@@ -296,7 +296,7 @@
  * Collection of mode UI elements
  * @typedef {Object} ModeUIElements
  * @property {HTMLDivElement} modesContainer - Container for mode buttons
- * @property {Object} modeButtons - Mode switching buttons
+ * @property {Object<string, HTMLButtonElement>} modeButtons - Mode switching buttons
  * @property {HTMLDivElement} guidancePanel - Guidance text panel
  */
 
@@ -324,4 +324,51 @@
  * @property {number} timeMax - Maximum visible time
  * @property {number} freqMin - Minimum visible frequency
  * @property {number} freqMax - Maximum visible frequency
+ */
+
+/**
+ * Harmonics color state for analysis mode
+ * @typedef {Object} HarmonicsColorState
+ * @property {string} selectedColor - Selected marker color
+ */
+
+/**
+ * Analysis mode initial state object
+ * @typedef {Object} AnalysisInitialState
+ * @property {AnalysisState} analysis - Analysis state
+ * @property {HarmonicsColorState} harmonics - Harmonics color state
+ */
+
+/**
+ * Doppler mode initial state object
+ * @typedef {Object} DopplerInitialState
+ * @property {DopplerState} doppler - Doppler state
+ */
+
+/**
+ * Harmonics mode initial state object
+ * @typedef {Object} HarmonicsInitialState
+ * @property {HarmonicsState} harmonics - Harmonics state
+ * @property {DragState} dragState - Drag interaction state
+ */
+
+/**
+ * Base mode state snapshot (generic)
+ * @typedef {Object} ModeStateSnapshot
+ * @property {string} mode - Current mode type
+ * @property {*} [state] - Mode-specific state data
+ */
+
+/**
+ * GramFrame API object
+ * @typedef {Object} GramFrameAPI
+ * @property {function(): GramFrame[]} init - Initialize all config tables
+ * @property {function(Document|HTMLElement): GramFrame[]} detectAndReplaceConfigTables - Detect and replace config tables
+ * @property {function(StateListener): StateListener} addStateListener - Add state listener
+ * @property {function(StateListener): boolean} removeStateListener - Remove state listener
+ * @property {function(HTMLTableElement, string): void} _addErrorIndicator - Add error indicator to table
+ * @property {GramFrame[]} [_instances] - Internal instances array
+ * @property {function(): void} [__test__forceUpdate] - Test method to force update
+ * @property {function(): GramFrame[]} [__test__getInstances] - Test method to get instances
+ * @property {function(string): GramFrame|null} [__test__getInstance] - Test method to get instance by ID
  */

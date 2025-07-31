@@ -143,7 +143,7 @@ export class BaseMode {
 
   /**
    * Get a snapshot of current mode-specific state
-   * @returns {Object} Mode-specific state snapshot
+   * @returns {*} Mode-specific state snapshot
    */
   getStateSnapshot() {
     // Default implementation - override in subclasses
@@ -153,7 +153,7 @@ export class BaseMode {
   /**
    * Get initial state for this mode
    * Override in subclasses to provide mode-specific initial state
-   * @returns {Object} Mode-specific initial state object
+   * @returns {*} Mode-specific initial state object
    */
   static getInitialState() {
     // Default implementation - override in subclasses

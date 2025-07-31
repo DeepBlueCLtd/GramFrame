@@ -370,7 +370,7 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Get initial state for doppler mode
-   * @returns {Object} Doppler-specific initial state
+   * @returns {DopplerInitialState} Doppler-specific initial state
    */
   static getInitialState() {
     return {
@@ -493,8 +493,8 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Calculate midpoint between two markers
-   * @param {Object} fPlus - f+ marker
-   * @param {Object} fMinus - f- marker
+   * @param {DataCoordinates} fPlus - f+ marker
+   * @param {DataCoordinates} fMinus - f- marker
    * @returns {DataCoordinates} Midpoint coordinates
    */
   calculateMidpoint(fPlus, fMinus) {

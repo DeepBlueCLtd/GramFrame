@@ -74,7 +74,7 @@ export function updateHarmonicPanelContent(panel, instance) {
 /**
  * Update only the changing cells in an existing harmonic row
  * @param {HTMLTableRowElement} row - The table row to update
- * @param {Object} harmonicSet - The harmonic set data
+ * @param {HarmonicSet} harmonicSet - The harmonic set data
  * @param {GramFrame} instance - GramFrame instance
  */
 function updateHarmonicRow(row, harmonicSet, instance) {
@@ -130,7 +130,7 @@ function rebuildHarmonicTableFrom(tbody, harmonicSets, instance, startIndex) {
 
 /**
  * Create a new harmonic table row
- * @param {Object} harmonicSet - The harmonic set data
+ * @param {HarmonicSet} harmonicSet - The harmonic set data
  * @param {GramFrame} instance - GramFrame instance
  * @param {number} index - Row index
  * @returns {HTMLTableRowElement} The created row

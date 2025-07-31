@@ -171,7 +171,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Render a single marker as a crosshair
-   * @param {Object} marker - Marker object
+   * @param {AnalysisMarker} marker - Marker object
    */
   renderMarker(marker) {
     if (!this.instance.cursorGroup) {
@@ -360,7 +360,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Get initial state for analysis mode
-   * @returns {Object} Analysis mode state including markers and harmonics for color picker
+   * @returns {AnalysisInitialState} Analysis mode state including markers and harmonics for color picker
    */
   static getInitialState() {
     return {
@@ -368,7 +368,8 @@ export class AnalysisMode extends BaseMode {
         markers: [],
         isDragging: false,
         draggedMarkerId: null,
-        dragStartPosition: null
+        dragStartPosition: null,
+        selectedColor: '#ff6b6b'
       },
       harmonics: {
         selectedColor: '#ff6b6b' // Default color for markers
@@ -378,7 +379,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Add a new persistent marker
-   * @param {Object} marker - Marker object with all properties
+   * @param {AnalysisMarker} marker - Marker object with all properties
    */
   addMarker(marker) {
     if (!this.state.analysis) {
@@ -492,7 +493,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Update only the changing cells in an existing marker row
    * @param {HTMLTableRowElement} row - The table row to update
-   * @param {Object} marker - The marker data
+   * @param {AnalysisMarker} marker - The marker data
    */
   updateMarkerRow(row, marker) {
     // Update time cell (second cell)

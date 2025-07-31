@@ -253,7 +253,7 @@ export class HarmonicsMode extends BaseMode {
   /**
    * Update an existing harmonic set
    * @param {string} id - Harmonic set ID
-   * @param {Object} updates - Properties to update
+   * @param {Partial<HarmonicSet>} updates - Properties to update
    */
   updateHarmonicSet(id, updates) {
     const setIndex = this.state.harmonics.harmonicSets.findIndex(set => set.id === id)
@@ -410,7 +410,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Start dragging a harmonic set
-   * @param {Object} harmonicSet - The harmonic set to drag
+   * @param {HarmonicSet} harmonicSet - The harmonic set to drag
    * @param {DataCoordinates} dataCoords - Current cursor coordinates
    */
   startHarmonicSetDrag(harmonicSet, dataCoords) {
@@ -446,7 +446,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Find which harmonic number was clicked
-   * @param {Object} harmonicSet - The harmonic set
+   * @param {HarmonicSet} harmonicSet - The harmonic set
    * @param {number} freq - The clicked frequency
    * @returns {number} The harmonic number (1, 2, 3, etc.)
    */
@@ -554,7 +554,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Render a single harmonic set as vertical lines
-   * @param {Object} harmonicSet - Harmonic set to render
+   * @param {HarmonicSet} harmonicSet - Harmonic set to render
    */
   renderHarmonicSet(harmonicSet) {
     if (!this.instance.cursorGroup) {
@@ -651,7 +651,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Get initial state for harmonics mode
-   * @returns {Object} Harmonics-specific initial state
+   * @returns {HarmonicsInitialState} Harmonics-specific initial state
    */
   static getInitialState() {
     return {

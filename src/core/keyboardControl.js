@@ -117,7 +117,7 @@ function calculateMovementFromKey(key, increment) {
  * Move a selected marker by pixel increments
  * @param {GramFrame} instance - GramFrame instance
  * @param {string} markerId - ID of marker to move
- * @param {Object} movement - Movement vector {dx, dy}
+ * @param {MovementVector} movement - Movement vector {dx, dy}
  */
 function moveSelectedMarker(instance, markerId, movement) {
   if (!instance.state.analysis || !instance.state.analysis.markers) {
@@ -175,7 +175,7 @@ function moveSelectedMarker(instance, markerId, movement) {
  * Move a selected harmonic set by pixel increments  
  * @param {GramFrame} instance - GramFrame instance
  * @param {string} harmonicSetId - ID of harmonic set to move
- * @param {Object} movement - Movement vector {dx, dy}
+ * @param {MovementVector} movement - Movement vector {dx, dy}
  */
 function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
   if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
