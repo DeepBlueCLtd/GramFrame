@@ -55,13 +55,13 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
   // Calculate preview f₀ as midpoint
   const fZero = {
     time: (fMinus.time + fPlus.time) / 2,
-    frequency: (fMinus.frequency + fPlus.frequency) / 2
+    freq: (fMinus.freq + fPlus.freq) / 2
   }
   
   // Convert points to SVG coordinates
   const convertToSVG = (point) => {
     const timeRatio = (point.time - timeMin) / (timeMax - timeMin)
-    const freqRatio = (point.frequency - freqMin) / (freqMax - freqMin)
+    const freqRatio = (point.freq - freqMin) / (freqMax - freqMin)
     return {
       x: margins.left + freqRatio * naturalWidth,
       y: margins.top + (1 - timeRatio) * naturalHeight

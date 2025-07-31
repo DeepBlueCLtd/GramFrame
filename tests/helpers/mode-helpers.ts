@@ -346,7 +346,7 @@ export class DopplerModeHelpers {
       fMinusExists: !!state.doppler?.fMinus,
       fZeroExists: !!state.doppler?.fZero,
       hasFrequencyDifference: state.doppler?.fPlus && state.doppler?.fMinus 
-        ? Math.abs(state.doppler.fPlus.frequency - state.doppler.fMinus.frequency) > 0
+        ? Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq) > 0
         : false
     }
   }
@@ -358,7 +358,7 @@ export class DopplerModeHelpers {
     const state = await this.gramFramePage.getState()
     
     if (state.doppler?.fPlus && state.doppler?.fMinus) {
-      return Math.abs(state.doppler.fPlus.frequency - state.doppler.fMinus.frequency)
+      return Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
     }
     
     return null

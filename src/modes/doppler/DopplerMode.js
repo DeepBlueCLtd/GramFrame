@@ -53,7 +53,7 @@ export class DopplerMode extends BaseMode {
       // Update f- position to follow mouse during preview
       doppler.fMinus = {
         time: dataCoords.time,
-        frequency: dataCoords.freq
+        freq: dataCoords.freq
       }
       
       // Calculate f₀ as midpoint for preview
@@ -71,7 +71,7 @@ export class DopplerMode extends BaseMode {
     if (doppler.isDragging && doppler.draggedMarker) {
       const newPoint = {
         time: dataCoords.time,
-        frequency: dataCoords.freq
+        freq: dataCoords.freq
       }
       
       if (doppler.draggedMarker === DopplerDraggedMarker.fPlus) {
@@ -203,7 +203,7 @@ export class DopplerMode extends BaseMode {
       // Immediately set f+ at the current position
       doppler.fPlus = {
         time: dataCoords.time,
-        frequency: dataCoords.freq
+        freq: dataCoords.freq
       }
       
       // Start preview drag mode - f- will follow the mouse
@@ -213,7 +213,7 @@ export class DopplerMode extends BaseMode {
       // Initial preview with f- at same position as f+
       doppler.previewEnd = {
         time: dataCoords.time,
-        frequency: dataCoords.freq
+        freq: dataCoords.freq
       }
       
       // Render initial curve preview
@@ -375,9 +375,9 @@ export class DopplerMode extends BaseMode {
   static getInitialState() {
     return {
       doppler: {
-        fPlus: null,  // DopplerPoint: { time, frequency }
-        fMinus: null, // DopplerPoint: { time, frequency }
-        fZero: null,  // DopplerPoint: { time, frequency }
+        fPlus: null,  // DataCoordinates: { time, frequency }
+        fMinus: null, // DataCoordinates: { time, frequency }
+        fZero: null,  // DataCoordinates: { time, frequency }
         speed: null,  // calculated speed in m/s
         isDragging: false,
         draggedMarker: null, // 'fPlus', 'fMinus', 'fZero'
@@ -447,7 +447,7 @@ export class DopplerMode extends BaseMode {
     
     // Calculate ratios in data space
     const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin)
-    const freqRatio = (dataPoint.frequency - freqMin) / (freqMax - freqMin)
+    const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin)
     
     // Get current image position and dimensions (which may be zoomed)
     let imageLeft = margins.left

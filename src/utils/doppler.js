@@ -13,7 +13,7 @@
 export function calculateMidpoint(fPlus, fMinus) {
   return {
     time: (fPlus.time + fMinus.time) / 2,
-    frequency: (fPlus.frequency + fMinus.frequency) / 2
+    freq: (fPlus.freq + fMinus.freq) / 2
   }
 }
 
@@ -27,10 +27,10 @@ export function calculateMidpoint(fPlus, fMinus) {
  */
 export function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1500) {
   // Use provided fZero or calculate midpoint
-  const f0 = fZero ? fZero.frequency : calculateMidpoint(fPlus, fMinus).frequency
+  const f0 = fZero ? fZero.freq : calculateMidpoint(fPlus, fMinus).freq
   
   // Calculate frequency shift
-  const deltaF = (fPlus.frequency - fMinus.frequency) / 2
+  const deltaF = (fPlus.freq - fMinus.freq) / 2
   
   // Apply Doppler formula: v = (c / f₀) × Δf
   const speed = (speedOfSound / f0) * deltaF
