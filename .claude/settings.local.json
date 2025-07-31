@@ -57,7 +57,7 @@
       "Bash(open debug-multiple.html)",
       "Bash(curl -s*pushover.net*)",
       "Bash(curl -s --form-string*pushover.net*)",
-      "Bash(~/notify-pushover.sh \"Testing updated notification system\")"
+      "Bash(~/notify-pushover.sh*)"
     ],
     "deny": [
       "Bash(git add:*)",
