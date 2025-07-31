@@ -1,7 +1,7 @@
 # Create Task Assignment Prompt
 
 ## Task Assignment Prompt Creation
-Read the guide at prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md and use it to create a task assignment prompt for GitHub issue #{issue_number} from the upstream repository for this project. 
+Read the guide at prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md and use it to create a task assignment prompt (tap) for GitHub issue #{issue_number} from the upstream repository for this project. 
 
 Analyze the GitHub issue to understand the requirements, scope, and technical details.  Ask for clarification questions if necessary.
 
