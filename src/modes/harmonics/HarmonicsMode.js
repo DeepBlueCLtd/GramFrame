@@ -231,10 +231,8 @@ export class HarmonicsMode extends BaseMode {
     this.state.harmonics.harmonicSets.push(harmonicSet)
     
     // Auto-select the newly created harmonic set
-    import('../../core/keyboardControl.js').then(({ setSelection }) => {
-      const index = this.state.harmonics.harmonicSets.length - 1
-      setSelection(this.instance, 'harmonicSet', harmonicSet.id, index)
-    })
+    const index = this.state.harmonics.harmonicSets.length - 1
+    this.instance.setSelection('harmonicSet', harmonicSet.id, index)
     
     // Update visual elements
     if (this.instance.harmonicPanel) {
@@ -285,9 +283,7 @@ export class HarmonicsMode extends BaseMode {
       // Clear selection if removing the selected harmonic set
       if (this.state.selection.selectedType === 'harmonicSet' && 
           this.state.selection.selectedId === id) {
-        import('../../core/keyboardControl.js').then(({ clearSelection }) => {
-          clearSelection(this.instance)
-        })
+        this.instance.clearSelection()
       }
       
       this.state.harmonics.harmonicSets.splice(setIndex, 1)

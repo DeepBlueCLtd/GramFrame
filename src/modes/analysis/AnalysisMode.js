@@ -71,10 +71,8 @@ export class AnalysisMode extends BaseMode {
       this.state.analysis.dragStartPosition = { ...dataCoords }
       
       // Auto-select the marker being dragged
-      import('../../core/keyboardControl.js').then(({ setSelection }) => {
-        const index = this.state.analysis.markers.findIndex(m => m.id === existingMarker.id)
-        setSelection(this.instance, 'marker', existingMarker.id, index)
-      })
+      const index = this.state.analysis.markers.findIndex(m => m.id === existingMarker.id)
+      this.instance.setSelection('marker', existingMarker.id, index)
     } else {
       // Create marker at click location
       this.createMarkerAtPosition(dataCoords)
@@ -369,10 +367,8 @@ export class AnalysisMode extends BaseMode {
     this.state.analysis.markers.push(marker)
     
     // Auto-select the newly created marker
-    import('../../core/keyboardControl.js').then(({ setSelection }) => {
-      const index = this.state.analysis.markers.length - 1
-      setSelection(this.instance, 'marker', marker.id, index)
-    })
+    const index = this.state.analysis.markers.length - 1
+    this.instance.setSelection('marker', marker.id, index)
     
     // Update markers table
     this.updateMarkersTable()
@@ -398,9 +394,7 @@ export class AnalysisMode extends BaseMode {
       // Clear selection if removing the selected marker
       if (this.state.selection.selectedType === 'marker' && 
           this.state.selection.selectedId === markerId) {
-        import('../../core/keyboardControl.js').then(({ clearSelection }) => {
-          clearSelection(this.instance)
-        })
+        this.instance.clearSelection()
       }
       
       this.state.analysis.markers.splice(index, 1)
@@ -463,16 +457,13 @@ export class AnalysisMode extends BaseMode {
           return
         }
         
-        // Import keyboard control functions
-        import('../../core/keyboardControl.js').then(({ setSelection, clearSelection }) => {
-          // Toggle selection
-          if (this.state.selection.selectedType === 'marker' && 
-              this.state.selection.selectedId === marker.id) {
-            clearSelection(this.instance)
-          } else {
-            setSelection(this.instance, 'marker', marker.id, index)
-          }
-        })
+        // Toggle selection
+        if (this.state.selection.selectedType === 'marker' && 
+            this.state.selection.selectedId === marker.id) {
+          this.instance.clearSelection()
+        } else {
+          this.instance.setSelection('marker', marker.id, index)
+        }
       })
       
       // Color swatch cell
@@ -523,10 +514,7 @@ export class AnalysisMode extends BaseMode {
     
     // Restore selection highlighting after table update
     if (currentSelection.selectedType === 'marker' && currentSelection.selectedId) {
-      // Import and call updateSelectionVisuals to restore highlighting
-      import('../../core/keyboardControl.js').then(({ updateSelectionVisuals }) => {
-        updateSelectionVisuals(this.instance)
-      })
+      this.instance.updateSelectionVisuals()
     }
   }
 

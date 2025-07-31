@@ -118,16 +118,13 @@ export function updateHarmonicPanelContent(panel, instance) {
         return
       }
       
-      // Import keyboard control functions
-      import('../core/keyboardControl.js').then(({ setSelection, clearSelection }) => {
-        // Toggle selection
-        if (instance.state.selection.selectedType === 'harmonicSet' && 
-            instance.state.selection.selectedId === harmonicId) {
-          clearSelection(instance)
-        } else {
-          setSelection(instance, 'harmonicSet', harmonicId, index)
-        }
-      })
+      // Toggle selection
+      if (instance.state.selection.selectedType === 'harmonicSet' && 
+          instance.state.selection.selectedId === harmonicId) {
+        instance.clearSelection()
+      } else {
+        instance.setSelection('harmonicSet', harmonicId, index)
+      }
     })
   })
   
@@ -147,9 +144,6 @@ export function updateHarmonicPanelContent(panel, instance) {
   
   // Restore selection highlighting after table update
   if (currentSelection.selectedType === 'harmonicSet' && currentSelection.selectedId) {
-    // Import and call updateSelectionVisuals to restore highlighting
-    import('../core/keyboardControl.js').then(({ updateSelectionVisuals }) => {
-      updateSelectionVisuals(instance)
-    })
+    instance.updateSelectionVisuals()
   }
 }
