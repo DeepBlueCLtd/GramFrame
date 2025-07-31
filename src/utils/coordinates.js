@@ -76,33 +76,4 @@ export function imageToDataCoordinates(imageX, imageY, config, imageDetails, rat
   return { freq, time }
 }
 
-/**
- * Convert data coordinates to SVG coordinates
- * @param {number} freq - Frequency in Hz
- * @param {number} time - Time in seconds
- * @param {Object} config - Configuration object
- * @param {number} config.freqMin - Minimum frequency
- * @param {number} config.freqMax - Maximum frequency
- * @param {number} config.timeMin - Minimum time
- * @param {number} config.timeMax - Maximum time
- * @param {Object} imageDetails - Image dimensions
- * @param {number} imageDetails.naturalWidth - Natural width of image
- * @param {number} imageDetails.naturalHeight - Natural height of image
- * @param {number} rate - Rate scaling factor
- * @returns {SVGCoordinates} SVG coordinates
- */
-export function dataToSVGCoordinates(freq, time, config, imageDetails, rate) {
-  const { freqMin, freqMax, timeMin, timeMax } = config
-  const { naturalWidth, naturalHeight } = imageDetails
-  
-  // Convert frequency back to raw frequency space for positioning
-  const rawFreq = freq * rate
-  
-  // X-axis = Frequency (horizontal)
-  const x = ((rawFreq - freqMin) / (freqMax - freqMin)) * naturalWidth
-  // Y-axis = Time (vertical, with time increasing upward, Y=0 at top)
-  const y = naturalHeight - ((time - timeMin) / (timeMax - timeMin)) * naturalHeight
-  
-  return { x, y }
-}
 

@@ -1,5 +1,7 @@
 # Create GitHub Issue
 
+This command creates a GitHub issue based on the information you provide, with the expectation that the user will then run `tap-this` to generate a Task Assignment Prompt (tap) to cover this issue.
+
 ## Issue Creation Process
 Interview me to gather the required information for creating a comprehensive GitHub issue. I favour multiple choice questions, asked one at a time.
 

@@ -182,21 +182,7 @@ export function createGramFrameAPI(GramFrame) {
       return removed
     },
     
-    /**
-     * Toggle canvas bounds overlay (future implementation)
-     */
-    toggleCanvasBoundsOverlay() {
-      // This will be implemented in Phase 5
-
-    },
-    
-    /**
-     * Set debug grid visibility (future implementation)
-     */
-    setDebugGrid() {
-      // This will be implemented in Phase 5
-
-    },
+    // Debug and visualization API methods removed - implement when needed
     
     /**
      * Force update of the component state

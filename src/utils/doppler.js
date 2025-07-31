@@ -52,47 +52,4 @@ export function isNearMarker(mousePos, markerSVG, threshold = 25) {
   return distance <= threshold
 }
 
-/**
- * Convert screen coordinates to data coordinates for Doppler points
- * @param {Object} screenPos - Screen position with x, y coordinates
- * @param {Object} instance - GramFrame instance
- * @returns {Object} Data coordinates with time and frequency
- */
-export function screenToDopplerData(screenPos, instance) {
-  const margins = instance.state.axes.margins
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
-  
-  // Convert screen position to SVG coordinates within the image bounds
-  const imageX = Math.max(0, Math.min(naturalWidth, screenPos.x - margins.left))
-  const imageY = Math.max(0, Math.min(naturalHeight, screenPos.y - margins.top))
-  
-  // Convert to data coordinates
-  const freqRatio = imageX / naturalWidth
-  const timeRatio = 1 - (imageY / naturalHeight) // Invert Y since time increases bottom to top
-  
-  return {
-    time: timeMin + timeRatio * (timeMax - timeMin),
-    frequency: freqMin + freqRatio * (freqMax - freqMin)
-  }
-}
 
-/**
- * Convert data coordinates to SVG coordinates for Doppler points
- * @param {Object} dataPoint - Data point with time and frequency
- * @param {Object} instance - GramFrame instance
- * @returns {Object} SVG coordinates with x, y
- */
-export function dopplerDataToSVG(dataPoint, instance) {
-  const margins = instance.state.axes.margins
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
-  
-  const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin)
-  const freqRatio = (dataPoint.frequency - freqMin) / (freqMax - freqMin)
-  
-  return {
-    x: margins.left + freqRatio * naturalWidth,
-    y: margins.top + (1 - timeRatio) * naturalHeight // Invert Y coordinate
-  }
-}

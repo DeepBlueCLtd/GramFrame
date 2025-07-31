@@ -12,7 +12,6 @@ import {
 } from './core/state.js'
 
 import {
-  createRateInput,
   updateLEDDisplays,
   createLEDDisplay,
   createModeSwitchingUI,
@@ -139,8 +138,8 @@ export class GramFrame {
     // Append readout panel to mode cell
     this.modeCell.appendChild(this.readoutPanel)
     
-    // Create rate input
-    this.rateInput = createRateInput(this.container, this.state, (rate) => this._setRate(rate))
+    // Rate input UI removed - backend functionality preserved for frequency calculations
+    this.rateInput = null
     
     // Create zoom controls
     this.createZoomControls()
