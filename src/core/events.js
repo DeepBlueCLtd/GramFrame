@@ -170,6 +170,24 @@ function handleMouseMove(instance, event) {
     return // Skip normal cursor handling during pan drag
   }
   
+  // Handle region selection if in region zoom mode and selecting
+  if (instance.state.zoom.regionMode && instance.state.zoom.isSelecting) {
+    const svgRect = instance.svg.getBoundingClientRect()
+    const screenX = event.clientX - svgRect.left
+    const screenY = event.clientY - svgRect.top
+    const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
+    
+    // Update selection end point
+    instance.state.zoom.selectionEnd = { x: svgCoords.x, y: svgCoords.y }
+    
+    // Update selection visual
+    if (instance._updateSelectionVisual) {
+      instance._updateSelectionVisual()
+    }
+    
+    return // Skip normal cursor handling during region selection
+  }
+  
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
@@ -234,6 +252,23 @@ function handleMouseDown(instance, event) {
     return
   }
   
+  // Start region selection if in region zoom mode
+  if (instance.state.zoom.regionMode) {
+    const svgRect = instance.svg.getBoundingClientRect()
+    const screenX = event.clientX - svgRect.left
+    const screenY = event.clientY - svgRect.top
+    const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
+    
+    // Start selection
+    instance.state.zoom.isSelecting = true
+    instance.state.zoom.selectionStart = { x: svgCoords.x, y: svgCoords.y }
+    instance.state.zoom.selectionEnd = { x: svgCoords.x, y: svgCoords.y }
+    
+    // Prevent default to avoid text selection
+    event.preventDefault()
+    return
+  }
+  
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
@@ -264,6 +299,37 @@ function handleMouseUp(instance, event) {
     return
   }
   
+  // End region selection if was selecting
+  if (instance.state.zoom.regionMode && instance.state.zoom.isSelecting) {
+    instance.state.zoom.isSelecting = false
+    
+    // Check if we have a valid selection (minimum size)
+    if (instance.state.zoom.selectionStart && instance.state.zoom.selectionEnd) {
+      const start = instance.state.zoom.selectionStart
+      const end = instance.state.zoom.selectionEnd
+      const width = Math.abs(end.x - start.x)
+      const height = Math.abs(end.y - start.y)
+      
+      // Minimum selection size to trigger zoom
+      const minSize = 20
+      if (width >= minSize && height >= minSize) {
+        // Zoom to the selected region
+        if (instance._zoomToRegion) {
+          instance._zoomToRegion()
+        }
+      } else {
+        // Clear selection if too small
+        instance.state.zoom.selectionStart = null
+        instance.state.zoom.selectionEnd = null
+        if (instance._clearSelectionVisual) {
+          instance._clearSelectionVisual()
+        }
+      }
+    }
+    
+    return
+  }
+  
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
@@ -288,6 +354,16 @@ function handleMouseLeave(instance) {
     // Restore cursor to grab (pan mode still active)
     if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
       instance.svg.style.cursor = 'grab'
+    }
+  }
+  
+  // Clear region selection if was selecting
+  if (instance.state.zoom.regionMode && instance.state.zoom.isSelecting) {
+    instance.state.zoom.isSelecting = false
+    instance.state.zoom.selectionStart = null
+    instance.state.zoom.selectionEnd = null
+    if (instance._clearSelectionVisual) {
+      instance._clearSelectionVisual()
     }
   }
   

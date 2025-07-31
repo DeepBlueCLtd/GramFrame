@@ -17,7 +17,8 @@ import {
   createModeSwitchingUI,
   createFullFlexLayout,
   createFlexColumn,
-  createColorPicker
+  createColorPicker,
+  createZoomToggleButton
 } from './components/UIComponents.js'
 import { getModeDisplayName } from './utils/calculations.js'
 import { formatTime } from './utils/timeFormatter.js'
@@ -389,6 +390,10 @@ export class GramFrame {
     zoomOutButton.title = 'Zoom Out'
     zoomOutButton.addEventListener('click', () => this._zoomOut())
     
+    // Region zoom toggle button
+    const regionZoomButton = createZoomToggleButton((isActive) => this._toggleRegionZoom(isActive))
+    regionZoomButton.classList.add('gram-frame-zoom-btn')
+    
     // Pan toggle button
     const panToggleButton = document.createElement('button')
     panToggleButton.className = 'gram-frame-zoom-btn gram-frame-pan-toggle'
@@ -405,6 +410,7 @@ export class GramFrame {
     
     zoomContainer.appendChild(zoomInButton)
     zoomContainer.appendChild(zoomOutButton)
+    zoomContainer.appendChild(regionZoomButton)
     zoomContainer.appendChild(panToggleButton)
     zoomContainer.appendChild(zoomResetButton)
     
@@ -416,6 +422,7 @@ export class GramFrame {
       container: zoomContainer,
       zoomInButton,
       zoomOutButton,
+      regionZoomButton,
       panToggleButton,
       zoomResetButton
     }
@@ -434,19 +441,65 @@ export class GramFrame {
   }
   
   /**
-   * Zoom out by decreasing zoom level
+   * Zoom out by decreasing zoom level or returning to previous zoom state
    */
   _zoomOut() {
-    const currentLevel = this.state.zoom.level
-    const newLevel = Math.max(currentLevel / 1.5, 1.0) // Min 1x zoom
-    this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+    // If we have zoom history, go back to previous state
+    if (this.state.zoom.zoomHistory.length > 0) {
+      const previousState = this.state.zoom.zoomHistory.pop()
+      this._setZoom(previousState.level, previousState.centerX, previousState.centerY)
+    } else {
+      // Otherwise, just zoom out by factor
+      const currentLevel = this.state.zoom.level
+      const newLevel = Math.max(currentLevel / 1.5, 1.0) // Min 1x zoom
+      this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+    }
   }
   
   /**
    * Reset zoom to 1x
    */
   _zoomReset() {
+    // Clear zoom history when resetting
+    this.state.zoom.zoomHistory = []
     this._setZoom(1.0, 0.5, 0.5)
+  }
+  
+  /**
+   * Toggle region zoom mode
+   * @param {boolean} isActive - Whether region zoom mode should be active
+   */
+  _toggleRegionZoom(isActive) {
+    this.state.zoom.regionMode = isActive
+    
+    // Deactivate pan mode if region zoom is activated (mutual exclusion)
+    if (isActive && this.state.zoom.panMode) {
+      this.state.zoom.panMode = false
+      if (this.zoomControls && this.zoomControls.panToggleButton) {
+        this.zoomControls.panToggleButton.classList.remove('active')
+        this.zoomControls.panToggleButton.title = 'Toggle Pan Mode'
+      }
+    }
+    
+    // Update cursor style for SVG
+    if (this.svg) {
+      if (this.state.zoom.regionMode) {
+        this.svg.style.cursor = 'crosshair'
+      } else if (this.state.zoom.panMode && this.state.zoom.level > 1.0) {
+        this.svg.style.cursor = 'grab'
+      } else {
+        this.svg.style.cursor = 'crosshair'
+      }
+    }
+    
+    // Clear any active selection
+    this.state.zoom.isSelecting = false
+    this.state.zoom.selectionStart = null
+    this.state.zoom.selectionEnd = null
+    this._clearSelectionVisual()
+    
+    // Notify listeners
+    notifyStateListeners(this.state, this.stateListeners)
   }
   
   /**
@@ -454,6 +507,15 @@ export class GramFrame {
    */
   _togglePan() {
     this.state.zoom.panMode = !this.state.zoom.panMode
+    
+    // Deactivate region zoom mode if pan is activated (mutual exclusion)
+    if (this.state.zoom.panMode && this.state.zoom.regionMode) {
+      this.state.zoom.regionMode = false
+      if (this.zoomControls && this.zoomControls.regionZoomButton) {
+        this.zoomControls.regionZoomButton.classList.remove('active')
+        this.zoomControls.regionZoomButton.title = 'Toggle Region Zoom Mode'
+      }
+    }
     
     // Update button appearance
     if (this.zoomControls && this.zoomControls.panToggleButton) {
@@ -470,6 +532,8 @@ export class GramFrame {
     if (this.svg) {
       if (this.state.zoom.panMode && this.state.zoom.level > 1.0) {
         this.svg.style.cursor = 'grab'
+      } else if (this.state.zoom.regionMode) {
+        this.svg.style.cursor = 'crosshair'
       } else {
         this.svg.style.cursor = 'crosshair'
       }
@@ -524,6 +588,131 @@ export class GramFrame {
   }
   
   /**
+   * Clear the region selection visual overlay
+   */
+  _clearSelectionVisual() {
+    if (this.svg) {
+      const existingSelection = this.svg.querySelector('.gram-frame-region-selection')
+      if (existingSelection) {
+        existingSelection.remove()
+      }
+    }
+  }
+  
+  /**
+   * Update the region selection visual overlay
+   */
+  _updateSelectionVisual() {
+    if (!this.state.zoom.isSelecting || !this.state.zoom.selectionStart || !this.state.zoom.selectionEnd) {
+      this._clearSelectionVisual()
+      return
+    }
+    
+    const start = this.state.zoom.selectionStart
+    const end = this.state.zoom.selectionEnd
+    
+    // Calculate rectangle bounds
+    const x = Math.min(start.x, end.x)
+    const y = Math.min(start.y, end.y)
+    const width = Math.abs(end.x - start.x)
+    const height = Math.abs(end.y - start.y)
+    
+    // Get or create selection rectangle
+    let selectionRect = this.svg.querySelector('.gram-frame-region-selection')
+    if (!selectionRect) {
+      selectionRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+      selectionRect.classList.add('gram-frame-region-selection')
+      selectionRect.setAttribute('fill', 'rgba(0, 150, 255, 0.2)')
+      selectionRect.setAttribute('stroke', 'rgba(0, 150, 255, 0.8)')
+      selectionRect.setAttribute('stroke-width', '2')
+      selectionRect.setAttribute('stroke-dasharray', '5,5')
+      this.svg.appendChild(selectionRect)
+    }
+    
+    // Update rectangle attributes
+    selectionRect.setAttribute('x', String(x))
+    selectionRect.setAttribute('y', String(y))
+    selectionRect.setAttribute('width', String(width))
+    selectionRect.setAttribute('height', String(height))
+  }
+  
+  /**
+   * Zoom to the selected region
+   */
+  _zoomToRegion() {
+    if (!this.state.zoom.selectionStart || !this.state.zoom.selectionEnd) {
+      return
+    }
+    
+    const margins = this.state.axes.margins
+    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    
+    // Get selection bounds in SVG coordinates
+    const start = this.state.zoom.selectionStart
+    const end = this.state.zoom.selectionEnd
+    const x1 = Math.min(start.x, end.x)
+    const y1 = Math.min(start.y, end.y)
+    const x2 = Math.max(start.x, end.x)
+    const y2 = Math.max(start.y, end.y)
+    
+    // Convert to image coordinates
+    const imageX1 = x1 - margins.left
+    const imageY1 = y1 - margins.top
+    const imageX2 = x2 - margins.left
+    const imageY2 = y2 - margins.top
+    
+    // Ensure selection is within image bounds
+    const clampedX1 = Math.max(0, Math.min(imageX1, naturalWidth))
+    const clampedY1 = Math.max(0, Math.min(imageY1, naturalHeight))
+    const clampedX2 = Math.max(0, Math.min(imageX2, naturalWidth))
+    const clampedY2 = Math.max(0, Math.min(imageY2, naturalHeight))
+    
+    // Calculate selection dimensions
+    const selectionWidth = clampedX2 - clampedX1
+    const selectionHeight = clampedY2 - clampedY1
+    
+    // Minimum selection size (prevent zooming to tiny areas)
+    const minSelectionSize = 50
+    if (selectionWidth < minSelectionSize || selectionHeight < minSelectionSize) {
+      return
+    }
+    
+    // Save current zoom state to history
+    this.state.zoom.zoomHistory.push({
+      level: this.state.zoom.level,
+      centerX: this.state.zoom.centerX,
+      centerY: this.state.zoom.centerY
+    })
+    
+    // Calculate new zoom level and center based on selection
+    const zoomX = naturalWidth / selectionWidth
+    const zoomY = naturalHeight / selectionHeight
+    
+    // Use the smaller zoom factor to ensure entire selection is visible
+    const newZoomLevel = Math.min(zoomX, zoomY, 10.0) // Cap at 10x zoom
+    
+    // Calculate center point of selection (normalized to 0-1)
+    const centerX = (clampedX1 + selectionWidth / 2) / naturalWidth
+    const centerY = (clampedY1 + selectionHeight / 2) / naturalHeight
+    
+    // Apply the zoom
+    this._setZoom(newZoomLevel, centerX, centerY)
+    
+    // Clear selection
+    this.state.zoom.isSelecting = false
+    this.state.zoom.selectionStart = null
+    this.state.zoom.selectionEnd = null
+    this._clearSelectionVisual()
+    
+    // Deactivate region zoom mode
+    this.state.zoom.regionMode = false
+    if (this.zoomControls && this.zoomControls.regionZoomButton) {
+      this.zoomControls.regionZoomButton.classList.remove('active')
+      this.zoomControls.regionZoomButton.title = 'Toggle Region Zoom Mode'
+    }
+  }
+  
+  /**
    * Update zoom control button states based on current zoom level
    */
   _updateZoomControlStates() {
@@ -536,8 +725,8 @@ export class GramFrame {
     // Zoom in: disabled when at max zoom (10.0)
     this.zoomControls.zoomInButton.disabled = (level >= 10.0)
     
-    // Zoom out: disabled when at 1:1 scale or below
-    this.zoomControls.zoomOutButton.disabled = (level <= 1.0)
+    // Zoom out: disabled when at 1:1 scale or below and no zoom history
+    this.zoomControls.zoomOutButton.disabled = (level <= 1.0 && this.state.zoom.zoomHistory.length === 0)
     
     // Reset zoom: disabled when already at 1:1 scale
     this.zoomControls.zoomResetButton.disabled = (level === 1.0)
@@ -550,7 +739,7 @@ export class GramFrame {
       this.state.zoom.panMode = false
       this.zoomControls.panToggleButton.classList.remove('active')
       if (this.svg) {
-        this.svg.style.cursor = 'crosshair'
+        this.svg.style.cursor = this.state.zoom.regionMode ? 'crosshair' : 'crosshair'
       }
     }
   }

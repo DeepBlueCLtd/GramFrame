@@ -148,6 +148,11 @@
  * @property {number} centerX - Center point X (0-1 normalized)
  * @property {number} centerY - Center point Y (0-1 normalized)
  * @property {boolean} panMode - Whether pan mode is active
+ * @property {boolean} regionMode - Whether region selection mode is active
+ * @property {boolean} isSelecting - Whether user is actively selecting a region
+ * @property {{x: number, y: number}|null} selectionStart - Start point of region selection in SVG coordinates
+ * @property {{x: number, y: number}|null} selectionEnd - End point of region selection in SVG coordinates
+ * @property {Array<{level: number, centerX: number, centerY: number}>} zoomHistory - Stack of previous zoom states for zoom out functionality
  */
 
 /**
@@ -275,6 +280,10 @@
  * @property {function(): void} [updateSelectionVisuals] - Update selection visuals
  * @property {function(): void} [createUnifiedLayout] - Create unified layout
  * @property {function(): void} [createZoomControls] - Create zoom controls
+ * @property {function(boolean): void} [_toggleRegionZoom] - Toggle region zoom mode
+ * @property {function(): void} [_clearSelectionVisual] - Clear region selection visual
+ * @property {function(): void} [_updateSelectionVisual] - Update region selection visual
+ * @property {function(): void} [_zoomToRegion] - Zoom to selected region
  */
 
 /**

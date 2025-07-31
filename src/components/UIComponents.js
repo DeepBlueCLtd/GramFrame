@@ -65,3 +65,30 @@ export function createFullFlexLayout(className, gap = '10px') {
 export function createFlexColumn(className, gap = '10px') {
   return createFlexLayout(className, gap, 'column')
 }
+
+/**
+ * Creates a region zoom toggle button for selecting zoom areas
+ * @param {Function} onToggle - Callback when zoom mode is toggled
+ * @returns {HTMLButtonElement} The created zoom toggle button
+ */
+export function createZoomToggleButton(onToggle) {
+  const button = document.createElement('button')
+  button.className = 'gram-frame-zoom-toggle-btn'
+  button.textContent = '⬚' // Rectangle selection icon
+  button.title = 'Toggle Region Zoom Mode'
+  button.type = 'button'
+  
+  button.addEventListener('click', () => {
+    const isActive = button.classList.contains('active')
+    if (isActive) {
+      button.classList.remove('active')
+      button.title = 'Toggle Region Zoom Mode'
+    } else {
+      button.classList.add('active') 
+      button.title = 'Region Zoom Mode Active - Click to disable'
+    }
+    onToggle(!isActive)
+  })
+  
+  return button
+}

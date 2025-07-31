@@ -67,7 +67,12 @@ export const initialState = {
     level: 1.0,  // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
     centerX: 0.5, // Center point X (0-1 normalized)
     centerY: 0.5,  // Center point Y (0-1 normalized)
-    panMode: false // Whether pan mode is active
+    panMode: false, // Whether pan mode is active
+    regionMode: false, // Whether region selection mode is active
+    isSelecting: false, // Whether user is actively selecting a region
+    selectionStart: null, // Start point of region selection {x, y} in SVG coordinates
+    selectionEnd: null, // End point of region selection {x, y} in SVG coordinates
+    zoomHistory: [] // Stack of previous zoom states for zoom out functionality
   },
   // Selection state for keyboard fine control
   selection: {
