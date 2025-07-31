@@ -10,10 +10,16 @@ import { calculateMidpoint } from '../../utils/doppler.js'
 import { 
   drawDopplerPreview
 } from '../../rendering/cursors.js'
-import { DopplerDraggedMarker } from './types.js'
 
 // Constants
 const MS_TO_KNOTS_CONVERSION = 1.94384
+
+// Doppler marker types
+const DopplerDraggedMarker = {
+  fPlus: 'fPlus',
+  fMinus: 'fMinus', 
+  fZero: 'fZero'
+}
 
 /**
  * Doppler mode implementation
@@ -143,7 +149,7 @@ export class DopplerMode extends BaseMode {
       const mousePos = this.getMousePosition(event)
       
       // Find the closest marker that's within range
-      /** @type {DopplerDraggedMarker|null} */
+      /** @type {string|null} */
       let closestMarker = null
       let closestDistance = Infinity
       

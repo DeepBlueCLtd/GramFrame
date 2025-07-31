@@ -113,34 +113,7 @@ export function setupEventListeners(instance) {
     }
   })
   
-  // Rate input events
-  if (instance.rateInput) {
-    instance.rateInput.addEventListener('change', () => {
-      if (instance.rateInput) {
-        const rate = parseFloat(instance.rateInput.value)
-        if (!isNaN(rate) && rate >= 0.1) {
-          instance._setRate(rate)
-        } else {
-          // Reset to previous valid value if invalid input
-          instance.rateInput.value = String(instance.state.rate)
-        }
-      }
-    })
-  }
-  
-  // Also handle input events for real-time validation feedback
-  if (instance.rateInput) {
-    instance.rateInput.addEventListener('input', () => {
-      if (instance.rateInput) {
-        const rate = parseFloat(instance.rateInput.value)
-        if (!isNaN(rate) && rate >= 0.1) {
-          instance.rateInput.style.borderColor = '#ddd'
-        } else {
-          instance.rateInput.style.borderColor = '#ff6b6b'
-        }
-      }
-    })
-  }
+  // Rate input UI events removed - backend rate functionality preserved
   
   // Window resize event
   window.addEventListener('resize', instance._boundHandleResize)

@@ -513,31 +513,7 @@
     0 1px 2px rgba(0,0,0,0.2);
 }
 
-/* Rate input container */
-.gram-frame-rate {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.gram-frame-rate label {
-  font-size: 0.9em;
-  color: #555;
-}
-
-.gram-frame-rate input {
-  width: 80px;
-  padding: 5px;
-  border: 1px solid #ddd;
-  border-radius: 3px;
-}
-
-.gram-frame-rate-unit {
-  font-size: 0.9em;
-  color: #777;
-  font-style: italic;
-}
+/* Rate input UI styles removed - backend functionality preserved */
 
 /* SVG cursor styles removed - using CSS cursor only */
 

@@ -3,8 +3,6 @@
  */
 
 /// <reference path="../types.js" />
-/// <reference path="../modes/harmonics/types.js" />
-/// <reference path="../modes/doppler/types.js" />
 
 import { createSVGLine, createSVGCircle } from '../utils/svg.js'
 

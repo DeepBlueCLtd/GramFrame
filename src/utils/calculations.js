@@ -6,7 +6,6 @@
  */
 
 /// <reference path="../types.js" />
-/// <reference path="../modes/harmonics/types.js" />
 
 
 /**

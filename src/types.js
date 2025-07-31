@@ -11,6 +11,11 @@
  */
 
 /**
+ * Doppler dragged marker types enum
+ * @typedef {'fPlus'|'fMinus'|'fZero'} DopplerDraggedMarker
+ */
+
+/**
  * Doppler mode state
  * @typedef {Object} DopplerState
  * @property {DopplerPoint|null} fPlus - f+ marker position
@@ -61,6 +66,50 @@
  * @property {number} imageY - Image-relative y coordinate
  * @property {number} time - Time value in seconds
  * @property {number} freq - Frequency value in Hz
+ */
+
+/**
+ * Marker object for analysis mode
+ * @typedef {Object} AnalysisMarker
+ * @property {string} id - Unique marker identifier
+ * @property {string} color - Marker color
+ * @property {number} time - Time coordinate
+ * @property {number} freq - Frequency coordinate
+ */
+
+/**
+ * Analysis state object for analysis mode
+ * @typedef {Object} AnalysisState
+ * @property {Array<AnalysisMarker>} markers - Array of analysis markers
+ * @property {boolean} isDragging - Whether currently dragging a marker
+ * @property {string|null} draggedMarkerId - ID of marker being dragged
+ * @property {Object|null} dragStartPosition - Starting position of drag with freq and time properties
+ */
+
+/**
+ * Individual harmonic data
+ * @typedef {Object} HarmonicData
+ * @property {number} number - Harmonic number (1x, 2x, 3x, etc.)
+ * @property {number} frequency - Frequency value in Hz
+ * @property {number} svgX - SVG x coordinate for drawing
+ */
+
+/**
+ * Harmonic set definition for interactive overlays
+ * @typedef {Object} HarmonicSet
+ * @property {string} id - Unique identifier for the harmonic set
+ * @property {string} color - Display color for harmonic lines
+ * @property {number} anchorTime - Time position (Y-axis) in seconds
+ * @property {number} spacing - Frequency spacing between harmonics in Hz
+ */
+
+/**
+ * Harmonics mode state
+ * @typedef {Object} HarmonicsState
+ * @property {number|null} baseFrequency - Base frequency for harmonic calculations
+ * @property {HarmonicData[]} harmonicData - Array of calculated harmonic data
+ * @property {HarmonicSet[]} harmonicSets - Array of harmonic sets with persistent overlays
+ * @property {string} selectedColor - Currently selected color for new harmonic sets
  */
 
 
