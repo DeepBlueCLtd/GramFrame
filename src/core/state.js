@@ -13,7 +13,7 @@ import { DopplerMode } from '../modes/doppler/DopplerMode.js'
 
 /**
  * Build mode-specific initial state by collecting from all mode classes
- * @returns {Object} Combined initial state from all modes
+ * @returns {GramFrameState} Combined initial state from all modes
  */
 function buildModeInitialState() {
   // Get initial state from static methods (no need for temporary instances)

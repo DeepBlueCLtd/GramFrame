@@ -8,7 +8,7 @@ import { createSVGLine, createSVGCircle } from '../utils/svg.js'
 
 /**
  * Update cursor indicators based on current mode and state
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function updateCursorIndicators(instance) {
   // Clear any existing cursor visuals
@@ -33,9 +33,9 @@ export function updateCursorIndicators(instance) {
 
 /**
  * Draw preview of Doppler curve during initial drag
- * @param {Object} instance - GramFrame instance
- * @param {Object} startPoint - Starting drag point
- * @param {Object} endPoint - Current drag end point
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {DataCoordinates} startPoint - Starting drag point
+ * @param {DataCoordinates} endPoint - Current drag end point
  */
 export function drawDopplerPreview(instance, startPoint, endPoint) {
   const margins = instance.state.axes.margins
@@ -103,8 +103,8 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
 
 /**
  * Draw a preview marker during drag
- * @param {Object} instance - GramFrame instance
- * @param {Object} svgPos - SVG position {x, y}
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {SVGCoordinates} svgPos - SVG position {x, y}
  * @param {string} type - Marker type ('fZero', 'fPlus', 'fMinus')
  */
 function drawPreviewMarker(instance, svgPos, type) {

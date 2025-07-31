@@ -10,7 +10,7 @@
 export class FeatureRenderer {
   /**
    * Create a new FeatureRenderer
-   * @param {Object} gramFrameInstance - GramFrame instance
+   * @param {GramFrame} gramFrameInstance - GramFrame instance
    */
   constructor(gramFrameInstance) {
     this.instance = gramFrameInstance
@@ -70,9 +70,9 @@ export class FeatureRenderer {
    */
   hasDopplerFeatures() {
     return this.instance.state.doppler && 
-           (this.instance.state.doppler.fPlus || 
-            this.instance.state.doppler.fMinus || 
-            this.instance.state.doppler.fZero)
+           (!!this.instance.state.doppler.fPlus || 
+            !!this.instance.state.doppler.fMinus || 
+            !!this.instance.state.doppler.fZero)
   }
 
   /**

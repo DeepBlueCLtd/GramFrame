@@ -292,7 +292,7 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Update LED displays for doppler mode
-   * @param {Object} _coords - Current cursor coordinates
+   * @param {CursorPosition} _coords - Current cursor coordinates
    */
   updateLEDs(_coords) {
     // Doppler mode shows Speed LED only (created in createUI)
@@ -406,7 +406,7 @@ export class DopplerMode extends BaseMode {
   /**
    * Get mouse position relative to SVG
    * @param {MouseEvent} event - Mouse event
-   * @returns {Object} Mouse position with x, y coordinates
+   * @returns {ScreenCoordinates} Mouse position with x, y coordinates
    */
   getMousePosition(event) {
     const svgRect = this.instance.svg.getBoundingClientRect()
@@ -436,8 +436,8 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Convert data coordinates to SVG coordinates (zoom-aware)
-   * @param {Object} dataPoint - Data point with time and frequency
-   * @returns {Object} SVG coordinates with x, y
+   * @param {DataCoordinates} dataPoint - Data point with time and frequency
+   * @returns {SVGCoordinates} SVG coordinates with x, y
    */
   dataToSVG(dataPoint) {
     const margins = this.instance.state.axes.margins
@@ -470,8 +470,8 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Check if mouse is near a marker
-   * @param {Object} mousePos - Mouse position with x, y coordinates
-   * @param {Object} markerSVG - Marker SVG position with x, y coordinates
+   * @param {ScreenCoordinates} mousePos - Mouse position with x, y coordinates
+   * @param {SVGCoordinates} markerSVG - Marker SVG position with x, y coordinates
    * @returns {boolean} True if mouse is near the marker
    */
   isNearMarker(mousePos, markerSVG) {
@@ -481,8 +481,8 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Calculate distance between mouse and marker
-   * @param {Object} mousePos - Mouse position with x, y coordinates
-   * @param {Object} markerSVG - Marker SVG position with x, y coordinates
+   * @param {ScreenCoordinates} mousePos - Mouse position with x, y coordinates
+   * @param {SVGCoordinates} markerSVG - Marker SVG position with x, y coordinates
    * @returns {number} Distance in pixels
    */
   getMarkerDistance(mousePos, markerSVG) {
@@ -495,7 +495,7 @@ export class DopplerMode extends BaseMode {
    * Calculate midpoint between two markers
    * @param {Object} fPlus - f+ marker
    * @param {Object} fMinus - f- marker
-   * @returns {Object} Midpoint coordinates
+   * @returns {DataCoordinates} Midpoint coordinates
    */
   calculateMidpoint(fPlus, fMinus) {
     return calculateMidpoint(fPlus, fMinus)
@@ -543,8 +543,8 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Render preview curve during marker placement
-   * @param {Object} start - Start point
-   * @param {Object} end - End point
+   * @param {DataCoordinates} start - Start point
+   * @param {DataCoordinates} end - End point
    */
   renderPreviewCurve(start, end) {
     // Use the proper drawDopplerPreview function from cursors.js

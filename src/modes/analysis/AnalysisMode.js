@@ -24,7 +24,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle mouse move events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(_event, dataCoords) {
     // Update cursor style based on whether we're hovering over an existing marker
@@ -69,7 +69,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle mouse down events in analysis mode
    * @param {MouseEvent} event - Mouse event
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseDown(event, dataCoords) {
     // Only handle left clicks
@@ -132,7 +132,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Create a marker at the specified position
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   createMarkerAtPosition(dataCoords) {
     // Get the current marker color from the central color picker
@@ -351,7 +351,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Update LED displays for analysis mode
-   * @param {Object} _coords - Current cursor coordinates
+   * @param {CursorPosition} _coords - Current cursor coordinates
    */
   updateLEDs(_coords) {
     // Time and Frequency LEDs are now managed centrally
@@ -386,7 +386,8 @@ export class AnalysisMode extends BaseMode {
         markers: [],
         isDragging: false,
         draggedMarkerId: null,
-        dragStartPosition: null
+        dragStartPosition: null,
+        selectedColor: '#ff6b6b'
       }
     }
     
@@ -440,7 +441,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Find marker at given position (with tolerance)
-   * @param {Object} position - Position to check
+   * @param {DataCoordinates} position - Position to check
    * @returns {Object|null} Marker if found, null otherwise
    */
   findMarkerAtPosition(position) {

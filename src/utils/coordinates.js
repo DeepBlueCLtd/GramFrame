@@ -15,9 +15,7 @@
  * @param {number} screenX - Screen X coordinate relative to SVG element
  * @param {number} screenY - Screen Y coordinate relative to SVG element
  * @param {SVGSVGElement} svg - SVG element reference
- * @param {Object} imageDetails - Image dimensions
- * @param {number} imageDetails.naturalWidth - Natural width of image
- * @param {number} imageDetails.naturalHeight - Natural height of image
+ * @param {ImageDetails} _imageDetails - Image dimensions
  * @returns {SVGCoordinates} SVG coordinates
  */
 export function screenToSVGCoordinates(screenX, screenY, svg, _imageDetails) {
@@ -45,14 +43,8 @@ export function screenToSVGCoordinates(screenX, screenY, svg, _imageDetails) {
  * Convert image-relative coordinates to data coordinates (time and frequency)
  * @param {number} imageX - Image X coordinate  
  * @param {number} imageY - Image Y coordinate
- * @param {Object} config - Configuration object
- * @param {number} config.freqMin - Minimum frequency
- * @param {number} config.freqMax - Maximum frequency
- * @param {number} config.timeMin - Minimum time
- * @param {number} config.timeMax - Maximum time
- * @param {Object} imageDetails - Image dimensions
- * @param {number} imageDetails.naturalWidth - Natural width of image
- * @param {number} imageDetails.naturalHeight - Natural height of image
+ * @param {Config} config - Configuration object
+ * @param {ImageDetails} imageDetails - Image dimensions
  * @param {number} rate - Rate scaling factor
  * @returns {DataCoordinates} Data coordinates
  */

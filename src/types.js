@@ -76,7 +76,8 @@
  * @property {Array<AnalysisMarker>} markers - Array of analysis markers
  * @property {boolean} isDragging - Whether currently dragging a marker
  * @property {string|null} draggedMarkerId - ID of marker being dragged
- * @property {Object|null} dragStartPosition - Starting position of drag with freq and time properties
+ * @property {DataCoordinates|null} dragStartPosition - Starting position of drag with freq and time properties
+ * @property {string} selectedColor - Currently selected color for markers
  */
 
 /**
@@ -112,7 +113,7 @@
  * Drag interaction state
  * @typedef {Object} DragState
  * @property {boolean} isDragging - Whether user is currently dragging
- * @property {CursorPosition|null} dragStartPosition - Starting position of drag
+ * @property {DataCoordinates|null} dragStartPosition - Starting position of drag
  * @property {string|null} draggedHarmonicSetId - ID of harmonic set being dragged
  * @property {number|null} originalSpacing - Original spacing of dragged harmonic set
  * @property {number|null} originalAnchorTime - Original anchor time of dragged harmonic set  
@@ -213,4 +214,114 @@
 /**
  * Event handler callback for resize events
  * @typedef {function(ResizeObserverEntry[]): void} ResizeEventHandler
+ */
+
+/**
+ * GramFrame class interface for JSDoc type checking
+ * Note: This interface may be partially initialized during startup
+ * @typedef {Object} GramFrame
+ * @property {GramFrameState} [state] - Main state object
+ * @property {string} [instanceId] - Unique instance identifier  
+ * @property {StateListener[]} [stateListeners] - Array of state listeners
+ * @property {HTMLTableElement} [configTable] - Original configuration table
+ * @property {HTMLDivElement|null} [table] - Component table element
+ * @property {HTMLDivElement|null} [modeRow] - Mode selection row
+ * @property {HTMLDivElement|null} [mainRow] - Main display row
+ * 
+ * @property {HTMLDivElement|null} [container] - Main container element
+ * @property {SVGSVGElement|null} [svg] - Main SVG element
+ * @property {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @property {SVGGElement|null} [cursorGroup] - SVG group for cursor elements
+ * @property {SVGGElement|null} [axesGroup] - SVG group for axes
+ * @property {SVGRectElement|null} [imageClipRect] - Clipping rectangle for image
+ * @property {HTMLDivElement|null} [readoutPanel] - Container for readouts
+ * @property {HTMLDivElement|null} [modeCell] - Mode selection cell
+ * @property {HTMLDivElement|null} [mainCell] - Main display cell
+ * @property {HTMLElement|null} [colorPicker] - Color picker component
+ * @property {HTMLElement|null} [timeLED] - Time display LED
+ * @property {HTMLElement|null} [freqLED] - Frequency display LED
+ * @property {HTMLElement|null} [speedLED] - Speed display LED
+ * @property {HTMLElement|null} [modeLED] - Mode display LED
+ * @property {HTMLElement|null} [rateLED] - Rate display LED
+ * @property {HTMLDivElement|null} [markersContainer] - Container for markers
+ * @property {HTMLDivElement|null} [harmonicsContainer] - Container for harmonics
+ * @property {HTMLDivElement|null} [leftColumn] - Left column layout
+ * @property {HTMLDivElement|null} [middleColumn] - Middle column layout
+ * @property {HTMLDivElement|null} [rightColumn] - Right column layout
+ * @property {HTMLDivElement|null} [unifiedLayoutContainer] - Main layout container
+ * @property {Object<string, HTMLButtonElement>|null} [modeButtons] - Mode switching buttons
+ * @property {HTMLDivElement|null} [guidancePanel] - Guidance text panel
+ * 
+ * @property {Object<string, *>|null} [modes] - Available modes
+ * @property {*|null} [currentMode] - Current active mode
+ * @property {*|null} [featureRenderer] - Feature rendering coordinator
+ * 
+ * @property {ResizeObserver|null} [resizeObserver] - Resize observer instance
+ * @property {(function(KeyboardEvent): void)|null} [keyboardHandler] - Keyboard event handler
+ * @property {(function(Event): void)|null} [_boundHandleResize] - Bound resize handler
+ * @property {Object|null} [_panDragState] - Pan drag state
+ * @property {Object|null} [zoomControls] - Zoom control elements
+ * @property {HTMLElement|null} [harmonicPanel] - Harmonic panel element
+ * 
+ * @property {function(DataCoordinates): void} [updateUniversalCursorReadouts] - Update cursor readouts
+ * @property {function(): void} [updatePersistentPanels] - Update markers and harmonics panels
+ * @property {function(): void} [destroy] - Clean up and destroy instance
+ * @property {function(number, number): void} [_panImage] - Pan the image
+ * @property {function(number, number, number): void} [_setZoom] - Set zoom level
+ * @property {function(): void} [_handleResize] - Handle resize events
+ * @property {function(ModeType): void} [_switchMode] - Switch between modes
+ * @property {function(string, string, number): void} [setSelection] - Set selection
+ * @property {function(): void} [clearSelection] - Clear selection  
+ * @property {function(): void} [updateSelectionVisuals] - Update selection visuals
+ * @property {function(): void} [createUnifiedLayout] - Create unified layout
+ * @property {function(): void} [createZoomControls] - Create zoom controls
+ */
+
+/**
+ * Movement vector for keyboard navigation
+ * @typedef {Object} MovementVector
+ * @property {number} dx - Horizontal movement delta
+ * @property {number} dy - Vertical movement delta
+ */
+
+/**
+ * RGB color object
+ * @typedef {Object} RGBColor
+ * @property {number} r - Red component (0-255)
+ * @property {number} g - Green component (0-255) 
+ * @property {number} b - Blue component (0-255)
+ */
+
+/**
+ * Collection of mode UI elements
+ * @typedef {Object} ModeUIElements
+ * @property {HTMLDivElement} modesContainer - Container for mode buttons
+ * @property {Object} modeButtons - Mode switching buttons
+ * @property {HTMLDivElement} guidancePanel - Guidance text panel
+ */
+
+/**
+ * Collection of DOM elements from table setup
+ * @typedef {Object} TableElements
+ * @property {HTMLDivElement} container - Main container element
+ * @property {HTMLDivElement} table - Table element
+ * @property {HTMLDivElement} modeRow - Mode row element
+ * @property {HTMLDivElement} mainRow - Main row element
+ * @property {HTMLDivElement} modeCell - Mode cell element
+ * @property {HTMLDivElement} mainCell - Main cell element
+ * @property {HTMLDivElement} readoutPanel - Readout panel element
+ * @property {SVGSVGElement} svg - SVG element
+ * @property {SVGImageElement} spectrogramImage - Spectrogram image element
+ * @property {SVGGElement} cursorGroup - SVG cursor group element
+ * @property {SVGGElement} axesGroup - SVG axes group element
+ * @property {SVGRectElement} imageClipRect - SVG image clipping rectangle
+ */
+
+/**
+ * Visible data range information
+ * @typedef {Object} DataRange
+ * @property {number} timeMin - Minimum visible time
+ * @property {number} timeMax - Maximum visible time
+ * @property {number} freqMin - Minimum visible frequency
+ * @property {number} freqMax - Maximum visible frequency
  */

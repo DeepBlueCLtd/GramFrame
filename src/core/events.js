@@ -9,7 +9,7 @@ import { updateCursorIndicators } from '../rendering/cursors.js'
 
 /**
  * Convert screen coordinates to data coordinates, accounting for zoom
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
  * @returns {Object|null} Object with svgCoords, imageX, imageY, dataCoords, and bounds check
  */
@@ -65,7 +65,7 @@ function screenToDataWithZoom(instance, event) {
 
 /**
  * Set up event listeners for the GramFrame instance
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function setupEventListeners(instance) {
   // Mouse event listeners for SVG interaction
@@ -121,7 +121,7 @@ export function setupEventListeners(instance) {
 
 /**
  * Set up ResizeObserver to monitor container dimensions
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function setupResizeObserver(instance) {
   // Use ResizeObserver to monitor SVG container dimensions
@@ -138,7 +138,7 @@ export function setupResizeObserver(instance) {
 
 /**
  * Handle mouse move events on SVG
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseMove(instance, event) {
@@ -177,10 +177,14 @@ function handleMouseMove(instance, event) {
     
     // Update cursor position in state
     instance.state.cursorPosition = {
-      freq: dataCoords.freq,
-      time: dataCoords.time,
+      x: event.clientX - instance.svg.getBoundingClientRect().left,
+      y: event.clientY - instance.svg.getBoundingClientRect().top,
       svgX: svgCoords.x,
-      svgY: svgCoords.y
+      svgY: svgCoords.y,
+      imageX: svgCoords.x, // Simplified - would need proper image coordinate calculation
+      imageY: svgCoords.y, // Simplified - would need proper image coordinate calculation
+      freq: dataCoords.freq,
+      time: dataCoords.time
     }
     
     // Update universal cursor readouts (time/freq LEDs) regardless of mode
@@ -208,7 +212,7 @@ function handleMouseMove(instance, event) {
 
 /**
  * Handle mouse down events on SVG
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseDown(instance, event) {
@@ -244,7 +248,7 @@ function handleMouseDown(instance, event) {
 
 /**
  * Handle mouse up events on SVG
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseUp(instance, event) {
@@ -274,7 +278,7 @@ function handleMouseUp(instance, event) {
 
 /**
  * Handle mouse leave events on SVG
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 function handleMouseLeave(instance) {
   // Stop pan drag if was dragging
@@ -306,7 +310,7 @@ function handleMouseLeave(instance) {
 
 /**
  * Handle context menu (right-click) events on SVG
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
  */
 function handleContextMenu(instance, event) {
@@ -318,7 +322,7 @@ function handleContextMenu(instance, event) {
 
 /**
  * Clean up event listeners (called when component is destroyed)
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function cleanupEventListeners(instance) {
   // Clean up SVG event listeners

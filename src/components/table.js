@@ -8,8 +8,8 @@ import { formatTime } from '../utils/timeFormatter.js'
 
 /**
  * Create the complete DOM structure for the GramFrame component
- * @param {Object} instance - GramFrame instance to populate with DOM elements
- * @returns {Object} Object containing all created DOM elements
+ * @param {GramFrame} instance - GramFrame instance to populate with DOM elements
+ * @returns {TableElements} Object containing all created DOM elements
  */
 export function createComponentStructure(instance) {
   // Create a container to replace the table
@@ -98,7 +98,7 @@ export function createComponentStructure(instance) {
 
 /**
  * Set up spectrogram image display within SVG container
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {string} imageUrl - URL of the spectrogram image
  */
 export function setupSpectrogramImage(instance, imageUrl) {
@@ -135,7 +135,7 @@ export function setupSpectrogramImage(instance, imageUrl) {
 
 /**
  * Update SVG layout and viewBox based on image dimensions and margins
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function updateSVGLayout(instance) {
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
@@ -185,7 +185,7 @@ export function updateSVGLayout(instance) {
 
 /**
  * Apply zoom transformation to spectrogram image only
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function applyZoomTransform(instance) {
   const { level, centerX, centerY } = instance.state.zoom
@@ -244,7 +244,7 @@ export function applyZoomTransform(instance) {
 
 /**
  * Render time and frequency axes
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function renderAxes(instance) {
   if (!instance.axesGroup) {
@@ -273,8 +273,8 @@ export function renderAxes(instance) {
 
 /**
  * Calculate the visible data range based on current zoom level and position
- * @param {Object} instance - GramFrame instance
- * @returns {Object} Visible data range
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {DataRange} Visible data range
  */
 function calculateVisibleDataRange(instance) {
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
@@ -325,8 +325,8 @@ function calculateVisibleDataRange(instance) {
 
 /**
  * Render time axis with ticks and labels (vertical - y-axis)
- * @param {Object} instance - GramFrame instance
- * @param {Object} margins - Margin configuration
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {AxesMargins} margins - Margin configuration
  * @param {number} _naturalWidth - Image natural width (unused)
  * @param {number} naturalHeight - Image natural height
  * @param {number} timeMin - Minimum time value
@@ -380,8 +380,8 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
 /**
  * Render frequency axis with ticks and labels (horizontal - x-axis)
  * Enhanced with dense markers and labels for better granularity
- * @param {Object} instance - GramFrame instance
- * @param {Object} margins - Margin configuration
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {AxesMargins} margins - Margin configuration
  * @param {number} naturalWidth - Image natural width
  * @param {number} _naturalHeight - Image natural height (unused)
  * @param {number} freqMin - Minimum frequency value
@@ -547,7 +547,7 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
 
 /**
  * Replace the original config table with the new component structure
- * @param {Object} instance - GramFrame instance with created DOM structure
+ * @param {GramFrame} instance - GramFrame instance with created DOM structure
  * @param {HTMLTableElement} configTable - Original table to replace
  */
 export function replaceConfigTable(instance, configTable) {
@@ -564,9 +564,9 @@ export function replaceConfigTable(instance, configTable) {
 
 /**
  * Create minimal component table structure
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {HTMLTableElement} configTable - Original table to replace
- * @returns {Object} Object containing all created elements
+ * @returns {TableElements} Object containing all created elements
  */
 export function setupComponentTable(instance, configTable) {
   // Create DOM structure only

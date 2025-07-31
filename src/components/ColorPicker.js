@@ -175,7 +175,7 @@ function getColorFromPosition(x, width) {
 /**
  * Convert hex color to RGB
  * @param {string} hex - Hex color string
- * @returns {Object} RGB object with r, g, b properties
+ * @returns {RGBColor} RGB object with r, g, b properties
  */
 function hexToRgb(hex) {
   const r = parseInt(hex.slice(1, 3), 16)

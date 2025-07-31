@@ -153,7 +153,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Update LED displays for harmonics mode
-   * @param {Object} _coords - Current cursor coordinates
+   * @param {CursorPosition} _coords - Current cursor coordinates
    */
   updateLEDs(_coords) {
     // Harmonics mode specific updates (harmonic panel refresh)
@@ -207,7 +207,7 @@ export class HarmonicsMode extends BaseMode {
    * Add a new harmonic set
    * @param {number} anchorTime - Time position in seconds
    * @param {number} spacing - Frequency spacing in Hz
-   * @returns {Object} The created harmonic set
+   * @returns {HarmonicSet} The created harmonic set
    */
   addHarmonicSet(anchorTime, spacing) {
     const id = `harmonic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -356,7 +356,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Create a new harmonic set immediately and start drag mode for updates
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   startNewHarmonicSetCreation(dataCoords) {
     // Calculate initial spacing based on frequency axis origin
@@ -396,7 +396,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Complete the drag update of the newly created harmonic set
-   * @param {Object} _dataCoords - Final drag position coordinates (unused)
+   * @param {DataCoordinates} _dataCoords - Final drag position coordinates (unused)
    */
   completeNewHarmonicSetCreation(_dataCoords) {
     // Just clear the creation state - harmonic set was already created and updated during drag
@@ -411,7 +411,7 @@ export class HarmonicsMode extends BaseMode {
   /**
    * Start dragging a harmonic set
    * @param {Object} harmonicSet - The harmonic set to drag
-   * @param {Object} dataCoords - Current cursor coordinates
+   * @param {DataCoordinates} dataCoords - Current cursor coordinates
    */
   startHarmonicSetDrag(harmonicSet, dataCoords) {
     // Find which harmonic number the user clicked on

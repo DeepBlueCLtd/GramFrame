@@ -6,7 +6,7 @@
 export class BaseMode {
   /**
    * Constructor for base mode
-   * @param {Object} instance - GramFrame instance
+   * @param {GramFrame} instance - GramFrame instance
    * @param {GramFrameState} state - GramFrame state object
    */
   constructor(instance, state) {
@@ -33,7 +33,7 @@ export class BaseMode {
   /**
    * Handle mouse move events
    * @param {MouseEvent} _event - Mouse event (unused in base implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
    */
   handleMouseMove(_event, _dataCoords) {
     // Default implementation - override in subclasses for mode-specific behavior
@@ -82,7 +82,7 @@ export class BaseMode {
 
   /**
    * Update LED displays with mode-specific values
-   * @param {Object} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
+   * @param {CursorPosition} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
    */
   updateLEDs(_coords) {
     // Default implementation - override in subclasses

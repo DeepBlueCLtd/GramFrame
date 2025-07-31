@@ -36,7 +36,7 @@ export function createHarmonicPanel(container) {
 /**
  * Update harmonic panel content
  * @param {HTMLElement} panel - Panel element
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function updateHarmonicPanelContent(panel, instance) {
   if (!panel) {
@@ -75,7 +75,7 @@ export function updateHarmonicPanelContent(panel, instance) {
  * Update only the changing cells in an existing harmonic row
  * @param {HTMLTableRowElement} row - The table row to update
  * @param {Object} harmonicSet - The harmonic set data
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 function updateHarmonicRow(row, harmonicSet, instance) {
   // Update spacing cell if changed
@@ -107,7 +107,7 @@ function updateHarmonicRow(row, harmonicSet, instance) {
  * Rebuild the harmonic table from a specific index
  * @param {HTMLTableSectionElement} tbody - Table body element
  * @param {Array} harmonicSets - Array of harmonic sets
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {number} startIndex - Index to start rebuilding from
  */
 function rebuildHarmonicTableFrom(tbody, harmonicSets, instance, startIndex) {
@@ -131,7 +131,7 @@ function rebuildHarmonicTableFrom(tbody, harmonicSets, instance, startIndex) {
 /**
  * Create a new harmonic table row
  * @param {Object} harmonicSet - The harmonic set data
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {number} index - Row index
  * @returns {HTMLTableRowElement} The created row
  */

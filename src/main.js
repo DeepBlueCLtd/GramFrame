@@ -656,7 +656,7 @@ export class GramFrame {
     }
     
     // Update LED display visibility
-    this.currentMode.updateLEDs()
+    this.currentMode.updateLEDs(this.state.cursorPosition)
     
     // Update LED display values
     updateLEDDisplays(this, this.state)

@@ -28,7 +28,7 @@ export function createLEDDisplay(label, value) {
 /**
  * Update global LED displays (mode and rate only)
  * Mode-specific LEDs are now managed by individual modes
- * @param {Object} instance - GramFrame instance with global LEDs
+ * @param {GramFrame} instance - GramFrame instance with global LEDs
  * @param {GramFrameState} state - Current state object
  */
 export function updateLEDDisplays(instance, state) {
