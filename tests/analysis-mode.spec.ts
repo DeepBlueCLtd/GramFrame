@@ -180,7 +180,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       expect(originalMarkers).toHaveLength(3)
       
       // Switch through all modes
-      const modes = ['analysis', 'harmonics', 'doppler']
+      const modes = ['cross cursor', 'harmonics', 'doppler']
       for (const mode of modes) {
         await gramFramePage.clickMode(mode)
         
