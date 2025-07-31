@@ -140,3 +140,4 @@ vite.config.ts.timestamp-*
 test-results/
 playwright-report/
 .obsidian/workspace.json
+.vscode/settings.json
