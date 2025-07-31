@@ -39,81 +39,166 @@ export function createHarmonicPanel(container) {
  * @param {Object} instance - GramFrame instance
  */
 export function updateHarmonicPanelContent(panel, instance) {
-
   if (!panel) {
-
     return
   }
   
-  const listContainer = panel.querySelector('.gram-frame-harmonic-list')
-
-  if (!listContainer) {
-
+  const tbody = /** @type {HTMLTableSectionElement} */ (panel.querySelector('.gram-frame-harmonic-table tbody'))
+  if (!tbody) {
     return
   }
   
   const harmonicSets = instance.state.harmonics.harmonicSets
-
-
+  const existingRows = tbody.querySelectorAll('tr')
   
-  // Always create table structure with headers, populate tbody based on harmonic sets
-  const tableBodyHTML = harmonicSets.length === 0 ? '' : harmonicSets.map(harmonicSet => {
-    // Calculate rate: cursor frequency / spacing
-    // If cursor position is available, use it; otherwise show a representative rate
+  // Update existing rows or create new ones
+  harmonicSets.forEach((harmonicSet, index) => {
+    let row = existingRows[index]
+    
+    if (row && row.getAttribute('data-harmonic-id') === harmonicSet.id) {
+      // Update existing row - only update cells that change
+      updateHarmonicRow(row, harmonicSet, instance)
+    } else {
+      // Need to rebuild from this point
+      rebuildHarmonicTableFrom(tbody, harmonicSets, instance, index)
+      return
+    }
+  })
+  
+  // Remove extra rows if harmonic sets were deleted
+  for (let i = harmonicSets.length; i < existingRows.length; i++) {
+    existingRows[i].remove()
+  }
+}
+
+/**
+ * Update only the changing cells in an existing harmonic row
+ * @param {HTMLTableRowElement} row - The table row to update
+ * @param {Object} harmonicSet - The harmonic set data
+ * @param {Object} instance - GramFrame instance
+ */
+function updateHarmonicRow(row, harmonicSet, instance) {
+  // Update spacing cell if changed
+  const spacingCell = row.cells[1]
+  if (spacingCell) {
+    const newSpacing = harmonicSet.spacing.toFixed(1)
+    if (spacingCell.textContent !== newSpacing) {
+      spacingCell.textContent = newSpacing
+    }
+  }
+  
+  // Update rate cell - this changes with cursor position
+  const rateCell = row.cells[2]
+  if (rateCell) {
     let rate
     if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
       rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(2)
     } else {
-      // Fallback: show a representative rate based on a middle harmonic
-      const representativeHarmonic = 5
-      rate = representativeHarmonic.toFixed(2)
+      rate = '5.00' // Representative rate for 5th harmonic
     }
     
-    return `
-      <tr data-harmonic-id="${harmonicSet.id}">
-        <td>
-          <div class="gram-frame-harmonic-color" style="background-color: ${harmonicSet.color}"></div>
-        </td>
-        <td class="gram-frame-harmonic-spacing">${harmonicSet.spacing.toFixed(1)}</td>
-        <td class="gram-frame-harmonic-rate">${rate}</td>
-        <td>
-          <button class="gram-frame-harmonic-delete" data-harmonic-id="${harmonicSet.id}" title="Delete harmonic set">×</button>
-        </td>
-      </tr>
-    `
-  }).join('')
-  
-  // Create table for harmonic sets - always show headers
-  const tableHTML = `
-    <table class="gram-frame-harmonic-table">
-      <thead>
-        <tr>
-          <th>Color</th>
-          <th>Spacing (Hz)</th>
-          <th>Ratio</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${tableBodyHTML}
-      </tbody>
-    </table>
-  `
-  
+    if (rateCell.textContent !== rate) {
+      rateCell.textContent = rate
+    }
+  }
+}
 
-  listContainer.innerHTML = tableHTML
-
+/**
+ * Rebuild the harmonic table from a specific index
+ * @param {HTMLTableSectionElement} tbody - Table body element
+ * @param {Array} harmonicSets - Array of harmonic sets
+ * @param {Object} instance - GramFrame instance
+ * @param {number} startIndex - Index to start rebuilding from
+ */
+function rebuildHarmonicTableFrom(tbody, harmonicSets, instance, startIndex) {
+  // Remove rows from startIndex onward
+  const existingRows = tbody.querySelectorAll('tr')
+  for (let i = startIndex; i < existingRows.length; i++) {
+    existingRows[i].remove()
+  }
   
-  // Add event listeners for delete buttons
-  const deleteButtons = listContainer.querySelectorAll('.gram-frame-harmonic-delete')
-  deleteButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
-      e.preventDefault()
-      const harmonicId = button.getAttribute('data-harmonic-id')
-      if (harmonicId && instance.currentMode && instance.currentMode.removeHarmonicSet) {
-        instance.currentMode.removeHarmonicSet(harmonicId)
-        // Panel will be updated automatically by the remove method
-      }
-    })
+  // Add new rows from startIndex
+  for (let index = startIndex; index < harmonicSets.length; index++) {
+    const harmonicSet = harmonicSets[index]
+    const row = createHarmonicRow(harmonicSet, instance, index)
+    tbody.appendChild(row)
+  }
+  
+  // Restore selection highlighting if needed
+  instance.updateSelectionVisuals()
+}
+
+/**
+ * Create a new harmonic table row
+ * @param {Object} harmonicSet - The harmonic set data
+ * @param {Object} instance - GramFrame instance
+ * @param {number} index - Row index
+ * @returns {HTMLTableRowElement} The created row
+ */
+function createHarmonicRow(harmonicSet, instance, index) {
+  const row = document.createElement('tr')
+  row.setAttribute('data-harmonic-id', harmonicSet.id)
+  row.className = 'gram-frame-harmonic-row'
+  
+  // Color cell
+  const colorCell = document.createElement('td')
+  const colorDiv = document.createElement('div')
+  colorDiv.className = 'gram-frame-harmonic-color'
+  colorDiv.style.backgroundColor = harmonicSet.color
+  colorCell.appendChild(colorDiv)
+  row.appendChild(colorCell)
+  
+  // Spacing cell
+  const spacingCell = document.createElement('td')
+  spacingCell.className = 'gram-frame-harmonic-spacing'
+  spacingCell.textContent = harmonicSet.spacing.toFixed(1)
+  row.appendChild(spacingCell)
+  
+  // Rate cell
+  const rateCell = document.createElement('td')
+  rateCell.className = 'gram-frame-harmonic-rate'
+  let rate
+  if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
+    rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(2)
+  } else {
+    rate = '5.00'
+  }
+  rateCell.textContent = rate
+  row.appendChild(rateCell)
+  
+  // Delete button cell
+  const actionCell = document.createElement('td')
+  const deleteButton = document.createElement('button')
+  deleteButton.className = 'gram-frame-harmonic-delete'
+  deleteButton.setAttribute('data-harmonic-id', harmonicSet.id)
+  deleteButton.title = 'Delete harmonic set'
+  deleteButton.textContent = '×'
+  actionCell.appendChild(deleteButton)
+  row.appendChild(actionCell)
+  
+  // Add event listeners
+  row.addEventListener('click', (event) => {
+    // Don't trigger selection if clicking delete button
+    if (event.target && /** @type {Element} */ (event.target).closest('.gram-frame-harmonic-delete')) {
+      return
+    }
+    
+    // Toggle selection
+    if (instance.state.selection.selectedType === 'harmonicSet' && 
+        instance.state.selection.selectedId === harmonicSet.id) {
+      instance.clearSelection()
+    } else {
+      instance.setSelection('harmonicSet', harmonicSet.id, index)
+    }
   })
+  
+  deleteButton.addEventListener('click', (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (instance.currentMode && instance.currentMode.removeHarmonicSet) {
+      instance.currentMode.removeHarmonicSet(harmonicSet.id)
+    }
+  })
+  
+  return row
 }

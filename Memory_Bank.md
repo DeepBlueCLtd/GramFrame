@@ -5,6 +5,62 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 
 ## Implementation Progress
 
+---
+**Agent:** Implementation Agent  
+**Task Reference:** GitHub Issue #78 (Keyboard Fine Control for Harmonic Spacing and Marker Positioning)
+
+**Summary:**
+Implemented keyboard arrow key support for fine-grained control of marker and harmonic positioning with variable increment sizes (1px normal, 5px with Shift) and table row selection system with visual feedback.
+
+**Details:**
+- Analyzed existing architecture and identified state management, mode systems, and table rendering components
+- Extended state management to include selection tracking with selectedType, selectedId, and selectedIndex properties
+- Created comprehensive keyboard control system (`src/core/keyboardControl.js`) with:
+  - Document-level keyboard event listeners for arrow keys with modifier detection
+  - Movement logic with 1-pixel increments (normal) and 5-pixel increments (Shift+Arrow)
+  - Pixel-to-data coordinate transformations for precise positioning
+- Implemented selection system with click handlers for table rows:
+  - Analysis mode: Click markers table rows to select/deselect markers for keyboard control
+  - Harmonics mode: Click harmonic sets table rows to select/deselect harmonic sets
+  - Visual feedback with green highlighting for selected table rows
+- Integrated auto-selection when creating new markers/harmonic sets for immediate keyboard control
+- Added robust selection clearing when items are deleted from tables
+- Updated CSS with selection highlighting styles matching the military/industrial theme
+- Integrated keyboard control initialization/cleanup into main GramFrame lifecycle
+- Excluded Doppler mode from keyboard control (as requested) due to multiple control points
+
+**Output/Result:**
+```javascript
+// Key files created/modified:
+// src/core/keyboardControl.js - Complete keyboard control system
+// src/core/state.js - Added selection state to initialState
+// src/types.js - Added SelectionState typedef  
+// src/modes/analysis/AnalysisMode.js - Added click handlers and auto-selection
+// src/modes/harmonics/HarmonicsMode.js - Added auto-selection and selection clearing
+// src/components/HarmonicPanel.js - Added click handlers for harmonic table rows
+// src/gramframe.css - Added selection highlighting styles
+// src/main.js - Integrated keyboard control initialization/cleanup
+
+// Movement increments implemented:
+const MOVEMENT_INCREMENTS = {
+  normal: 1,    // Arrow keys alone: 1-pixel increments
+  fast: 5       // Shift + Arrow keys: 5-pixel increments
+}
+```
+
+**Status:** Completed
+
+**Issues/Blockers:**
+None. TypeScript type checking passes and production build completes successfully.
+
+**Next Steps:**
+Feature is ready for user testing. Users can now:
+1. Click any marker or harmonic set table row to select it (green highlighting)
+2. Use arrow keys (←→↑↓) for 1-pixel fine positioning
+3. Hold Shift + arrow keys for 5-pixel faster positioning  
+4. Click selected row again to deselect
+5. Newly created markers/harmonics are auto-selected for immediate keyboard control
+
 ### Phase 1: Bootstrapping + Dev Harness (Completed)
 **Date: July 18, 2025**
 

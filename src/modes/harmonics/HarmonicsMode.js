@@ -25,6 +25,7 @@ export class HarmonicsMode extends BaseMode {
       <p>• Click & drag to generate harmonic lines</p>
       <p>• Drag existing harmonic lines to adjust spacing intervals</p>
       <p>• Manually add harmonic lines using [+ Manual] button</p>
+      <p>• Click table row + arrow keys (Shift for larger steps)</p>
     `
   }
 
@@ -47,8 +48,8 @@ export class HarmonicsMode extends BaseMode {
       this.handleHarmonicSetDrag()
     }
     
-    // Update harmonic panel during mouse movement for real-time rate calculation
-    this.updateHarmonicPanel()
+    // Don't update harmonic panel on every mouse move - it causes flicker
+    // The rate updates are not critical enough to justify the performance cost
   }
 
   /**
@@ -230,6 +231,10 @@ export class HarmonicsMode extends BaseMode {
     
     this.state.harmonics.harmonicSets.push(harmonicSet)
     
+    // Auto-select the newly created harmonic set
+    const index = this.state.harmonics.harmonicSets.length - 1
+    this.instance.setSelection('harmonicSet', harmonicSet.id, index)
+    
     // Update visual elements
     if (this.instance.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
@@ -276,6 +281,12 @@ export class HarmonicsMode extends BaseMode {
   removeHarmonicSet(id) {
     const setIndex = this.state.harmonics.harmonicSets.findIndex(set => set.id === id)
     if (setIndex !== -1) {
+      // Clear selection if removing the selected harmonic set
+      if (this.state.selection.selectedType === 'harmonicSet' && 
+          this.state.selection.selectedId === id) {
+        this.instance.clearSelection()
+      }
+      
       this.state.harmonics.harmonicSets.splice(setIndex, 1)
       
       // Update visual elements

@@ -15,4 +15,7 @@
  * Analysis state object for analysis mode
  * @typedef {Object} AnalysisState
  * @property {Array<AnalysisMarker>} markers - Array of analysis markers
+ * @property {boolean} isDragging - Whether currently dragging a marker
+ * @property {string|null} draggedMarkerId - ID of marker being dragged
+ * @property {Object|null} dragStartPosition - Starting position of drag with freq and time properties
  */

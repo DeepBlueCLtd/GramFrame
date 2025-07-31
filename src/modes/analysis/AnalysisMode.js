@@ -14,19 +14,54 @@ export class AnalysisMode extends BaseMode {
   getGuidanceText() {
     return `
       <h4>Cross Cursor Mode</h4>
-      <p>• Hover to view exact frequency/time values</p>
       <p>• Click to place persistent markers</p>
       <p>• Drag existing markers to reposition them</p>
       <p>• Right-click markers to delete them</p>
+      <p>• Click table row + arrow keys (Shift for larger steps)</p>
     `
   }
 
   /**
    * Handle mouse move events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused)
+   * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseMove(_event, _dataCoords) {
+  handleMouseMove(_event, dataCoords) {
+    // Update cursor style based on whether we're hovering over an existing marker
+    const existingMarker = this.findMarkerAtPosition(dataCoords)
+    if (existingMarker && this.instance.spectrogramImage && !this.state.analysis.isDragging) {
+      this.instance.spectrogramImage.style.cursor = 'grab'
+    } else if (!this.state.analysis.isDragging) {
+      this.instance.spectrogramImage.style.cursor = 'crosshair'
+    }
+    
+    // Handle marker dragging
+    if (this.state.analysis.isDragging && this.state.analysis.draggedMarkerId) {
+      const marker = this.state.analysis.markers.find(m => m.id === this.state.analysis.draggedMarkerId)
+      if (marker) {
+        // Update marker position
+        marker.freq = dataCoords.freq
+        marker.time = dataCoords.time
+        
+        // Re-render persistent features
+        if (this.instance.featureRenderer) {
+          this.instance.featureRenderer.renderAllPersistentFeatures()
+        }
+        
+        // Throttle table updates - use requestAnimationFrame
+        if (!this.updateTableScheduled) {
+          this.updateTableScheduled = true
+          requestAnimationFrame(() => {
+            this.updateMarkersTable()
+            this.updateTableScheduled = false
+          })
+        }
+        
+        // Notify listeners
+        notifyStateListeners(this.state, this.instance.stateListeners)
+      }
+    }
+    
     // Universal cursor readouts are now handled centrally in main.js
     // Analysis mode specific handling can be added here if needed
   }
@@ -37,13 +72,32 @@ export class AnalysisMode extends BaseMode {
    * @param {Object} dataCoords - Data coordinates {freq, time}
    */
   handleMouseDown(event, dataCoords) {
-    // Only handle left clicks for marker creation
+    // Only handle left clicks
     if (event.button !== 0) {
       return
     }
     
-    // Create marker at click location
-    this.createMarkerAtPosition(dataCoords)
+    // Check if clicking on an existing marker for dragging
+    const existingMarker = this.findMarkerAtPosition(dataCoords)
+    
+    if (existingMarker) {
+      // Start dragging existing marker
+      this.state.analysis.isDragging = true
+      this.state.analysis.draggedMarkerId = existingMarker.id
+      this.state.analysis.dragStartPosition = { ...dataCoords }
+      
+      // Change cursor to grabbing
+      if (this.instance.spectrogramImage) {
+        this.instance.spectrogramImage.style.cursor = 'grabbing'
+      }
+      
+      // Auto-select the marker being dragged
+      const index = this.state.analysis.markers.findIndex(m => m.id === existingMarker.id)
+      this.instance.setSelection('marker', existingMarker.id, index)
+    } else {
+      // Create marker at click location
+      this.createMarkerAtPosition(dataCoords)
+    }
   }
 
   /**
@@ -52,7 +106,17 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
    */
   handleMouseUp(_event, _dataCoords) {
-    // Analysis mode specific handling
+    // End marker dragging
+    if (this.state.analysis.isDragging) {
+      this.state.analysis.isDragging = false
+      this.state.analysis.draggedMarkerId = null
+      this.state.analysis.dragStartPosition = null
+      
+      // Reset cursor to crosshair
+      if (this.instance.spectrogramImage) {
+        this.instance.spectrogramImage.style.cursor = 'crosshair'
+      }
+    }
   }
 
   /**
@@ -301,7 +365,10 @@ export class AnalysisMode extends BaseMode {
   static getInitialState() {
     return {
       analysis: {
-        markers: []
+        markers: [],
+        isDragging: false,
+        draggedMarkerId: null,
+        dragStartPosition: null
       },
       harmonics: {
         selectedColor: '#ff6b6b' // Default color for markers
@@ -315,10 +382,19 @@ export class AnalysisMode extends BaseMode {
    */
   addMarker(marker) {
     if (!this.state.analysis) {
-      this.state.analysis = { markers: [] }
+      this.state.analysis = { 
+        markers: [],
+        isDragging: false,
+        draggedMarkerId: null,
+        dragStartPosition: null
+      }
     }
     
     this.state.analysis.markers.push(marker)
+    
+    // Auto-select the newly created marker
+    const index = this.state.analysis.markers.length - 1
+    this.instance.setSelection('marker', marker.id, index)
     
     // Update markers table
     this.updateMarkersTable()
@@ -341,6 +417,12 @@ export class AnalysisMode extends BaseMode {
     
     const index = this.state.analysis.markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
+      // Clear selection if removing the selected marker
+      if (this.state.selection.selectedType === 'marker' && 
+          this.state.selection.selectedId === markerId) {
+        this.instance.clearSelection()
+      }
+      
       this.state.analysis.markers.splice(index, 1)
       
       // Update markers table
@@ -381,14 +463,92 @@ export class AnalysisMode extends BaseMode {
   updateMarkersTable() {
     if (!this.uiElements.markersTableBody) return
     
-    // Clear existing rows
-    this.uiElements.markersTableBody.innerHTML = ''
-    
     if (!this.state.analysis || !this.state.analysis.markers) return
     
-    // Add rows for each marker
-    this.state.analysis.markers.forEach((marker) => {
+    const existingRows = this.uiElements.markersTableBody.querySelectorAll('tr')
+    const markers = this.state.analysis.markers
+    
+    // Update existing rows or create new ones
+    markers.forEach((marker, index) => {
+      let row = existingRows[index]
+      
+      if (row && row.getAttribute('data-marker-id') === marker.id) {
+        // Update existing row - only update the cells that change
+        this.updateMarkerRow(row, marker)
+      } else {
+        // Need to rebuild from this point (marker added/removed/reordered)
+        this.rebuildMarkersTableFrom(index)
+        return
+      }
+    })
+    
+    // Remove extra rows if markers were deleted
+    for (let i = markers.length; i < existingRows.length; i++) {
+      existingRows[i].remove()
+    }
+  }
+  
+  /**
+   * Update only the changing cells in an existing marker row
+   * @param {HTMLTableRowElement} row - The table row to update
+   * @param {Object} marker - The marker data
+   */
+  updateMarkerRow(row, marker) {
+    // Update time cell (second cell)
+    const timeCell = row.cells[1]
+    if (timeCell) {
+      const newTime = formatTime(marker.time)
+      if (timeCell.textContent !== newTime) {
+        timeCell.textContent = newTime
+      }
+    }
+    
+    // Update frequency cell (third cell)
+    const freqCell = row.cells[2]
+    if (freqCell) {
+      const newFreq = marker.freq.toFixed(1)
+      if (freqCell.textContent !== newFreq) {
+        freqCell.textContent = newFreq
+      }
+    }
+  }
+  
+  /**
+   * Rebuild the markers table from a specific index
+   * @param {number} startIndex - Index to start rebuilding from
+   */
+  rebuildMarkersTableFrom(startIndex) {
+    if (!this.uiElements.markersTableBody) return
+    
+    const markers = this.state.analysis.markers
+    const existingRows = this.uiElements.markersTableBody.querySelectorAll('tr')
+    
+    // Remove rows from startIndex onward
+    for (let i = startIndex; i < existingRows.length; i++) {
+      existingRows[i].remove()
+    }
+    
+    // Add new rows from startIndex
+    for (let index = startIndex; index < markers.length; index++) {
+      const marker = markers[index]
       const row = document.createElement('tr')
+      row.setAttribute('data-marker-id', marker.id)
+      
+      // Add click handler for selection
+      row.addEventListener('click', (event) => {
+        // Don't trigger selection if clicking delete button
+        if (event.target && /** @type {Element} */ (event.target).closest('.gram-frame-marker-delete-btn')) {
+          return
+        }
+        
+        // Toggle selection
+        if (this.state.selection.selectedType === 'marker' && 
+            this.state.selection.selectedId === marker.id) {
+          this.instance.clearSelection()
+        } else {
+          this.instance.setSelection('marker', marker.id, index)
+        }
+      })
       
       // Color swatch cell
       const colorCell = document.createElement('td')
@@ -434,7 +594,10 @@ export class AnalysisMode extends BaseMode {
       row.appendChild(deleteCell)
       
       this.uiElements.markersTableBody.appendChild(row)
-    })
+    }
+    
+    // Restore selection highlighting if needed
+    this.instance.updateSelectionVisuals()
   }
 
   /**
