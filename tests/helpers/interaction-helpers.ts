@@ -103,7 +103,7 @@ export class InteractionHelpers {
     start: { x: number; y: number },
     end: { x: number; y: number },
     amplitude: number,
-    frequency: number
+    freq: number
   ) {
     const positions = []
     const steps = frequency * 8 // 8 steps per zigzag

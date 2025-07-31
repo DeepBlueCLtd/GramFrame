@@ -50,9 +50,9 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         expect(state.doppler.fMinus).toHaveProperty('frequency')
         
         expect(state.doppler.fPlus.time).toBeGreaterThan(0)
-        expect(state.doppler.fPlus.frequency).toBeGreaterThan(0)
+        expect(state.doppler.fPlus.freq).toBeGreaterThan(0)
         expect(state.doppler.fMinus.time).toBeGreaterThan(0)
-        expect(state.doppler.fMinus.frequency).toBeGreaterThan(0)
+        expect(state.doppler.fMinus.freq).toBeGreaterThan(0)
       } else {
         // If no markers created, at least verify doppler state exists
         expect(state.doppler).toHaveProperty('fPlus')
@@ -75,9 +75,9 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         expect(state.doppler.fZero).toHaveProperty('frequency')
         
         // f₀ should be approximately between f+ and f-
-        const fPlusFreq = state.doppler.fPlus.frequency
-        const fMinusFreq = state.doppler.fMinus.frequency
-        const fZeroFreq = state.doppler.fZero.frequency
+        const fPlusFreq = state.doppler.fPlus.freq
+        const fMinusFreq = state.doppler.fMinus.freq
+        const fZeroFreq = state.doppler.fZero.freq
         
         const minFreq = Math.min(fPlusFreq, fMinusFreq)
         const maxFreq = Math.max(fPlusFreq, fMinusFreq)
@@ -177,7 +177,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       }
       
       // Verify frequency difference is calculated
-      const freqDiff = Math.abs(state.doppler.fPlus.frequency - state.doppler.fMinus.frequency)
+      const freqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
       expect(freqDiff).toBeGreaterThanOrEqual(0)
     })
     
@@ -196,7 +196,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         return
       }
       
-      const initialFreqDiff = Math.abs(state.doppler.fPlus.frequency - state.doppler.fMinus.frequency)
+      const initialFreqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
       
       // Drag one marker to change frequency difference
       await gramFramePage.page.waitForTimeout(200)
@@ -208,7 +208,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       // Verify calculation updated or drag was attempted
       state = await gramFramePage.getState()
       if (state.doppler.fPlus && state.doppler.fMinus) {
-        const newFreqDiff = Math.abs(state.doppler.fPlus.frequency - state.doppler.fMinus.frequency)
+        const newFreqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
         // Frequency difference may or may not have changed
         expect(newFreqDiff).toBeGreaterThanOrEqual(0)
       }
@@ -543,7 +543,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         expect(state.doppler.fMinus).toHaveProperty('frequency')
         
         // Frequency difference should be minimal
-        const freqDiff = Math.abs(state.doppler.fPlus.frequency - state.doppler.fMinus.frequency)
+        const freqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
         expect(freqDiff).toBeLessThan(100) // Small difference for overlapping positions
       }
     })
@@ -572,13 +572,13 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       // Verify coordinates are within expected ranges
       expect(state.doppler.fPlus.time).toBeGreaterThanOrEqual(state.config.timeMin)
       expect(state.doppler.fPlus.time).toBeLessThanOrEqual(state.config.timeMax)
-      expect(state.doppler.fPlus.frequency).toBeGreaterThanOrEqual(state.config.freqMin)
-      expect(state.doppler.fPlus.frequency).toBeLessThanOrEqual(state.config.freqMax)
+      expect(state.doppler.fPlus.freq).toBeGreaterThanOrEqual(state.config.freqMin)
+      expect(state.doppler.fPlus.freq).toBeLessThanOrEqual(state.config.freqMax)
       
       expect(state.doppler.fMinus.time).toBeGreaterThanOrEqual(state.config.timeMin)
       expect(state.doppler.fMinus.time).toBeLessThanOrEqual(state.config.timeMax)
-      expect(state.doppler.fMinus.frequency).toBeGreaterThanOrEqual(state.config.freqMin)
-      expect(state.doppler.fMinus.frequency).toBeLessThanOrEqual(state.config.freqMax)
+      expect(state.doppler.fMinus.freq).toBeGreaterThanOrEqual(state.config.freqMin)
+      expect(state.doppler.fMinus.freq).toBeLessThanOrEqual(state.config.freqMax)
     })
   })
 })
