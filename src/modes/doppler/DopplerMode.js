@@ -305,7 +305,6 @@ export class DopplerMode extends BaseMode {
    * Reset doppler-specific state
    */
   resetState() {
-    
     this.state.doppler.fPlus = null
     this.state.doppler.fMinus = null
     this.state.doppler.fZero = null
