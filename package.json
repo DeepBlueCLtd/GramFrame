@@ -12,7 +12,10 @@
     "@playwright/test": "^1.54.1",
     "@types/node": "^24.0.14",
     "husky": "^9.1.7",
+    "madge": "^8.0.0",
+    "ts-unused-exports": "^11.0.1",
     "typescript": "^5.8.3",
+    "unimported": "^1.31.1",
     "vite": "^5.0.0"
   }
 }
