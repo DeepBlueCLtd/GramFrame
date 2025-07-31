@@ -63,7 +63,10 @@
       "Bash(gh issue edit:*)",
       "Bash(gh label:*)",
       "Bash(git push:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(gh pr create:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
