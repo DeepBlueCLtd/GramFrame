@@ -14,10 +14,10 @@ export class AnalysisMode extends BaseMode {
   getGuidanceText() {
     return `
       <h4>Cross Cursor Mode</h4>
-      <p>• Hover to view exact frequency/time values</p>
       <p>• Click to place persistent markers</p>
       <p>• Drag existing markers to reposition them</p>
       <p>• Right-click markers to delete them</p>
+      <p>• Click table row + arrow keys for fine control</p>
     `
   }
 
