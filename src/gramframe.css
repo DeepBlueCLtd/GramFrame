@@ -282,7 +282,9 @@
 
 /* Color picker for harmonics */
 .gram-frame-color-picker {
-  margin-top: 8px;
+  position: absolute;
+  top: 115px; /* Fixed position below cursor LEDs */
+  margin-top: 0;
   padding: 8px;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
   border: 2px solid #333;
@@ -1100,6 +1102,7 @@
 }
 
 .gram-frame-left-column {
+  position: relative; /* Enable absolute positioning for child elements */
   display: flex;
   flex-direction: column;
   gap: 8px;
