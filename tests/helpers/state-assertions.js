@@ -6,9 +6,10 @@ import { expect } from '@playwright/test'
 
 /**
  * Verify that the state has valid version and timestamp
- * @param state The GramFrame state object
+ * @param {any} state - The GramFrame state object
+ * @returns {void}
  */
-export function expectValidMetadata(state: any) {
+function expectValidMetadata(state) {
   expect(state).toHaveProperty('version')
   expect(state.version).toMatch(/^\d+\.\d+\.\d+$/)
   expect(state).toHaveProperty('timestamp')
@@ -18,10 +19,11 @@ export function expectValidMetadata(state: any) {
 
 /**
  * Verify that the state has valid image details
- * @param state The GramFrame state object
- * @param url Optional expected image URL
+ * @param {any} state - The GramFrame state object
+ * @param {string} [url] - Optional expected image URL
+ * @returns {void}
  */
-export function expectValidImageDetails(state: any, url?: string) {
+function expectValidImageDetails(state, url) {
   expect(state).toHaveProperty('imageDetails')
   expect(state.imageDetails).toHaveProperty('naturalWidth')
   expect(state.imageDetails).toHaveProperty('naturalHeight')
@@ -37,9 +39,10 @@ export function expectValidImageDetails(state: any, url?: string) {
 
 /**
  * Verify that the state has valid display dimensions
- * @param state The GramFrame state object
+ * @param {any} state - The GramFrame state object
+ * @returns {void}
  */
-export function expectValidDisplayDimensions(state: any) {
+function expectValidDisplayDimensions(state) {
   expect(state).toHaveProperty('displayDimensions')
   expect(state.displayDimensions).toHaveProperty('width')
   expect(state.displayDimensions).toHaveProperty('height')
@@ -48,16 +51,21 @@ export function expectValidDisplayDimensions(state: any) {
 }
 
 /**
- * Verify that the state has valid configuration values
- * @param state The GramFrame state object
- * @param expected Optional expected config values
+ * Configuration expectation object
+ * @typedef {Object} ConfigExpectation
+ * @property {number} [timeMin] - Expected minimum time value
+ * @property {number} [timeMax] - Expected maximum time value
+ * @property {number} [freqMin] - Expected minimum frequency value
+ * @property {number} [freqMax] - Expected maximum frequency value
  */
-export function expectValidConfig(state: any, expected?: {
-  timeMin?: number
-  timeMax?: number
-  freqMin?: number
-  freqMax?: number
-}) {
+
+/**
+ * Verify that the state has valid configuration values
+ * @param {any} state - The GramFrame state object
+ * @param {ConfigExpectation} [expected] - Optional expected config values
+ * @returns {void}
+ */
+function expectValidConfig(state, expected) {
   expect(state).toHaveProperty('config')
   expect(state.config).toHaveProperty('timeMin')
   expect(state.config).toHaveProperty('timeMax')
@@ -83,10 +91,11 @@ export function expectValidConfig(state: any, expected?: {
 
 /**
  * Verify that cursor position is valid
- * @param state The GramFrame state object
- * @param shouldExist Whether cursor position should exist
+ * @param {any} state - The GramFrame state object
+ * @param {boolean} shouldExist - Whether cursor position should exist
+ * @returns {void}
  */
-export function expectValidCursorPosition(state: any, shouldExist = true) {
+function expectValidCursorPosition(state, shouldExist = true) {
   if (shouldExist) {
     expect(state).toHaveProperty('cursorPosition')
     expect(state.cursorPosition).toHaveProperty('time')
@@ -110,11 +119,12 @@ export function expectValidCursorPosition(state: any, shouldExist = true) {
 
 /**
  * Map display mode names to internal mode names
- * @param displayMode The display mode name (e.g., "Cross Cursor")
- * @returns The internal mode name (e.g., "analysis")
+ * @param {string} displayMode - The display mode name (e.g., "Cross Cursor")
+ * @returns {string} The internal mode name (e.g., "analysis")
  */
-function mapDisplayModeToInternalMode(displayMode: string): string {
-  const mapping: Record<string, string> = {
+function mapDisplayModeToInternalMode(displayMode) {
+  /** @type {Record<string, string>} */
+  const mapping = {
     'cross cursor': 'analysis',
     'harmonics': 'harmonics',
     'doppler': 'doppler'
@@ -125,10 +135,11 @@ function mapDisplayModeToInternalMode(displayMode: string): string {
 
 /**
  * Verify that the state has a valid mode
- * @param state The GramFrame state object
- * @param expectedMode Optional expected mode (can be display name or internal name)
+ * @param {any} state - The GramFrame state object
+ * @param {string} [expectedMode] - Optional expected mode (can be display name or internal name)
+ * @returns {void}
  */
-export function expectValidMode(state: any, expectedMode?: string) {
+function expectValidMode(state, expectedMode) {
   expect(state).toHaveProperty('mode')
   
   if (expectedMode) {
@@ -142,10 +153,11 @@ export function expectValidMode(state: any, expectedMode?: string) {
 
 /**
  * Verify that the state has a valid rate
- * @param state The GramFrame state object
- * @param expectedRate Optional expected rate
+ * @param {any} state - The GramFrame state object
+ * @param {number} [expectedRate] - Optional expected rate
+ * @returns {void}
  */
-export function expectValidRate(state: any, expectedRate?: number) {
+function expectValidRate(state, expectedRate) {
   expect(state).toHaveProperty('rate')
   expect(typeof state.rate).toBe('number')
   expect(state.rate).toBeGreaterThan(0)
@@ -153,4 +165,14 @@ export function expectValidRate(state: any, expectedRate?: number) {
   if (expectedRate !== undefined) {
     expect(state.rate).toBe(expectedRate)
   }
+}
+
+export {
+  expectValidMetadata,
+  expectValidImageDetails,
+  expectValidDisplayDimensions,
+  expectValidConfig,
+  expectValidCursorPosition,
+  expectValidMode,
+  expectValidRate
 }

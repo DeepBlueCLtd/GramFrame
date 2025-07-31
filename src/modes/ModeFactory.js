@@ -11,8 +11,8 @@ export class ModeFactory {
   /**
    * Create a mode instance based on mode name
    * @param {ModeType} modeName - Name of the mode
-   * @param {Object} instance - GramFrame instance
-   * @param {Object} state - GramFrame state object
+   * @param {GramFrame} instance - GramFrame instance
+   * @param {GramFrameState} state - GramFrame state object
    * @returns {BaseMode} Mode instance
    * @throws {Error} If mode name is invalid or mode class is not available
    */

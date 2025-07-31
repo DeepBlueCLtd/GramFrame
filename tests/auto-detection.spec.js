@@ -1,11 +1,22 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * Auto-Detection Tests
+ * @fileoverview Auto-Detection Tests
  * Tests for automatic detection and replacement of config tables
+ */
+
+/**
+ * Auto-Detection Functionality test suite
+ * @description Tests for automatic detection and replacement of config tables
  */
 test.describe('Auto-Detection Functionality', () => {
   
+  /**
+   * Test detection and replacement of gram-config table on debug page
+   * @param {TestParams} params - Test parameters
+   * @param {import('@playwright/test').Page} params.page - Playwright page instance
+   * @returns {Promise<void>}
+   */
   test('detects and replaces gram-config table on debug page', async ({ page }) => {
     // Navigate to the debug page which has a gram-config table
     await page.goto('/debug.html')
@@ -18,6 +29,7 @@ test.describe('Auto-Detection Functionality', () => {
     await expect(page.locator('.gram-frame-container')).toBeVisible()
     
     // Verify component was created successfully
+    /** @type {number} */
     const containerCount = await page.locator('.gram-frame-container').count()
     expect(containerCount).toBe(1)
     
@@ -26,6 +38,12 @@ test.describe('Auto-Detection Functionality', () => {
   })
   
   
+  /**
+   * Test API provides access to instances
+   * @param {TestParams} params - Test parameters
+   * @param {import('@playwright/test').Page} params.page - Playwright page instance
+   * @returns {Promise<void>}
+   */
   test('API provides access to instances', async ({ page }) => {
     // Navigate to debug page
     await page.goto('/debug.html')
@@ -34,6 +52,7 @@ test.describe('Auto-Detection Functionality', () => {
     await page.waitForFunction(() => window.GramFrame !== undefined)
     
     // Test getInstances API
+    /** @type {number} */
     const instanceCount = await page.evaluate(() => {
       return window.GramFrame.__test__getInstances().length
     })
@@ -41,6 +60,7 @@ test.describe('Auto-Detection Functionality', () => {
     expect(instanceCount).toBe(1)
     
     // Test that instances have the expected structure
+    /** @type {boolean} */
     const hasInstanceId = await page.evaluate(() => {
       const instances = window.GramFrame.__test__getInstances()
       return instances.length > 0 && instances[0].instanceId !== undefined
@@ -49,6 +69,12 @@ test.describe('Auto-Detection Functionality', () => {
     expect(hasInstanceId).toBe(true)
   })
   
+  /**
+   * Test detectAndReplaceConfigTables method works correctly
+   * @param {TestParams} params - Test parameters
+   * @param {import('@playwright/test').Page} params.page - Playwright page instance
+   * @returns {Promise<void>}
+   */
   test('detectAndReplaceConfigTables method works correctly', async ({ page }) => {
     // Navigate to debug page
     await page.goto('/debug.html')
@@ -57,6 +83,7 @@ test.describe('Auto-Detection Functionality', () => {
     await page.waitForFunction(() => window.GramFrame !== undefined)
     
     // Test that detectAndReplaceConfigTables method is available
+    /** @type {boolean} */
     const methodExists = await page.evaluate(() => {
       return typeof window.GramFrame.detectAndReplaceConfigTables === 'function'
     })
@@ -64,6 +91,7 @@ test.describe('Auto-Detection Functionality', () => {
     expect(methodExists).toBe(true)
     
     // Verify the method returns an array (should be empty since tables are already processed)
+    /** @type {boolean} */
     const result = await page.evaluate(() => {
       return Array.isArray(window.GramFrame.detectAndReplaceConfigTables())
     })
@@ -71,6 +99,12 @@ test.describe('Auto-Detection Functionality', () => {
     expect(result).toBe(true)
   })
 
+  /**
+   * Test validation and error handling methods are available
+   * @param {TestParams} params - Test parameters
+   * @param {import('@playwright/test').Page} params.page - Playwright page instance
+   * @returns {Promise<void>}
+   */
   test('validation and error handling methods are available', async ({ page }) => {
     // Navigate to debug page
     await page.goto('/debug.html')
@@ -79,6 +113,7 @@ test.describe('Auto-Detection Functionality', () => {
     await page.waitForFunction(() => window.GramFrame !== undefined)
     
     // Test that error indicator method exists (validation is now handled internally by extractConfigData)
+    /** @type {boolean} */
     const hasErrorMethod = await page.evaluate(() => {
       return typeof window.GramFrame._addErrorIndicator === 'function'
     })
@@ -86,6 +121,12 @@ test.describe('Auto-Detection Functionality', () => {
     expect(hasErrorMethod).toBe(true)
   })
   
+  /**
+   * Test component state includes auto-detection metadata
+   * @param {TestParams} params - Test parameters
+   * @param {import('@playwright/test').Page} params.page - Playwright page instance
+   * @returns {Promise<void>}
+   */
   test('component state includes auto-detection metadata', async ({ page }) => {
     // Navigate to debug page
     await page.goto('/debug.html')
@@ -94,6 +135,7 @@ test.describe('Auto-Detection Functionality', () => {
     await page.waitForFunction(() => window.GramFrame !== undefined)
     
     // Check that component has proper state structure
+    /** @type {{hasVersion: boolean, hasTimestamp: boolean, hasImageDetails: boolean, hasConfig: boolean, hasDisplayDimensions: boolean} | null} */
     const stateStructure = await page.evaluate(() => {
       const instances = window.GramFrame.__test__getInstances()
       if (instances.length === 0) return null

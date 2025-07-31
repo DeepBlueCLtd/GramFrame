@@ -8,7 +8,7 @@
 
 /**
  * Extract configuration data from HTML table and set up image loading
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function extractConfigData(instance) {
   if (!instance.configTable) {

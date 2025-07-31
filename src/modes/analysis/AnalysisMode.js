@@ -24,7 +24,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle mouse move events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(_event, dataCoords) {
     // Update cursor style based on whether we're hovering over an existing marker
@@ -69,7 +69,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle mouse down events in analysis mode
    * @param {MouseEvent} event - Mouse event
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseDown(event, dataCoords) {
     // Only handle left clicks
@@ -132,7 +132,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Create a marker at the specified position
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   createMarkerAtPosition(dataCoords) {
     // Get the current marker color from the central color picker
@@ -171,7 +171,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Render a single marker as a crosshair
-   * @param {Object} marker - Marker object
+   * @param {AnalysisMarker} marker - Marker object
    */
   renderMarker(marker) {
     if (!this.instance.cursorGroup) {
@@ -351,7 +351,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Update LED displays for analysis mode
-   * @param {Object} _coords - Current cursor coordinates
+   * @param {CursorPosition} _coords - Current cursor coordinates
    */
   updateLEDs(_coords) {
     // Time and Frequency LEDs are now managed centrally
@@ -360,7 +360,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Get initial state for analysis mode
-   * @returns {Object} Analysis mode state including markers and harmonics for color picker
+   * @returns {AnalysisInitialState} Analysis mode state including markers and harmonics for color picker
    */
   static getInitialState() {
     return {
@@ -368,7 +368,8 @@ export class AnalysisMode extends BaseMode {
         markers: [],
         isDragging: false,
         draggedMarkerId: null,
-        dragStartPosition: null
+        dragStartPosition: null,
+        selectedColor: '#ff6b6b'
       },
       harmonics: {
         selectedColor: '#ff6b6b' // Default color for markers
@@ -378,7 +379,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Add a new persistent marker
-   * @param {Object} marker - Marker object with all properties
+   * @param {AnalysisMarker} marker - Marker object with all properties
    */
   addMarker(marker) {
     if (!this.state.analysis) {
@@ -386,7 +387,8 @@ export class AnalysisMode extends BaseMode {
         markers: [],
         isDragging: false,
         draggedMarkerId: null,
-        dragStartPosition: null
+        dragStartPosition: null,
+        selectedColor: '#ff6b6b'
       }
     }
     
@@ -440,8 +442,8 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Find marker at given position (with tolerance)
-   * @param {Object} position - Position to check
-   * @returns {Object|null} Marker if found, null otherwise
+   * @param {DataCoordinates} position - Position to check
+   * @returns {AnalysisMarker|null} Marker if found, null otherwise
    */
   findMarkerAtPosition(position) {
     if (!this.state.analysis || !this.state.analysis.markers) return null
@@ -491,7 +493,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Update only the changing cells in an existing marker row
    * @param {HTMLTableRowElement} row - The table row to update
-   * @param {Object} marker - The marker data
+   * @param {AnalysisMarker} marker - The marker data
    */
   updateMarkerRow(row, marker) {
     // Update time cell (second cell)

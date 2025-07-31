@@ -1,6 +1,3 @@
-import { Page, Locator } from '@playwright/test'
-import { GramFramePage } from './gram-frame-page'
-
 /**
  * Mode-specific helper utilities for testing different GramFrame modes
  */
@@ -8,14 +5,21 @@ import { GramFramePage } from './gram-frame-page'
 /**
  * Cross Cursor mode specific helpers
  */
-export class CrossCursorModeHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class CrossCursorModeHelpers {
+  /**
+   * Create a new CrossCursorModeHelpers instance
+   * @param {import('./gram-frame-page').GramFramePage} gramFramePage - The GramFrame page instance
+   */
+  constructor(gramFramePage) {
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Create multiple markers at specified positions
-   * @param positions Array of {x, y} positions
+   * @param {Array<{x: number, y: number}>} positions - Array of {x, y} positions
+   * @returns {Promise<void>}
    */
-  async createMarkers(positions: Array<{ x: number; y: number }>) {
+  async createMarkers(positions) {
     await this.gramFramePage.clickMode('Analysis')
     
     for (const pos of positions) {
@@ -26,11 +30,14 @@ export class CrossCursorModeHelpers {
 
   /**
    * Verify marker exists at approximately the given position
-   * @param expectedTime Expected time value
-   * @param expectedFreq Expected frequency value
-   * @param tolerance Tolerance for comparison
+   * @param {number} expectedTime - Expected time value
+   * @param {number} expectedFreq - Expected frequency value
+   * @param {TestTolerance} [tolerance] - Tolerance for comparison
+   * @param {number} [tolerance.time=0.1] - Time tolerance
+   * @param {number} [tolerance.freq=10] - Frequency tolerance
+   * @returns {Promise<boolean>} Whether marker exists at position
    */
-  async verifyMarkerAtPosition(expectedTime: number, expectedFreq: number, tolerance = { time: 0.1, freq: 10 }) {
+  async verifyMarkerAtPosition(expectedTime, expectedFreq, tolerance = { time: 0.1, freq: 10 }) {
     const state = await this.gramFramePage.getState()
     
     const markerExists = state.analysis?.markers?.some(marker => 
@@ -43,6 +50,7 @@ export class CrossCursorModeHelpers {
 
   /**
    * Get markers table data if it exists
+   * @returns {Promise<string[][]|null>} Table data as array of arrays, or null if table doesn't exist
    */
   async getMarkersTableData() {
     try {
@@ -69,9 +77,10 @@ export class CrossCursorModeHelpers {
 
   /**
    * Delete marker by ID if delete functionality exists
-   * @param markerId ID of marker to delete
+   * @param {string} markerId - ID of marker to delete
+   * @returns {Promise<boolean>} Whether deletion was successful
    */
-  async deleteMarker(markerId: string) {
+  async deleteMarker(markerId) {
     try {
       const deleteButton = this.gramFramePage.page.locator(`[data-marker-id="${markerId}"] .delete-btn`)
       await deleteButton.click()
@@ -83,6 +92,7 @@ export class CrossCursorModeHelpers {
 
   /**
    * Clear all markers if clear functionality exists
+   * @returns {Promise<boolean>} Whether clearing was successful
    */
   async clearAllMarkers() {
     try {
@@ -98,15 +108,26 @@ export class CrossCursorModeHelpers {
 /**
  * Harmonics mode specific helpers
  */
-export class HarmonicsModeHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class HarmonicsModeHelpers {
+  /**
+   * Create a new HarmonicsModeHelpers instance
+   * @param {import('./gram-frame-page').GramFramePage} gramFramePage - The GramFrame page instance
+   */
+  constructor(gramFramePage) {
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Create harmonic set with specified start and end positions
-   * @param startPos Starting position {x, y}
-   * @param endPos Ending position {x, y}
+   * @param {TestPosition} startPos - Starting position {x, y}
+   * @param {number} startPos.x - Start X coordinate
+   * @param {number} startPos.y - Start Y coordinate
+   * @param {TestPosition} endPos - Ending position {x, y}
+   * @param {number} endPos.x - End X coordinate
+   * @param {number} endPos.y - End Y coordinate
+   * @returns {Promise<void>}
    */
-  async createHarmonicSet(startPos: { x: number; y: number }, endPos: { x: number; y: number }) {
+  async createHarmonicSet(startPos, endPos) {
     await this.gramFramePage.clickMode('Harmonics')
     
     await this.gramFramePage.page.mouse.move(startPos.x, startPos.y)
@@ -120,12 +141,10 @@ export class HarmonicsModeHelpers {
 
   /**
    * Create multiple harmonic sets
-   * @param harmonicConfigs Array of {start, end} position configs
+   * @param {Array<{start: {x: number, y: number}, end: {x: number, y: number}}>} harmonicConfigs - Array of {start, end} position configs
+   * @returns {Promise<void>}
    */
-  async createMultipleHarmonicSets(harmonicConfigs: Array<{
-    start: { x: number; y: number };
-    end: { x: number; y: number }
-  }>) {
+  async createMultipleHarmonicSets(harmonicConfigs) {
     await this.gramFramePage.clickMode('Harmonics')
     
     for (const config of harmonicConfigs) {
@@ -136,10 +155,15 @@ export class HarmonicsModeHelpers {
 
   /**
    * Drag existing harmonic set to modify it
-   * @param fromPos Position to start drag from
-   * @param toPos Position to drag to
+   * @param {TestPosition} fromPos - Position to start drag from
+   * @param {number} fromPos.x - From X coordinate
+   * @param {number} fromPos.y - From Y coordinate
+   * @param {TestPosition} toPos - Position to drag to
+   * @param {number} toPos.x - To X coordinate
+   * @param {number} toPos.y - To Y coordinate
+   * @returns {Promise<void>}
    */
-  async dragHarmonicSet(fromPos: { x: number; y: number }, toPos: { x: number; y: number }) {
+  async dragHarmonicSet(fromPos, toPos) {
     await this.gramFramePage.clickMode('Harmonics')
     
     await this.gramFramePage.page.mouse.move(fromPos.x, fromPos.y)
@@ -152,6 +176,7 @@ export class HarmonicsModeHelpers {
 
   /**
    * Get harmonic panel content if it exists
+   * @returns {Promise<string|null>} Panel content or null if panel doesn't exist
    */
   async getHarmonicPanelContent() {
     try {
@@ -165,9 +190,10 @@ export class HarmonicsModeHelpers {
 
   /**
    * Open manual harmonic modal if available
-   * @param frequency Frequency to enter manually
+   * @param {number} frequency - Frequency to enter manually
+   * @returns {Promise<boolean>} Whether manual harmonic was added successfully
    */
-  async addManualHarmonic(frequency: number) {
+  async addManualHarmonic(frequency) {
     try {
       const manualButton = this.gramFramePage.page.locator('.gram-frame-manual-harmonic-btn')
       await manualButton.click()
@@ -189,6 +215,7 @@ export class HarmonicsModeHelpers {
 
   /**
    * Count visible harmonic lines in SVG
+   * @returns {Promise<number>} Number of harmonic lines
    */
   async countHarmonicLines() {
     const harmonicLines = this.gramFramePage.page.locator('.gram-frame-harmonic-line')
@@ -197,14 +224,14 @@ export class HarmonicsModeHelpers {
 
   /**
    * Verify harmonic set has expected properties
-   * @param setIndex Index of harmonic set to verify
-   * @param expectedProps Expected properties
+   * @param {number} setIndex - Index of harmonic set to verify
+   * @param {TestHarmonicSetProps} expectedProps - Expected properties
+   * @param {number} [expectedProps.fundamentalFreq] - Expected fundamental frequency
+   * @param {number} [expectedProps.rate] - Expected rate
+   * @param {string} [expectedProps.color] - Expected color
+   * @returns {Promise<boolean>} Whether properties match
    */
-  async verifyHarmonicSetProperties(setIndex: number, expectedProps: {
-    fundamentalFreq?: number;
-    rate?: number;
-    color?: string;
-  }) {
+  async verifyHarmonicSetProperties(setIndex, expectedProps) {
     const state = await this.gramFramePage.getState()
     
     if (!state.harmonics?.harmonicSets || setIndex >= state.harmonics.harmonicSets.length) {
@@ -238,15 +265,26 @@ export class HarmonicsModeHelpers {
 /**
  * Doppler mode specific helpers
  */
-export class DopplerModeHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class DopplerModeHelpers {
+  /**
+   * Create a new DopplerModeHelpers instance
+   * @param {import('./gram-frame-page').GramFramePage} gramFramePage - The GramFrame page instance
+   */
+  constructor(gramFramePage) {
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Create Doppler markers with specified positions
-   * @param fPlusPos Position for f+ marker
-   * @param fMinusPos Position for f- marker
+   * @param {TestPosition} fPlusPos - Position for f+ marker
+   * @param {number} fPlusPos.x - f+ X coordinate
+   * @param {number} fPlusPos.y - f+ Y coordinate
+   * @param {TestPosition} fMinusPos - Position for f- marker
+   * @param {number} fMinusPos.x - f- X coordinate
+   * @param {number} fMinusPos.y - f- Y coordinate
+   * @returns {Promise<void>}
    */
-  async createDopplerMarkers(fPlusPos: { x: number; y: number }, fMinusPos: { x: number; y: number }) {
+  async createDopplerMarkers(fPlusPos, fMinusPos) {
     await this.gramFramePage.clickMode('Doppler')
     
     await this.gramFramePage.page.mouse.move(fPlusPos.x, fPlusPos.y)
@@ -259,15 +297,16 @@ export class DopplerModeHelpers {
 
   /**
    * Drag specific Doppler marker to new position
-   * @param markerType Type of marker to drag ('fPlus', 'fMinus', 'fZero')
-   * @param fromPos Current position of marker
-   * @param toPos New position for marker
+   * @param {'fPlus'|'fMinus'|'fZero'} markerType - Type of marker to drag
+   * @param {TestPosition} fromPos - Current position of marker
+   * @param {number} fromPos.x - From X coordinate
+   * @param {number} fromPos.y - From Y coordinate
+   * @param {TestPosition} toPos - New position for marker
+   * @param {number} toPos.x - To X coordinate
+   * @param {number} toPos.y - To Y coordinate
+   * @returns {Promise<void>}
    */
-  async dragDopplerMarker(
-    markerType: 'fPlus' | 'fMinus' | 'fZero',
-    fromPos: { x: number; y: number },
-    toPos: { x: number; y: number }
-  ) {
+  async dragDopplerMarker(markerType, fromPos, toPos) {
     await this.gramFramePage.clickMode('Doppler')
     
     await this.gramFramePage.page.mouse.move(fromPos.x, fromPos.y)
@@ -280,6 +319,7 @@ export class DopplerModeHelpers {
 
   /**
    * Get Doppler calculation results if display exists
+   * @returns {Promise<{speedText: string|null, hasResults: boolean}>}
    */
   async getDopplerResults() {
     try {
@@ -301,9 +341,10 @@ export class DopplerModeHelpers {
 
   /**
    * Set bearing value if bearing input exists
-   * @param bearing Bearing value in degrees
+   * @param {number} bearing - Bearing value in degrees
+   * @returns {Promise<boolean>} Whether bearing was set successfully
    */
-  async setBearing(bearing: number) {
+  async setBearing(bearing) {
     try {
       const bearingInput = this.gramFramePage.page.locator('input[placeholder*="bearing"]')
       await bearingInput.fill(bearing.toString())
@@ -316,6 +357,7 @@ export class DopplerModeHelpers {
 
   /**
    * Clear Doppler markers if clear functionality exists
+   * @returns {Promise<boolean>} Whether clearing was successful
    */
   async clearDopplerMarkers() {
     try {
@@ -337,6 +379,7 @@ export class DopplerModeHelpers {
 
   /**
    * Verify Doppler markers exist and have valid properties
+   * @returns {Promise<{fPlusExists: boolean, fMinusExists: boolean, fZeroExists: boolean, hasFrequencyDifference: boolean}>}
    */
   async verifyDopplerMarkersExist() {
     const state = await this.gramFramePage.getState()
@@ -353,6 +396,7 @@ export class DopplerModeHelpers {
 
   /**
    * Get frequency difference between f+ and f- markers
+   * @returns {Promise<number|null>} Frequency difference or null if markers don't exist
    */
   async getFrequencyDifference() {
     const state = await this.gramFramePage.getState()
@@ -368,14 +412,21 @@ export class DopplerModeHelpers {
 /**
  * Color picker helpers for all modes
  */
-export class ColorPickerHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class ColorPickerHelpers {
+  /**
+   * Create a new ColorPickerHelpers instance
+   * @param {import('./gram-frame-page').GramFramePage} gramFramePage - The GramFrame page instance
+   */
+  constructor(gramFramePage) {
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Select color from color picker if available
-   * @param color Color value (e.g., '#ff6b6b')
+   * @param {string} color - Color value (e.g., '#ff6b6b')
+   * @returns {Promise<boolean>} Whether color selection was successful
    */
-  async selectColor(color: string) {
+  async selectColor(color) {
     try {
       const colorPicker = this.gramFramePage.page.locator('.gram-frame-color-picker')
       await colorPicker.click()
@@ -391,6 +442,7 @@ export class ColorPickerHelpers {
 
   /**
    * Get currently selected color if available
+   * @returns {Promise<string|null>} Current color or null if not available
    */
   async getCurrentColor() {
     try {
@@ -405,16 +457,27 @@ export class ColorPickerHelpers {
 /**
  * Combined mode helpers class
  */
-export class ModeHelpers {
-  public analysis: CrossCursorModeHelpers
-  public harmonics: HarmonicsModeHelpers
-  public doppler: DopplerModeHelpers
-  public colorPicker: ColorPickerHelpers
-
-  constructor(gramFramePage: GramFramePage) {
+class ModeHelpers {
+  /**
+   * Create a new ModeHelpers instance
+   * @param {import('./gram-frame-page').GramFramePage} gramFramePage - The GramFrame page instance
+   */
+  constructor(gramFramePage) {
+    /** @type {CrossCursorModeHelpers} */
     this.analysis = new CrossCursorModeHelpers(gramFramePage)
+    /** @type {HarmonicsModeHelpers} */
     this.harmonics = new HarmonicsModeHelpers(gramFramePage)
+    /** @type {DopplerModeHelpers} */
     this.doppler = new DopplerModeHelpers(gramFramePage)
+    /** @type {ColorPickerHelpers} */
     this.colorPicker = new ColorPickerHelpers(gramFramePage)
   }
+}
+
+export {
+  CrossCursorModeHelpers,
+  HarmonicsModeHelpers,
+  DopplerModeHelpers,
+  ColorPickerHelpers,
+  ModeHelpers
 }

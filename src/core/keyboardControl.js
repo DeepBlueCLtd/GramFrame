@@ -19,7 +19,7 @@ const MOVEMENT_INCREMENTS = {
 
 /**
  * Initialize keyboard control system for a GramFrame instance
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function initializeKeyboardControl(instance) {
   // Add keyboard event listener at document level
@@ -34,7 +34,7 @@ export function initializeKeyboardControl(instance) {
 
 /**
  * Clean up keyboard control system for a GramFrame instance
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function cleanupKeyboardControl(instance) {
   if (instance.keyboardHandler) {
@@ -46,7 +46,7 @@ export function cleanupKeyboardControl(instance) {
 /**
  * Handle keyboard events for selected items
  * @param {KeyboardEvent} event - Keyboard event
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 function handleKeyboardEvent(event, instance) {
   // Only handle arrow keys for movement
@@ -96,7 +96,7 @@ function isArrowKey(key) {
  * Calculate movement vector from arrow key
  * @param {string} key - Arrow key
  * @param {number} increment - Movement increment in pixels
- * @returns {Object} Movement vector {dx, dy}
+ * @returns {MovementVector} Movement vector {dx, dy}
  */
 function calculateMovementFromKey(key, increment) {
   switch (key) {
@@ -115,9 +115,9 @@ function calculateMovementFromKey(key, increment) {
 
 /**
  * Move a selected marker by pixel increments
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {string} markerId - ID of marker to move
- * @param {Object} movement - Movement vector {dx, dy}
+ * @param {MovementVector} movement - Movement vector {dx, dy}
  */
 function moveSelectedMarker(instance, markerId, movement) {
   if (!instance.state.analysis || !instance.state.analysis.markers) {
@@ -173,9 +173,9 @@ function moveSelectedMarker(instance, markerId, movement) {
 
 /**
  * Move a selected harmonic set by pixel increments  
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {string} harmonicSetId - ID of harmonic set to move
- * @param {Object} movement - Movement vector {dx, dy}
+ * @param {MovementVector} movement - Movement vector {dx, dy}
  */
 function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
   if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
@@ -242,10 +242,10 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
  * Convert data coordinates to SVG coordinates
  * @param {number} freq - Frequency in Hz
  * @param {number} time - Time in seconds
- * @param {Object} config - Configuration object
- * @param {Object} imageDetails - Image dimensions
+ * @param {Config} config - Configuration object
+ * @param {ImageDetails} imageDetails - Image dimensions
  * @param {number} rate - Rate scaling factor
- * @returns {Object} SVG coordinates {x, y}
+ * @returns {SVGCoordinates} SVG coordinates {x, y}
  */
 function dataToSVGCoordinates(freq, time, config, imageDetails, rate) {
   const { freqMin, freqMax, timeMin, timeMax } = config
@@ -269,11 +269,11 @@ function dataToSVGCoordinates(freq, time, config, imageDetails, rate) {
  * Convert SVG coordinates to data coordinates
  * @param {number} svgX - SVG X coordinate
  * @param {number} svgY - SVG Y coordinate
- * @param {Object} config - Configuration object
- * @param {Object} imageDetails - Image dimensions
+ * @param {Config} config - Configuration object
+ * @param {ImageDetails} imageDetails - Image dimensions
  * @param {number} rate - Rate scaling factor
- * @param {Object} margins - Axes margins
- * @returns {Object} Data coordinates {freq, time}
+ * @param {AxesMargins} margins - Axes margins
+ * @returns {DataCoordinates} Data coordinates {freq, time}
  */
 function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
   const { freqMin, freqMax, timeMin, timeMax } = config
@@ -299,7 +299,7 @@ function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
 
 /**
  * Set selection state for an item
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  * @param {string} type - Type of item ('marker' | 'harmonicSet')
  * @param {string} id - ID of selected item
  * @param {number} index - Index in table for display purposes
@@ -317,7 +317,7 @@ export function setSelection(instance, type, id, index) {
 
 /**
  * Clear current selection
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function clearSelection(instance) {
   instance.state.selection.selectedType = null
@@ -333,7 +333,7 @@ export function clearSelection(instance) {
 
 /**
  * Update visual feedback for current selection
- * @param {Object} instance - GramFrame instance
+ * @param {GramFrame} instance - GramFrame instance
  */
 export function updateSelectionVisuals(instance) {
   // Clear existing selection highlights

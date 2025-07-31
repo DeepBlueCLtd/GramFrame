@@ -13,7 +13,7 @@ import { getModeDisplayName } from '../utils/calculations.js'
  * @param {HTMLElement} modeCell - Container element for mode UI
  * @param {GramFrameState} state - Current state object
  * @param {Function} modeSwitchCallback - Callback function for mode changes
- * @returns {Object} Object containing references to mode UI elements
+ * @returns {ModeUIElements} Object containing references to mode UI elements
  */
 export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   // Create mode buttons container
@@ -23,6 +23,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   // Create mode buttons
   /** @type {ModeType[]} */
   const modes = ['analysis', 'harmonics', 'doppler']
+  /** @type {Object<string, HTMLButtonElement>} */
   const modeButtons = {}
   
   modes.forEach(mode => {

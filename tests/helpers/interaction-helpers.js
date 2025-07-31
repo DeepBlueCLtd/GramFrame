@@ -1,5 +1,4 @@
-import { Page } from '@playwright/test'
-import { GramFramePage } from './gram-frame-page'
+import { GramFramePage } from './gram-frame-page.js'
 
 /**
  * Advanced mouse interaction helpers for complex testing scenarios
@@ -8,15 +7,23 @@ import { GramFramePage } from './gram-frame-page'
 /**
  * Mouse interaction patterns and utilities
  */
-export class InteractionHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class InteractionHelpers {
+  /**
+   * Create a new InteractionHelpers instance
+   * @param {GramFramePage} gramFramePage - GramFramePage instance
+   */
+  constructor(gramFramePage) {
+    /** @type {GramFramePage} */
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Perform smooth mouse movement between positions
-   * @param positions Array of {x, y} positions
-   * @param stepDelay Delay between steps in ms
+   * @param {Array<{x: number, y: number}>} positions - Array of {x, y} positions
+   * @param {number} stepDelay - Delay between steps in ms
+   * @returns {Promise<void>}
    */
-  async smoothMousePath(positions: Array<{ x: number; y: number }>, stepDelay = 50) {
+  async smoothMousePath(positions, stepDelay = 50) {
     for (let i = 0; i < positions.length; i++) {
       const pos = positions[i]
       await this.gramFramePage.page.mouse.move(pos.x, pos.y)
@@ -29,19 +36,14 @@ export class InteractionHelpers {
 
   /**
    * Perform bezier curve mouse movement
-   * @param start Start position
-   * @param control1 First control point
-   * @param control2 Second control point
-   * @param end End position
-   * @param steps Number of steps in curve
+   * @param {{x: number, y: number}} start - Start position
+   * @param {{x: number, y: number}} control1 - First control point
+   * @param {{x: number, y: number}} control2 - Second control point
+   * @param {{x: number, y: number}} end - End position
+   * @param {number} steps - Number of steps in curve
+   * @returns {Promise<void>}
    */
-  async bezierMousePath(
-    start: { x: number; y: number },
-    control1: { x: number; y: number },
-    control2: { x: number; y: number },
-    end: { x: number; y: number },
-    steps = 20
-  ) {
+  async bezierMousePath(start, control1, control2, end, steps = 20) {
     const positions = []
     
     for (let i = 0; i <= steps; i++) {
@@ -67,17 +69,13 @@ export class InteractionHelpers {
 
   /**
    * Perform circular mouse movement
-   * @param center Center of circle
-   * @param radius Radius in pixels
-   * @param revolutions Number of full revolutions
-   * @param steps Steps per revolution
+   * @param {{x: number, y: number}} center - Center of circle
+   * @param {number} radius - Radius in pixels
+   * @param {number} revolutions - Number of full revolutions
+   * @param {number} steps - Steps per revolution
+   * @returns {Promise<void>}
    */
-  async circularMouseMovement(
-    center: { x: number; y: number },
-    radius: number,
-    revolutions = 1,
-    steps = 36
-  ) {
+  async circularMouseMovement(center, radius, revolutions = 1, steps = 36) {
     const totalSteps = steps * revolutions
     const positions = []
     
@@ -94,17 +92,13 @@ export class InteractionHelpers {
 
   /**
    * Perform zigzag mouse movement
-   * @param start Start position
-   * @param end End position
-   * @param amplitude Zigzag amplitude
-   * @param frequency Number of zigzags
+   * @param {{x: number, y: number}} start - Start position
+   * @param {{x: number, y: number}} end - End position
+   * @param {number} amplitude - Zigzag amplitude
+   * @param {number} frequency - Number of zigzags
+   * @returns {Promise<void>}
    */
-  async zigzagMouseMovement(
-    start: { x: number; y: number },
-    end: { x: number; y: number },
-    amplitude: number,
-    freq: number
-  ) {
+  async zigzagMouseMovement(start, end, amplitude, frequency) {
     const positions = []
     const steps = frequency * 8 // 8 steps per zigzag
     
@@ -138,15 +132,12 @@ export class InteractionHelpers {
 
   /**
    * Simulate jittery/nervous mouse movement
-   * @param center Center position
-   * @param jitterAmount Maximum jitter distance
-   * @param duration Duration in ms
+   * @param {{x: number, y: number}} center - Center position
+   * @param {number} jitterAmount - Maximum jitter distance
+   * @param {number} duration - Duration in ms
+   * @returns {Promise<void>}
    */
-  async jitteryMouseMovement(
-    center: { x: number; y: number },
-    jitterAmount: number,
-    duration: number
-  ) {
+  async jitteryMouseMovement(center, jitterAmount, duration) {
     const steps = Math.floor(duration / 50) // Update every 50ms
     
     for (let i = 0; i < steps; i++) {
@@ -164,10 +155,11 @@ export class InteractionHelpers {
 
   /**
    * Perform rapid click sequence at different positions
-   * @param positions Array of click positions
-   * @param clickDelay Delay between clicks
+   * @param {Array<{x: number, y: number}>} positions - Array of click positions
+   * @param {number} clickDelay - Delay between clicks
+   * @returns {Promise<void>}
    */
-  async rapidClickSequence(positions: Array<{ x: number; y: number }>, clickDelay = 100) {
+  async rapidClickSequence(positions, clickDelay = 100) {
     for (const pos of positions) {
       await this.gramFramePage.page.mouse.click(pos.x, pos.y)
       await this.gramFramePage.page.waitForTimeout(clickDelay)
@@ -176,11 +168,12 @@ export class InteractionHelpers {
 
   /**
    * Perform double-click at position
-   * @param x X coordinate
-   * @param y Y coordinate
-   * @param delay Delay between clicks
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @param {number} delay - Delay between clicks
+   * @returns {Promise<void>}
    */
-  async doubleClick(x: number, y: number, delay = 100) {
+  async doubleClick(x, y, delay = 100) {
     await this.gramFramePage.page.mouse.click(x, y)
     await this.gramFramePage.page.waitForTimeout(delay)
     await this.gramFramePage.page.mouse.click(x, y)
@@ -188,11 +181,12 @@ export class InteractionHelpers {
 
   /**
    * Perform long press (mouse down with delay before up)
-   * @param x X coordinate
-   * @param y Y coordinate
-   * @param duration Duration of press in ms
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @param {number} duration - Duration of press in ms
+   * @returns {Promise<void>}
    */
-  async longPress(x: number, y: number, duration = 1000) {
+  async longPress(x, y, duration = 1000) {
     await this.gramFramePage.page.mouse.move(x, y)
     await this.gramFramePage.page.mouse.down()
     await this.gramFramePage.page.waitForTimeout(duration)
@@ -201,15 +195,12 @@ export class InteractionHelpers {
 
   /**
    * Perform drag with momentum (overshooting and settling)
-   * @param start Start position
-   * @param end End position
-   * @param overshoot Overshoot amount
+   * @param {{x: number, y: number}} start - Start position
+   * @param {{x: number, y: number}} end - End position
+   * @param {number} overshoot - Overshoot amount
+   * @returns {Promise<void>}
    */
-  async dragWithMomentum(
-    start: { x: number; y: number },
-    end: { x: number; y: number },
-    overshoot = 20
-  ) {
+  async dragWithMomentum(start, end, overshoot = 20) {
     // Calculate overshoot position
     const dx = end.x - start.x
     const dy = end.y - start.y
@@ -238,15 +229,12 @@ export class InteractionHelpers {
 
   /**
    * Simulate shaky hand movement during drag
-   * @param start Start position
-   * @param end End position
-   * @param shakeAmount Shake intensity
+   * @param {{x: number, y: number}} start - Start position
+   * @param {{x: number, y: number}} end - End position
+   * @param {number} shakeAmount - Shake intensity
+   * @returns {Promise<void>}
    */
-  async shakyDrag(
-    start: { x: number; y: number },
-    end: { x: number; y: number },
-    shakeAmount = 3
-  ) {
+  async shakyDrag(start, end, shakeAmount = 3) {
     await this.gramFramePage.page.mouse.move(start.x, start.y)
     await this.gramFramePage.page.mouse.down()
     
@@ -269,9 +257,10 @@ export class InteractionHelpers {
 
   /**
    * Test cursor responsiveness by measuring lag
-   * @param testPositions Array of positions to test
+   * @param {Array<{x: number, y: number}>} testPositions - Array of positions to test
+   * @returns {Promise<Array<{position: {x: number, y: number}, lag: number}>>} Measurement results
    */
-  async measureCursorLag(testPositions: Array<{ x: number; y: number }>) {
+  async measureCursorLag(testPositions) {
     const measurements = []
     
     for (const pos of testPositions) {
@@ -301,13 +290,11 @@ export class InteractionHelpers {
 
   /**
    * Simulate user hesitation during interaction
-   * @param position Target position
-   * @param hesitationSteps Number of hesitation movements
+   * @param {{x: number, y: number}} position - Target position
+   * @param {number} hesitationSteps - Number of hesitation movements
+   * @returns {Promise<void>}
    */
-  async hesitantMovement(
-    position: { x: number; y: number },
-    hesitationSteps = 3
-  ) {
+  async hesitantMovement(position, hesitationSteps = 3) {
     const currentPos = await this.gramFramePage.page.mouse.position()
     
     for (let i = 0; i < hesitationSteps; i++) {
@@ -335,13 +322,11 @@ export class InteractionHelpers {
 
   /**
    * Perform precision targeting test
-   * @param targets Array of small target areas
-   * @param tolerance Acceptable distance from target center
+   * @param {Array<{x: number, y: number, radius: number}>} targets - Array of small target areas
+   * @param {number} tolerance - Acceptable distance from target center
+   * @returns {Promise<Array<{target: {x: number, y: number, radius: number}, success: boolean, distance: number}>>} Targeting results
    */
-  async precisionTargeting(
-    targets: Array<{ x: number; y: number; radius: number }>,
-    tolerance = 5
-  ) {
+  async precisionTargeting(targets, tolerance = 5) {
     const results = []
     
     for (const target of targets) {
@@ -372,14 +357,22 @@ export class InteractionHelpers {
 /**
  * Keyboard interaction helpers
  */
-export class KeyboardHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class KeyboardHelpers {
+  /**
+   * Create a new KeyboardHelpers instance
+   * @param {GramFramePage} gramFramePage - GramFramePage instance
+   */
+  constructor(gramFramePage) {
+    /** @type {GramFramePage} */
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Test keyboard shortcuts and combinations
-   * @param combinations Array of key combinations to test
+   * @param {string[]} combinations - Array of key combinations to test
+   * @returns {Promise<Array<{combination: string, success: boolean, stateValid: boolean, error?: string}>>} Test results
    */
-  async testKeyboardCombinations(combinations: string[]) {
+  async testKeyboardCombinations(combinations) {
     const results = []
     
     for (const combo of combinations) {
@@ -409,13 +402,11 @@ export class KeyboardHelpers {
 
   /**
    * Test modifier key behavior during mouse interactions
-   * @param modifiers Array of modifier keys to test
-   * @param testPosition Position to test interaction
+   * @param {string[]} modifiers - Array of modifier keys to test
+   * @param {{x: number, y: number}} testPosition - Position to test interaction
+   * @returns {Promise<Array<{modifier: string, success: boolean, stateAfter?: any, error?: string}>>} Test results
    */
-  async testModifierMouseInteractions(
-    modifiers: string[],
-    testPosition: { x: number; y: number }
-  ) {
+  async testModifierMouseInteractions(modifiers, testPosition) {
     const results = []
     
     for (const modifier of modifiers) {
@@ -451,3 +442,5 @@ export class KeyboardHelpers {
     return results
   }
 }
+
+export { InteractionHelpers, KeyboardHelpers }

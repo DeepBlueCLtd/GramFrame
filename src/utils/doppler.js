@@ -6,9 +6,9 @@
 
 /**
  * Calculate the midpoint between two Doppler points
- * @param {Object} fPlus - f+ point with time and frequency
- * @param {Object} fMinus - f- point with time and frequency  
- * @returns {Object} Midpoint with time and frequency
+ * @param {DataCoordinates} fPlus - f+ point with time and frequency
+ * @param {DataCoordinates} fMinus - f- point with time and frequency  
+ * @returns {DataCoordinates} Midpoint with time and frequency
  */
 export function calculateMidpoint(fPlus, fMinus) {
   return {
@@ -19,9 +19,9 @@ export function calculateMidpoint(fPlus, fMinus) {
 
 /**
  * Calculate speed using Doppler formula
- * @param {Object} fPlus - f+ point with time and frequency
- * @param {Object} fMinus - f- point with time and frequency
- * @param {Object} fZero - f₀ point with time and frequency (optional, uses midpoint if not provided)
+ * @param {DataCoordinates} fPlus - f+ point with time and frequency
+ * @param {DataCoordinates} fMinus - f- point with time and frequency
+ * @param {DataCoordinates} fZero - f₀ point with time and frequency (optional, uses midpoint if not provided)
  * @param {number} speedOfSound - Speed of sound in water (default: 1500 m/s)
  * @returns {number} Calculated speed in m/s
  */
@@ -40,8 +40,8 @@ export function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound 
 
 /**
  * Check if a point is near a Doppler marker for dragging
- * @param {Object} mousePos - Mouse position with x, y coordinates
- * @param {Object} markerSVG - Marker SVG position with x, y coordinates
+ * @param {ScreenCoordinates} mousePos - Mouse position with x, y coordinates
+ * @param {SVGCoordinates} markerSVG - Marker SVG position with x, y coordinates
  * @param {number} threshold - Distance threshold in pixels (default: 15)
  * @returns {boolean} True if mouse is near the marker
  */

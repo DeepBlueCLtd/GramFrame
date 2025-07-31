@@ -1,40 +1,48 @@
-import { Page, expect } from '@playwright/test'
-import { GramFramePage } from './gram-frame-page'
-
 /**
  * Visual validation and screenshot comparison helpers
  */
 
+import { expect } from '@playwright/test'
+
 /**
  * Visual testing utilities
  */
-export class VisualHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class VisualHelpers {
+  /**
+   * Create a new VisualHelpers instance
+   * @param {import('./gram-frame-page').GramFramePage} gramFramePage - The GramFrame page instance
+   */
+  constructor(gramFramePage) {
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Take screenshot of entire component
-   * @param name Screenshot name
+   * @param {string} name - Screenshot name
+   * @returns {Promise<Buffer>} Screenshot buffer
    */
-  async takeComponentScreenshot(name: string) {
+  async takeComponentScreenshot(name) {
     const componentContainer = this.gramFramePage.componentContainer
     return await componentContainer.screenshot({ path: `screenshots/${name}.png` })
   }
 
   /**
    * Take screenshot of SVG area only
-   * @param name Screenshot name
+   * @param {string} name - Screenshot name
+   * @returns {Promise<Buffer>} Screenshot buffer
    */
-  async takeSVGScreenshot(name: string) {
+  async takeSVGScreenshot(name) {
     const svg = this.gramFramePage.svg
     return await svg.screenshot({ path: `screenshots/svg-${name}.png` })
   }
 
   /**
    * Compare visual state before and after an operation
-   * @param operation Function to execute between screenshots
-   * @param name Base name for screenshots
+   * @param {() => Promise<void>} operation - Function to execute between screenshots
+   * @param {string} name - Base name for screenshots
+   * @returns {Promise<void>}
    */
-  async compareBeforeAfter(operation: () => Promise<void>, name: string) {
+  async compareBeforeAfter(operation, name) {
     // Take before screenshot
     await this.takeSVGScreenshot(`${name}-before`)
     
@@ -50,9 +58,10 @@ export class VisualHelpers {
 
   /**
    * Verify specific visual elements are present
-   * @param selectors Array of CSS selectors to verify
+   * @param {string[]} selectors - Array of CSS selectors to verify
+   * @returns {Promise<Array<{selector: string, visible: boolean, count: number, success: boolean, error?: string}>>}
    */
-  async verifyVisualElements(selectors: string[]) {
+  async verifyVisualElements(selectors) {
     const results = []
     
     for (const selector of selectors) {
@@ -83,6 +92,7 @@ export class VisualHelpers {
 
   /**
    * Check for visual artifacts or rendering issues
+   * @returns {Promise<{hasIssues: boolean, issues: string[]}>}
    */
   async checkRenderingQuality() {
     const issues = []
@@ -95,7 +105,7 @@ export class VisualHelpers {
     
     // Check if image is loaded
     const imageLoaded = await this.gramFramePage.page.evaluate(() => {
-      const img = document.querySelector('.gram-frame-image') as SVGImageElement
+      const img = document.querySelector('.gram-frame-image')
       return img && img.href && img.href.baseVal.length > 0
     })
     
@@ -135,6 +145,7 @@ export class VisualHelpers {
 
   /**
    * Verify color consistency across features
+   * @returns {Promise<{uniqueColors: number, colorUsage: Array<[string, number]>, hasValidColors: boolean}>}
    */
   async verifyColorConsistency() {
     const colors = await this.gramFramePage.page.evaluate(() => {
@@ -167,9 +178,10 @@ export class VisualHelpers {
 
   /**
    * Measure visual performance during animations
-   * @param operation Operation that triggers animation
+   * @param {() => Promise<void>} operation - Operation that triggers animation
+   * @returns {Promise<{duration: number, hasAnimations: boolean, performanceScore: string}>}
    */
-  async measureAnimationPerformance(operation: () => Promise<void>) {
+  async measureAnimationPerformance(operation) {
     // Start performance measurement
     const startTime = Date.now()
     
@@ -205,6 +217,7 @@ export class VisualHelpers {
 
   /**
    * Check visual hierarchy and accessibility
+   * @returns {Promise<{issues: string[], layerOrder: string[], elementCount: number, textElementCount: number}>}
    */
   async checkVisualHierarchy() {
     const hierarchy = await this.gramFramePage.page.evaluate(() => {
@@ -250,9 +263,10 @@ export class VisualHelpers {
 
   /**
    * Verify responsive behavior at different viewport sizes
-   * @param viewportSizes Array of viewport dimensions to test
+   * @param {Array<{width: number, height: number}>} viewportSizes - Array of viewport dimensions to test
+   * @returns {Promise<Array<{viewport: {width: number, height: number}, svgDimensions: Object|null, stateDimensions: Object, isResponsive: boolean}>>}
    */
-  async testResponsiveBehavior(viewportSizes: Array<{ width: number; height: number }>) {
+  async testResponsiveBehavior(viewportSizes) {
     const results = []
     
     for (const size of viewportSizes) {
@@ -279,9 +293,10 @@ export class VisualHelpers {
 
   /**
    * Check for visual consistency across modes
-   * @param modes Array of modes to test
+   * @param {string[]} modes - Array of modes to test
+   * @returns {Promise<Array<{mode: string, elementCounts: Object, screenshot: string}>>}
    */
-  async checkModeVisualConsistency(modes: string[]) {
+  async checkModeVisualConsistency(modes) {
     const results = []
     
     for (const mode of modes) {
@@ -316,15 +331,22 @@ export class VisualHelpers {
 /**
  * Performance testing helpers
  */
-export class PerformanceHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class PerformanceHelpers {
+  /**
+   * Create a new PerformanceHelpers instance
+   * @param {import('./gram-frame-page').GramFramePage} gramFramePage - The GramFrame page instance
+   */
+  constructor(gramFramePage) {
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Measure rendering performance for operations
-   * @param operation Operation to measure
-   * @param iterations Number of times to repeat
+   * @param {() => Promise<void>} operation - Operation to measure
+   * @param {number} [iterations=10] - Number of times to repeat
+   * @returns {Promise<{average: number, min: number, max: number, measurements: number[], performanceGrade: string}>}
    */
-  async measureRenderingPerformance(operation: () => Promise<void>, iterations = 10) {
+  async measureRenderingPerformance(operation, iterations = 10) {
     const measurements = []
     
     for (let i = 0; i < iterations; i++) {
@@ -354,15 +376,16 @@ export class PerformanceHelpers {
 
   /**
    * Monitor memory usage during operations
-   * @param operation Operation to monitor
+   * @param {() => Promise<void>} operation - Operation to monitor
+   * @returns {Promise<{initialMemory: Object, finalMemory: Object, memoryDelta: number, hasMemoryLeak: boolean}|null>}
    */
-  async monitorMemoryUsage(operation: () => Promise<void>) {
+  async monitorMemoryUsage(operation) {
     // Get initial memory info
     const initialMemory = await this.gramFramePage.page.evaluate(() => {
-      return (performance as any).memory ? {
-        usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-        totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-        jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
+      return (performance).memory ? {
+        usedJSHeapSize: (performance).memory.usedJSHeapSize,
+        totalJSHeapSize: (performance).memory.totalJSHeapSize,
+        jsHeapSizeLimit: (performance).memory.jsHeapSizeLimit
       } : null
     })
     
@@ -370,10 +393,10 @@ export class PerformanceHelpers {
     
     // Get final memory info
     const finalMemory = await this.gramFramePage.page.evaluate(() => {
-      return (performance as any).memory ? {
-        usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-        totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-        jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
+      return (performance).memory ? {
+        usedJSHeapSize: (performance).memory.usedJSHeapSize,
+        totalJSHeapSize: (performance).memory.totalJSHeapSize,
+        jsHeapSizeLimit: (performance).memory.jsHeapSizeLimit
       } : null
     })
     
@@ -391,10 +414,11 @@ export class PerformanceHelpers {
 
   /**
    * Test frame rate during animations
-   * @param operation Operation that triggers animation
-   * @param duration Duration to monitor in ms
+   * @param {() => Promise<void>} operation - Operation that triggers animation
+   * @param {number} [duration=2000] - Duration to monitor in ms
+   * @returns {Promise<{frameCount: number, duration: number, estimatedFPS: number, isSmooth: boolean}>}
    */
-  async measureFrameRate(operation: () => Promise<void>, duration = 2000) {
+  async measureFrameRate(operation, duration = 2000) {
     let frameCount = 0
     
     // Start frame counting
@@ -421,4 +445,9 @@ export class PerformanceHelpers {
       isSmooth: estimatedFPS >= 30
     }
   }
+}
+
+export {
+  VisualHelpers,
+  PerformanceHelpers
 }

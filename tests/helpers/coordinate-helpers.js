@@ -1,5 +1,4 @@
-import { Page } from '@playwright/test'
-import { GramFramePage } from './gram-frame-page'
+import { GramFramePage } from './gram-frame-page.js'
 
 /**
  * Coordinate transformation and validation helpers
@@ -8,15 +7,23 @@ import { GramFramePage } from './gram-frame-page'
 /**
  * Coordinate system transformation utilities
  */
-export class CoordinateHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class CoordinateHelpers {
+  /**
+   * Create a new CoordinateHelpers instance
+   * @param {GramFramePage} gramFramePage - GramFramePage instance
+   */
+  constructor(gramFramePage) {
+    /** @type {GramFramePage} */
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Convert screen coordinates to data coordinates using current state
-   * @param screenX Screen X coordinate
-   * @param screenY Screen Y coordinate
+   * @param {number} screenX - Screen X coordinate
+   * @param {number} screenY - Screen Y coordinate
+   * @returns {Promise<import('../../src/types.js').DataCoordinates>} Data coordinates
    */
-  async screenToDataCoordinates(screenX: number, screenY: number) {
+  async screenToDataCoordinates(screenX, screenY) {
     const state = await this.gramFramePage.getState()
     
     if (!state.config || !state.displayDimensions || !state.imageDetails) {
@@ -51,10 +58,11 @@ export class CoordinateHelpers {
 
   /**
    * Convert data coordinates to screen coordinates
-   * @param dataTime Data time coordinate
-   * @param dataFreq Data frequency coordinate
+   * @param {number} dataTime - Data time coordinate
+   * @param {number} dataFreq - Data frequency coordinate
+   * @returns {Promise<import('../../src/types.js').ScreenCoordinates>} Screen coordinates
    */
-  async dataToScreenCoordinates(dataTime: number, dataFreq: number) {
+  async dataToScreenCoordinates(dataTime, dataFreq) {
     const state = await this.gramFramePage.getState()
     
     if (!state.config || !state.displayDimensions) {
@@ -85,10 +93,11 @@ export class CoordinateHelpers {
 
   /**
    * Validate that coordinates are within valid ranges
-   * @param time Time coordinate
-   * @param freq Frequency coordinate
+   * @param {number} time - Time coordinate
+   * @param {number} freq - Frequency coordinate
+   * @returns {Promise<{timeValid: boolean, freqValid: boolean, bothValid: boolean, timeRange: number[], freqRange: number[]}>} Validation result
    */
-  async validateDataCoordinates(time: number, freq: number) {
+  async validateDataCoordinates(time, freq) {
     const state = await this.gramFramePage.getState()
     
     const timeValid = time >= state.config.timeMin && time <= state.config.timeMax
@@ -105,6 +114,7 @@ export class CoordinateHelpers {
 
   /**
    * Get spectrogram bounds in screen coordinates
+   * @returns {Promise<{left: number, top: number, right: number, bottom: number, width: number, height: number}>} Spectrogram bounds
    */
   async getSpectrogramBounds() {
     const state = await this.gramFramePage.getState()
@@ -129,10 +139,11 @@ export class CoordinateHelpers {
 
   /**
    * Generate test positions within spectrogram bounds
-   * @param count Number of positions to generate
-   * @param padding Padding from edges in pixels
+   * @param {number} count - Number of positions to generate
+   * @param {number} padding - Padding from edges in pixels
+   * @returns {Promise<Array<{x: number, y: number}>>} Array of test positions
    */
-  async generateTestPositions(count: number, padding = 20) {
+  async generateTestPositions(count, padding = 20) {
     const bounds = await this.getSpectrogramBounds()
     const positions = []
     
@@ -148,11 +159,12 @@ export class CoordinateHelpers {
 
   /**
    * Generate grid of test positions
-   * @param cols Number of columns
-   * @param rows Number of rows
-   * @param padding Padding from edges
+   * @param {number} cols - Number of columns
+   * @param {number} rows - Number of rows
+   * @param {number} padding - Padding from edges
+   * @returns {Promise<Array<{x: number, y: number}>>} Array of grid positions
    */
-  async generateGridPositions(cols: number, rows: number, padding = 20) {
+  async generateGridPositions(cols, rows, padding = 20) {
     const bounds = await this.getSpectrogramBounds()
     const positions = []
     
@@ -173,10 +185,11 @@ export class CoordinateHelpers {
 
   /**
    * Find closest valid position to a given coordinate
-   * @param targetX Target X coordinate
-   * @param targetY Target Y coordinate
+   * @param {number} targetX - Target X coordinate
+   * @param {number} targetY - Target Y coordinate
+   * @returns {Promise<{x: number, y: number}>} Closest valid position
    */
-  async findClosestValidPosition(targetX: number, targetY: number) {
+  async findClosestValidPosition(targetX, targetY) {
     const bounds = await this.getSpectrogramBounds()
     
     const clampedX = Math.max(bounds.left, Math.min(bounds.right, targetX))
@@ -187,10 +200,11 @@ export class CoordinateHelpers {
 
   /**
    * Calculate distance between two screen positions
-   * @param pos1 First position
-   * @param pos2 Second position
+   * @param {{x: number, y: number}} pos1 - First position
+   * @param {{x: number, y: number}} pos2 - Second position
+   * @returns {number} Distance in pixels
    */
-  calculateScreenDistance(pos1: { x: number; y: number }, pos2: { x: number; y: number }) {
+  calculateScreenDistance(pos1, pos2) {
     const dx = pos2.x - pos1.x
     const dy = pos2.y - pos1.y
     return Math.sqrt(dx * dx + dy * dy)
@@ -198,13 +212,11 @@ export class CoordinateHelpers {
 
   /**
    * Calculate distance between two data positions
-   * @param pos1 First data position
-   * @param pos2 Second data position
+   * @param {{time: number, freq: number}} pos1 - First data position
+   * @param {{time: number, freq: number}} pos2 - Second data position
+   * @returns {number} Distance in data space
    */
-  calculateDataDistance(
-    pos1: { time: number; freq: number }, 
-    pos2: { time: number; freq: number }
-  ) {
+  calculateDataDistance(pos1, pos2) {
     const dt = pos2.time - pos1.time
     const df = pos2.freq - pos1.freq
     return Math.sqrt(dt * dt + df * df)
@@ -212,12 +224,13 @@ export class CoordinateHelpers {
 
   /**
    * Generate circular pattern of positions
-   * @param centerX Center X coordinate
-   * @param centerY Center Y coordinate
-   * @param radius Radius in pixels
-   * @param points Number of points on circle
+   * @param {number} centerX - Center X coordinate
+   * @param {number} centerY - Center Y coordinate
+   * @param {number} radius - Radius in pixels
+   * @param {number} points - Number of points on circle
+   * @returns {Array<{x: number, y: number}>} Array of circular positions
    */
-  generateCircularPositions(centerX: number, centerY: number, radius: number, points: number) {
+  generateCircularPositions(centerX, centerY, radius, points) {
     const positions = []
     
     for (let i = 0; i < points; i++) {
@@ -233,15 +246,12 @@ export class CoordinateHelpers {
 
   /**
    * Generate linear interpolation between two positions
-   * @param start Start position
-   * @param end End position
-   * @param steps Number of interpolation steps
+   * @param {{x: number, y: number}} start - Start position
+   * @param {{x: number, y: number}} end - End position
+   * @param {number} steps - Number of interpolation steps
+   * @returns {Array<{x: number, y: number}>} Array of interpolated positions
    */
-  generateLinearInterpolation(
-    start: { x: number; y: number },
-    end: { x: number; y: number },
-    steps: number
-  ) {
+  generateLinearInterpolation(start, end, steps) {
     const positions = []
     
     for (let i = 0; i <= steps; i++) {
@@ -259,15 +269,23 @@ export class CoordinateHelpers {
 /**
  * SVG coordinate specific helpers
  */
-export class SVGCoordinateHelpers {
-  constructor(private gramFramePage: GramFramePage) {}
+class SVGCoordinateHelpers {
+  /**
+   * Create a new SVGCoordinateHelpers instance
+   * @param {GramFramePage} gramFramePage - GramFramePage instance
+   */
+  constructor(gramFramePage) {
+    /** @type {GramFramePage} */
+    this.gramFramePage = gramFramePage
+  }
 
   /**
    * Get SVG viewBox information
+   * @returns {Promise<{x: number, y: number, width: number, height: number}|null>} SVG viewBox data
    */
   async getSVGViewBox() {
     return await this.gramFramePage.page.evaluate(() => {
-      const svg = document.querySelector('.gram-frame-svg') as SVGSVGElement
+      const svg = document.querySelector('.gram-frame-svg')
       if (!svg) return null
       
       const viewBox = svg.viewBox.baseVal
@@ -282,12 +300,13 @@ export class SVGCoordinateHelpers {
 
   /**
    * Convert SVG coordinates to screen coordinates
-   * @param svgX SVG X coordinate
-   * @param svgY SVG Y coordinate
+   * @param {number} svgX - SVG X coordinate
+   * @param {number} svgY - SVG Y coordinate
+   * @returns {Promise<{x: number, y: number}|null>} Screen coordinates
    */
-  async svgToScreenCoordinates(svgX: number, svgY: number) {
+  async svgToScreenCoordinates(svgX, svgY) {
     return await this.gramFramePage.page.evaluate(({ svgX, svgY }) => {
-      const svg = document.querySelector('.gram-frame-svg') as SVGSVGElement
+      const svg = document.querySelector('.gram-frame-svg')
       if (!svg) return null
       
       const point = svg.createSVGPoint()
@@ -304,12 +323,13 @@ export class SVGCoordinateHelpers {
 
   /**
    * Convert screen coordinates to SVG coordinates
-   * @param screenX Screen X coordinate
-   * @param screenY Screen Y coordinate
+   * @param {number} screenX - Screen X coordinate
+   * @param {number} screenY - Screen Y coordinate
+   * @returns {Promise<{x: number, y: number}|null>} SVG coordinates
    */
-  async screenToSVGCoordinates(screenX: number, screenY: number) {
+  async screenToSVGCoordinates(screenX, screenY) {
     return await this.gramFramePage.page.evaluate(({ screenX, screenY }) => {
-      const svg = document.querySelector('.gram-frame-svg') as SVGSVGElement
+      const svg = document.querySelector('.gram-frame-svg')
       if (!svg) return null
       
       const point = svg.createSVGPoint()
@@ -326,11 +346,12 @@ export class SVGCoordinateHelpers {
 
   /**
    * Get bounding box of SVG element by selector
-   * @param selector CSS selector for SVG element
+   * @param {string} selector - CSS selector for SVG element
+   * @returns {Promise<{x: number, y: number, width: number, height: number}|null>} Element bounding box
    */
-  async getSVGElementBounds(selector: string) {
+  async getSVGElementBounds(selector) {
     return await this.gramFramePage.page.evaluate((selector) => {
-      const element = document.querySelector(selector) as SVGElement
+      const element = document.querySelector(selector)
       if (!element) return null
       
       const bbox = element.getBBox()
@@ -343,3 +364,5 @@ export class SVGCoordinateHelpers {
     }, selector)
   }
 }
+
+export { CoordinateHelpers, SVGCoordinateHelpers }
