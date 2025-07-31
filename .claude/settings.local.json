@@ -54,16 +54,15 @@
       "WebFetch(domain:github.com)",
       "Bash(yarn dev:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(open debug-multiple.html)"
+      "Bash(open debug-multiple.html)",
+      "Bash(curl -s*pushover.net*)",
+      "Bash(curl -s --form-string*pushover.net*)",
+      "Bash(~/notify-pushover.sh \"Testing updated notification system\")"
     ],
     "deny": [
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)"
-    ],
-    "exec_confirmed_commands": [
-      "mail",
-      "echo"
     ]
   }
 }

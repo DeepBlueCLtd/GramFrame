@@ -37,12 +37,7 @@ Send me Pushover notifications at key progress milestones (or at least every 30 
 
 ```
 # Send progress notification
-curl -s \
-  --form-string "token=$PUSHOVER_TOKEN" \
-  --form-string "user=$PUSHOVER_USER" \
-  --form-string "message=Task 50% complete - processing file 3 of 6" \
-  --form-string "title=Claude Code Progress" \
-  https://api.pushover.net/1/messages.json
+~/notify-pushover.sh "your message here"
 ```
 
 ## Architecture Overview
