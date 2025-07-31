@@ -68,3 +68,18 @@ export function calculateHarmonics(baseFrequency, config, displayDimensions, axe
 export function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
+
+/**
+ * Get display name for mode (maps internal mode names to user-friendly display names)
+ * @param {string} mode - Internal mode name
+ * @returns {string} User-friendly display name
+ */
+export function getModeDisplayName(mode) {
+  const displayNames = {
+    'analysis': 'Cross Cursor',
+    'harmonics': 'Harmonics', 
+    'doppler': 'Doppler'
+  }
+  
+  return displayNames[mode] || capitalizeFirstLetter(mode)
+}

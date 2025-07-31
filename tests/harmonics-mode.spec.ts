@@ -310,7 +310,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.move(200, 150)
       await gramFramePage.page.mouse.down() // Start drag
       await gramFramePage.page.mouse.move(220, 170) // Drag
-      await gramFramePage.clickMode('Analysis') // Switch mode mid-drag
+      await gramFramePage.clickMode('Cross Cursor') // Switch mode mid-drag
       await gramFramePage.clickMode('Harmonics') // Switch back
       await gramFramePage.page.mouse.move(200, 250) // Continue drag
       await gramFramePage.page.mouse.up() // End drag

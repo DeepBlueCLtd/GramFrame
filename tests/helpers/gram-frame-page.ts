@@ -177,7 +177,7 @@ export class GramFramePage {
 
   /**
    * Click a mode button to switch modes
-   * @param mode The mode to switch to (e.g., "Analysis", "Harmonics")
+   * @param mode The mode to switch to (e.g., "Cross Cursor", "Harmonics")
    */
   async clickMode(mode: string) {
     // Wait for button to be available and interactable

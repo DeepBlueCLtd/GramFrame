@@ -13,7 +13,7 @@ export class AnalysisMode extends BaseMode {
    */
   getGuidanceText() {
     return `
-      <h4>Analysis Mode</h4>
+      <h4>Cross Cursor Mode</h4>
       <p>• Hover to view exact frequency/time values</p>
       <p>• Click to place persistent markers</p>
       <p>• Drag existing markers to reposition them</p>
@@ -264,7 +264,7 @@ export class AnalysisMode extends BaseMode {
     
     const deleteHeader = document.createElement('th')
     deleteHeader.textContent = 'Del'
-    deleteHeader.style.width = '20%'
+    deleteHeader.style.width = '15%'
     headerRow.appendChild(deleteHeader)
     
     thead.appendChild(headerRow)

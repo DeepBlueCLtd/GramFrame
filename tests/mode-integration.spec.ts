@@ -20,7 +20,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
   test.describe('Mode Switching', () => {
     
     test('should maintain proper button states during mode switching', async ({ gramFramePage }) => {
-      const modes = ['Analysis', 'Harmonics', 'Doppler']
+      const modes = ['Cross Cursor', 'Harmonics', 'Doppler']
       
       for (const mode of modes) {
         await gramFramePage.clickMode(mode)
@@ -69,7 +69,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
       }
       
       // Switch modes and verify persistence
-      const modes = ['Analysis', 'Harmonics', 'Doppler']
+      const modes = ['Cross Cursor', 'Harmonics', 'Doppler']
       
       for (const mode of modes) {
         await gramFramePage.clickMode(mode)
@@ -86,8 +86,8 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     test('should maintain all feature types simultaneously', async ({ gramFramePage }) => {
       // Create features in all modes
       
-      // Analysis markers
-      await gramFramePage.clickMode('Analysis')
+      // Cross Cursor markers
+      await gramFramePage.clickMode('Cross Cursor')
       await gramFramePage.clickSpectrogram(150, 100)
       await gramFramePage.clickSpectrogram(200, 150)
       
@@ -123,7 +123,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
       }
       
       // Switch through all modes and verify all features persist
-      const modes = ['Analysis', 'Harmonics', 'Doppler']
+      const modes = ['Cross Cursor', 'Harmonics', 'Doppler']
       
       for (const mode of modes) {
         await gramFramePage.clickMode(mode)
@@ -147,14 +147,14 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
   })
 
   test.describe('Feature Visibility', () => {
-    test('should show Analysis markers in all modes', async ({ gramFramePage }) => {
-      // Create Analysis markers
-      await gramFramePage.clickMode('Analysis')
+    test('should show Cross Cursor markers in all modes', async ({ gramFramePage }) => {
+      // Create Cross Cursor markers
+      await gramFramePage.clickMode('Cross Cursor')
       await gramFramePage.clickSpectrogram(200, 150)
       await gramFramePage.clickSpectrogram(300, 200)
       
       // Test visibility in each mode
-      const modes = ['Analysis', 'Harmonics', 'Doppler']
+      const modes = ['Cross Cursor', 'Harmonics', 'Doppler']
       
       for (const mode of modes) {
         await gramFramePage.clickMode(mode)
@@ -187,7 +187,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
 
   test.describe('Event Handling', () => {
     test('should handle keyboard events consistently across modes', async ({ gramFramePage }) => {
-      const modes = ['Analysis', 'Harmonics', 'Doppler']
+      const modes = ['Cross Cursor', 'Harmonics', 'Doppler']
       
       for (const mode of modes) {
         await gramFramePage.clickMode(mode)
@@ -236,7 +236,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     
     test('should handle mode switching during error conditions', async ({ gramFramePage }) => {
       // Create features
-      await gramFramePage.clickMode('Analysis')
+      await gramFramePage.clickMode('Cross Cursor')
       await gramFramePage.clickSpectrogram(200, 150)
       
       try {
@@ -244,7 +244,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
         await gramFramePage.clickSpectrogram(200, 150) // Same position
         await gramFramePage.clickMode('Harmonics')
         await gramFramePage.clickMode('Doppler')
-        await gramFramePage.clickMode('Analysis')
+        await gramFramePage.clickMode('Cross Cursor')
         
         // Verify system recovers
         const state = await gramFramePage.getState()
@@ -276,7 +276,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
       })
       
       // Switch modes and create features
-      await gramFramePage.clickMode('Analysis')
+      await gramFramePage.clickMode('Cross Cursor')
       await gramFramePage.clickSpectrogram(200, 150)
       
       await gramFramePage.clickMode('Harmonics')

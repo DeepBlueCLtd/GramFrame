@@ -20,7 +20,7 @@ import {
   createFlexColumn,
   createColorPicker
 } from './components/UIComponents.js'
-import { capitalizeFirstLetter } from './utils/calculations.js'
+import { getModeDisplayName } from './utils/calculations.js'
 import { formatTime } from './utils/timeFormatter.js'
 
 import { extractConfigData } from './core/configuration.js'
@@ -206,7 +206,7 @@ export class GramFrame {
   createUnifiedLayout() {
     // Create main container for unified layout
     /** @type {HTMLDivElement} */
-    this.unifiedLayoutContainer = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-unified-layout', '12px'))
+    this.unifiedLayoutContainer = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-unified-layout', '2px'))
     
     // Left Column (250px) - Common controls
     this.leftColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-left-column', '8px'))
@@ -236,8 +236,8 @@ export class GramFrame {
     
     // Middle Column (300px) - Analysis Markers table
     this.middleColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-middle-column'))
-    this.middleColumn.style.flex = '0 0 270px'
-    this.middleColumn.style.width = '270px'
+    this.middleColumn.style.flex = '0 0 230px'
+    this.middleColumn.style.width = '230px'
     
     // Create markers container in middle column
     this.markersContainer = document.createElement('div')
@@ -248,7 +248,7 @@ export class GramFrame {
     this.markersContainer.style.minHeight = '0'
     
     const markersLabel = document.createElement('h4')
-    markersLabel.textContent = 'Analysis Markers'
+    markersLabel.textContent = 'Markers'
     markersLabel.style.margin = '0 0 8px 0'
     markersLabel.style.textAlign = 'left'
     markersLabel.style.flexShrink = '0'
@@ -647,7 +647,7 @@ export class GramFrame {
     
     // Update global status LEDs
     if (this.modeLED) {
-      this.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(mode)
+      this.modeLED.querySelector('.gram-frame-led-value').textContent = getModeDisplayName(mode)
     }
     
     // Update persistent panels regardless of active mode

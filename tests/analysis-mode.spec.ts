@@ -8,13 +8,13 @@ import {
 } from './helpers/state-assertions'
 
 /**
- * Comprehensive E2E tests for Analysis Mode functionality
+ * Comprehensive E2E tests for Cross Cursor Mode functionality
  * Tests all mouse interactions, marker management, and cross-mode persistence
  */
-test.describe('Analysis Mode - Comprehensive E2E Tests', () => {
+test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    // Switch to Analysis mode and verify
-    await gramFramePage.clickMode('Analysis')
+    // Switch to Cross Cursor mode and verify
+    await gramFramePage.clickMode('Cross Cursor')
     
     // Wait a moment for mode switch to complete
     await gramFramePage.page.waitForTimeout(200)
@@ -135,7 +135,7 @@ test.describe('Analysis Mode - Comprehensive E2E Tests', () => {
 
   test.describe('Marker Persistence', () => {
     test('should persist markers when switching modes', async ({ gramFramePage }) => {
-      // Create a marker in Analysis mode
+      // Create a marker in Cross Cursor mode
       await gramFramePage.clickSpectrogram(200, 150)
       
       // Verify marker exists
@@ -152,8 +152,8 @@ test.describe('Analysis Mode - Comprehensive E2E Tests', () => {
       expect(state.analysis?.markers).toHaveLength(1)
       expect(state.analysis.markers[0]).toEqual(originalMarker)
       
-      // Switch back to Analysis mode
-      await gramFramePage.clickMode('Analysis')
+      // Switch back to Cross Cursor mode
+      await gramFramePage.clickMode('Cross Cursor')
       
       // Verify marker is still there
       state = await gramFramePage.getState()
@@ -180,12 +180,12 @@ test.describe('Analysis Mode - Comprehensive E2E Tests', () => {
       expect(originalMarkers).toHaveLength(3)
       
       // Switch through all modes
-      const modes = ['Harmonics', 'Doppler', 'Analysis']
+      const modes = ['analysis', 'harmonics', 'doppler']
       for (const mode of modes) {
         await gramFramePage.clickMode(mode)
         
         state = await gramFramePage.getState()
-        expectValidMode(state, mode.toLowerCase())
+        expectValidMode(state, mode)
         
         // Verify markers persist
         expect(state.analysis?.markers).toHaveLength(3)
@@ -225,8 +225,8 @@ test.describe('Analysis Mode - Comprehensive E2E Tests', () => {
   })
 
   test.describe('Cross-Mode Visibility', () => {
-    test('should show Analysis markers in other modes', async ({ gramFramePage }) => {
-      // Create markers in Analysis mode
+    test('should show Cross Cursor markers in other modes', async ({ gramFramePage }) => {
+      // Create markers in Cross Cursor mode
       await gramFramePage.clickSpectrogram(200, 150)
       await gramFramePage.clickSpectrogram(300, 200)
       
@@ -305,7 +305,7 @@ test.describe('Analysis Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.moveMouseToSpectrogram(250, 200) // Move mouse
       await gramFramePage.clickSpectrogram(300, 250) // Create another marker
       await gramFramePage.clickMode('Harmonics') // Switch mode
-      await gramFramePage.clickMode('Analysis') // Switch back
+      await gramFramePage.clickMode('Cross Cursor') // Switch back
       
       // Verify final state is consistent
       const state = await gramFramePage.getState()

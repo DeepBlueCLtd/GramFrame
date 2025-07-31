@@ -63,7 +63,7 @@ export function expectValidCursor(state: any): void {
  * Consolidates mode switching validation used across mode tests
  */
 export async function verifyModeButtons(page: Page, activeMode: string): Promise<void> {
-  const modes = ['Analysis', 'Harmonics', 'Doppler']
+  const modes = ['Cross Cursor', 'Harmonics', 'Doppler']
   
   for (const mode of modes) {
     const button = page.locator(`.gram-frame-mode-btn:text("${mode}")`)

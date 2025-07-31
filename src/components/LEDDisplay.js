@@ -6,7 +6,7 @@
 
 /// <reference path="../types.js" />
 
-import { capitalizeFirstLetter } from '../utils/calculations.js'
+import { getModeDisplayName } from '../utils/calculations.js'
 
 
 /**
@@ -34,7 +34,7 @@ export function createLEDDisplay(label, value) {
 export function updateLEDDisplays(instance, state) {
   // Update global mode LED display
   if (instance.modeLED) {
-    instance.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(state.mode)
+    instance.modeLED.querySelector('.gram-frame-led-value').textContent = getModeDisplayName(state.mode)
   }
   
   // Update global rate LED display
