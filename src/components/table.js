@@ -407,30 +407,55 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
   const displayFreqMax = freqMax / rate
   const freqRange = displayFreqMax - displayFreqMin
   
-  // Determine appropriate tick intervals based on frequency range
-  let majorInterval, minorInterval, maxTicks
+  // Nice numbers algorithm for adaptive tick spacing
+  // Target: 50-100 pixels between major ticks for optimal readability
+  const targetMajorSpacing = 80 // pixels
   
-  if (freqRange <= 50) {
-    // For small ranges, use 5Hz and 2.5Hz intervals as requested
-    majorInterval = 5
-    minorInterval = 2.5
-    maxTicks = 200
-  } else if (freqRange <= 100) {
-    // For medium ranges, use 10Hz and 5Hz intervals
-    majorInterval = 10
-    minorInterval = 5
-    maxTicks = 100
-  } else if (freqRange <= 500) {
-    // For larger ranges, use 25Hz and 12.5Hz intervals
-    majorInterval = 25
-    minorInterval = 12.5
-    maxTicks = 80
-  } else {
-    // For very large ranges, use 50Hz and 25Hz intervals
-    majorInterval = 50
-    minorInterval = 25
-    maxTicks = 60
+  // Calculate how many major ticks would fit with target spacing
+  const targetMajorTicks = Math.max(2, Math.floor(naturalWidth / targetMajorSpacing))
+  const rawMajorInterval = freqRange / (targetMajorTicks - 1)
+  
+  // Nice numbers algorithm: find the "nicest" interval near the raw interval
+  function niceNum(range, round) {
+    const exponent = Math.floor(Math.log10(range))
+    const fraction = range / Math.pow(10, exponent)
+    let niceFraction
+    
+    if (round) {
+      if (fraction < 1.5) niceFraction = 1
+      else if (fraction < 3) niceFraction = 2
+      else if (fraction < 7) niceFraction = 5
+      else niceFraction = 10
+    } else {
+      if (fraction <= 1) niceFraction = 1
+      else if (fraction <= 2) niceFraction = 2
+      else if (fraction <= 5) niceFraction = 5
+      else niceFraction = 10
+    }
+    
+    return niceFraction * Math.pow(10, exponent)
   }
+  
+  // Calculate nice major interval
+  const majorInterval = niceNum(rawMajorInterval, false)
+  
+  // Minor interval is typically 1/2 or 1/5 of major interval
+  let minorInterval
+  const majorFraction = majorInterval / Math.pow(10, Math.floor(Math.log10(majorInterval)))
+  if (majorFraction === 1) {
+    minorInterval = majorInterval / 5 // 1 -> 0.2
+  } else if (majorFraction === 2) {
+    minorInterval = majorInterval / 2 // 2 -> 1
+  } else if (majorFraction === 5) {
+    minorInterval = majorInterval / 5 // 5 -> 1
+  } else {
+    minorInterval = majorInterval / 2 // fallback
+  }
+  
+  // Calculate expected number of ticks for safety limits
+  const expectedMajorTicks = Math.ceil(freqRange / majorInterval) + 2
+  const expectedMinorTicks = Math.ceil(freqRange / minorInterval) + 2
+  const maxTicks = Math.max(200, expectedMajorTicks + expectedMinorTicks)
   
   // Calculate starting points aligned to intervals
   const majorStart = Math.ceil(displayFreqMin / majorInterval) * majorInterval
