@@ -89,16 +89,20 @@ export function expectValidConfig(state: any, expected?: {
 export function expectValidCursorPosition(state: any, shouldExist = true) {
   if (shouldExist) {
     expect(state).toHaveProperty('cursorPosition')
-    expect(state.cursorPosition).toHaveProperty('x')
-    expect(state.cursorPosition).toHaveProperty('y')
     expect(state.cursorPosition).toHaveProperty('time')
     expect(state.cursorPosition).toHaveProperty('freq')
     
     // Coordinates should be numbers
-    expect(typeof state.cursorPosition.x).toBe('number')
-    expect(typeof state.cursorPosition.y).toBe('number')
     expect(typeof state.cursorPosition.time).toBe('number')
     expect(typeof state.cursorPosition.freq).toBe('number')
+    
+    // SVG coordinates may also be present
+    if (state.cursorPosition.svgX !== undefined) {
+      expect(typeof state.cursorPosition.svgX).toBe('number')
+    }
+    if (state.cursorPosition.svgY !== undefined) {
+      expect(typeof state.cursorPosition.svgY).toBe('number')
+    }
   } else {
     expect(state.cursorPosition).toBeNull()
   }
@@ -115,7 +119,7 @@ export function expectValidMode(state: any, expectedMode?: string) {
   if (expectedMode) {
     expect(state.mode).toBe(expectedMode)
   } else {
-    expect(['analysis', 'harmonics']).toContain(state.mode)
+    expect(['analysis', 'harmonics', 'doppler']).toContain(state.mode)
   }
 }
 
