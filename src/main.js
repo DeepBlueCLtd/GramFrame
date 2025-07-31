@@ -239,7 +239,7 @@ export class GramFrame {
     cursorContainer.appendChild(this.freqLED)
     
     // Create doppler speed LED (spans full width)
-    this.speedLED = createLEDDisplay('Speed (knots)', '0.0')
+    this.speedLED = createLEDDisplay('Doppler Speed (knots)', '0.0')
     this.speedLED.style.gridColumn = '1 / -1' // Span both columns
     cursorContainer.appendChild(this.speedLED)
     
