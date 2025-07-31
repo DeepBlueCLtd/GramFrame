@@ -33,10 +33,16 @@ npx playwright test tests/mode-switching.spec.ts --debug
 
 ### Status updates
 
-When a task completes, please notify me via email, using the following command in bash, updating message and subject title as appropriate:
+Send me Pushover notifications at key progress milestones (or at least every 30 minutes) using the curl command with my environment variables $PUSHOVER_TOKEN and $PUSHOVER_USER
 
 ```
-echo "Claude job done" | mail -s "Claude Update" "$CLAUDE_NOTIFY_EMAIL"
+# Send progress notification
+curl -s \
+  --form-string "token=$PUSHOVER_TOKEN" \
+  --form-string "user=$PUSHOVER_USER" \
+  --form-string "message=Task 50% complete - processing file 3 of 6" \
+  --form-string "title=Claude Code Progress" \
+  https://api.pushover.net/1/messages.json
 ```
 
 ## Architecture Overview
