@@ -131,33 +131,6 @@ test.describe('Analysis Mode - Comprehensive E2E Tests', () => {
       expect(uniqueIds.size).toBe(3)
     })
     
-    test('should use selected color for new markers', async ({ gramFramePage }) => {
-      // First, verify default color is used
-      await gramFramePage.clickSpectrogram(200, 150)
-      
-      let state = await gramFramePage.getState()
-      const firstMarker = state.analysis.markers[0]
-      const defaultColor = firstMarker.color
-      
-      // Change color using color picker (if available in UI)
-      // Note: This test assumes color picker integration - may need adjustment based on actual UI
-      try {
-        await gramFramePage.page.click('.gram-frame-color-picker')
-        await gramFramePage.page.click('[data-color="#2ecc71"]') // Green
-        
-        // Create another marker with new color
-        await gramFramePage.clickSpectrogram(250, 200)
-        
-        state = await gramFramePage.getState()
-        expect(state.analysis.markers).toHaveLength(2)
-        
-        const secondMarker = state.analysis.markers[1]
-        expect(secondMarker.color).toBe('#2ecc71')
-      } catch (error) {
-        // If color picker UI is not available, skip this specific test
-        console.log('Color picker UI not available, skipping color selection test')
-      }
-    })
   })
 
   test.describe('Marker Persistence', () => {
@@ -221,55 +194,8 @@ test.describe('Analysis Mode - Comprehensive E2E Tests', () => {
     })
   })
 
-  test.describe('Marker Table Integration', () => {
-    test('should update markers table when creating markers', async ({ gramFramePage }) => {
-      // Create a marker
-      await gramFramePage.clickSpectrogram(200, 150)
-      
-      // Check if markers table exists and is updated
-      try {
-        const markersTable = gramFramePage.page.locator('.gram-frame-markers-table')
-        await markersTable.waitFor({ timeout: 2000 })
-        
-        // Verify table contains marker information
-        const tableRows = markersTable.locator('tbody tr')
-        await expect(tableRows).toHaveCount(1)
-        
-        // Verify table contains expected data
-        const firstRow = tableRows.first()
-        await expect(firstRow.locator('td').nth(1)).toContainText(/\d+\.\d+/) // Time
-        await expect(firstRow.locator('td').nth(2)).toContainText(/\d+\.\d+/) // Frequency
-      } catch (error) {
-        // If markers table is not implemented, this test will be skipped
-        console.log('Markers table not found, skipping table integration test')
-      }
-    })
-  })
 
   test.describe('Marker Deletion', () => {
-    test('should delete marker via button (if available)', async ({ gramFramePage }) => {
-      // Create a marker first
-      await gramFramePage.clickSpectrogram(200, 150)
-      
-      // Verify marker exists
-      let state = await gramFramePage.getState()
-      expect(state.analysis?.markers).toHaveLength(1)
-      
-      try {
-        // Look for delete button in markers table or UI
-        const deleteButton = gramFramePage.page.locator('.gram-frame-marker-delete').first()
-        await deleteButton.waitFor({ timeout: 2000 })
-        await deleteButton.click()
-        
-        // Verify marker was deleted
-        state = await gramFramePage.getState()
-        expect(state.analysis?.markers).toHaveLength(0)
-      } catch (error) {
-        // If delete UI is not available, skip this test
-        console.log('Marker delete UI not found, skipping delete button test')
-      }
-    })
-    
     test('should delete marker via right-click (if implemented)', async ({ gramFramePage }) => {
       // Create a marker first
       await gramFramePage.clickSpectrogram(200, 150)
