@@ -65,7 +65,12 @@ function handleKeyboardEvent(event, instance) {
   event.stopPropagation()
   
   // Determine increment size based on modifier keys
-  const increment = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal
+  const baseIncrement = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal
+  
+  // Account for zoom level - scale movement down when zoomed in
+  // This ensures 1 pixel movement on screen regardless of zoom level
+  const zoomLevel = instance.state.zoom.level || 1.0
+  const increment = baseIncrement / zoomLevel
   
   // Calculate movement direction
   const movement = calculateMovementFromKey(event.key, increment)
