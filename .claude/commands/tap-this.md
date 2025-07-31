@@ -1,5 +1,11 @@
 # Create Task Assignment Prompt
 
+## Branch Creation
+First, create a new branch for this GitHub issue:
+
+1. Create and switch to new branch: `git checkout -b issue-{issue_number}`
+2. Verify you're on the correct branch: `git branch --show-current`
+
 ## Task Assignment Prompt Creation
 Read the guide at prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompts_Guide.md and use it to create a task assignment prompt for GitHub issue #{issue_number} from the upstream repository for this project. 
 

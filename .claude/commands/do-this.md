@@ -1,13 +1,10 @@
-# Implement Task with Git Worktree
+# Implement Task
 
-## Git Worktree Setup
-First, create a new git worktree for this GitHub issue:
+## Branch Verification
+Verify you're on the correct branch for this issue:
 
-1. Create the worktrees directory if it doesn't exist: `mkdir -p ../worktrees`
-2. Create a new worktree with new branch: `git worktree add ../worktrees/issue-{issue_number} -b issue-{issue_number} main`
-3. Verify worktree creation: `git worktree list`
-4. Switch to the worktree directory: `cd ../worktrees/issue-{issue_number}`
-5. Verify you're in the correct worktree: `git branch --show-current`
+1. Check current branch: `git branch --show-current` (should show `issue-{issue_number}` or similar)
+2. If not on the correct branch, switch to it: `git checkout issue-{issue_number}`
 
 ## Task Implementation
 Read and implement the task assignment prompt at prompts/tasks/Task_Issue_{issue_number}.md. Follow all instructions in the prompt including:
