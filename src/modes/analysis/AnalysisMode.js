@@ -27,6 +27,14 @@ export class AnalysisMode extends BaseMode {
    * @param {Object} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(_event, dataCoords) {
+    // Update cursor style based on whether we're hovering over an existing marker
+    const existingMarker = this.findMarkerAtPosition(dataCoords)
+    if (existingMarker && this.instance.spectrogramImage && !this.state.analysis.isDragging) {
+      this.instance.spectrogramImage.style.cursor = 'grab'
+    } else if (!this.state.analysis.isDragging) {
+      this.instance.spectrogramImage.style.cursor = 'crosshair'
+    }
+    
     // Handle marker dragging
     if (this.state.analysis.isDragging && this.state.analysis.draggedMarkerId) {
       const marker = this.state.analysis.markers.find(m => m.id === this.state.analysis.draggedMarkerId)
@@ -78,6 +86,11 @@ export class AnalysisMode extends BaseMode {
       this.state.analysis.draggedMarkerId = existingMarker.id
       this.state.analysis.dragStartPosition = { ...dataCoords }
       
+      // Change cursor to grabbing
+      if (this.instance.spectrogramImage) {
+        this.instance.spectrogramImage.style.cursor = 'grabbing'
+      }
+      
       // Auto-select the marker being dragged
       const index = this.state.analysis.markers.findIndex(m => m.id === existingMarker.id)
       this.instance.setSelection('marker', existingMarker.id, index)
@@ -98,6 +111,11 @@ export class AnalysisMode extends BaseMode {
       this.state.analysis.isDragging = false
       this.state.analysis.draggedMarkerId = null
       this.state.analysis.dragStartPosition = null
+      
+      // Reset cursor to crosshair
+      if (this.instance.spectrogramImage) {
+        this.instance.spectrogramImage.style.cursor = 'crosshair'
+      }
     }
   }
 
