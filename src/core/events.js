@@ -210,6 +210,11 @@ function handleMouseMove(instance, event) {
       svgY: svgCoords.y
     }
     
+    // Update universal cursor readouts (time/freq LEDs) regardless of mode
+    if (instance.updateUniversalCursorReadouts) {
+      instance.updateUniversalCursorReadouts(dataCoords)
+    }
+    
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseMove === 'function') {
       instance.currentMode.handleMouseMove(event, dataCoords)

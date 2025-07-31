@@ -15,9 +15,13 @@ import {
   createRateInput,
   updateLEDDisplays,
   createLEDDisplay,
-  createModeSwitchingUI
+  createModeSwitchingUI,
+  createFullFlexLayout,
+  createFlexColumn,
+  createColorPicker
 } from './components/UIComponents.js'
 import { capitalizeFirstLetter } from './utils/calculations.js'
+import { formatTime } from './utils/timeFormatter.js'
 
 import { extractConfigData } from './core/configuration.js'
 
@@ -86,16 +90,34 @@ export class GramFrame {
     /** @type {SVGRectElement} */
     this.imageClipRect = null
     
+    // Unified layout containers
+    /** @type {HTMLDivElement} */
+    this.leftColumn = null
+    /** @type {HTMLDivElement} */
+    this.middleColumn = null
+    /** @type {HTMLDivElement} */
+    this.rightColumn = null
+    /** @type {HTMLDivElement} */
+    this.unifiedLayoutContainer = null
+    /** @type {HTMLElement} */
+    this.timeLED = null
+    /** @type {HTMLElement} */
+    this.freqLED = null
+    /** @type {HTMLElement} */
+    this.speedLED = null
+    /** @type {HTMLDivElement} */
+    this.markersContainer = null
+    /** @type {HTMLDivElement} */
+    this.harmonicsContainer = null
+    
     // Extract config data from table BEFORE replacing it
     extractConfigData(this)
     
     // Create complete component table structure including DOM and SVG
     setupComponentTable(this, configTable)
     
-    // Create global status LEDs (mode and rate - shared across all modes)
-    const globalLEDs = this.createGlobalStatusLEDs()
-    Object.assign(this, globalLEDs)
-    
+    // Create unified layout
+    this.createUnifiedLayout()
     
     // Create mode switching UI
     const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
@@ -103,7 +125,10 @@ export class GramFrame {
     this.modeButtons = modeUI.modeButtons
     this.guidancePanel = modeUI.guidancePanel
     
-    // Append LED readout panel to mode cell
+    // Append unified layout to readout panel
+    this.readoutPanel.appendChild(this.unifiedLayoutContainer)
+    
+    // Append readout panel to mode cell
     this.modeCell.appendChild(this.readoutPanel)
     
     // Create rate input
@@ -134,9 +159,15 @@ export class GramFrame {
       this.modes[modeName] = ModeFactory.createMode(modeName, this, this.state)
     })
     
+    // Initialize all persistent containers with their respective content
+    // Analysis markers in middle column (always visible)
+    this.modes['analysis'].createUI(this.markersContainer)
+    
+    // Harmonics sets in right column (always visible)  
+    this.modes['harmonics'].createUI(this.harmonicsContainer)
+    
     // Set initial mode (analysis by default)
     this.currentMode = this.modes['analysis']
-    this.currentMode.createUI(this.readoutPanel)
     
     // Initialize guidance panel with analysis mode guidance
     if (this.guidancePanel) {
@@ -168,6 +199,158 @@ export class GramFrame {
   
   
   
+  
+  /**
+   * Create unified 3-column layout for readouts
+   */
+  createUnifiedLayout() {
+    // Create main container for unified layout
+    /** @type {HTMLDivElement} */
+    this.unifiedLayoutContainer = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-unified-layout', '12px'))
+    
+    // Left Column (250px) - Common controls
+    this.leftColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-left-column', '8px'))
+    this.leftColumn.style.flex = '0 0 250px'
+    this.leftColumn.style.width = '250px'
+    
+    // Create universal cursor readouts
+    const cursorContainer = document.createElement('div')
+    cursorContainer.className = 'gram-frame-cursor-leds'
+    this.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
+    cursorContainer.appendChild(this.timeLED)
+    
+    this.freqLED = createLEDDisplay('Frequency (Hz)', '0.0')
+    cursorContainer.appendChild(this.freqLED)
+    
+    // Create doppler speed LED (spans full width)
+    this.speedLED = createLEDDisplay('Speed (knots)', '0.0')
+    this.speedLED.style.gridColumn = '1 / -1' // Span both columns
+    cursorContainer.appendChild(this.speedLED)
+    
+    this.leftColumn.appendChild(cursorContainer)
+    
+    // Create color picker
+    this.colorPicker = createColorPicker(this.state)
+    this.colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Color'
+    this.leftColumn.appendChild(this.colorPicker)
+    
+    // Middle Column (300px) - Analysis Markers table
+    this.middleColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-middle-column'))
+    this.middleColumn.style.flex = '0 0 270px'
+    this.middleColumn.style.width = '270px'
+    
+    // Create markers container in middle column
+    this.markersContainer = document.createElement('div')
+    this.markersContainer.className = 'gram-frame-markers-persistent-container'
+    this.markersContainer.style.flex = '1'
+    this.markersContainer.style.display = 'flex'
+    this.markersContainer.style.flexDirection = 'column'
+    this.markersContainer.style.minHeight = '0'
+    
+    const markersLabel = document.createElement('h4')
+    markersLabel.textContent = 'Analysis Markers'
+    markersLabel.style.margin = '0 0 8px 0'
+    markersLabel.style.textAlign = 'left'
+    markersLabel.style.flexShrink = '0'
+    this.markersContainer.appendChild(markersLabel)
+    
+    this.middleColumn.appendChild(this.markersContainer)
+    
+    // Right Column (300px) - Harmonics sets table
+    this.rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
+    this.rightColumn.style.flex = '0 0 300px'
+    this.rightColumn.style.width = '300px'
+    
+    // Create harmonics container in right column
+    this.harmonicsContainer = document.createElement('div')
+    this.harmonicsContainer.className = 'gram-frame-harmonics-persistent-container'
+    this.harmonicsContainer.style.flex = '1'
+    this.harmonicsContainer.style.display = 'flex'
+    this.harmonicsContainer.style.flexDirection = 'column'
+    this.harmonicsContainer.style.minHeight = '0'
+    
+    // Create header container with title and button area
+    const harmonicsHeader = document.createElement('div')
+    harmonicsHeader.className = 'gram-frame-harmonics-header'
+    harmonicsHeader.style.display = 'flex'
+    harmonicsHeader.style.justifyContent = 'space-between'
+    harmonicsHeader.style.alignItems = 'center'
+    harmonicsHeader.style.margin = '0 0 8px 0'
+    harmonicsHeader.style.flexShrink = '0'
+    
+    const harmonicsLabel = document.createElement('h4')
+    harmonicsLabel.textContent = 'Harmonic Sets'
+    harmonicsLabel.style.margin = '0'
+    harmonicsLabel.style.textAlign = 'left'
+    harmonicsLabel.style.flexShrink = '0'
+    
+    const harmonicsButtonContainer = document.createElement('div')
+    harmonicsButtonContainer.className = 'gram-frame-harmonics-button-container'
+    harmonicsButtonContainer.style.flexShrink = '0'
+    
+    harmonicsHeader.appendChild(harmonicsLabel)
+    harmonicsHeader.appendChild(harmonicsButtonContainer)
+    this.harmonicsContainer.appendChild(harmonicsHeader)
+    
+    this.rightColumn.appendChild(this.harmonicsContainer)
+    
+    // Assemble the unified layout
+    this.unifiedLayoutContainer.appendChild(this.leftColumn)
+    this.unifiedLayoutContainer.appendChild(this.middleColumn)
+    this.unifiedLayoutContainer.appendChild(this.rightColumn)
+  }
+  
+  /**
+   * Update universal cursor readouts (time/freq LEDs) regardless of active mode
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+   */
+  updateUniversalCursorReadouts(dataCoords) {
+    if (this.timeLED) {
+      const timeValue = this.timeLED.querySelector('.gram-frame-led-value')
+      if (timeValue) {
+        timeValue.textContent = formatTime(dataCoords.time)
+      }
+    }
+    
+    if (this.freqLED) {
+      const freqValue = this.freqLED.querySelector('.gram-frame-led-value')
+      if (freqValue) {
+        freqValue.textContent = dataCoords.freq.toFixed(1)
+      }
+    }
+  }
+  
+  /**
+   * Update persistent panels (markers and harmonics) regardless of active mode
+   */
+  updatePersistentPanels() {
+    // Update analysis markers table
+    const analysisMode = /** @type {any} */ (this.modes['analysis'])
+    if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
+      analysisMode.updateMarkersTable()
+    }
+    
+    // Update harmonics panel - ensure panel reference is always available
+    const harmonicsMode = /** @type {any} */ (this.modes['harmonics'])
+    if (harmonicsMode) {
+      console.log('updatePersistentPanels: harmonicsMode.instance.harmonicPanel:', harmonicsMode.instance.harmonicPanel)
+      console.log('harmonicsContainer display style:', this.harmonicsContainer ? this.harmonicsContainer.style.display : 'no container')
+      console.log('harmonicsContainer visibility:', this.harmonicsContainer ? getComputedStyle(this.harmonicsContainer).visibility : 'no container')
+      // Make sure the panel reference is set
+      if (!harmonicsMode.instance.harmonicPanel && this.harmonicsContainer) {
+        const existingPanel = this.harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
+        console.log('Found existing panel in container:', existingPanel)
+        if (existingPanel) {
+          console.log('Restoring harmonicPanel reference:', existingPanel)
+          harmonicsMode.instance.harmonicPanel = existingPanel
+        }
+      }
+      
+      if (typeof harmonicsMode.updateHarmonicPanel === 'function') {
+        harmonicsMode.updateHarmonicPanel()
+      }
+    }
+  }
   
   /**
    * Create zoom control UI
@@ -439,12 +622,16 @@ export class GramFrame {
     
     // Switch to new mode instance and activate it (all modes now use polymorphic pattern)
     if (this.currentMode) {
+      console.log('Before cleanup/deactivate, harmonics panel:', this.modes['harmonics'].instance.harmonicPanel)
       this.currentMode.cleanup()
-      this.currentMode.destroyUI()
       this.currentMode.deactivate()
+      console.log('After cleanup/deactivate, harmonics panel:', this.modes['harmonics'].instance.harmonicPanel)
     }
     this.currentMode = this.modes[mode]
-    this.currentMode.createUI(this.readoutPanel)
+    
+    // The unified layout containers should always display their content
+    // No need to clear/recreate UI since all tables should be persistent
+    
     this.currentMode.activate()
     
     // Update guidance panel using mode's guidance text
@@ -463,6 +650,9 @@ export class GramFrame {
       this.modeLED.querySelector('.gram-frame-led-value').textContent = capitalizeFirstLetter(mode)
     }
     
+    // Update persistent panels regardless of active mode
+    this.updatePersistentPanels()
+    
     // Update cursor indicators
     if (this.featureRenderer) {
       this.featureRenderer.renderAllPersistentFeatures()
@@ -477,28 +667,6 @@ export class GramFrame {
   }
 
 
-  /**
-   * Create global status LEDs (mode and rate displays)
-   * @returns {Object} Object containing global LED element references
-   */
-  createGlobalStatusLEDs() {
-    const globalLEDs = {}
-    
-    // Create Mode LED display (hidden by default, shown by tests)
-    globalLEDs.modeLED = createLEDDisplay('Mode', capitalizeFirstLetter(this.state.mode))
-    globalLEDs.modeLED.style.display = 'none'
-    this.readoutPanel.appendChild(globalLEDs.modeLED)
-    
-    // Create Rate LED display (hidden by default)
-    globalLEDs.rateLED = createLEDDisplay('Rate (Hz/s)', `${this.state.rate}`)
-    globalLEDs.rateLED.style.display = 'none'
-    this.readoutPanel.appendChild(globalLEDs.rateLED)
-    
-    // Color picker is now created by individual modes (harmonics and analysis)
-    // to ensure proper labels and mode-specific behavior
-    
-    return globalLEDs
-  }
   
   /**
    * Set the rate value for frequency calculations

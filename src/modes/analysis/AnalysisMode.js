@@ -1,5 +1,4 @@
 import { BaseMode } from '../BaseMode.js'
-import { createLEDDisplay, createColorPicker, createFullFlexLayout, createFlexColumn } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { formatTime } from '../../utils/timeFormatter.js'
 
@@ -25,13 +24,11 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle mouse move events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} dataCoords - Data coordinates {freq, time}
+   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused)
    */
-  handleMouseMove(_event, dataCoords) {
-    // Update cursor position in existing LED displays
-    this.updateCursorPosition(dataCoords)
-    
-    // Analysis mode specific handling can be added here
+  handleMouseMove(_event, _dataCoords) {
+    // Universal cursor readouts are now handled centrally in main.js
+    // Analysis mode specific handling can be added here if needed
   }
 
   /**
@@ -62,55 +59,19 @@ export class AnalysisMode extends BaseMode {
    * Handle mouse leave events in analysis mode
    */
   handleMouseLeave() {
-    // Clear cursor position displays
-    this.clearCursorPosition()
+    // Universal cursor clearing is now handled centrally
+    // Analysis mode specific cleanup can be added here if needed
   }
 
-  /**
-   * Update cursor position in LED displays
-   * @param {Object} dataCoords - Data coordinates {freq, time}
-   */
-  updateCursorPosition(dataCoords) {
-    if (this.uiElements.freqLED) {
-      const freqValue = this.uiElements.freqLED.querySelector('.gram-frame-led-value')
-      if (freqValue) {
-        freqValue.textContent = dataCoords.freq.toFixed(1)
-      }
-    }
-    
-    if (this.uiElements.timeLED) {
-      const timeValue = this.uiElements.timeLED.querySelector('.gram-frame-led-value')
-      if (timeValue) {
-        timeValue.textContent = formatTime(dataCoords.time)
-      }
-    }
-  }
-
-  /**
-   * Clear cursor position displays
-   */
-  clearCursorPosition() {
-    if (this.uiElements.freqLED) {
-      const freqValue = this.uiElements.freqLED.querySelector('.gram-frame-led-value')
-      if (freqValue) {
-        freqValue.textContent = '0.00'
-      }
-    }
-    
-    if (this.uiElements.timeLED) {
-      const timeValue = this.uiElements.timeLED.querySelector('.gram-frame-led-value')
-      if (timeValue) {
-        timeValue.textContent = formatTime(0)
-      }
-    }
-  }
+  // Cursor position updates are now handled universally in main.js
+  // No need for mode-specific cursor position management
 
   /**
    * Create a marker at the specified position
    * @param {Object} dataCoords - Data coordinates {freq, time}
    */
   createMarkerAtPosition(dataCoords) {
-    // Get the current marker color from the color picker
+    // Get the current marker color from the central color picker
     const color = this.state.harmonics?.selectedColor || '#ff6b6b'
     
     // Create marker object (we only need time/freq for positioning)
@@ -239,85 +200,39 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Create UI elements for analysis mode
-   * @param {HTMLElement} readoutPanel - Container for UI elements
+   * @param {HTMLElement} markersContainer - Persistent container for markers table
    */
-  createUI(readoutPanel) {
+  createUI(markersContainer) {
     // Initialize uiElements
     this.uiElements = {}
     
-    // Create horizontal layout container
-    const layoutContainer = createFullFlexLayout('gram-frame-analysis-layout', '12px')
+    // Use the provided persistent markers container (already has label)
+    this.uiElements.markersContainer = markersContainer
     
-    // Create left column for controls
-    const leftColumn = createFlexColumn('gram-frame-analysis-controls', '8px')
-    leftColumn.style.minWidth = '160px'
-    leftColumn.style.flexShrink = '0'
+    // Create markers table in the persistent container
+    this.createMarkersTable(markersContainer)
     
-    // Create horizontal container for LEDs
-    const ledsContainer = createFullFlexLayout('gram-frame-analysis-leds', '6px')
+    // Store references to existing table elements if they exist
+    this.uiElements.markersTable = markersContainer.querySelector('.gram-frame-markers-table')
+    this.uiElements.markersTableBody = markersContainer.querySelector('.gram-frame-markers-table tbody')
     
-    // Create Time LED display
-    this.uiElements.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
-    this.uiElements.timeLED.style.flex = '1'
-    this.uiElements.timeLED.style.minWidth = '0'
-    ledsContainer.appendChild(this.uiElements.timeLED)
-    
-    // Create Frequency LED display
-    this.uiElements.freqLED = createLEDDisplay('Frequency (Hz)', '0.00')
-    this.uiElements.freqLED.style.flex = '1'
-    this.uiElements.freqLED.style.minWidth = '0'
-    ledsContainer.appendChild(this.uiElements.freqLED)
-    
-    leftColumn.appendChild(ledsContainer)
-    
-    // Create color picker for marker colors
-    this.uiElements.colorPicker = createColorPicker(this.state)
-    this.uiElements.colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Marker Color'
-    leftColumn.appendChild(this.uiElements.colorPicker)
-    
-    // Create right column for markers table
-    const rightColumn = createFlexColumn('gram-frame-analysis-markers')
-    rightColumn.style.flex = '1'
-    rightColumn.style.minHeight = '0' // Allow flex shrinking
-    
-    // Create markers table in right column
-    this.createMarkersTable(rightColumn)
-    
-    // Assemble layout
-    layoutContainer.appendChild(leftColumn)
-    layoutContainer.appendChild(rightColumn)
-    readoutPanel.appendChild(layoutContainer)
-    
-    // Store layout containers for cleanup
-    this.uiElements.layoutContainer = layoutContainer
-    this.uiElements.leftColumn = leftColumn
-    this.uiElements.rightColumn = rightColumn
-    this.uiElements.ledsContainer = ledsContainer
-    
-    // Store references on instance for compatibility
-    this.instance.timeLED = this.uiElements.timeLED
-    this.instance.freqLED = this.uiElements.freqLED
-    this.instance.colorPicker = this.uiElements.colorPicker
+    // Store references for central color picker and LEDs (managed by unified layout)
+    this.instance.colorPicker = this.instance.colorPicker || null
+    this.instance.timeLED = this.instance.timeLED || null
+    this.instance.freqLED = this.instance.freqLED || null
   }
 
   /**
    * Create markers table for displaying active markers
-   * @param {HTMLElement} rightColumn - Container for UI elements
+   * @param {HTMLElement} markersContainer - Persistent container for markers (already has label)
    */
-  createMarkersTable(rightColumn) {
-    const tableContainer = document.createElement('div')
-    tableContainer.className = 'gram-frame-markers-container'
-    tableContainer.style.flex = '1'
-    tableContainer.style.display = 'flex'
-    tableContainer.style.flexDirection = 'column'
-    tableContainer.style.minHeight = '0'
+  createMarkersTable(markersContainer) {
+    // Check if table already exists to prevent duplicates
+    if (markersContainer.querySelector('.gram-frame-markers-table')) {
+      return
+    }
     
-    const tableLabel = document.createElement('h4')
-    tableLabel.textContent = 'Active Markers'
-    tableLabel.className = 'gram-frame-markers-label'
-    tableLabel.style.margin = '0 0 8px 0'
-    tableLabel.style.flexShrink = '0'
-    tableContainer.appendChild(tableLabel)
+    // The container already has a label, so we just add the table wrapper
     
     const tableWrapper = document.createElement('div')
     tableWrapper.style.flex = '1'
@@ -360,11 +275,9 @@ export class AnalysisMode extends BaseMode {
     table.appendChild(tbody)
     
     tableWrapper.appendChild(table)
-    tableContainer.appendChild(tableWrapper)
-    rightColumn.appendChild(tableContainer)
+    markersContainer.appendChild(tableWrapper)
     
     // Store all UI elements for proper cleanup
-    this.uiElements.markersContainer = tableContainer
     this.uiElements.markersTable = table
     this.uiElements.markersTableBody = tbody
     
@@ -377,8 +290,8 @@ export class AnalysisMode extends BaseMode {
    * @param {Object} _coords - Current cursor coordinates
    */
   updateLEDs(_coords) {
-    // Analysis mode shows Time and Frequency LEDs (created in createUI)
-    this.updateModeSpecificLEDs()
+    // Time and Frequency LEDs are now managed centrally
+    // Analysis mode specific LED updates can be added here if needed
   }
 
   /**
@@ -528,28 +441,8 @@ export class AnalysisMode extends BaseMode {
    * Update mode-specific LED values based on cursor position
    */
   updateModeSpecificLEDs() {
-    if (!this.state.cursorPosition) {
-      // Show default values when no cursor position
-      if (this.uiElements.freqLED) {
-        this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = '0.00'
-      }
-      if (this.uiElements.timeLED) {
-        this.uiElements.timeLED.querySelector('.gram-frame-led-value').textContent = formatTime(0)
-      }
-      return
-    }
-
-    // Update frequency LED
-    if (this.uiElements.freqLED) {
-      const freqValue = this.state.cursorPosition.freq.toFixed(1)
-      this.uiElements.freqLED.querySelector('.gram-frame-led-value').textContent = freqValue
-    }
-
-    // Update time LED
-    if (this.uiElements.timeLED) {
-      const timeValue = formatTime(this.state.cursorPosition.time)
-      this.uiElements.timeLED.querySelector('.gram-frame-led-value').textContent = timeValue
-    }
+    // Time and frequency LEDs are now managed centrally
+    // Analysis mode doesn't have mode-specific LEDs
   }
 
   /**
@@ -562,19 +455,11 @@ export class AnalysisMode extends BaseMode {
    * Destroy mode-specific UI elements when leaving this mode
    */
   destroyUI() {
-    // Remove instance references
-    if (this.instance.timeLED === this.uiElements.timeLED) {
-      this.instance.timeLED = null
-    }
-    if (this.instance.freqLED === this.uiElements.freqLED) {
-      this.instance.freqLED = null
-    }
-    if (this.instance.colorPicker === this.uiElements.colorPicker) {
-      this.instance.colorPicker = null
-    }
+    // Central LEDs and color picker are managed by unified layout
+    // Markers table and container are persistent and should not be removed
     
-    // Call parent destroy to remove all UI elements
-    super.destroyUI()
+    // Don't call super.destroyUI() because it removes persistent elements from DOM
+    // Analysis mode elements are all persistent, so no cleanup needed
   }
 
   /**

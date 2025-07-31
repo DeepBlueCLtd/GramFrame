@@ -3,7 +3,6 @@ import { BaseMode } from '../BaseMode.js'
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { showManualHarmonicModal } from './ManualHarmonicModal.js'
 import { notifyStateListeners } from '../../core/state.js'
-import { createColorPicker, createFullFlexLayout, createFlexColumn, createFlexLayout } from '../../components/UIComponents.js'
 
 /**
  * Harmonics mode implementation
@@ -107,54 +106,45 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Create UI elements for harmonics mode
-   * @param {HTMLElement} readoutPanel - Container for UI elements
+   * @param {HTMLElement} harmonicsContainer - Persistent container for harmonics table
    */
-  createUI(readoutPanel) {
+  createUI(harmonicsContainer) {
     // Initialize uiElements
     this.uiElements = {}
+
+    console.log('create harmonics tabke')
     
-    // Create main layout container with two columns
-    const layoutContainer = createFullFlexLayout('gram-frame-harmonics-layout', '10px')
+    // Use the provided persistent harmonics container (already has label)
+    this.uiElements.harmonicsContainer = harmonicsContainer
     
-    // Create left column for controls (40% width)
-    const leftColumn = createFlexColumn('gram-frame-harmonics-controls', '10px')
-    leftColumn.style.flex = '0 0 40%'
+    // Find the button container created in main.js
+    const buttonContainer = harmonicsContainer.querySelector('.gram-frame-harmonics-button-container')
     
-    // Create top row in left column (Manual button only)
-    const topRow = createFlexLayout('gram-frame-harmonics-top-row', '10px')
+    // Check if UI already exists to prevent duplicates
+    if (buttonContainer && buttonContainer.querySelector('.gram-frame-manual-button')) {
+      // Find existing elements and store references
+      this.uiElements.manualButton = buttonContainer.querySelector('.gram-frame-manual-button')
+      this.uiElements.harmonicPanel = harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
+      console.log('Setting harmonicPanel reference (existing UI):', this.uiElements.harmonicPanel)
+      this.instance.harmonicPanel = this.uiElements.harmonicPanel
+      return
+    }
     
-    // Create Manual button and add to top row
+    // Create Manual button and add to existing container
     this.uiElements.manualButton = this.createManualButton()
-    topRow.appendChild(this.uiElements.manualButton)
+    if (buttonContainer) {
+      buttonContainer.appendChild(this.uiElements.manualButton)
+    }
     
-    // Add top row to left column
-    leftColumn.appendChild(topRow)
+    // Create harmonic management panel in the persistent container
+    this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer)
     
-    // Create color picker for harmonics and add below
-    this.uiElements.colorPicker = createColorPicker(this.state)
-    leftColumn.appendChild(this.uiElements.colorPicker)
-    
-    // Create right column for harmonic panel (60% width)
-    const rightColumn = createFlexColumn('gram-frame-harmonics-table-column')
-    rightColumn.style.flex = '0 0 60%'
-    rightColumn.style.minWidth = '0'
-    
-    // Add columns to layout container
-    layoutContainer.appendChild(leftColumn)
-    layoutContainer.appendChild(rightColumn)
-    
-    // Add layout container to readout panel
-    readoutPanel.appendChild(layoutContainer)
-    
-    // Create harmonic management panel in right column
-    this.uiElements.harmonicPanel = createHarmonicPanel(rightColumn)
-    
-    // Store references on instance for compatibility (removed freqLED)
-    this.instance.colorPicker = this.uiElements.colorPicker
+    // Store references on instance for compatibility
+    console.log('Setting harmonicPanel reference (new UI):', this.uiElements.harmonicPanel)
     this.instance.harmonicPanel = this.uiElements.harmonicPanel
     
-    // Store layout container for cleanup
-    this.uiElements.layoutContainer = layoutContainer
+    // Central color picker is managed by unified layout
+    this.instance.colorPicker = this.instance.colorPicker || null
     
     // Populate panel with existing harmonic sets when UI is created
     this.updateHarmonicPanel()
@@ -201,19 +191,15 @@ export class HarmonicsMode extends BaseMode {
    * Destroy mode-specific UI elements when leaving this mode
    */
   destroyUI() {
-    // Remove instance references
-    if (this.instance.colorPicker === this.uiElements.colorPicker) {
-      this.instance.colorPicker = null
-    }
-    if (this.instance.harmonicPanel === this.uiElements.harmonicPanel) {
-      this.instance.harmonicPanel = null
-    }
-    if (this.instance.manualButton === this.uiElements.manualButton) {
-      this.instance.manualButton = null
-    }
+    console.log('HarmonicsMode destroyUI called, harmonicPanel before:', this.instance.harmonicPanel)
+    // Central color picker is managed by unified layout
+    // Harmonics panel and container are persistent and should not be removed
+    // Only remove non-persistent elements if any
     
-    // Call parent destroy to remove all UI elements
-    super.destroyUI()
+    // Don't call super.destroyUI() because it removes persistent elements from DOM
+    // Instead, just clear references to non-persistent elements
+    
+    console.log('HarmonicsMode destroyUI finished, harmonicPanel after:', this.instance.harmonicPanel)
   }
 
   /**
@@ -505,8 +491,11 @@ export class HarmonicsMode extends BaseMode {
    * Update harmonic management panel
    */
   updateHarmonicPanel() {
+    console.log('updateHarmonicPanel called, harmonicPanel value:', this.instance.harmonicPanel)
     if (this.instance.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
+    } else {
+      console.log('harmonicPanel is null/undefined, cannot update')
     }
   }
 
