@@ -18,6 +18,9 @@ Read and implement the task assignment prompt at prompts/tasks/Task_Issue_{issue
 5. Run lint and typecheck commands if available to ensure code quality
 
 ## Create Pull Request
+
+Note: when creating the PR, do not attribute `Claude Code`, `Claude`, or `anthropic` to the changes.
+
 Once development work is complete in the worktree:
 
 1. Commit your changes: `git add . && git commit -m "fix: description of changes"`
