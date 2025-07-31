@@ -97,9 +97,26 @@
   stroke-width: 1;
 }
 
+.gram-frame-axis-tick-major {
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.gram-frame-axis-tick-minor {
+  stroke: #fff;
+  stroke-width: 1;
+}
+
 .gram-frame-axis-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 12px;
+  fill: #fff;
+  dominant-baseline: central;
+}
+
+.gram-frame-axis-label-major {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 10px;
   fill: #fff;
   dominant-baseline: central;
 }
