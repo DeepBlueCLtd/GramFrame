@@ -271,7 +271,7 @@ core/state.js → modes/harmonics/HarmonicsMode.js → core/state.js
 - **Circular Dependencies**: 3 circular dependencies between state and mode modules
 - **Legacy Code**: Substantial unused code in rendering system
 - **Dead Exports**: 20+ unused exported functions across 9 modules
-- **Large Main File**: main.js at 709 lines could benefit from refactoring
+- **Large Main File**: main.js at 709 lines could benefit from refactoring. The unified layout is a recent addition and may be refactored into its own module (under components), as may other elements created in that file.
 
 ## 6. Risk Assessment and Recommendations
 
