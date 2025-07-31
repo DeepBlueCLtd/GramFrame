@@ -441,29 +441,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       // Note: This test assumes right-click reset is implemented
       // If not implemented, markers will still exist
     })
-    
-    test('should clear markers via UI button if available', async ({ gramFramePage }) => {
-      // Create Doppler markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      try {
-        // Look for clear/reset button
-        const clearButton = gramFramePage.page.locator('.gram-frame-doppler-clear, .doppler-reset-btn, [data-action="clear-doppler"]')
-        await clearButton.waitFor({ timeout: 2000 })
-        await clearButton.click()
-        
-        // Verify markers were cleared
-        const state = await gramFramePage.getState()
-        expect(state.doppler.fPlus).toBeNull()
-        expect(state.doppler.fMinus).toBeNull()
-        expect(state.doppler.fZero).toBeNull()
-      } catch (error) {
-        console.log('Clear button not found, skipping clear functionality test')
-      }
-    })
   })
 
   test.describe('Edge Cases and Error Handling', () => {

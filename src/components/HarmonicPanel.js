@@ -19,7 +19,7 @@ export function createHarmonicPanel(container) {
           <tr>
             <th>Color</th>
             <th>Spacing (Hz)</th>
-            <th>Rate</th>
+            <th>Ratio</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -90,7 +90,7 @@ export function updateHarmonicPanelContent(panel, instance) {
         <tr>
           <th>Color</th>
           <th>Spacing (Hz)</th>
-          <th>Rate</th>
+          <th>Ratio</th>
           <th>Action</th>
         </tr>
       </thead>

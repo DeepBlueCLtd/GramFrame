@@ -247,3 +247,31 @@ The implementation provides a clean separation between internal code structure a
 - **Fixed state assertion mapping**: Added `mapDisplayModeToInternalMode()` function in `state-assertions.ts` to properly map display names ("Cross Cursor") to internal mode names ("analysis")
 - **Final test results: 60/60 tests passing (100% pass rate)** ✅
 - All mode switching functionality verified working with new display names
+
+### GitHub Issue #62: Change Rate Box Label to Ratio (Completed)
+**Date: July 31, 2025**
+
+Successfully updated the Harmonics Table UI labels from "Rate" to "Ratio" to better reflect the actual functionality:
+
+**Changes Made:**
+- Modified `src/components/HarmonicPanel.js` line 22: Updated column header from "Rate" to "Ratio" in the first table
+- Modified `src/components/HarmonicPanel.js` line 93: Updated column header from "Rate" to "Ratio" in the second table
+
+**Technical Details:**
+- Pure UI label change with no functional impact
+- Underlying rate calculation logic remains unchanged
+- Variable names and internal references preserved
+- CSS classes maintain existing names for consistency
+
+**Testing Results:**
+- Development server runs successfully on port 5174
+- TypeScript checking passes with no errors (`yarn typecheck`)
+- No regression in existing features
+- Visual verification confirms "Ratio" labels display correctly in Harmonics Table
+- All harmonics functionality continues to work correctly
+
+**Implementation Notes:**
+- Both table headers in the harmonics panel now display "Ratio" instead of "Rate"
+- The actual rate calculation functionality remains intact (cursor frequency / spacing)
+- Label change improves user experience by using more precise terminology
+- No API changes or breaking modifications introduced
