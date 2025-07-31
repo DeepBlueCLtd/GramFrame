@@ -25,7 +25,7 @@ export class HarmonicsMode extends BaseMode {
       <p>• Click & drag to generate harmonic lines</p>
       <p>• Drag existing harmonic lines to adjust spacing intervals</p>
       <p>• Manually add harmonic lines using [+ Manual] button</p>
-      <p>• Click table row + arrow keys for fine control</p>
+      <p>• Click table row + arrow keys (Shift for larger steps)</p>
     `
   }
 

@@ -17,7 +17,7 @@ export class AnalysisMode extends BaseMode {
       <p>• Click to place persistent markers</p>
       <p>• Drag existing markers to reposition them</p>
       <p>• Right-click markers to delete them</p>
-      <p>• Click table row + arrow keys for fine control</p>
+      <p>• Click table row + arrow keys (Shift for larger steps)</p>
     `
   }
 
