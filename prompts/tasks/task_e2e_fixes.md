@@ -138,9 +138,40 @@ Upon successful completion of this task, you **must** log your work comprehensiv
 - Use appropriate timeouts (not too short to cause flakiness, not too long to slow suite)
 - Batch similar operations where possible
 
-## 7. Clarification Instruction
+## 7. Test Failure Analysis (Updated)
+
+Based on initial investigation, the test failures have been categorized as follows:
+
+### Test Failure Categories:
+
+1. **Timing Issues**
+   - Tests timing out during `waitForImageLoad()` with 3-second timeout
+   - The beforeEach hook in advanced-interactions.spec.ts is too aggressive with image loading checks
+
+2. **Missing Zoom/Pan Features**
+   - Zoom functionality via keyboard shortcuts (Control+/Control-) is not implemented
+   - Pan functionality is not implemented
+   - Tests expect transform-based zoom but only basic zoom state exists in state.js
+   - No keyboard event handlers for zoom operations
+
+3. **Boundary Detection Issues**
+   - Edge case positioning tests fail because boundary clicks don't create expected markers
+   - Only 3 markers created when 8 boundary positions are tested
+   - Suggests coordinate transformation or boundary detection logic issues
+
+4. **State Structure Expectations**
+   - Tests may expect state properties that don't exist in current implementation
+   - Need to verify actual state structure vs test expectations
+
+### Key Findings:
+- 89 failing tests out of 112 total
+- 23 passing tests (mostly in analysis-mode.spec.ts)
+- Analysis mode tests pass because they don't rely on image loading or zoom features
+- Most failures are in advanced-interactions, doppler-mode, harmonics-mode, and mode-integration tests
+
+## 8. Clarification Instruction
 
 If any part of this task assignment is unclear, please state your specific questions before proceeding. Key areas that may need clarification:
-- Specific behavior of the new transform-based zoom system
-- Expected state structure after recent refactoring
-- Any undocumented changes in the UI or interaction patterns
+- Whether to implement missing zoom/pan features or just update tests to match current behavior
+- Expected behavior for boundary click detection
+- Whether timing issues should be fixed by increasing timeouts or removing image load checks
