@@ -33,11 +33,11 @@ npx playwright test tests/mode-switching.spec.ts --debug
 
 ### Status updates
 
-Send me Pushover notifications at key progress milestones (or at least every 30 minutes) using the curl command with my environment variables $PUSHOVER_TOKEN and $PUSHOVER_USER
+Send me ntfy notifications at key progress milestones (or at least every 30 minutes) using the notify script shown below. This should happen in my absence, so it is ESSENTIAL so that it happen without asking my permission to send. 
 
 ```
 # Send progress notification
-~/notify-pushover.sh "your message here"
+curl -d "status here" ntfy.sh/iancc2025
 ```
 
 ## Architecture Overview

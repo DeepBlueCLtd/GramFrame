@@ -54,10 +54,7 @@
       "WebFetch(domain:github.com)",
       "Bash(yarn dev:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(open debug-multiple.html)",
-      "Bash(curl -s*pushover.net*)",
-      "Bash(curl -s --form-string*pushover.net*)",
-      "Bash(~/notify-pushover.sh*)"
+      "Bash(open debug-multiple.html)"
     ],
     "deny": [
       "Bash(git add:*)",
