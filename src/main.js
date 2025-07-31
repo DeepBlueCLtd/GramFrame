@@ -38,6 +38,14 @@ import {
   cleanupEventListeners
 } from './core/events.js'
 
+import {
+  initializeKeyboardControl,
+  cleanupKeyboardControl,
+  setSelection,
+  clearSelection,
+  updateSelectionVisuals
+} from './core/keyboardControl.js'
+
 import { setupComponentTable, setupSpectrogramImage, updateSVGLayout, renderAxes } from './components/table.js'
 
 /**
@@ -186,6 +194,14 @@ export class GramFrame {
     
     // Setup ResizeObserver for responsive behavior
     setupResizeObserver(this)
+    
+    // Initialize keyboard control for fine positioning
+    initializeKeyboardControl(this)
+    
+    // Store keyboard control functions on instance for easy access
+    this.setSelection = (type, id, index) => setSelection(this, type, id, index)
+    this.clearSelection = () => clearSelection(this)
+    this.updateSelectionVisuals = () => updateSelectionVisuals(this)
     
     // Notify listeners of initial state
     notifyStateListeners(this.state, this.stateListeners)
@@ -564,6 +580,7 @@ export class GramFrame {
    */
   destroy() {
     cleanupEventListeners(this)
+    cleanupKeyboardControl(this)
     
     // Remove from DOM if still attached
     if (this.container && this.container.parentNode) {

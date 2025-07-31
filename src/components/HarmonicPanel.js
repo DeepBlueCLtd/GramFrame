@@ -53,11 +53,13 @@ export function updateHarmonicPanelContent(panel, instance) {
   }
   
   const harmonicSets = instance.state.harmonics.harmonicSets
-
+  
+  // Store current selection to restore after table update
+  const currentSelection = instance.state.selection
 
   
   // Always create table structure with headers, populate tbody based on harmonic sets
-  const tableBodyHTML = harmonicSets.length === 0 ? '' : harmonicSets.map(harmonicSet => {
+  const tableBodyHTML = harmonicSets.length === 0 ? '' : harmonicSets.map((harmonicSet) => {
     // Calculate rate: cursor frequency / spacing
     // If cursor position is available, use it; otherwise show a representative rate
     let rate
@@ -70,7 +72,7 @@ export function updateHarmonicPanelContent(panel, instance) {
     }
     
     return `
-      <tr data-harmonic-id="${harmonicSet.id}">
+      <tr data-harmonic-id="${harmonicSet.id}" class="gram-frame-harmonic-row">
         <td>
           <div class="gram-frame-harmonic-color" style="background-color: ${harmonicSet.color}"></div>
         </td>
@@ -104,11 +106,37 @@ export function updateHarmonicPanelContent(panel, instance) {
   listContainer.innerHTML = tableHTML
 
   
+  // Add event listeners for row clicks (selection) and delete buttons
+  const harmonicRows = listContainer.querySelectorAll('.gram-frame-harmonic-row')
+  harmonicRows.forEach((row, index) => {
+    const harmonicId = row.getAttribute('data-harmonic-id')
+    
+    // Add click handler for selection
+    row.addEventListener('click', (event) => {
+      // Don't trigger selection if clicking delete button
+      if (event.target && /** @type {Element} */ (event.target).closest('.gram-frame-harmonic-delete')) {
+        return
+      }
+      
+      // Import keyboard control functions
+      import('../core/keyboardControl.js').then(({ setSelection, clearSelection }) => {
+        // Toggle selection
+        if (instance.state.selection.selectedType === 'harmonicSet' && 
+            instance.state.selection.selectedId === harmonicId) {
+          clearSelection(instance)
+        } else {
+          setSelection(instance, 'harmonicSet', harmonicId, index)
+        }
+      })
+    })
+  })
+  
   // Add event listeners for delete buttons
   const deleteButtons = listContainer.querySelectorAll('.gram-frame-harmonic-delete')
   deleteButtons.forEach(button => {
     button.addEventListener('click', (e) => {
       e.preventDefault()
+      e.stopPropagation()
       const harmonicId = button.getAttribute('data-harmonic-id')
       if (harmonicId && instance.currentMode && instance.currentMode.removeHarmonicSet) {
         instance.currentMode.removeHarmonicSet(harmonicId)
@@ -116,4 +144,12 @@ export function updateHarmonicPanelContent(panel, instance) {
       }
     })
   })
+  
+  // Restore selection highlighting after table update
+  if (currentSelection.selectedType === 'harmonicSet' && currentSelection.selectedId) {
+    // Import and call updateSelectionVisuals to restore highlighting
+    import('../core/keyboardControl.js').then(({ updateSelectionVisuals }) => {
+      updateSelectionVisuals(instance)
+    })
+  }
 }

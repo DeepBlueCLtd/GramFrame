@@ -69,6 +69,12 @@ export const initialState = {
     centerY: 0.5,  // Center point Y (0-1 normalized)
     panMode: false // Whether pan mode is active
   },
+  // Selection state for keyboard fine control
+  selection: {
+    selectedType: null,  // 'marker' | 'harmonicSet' | null
+    selectedId: null,    // ID of selected item
+    selectedIndex: null  // Index in table for display purposes
+  },
   // Add mode-specific state from mode classes
   ...buildModeInitialState()
 }

@@ -24,9 +24,28 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle mouse move events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {Object} _dataCoords - Data coordinates {freq, time} (unused)
+   * @param {Object} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseMove(_event, _dataCoords) {
+  handleMouseMove(_event, dataCoords) {
+    // Handle marker dragging
+    if (this.state.analysis.isDragging && this.state.analysis.draggedMarkerId) {
+      const marker = this.state.analysis.markers.find(m => m.id === this.state.analysis.draggedMarkerId)
+      if (marker) {
+        // Update marker position
+        marker.freq = dataCoords.freq
+        marker.time = dataCoords.time
+        
+        // Re-render persistent features and update table
+        if (this.instance.featureRenderer) {
+          this.instance.featureRenderer.renderAllPersistentFeatures()
+        }
+        this.updateMarkersTable()
+        
+        // Notify listeners
+        notifyStateListeners(this.state, this.instance.stateListeners)
+      }
+    }
+    
     // Universal cursor readouts are now handled centrally in main.js
     // Analysis mode specific handling can be added here if needed
   }
@@ -37,13 +56,29 @@ export class AnalysisMode extends BaseMode {
    * @param {Object} dataCoords - Data coordinates {freq, time}
    */
   handleMouseDown(event, dataCoords) {
-    // Only handle left clicks for marker creation
+    // Only handle left clicks
     if (event.button !== 0) {
       return
     }
     
-    // Create marker at click location
-    this.createMarkerAtPosition(dataCoords)
+    // Check if clicking on an existing marker for dragging
+    const existingMarker = this.findMarkerAtPosition(dataCoords)
+    
+    if (existingMarker) {
+      // Start dragging existing marker
+      this.state.analysis.isDragging = true
+      this.state.analysis.draggedMarkerId = existingMarker.id
+      this.state.analysis.dragStartPosition = { ...dataCoords }
+      
+      // Auto-select the marker being dragged
+      import('../../core/keyboardControl.js').then(({ setSelection }) => {
+        const index = this.state.analysis.markers.findIndex(m => m.id === existingMarker.id)
+        setSelection(this.instance, 'marker', existingMarker.id, index)
+      })
+    } else {
+      // Create marker at click location
+      this.createMarkerAtPosition(dataCoords)
+    }
   }
 
   /**
@@ -52,7 +87,12 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
    */
   handleMouseUp(_event, _dataCoords) {
-    // Analysis mode specific handling
+    // End marker dragging
+    if (this.state.analysis.isDragging) {
+      this.state.analysis.isDragging = false
+      this.state.analysis.draggedMarkerId = null
+      this.state.analysis.dragStartPosition = null
+    }
   }
 
   /**
@@ -301,7 +341,10 @@ export class AnalysisMode extends BaseMode {
   static getInitialState() {
     return {
       analysis: {
-        markers: []
+        markers: [],
+        isDragging: false,
+        draggedMarkerId: null,
+        dragStartPosition: null
       },
       harmonics: {
         selectedColor: '#ff6b6b' // Default color for markers
@@ -315,10 +358,21 @@ export class AnalysisMode extends BaseMode {
    */
   addMarker(marker) {
     if (!this.state.analysis) {
-      this.state.analysis = { markers: [] }
+      this.state.analysis = { 
+        markers: [],
+        isDragging: false,
+        draggedMarkerId: null,
+        dragStartPosition: null
+      }
     }
     
     this.state.analysis.markers.push(marker)
+    
+    // Auto-select the newly created marker
+    import('../../core/keyboardControl.js').then(({ setSelection }) => {
+      const index = this.state.analysis.markers.length - 1
+      setSelection(this.instance, 'marker', marker.id, index)
+    })
     
     // Update markers table
     this.updateMarkersTable()
@@ -341,6 +395,14 @@ export class AnalysisMode extends BaseMode {
     
     const index = this.state.analysis.markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
+      // Clear selection if removing the selected marker
+      if (this.state.selection.selectedType === 'marker' && 
+          this.state.selection.selectedId === markerId) {
+        import('../../core/keyboardControl.js').then(({ clearSelection }) => {
+          clearSelection(this.instance)
+        })
+      }
+      
       this.state.analysis.markers.splice(index, 1)
       
       // Update markers table
@@ -381,14 +443,37 @@ export class AnalysisMode extends BaseMode {
   updateMarkersTable() {
     if (!this.uiElements.markersTableBody) return
     
+    // Store current selection to restore after table update
+    const currentSelection = this.state.selection
+    
     // Clear existing rows
     this.uiElements.markersTableBody.innerHTML = ''
     
     if (!this.state.analysis || !this.state.analysis.markers) return
     
     // Add rows for each marker
-    this.state.analysis.markers.forEach((marker) => {
+    this.state.analysis.markers.forEach((marker, index) => {
       const row = document.createElement('tr')
+      row.setAttribute('data-marker-id', marker.id)
+      
+      // Add click handler for selection
+      row.addEventListener('click', (event) => {
+        // Don't trigger selection if clicking delete button
+        if (event.target && /** @type {Element} */ (event.target).closest('.gram-frame-marker-delete-btn')) {
+          return
+        }
+        
+        // Import keyboard control functions
+        import('../../core/keyboardControl.js').then(({ setSelection, clearSelection }) => {
+          // Toggle selection
+          if (this.state.selection.selectedType === 'marker' && 
+              this.state.selection.selectedId === marker.id) {
+            clearSelection(this.instance)
+          } else {
+            setSelection(this.instance, 'marker', marker.id, index)
+          }
+        })
+      })
       
       // Color swatch cell
       const colorCell = document.createElement('td')
@@ -435,6 +520,14 @@ export class AnalysisMode extends BaseMode {
       
       this.uiElements.markersTableBody.appendChild(row)
     })
+    
+    // Restore selection highlighting after table update
+    if (currentSelection.selectedType === 'marker' && currentSelection.selectedId) {
+      // Import and call updateSelectionVisuals to restore highlighting
+      import('../../core/keyboardControl.js').then(({ updateSelectionVisuals }) => {
+        updateSelectionVisuals(this.instance)
+      })
+    }
   }
 
   /**

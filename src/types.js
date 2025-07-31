@@ -108,6 +108,14 @@
  */
 
 /**
+ * Selection state for keyboard fine control
+ * @typedef {Object} SelectionState
+ * @property {string|null} selectedType - Type of selected item ('marker' | 'harmonicSet' | null)
+ * @property {string|null} selectedId - ID of selected item
+ * @property {number|null} selectedIndex - Index in table for display purposes
+ */
+
+/**
  * Main component state object
  * @typedef {Object} GramFrameState
  * @property {string} version - Component version
@@ -121,6 +129,7 @@
  * @property {DopplerState} doppler - Doppler mode state
  * @property {AnalysisState} analysis - Analysis mode state
  * @property {DragState} dragState - Drag interaction state
+ * @property {SelectionState} selection - Selection state for keyboard control
  * @property {ImageDetails} imageDetails - Image source and dimensions
  * @property {Config} config - Time and frequency configuration
  * @property {DisplayDimensions} displayDimensions - Current display dimensions
