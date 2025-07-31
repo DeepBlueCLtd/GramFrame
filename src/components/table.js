@@ -4,6 +4,8 @@
 
 /// <reference path="../types.js" />
 
+import { formatTime } from '../utils/timeFormatter.js'
+
 /**
  * Create the complete DOM structure for the GramFrame component
  * @param {Object} instance - GramFrame instance to populate with DOM elements
@@ -369,7 +371,7 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
     label.setAttribute('y', String(y + 4)) // Slight vertical offset for better alignment
     label.setAttribute('text-anchor', 'end')
     label.setAttribute('class', 'gram-frame-axis-label')
-    label.textContent = time.toFixed(1) + 's'
+    label.textContent = formatTime(time)
     instance.axesGroup.appendChild(label)
   }
   
