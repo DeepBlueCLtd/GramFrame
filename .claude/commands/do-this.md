@@ -1,5 +1,7 @@
 # Implement Task
 
+This command will also accept the name of a markdown file under ./prompts/tasks/ and implement the task as specified in that file.
+
 ## Branch Verification
 Verify you're on the correct branch for this issue:
 
