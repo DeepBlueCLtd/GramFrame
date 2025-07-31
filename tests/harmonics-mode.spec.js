@@ -19,7 +19,7 @@ import {
 test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
   /**
    * Setup before each test - switch to Harmonics mode
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
    * @returns {Promise<void>}
    */
@@ -42,7 +42,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
   test.describe('Fundamental Frequency Selection', () => {
     /**
      * Test creation of harmonic set with click and drag
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -86,7 +86,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test harmonic spacing calculation based on drag distance
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -127,7 +127,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test handling horizontal and vertical drags differently
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -182,7 +182,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
   test.describe('Real-time Harmonic Calculation', () => {
     /**
      * Test harmonic updates during drag operation
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -232,7 +232,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test harmonic recalculation when dragging existing sets
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -280,7 +280,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
   test.describe('Harmonic Overlay Rendering', () => {
     /**
      * Test rendering of harmonic lines in SVG
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -316,7 +316,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test handling harmonic lines at spectrogram boundaries
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -366,7 +366,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
   test.describe('Color Picker Functionality', () => {
     /**
      * Test harmonic color selection
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -407,7 +407,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
   test.describe('Edge Cases and Error Handling', () => {
     /**
      * Test handling very small drag distances
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -429,7 +429,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test state consistency during complex operations
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */

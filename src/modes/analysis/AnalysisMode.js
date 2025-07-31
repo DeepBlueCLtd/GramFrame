@@ -443,7 +443,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Find marker at given position (with tolerance)
    * @param {DataCoordinates} position - Position to check
-   * @returns {Object|null} Marker if found, null otherwise
+   * @returns {AnalysisMarker|null} Marker if found, null otherwise
    */
   findMarkerAtPosition(position) {
     if (!this.state.analysis || !this.state.analysis.markers) return null

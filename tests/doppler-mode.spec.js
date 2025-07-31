@@ -19,7 +19,7 @@ import {
 test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   /**
    * Setup before each test - switch to Doppler mode
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
    * @returns {Promise<void>}
    */
@@ -42,7 +42,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   test.describe('Doppler Marker Placement', () => {
     /**
      * Test creation of f+ and f- markers with click and drag
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -88,7 +88,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test automatic calculation of f₀ midpoint marker
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -136,7 +136,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   test.describe('Doppler Marker Dragging', () => {
     /**
      * Test dragging f₀ marker independently
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -182,7 +182,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test cursor style updates when hovering over markers
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -219,7 +219,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   test.describe('Speed Calculation Workflow', () => {
     /**
      * Test Doppler speed calculation from f+ and f- markers
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -252,7 +252,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test speed calculation updates when dragging markers
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -294,7 +294,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test handling of zero frequency difference gracefully
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -337,7 +337,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   test.describe('Time Selection and Display', () => {
     /**
      * Test display of time values for f+ and f- markers
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -368,7 +368,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test handling of time-based calculations correctly
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -408,7 +408,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test real-time display updates during dragging
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -451,7 +451,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   test.describe('Cross-Mode Functionality', () => {
     /**
      * Test maintaining Doppler markers when switching modes
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -505,7 +505,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test coexistence with Cross Cursor markers
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -559,7 +559,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   test.describe('Reset and Clear Functionality', () => {
     /**
      * Test resetting markers via right-click
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -602,7 +602,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   test.describe('Edge Cases and Error Handling', () => {
     /**
      * Test marker placement at spectrogram boundaries
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -637,7 +637,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test handling rapid marker creation and dragging
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -677,7 +677,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test state consistency during complex operations
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -705,7 +705,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test handling overlapping marker positions
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -741,7 +741,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
   test.describe('Coordinate System Integration', () => {
     /**
      * Test accurate conversion of marker positions to frequency/time
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */

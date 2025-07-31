@@ -19,7 +19,7 @@ import {
 test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   /**
    * Setup before each test - switch to Cross Cursor mode
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
    * @returns {Promise<void>}
    */
@@ -42,7 +42,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   test.describe('Mouse Hover Interactions', () => {
     /**
      * Test cursor position and LED display updates on mouse hover
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -73,7 +73,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test handling of rapid mouse movements
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -102,7 +102,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test cursor position clearing when mouse leaves spectrogram
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -133,7 +133,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   test.describe('Marker Creation', () => {
     /**
      * Test marker creation on click
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -164,7 +164,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test creating multiple markers at different positions
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -203,7 +203,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   test.describe('Marker Persistence', () => {
     /**
      * Test marker persistence when switching modes
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -239,7 +239,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test maintaining markers across mode switches with multiple markers
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -286,7 +286,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   test.describe('Marker Deletion', () => {
     /**
      * Test marker deletion via right-click (if implemented)
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -325,7 +325,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   test.describe('Cross-Mode Visibility', () => {
     /**
      * Test that Cross Cursor markers show in other modes
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -356,7 +356,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   test.describe('Edge Cases and Error Handling', () => {
     /**
      * Test handling clicks at spectrogram boundaries
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -390,7 +390,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test handling rapid successive clicks
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -426,7 +426,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test state consistency during concurrent operations
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -455,7 +455,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   test.describe('Coordinate System Accuracy', () => {
     /**
      * Test accurate conversion from mouse coordinates to data coordinates
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -482,7 +482,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     
     /**
      * Test coordinate accuracy across different zoom levels
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */

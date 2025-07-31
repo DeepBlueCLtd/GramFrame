@@ -19,7 +19,7 @@ import {
 test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
   /**
    * Setup before each test
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
    * @returns {Promise<void>}
    */
@@ -35,7 +35,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     
     /**
      * Test proper button states during mode switching
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -75,7 +75,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     
     /**
      * Test Doppler marker persistence across mode switches
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -122,7 +122,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     
     /**
      * Test maintaining all feature types simultaneously
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -198,7 +198,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
   test.describe('Feature Visibility', () => {
     /**
      * Test Cross Cursor marker visibility in all modes
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -254,7 +254,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
   test.describe('Event Handling', () => {
     /**
      * Test keyboard event consistency across modes
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -293,7 +293,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
   test.describe('Error Recovery', () => {
     /**
      * Test recovery from interrupted operations during mode switch
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -323,7 +323,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     
     /**
      * Test mode switching during error conditions
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
@@ -360,7 +360,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
   test.describe('State Synchronization', () => {
     /**
      * Test state listener synchronization across mode changes
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */

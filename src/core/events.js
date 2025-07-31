@@ -11,7 +11,7 @@ import { updateCursorIndicators } from '../rendering/cursors.js'
  * Convert screen coordinates to data coordinates, accounting for zoom
  * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
- * @returns {Object|null} Object with svgCoords, imageX, imageY, dataCoords, and bounds check
+ * @returns {ScreenToDataResult|null} Object with svgCoords, imageX, imageY, dataCoords, and bounds check
  */
 function screenToDataWithZoom(instance, event) {
   const svgRect = instance.svg.getBoundingClientRect()

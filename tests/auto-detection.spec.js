@@ -13,7 +13,7 @@ test.describe('Auto-Detection Functionality', () => {
   
   /**
    * Test detection and replacement of gram-config table on debug page
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('@playwright/test').Page} params.page - Playwright page instance
    * @returns {Promise<void>}
    */
@@ -40,7 +40,7 @@ test.describe('Auto-Detection Functionality', () => {
   
   /**
    * Test API provides access to instances
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('@playwright/test').Page} params.page - Playwright page instance
    * @returns {Promise<void>}
    */
@@ -71,7 +71,7 @@ test.describe('Auto-Detection Functionality', () => {
   
   /**
    * Test detectAndReplaceConfigTables method works correctly
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('@playwright/test').Page} params.page - Playwright page instance
    * @returns {Promise<void>}
    */
@@ -101,7 +101,7 @@ test.describe('Auto-Detection Functionality', () => {
 
   /**
    * Test validation and error handling methods are available
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('@playwright/test').Page} params.page - Playwright page instance
    * @returns {Promise<void>}
    */
@@ -123,7 +123,7 @@ test.describe('Auto-Detection Functionality', () => {
   
   /**
    * Test component state includes auto-detection metadata
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('@playwright/test').Page} params.page - Playwright page instance
    * @returns {Promise<void>}
    */

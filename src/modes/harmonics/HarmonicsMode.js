@@ -306,7 +306,7 @@ export class HarmonicsMode extends BaseMode {
   /**
    * Find harmonic set containing given frequency coordinate
    * @param {number} freq - Frequency in Hz to check
-   * @returns {Object|null} The harmonic set if found, null otherwise
+   * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
    */
   findHarmonicSetAtFrequency(freq) {
     if (!this.state.cursorPosition) return null

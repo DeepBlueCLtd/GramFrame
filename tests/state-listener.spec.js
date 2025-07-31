@@ -13,7 +13,7 @@ import { expectValidMetadata, expectValidMode } from './helpers/state-assertions
 test.describe('State Listener Mechanism', () => {
   /**
    * Test state listener registration and callback execution
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('@playwright/test').Page} params.page - Playwright page instance
    * @returns {Promise<void>}
    */
@@ -51,7 +51,7 @@ test.describe('State Listener Mechanism', () => {
   
   /**
    * Test state listener removal
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('@playwright/test').Page} params.page - Playwright page instance
    * @returns {Promise<void>}
    */
@@ -106,7 +106,7 @@ test.describe('State Listener Mechanism', () => {
   
   /**
    * Test error handling in state listeners
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('@playwright/test').Page} params.page - Playwright page instance
    * @returns {Promise<void>}
    */

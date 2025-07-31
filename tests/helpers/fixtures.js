@@ -29,7 +29,7 @@ const test = base.extend({
   /**
    * GramFrame page fixture
    * Provides a pre-configured GramFramePage instance
-   * @param {Object} context - Test context
+   * @param {TestContext} context - Test context
    * @param {import('@playwright/test').Page} context.page - Playwright page instance
    * @param {Function} use - Fixture use function
    * @returns {Promise<void>}
@@ -47,7 +47,7 @@ const test = base.extend({
 
   /**
    * Mode-specific helpers fixture
-   * @param {Object} context - Test context
+   * @param {TestContext} context - Test context
    * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
    * @param {Function} use - Fixture use function
    * @returns {Promise<void>}
@@ -59,7 +59,7 @@ const test = base.extend({
 
   /**
    * Coordinate transformation helpers fixture
-   * @param {Object} context - Test context
+   * @param {TestContext} context - Test context
    * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
    * @param {Function} use - Fixture use function
    * @returns {Promise<void>}
@@ -71,7 +71,7 @@ const test = base.extend({
 
   /**
    * SVG coordinate helpers fixture
-   * @param {Object} context - Test context
+   * @param {TestContext} context - Test context
    * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
    * @param {Function} use - Fixture use function
    * @returns {Promise<void>}
@@ -83,7 +83,7 @@ const test = base.extend({
 
   /**
    * Advanced interaction helpers fixture
-   * @param {Object} context - Test context
+   * @param {TestContext} context - Test context
    * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
    * @param {Function} use - Fixture use function
    * @returns {Promise<void>}
@@ -95,7 +95,7 @@ const test = base.extend({
 
   /**
    * Keyboard interaction helpers fixture
-   * @param {Object} context - Test context
+   * @param {TestContext} context - Test context
    * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
    * @param {Function} use - Fixture use function
    * @returns {Promise<void>}
@@ -107,7 +107,7 @@ const test = base.extend({
 
   /**
    * Visual testing helpers fixture
-   * @param {Object} context - Test context
+   * @param {TestContext} context - Test context
    * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
    * @param {Function} use - Fixture use function
    * @returns {Promise<void>}
@@ -119,7 +119,7 @@ const test = base.extend({
 
   /**
    * Performance testing helpers fixture
-   * @param {Object} context - Test context
+   * @param {TestContext} context - Test context
    * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
    * @param {Function} use - Fixture use function
    * @returns {Promise<void>}

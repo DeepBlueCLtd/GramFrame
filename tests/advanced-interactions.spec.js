@@ -19,7 +19,7 @@ import {
 test.describe('Advanced Mouse Interactions - Comprehensive E2E Tests', () => {
   /**
    * Setup before each test
-   * @param {Object} params - Test parameters
+   * @param {TestParams} params - Test parameters
    * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
    * @returns {Promise<void>}
    */
@@ -49,7 +49,7 @@ test.describe('Advanced Mouse Interactions - Comprehensive E2E Tests', () => {
     
     /**
      * Test modifier key combinations behavior
-     * @param {Object} params - Test parameters
+     * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */

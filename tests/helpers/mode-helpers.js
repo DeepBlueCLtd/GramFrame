@@ -32,7 +32,7 @@ class CrossCursorModeHelpers {
    * Verify marker exists at approximately the given position
    * @param {number} expectedTime - Expected time value
    * @param {number} expectedFreq - Expected frequency value
-   * @param {Object} [tolerance] - Tolerance for comparison
+   * @param {TestTolerance} [tolerance] - Tolerance for comparison
    * @param {number} [tolerance.time=0.1] - Time tolerance
    * @param {number} [tolerance.freq=10] - Frequency tolerance
    * @returns {Promise<boolean>} Whether marker exists at position
@@ -119,10 +119,10 @@ class HarmonicsModeHelpers {
 
   /**
    * Create harmonic set with specified start and end positions
-   * @param {Object} startPos - Starting position {x, y}
+   * @param {TestPosition} startPos - Starting position {x, y}
    * @param {number} startPos.x - Start X coordinate
    * @param {number} startPos.y - Start Y coordinate
-   * @param {Object} endPos - Ending position {x, y}
+   * @param {TestPosition} endPos - Ending position {x, y}
    * @param {number} endPos.x - End X coordinate
    * @param {number} endPos.y - End Y coordinate
    * @returns {Promise<void>}
@@ -155,10 +155,10 @@ class HarmonicsModeHelpers {
 
   /**
    * Drag existing harmonic set to modify it
-   * @param {Object} fromPos - Position to start drag from
+   * @param {TestPosition} fromPos - Position to start drag from
    * @param {number} fromPos.x - From X coordinate
    * @param {number} fromPos.y - From Y coordinate
-   * @param {Object} toPos - Position to drag to
+   * @param {TestPosition} toPos - Position to drag to
    * @param {number} toPos.x - To X coordinate
    * @param {number} toPos.y - To Y coordinate
    * @returns {Promise<void>}
@@ -225,7 +225,7 @@ class HarmonicsModeHelpers {
   /**
    * Verify harmonic set has expected properties
    * @param {number} setIndex - Index of harmonic set to verify
-   * @param {Object} expectedProps - Expected properties
+   * @param {TestHarmonicSetProps} expectedProps - Expected properties
    * @param {number} [expectedProps.fundamentalFreq] - Expected fundamental frequency
    * @param {number} [expectedProps.rate] - Expected rate
    * @param {string} [expectedProps.color] - Expected color
@@ -276,10 +276,10 @@ class DopplerModeHelpers {
 
   /**
    * Create Doppler markers with specified positions
-   * @param {Object} fPlusPos - Position for f+ marker
+   * @param {TestPosition} fPlusPos - Position for f+ marker
    * @param {number} fPlusPos.x - f+ X coordinate
    * @param {number} fPlusPos.y - f+ Y coordinate
-   * @param {Object} fMinusPos - Position for f- marker
+   * @param {TestPosition} fMinusPos - Position for f- marker
    * @param {number} fMinusPos.x - f- X coordinate
    * @param {number} fMinusPos.y - f- Y coordinate
    * @returns {Promise<void>}
@@ -298,10 +298,10 @@ class DopplerModeHelpers {
   /**
    * Drag specific Doppler marker to new position
    * @param {'fPlus'|'fMinus'|'fZero'} markerType - Type of marker to drag
-   * @param {Object} fromPos - Current position of marker
+   * @param {TestPosition} fromPos - Current position of marker
    * @param {number} fromPos.x - From X coordinate
    * @param {number} fromPos.y - From Y coordinate
-   * @param {Object} toPos - New position for marker
+   * @param {TestPosition} toPos - New position for marker
    * @param {number} toPos.x - To X coordinate
    * @param {number} toPos.y - To Y coordinate
    * @returns {Promise<void>}

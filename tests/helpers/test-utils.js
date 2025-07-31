@@ -108,10 +108,10 @@ const TEST_POSITIONS = {
 /**
  * Calculate test positions based on SVG bounds
  * Consolidates position calculation logic used across tests
- * @param {Object} svgBounds - The SVG bounding box
+ * @param {TestSVGBounds} svgBounds - The SVG bounding box
  * @param {number} svgBounds.width - Width of the SVG element
  * @param {number} svgBounds.height - Height of the SVG element
- * @returns {Object} Calculated test positions
+ * @returns {TestPositions} Calculated test positions
  * @returns {number} returns.centerX - Center X position
  * @returns {number} returns.centerY - Center Y position
  * @returns {number} returns.quarterX - Quarter X position
