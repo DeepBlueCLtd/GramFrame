@@ -35,11 +35,19 @@ export class AnalysisMode extends BaseMode {
         marker.freq = dataCoords.freq
         marker.time = dataCoords.time
         
-        // Re-render persistent features and update table
+        // Re-render persistent features
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures()
         }
-        this.updateMarkersTable()
+        
+        // Throttle table updates - use requestAnimationFrame
+        if (!this.updateTableScheduled) {
+          this.updateTableScheduled = true
+          requestAnimationFrame(() => {
+            this.updateMarkersTable()
+            this.updateTableScheduled = false
+          })
+        }
         
         // Notify listeners
         notifyStateListeners(this.state, this.instance.stateListeners)
@@ -437,16 +445,74 @@ export class AnalysisMode extends BaseMode {
   updateMarkersTable() {
     if (!this.uiElements.markersTableBody) return
     
-    // Store current selection to restore after table update
-    const currentSelection = this.state.selection
-    
-    // Clear existing rows
-    this.uiElements.markersTableBody.innerHTML = ''
-    
     if (!this.state.analysis || !this.state.analysis.markers) return
     
-    // Add rows for each marker
-    this.state.analysis.markers.forEach((marker, index) => {
+    const existingRows = this.uiElements.markersTableBody.querySelectorAll('tr')
+    const markers = this.state.analysis.markers
+    
+    // Update existing rows or create new ones
+    markers.forEach((marker, index) => {
+      let row = existingRows[index]
+      
+      if (row && row.getAttribute('data-marker-id') === marker.id) {
+        // Update existing row - only update the cells that change
+        this.updateMarkerRow(row, marker)
+      } else {
+        // Need to rebuild from this point (marker added/removed/reordered)
+        this.rebuildMarkersTableFrom(index)
+        return
+      }
+    })
+    
+    // Remove extra rows if markers were deleted
+    for (let i = markers.length; i < existingRows.length; i++) {
+      existingRows[i].remove()
+    }
+  }
+  
+  /**
+   * Update only the changing cells in an existing marker row
+   * @param {HTMLTableRowElement} row - The table row to update
+   * @param {Object} marker - The marker data
+   */
+  updateMarkerRow(row, marker) {
+    // Update time cell (second cell)
+    const timeCell = row.cells[1]
+    if (timeCell) {
+      const newTime = formatTime(marker.time)
+      if (timeCell.textContent !== newTime) {
+        timeCell.textContent = newTime
+      }
+    }
+    
+    // Update frequency cell (third cell)
+    const freqCell = row.cells[2]
+    if (freqCell) {
+      const newFreq = marker.freq.toFixed(1)
+      if (freqCell.textContent !== newFreq) {
+        freqCell.textContent = newFreq
+      }
+    }
+  }
+  
+  /**
+   * Rebuild the markers table from a specific index
+   * @param {number} startIndex - Index to start rebuilding from
+   */
+  rebuildMarkersTableFrom(startIndex) {
+    if (!this.uiElements.markersTableBody) return
+    
+    const markers = this.state.analysis.markers
+    const existingRows = this.uiElements.markersTableBody.querySelectorAll('tr')
+    
+    // Remove rows from startIndex onward
+    for (let i = startIndex; i < existingRows.length; i++) {
+      existingRows[i].remove()
+    }
+    
+    // Add new rows from startIndex
+    for (let index = startIndex; index < markers.length; index++) {
+      const marker = markers[index]
       const row = document.createElement('tr')
       row.setAttribute('data-marker-id', marker.id)
       
@@ -510,12 +576,10 @@ export class AnalysisMode extends BaseMode {
       row.appendChild(deleteCell)
       
       this.uiElements.markersTableBody.appendChild(row)
-    })
-    
-    // Restore selection highlighting after table update
-    if (currentSelection.selectedType === 'marker' && currentSelection.selectedId) {
-      this.instance.updateSelectionVisuals()
     }
+    
+    // Restore selection highlighting if needed
+    this.instance.updateSelectionVisuals()
   }
 
   /**

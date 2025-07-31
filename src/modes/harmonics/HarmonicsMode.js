@@ -47,8 +47,8 @@ export class HarmonicsMode extends BaseMode {
       this.handleHarmonicSetDrag()
     }
     
-    // Update harmonic panel during mouse movement for real-time rate calculation
-    this.updateHarmonicPanel()
+    // Don't update harmonic panel on every mouse move - it causes flicker
+    // The rate updates are not critical enough to justify the performance cost
   }
 
   /**
