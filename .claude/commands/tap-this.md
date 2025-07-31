@@ -5,10 +5,9 @@ Read the guide at prompts/01_Manager_Agent_Core_Guides/03_Task_Assignment_Prompt
 
 Analyze the GitHub issue to understand the requirements, scope, and technical details.  Ask for clarification questions if necessary.
 
-Once you have completed the analysis, create a new branch for this GitHub issue:
+Once you have completed the analysis (and before the Task Assignment Prompt is created), create a new branch for this GitHub issue:
 1. Create and switch to new branch: `git checkout -b issue-{issue_number}-{issue_title}`
 2. Verify you're on the correct branch: `git branch --show-current`
-
 
 Then generate a structured task assignment prompt following the guide's template and save it to prompts/tasks/Task_Issue_{issue_number}.md.
 
