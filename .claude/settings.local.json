@@ -55,12 +55,9 @@
       "Bash(yarn dev:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(open debug-multiple.html)",
-      "Bash(sed:*)"
-    ],
-    "deny": [
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(sed:*)",
+      "Bash(git worktree:*)",
+      "Bash(gh issue view:*)"
     ]
   }
 }
