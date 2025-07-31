@@ -67,7 +67,8 @@
       "Bash(gh pr create:*)",
       "Bash(git commit:*)",
       "Bash(git restore:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(gh issue create:*)"
     ]
   }
 }
