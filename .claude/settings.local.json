@@ -58,7 +58,8 @@
       "Bash(sed:*)",
       "Bash(git worktree:*)",
       "Bash(gh issue view:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
