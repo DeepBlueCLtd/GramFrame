@@ -1,0 +1,255 @@
+/**
+ * HTML Overlay Axis Renderer
+ * 
+ * Creates axis labels as HTML elements positioned absolutely outside the SVG image area.
+ * No modifications to SVG coordinate system.
+ */
+
+export class HTMLAxisRenderer {
+    constructor(coordinateSystem, zoomDemonstrator) {
+        this.coordinateSystem = coordinateSystem;
+        this.zoomDemo = zoomDemonstrator;
+        
+        // Create overlay containers
+        this.createOverlayContainers();
+        
+    }
+    
+    createOverlayContainers() {
+        const demoContainer = document.getElementById('demo-container');
+        if (!demoContainer) {
+            console.error('demo-container not found!');
+            return;
+        }
+        
+        // Make demo container relatively positioned for absolute positioning of labels
+        demoContainer.style.position = 'relative';
+        demoContainer.style.overflow = 'visible'; // Ensure labels outside can be seen
+        
+        // Create frequency axis labels container (below image)
+        this.freqLabelsContainer = document.createElement('div');
+        this.freqLabelsContainer.id = 'freq-labels-container';
+        this.freqLabelsContainer.style.position = 'absolute';
+        this.freqLabelsContainer.style.left = '0';
+        this.freqLabelsContainer.style.right = '0';
+        this.freqLabelsContainer.style.height = '30px';
+        this.freqLabelsContainer.style.zIndex = '1000'; // Ensure it's on top
+        this.freqLabelsContainer.style.pointerEvents = 'none'; // Don't interfere with mouse events
+        demoContainer.appendChild(this.freqLabelsContainer);
+        
+        // Create time axis labels container (left of image)
+        this.timeLabelsContainer = document.createElement('div');
+        this.timeLabelsContainer.id = 'time-labels-container';
+        this.timeLabelsContainer.style.position = 'absolute';
+        this.timeLabelsContainer.style.top = '0';
+        this.timeLabelsContainer.style.bottom = '0';
+        this.timeLabelsContainer.style.width = '60px';
+        this.timeLabelsContainer.style.zIndex = '1000'; // Ensure it's on top
+        this.timeLabelsContainer.style.pointerEvents = 'none';
+        demoContainer.appendChild(this.timeLabelsContainer);
+        
+        this.updateContainerPositions();
+    }
+    
+    updateContainerPositions() {
+        const dimensions = this.zoomDemo.getCurrentImageDimensions();
+        
+        // Position frequency labels below the SVG
+        this.freqLabelsContainer.style.top = `${dimensions.height + 5}px`;
+        
+        // Position time labels to the left of the SVG  
+        this.timeLabelsContainer.style.left = `-65px`;
+        
+    }
+    
+    
+    /**
+     * Calculate optimal tick spacing
+     */
+    calculateTickSpacing(dataMin, dataMax, availablePixels) {
+        const dataRange = dataMax - dataMin;
+        const targetTickCount = Math.max(5, Math.min(15, Math.floor(availablePixels / 60))); // More frequent labels
+        
+        const roughInterval = dataRange / targetTickCount;
+        const magnitude = Math.pow(10, Math.floor(Math.log10(roughInterval)));
+        const normalizedInterval = roughInterval / magnitude;
+        
+        let niceInterval;
+        if (normalizedInterval <= 1) {
+            niceInterval = 1;
+        } else if (normalizedInterval <= 2) {
+            niceInterval = 2;
+        } else if (normalizedInterval <= 5) {
+            niceInterval = 5;
+        } else {
+            niceInterval = 10;
+        }
+        
+        return niceInterval * magnitude;
+    }
+    
+    /**
+     * Generate tick positions
+     */
+    generateTicks(dataMin, dataMax, interval) {
+        const ticks = [];
+        const start = Math.ceil(dataMin / interval) * interval;
+        
+        for (let value = start; value <= dataMax; value += interval) {
+            const roundedValue = Math.round(value / interval) * interval;
+            if (roundedValue >= dataMin && roundedValue <= dataMax) {
+                ticks.push(roundedValue);
+            }
+        }
+        
+        return ticks;
+    }
+    
+    /**
+     * Format tick labels
+     */
+    formatLabel(value) {
+        if (Math.abs(value) >= 1000) {
+            return `${(value / 1000).toFixed(1)}k`;
+        }
+        return Math.round(value).toString();
+    }
+    
+    /**
+     * Update frequency axis labels (horizontal)
+     */
+    updateFrequencyLabels() {
+        // Clear existing labels
+        this.freqLabelsContainer.innerHTML = '';
+        
+        const dimensions = this.zoomDemo.getCurrentImageDimensions();
+        const dataRange = this.coordinateSystem.dataRange;
+        const zoomState = this.zoomDemo.zoomState;
+        const svgRect = document.getElementById('demo-svg').getBoundingClientRect();
+        const containerRect = document.getElementById('demo-container').getBoundingClientRect();
+        
+        // Calculate visible data range
+        const visibleDataMinX = dataRange.minX + (-zoomState.panX / zoomState.scaleX) * (dataRange.maxX - dataRange.minX) / dimensions.width;
+        const visibleDataMaxX = dataRange.minX + ((dimensions.width - zoomState.panX) / zoomState.scaleX) * (dataRange.maxX - dataRange.minX) / dimensions.width;
+        
+        // Calculate tick spacing and generate ticks
+        const tickInterval = this.calculateTickSpacing(visibleDataMinX, visibleDataMaxX, dimensions.width);
+        const ticks = this.generateTicks(visibleDataMinX, visibleDataMaxX, tickInterval);
+        
+        ticks.forEach(tickValue => {
+            // Convert data coordinate to SVG coordinate
+            const svgX = ((tickValue - dataRange.minX) / (dataRange.maxX - dataRange.minX)) * dimensions.width;
+            
+            // Apply zoom/pan transform
+            const displayX = svgX * zoomState.scaleX + zoomState.panX;
+            
+            // Convert SVG coordinate to screen pixels relative to container
+            const screenX = (displayX / dimensions.width) * containerRect.width;
+            
+            // Only render if visible within container bounds
+            if (screenX >= -30 && screenX <= containerRect.width + 30) {
+                const label = document.createElement('div');
+                label.className = 'axis-label freq-label';
+                label.textContent = this.formatLabel(tickValue);
+                
+                // Style the label
+                label.style.position = 'absolute';
+                label.style.left = `${screenX}px`;
+                label.style.top = '5px';
+                label.style.transform = 'translateX(-50%)'; // Center horizontally
+                label.style.fontSize = '11px';
+                label.style.color = '#333';
+                label.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                label.style.padding = '2px 4px';
+                label.style.borderRadius = '3px';
+                label.style.border = '1px solid #ccc';
+                label.style.fontFamily = 'Arial, sans-serif';
+                label.style.whiteSpace = 'nowrap';
+                label.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                
+                this.freqLabelsContainer.appendChild(label);
+            }
+        });
+    }
+    
+    /**
+     * Update time axis labels (vertical)
+     */
+    updateTimeLabels() {
+        // Clear existing labels
+        this.timeLabelsContainer.innerHTML = '';
+        
+        const dimensions = this.zoomDemo.getCurrentImageDimensions();
+        const dataRange = this.coordinateSystem.dataRange;
+        const zoomState = this.zoomDemo.zoomState;
+        const containerRect = document.getElementById('demo-container').getBoundingClientRect();
+        
+        // Calculate visible data range (with Y inversion)
+        const visibleDataMinY = dataRange.minY + (-zoomState.panY / zoomState.scaleY) * (dataRange.maxY - dataRange.minY) / dimensions.height;
+        const visibleDataMaxY = dataRange.minY + ((dimensions.height - zoomState.panY) / zoomState.scaleY) * (dataRange.maxY - dataRange.minY) / dimensions.height;
+        
+        // Calculate tick spacing and generate ticks
+        const tickInterval = this.calculateTickSpacing(visibleDataMinY, visibleDataMaxY, dimensions.height);
+        const ticks = this.generateTicks(visibleDataMinY, visibleDataMaxY, tickInterval);
+        
+        ticks.forEach(tickValue => {
+            // Convert data coordinate to SVG coordinate (with Y inversion)
+            const svgY = dimensions.height - ((tickValue - dataRange.minY) / (dataRange.maxY - dataRange.minY)) * dimensions.height;
+            
+            // Apply zoom/pan transform
+            const displayY = svgY * zoomState.scaleY + zoomState.panY;
+            
+            // Convert SVG coordinate to screen pixels relative to container
+            const screenY = (displayY / dimensions.height) * containerRect.height;
+            
+            // Only render if visible within container bounds
+            if (screenY >= -20 && screenY <= containerRect.height + 20) {
+                const label = document.createElement('div');
+                label.className = 'axis-label time-label';
+                label.textContent = this.formatLabel(tickValue);
+                
+                // Style the label
+                label.style.position = 'absolute';
+                label.style.right = '5px';
+                label.style.top = `${screenY}px`;
+                label.style.transform = 'translateY(-50%)'; // Center vertically
+                label.style.fontSize = '11px';
+                label.style.color = '#333';
+                label.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                label.style.padding = '2px 4px';
+                label.style.borderRadius = '3px';
+                label.style.border = '1px solid #ccc';
+                label.style.fontFamily = 'Arial, sans-serif';
+                label.style.whiteSpace = 'nowrap';
+                label.style.textAlign = 'right';
+                label.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+                
+                this.timeLabelsContainer.appendChild(label);
+            }
+        });
+    }
+    
+    /**
+     * Update both axes
+     */
+    updateAxes() {
+        console.log('updateAxes called');
+        this.updateContainerPositions();
+        this.updateFrequencyLabels();
+        this.updateTimeLabels();
+        console.log('Frequency labels:', this.freqLabelsContainer.children.length);
+        console.log('Time labels:', this.timeLabelsContainer.children.length);
+    }
+    
+    /**
+     * Clean up - remove overlay containers
+     */
+    destroy() {
+        if (this.freqLabelsContainer) {
+            this.freqLabelsContainer.remove();
+        }
+        if (this.timeLabelsContainer) {
+            this.timeLabelsContainer.remove();
+        }
+    }
+}

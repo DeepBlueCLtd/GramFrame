@@ -10,6 +10,7 @@
 
 import { CoordinateSystem } from './coordinates.js';
 import { UI } from './ui.js';
+import { HTMLAxisRenderer } from './htmlAxes.js';
 
 class ZoomDemonstrator {
     constructor() {
@@ -69,6 +70,9 @@ class ZoomDemonstrator {
         // Initialize UI
         this.ui = new UI(this);
         
+        // Initialize HTML overlay axis renderer
+        this.axisRenderer = new HTMLAxisRenderer(this.coordinateSystem, this);
+        
         // Get DOM elements
         this.svg = document.getElementById('demo-svg');
         this.demoContainer = document.getElementById('demo-container');
@@ -81,6 +85,9 @@ class ZoomDemonstrator {
         
         // Update initial display
         this.updateDisplay();
+        
+        // Render initial axes
+        this.axisRenderer.updateAxes();
         
         console.log('ZoomDemonstrator initialized with offset-axes test image');
         console.log('Data coordinate ranges:', imageConfig.dataRange);
@@ -396,6 +403,9 @@ class ZoomDemonstrator {
         this.clippedContent.setAttribute('transform', transform);
         
         this.updateDisplay();
+        
+        // Update axes after zoom/pan
+        this.axisRenderer.updateAxes();
     }
     
     switchTestImage(imageKey) {
@@ -437,8 +447,14 @@ class ZoomDemonstrator {
         // Update coordinate system with new dimensions
         this.coordinateSystem.updateDataRange(config.dataRange, config.nativeWidth, config.nativeHeight);
         
+        // Update axis renderer coordinate system reference
+        this.axisRenderer.coordinateSystem = this.coordinateSystem;
+        
         // Reset zoom state
         this.resetZoom();
+        
+        // Update axes for new image
+        this.axisRenderer.updateAxes();
         
         // Update UI
         document.querySelectorAll('.zoom-btn[id^="image-"]').forEach(btn => {
