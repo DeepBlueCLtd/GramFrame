@@ -70,9 +70,6 @@
             overflow: hidden;
         }
         .demo-svg {
-            cursor: crosshair;
-        }
-        .demo-svg {
             display: block;
             width: 100%;
             height: 100%;
@@ -154,11 +151,13 @@
                         <image id="test-image" href="../sample/test-image.png" x="0" y="0" width="800" height="400" />
                         
                         <g id="overlay-group">
-                            <!-- Selection rectangle for zoom mode -->
-                            <rect id="selection-rect" class="selection-rect" style="display: none;" />
+                            <!-- Other overlay elements can go here -->
                         </g>
                     </g>
                 </g>
+                
+                <!-- Selection rectangle outside of transforms -->
+                <rect id="selection-rect" class="selection-rect" style="display: none;" />
                 
                 <!-- Axes -->
                 <g id="axes-group">

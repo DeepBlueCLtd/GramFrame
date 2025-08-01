@@ -9,7 +9,7 @@
  * - Visual feedback for user interactions
  */
 
-import { transformCoordinates, applyTransform, zoomAt, resetTransform, calculateZoomCenter } from './coordinates.js';
+import { transformCoordinates, applyTransform, zoomAt, resetTransform, calculateZoomCenter, CONFIG } from './coordinates.js';
 
 /**
  * @typedef {Object} UIState
@@ -138,6 +138,9 @@ export class ZoomDemonstratorUI {
         // Update coordinate display
         this.updateCoordinateDisplay(mouseX, mouseY);
         
+        // Update cursor style based on position
+        this.updateCursorStyle(mouseX, mouseY);
+        
         // Handle mode-specific mouse move
         if (this.state.currentMode === 'pan' && this.state.isDragging) {
             this.handlePanDrag(mouseX, mouseY);
@@ -208,19 +211,55 @@ export class ZoomDemonstratorUI {
         event.preventDefault();
         
         // Right-click zooms out or resets zoom
-        if (this.transform.zoomLevel > 1.0) {
+        const avgZoom = Math.sqrt(this.transform.zoomLevelX * this.transform.zoomLevelY);
+        if (avgZoom > 1.0) {
+            // Zoom out by 50% while maintaining current aspect ratio
+            const zoomFactor = 0.5;
+            this.transform.zoomLevelX = Math.max(0.1, this.transform.zoomLevelX * zoomFactor);
+            this.transform.zoomLevelY = Math.max(0.1, this.transform.zoomLevelY * zoomFactor);
+            this.transform.zoomLevel = Math.sqrt(this.transform.zoomLevelX * this.transform.zoomLevelY);
+            
+            // Adjust pan to keep center point fixed
             const rect = this.elements.svg.getBoundingClientRect();
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
-            
             const coords = transformCoordinates(mouseX, mouseY, this.elements.svg, this.transform);
-            const zoomCenter = calculateZoomCenter(coords.svg, this.transform);
             
-            zoomAt(this.transform, 0.5, zoomCenter);
+            // Keep the clicked point fixed during zoom out
+            const clickedPointX = coords.svg.x;
+            const clickedPointY = coords.svg.y;
+            
+            // Calculate where this point should be after zoom (same screen position)
+            const screenClickX = mouseX - rect.left;
+            const screenClickY = event.clientY - rect.top;
+            
+            // Calculate the SVG position this screen point should map to after zoom
+            // We want: screenClickX/Y -> clickedPointX/Y after transform
+            // Work backwards from screen position to required pan offset
+            const svgRect = this.elements.svg.getBoundingClientRect();
+            const viewBox = this.elements.svg.viewBox.baseVal;
+            
+            // Convert screen click to SVG without current transform
+            const svgClickX = (screenClickX * (viewBox ? viewBox.width / svgRect.width : 1)) + (viewBox ? viewBox.x : 0);
+            const svgClickY = (screenClickY * (viewBox ? viewBox.height / svgRect.height : 1)) + (viewBox ? viewBox.y : 0);
+            
+            // Set pan so that svgClickX/Y maps to clickedPointX/Y
+            this.transform.panOffset.x = clickedPointX - svgClickX / this.transform.zoomLevelX;
+            this.transform.panOffset.y = clickedPointY - svgClickY / this.transform.zoomLevelY;
+            
             this.applyTransformAndNotify();
-            this.updateStatus(`Zoomed out to ${this.transform.zoomLevel.toFixed(1)}x`);
+            
+            if (this.transform.zoomLevelX !== this.transform.zoomLevelY) {
+                this.updateStatus(`Zoomed out to ${this.transform.zoomLevelX.toFixed(1)}x × ${this.transform.zoomLevelY.toFixed(1)}x`);
+            } else {
+                this.updateStatus(`Zoomed out to ${this.transform.zoomLevel.toFixed(1)}x`);
+            }
         } else {
-            resetTransform(this.transform);
+            // Reset to 1:1 zoom
+            this.transform.zoomLevel = 1.0;
+            this.transform.zoomLevelX = 1.0;
+            this.transform.zoomLevelY = 1.0;
+            this.transform.panOffset = { x: 0, y: 0 };
             this.applyTransformAndNotify();
             this.updateStatus('Zoom reset to 1.0x');
         }
@@ -268,20 +307,52 @@ export class ZoomDemonstratorUI {
      * @param {string} action - Zoom action ('in', 'out', 'reset')
      */
     handleZoomButton(action) {
-        // Use the center of the image data area (400, 200) as zoom center
-        const zoomCenter = { x: 400, y: 200 };
-        
         switch (action) {
             case 'in':
-                zoomAt(this.transform, 2.0, zoomCenter);
-                this.updateStatus(`Zoomed in to ${this.transform.zoomLevel.toFixed(1)}x`);
+                // Uniform zoom in - maintain aspect ratio around current center
+                const oldZoomIn = this.transform.zoomLevel;
+                const newZoomIn = Math.max(0.1, Math.min(10.0, oldZoomIn * 2.0));
+                
+                // Calculate current center of view
+                const currentCenterX = this.transform.panOffset.x + (CONFIG.imageWidth / (this.transform.zoomLevelX || oldZoomIn)) / 2;
+                const currentCenterY = this.transform.panOffset.y + (CONFIG.imageHeight / (this.transform.zoomLevelY || oldZoomIn)) / 2;
+                
+                // Set new zoom levels
+                this.transform.zoomLevel = newZoomIn;
+                this.transform.zoomLevelX = newZoomIn;
+                this.transform.zoomLevelY = newZoomIn;
+                
+                // Adjust pan to keep center fixed
+                this.transform.panOffset.x = currentCenterX - (CONFIG.imageWidth / newZoomIn) / 2;
+                this.transform.panOffset.y = currentCenterY - (CONFIG.imageHeight / newZoomIn) / 2;
+                
+                this.updateStatus(`Zoomed in to ${newZoomIn.toFixed(1)}x`);
                 break;
             case 'out':
-                zoomAt(this.transform, 0.5, zoomCenter);
-                this.updateStatus(`Zoomed out to ${this.transform.zoomLevel.toFixed(1)}x`);
+                // Uniform zoom out - maintain aspect ratio around current center
+                const oldZoomOut = this.transform.zoomLevel;
+                const newZoomOut = Math.max(0.1, Math.min(10.0, oldZoomOut * 0.5));
+                
+                // Calculate current center of view
+                const currentCenterXOut = this.transform.panOffset.x + (CONFIG.imageWidth / (this.transform.zoomLevelX || oldZoomOut)) / 2;
+                const currentCenterYOut = this.transform.panOffset.y + (CONFIG.imageHeight / (this.transform.zoomLevelY || oldZoomOut)) / 2;
+                
+                // Set new zoom levels
+                this.transform.zoomLevel = newZoomOut;
+                this.transform.zoomLevelX = newZoomOut;
+                this.transform.zoomLevelY = newZoomOut;
+                
+                // Adjust pan to keep center fixed
+                this.transform.panOffset.x = currentCenterXOut - (CONFIG.imageWidth / newZoomOut) / 2;
+                this.transform.panOffset.y = currentCenterYOut - (CONFIG.imageHeight / newZoomOut) / 2;
+                
+                this.updateStatus(`Zoomed out to ${newZoomOut.toFixed(1)}x`);
                 break;
             case 'reset':
-                resetTransform(this.transform);
+                this.transform.zoomLevel = 1.0;
+                this.transform.zoomLevelX = 1.0;
+                this.transform.zoomLevelY = 1.0;
+                this.transform.panOffset = { x: 0, y: 0 };
                 this.updateStatus('Zoom reset to 1.0x');
                 break;
         }
@@ -339,9 +410,9 @@ export class ZoomDemonstratorUI {
         const deltaX = mouseX - this.state.lastPanPoint.x;
         const deltaY = mouseY - this.state.lastPanPoint.y;
         
-        // Convert screen delta to SVG delta (accounting for zoom)
-        const svgDeltaX = deltaX / this.transform.zoomLevel;
-        const svgDeltaY = deltaY / this.transform.zoomLevel;
+        // Convert screen delta to SVG delta (accounting for separate X/Y zoom levels)
+        const svgDeltaX = deltaX / (this.transform.zoomLevelX || this.transform.zoomLevel);
+        const svgDeltaY = deltaY / (this.transform.zoomLevelY || this.transform.zoomLevel);
         
         // Update pan offset
         this.transform.panOffset.x -= svgDeltaX;
@@ -370,16 +441,56 @@ export class ZoomDemonstratorUI {
     startZoomSelection(mouseX, mouseY) {
         this.state.isSelecting = true;
         
-        // Convert to SVG coordinates for selection rectangle
+        // Convert to SVG coordinates for zoom calculation (with transform)
         const coords = transformCoordinates(mouseX, mouseY, this.elements.svg, this.transform);
         this.state.selectionStart = coords.svg;
         
-        // Show selection rectangle
-        this.elements.selectionRect.style.display = 'block';
-        this.elements.selectionRect.setAttribute('x', coords.svg.x);
-        this.elements.selectionRect.setAttribute('y', coords.svg.y);
-        this.elements.selectionRect.setAttribute('width', 0);
-        this.elements.selectionRect.setAttribute('height', 0);
+        // Log mouse down location in data coordinates
+        console.log('DRAG START - Mouse down at data coords:', coords.data ? `(${coords.data.x.toFixed(1)}, ${coords.data.y.toFixed(1)})` : 'outside image');
+        console.log('DRAG START - Screen coords:', `(${mouseX}, ${mouseY})`);
+        console.log('DRAG START - SVG coords (for zoom calc):', `(${coords.svg.x.toFixed(1)}, ${coords.svg.y.toFixed(1)})`);
+        
+        // The selection rectangle needs to be positioned where the cursor visually appears
+        // which is affected by the current transform. We need to convert the visual position
+        // back to untransformed SVG coordinates for rectangle positioning.
+        
+        // Get where the cursor appears visually (data coords converted back to SVG)
+        if (coords.data && coords.image) {
+            // Convert data coordinates back to untransformed SVG coordinates
+            // This represents where the cursor visually appears to the user
+            const imageX = (coords.data.x / CONFIG.freqMax) * CONFIG.imageWidth;
+            const imageY = CONFIG.imageHeight - (coords.data.y / CONFIG.timeMax) * CONFIG.imageHeight;
+            const visualSvgX = imageX + CONFIG.imageX; 
+            const visualSvgY = imageY + CONFIG.imageY;
+            
+            console.log('DRAG START - Visual SVG position:', `(${visualSvgX.toFixed(1)}, ${visualSvgY.toFixed(1)})`);
+            
+            // Store and position rectangle at visual location
+            this.state.selectionStartScreen = { x: visualSvgX, y: visualSvgY };
+            
+            this.elements.selectionRect.style.display = 'block';
+            this.elements.selectionRect.setAttribute('x', visualSvgX);
+            this.elements.selectionRect.setAttribute('y', visualSvgY);
+            this.elements.selectionRect.setAttribute('width', 0);
+            this.elements.selectionRect.setAttribute('height', 0);
+        } else {
+            // Fallback to raw coordinates if outside data area
+            const rect = this.elements.svg.getBoundingClientRect();
+            const viewBox = this.elements.svg.viewBox.baseVal;
+            
+            const rawSvgX = mouseX * (viewBox.width / rect.width) + viewBox.x;
+            const rawSvgY = mouseY * (viewBox.height / rect.height) + viewBox.y;
+            
+            console.log('DRAG START - Raw SVG coords (fallback):', `(${rawSvgX.toFixed(1)}, ${rawSvgY.toFixed(1)})`);
+            
+            this.state.selectionStartScreen = { x: rawSvgX, y: rawSvgY };
+            
+            this.elements.selectionRect.style.display = 'block';
+            this.elements.selectionRect.setAttribute('x', rawSvgX);
+            this.elements.selectionRect.setAttribute('y', rawSvgY);
+            this.elements.selectionRect.setAttribute('width', 0);
+            this.elements.selectionRect.setAttribute('height', 0);
+        }
         
         this.updateStatus('Drag to select zoom area...');
     }
@@ -390,17 +501,38 @@ export class ZoomDemonstratorUI {
      * @param {number} mouseY - Current mouse Y coordinate
      */
     handleZoomSelection(mouseX, mouseY) {
-        if (!this.state.isSelecting || !this.state.selectionStart) return;
+        if (!this.state.isSelecting || !this.state.selectionStartScreen) return;
         
+        // Get current visual position using the same approach as start
         const coords = transformCoordinates(mouseX, mouseY, this.elements.svg, this.transform);
-        const current = coords.svg;
-        const start = this.state.selectionStart;
+        let currentVisual;
         
-        // Calculate selection rectangle
-        const x = Math.min(start.x, current.x);
-        const y = Math.min(start.y, current.y);
-        const width = Math.abs(current.x - start.x);
-        const height = Math.abs(current.y - start.y);
+        if (coords.data && coords.image) {
+            // Convert current data coordinates to visual SVG coordinates
+            const imageX = (coords.data.x / CONFIG.freqMax) * CONFIG.imageWidth;
+            const imageY = CONFIG.imageHeight - (coords.data.y / CONFIG.timeMax) * CONFIG.imageHeight;
+            currentVisual = { 
+                x: imageX + CONFIG.imageX, 
+                y: imageY + CONFIG.imageY 
+            };
+        } else {
+            // Fallback to raw coordinates if outside data area
+            const rect = this.elements.svg.getBoundingClientRect();
+            const viewBox = this.elements.svg.viewBox.baseVal;
+            
+            currentVisual = {
+                x: mouseX * (viewBox.width / rect.width) + viewBox.x,
+                y: mouseY * (viewBox.height / rect.height) + viewBox.y
+            };
+        }
+        
+        const start = this.state.selectionStartScreen;
+        
+        // Calculate selection rectangle bounds
+        const x = Math.min(start.x, currentVisual.x);
+        const y = Math.min(start.y, currentVisual.y);
+        const width = Math.abs(currentVisual.x - start.x);
+        const height = Math.abs(currentVisual.y - start.y);
         
         // Update selection rectangle
         this.elements.selectionRect.setAttribute('x', x);
@@ -421,34 +553,52 @@ export class ZoomDemonstratorUI {
         const end = coords.svg;
         const start = this.state.selectionStart;
         
+        // Log mouse release location and rectangle bounds
+        console.log('DRAG END - Mouse release at data coords:', coords.data ? `(${coords.data.x.toFixed(1)}, ${coords.data.y.toFixed(1)})` : 'outside image');
+        console.log('DRAG END - Screen coords:', `(${mouseX}, ${mouseY})`);
+        console.log('DRAG END - SVG coords (for zoom calc):', `(${end.x.toFixed(1)}, ${end.y.toFixed(1)})`);
+        
+        // Log the actual rectangle bounds as drawn on screen
+        const rectElement = this.elements.selectionRect;
+        const rectX = parseFloat(rectElement.getAttribute('x'));
+        const rectY = parseFloat(rectElement.getAttribute('y'));
+        const rectWidth = parseFloat(rectElement.getAttribute('width'));
+        const rectHeight = parseFloat(rectElement.getAttribute('height'));
+        console.log('DRAG END - Rectangle bounds (SVG):', `x=${rectX.toFixed(1)}, y=${rectY.toFixed(1)}, w=${rectWidth.toFixed(1)}, h=${rectHeight.toFixed(1)}`);
+        
         // Calculate selection area
         const width = Math.abs(end.x - start.x);
         const height = Math.abs(end.y - start.y);
         
         // Only zoom if selection is large enough
         if (width > 10 && height > 10) {
-            // Calculate zoom to fit selection
-            const svgWidth = this.elements.svg.viewBox.baseVal.width || 800;
-            const svgHeight = this.elements.svg.viewBox.baseVal.height || 400;
+            // Calculate the selection bounds
+            const selectionLeft = Math.min(start.x, end.x);
+            const selectionRight = Math.max(start.x, end.x);
+            const selectionBottom = Math.min(start.y, end.y);  
+            const selectionTop = Math.max(start.y, end.y);
             
-            const zoomX = svgWidth / width;
-            const zoomY = svgHeight / height;
-            const zoomFactor = Math.min(zoomX, zoomY) * 0.9; // Leave some margin
+            // Calculate the selection dimensions
+            const selectionWidth = selectionRight - selectionLeft;
+            const selectionHeight = selectionTop - selectionBottom;
             
-            // Calculate center of selection
-            const centerX = (start.x + end.x) / 2;
-            const centerY = (start.y + end.y) / 2;
+            // Calculate zoom factors to stretch selection to fill viewport
+            const zoomX = CONFIG.imageWidth / selectionWidth;
+            const zoomY = CONFIG.imageHeight / selectionHeight;
             
-            // Apply zoom
-            const newZoom = Math.max(0.1, Math.min(10.0, this.transform.zoomLevel * zoomFactor));
-            if (newZoom !== this.transform.zoomLevel) {
-                this.transform.zoomLevel = newZoom;
-                this.transform.panOffset.x = centerX - svgWidth / (2 * newZoom);
-                this.transform.panOffset.y = centerY - svgHeight / (2 * newZoom);
-                
-                this.applyTransformAndNotify();
-                this.updateStatus(`Zoomed to selection (${newZoom.toFixed(1)}x)`);
-            }
+            // Set separate zoom levels for X and Y to change aspect ratio
+            this.transform.zoomLevelX = Math.max(0.1, Math.min(10.0, zoomX));
+            this.transform.zoomLevelY = Math.max(0.1, Math.min(10.0, zoomY));
+            this.transform.zoomLevel = Math.sqrt(this.transform.zoomLevelX * this.transform.zoomLevelY); // For compatibility
+            
+            // Set pan offset so the selection fills the viewport exactly
+            this.transform.panOffset.x = selectionLeft;
+            this.transform.panOffset.y = selectionBottom;
+            
+            this.applyTransformAndNotify();
+            
+            const aspectChange = (this.transform.zoomLevelX / this.transform.zoomLevelY).toFixed(2);
+            this.updateStatus(`Zoomed to selection (${this.transform.zoomLevelX.toFixed(1)}x × ${this.transform.zoomLevelY.toFixed(1)}x, aspect ${aspectChange})`);
         }
         
         this.cancelZoomSelection();
@@ -487,12 +637,39 @@ export class ZoomDemonstratorUI {
         const imageText = coords.image ? 
             `(${Math.round(coords.image.x)}, ${Math.round(coords.image.y)})` : 
             '(outside)';
-        const dataText = `(${coords.data.x.toFixed(1)}, ${coords.data.y.toFixed(1)})`;
-        const zoomText = `${this.transform.zoomLevel.toFixed(1)}x`;
+        const dataText = coords.image ? 
+            `(${coords.data.x.toFixed(1)}, ${coords.data.y.toFixed(1)})` : 
+            '(outside image)';
+        const zoomText = this.transform.zoomLevelX !== this.transform.zoomLevelY ? 
+            `${this.transform.zoomLevelX.toFixed(1)}x × ${this.transform.zoomLevelY.toFixed(1)}x` :
+            `${this.transform.zoomLevel.toFixed(1)}x`;
         const panText = `(${Math.round(this.transform.panOffset.x)}, ${Math.round(this.transform.panOffset.y)})`;
         
         this.elements.coordinates.textContent = 
             `Screen: ${screenText} | SVG: ${svgText} | Image: ${imageText} | Data: ${dataText} | Zoom: ${zoomText} | Pan: ${panText}`;
+    }
+    
+    /**
+     * Update cursor style based on mouse position
+     * @param {number} mouseX - Mouse X coordinate
+     * @param {number} mouseY - Mouse Y coordinate
+     */
+    updateCursorStyle(mouseX, mouseY) {
+        const coords = transformCoordinates(mouseX, mouseY, this.elements.svg, this.transform);
+        
+        // Set crosshair cursor only when inside the image data area
+        if (coords.image) {
+            this.elements.svg.style.cursor = 'crosshair';
+        } else {
+            // Reset to default cursor or mode-specific cursor when outside data area
+            if (this.state.isDragging) {
+                this.elements.svg.style.cursor = 'grabbing';
+            } else if (this.state.currentMode === 'pan') {
+                this.elements.svg.style.cursor = 'grab';
+            } else {
+                this.elements.svg.style.cursor = 'default';
+            }
+        }
     }
     
     /**

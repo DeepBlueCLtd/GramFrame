@@ -19,6 +19,8 @@
 /**
  * @typedef {Object} TransformState
  * @property {number} zoomLevel - Current zoom level (1.0 = normal, 2.0 = 2x zoom, etc.)
+ * @property {number} zoomLevelX - X-axis zoom level (for aspect ratio changes)
+ * @property {number} zoomLevelY - Y-axis zoom level (for aspect ratio changes)
  * @property {Point} panOffset - Current pan offset in SVG coordinates
  * @property {Point} zoomCenter - Center point for zoom operations in SVG coordinates
  */
@@ -35,13 +37,13 @@
  * Configuration for coordinate transformations
  */
 const CONFIG = {
-    // Test image dimensions and positioning - origin at 0,0
-    imageX: 0,            // X position of image in SVG (origin at 0,0)
-    imageY: 0,            // Y position of image in SVG (origin at 0,0)
-    imageWidth: 800,      // Width of image in SVG coordinates (matches data width)
+    // Test image dimensions and positioning - adjusted for coordinate alignment
+    imageX: 18,           // X position of image in SVG (18px offset to align with axes)
+    imageY: 0,            // Y position of image in SVG
+    imageWidth: 764,      // Effective width for coordinate mapping (800 - 36px total offset)
     imageHeight: 400,     // Height of image in SVG coordinates (matches data height)
     
-    // Data coordinate ranges (matching actual image data dimensions)
+    // Data coordinate ranges (matching actual image data dimensions)  
     freqMin: 0,          // Minimum frequency
     freqMax: 800,        // Maximum frequency (matches image width)
     timeMin: 0,          // Minimum time
@@ -96,7 +98,7 @@ export function screenToSVGCoordinates(screenX, screenY, svg, transform = null) 
  * @returns {Point} Image coordinates
  */
 export function svgToImageCoordinates(svgX, svgY) {
-    // Check if point is within image bounds
+    // Check if point is within image bounds (inclusive of edges)
     if (svgX < CONFIG.imageX || svgX > CONFIG.imageX + CONFIG.imageWidth ||
         svgY < CONFIG.imageY || svgY > CONFIG.imageY + CONFIG.imageHeight) {
         return null; // Outside image bounds
@@ -187,17 +189,20 @@ function constrainPan(transform) {
  * @param {TransformState} transform - Transform state with zoom/pan
  */
 export function applyTransform(svg, transform) {
-    // Constrain pan to keep image within bounds
-    constrainPan(transform);
+    // Constrain pan to keep image within bounds (using average zoom for constraint calculation)
+    const avgZoom = Math.sqrt((transform.zoomLevelX || transform.zoomLevel) * (transform.zoomLevelY || transform.zoomLevel));
+    const constraintTransform = { ...transform, zoomLevel: avgZoom };
+    constrainPan(constraintTransform);
+    transform.panOffset = constraintTransform.panOffset;
     
     // Get the clipped content group that should be transformed
     const clippedContent = svg.getElementById('clipped-content');
     
-    // Create transform string for zoom and pan
-    const scaleX = transform.zoomLevel;
-    const scaleY = transform.zoomLevel;
-    const translateX = -transform.panOffset.x * transform.zoomLevel;
-    const translateY = -transform.panOffset.y * transform.zoomLevel;
+    // Create transform string for zoom and pan with separate X/Y scaling
+    const scaleX = transform.zoomLevelX || transform.zoomLevel;
+    const scaleY = transform.zoomLevelY || transform.zoomLevel;
+    const translateX = -transform.panOffset.x * scaleX;
+    const translateY = -transform.panOffset.y * scaleY;
     
     const transformString = `translate(${translateX}, ${translateY}) scale(${scaleX}, ${scaleY})`;
     
@@ -403,6 +408,8 @@ export function resetTransform(transform) {
 export function createInitialTransform() {
     return {
         zoomLevel: 1.0,
+        zoomLevelX: 1.0,
+        zoomLevelY: 1.0,
         panOffset: { x: 0, y: 0 },
         zoomCenter: { x: CONFIG.svgWidth / 2, y: CONFIG.svgHeight / 2 }
     };
