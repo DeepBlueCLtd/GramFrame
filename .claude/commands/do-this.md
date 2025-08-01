@@ -1,6 +1,6 @@
 # Implement Task
 
-This command will also accept the name of a markdown file under ./prompts/tasks/ and implement the task as specified in that file.
+This command will also accept the name of a markdown file under ./prompts/tasks/ and implement the task as specified in that file.  Or, if a number is provided, it will implement the task as specified in the file ./prompts/tasks/Task_Issue_{issue_number}.md.
 
 ## Branch Verification
 Verify you're on the correct branch for this issue:
