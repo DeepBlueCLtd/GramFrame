@@ -68,6 +68,8 @@
             border: 2px solid #ccc;
             background: #fafafa;
             overflow: hidden;
+        }
+        .demo-svg {
             cursor: crosshair;
         }
         .demo-svg {
@@ -144,14 +146,17 @@
                 <!-- Border around data area -->
                 <rect x="0" y="0" width="800" height="400" fill="none" stroke="#666" stroke-width="2"/>
                 
-                <!-- Clipped content group -->
-                <g id="clipped-content" clip-path="url(#data-area-clip)">
-                    <!-- Test image at origin -->
-                    <image id="test-image" href="../sample/test-image.png" x="0" y="0" width="800" height="400" />
-                    
-                    <g id="overlay-group">
-                        <!-- Selection rectangle for zoom mode -->
-                        <rect id="selection-rect" class="selection-rect" style="display: none;" />
+                <!-- Clipping mask for data area -->
+                <g clip-path="url(#data-area-clip)">
+                    <!-- Transformable content group -->
+                    <g id="clipped-content">
+                        <!-- Test image at origin -->
+                        <image id="test-image" href="../sample/test-image.png" x="0" y="0" width="800" height="400" />
+                        
+                        <g id="overlay-group">
+                            <!-- Selection rectangle for zoom mode -->
+                            <rect id="selection-rect" class="selection-rect" style="display: none;" />
+                        </g>
                     </g>
                 </g>
                 

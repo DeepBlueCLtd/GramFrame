@@ -162,11 +162,34 @@ export function transformCoordinates(screenX, screenY, svg, transform = null) {
 }
 
 /**
+ * Constrain pan offset to keep image within bounds
+ * @param {TransformState} transform - Transform state to constrain (will be modified)
+ */
+function constrainPan(transform) {
+    // Calculate the visible viewport size in image coordinates
+    const viewportWidth = CONFIG.imageWidth / transform.zoomLevel;
+    const viewportHeight = CONFIG.imageHeight / transform.zoomLevel;
+    
+    // Calculate the maximum pan offsets to keep image within bounds
+    const minPanX = 0; // Left edge of image at left edge of viewport
+    const maxPanX = Math.max(0, CONFIG.imageWidth - viewportWidth); // Right edge of image at right edge of viewport
+    const minPanY = 0; // Bottom edge of image at bottom edge of viewport  
+    const maxPanY = Math.max(0, CONFIG.imageHeight - viewportHeight); // Top edge of image at top edge of viewport
+    
+    // Apply constraints
+    transform.panOffset.x = Math.max(minPanX, Math.min(maxPanX, transform.panOffset.x));
+    transform.panOffset.y = Math.max(minPanY, Math.min(maxPanY, transform.panOffset.y));
+}
+
+/**
  * Apply zoom transformation to clipped content group
  * @param {SVGSVGElement} svg - SVG element
  * @param {TransformState} transform - Transform state with zoom/pan
  */
 export function applyTransform(svg, transform) {
+    // Constrain pan to keep image within bounds
+    constrainPan(transform);
+    
     // Get the clipped content group that should be transformed
     const clippedContent = svg.getElementById('clipped-content');
     
@@ -284,15 +307,16 @@ function updateAxisLabels(svg, transform) {
     });
     
     // Generate time axis labels and ticks (time increases upward)
-    const timeRange = viewTop - viewBottom;
+    const timeRange = viewTimeTop - viewTimeBottom;
     const timeInterval = calculateTickInterval(timeRange);
-    const timeTicks = generateTicks(viewBottom, viewTop, timeInterval);
+    const timeTicks = generateTicks(viewTimeBottom, viewTimeTop, timeInterval);
     
     timeTicks.forEach(tickValue => {
         if (tickValue >= 0 && tickValue <= CONFIG.timeMax) {
-            // For time axis: SVG y=0 is at top, but we want time=0 at bottom
-            // So time value maps to: y = CONFIG.imageHeight - (tickValue / CONFIG.timeMax) * CONFIG.imageHeight
-            const y = CONFIG.imageHeight - (tickValue - viewBottom) / (viewTop - viewBottom) * CONFIG.imageHeight;
+            // Convert time value to SVG y coordinate
+            // tickValue=0 should be at y=400, tickValue=400 should be at y=0
+            const normalizedPos = (tickValue - viewTimeBottom) / (viewTimeTop - viewTimeBottom);
+            const y = CONFIG.imageHeight - (normalizedPos * CONFIG.imageHeight);
             
             if (y >= 0 && y <= CONFIG.imageHeight) {
                 // Create tick mark
@@ -306,7 +330,7 @@ function updateAxisLabels(svg, transform) {
                 tick.setAttribute('class', 'dynamic-tick');
                 svg.appendChild(tick);
                 
-                // Create label - show the actual time value (not inverted)
+                // Create label - show the actual time value
                 const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 label.setAttribute('x', '-5');
                 label.setAttribute('y', y + 4); // Offset for better alignment
