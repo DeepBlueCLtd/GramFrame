@@ -76,7 +76,8 @@ export class ZoomDemonstrator {
     onTransformChange(transform) {
         // Log transform changes for debugging
         console.log('Transform changed:', {
-            zoom: transform.zoomLevel.toFixed(2),
+            zoomX: transform.zoomLevelX.toFixed(2),
+            zoomY: transform.zoomLevelY.toFixed(2),
             pan: `(${Math.round(transform.panOffset.x)}, ${Math.round(transform.panOffset.y)})`
         });
         

@@ -217,7 +217,6 @@ export class ZoomDemonstratorUI {
             const zoomFactor = 0.5;
             this.transform.zoomLevelX = Math.max(0.1, this.transform.zoomLevelX * zoomFactor);
             this.transform.zoomLevelY = Math.max(0.1, this.transform.zoomLevelY * zoomFactor);
-            this.transform.zoomLevel = Math.sqrt(this.transform.zoomLevelX * this.transform.zoomLevelY);
             
             // Adjust pan to keep center point fixed
             const rect = this.elements.svg.getBoundingClientRect();
@@ -252,11 +251,10 @@ export class ZoomDemonstratorUI {
             if (this.transform.zoomLevelX !== this.transform.zoomLevelY) {
                 this.updateStatus(`Zoomed out to ${this.transform.zoomLevelX.toFixed(1)}x × ${this.transform.zoomLevelY.toFixed(1)}x`);
             } else {
-                this.updateStatus(`Zoomed out to ${this.transform.zoomLevel.toFixed(1)}x`);
+                this.updateStatus(`Zoomed out to ${this.transform.zoomLevelX.toFixed(1)}x`);
             }
         } else {
             // Reset to 1:1 zoom
-            this.transform.zoomLevel = 1.0;
             this.transform.zoomLevelX = 1.0;
             this.transform.zoomLevelY = 1.0;
             this.transform.panOffset = { x: 0, y: 0 };
@@ -310,15 +308,14 @@ export class ZoomDemonstratorUI {
         switch (action) {
             case 'in':
                 // Uniform zoom in - maintain aspect ratio around current center
-                const oldZoomIn = this.transform.zoomLevel;
+                const oldZoomIn = Math.sqrt(this.transform.zoomLevelX * this.transform.zoomLevelY);
                 const newZoomIn = Math.max(0.1, Math.min(10.0, oldZoomIn * 2.0));
                 
                 // Calculate current center of view
-                const currentCenterX = this.transform.panOffset.x + (CONFIG.imageWidth / (this.transform.zoomLevelX || oldZoomIn)) / 2;
-                const currentCenterY = this.transform.panOffset.y + (CONFIG.imageHeight / (this.transform.zoomLevelY || oldZoomIn)) / 2;
+                const currentCenterX = this.transform.panOffset.x + (CONFIG.imageWidth / this.transform.zoomLevelX) / 2;
+                const currentCenterY = this.transform.panOffset.y + (CONFIG.imageHeight / this.transform.zoomLevelY) / 2;
                 
                 // Set new zoom levels
-                this.transform.zoomLevel = newZoomIn;
                 this.transform.zoomLevelX = newZoomIn;
                 this.transform.zoomLevelY = newZoomIn;
                 
@@ -330,15 +327,14 @@ export class ZoomDemonstratorUI {
                 break;
             case 'out':
                 // Uniform zoom out - maintain aspect ratio around current center
-                const oldZoomOut = this.transform.zoomLevel;
+                const oldZoomOut = Math.sqrt(this.transform.zoomLevelX * this.transform.zoomLevelY);
                 const newZoomOut = Math.max(0.1, Math.min(10.0, oldZoomOut * 0.5));
                 
                 // Calculate current center of view
-                const currentCenterXOut = this.transform.panOffset.x + (CONFIG.imageWidth / (this.transform.zoomLevelX || oldZoomOut)) / 2;
-                const currentCenterYOut = this.transform.panOffset.y + (CONFIG.imageHeight / (this.transform.zoomLevelY || oldZoomOut)) / 2;
+                const currentCenterXOut = this.transform.panOffset.x + (CONFIG.imageWidth / this.transform.zoomLevelX) / 2;
+                const currentCenterYOut = this.transform.panOffset.y + (CONFIG.imageHeight / this.transform.zoomLevelY) / 2;
                 
                 // Set new zoom levels
-                this.transform.zoomLevel = newZoomOut;
                 this.transform.zoomLevelX = newZoomOut;
                 this.transform.zoomLevelY = newZoomOut;
                 
@@ -349,7 +345,6 @@ export class ZoomDemonstratorUI {
                 this.updateStatus(`Zoomed out to ${newZoomOut.toFixed(1)}x`);
                 break;
             case 'reset':
-                this.transform.zoomLevel = 1.0;
                 this.transform.zoomLevelX = 1.0;
                 this.transform.zoomLevelY = 1.0;
                 this.transform.panOffset = { x: 0, y: 0 };
@@ -411,8 +406,8 @@ export class ZoomDemonstratorUI {
         const deltaY = mouseY - this.state.lastPanPoint.y;
         
         // Convert screen delta to SVG delta (accounting for separate X/Y zoom levels)
-        const svgDeltaX = deltaX / (this.transform.zoomLevelX || this.transform.zoomLevel);
-        const svgDeltaY = deltaY / (this.transform.zoomLevelY || this.transform.zoomLevel);
+        const svgDeltaX = deltaX / this.transform.zoomLevelX;
+        const svgDeltaY = deltaY / this.transform.zoomLevelY;
         
         // Update pan offset
         this.transform.panOffset.x -= svgDeltaX;
@@ -589,7 +584,6 @@ export class ZoomDemonstratorUI {
             // Set separate zoom levels for X and Y to change aspect ratio
             this.transform.zoomLevelX = Math.max(0.1, Math.min(10.0, zoomX));
             this.transform.zoomLevelY = Math.max(0.1, Math.min(10.0, zoomY));
-            this.transform.zoomLevel = Math.sqrt(this.transform.zoomLevelX * this.transform.zoomLevelY); // For compatibility
             
             // Set pan offset so the selection fills the viewport exactly
             this.transform.panOffset.x = selectionLeft;
@@ -642,7 +636,7 @@ export class ZoomDemonstratorUI {
             '(outside image)';
         const zoomText = this.transform.zoomLevelX !== this.transform.zoomLevelY ? 
             `${this.transform.zoomLevelX.toFixed(1)}x × ${this.transform.zoomLevelY.toFixed(1)}x` :
-            `${this.transform.zoomLevel.toFixed(1)}x`;
+            `${this.transform.zoomLevelX.toFixed(1)}x`;
         const panText = `(${Math.round(this.transform.panOffset.x)}, ${Math.round(this.transform.panOffset.y)})`;
         
         this.elements.coordinates.textContent = 

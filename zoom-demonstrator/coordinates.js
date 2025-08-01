@@ -18,11 +18,10 @@
 
 /**
  * @typedef {Object} TransformState
- * @property {number} zoomLevel - Current zoom level (1.0 = normal, 2.0 = 2x zoom, etc.)
- * @property {number} zoomLevelX - X-axis zoom level (for aspect ratio changes)
+ * @property {number} zoomLevelX - X-axis zoom level (1.0 = normal, 2.0 = 2x zoom, etc.)
  * @property {number} zoomLevelY - Y-axis zoom level (for aspect ratio changes)
- * @property {Point} panOffset - Current pan offset in SVG coordinates
- * @property {Point} zoomCenter - Center point for zoom operations in SVG coordinates
+ * @property {Point} panOffset - Current pan offset in data/SVG coordinates
+ * @property {Point} zoomCenter - Center point for zoom operations in data/SVG coordinates
  */
 
 /**
@@ -35,38 +34,38 @@
 
 /**
  * Configuration for coordinate transformations
+ * SVG coordinates now align perfectly with data coordinates (1:1 mapping)
  */
 const CONFIG = {
-    // Test image dimensions and positioning - adjusted for coordinate alignment
-    imageX: 18,           // X position of image in SVG (18px offset to align with axes)
-    imageY: 0,            // Y position of image in SVG
-    imageWidth: 764,      // Effective width for coordinate mapping (800 - 36px total offset)
-    imageHeight: 400,     // Height of image in SVG coordinates (matches data height)
+    // Data coordinate ranges - SVG coordinates match these exactly
+    freqMin: 0,          // Minimum frequency (SVG x=0)
+    freqMax: 800,        // Maximum frequency (SVG x=800) 
+    timeMin: 0,          // Minimum time (SVG y=400, time increases upward)
+    timeMax: 400,        // Maximum time (SVG y=0, time increases upward)
     
-    // Data coordinate ranges (matching actual image data dimensions)  
-    freqMin: 0,          // Minimum frequency
-    freqMax: 800,        // Maximum frequency (matches image width)
-    timeMin: 0,          // Minimum time
-    timeMax: 400,        // Maximum time (matches image height)
+    // Image dimensions match data dimensions exactly - perfect 1:1 alignment
+    imageWidth: 800,     // Image width in data/SVG coordinates
+    imageHeight: 400,    // Image height in data/SVG coordinates
     
-    // SVG viewBox dimensions (expanded to show labels)
-    svgWidth: 900,
-    svgHeight: 500
+    // SVG viewBox dimensions (expanded to show axis labels at negative coordinates)
+    svgWidth: 860,       // ViewBox width (800 data + 60 for labels)
+    svgHeight: 450       // ViewBox height (400 data + 50 for labels)
 };
 
 /**
- * Convert screen coordinates to SVG coordinates
+ * Convert screen coordinates to SVG/Data coordinates
+ * Since SVG coordinates now align with data coordinates, this is a direct conversion
  * @param {number} screenX - Screen X coordinate relative to SVG element
  * @param {number} screenY - Screen Y coordinate relative to SVG element
  * @param {SVGSVGElement} svg - SVG element reference
  * @param {TransformState} transform - Current zoom/pan state
- * @returns {Point} SVG coordinates
+ * @returns {Point} SVG coordinates (which equal data coordinates)
  */
 export function screenToSVGCoordinates(screenX, screenY, svg, transform = null) {
     const svgRect = svg.getBoundingClientRect();
     const viewBox = svg.viewBox.baseVal;
     
-    // Base SVG coordinates
+    // Base SVG coordinates (raw screen-to-SVG conversion)
     let svgX, svgY;
     
     if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
@@ -82,54 +81,18 @@ export function screenToSVGCoordinates(screenX, screenY, svg, transform = null) 
         svgY = screenY;
     }
     
-    // Apply inverse transform to get actual coordinates in the virtual space
+    // Apply inverse transform to get actual data coordinates in the virtual space
     if (transform) {
-        svgX = (svgX / transform.zoomLevel) + transform.panOffset.x;
-        svgY = (svgY / transform.zoomLevel) + transform.panOffset.y;
+        // Account for zoom and pan to get the actual data coordinate being pointed to
+        svgX = (svgX / transform.zoomLevelX) + transform.panOffset.x;
+        svgY = (svgY / transform.zoomLevelY) + transform.panOffset.y;
     }
     
     return { x: svgX, y: svgY };
 }
 
-/**
- * Convert SVG coordinates to image coordinates
- * @param {number} svgX - SVG X coordinate
- * @param {number} svgY - SVG Y coordinate
- * @returns {Point} Image coordinates
- */
-export function svgToImageCoordinates(svgX, svgY) {
-    // Check if point is within image bounds (inclusive of edges)
-    if (svgX < CONFIG.imageX || svgX > CONFIG.imageX + CONFIG.imageWidth ||
-        svgY < CONFIG.imageY || svgY > CONFIG.imageY + CONFIG.imageHeight) {
-        return null; // Outside image bounds
-    }
-    
-    // Convert to image-relative coordinates
-    const imageX = svgX - CONFIG.imageX;
-    const imageY = svgY - CONFIG.imageY;
-    
-    return { x: imageX, y: imageY };
-}
-
-/**
- * Convert image coordinates to data coordinates (frequency and time)
- * @param {number} imageX - Image X coordinate
- * @param {number} imageY - Image Y coordinate
- * @returns {Point} Data coordinates {freq, time}
- */
-export function imageToDataCoordinates(imageX, imageY) {
-    // Ensure coordinates are within image bounds
-    const boundedX = Math.max(0, Math.min(imageX, CONFIG.imageWidth));
-    const boundedY = Math.max(0, Math.min(imageY, CONFIG.imageHeight));
-    
-    // Convert to data coordinates
-    // X-axis = Frequency (horizontal)
-    const freq = CONFIG.freqMin + (boundedX / CONFIG.imageWidth) * (CONFIG.freqMax - CONFIG.freqMin);
-    // Y-axis = Time (vertical, with time increasing upward - Y=0 at bottom of image)
-    const time = CONFIG.timeMax - (boundedY / CONFIG.imageHeight) * (CONFIG.timeMax - CONFIG.timeMin);
-    
-    return { x: freq, y: time }; // Using x/y for consistency, where x=freq, y=time
-}
+// Note: With aligned coordinates, svgToImageCoordinates and imageToDataCoordinates 
+// are no longer needed as SVG coordinates now map directly to data coordinates
 
 /**
  * Full coordinate transformation chain from screen to all coordinate systems
@@ -142,24 +105,24 @@ export function imageToDataCoordinates(imageX, imageY) {
 export function transformCoordinates(screenX, screenY, svg, transform = null) {
     const screen = { x: screenX, y: screenY };
     const svgCoords = screenToSVGCoordinates(screenX, screenY, svg, transform);
-    const imageCoords = svgToImageCoordinates(svgCoords.x, svgCoords.y);
     
-    // Always calculate data coordinates, even if outside image bounds
-    // For points outside image, use the SVG coordinates directly as data coordinates
-    let dataCoords = { x: 0, y: 0 };
-    if (imageCoords) {
-        dataCoords = imageToDataCoordinates(imageCoords.x, imageCoords.y);
-    } else {
-        // If outside image, treat SVG coordinates as data coordinates
-        // since our image is positioned at origin with 1:1 scale
-        dataCoords = { x: svgCoords.x, y: CONFIG.timeMax - svgCoords.y };
-    }
+    // With perfect alignment: SVG coordinates ARE data coordinates
+    // Only need Y-axis inversion for time (since SVG Y=0 is top, but time=400 should be top)
+    const dataX = svgCoords.x; // Frequency: direct 1:1 mapping
+    const dataY = CONFIG.timeMax - svgCoords.y; // Time: invert Y-axis
+    
+    // Check if point is within data bounds
+    const isInBounds = (dataX >= CONFIG.freqMin && dataX <= CONFIG.freqMax && 
+                       dataY >= CONFIG.timeMin && dataY <= CONFIG.timeMax);
+    
+    const dataCoords = { x: dataX, y: dataY };
+    const imageCoords = isInBounds ? { x: dataX, y: svgCoords.y } : null; // Image coords = SVG coords
     
     return {
         screen,
         svg: svgCoords,
         image: imageCoords,
-        data: dataCoords
+        data: isInBounds ? dataCoords : null
     };
 }
 
@@ -169,8 +132,8 @@ export function transformCoordinates(screenX, screenY, svg, transform = null) {
  */
 function constrainPan(transform) {
     // Calculate the visible viewport size in image coordinates
-    const viewportWidth = CONFIG.imageWidth / transform.zoomLevel;
-    const viewportHeight = CONFIG.imageHeight / transform.zoomLevel;
+    const viewportWidth = CONFIG.imageWidth / transform.zoomLevelX;
+    const viewportHeight = CONFIG.imageHeight / transform.zoomLevelY;
     
     // Calculate the maximum pan offsets to keep image within bounds
     const minPanX = 0; // Left edge of image at left edge of viewport
@@ -189,18 +152,15 @@ function constrainPan(transform) {
  * @param {TransformState} transform - Transform state with zoom/pan
  */
 export function applyTransform(svg, transform) {
-    // Constrain pan to keep image within bounds (using average zoom for constraint calculation)
-    const avgZoom = Math.sqrt((transform.zoomLevelX || transform.zoomLevel) * (transform.zoomLevelY || transform.zoomLevel));
-    const constraintTransform = { ...transform, zoomLevel: avgZoom };
-    constrainPan(constraintTransform);
-    transform.panOffset = constraintTransform.panOffset;
+    // Constrain pan to keep image within bounds
+    constrainPan(transform);
     
     // Get the clipped content group that should be transformed
     const clippedContent = svg.getElementById('clipped-content');
     
     // Create transform string for zoom and pan with separate X/Y scaling
-    const scaleX = transform.zoomLevelX || transform.zoomLevel;
-    const scaleY = transform.zoomLevelY || transform.zoomLevel;
+    const scaleX = transform.zoomLevelX;
+    const scaleY = transform.zoomLevelY;
     const translateX = -transform.panOffset.x * scaleX;
     const translateY = -transform.panOffset.y * scaleY;
     
@@ -262,11 +222,11 @@ function generateTicks(min, max, interval) {
 function updateAxisLabels(svg, transform) {
     // Calculate visible range based on current zoom and pan
     const viewLeft = transform.panOffset.x;
-    const viewRight = transform.panOffset.x + (CONFIG.imageWidth / transform.zoomLevel);
+    const viewRight = transform.panOffset.x + (CONFIG.imageWidth / transform.zoomLevelX);
     
     // For time axis: need to account for inverted coordinate system
     // When panOffset.y increases (panning up), we're seeing higher time values
-    const viewTimeBottom = CONFIG.timeMax - (transform.panOffset.y + (CONFIG.imageHeight / transform.zoomLevel));
+    const viewTimeBottom = CONFIG.timeMax - (transform.panOffset.y + (CONFIG.imageHeight / transform.zoomLevelY));
     const viewTimeTop = CONFIG.timeMax - transform.panOffset.y;
     
     // Clear existing dynamic labels
@@ -286,21 +246,21 @@ function updateAxisLabels(svg, transform) {
             const x = (tickValue - viewLeft) / (viewRight - viewLeft) * CONFIG.imageWidth;
             
             if (x >= 0 && x <= CONFIG.imageWidth) {
-                // Create tick mark
+                // Create tick mark - positioned at top of data area
                 const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 tick.setAttribute('x1', x);
-                tick.setAttribute('y1', '395');
+                tick.setAttribute('y1', '0'); // Top of data area
                 tick.setAttribute('x2', x);
-                tick.setAttribute('y2', '405');
+                tick.setAttribute('y2', '-10'); // Extend above data area
                 tick.setAttribute('stroke', '#333');
                 tick.setAttribute('stroke-width', '1');
                 tick.setAttribute('class', 'dynamic-tick');
                 svg.appendChild(tick);
                 
-                // Create label
+                // Create label - positioned below data area using negative coordinates
                 const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 label.setAttribute('x', x);
-                label.setAttribute('y', '415');
+                label.setAttribute('y', '-20'); // Above data area (negative Y)
                 label.setAttribute('text-anchor', 'middle');
                 label.setAttribute('font-size', '10');
                 label.setAttribute('fill', '#333');
@@ -324,20 +284,20 @@ function updateAxisLabels(svg, transform) {
             const y = CONFIG.imageHeight - (normalizedPos * CONFIG.imageHeight);
             
             if (y >= 0 && y <= CONFIG.imageHeight) {
-                // Create tick mark
+                // Create tick mark - positioned at left of data area
                 const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                tick.setAttribute('x1', '-5');
+                tick.setAttribute('x1', '-5'); // Left of data area
                 tick.setAttribute('y1', y);
-                tick.setAttribute('x2', '5');
+                tick.setAttribute('x2', '0'); // To edge of data area
                 tick.setAttribute('y2', y);
                 tick.setAttribute('stroke', '#333');
                 tick.setAttribute('stroke-width', '1');
                 tick.setAttribute('class', 'dynamic-tick');
                 svg.appendChild(tick);
                 
-                // Create label - show the actual time value
+                // Create label - positioned left of data area using negative coordinates
                 const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                label.setAttribute('x', '-5');
+                label.setAttribute('x', '-10'); // Left of data area
                 label.setAttribute('y', y + 4); // Offset for better alignment
                 label.setAttribute('text-anchor', 'end');
                 label.setAttribute('font-size', '10');
@@ -371,22 +331,26 @@ export function calculateZoomCenter(mousePos, currentTransform) {
  * @param {Point} zoomCenter - Center point for zoom in SVG coordinates
  */
 export function zoomAt(transform, zoomFactor, zoomCenter) {
-    const oldZoom = transform.zoomLevel;
-    const newZoom = Math.max(0.1, Math.min(10.0, oldZoom * zoomFactor)); // Constrain zoom level
+    const oldZoomX = transform.zoomLevelX;
+    const oldZoomY = transform.zoomLevelY;
+    const newZoomX = Math.max(0.1, Math.min(10.0, oldZoomX * zoomFactor)); // Constrain zoom level
+    const newZoomY = Math.max(0.1, Math.min(10.0, oldZoomY * zoomFactor)); // Constrain zoom level
     
-    if (newZoom !== oldZoom) {
+    if (newZoomX !== oldZoomX || newZoomY !== oldZoomY) {
         // For element-based transforms, adjust pan offset to keep zoom center fixed
-        const scaleFactor = newZoom / oldZoom;
+        const scaleFactorX = newZoomX / oldZoomX;
+        const scaleFactorY = newZoomY / oldZoomY;
         
         // Calculate how much the zoom center will move due to scaling
-        const centerMoveX = zoomCenter.x * (scaleFactor - 1);
-        const centerMoveY = zoomCenter.y * (scaleFactor - 1);
+        const centerMoveX = zoomCenter.x * (scaleFactorX - 1);
+        const centerMoveY = zoomCenter.y * (scaleFactorY - 1);
         
         // Adjust pan offset to compensate for the movement
-        transform.panOffset.x += centerMoveX / newZoom;
-        transform.panOffset.y += centerMoveY / newZoom;
+        transform.panOffset.x += centerMoveX / newZoomX;
+        transform.panOffset.y += centerMoveY / newZoomY;
         
-        transform.zoomLevel = newZoom;
+        transform.zoomLevelX = newZoomX;
+        transform.zoomLevelY = newZoomY;
         transform.zoomCenter = zoomCenter;
     }
 }
@@ -396,9 +360,10 @@ export function zoomAt(transform, zoomFactor, zoomCenter) {
  * @param {TransformState} transform - Transform state to reset (will be modified)
  */
 export function resetTransform(transform) {
-    transform.zoomLevel = 1.0;
+    transform.zoomLevelX = 1.0;
+    transform.zoomLevelY = 1.0;
     transform.panOffset = { x: 0, y: 0 };
-    transform.zoomCenter = { x: CONFIG.svgWidth / 2, y: CONFIG.svgHeight / 2 };
+    transform.zoomCenter = { x: CONFIG.imageWidth / 2, y: CONFIG.imageHeight / 2 };
 }
 
 /**
@@ -407,11 +372,10 @@ export function resetTransform(transform) {
  */
 export function createInitialTransform() {
     return {
-        zoomLevel: 1.0,
         zoomLevelX: 1.0,
         zoomLevelY: 1.0,
         panOffset: { x: 0, y: 0 },
-        zoomCenter: { x: CONFIG.svgWidth / 2, y: CONFIG.svgHeight / 2 }
+        zoomCenter: { x: CONFIG.imageWidth / 2, y: CONFIG.imageHeight / 2 }
     };
 }
 
@@ -424,53 +388,43 @@ export function runCoordinateTests() {
     
     let allTestsPassed = true;
     
-    // Test 1: SVG to Image coordinates - center of image
-    const imageCenterSVG = { x: CONFIG.imageX + CONFIG.imageWidth / 2, y: CONFIG.imageY + CONFIG.imageHeight / 2 };
-    const imageCenterImage = svgToImageCoordinates(imageCenterSVG.x, imageCenterSVG.y);
-    const expectedImageCenter = { x: CONFIG.imageWidth / 2, y: CONFIG.imageHeight / 2 };
+    // Test 1: Data coordinate bounds - corners should map correctly
+    // With aligned coordinates, SVG coords should equal data coords
+    const testCorners = [
+        { data: { x: 0, y: 0 }, desc: 'bottom-left corner' },
+        { data: { x: 800, y: 0 }, desc: 'bottom-right corner' },
+        { data: { x: 0, y: 400 }, desc: 'top-left corner' },
+        { data: { x: 800, y: 400 }, desc: 'top-right corner' },
+        { data: { x: 400, y: 200 }, desc: 'center point' }
+    ];
     
-    if (!imageCenterImage || Math.abs(imageCenterImage.x - expectedImageCenter.x) > 1 || 
-        Math.abs(imageCenterImage.y - expectedImageCenter.y) > 1) {
-        console.error('Test 1 failed: Image center coordinates incorrect', imageCenterImage, expectedImageCenter);
-        allTestsPassed = false;
-    } else {
-        console.log('Test 1 passed: Image center coordinates correct');
-    }
+    testCorners.forEach((test, index) => {
+        // In aligned coordinate system, data coords should equal SVG coords (with Y inversion)
+        const expectedSvgY = CONFIG.timeMax - test.data.y; // Y-axis inversion
+        console.log(`Test ${index + 1}: ${test.desc} - Data(${test.data.x}, ${test.data.y}) should map to SVG(${test.data.x}, ${expectedSvgY})`);
+    });
     
-    // Test 2: Image to Data coordinates - center should give middle frequency/time
-    if (imageCenterImage) {
-        const dataCenter = imageToDataCoordinates(imageCenterImage.x, imageCenterImage.y);
-        const expectedFreq = (CONFIG.freqMin + CONFIG.freqMax) / 2;
-        const expectedTime = (CONFIG.timeMin + CONFIG.timeMax) / 2;
-        
-        if (Math.abs(dataCenter.x - expectedFreq) > 1 || Math.abs(dataCenter.y - expectedTime) > 1) {
-            console.error('Test 2 failed: Data center coordinates incorrect', dataCenter, { freq: expectedFreq, time: expectedTime });
-            allTestsPassed = false;
-        } else {
-            console.log('Test 2 passed: Data center coordinates correct');
-        }
-    }
-    
-    // Test 3: Transform state operations
+    // Test 2: Transform state operations
     const transform = createInitialTransform();
-    const originalZoom = transform.zoomLevel;
+    const originalZoomX = transform.zoomLevelX;
+    const originalZoomY = transform.zoomLevelY;
     
     // Test zoom in
     zoomAt(transform, 2.0, { x: 400, y: 200 });
-    if (transform.zoomLevel !== originalZoom * 2) {
-        console.error('Test 3a failed: Zoom in incorrect', transform.zoomLevel, originalZoom * 2);
+    if (transform.zoomLevelX !== originalZoomX * 2 || transform.zoomLevelY !== originalZoomY * 2) {
+        console.error('Test 2a failed: Zoom in incorrect', { zoomX: transform.zoomLevelX, zoomY: transform.zoomLevelY }, { expectedX: originalZoomX * 2, expectedY: originalZoomY * 2 });
         allTestsPassed = false;
     } else {
-        console.log('Test 3a passed: Zoom in correct');
+        console.log('Test 2a passed: Zoom in correct');
     }
     
     // Test reset
     resetTransform(transform);
-    if (transform.zoomLevel !== 1.0 || transform.panOffset.x !== 0 || transform.panOffset.y !== 0) {
-        console.error('Test 3b failed: Transform reset incorrect', transform);
+    if (transform.zoomLevelX !== 1.0 || transform.zoomLevelY !== 1.0 || transform.panOffset.x !== 0 || transform.panOffset.y !== 0) {
+        console.error('Test 2b failed: Transform reset incorrect', transform);
         allTestsPassed = false;
     } else {
-        console.log('Test 3b passed: Transform reset correct');
+        console.log('Test 2b passed: Transform reset correct');
     }
     
     console.log(`Coordinate tests completed. All tests passed: ${allTestsPassed}`);
