@@ -36,21 +36,44 @@
  * Configuration for coordinate transformations
  * SVG coordinates now align perfectly with data coordinates (1:1 mapping)
  */
+// Default configuration - will be updated by the demonstrator
 const CONFIG = {
-    // Data coordinate ranges - SVG coordinates match these exactly
-    freqMin: 0,          // Minimum frequency (SVG x=0)
-    freqMax: 800,        // Maximum frequency (SVG x=800) 
-    timeMin: 0,          // Minimum time (SVG y=400, time increases upward)
-    timeMax: 400,        // Maximum time (SVG y=0, time increases upward)
+    // Data coordinate ranges - should be set by calling code
+    freqMin: 0,          // Minimum frequency 
+    freqMax: 800,        // Maximum frequency
+    timeMin: 0,          // Minimum time 
+    timeMax: 400,        // Maximum time
     
-    // Image dimensions match data dimensions exactly - perfect 1:1 alignment
-    imageWidth: 800,     // Image width in data/SVG coordinates
-    imageHeight: 400,    // Image height in data/SVG coordinates
+    // Image dimensions in SVG coordinate space - should match actual image size
+    imageWidth: 800,     // SVG width (actual image width)
+    imageHeight: 400,    // SVG height (actual image height)
     
     // SVG viewBox dimensions (expanded to show axis labels at negative coordinates)
-    svgWidth: 860,       // ViewBox width (800 data + 60 for labels)
-    svgHeight: 450       // ViewBox height (400 data + 50 for labels)
+    svgWidth: 860,       // ViewBox width (imageWidth + 60 for labels)
+    svgHeight: 450       // ViewBox height (imageHeight + 50 for labels)
 };
+
+/**
+ * Update coordinate configuration including image dimensions
+ * @param {Object} config - New configuration values
+ * @param {number} config.freqMin - Minimum frequency
+ * @param {number} config.freqMax - Maximum frequency  
+ * @param {number} config.timeMin - Minimum time
+ * @param {number} config.timeMax - Maximum time
+ * @param {number} [config.imageWidth] - Actual image width in pixels
+ * @param {number} [config.imageHeight] - Actual image height in pixels
+ */
+export function updateConfig(config) {
+    Object.assign(CONFIG, config);
+    
+    // Update viewBox dimensions if image dimensions changed
+    if (config.imageWidth || config.imageHeight) {
+        CONFIG.svgWidth = CONFIG.imageWidth + 60;  // Add margins for labels
+        CONFIG.svgHeight = CONFIG.imageHeight + 50;
+    }
+    
+    console.log('Updated coordinate config:', CONFIG);
+}
 
 /**
  * Convert screen coordinates to SVG/Data coordinates
@@ -106,10 +129,10 @@ export function transformCoordinates(screenX, screenY, svg, transform = null) {
     const screen = { x: screenX, y: screenY };
     const svgCoords = screenToSVGCoordinates(screenX, screenY, svg, transform);
     
-    // With perfect alignment: SVG coordinates ARE data coordinates
-    // Only need Y-axis inversion for time (since SVG Y=0 is top, but time=400 should be top)
-    const dataX = svgCoords.x; // Frequency: direct 1:1 mapping
-    const dataY = CONFIG.timeMax - svgCoords.y; // Time: invert Y-axis
+    // Convert SVG coordinates to data coordinates using configurable ranges
+    // SVG coordinates (0-800, 0-400) map to data ranges (freqMin-freqMax, timeMin-timeMax)
+    const dataX = CONFIG.freqMin + (svgCoords.x / CONFIG.imageWidth) * (CONFIG.freqMax - CONFIG.freqMin);
+    const dataY = CONFIG.timeMin + ((CONFIG.imageHeight - svgCoords.y) / CONFIG.imageHeight) * (CONFIG.timeMax - CONFIG.timeMin);
     
     // Check if point is within data bounds
     const isInBounds = (dataX >= CONFIG.freqMin && dataX <= CONFIG.freqMax && 
@@ -220,14 +243,20 @@ function generateTicks(min, max, interval) {
  * @param {TransformState} transform - Current transform state
  */
 function updateAxisLabels(svg, transform) {
-    // Calculate visible range based on current zoom and pan
-    const viewLeft = transform.panOffset.x;
-    const viewRight = transform.panOffset.x + (CONFIG.imageWidth / transform.zoomLevelX);
+    // Calculate visible range in DATA coordinates (not SVG coordinates)
+    // Convert SVG viewport to data coordinate ranges
+    const svgViewLeft = transform.panOffset.x;
+    const svgViewRight = transform.panOffset.x + (CONFIG.imageWidth / transform.zoomLevelX);
+    const svgViewBottom = transform.panOffset.y;
+    const svgViewTop = transform.panOffset.y + (CONFIG.imageHeight / transform.zoomLevelY);
     
-    // For time axis: need to account for inverted coordinate system
-    // When panOffset.y increases (panning up), we're seeing higher time values
-    const viewTimeBottom = CONFIG.timeMax - (transform.panOffset.y + (CONFIG.imageHeight / transform.zoomLevelY));
-    const viewTimeTop = CONFIG.timeMax - transform.panOffset.y;
+    // Convert SVG ranges to data coordinate ranges
+    const viewLeft = CONFIG.freqMin + (svgViewLeft / CONFIG.imageWidth) * (CONFIG.freqMax - CONFIG.freqMin);
+    const viewRight = CONFIG.freqMin + (svgViewRight / CONFIG.imageWidth) * (CONFIG.freqMax - CONFIG.freqMin);
+    
+    // For time: SVG Y=0 is top, but time increases upward in data coordinates
+    const viewTimeBottom = CONFIG.timeMin + ((CONFIG.imageHeight - svgViewTop) / CONFIG.imageHeight) * (CONFIG.timeMax - CONFIG.timeMin);
+    const viewTimeTop = CONFIG.timeMin + ((CONFIG.imageHeight - svgViewBottom) / CONFIG.imageHeight) * (CONFIG.timeMax - CONFIG.timeMin);
     
     // Clear existing dynamic labels
     const existingLabels = svg.querySelectorAll('.dynamic-label');
@@ -242,8 +271,9 @@ function updateAxisLabels(svg, transform) {
     const freqTicks = generateTicks(viewLeft, viewRight, freqInterval);
     
     freqTicks.forEach(tickValue => {
-        if (tickValue >= 0 && tickValue <= CONFIG.freqMax) {
-            const x = (tickValue - viewLeft) / (viewRight - viewLeft) * CONFIG.imageWidth;
+        if (tickValue >= CONFIG.freqMin && tickValue <= CONFIG.freqMax) {
+            // Convert data coordinate back to SVG coordinate for positioning
+            const x = ((tickValue - CONFIG.freqMin) / (CONFIG.freqMax - CONFIG.freqMin)) * CONFIG.imageWidth;
             
             if (x >= 0 && x <= CONFIG.imageWidth) {
                 // Create tick mark - positioned at top of data area
@@ -277,11 +307,10 @@ function updateAxisLabels(svg, transform) {
     const timeTicks = generateTicks(viewTimeBottom, viewTimeTop, timeInterval);
     
     timeTicks.forEach(tickValue => {
-        if (tickValue >= 0 && tickValue <= CONFIG.timeMax) {
-            // Convert time value to SVG y coordinate
-            // tickValue=0 should be at y=400, tickValue=400 should be at y=0
-            const normalizedPos = (tickValue - viewTimeBottom) / (viewTimeTop - viewTimeBottom);
-            const y = CONFIG.imageHeight - (normalizedPos * CONFIG.imageHeight);
+        if (tickValue >= CONFIG.timeMin && tickValue <= CONFIG.timeMax) {
+            // Convert data coordinate back to SVG coordinate for positioning
+            // timeMin should be at bottom (y=imageHeight), timeMax should be at top (y=0)
+            const y = CONFIG.imageHeight - ((tickValue - CONFIG.timeMin) / (CONFIG.timeMax - CONFIG.timeMin)) * CONFIG.imageHeight;
             
             if (y >= 0 && y <= CONFIG.imageHeight) {
                 // Create tick mark - positioned at left of data area

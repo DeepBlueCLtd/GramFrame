@@ -83,7 +83,8 @@ export class ZoomDemonstratorUI {
         };
         this.elements.imageButtons = {
             original: document.getElementById('image-original'),
-            scaled: document.getElementById('image-scaled')
+            scaled: document.getElementById('image-scaled'),
+            offset: document.getElementById('image-offset')
         };
         this.elements.testImage = document.getElementById('test-image');
         
@@ -121,6 +122,7 @@ export class ZoomDemonstratorUI {
         // Image switch buttons
         this.elements.imageButtons.original.addEventListener('click', () => this.handleImageSwitch('original'));
         this.elements.imageButtons.scaled.addEventListener('click', () => this.handleImageSwitch('scaled'));
+        this.elements.imageButtons.offset.addEventListener('click', () => this.handleImageSwitch('offset'));
         
         // Prevent drag on images and other elements
         this.elements.container.addEventListener('dragstart', (e) => e.preventDefault());
@@ -282,22 +284,102 @@ export class ZoomDemonstratorUI {
         // Update button states
         this.elements.imageButtons.original.classList.toggle('active', imageType === 'original');
         this.elements.imageButtons.scaled.classList.toggle('active', imageType === 'scaled');
+        this.elements.imageButtons.offset.classList.toggle('active', imageType === 'offset');
         
-        // Switch the image source
-        const imagePath = imageType === 'original' ? 
-            '../sample/test-image.png' : 
-            '../sample/test-image-scaled.png';
-            
+        // Switch the image source and update CONFIG for coordinate ranges and dimensions
+        let imagePath, configUpdate;
+        switch(imageType) {
+            case 'original':
+                imagePath = '../sample/test-image.png';
+                configUpdate = { 
+                    freqMin: 0, freqMax: 800, timeMin: 0, timeMax: 400,
+                    imageWidth: 800, imageHeight: 400 
+                };
+                break;
+            case 'scaled':
+                imagePath = '../sample/test-image-scaled.png';
+                configUpdate = { 
+                    freqMin: 0, freqMax: 800, timeMin: 0, timeMax: 400,
+                    imageWidth: 900, imageHeight: 300 
+                };
+                break;
+            case 'offset':
+                imagePath = '../sample/test-image-offset-axes.png';
+                configUpdate = { 
+                    freqMin: 100, freqMax: 900, timeMin: 100, timeMax: 500,
+                    imageWidth: 1000, imageHeight: 500 
+                };
+                break;
+        }
+        
         this.elements.testImage.setAttribute('href', imagePath);
         
-        // Reset zoom and pan when switching images
-        import('./coordinates.js').then(({ resetTransform }) => {
+        // Update coordinate configuration and reset transform
+        import('./coordinates.js').then(({ updateConfig, resetTransform, CONFIG }) => {
+            updateConfig(configUpdate);
+            
+            // Update SVG structure to match new image dimensions
+            this.updateSVGDimensions(CONFIG);
+            
             resetTransform(this.transform);
             this.applyTransformAndNotify();
-            this.updateStatus(`Switched to ${imageType} test image and reset zoom`);
+            this.updateStatus(`Switched to ${imageType} test image (${configUpdate.freqMin}-${configUpdate.freqMax} Hz, ${configUpdate.timeMin}-${configUpdate.timeMax} time) and reset zoom`);
         });
         
-        console.log(`Switched to ${imageType} test image`);
+        console.log(`Switched to ${imageType} test image with ranges:`, configUpdate);
+    }
+    
+    /**
+     * Update SVG dimensions and structure to match new image
+     * @param {Object} config - Updated CONFIG object
+     */
+    updateSVGDimensions(config) {
+        // Clear existing dynamic axis labels and ticks from previous image
+        const existingLabels = this.elements.svg.querySelectorAll('.dynamic-label');
+        existingLabels.forEach(label => label.remove());
+        
+        const existingTicks = this.elements.svg.querySelectorAll('.dynamic-tick');
+        existingTicks.forEach(tick => tick.remove());
+        
+        // Update SVG viewBox
+        const viewBoxX = -60;
+        const viewBoxY = -50;
+        const viewBoxWidth = config.svgWidth;
+        const viewBoxHeight = config.svgHeight;
+        
+        this.elements.svg.setAttribute('viewBox', `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`);
+        
+        // Update image dimensions
+        this.elements.testImage.setAttribute('width', config.imageWidth);
+        this.elements.testImage.setAttribute('height', config.imageHeight);
+        
+        // Update clipping path
+        const clipPath = this.elements.svg.querySelector('#data-area-clip rect');
+        if (clipPath) {
+            clipPath.setAttribute('width', config.imageWidth);
+            clipPath.setAttribute('height', config.imageHeight);
+        }
+        
+        // Update data area border
+        const dataBorder = this.elements.svg.querySelector('rect[stroke="#666"]');
+        if (dataBorder) {
+            dataBorder.setAttribute('width', config.imageWidth);
+            dataBorder.setAttribute('height', config.imageHeight);
+        }
+        
+        // Update axes lines
+        const freqAxis = this.elements.svg.querySelector('line[x2="800"]');
+        const timeAxis = this.elements.svg.querySelector('line[y2="400"]');
+        if (freqAxis) {
+            freqAxis.setAttribute('x2', config.imageWidth);
+            freqAxis.setAttribute('y1', config.imageHeight);
+            freqAxis.setAttribute('y2', config.imageHeight);
+        }
+        if (timeAxis) {
+            timeAxis.setAttribute('y2', config.imageHeight);
+        }
+        
+        console.log(`Updated SVG dimensions: ${config.imageWidth}×${config.imageHeight}, viewBox: ${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`);
     }
     
     /**
@@ -449,9 +531,9 @@ export class ZoomDemonstratorUI {
         // where the cursor visually appears, which is simply the data coordinates converted to SVG
         
         if (coords.data && coords.image) {
-            // With perfect alignment: data coords map directly to SVG coords (with Y inversion)
-            const visualSvgX = coords.data.x; // Direct mapping for frequency
-            const visualSvgY = CONFIG.timeMax - coords.data.y; // Invert Y for time
+            // Convert data coordinates back to SVG coordinates using configurable ranges
+            const visualSvgX = ((coords.data.x - CONFIG.freqMin) / (CONFIG.freqMax - CONFIG.freqMin)) * CONFIG.imageWidth;
+            const visualSvgY = CONFIG.imageHeight - ((coords.data.y - CONFIG.timeMin) / (CONFIG.timeMax - CONFIG.timeMin)) * CONFIG.imageHeight;
             
             console.log('DRAG START - Visual SVG position:', `(${visualSvgX.toFixed(1)}, ${visualSvgY.toFixed(1)})`);
             
@@ -498,10 +580,10 @@ export class ZoomDemonstratorUI {
         let currentVisual;
         
         if (coords.data && coords.image) {
-            // With perfect alignment: data coords map directly to SVG coords (with Y inversion)
+            // Convert data coordinates back to SVG coordinates using configurable ranges
             currentVisual = { 
-                x: coords.data.x, // Direct mapping for frequency
-                y: CONFIG.timeMax - coords.data.y // Invert Y for time
+                x: ((coords.data.x - CONFIG.freqMin) / (CONFIG.freqMax - CONFIG.freqMin)) * CONFIG.imageWidth,
+                y: CONFIG.imageHeight - ((coords.data.y - CONFIG.timeMin) / (CONFIG.timeMax - CONFIG.timeMin)) * CONFIG.imageHeight
             };
         } else {
             // Fallback to raw coordinates if outside data area
