@@ -28,7 +28,7 @@
    - Build coordinate transformation chain supporting: screen → SVG → image → data
    - Implement zoom scaling factor in coordinate transformations, with zoom-in, zoom-out, and reset zoom buttons
    - Create unit tests for coordinate math functions
-   - Use test images `sample/test-image.png` and `sample/test-image-scaled.png` for validation
+   - Use test images `sample/test-image.png` and `sample/test-image-scaled.png` and `sample/test-image-offset-axes.png` for validation, with the offset-axes image used as default.
 
 3. **Add cursor positioning for validation:**
    - Display real-time cursor coordinates (pixel + logical coordinates)
