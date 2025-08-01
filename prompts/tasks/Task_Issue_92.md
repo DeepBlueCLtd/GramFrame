@@ -18,33 +18,41 @@
 
 **Detailed Action Steps:**
 
-### Phase 1: Blank State Development
-1. **Create demonstrator directory structure:**
-   - Create `zoom-demonstrator/` directory in project root
-   - Set up minimal module structure: `main.js`, `coordinates.js`, `ui.js`
-   - Create `index.html` for testing the demonstrator
+### Phase 1: Clean Implementation (RESTART APPROACH)
+**Strategy Change:** After encountering coordinate transformation complexity due to multiple abstraction layers, we are restarting with a clean, simplified approach using the most challenging test case first.
 
-2. **Implement core coordinate transformation system:**
-   - Build coordinate transformation chain supporting: screen → SVG → image → data
-   - Implement zoom scaling factor in coordinate transformations, with zoom-in, zoom-out, and reset zoom buttons
+**Primary Test Case:** `sample/test-image-offset-axes.png`
+- **Image dimensions**: 1000×500 pixels
+- **Data coordinate ranges**: 100-900 Hz, 100-500 time units
+- **Key challenge**: Image pixels ≠ data coordinates, non-zero ranges
+
+**SVG-to-Data Coordinate Mapping (1:1 direct alignment):**
+- **SVG coordinate space**: 100-900, 100-500 (matches data coordinates exactly)
+- **Data coordinate space**: 100-900 Hz, 100-500 time (logical coordinates)
+- **Image dimensions**: 1000×500 pixels (physical image size)
+- **Key insight**: SVG coordinates = data coordinates (1:1), image pixels ≠ data coordinates
+
+1. **Create clean coordinate system from scratch:**
+   - Remove existing JS files and rebuild with offset-axes image as default
+   - Implement direct SVG-to-data coordinate mapping without abstraction layers
+   - Use direct 1:1 mapping: `dataX = svgX`, `dataY = svgY` (SVG coordinates = data coordinates)
    - Create unit tests for coordinate math functions
-   - Use test images `sample/test-image.png` and `sample/test-image-scaled.png` and `sample/test-image-offset-axes.png` for validation, with the offset-axes image used as default.
 
-3. **Add cursor positioning for validation:**
-   - Display real-time cursor coordinates (pixel + logical coordinates)
-   - Use grid pattern test images for visual verification of transformations
-   - Implement visual debugging aids for coordinate validation
+2. **Build minimal UI with coordinate validation:**
+   - Display real-time cursor coordinates (screen, SVG, data)
+   - Use offset-axes test image for immediate validation of non-zero ranges
+   - Implement visual debugging to verify coordinate transformations
 
-4. **Implement pan functionality:**
+3. **Implement pan functionality:**
    - Create pan mode that allows dragging to move the view
-   - Implement view offset state management
+   - Implement view offset state management with separate X/Y zoom levels
    - Update coordinate transformations to account for pan offset
 
-5. **Implement zoom functionality:**
+4. **Implement zoom functionality:**
    - Create zoom mode with rectangle selection for zoom-in
-   - Implement right-click for 2x zoom out or reset to 1:1 scale
-   - Maintain zoom state and integrate with coordinate transformations
-   - Ensure zoom interactions don't conflict with pan operations
+   - Support aspect-ratio changing zoom (separate X/Y scaling)
+   - Implement right-click for zoom out or reset to 1:1 scale
+   - Ensure zoom interactions work correctly with non-zero coordinate ranges
 
 ### Phase 2: GramFrame Pattern Adoption
 6. **Refactor to BaseMode structure:**
@@ -76,11 +84,13 @@
     - Prepare for migration to main codebase
 
 **Constraints & Requirements:**
-- Use existing test images: `sample/test-image.png` (coordinate grid) and `sample/test-image-scaled.png` (900×300 scaled version)
-- Maintain compatibility with GramFrame's SVG-based rendering architecture
-- Follow established coordinate transformation patterns from `src/utils/coordinates.js`
-- Ensure clean separation of event handling to avoid conflicts
+- **Primary test case**: `sample/test-image-offset-axes.png` (1000×500 pixels, 100-900 Hz, 100-500 time)
+- **Secondary test cases**: `sample/test-image.png` and `sample/test-image-scaled.png` for compatibility validation
+- Maintain direct 1:1 SVG-to-data coordinate mapping without axis label space
+- Implement separate X/Y zoom levels for aspect-ratio changing zoom
+- Use transform-based zoom/pan (not viewBox manipulation)
 - All coordinate math must include comprehensive unit tests
+- Clean, minimal architecture - avoid multiple abstraction layers that hide coordinate transformation errors
 
 ## 3. Expected Output & Deliverables
 
@@ -106,11 +116,16 @@
 - Documentation of integration approach
 
 **Success Criteria:**
-- [ ] Phase 1: Standalone demonstrator with pan/zoom + cursor validation using test images
+- [ ] Phase 1: Clean demonstrator with offset-axes image as primary test case
+  - [ ] Direct SVG-to-data coordinate mapping (100-900/100-500 SVG = 100-900/100-500 data)
+  - [ ] Real-time coordinate display showing screen, SVG, and data coordinates
+  - [ ] Pan functionality with drag-to-move and proper coordinate transformation
+  - [ ] Zoom functionality with rectangle selection and aspect-ratio changing zoom
+  - [ ] Separate X/Y zoom levels and transform-based implementation
 - [ ] Phase 2: Refactor to BaseMode patterns while maintaining functionality  
 - [ ] Phase 3: Achieve full API compliance with GramFrame architecture
 - [ ] Extract reusable coordinate transformation functions with unit tests
-- [ ] Document integration approach and validate coordinate accuracy
+- [ ] Validate coordinate accuracy across all three test images
 
 ## 4. Memory Bank Logging Instructions
 
@@ -118,17 +133,20 @@ Upon successful completion of this task, you **must** log your work comprehensiv
 
 **Format Adherence:** Adhere strictly to the established logging format. Ensure your log includes:
 - A reference to GitHub Issue #92 and this task assignment
-- A clear description of the actions taken for each phase
-- Key code snippets for coordinate transformation functions
-- Any architectural decisions made regarding BaseMode integration
-- Challenges encountered with coordinate system complexity
-- Confirmation of successful execution (tests passing, demonstrator working)
+- A clear description of the restart strategy and rationale
+- Key code snippets for direct SVG-to-data coordinate transformation functions
+- Documentation of 1:1 coordinate mapping approach (no axis label space)
+- Lessons learned from coordinate transformation complexity
+- Architectural decisions made regarding clean, minimal approach
+- Confirmation of successful execution with offset-axes test image
 - Documentation of reusable functions extracted for main codebase integration
 
 ## 5. Clarification Instruction
 
 If any part of this task assignment is unclear, please state your specific questions before proceeding. Pay particular attention to:
-- Coordinate transformation requirements and accuracy expectations
-- BaseMode integration patterns from existing GramFrame architecture  
-- Test image usage and coordinate validation approaches
-- Unit testing expectations for coordinate math functions
+- Direct SVG-to-data coordinate mapping requirements (1:1 without axis label space)
+- Offset-axes test image coordinate validation (100-900/100-500 SVG = 100-900/100-500 data, 1000×500 pixels)
+- Transform-based zoom/pan implementation (not viewBox manipulation)
+- Separate X/Y zoom levels for aspect-ratio changing zoom
+- Clean architecture approach to avoid coordinate transformation errors
+- Unit testing expectations for coordinate math functions with non-zero ranges
