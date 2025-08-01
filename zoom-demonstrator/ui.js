@@ -445,18 +445,13 @@ export class ZoomDemonstratorUI {
         console.log('DRAG START - Screen coords:', `(${mouseX}, ${mouseY})`);
         console.log('DRAG START - SVG coords (for zoom calc):', `(${coords.svg.x.toFixed(1)}, ${coords.svg.y.toFixed(1)})`);
         
-        // The selection rectangle needs to be positioned where the cursor visually appears
-        // which is affected by the current transform. We need to convert the visual position
-        // back to untransformed SVG coordinates for rectangle positioning.
+        // With perfect coordinate alignment, the selection rectangle should be positioned
+        // where the cursor visually appears, which is simply the data coordinates converted to SVG
         
-        // Get where the cursor appears visually (data coords converted back to SVG)
         if (coords.data && coords.image) {
-            // Convert data coordinates back to untransformed SVG coordinates
-            // This represents where the cursor visually appears to the user
-            const imageX = (coords.data.x / CONFIG.freqMax) * CONFIG.imageWidth;
-            const imageY = CONFIG.imageHeight - (coords.data.y / CONFIG.timeMax) * CONFIG.imageHeight;
-            const visualSvgX = imageX + CONFIG.imageX; 
-            const visualSvgY = imageY + CONFIG.imageY;
+            // With perfect alignment: data coords map directly to SVG coords (with Y inversion)
+            const visualSvgX = coords.data.x; // Direct mapping for frequency
+            const visualSvgY = CONFIG.timeMax - coords.data.y; // Invert Y for time
             
             console.log('DRAG START - Visual SVG position:', `(${visualSvgX.toFixed(1)}, ${visualSvgY.toFixed(1)})`);
             
@@ -503,12 +498,10 @@ export class ZoomDemonstratorUI {
         let currentVisual;
         
         if (coords.data && coords.image) {
-            // Convert current data coordinates to visual SVG coordinates
-            const imageX = (coords.data.x / CONFIG.freqMax) * CONFIG.imageWidth;
-            const imageY = CONFIG.imageHeight - (coords.data.y / CONFIG.timeMax) * CONFIG.imageHeight;
+            // With perfect alignment: data coords map directly to SVG coords (with Y inversion)
             currentVisual = { 
-                x: imageX + CONFIG.imageX, 
-                y: imageY + CONFIG.imageY 
+                x: coords.data.x, // Direct mapping for frequency
+                y: CONFIG.timeMax - coords.data.y // Invert Y for time
             };
         } else {
             // Fallback to raw coordinates if outside data area

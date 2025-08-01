@@ -152,7 +152,7 @@ function constrainPan(transform) {
  * @param {TransformState} transform - Transform state with zoom/pan
  */
 export function applyTransform(svg, transform) {
-    // Constrain pan to keep image within bounds
+    // Constrain pan to keep image within bounds - updated for aligned coordinates
     constrainPan(transform);
     
     // Get the clipped content group that should be transformed
