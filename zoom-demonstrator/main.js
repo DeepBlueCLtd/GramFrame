@@ -27,21 +27,27 @@ class ZoomDemonstrator {
             panY: 0
         };
         
-        // Test image configurations
+        // Test image configurations with native dimensions
         this.testImages = {
             'offset': {
                 src: '../sample/test-image-offset-axes.png',
                 dataRange: { minX: 100, maxX: 900, minY: 100, maxY: 500 },
+                nativeWidth: 1000,
+                nativeHeight: 500,
                 description: 'Offset Axes (100-900 Hz, 100-500 time)'
             },
             'original': {
                 src: '../sample/test-image.png', 
                 dataRange: { minX: 0, maxX: 800, minY: 0, maxY: 400 },
+                nativeWidth: 800,
+                nativeHeight: 400,
                 description: 'Original (0-800 Hz, 0-400 time)'
             },
             'scaled': {
                 src: '../sample/test-image-scaled.png',
                 dataRange: { minX: 0, maxX: 800, minY: 0, maxY: 400 },
+                nativeWidth: 900,
+                nativeHeight: 300,
                 description: 'Scaled (0-800 Hz, 0-400 time)'
             }
         };
@@ -54,7 +60,11 @@ class ZoomDemonstrator {
     init() {
         // Initialize coordinate system with offset-axes test image
         const imageConfig = this.testImages[this.currentImage];
-        this.coordinateSystem = new CoordinateSystem(imageConfig.dataRange);
+        this.coordinateSystem = new CoordinateSystem(
+            imageConfig.dataRange, 
+            imageConfig.nativeWidth, 
+            imageConfig.nativeHeight
+        );
         
         // Initialize UI
         this.ui = new UI(this);
@@ -74,6 +84,7 @@ class ZoomDemonstrator {
         
         console.log('ZoomDemonstrator initialized with offset-axes test image');
         console.log('Data coordinate ranges:', imageConfig.dataRange);
+        console.log('Image dimensions:', imageConfig.nativeWidth, 'x', imageConfig.nativeHeight);
     }
     
     setupEventListeners() {
@@ -181,19 +192,28 @@ class ZoomDemonstrator {
         this.ui.updateStatus(`Switched to ${mode} mode`);
     }
     
+    getCurrentImageDimensions() {
+        const config = this.testImages[this.currentImage];
+        return {
+            width: config.nativeWidth,
+            height: config.nativeHeight
+        };
+    }
+    
     updatePan(deltaX, deltaY) {
         // Pan should move 1:1 with mouse movement in screen space
         // No need to divide by scale - we want direct movement
-        const svgDeltaX = deltaX * (1000 / this.demoContainer.clientWidth);
-        const svgDeltaY = deltaY * (500 / this.demoContainer.clientHeight);
+        const dimensions = this.getCurrentImageDimensions();
+        const svgDeltaX = deltaX * (dimensions.width / this.demoContainer.clientWidth);
+        const svgDeltaY = deltaY * (dimensions.height / this.demoContainer.clientHeight);
         
         // Calculate new pan values
         let newPanX = this.zoomState.panX + svgDeltaX;
         let newPanY = this.zoomState.panY + svgDeltaY;
         
         // Calculate pan limits to prevent showing beyond image boundaries
-        const viewportWidth = 1000;
-        const viewportHeight = 500;
+        const viewportWidth = dimensions.width;
+        const viewportHeight = dimensions.height;
         const scaledImageWidth = viewportWidth * this.zoomState.scaleX;
         const scaledImageHeight = viewportHeight * this.zoomState.scaleY;
         
@@ -267,8 +287,9 @@ class ZoomDemonstrator {
         // x, y, width, height are in actual SVG coordinates (already inverse-transformed)
         
         // Calculate zoom factors for both axes (allowing aspect ratio changes)
-        const currentViewWidth = 1000; // SVG viewBox width in pixels
-        const currentViewHeight = 500; // SVG viewBox height in pixels
+        const dimensions = this.getCurrentImageDimensions();
+        const currentViewWidth = dimensions.width; // SVG viewBox width in pixels
+        const currentViewHeight = dimensions.height; // SVG viewBox height in pixels
         
         // Calculate absolute zoom levels needed
         const newScaleX = currentViewWidth / width;
@@ -279,8 +300,8 @@ class ZoomDemonstrator {
         const selectionCenterY = y + height / 2;
         
         // Calculate where this center should be positioned after zoom
-        const viewCenterX = 500; // SVG viewBox center X (0 + 1000/2)
-        const viewCenterY = 250; // SVG viewBox center Y (0 + 500/2)
+        const viewCenterX = dimensions.width / 2; // SVG viewBox center X
+        const viewCenterY = dimensions.height / 2; // SVG viewBox center Y
         
         // Update zoom state with absolute scale values
         this.zoomState.scaleX = newScaleX;
@@ -293,8 +314,8 @@ class ZoomDemonstrator {
         let newPanY = viewCenterY - (selectionCenterY * newScaleY);
         
         // Apply pan limits (but allow negative pan for centering)
-        const viewportWidth = 1000;
-        const viewportHeight = 500;
+        const viewportWidth = dimensions.width;
+        const viewportHeight = dimensions.height;
         const scaledImageWidth = viewportWidth * newScaleX;
         const scaledImageHeight = viewportHeight * newScaleY; 
         
@@ -318,8 +339,9 @@ class ZoomDemonstrator {
     
     zoomByFactor(factor) {
         // Calculate the center of the current view
-        const viewCenterX = 500; // Center of viewport in SVG pixels
-        const viewCenterY = 250;
+        const dimensions = this.getCurrentImageDimensions();
+        const viewCenterX = dimensions.width / 2; // Center of viewport in SVG pixels
+        const viewCenterY = dimensions.height / 2;
         
         // Find what point in the image is currently at the center
         const imageCenterX = (viewCenterX - this.zoomState.panX) / this.zoomState.scaleX;
@@ -334,8 +356,8 @@ class ZoomDemonstrator {
         let newPanY = viewCenterY - (imageCenterY * this.zoomState.scaleY);
         
         // Apply pan limits (allow negative pan for centering)
-        const viewportWidth = 1000;
-        const viewportHeight = 500;
+        const viewportWidth = dimensions.width;
+        const viewportHeight = dimensions.height;
         const scaledImageWidth = viewportWidth * this.zoomState.scaleX;
         const scaledImageHeight = viewportHeight * this.zoomState.scaleY;
         
@@ -380,15 +402,40 @@ class ZoomDemonstrator {
         this.currentImage = imageKey;
         const config = this.testImages[imageKey];
         
-        // Update test image source and position
+        // Update test image source and use native dimensions
         this.testImage.setAttribute('href', config.src);
         this.testImage.setAttribute('x', '0');
         this.testImage.setAttribute('y', '0');
-        this.testImage.setAttribute('width', '1000');
-        this.testImage.setAttribute('height', '500');
+        this.testImage.setAttribute('width', config.nativeWidth.toString());
+        this.testImage.setAttribute('height', config.nativeHeight.toString());
         
-        // Update coordinate system
-        this.coordinateSystem.updateDataRange(config.dataRange);
+        // Update SVG viewBox and container to match image dimensions
+        this.svg.setAttribute('viewBox', `0 0 ${config.nativeWidth} ${config.nativeHeight}`);
+        this.demoContainer.style.width = `${config.nativeWidth}px`;
+        this.demoContainer.style.height = `${config.nativeHeight}px`;
+        
+        // Update clipping path to match image dimensions
+        const clipRect = document.querySelector('#data-area-clip rect');
+        clipRect.setAttribute('width', config.nativeWidth.toString());
+        clipRect.setAttribute('height', config.nativeHeight.toString());
+        
+        // Update UI layer transform for coordinate system inversion
+        const uiLayer = document.getElementById('ui-layer');
+        uiLayer.setAttribute('transform', `scale(1, -1) translate(0, -${config.nativeHeight})`);
+        
+        // Update border rectangle in UI layer
+        const borderRect = document.querySelector('#ui-layer rect');
+        borderRect.setAttribute('width', config.nativeWidth.toString());
+        borderRect.setAttribute('height', config.nativeHeight.toString());
+        
+        // Update axes
+        const freqAxis = document.querySelector('#axes-group line:first-child');
+        const timeAxis = document.querySelector('#axes-group line:last-child');
+        freqAxis.setAttribute('x2', config.nativeWidth.toString());
+        timeAxis.setAttribute('y2', config.nativeHeight.toString());
+        
+        // Update coordinate system with new dimensions
+        this.coordinateSystem.updateDataRange(config.dataRange, config.nativeWidth, config.nativeHeight);
         
         // Reset zoom state
         this.resetZoom();
@@ -399,7 +446,7 @@ class ZoomDemonstrator {
         });
         document.getElementById(`image-${imageKey}`).classList.add('active');
         
-        this.ui.updateStatus(`Switched to ${config.description}`);
+        this.ui.updateStatus(`Switched to ${config.description} (${config.nativeWidth}×${config.nativeHeight}px)`);
     }
     
     updateCoordinateDisplay(screenX, screenY) {

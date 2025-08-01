@@ -11,35 +11,45 @@
  */
 
 export class CoordinateSystem {
-    constructor(dataRange) {
-        this.updateDataRange(dataRange);
-        
-        // SVG viewport constants (now matches image pixels: viewBox="0 0 1000 500")
+    constructor(dataRange, imageWidth = 1000, imageHeight = 500) {
+        // Initialize SVG viewport first
         this.svgViewBox = {
             x: 0,
             y: 0, 
-            width: 1000,
-            height: 500
+            width: imageWidth,
+            height: imageHeight
+        };
+        
+        // Initialize image size
+        this.imageSize = {
+            width: imageWidth,   // Physical image width in pixels
+            height: imageHeight  // Physical image height in pixels  
         };
         
         // Physical SVG container size (pixels) - will be updated dynamically
         this.svgContainer = {
-            width: 1000,  // Initial from HTML
-            height: 500
+            width: imageWidth,
+            height: imageHeight
         };
+        
+        // Now update data range
+        this.updateDataRange(dataRange, imageWidth, imageHeight);
         
         this.updateContainerSize();
     }
     
-    updateDataRange(dataRange) {
+    updateDataRange(dataRange, imageWidth, imageHeight) {
         this.dataRange = { ...dataRange };
         
-        // Image dimensions for pixel coordinate mapping
-        // Note: For offset-axes test image, these are 1000×500 pixels
-        this.imageSize = {
-            width: 1000,  // Physical image width in pixels
-            height: 500   // Physical image height in pixels  
-        };
+        // Update image dimensions if provided
+        if (imageWidth !== undefined && imageHeight !== undefined) {
+            this.imageSize.width = imageWidth;
+            this.imageSize.height = imageHeight;
+            
+            // Update SVG viewBox to match image dimensions
+            this.svgViewBox.width = imageWidth;
+            this.svgViewBox.height = imageHeight;
+        }
     }
     
     updateContainerSize() {
