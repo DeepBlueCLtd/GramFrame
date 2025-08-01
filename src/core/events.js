@@ -23,7 +23,8 @@ function screenToDataWithZoom(instance, event) {
   
   // Convert to data coordinates (accounting for margins and zoom)
   const margins = instance.state.axes.margins
-  const zoomLevel = instance.state.zoom.level
+  const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+  const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   
   // Get current image position and dimensions (which may be zoomed)
@@ -32,7 +33,7 @@ function screenToDataWithZoom(instance, event) {
   let imageWidth = naturalWidth
   let imageHeight = naturalHeight
   
-  if (zoomLevel !== 1.0 && instance.spectrogramImage) {
+  if ((zoomLevelX !== 1.0 || zoomLevelY !== 1.0) && instance.spectrogramImage) {
     imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
     imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
     imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
@@ -143,7 +144,11 @@ export function setupResizeObserver(instance) {
  */
 function handleMouseMove(instance, event) {
   // Handle panning if in pan mode and dragging
-  if (instance.state.zoom.panMode && instance.state.zoom.level > 1.0 && instance._panDragState?.isDragging) {
+  const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+  const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
+  const isZoomed = zoomLevelX > 1.0 || zoomLevelY > 1.0
+  
+  if (instance.state.zoom.panMode && isZoomed && instance._panDragState?.isDragging) {
     const deltaX = event.clientX - instance._panDragState.lastX
     const deltaY = event.clientY - instance._panDragState.lastY
     
@@ -156,9 +161,9 @@ function handleMouseMove(instance, event) {
     const scaleX = (naturalWidth + margins.left + margins.right) / svgRect.width
     const scaleY = (naturalHeight + margins.top + margins.bottom) / svgRect.height
     
-    // Convert to normalized coordinates (adjust for zoom level)
-    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / instance.state.zoom.level
-    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / instance.state.zoom.level
+    // Convert to normalized coordinates (adjust for separate zoom levels)
+    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / zoomLevelX
+    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / zoomLevelY
     
     // Apply pan
     instance._panImage(normalizedDeltaX, normalizedDeltaY)
@@ -168,6 +173,24 @@ function handleMouseMove(instance, event) {
     instance._panDragState.lastY = event.clientY
     
     return // Skip normal cursor handling during pan drag
+  }
+  
+  // Handle region selection if in region zoom mode and selecting
+  if (instance.state.zoom.regionMode && instance.state.zoom.isSelecting) {
+    const svgRect = instance.svg.getBoundingClientRect()
+    const screenX = event.clientX - svgRect.left
+    const screenY = event.clientY - svgRect.top
+    const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
+    
+    // Update selection end point
+    instance.state.zoom.selectionEnd = { x: svgCoords.x, y: svgCoords.y }
+    
+    // Update selection visual
+    if (instance._updateSelectionVisual) {
+      instance._updateSelectionVisual()
+    }
+    
+    return // Skip normal cursor handling during region selection
   }
   
   const result = screenToDataWithZoom(instance, event)
@@ -217,7 +240,11 @@ function handleMouseMove(instance, event) {
  */
 function handleMouseDown(instance, event) {
   // Start pan drag if in pan mode and zoomed
-  if (instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+  const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+  const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
+  const isZoomed = zoomLevelX > 1.0 || zoomLevelY > 1.0
+  
+  if (instance.state.zoom.panMode && isZoomed) {
     instance._panDragState = {
       isDragging: true,
       lastX: event.clientX,
@@ -228,6 +255,23 @@ function handleMouseDown(instance, event) {
     if (instance.svg) {
       instance.svg.style.cursor = 'grabbing'
     }
+    
+    // Prevent default to avoid text selection
+    event.preventDefault()
+    return
+  }
+  
+  // Start region selection if in region zoom mode
+  if (instance.state.zoom.regionMode) {
+    const svgRect = instance.svg.getBoundingClientRect()
+    const screenX = event.clientX - svgRect.left
+    const screenY = event.clientY - svgRect.top
+    const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
+    
+    // Start selection
+    instance.state.zoom.isSelecting = true
+    instance.state.zoom.selectionStart = { x: svgCoords.x, y: svgCoords.y }
+    instance.state.zoom.selectionEnd = { x: svgCoords.x, y: svgCoords.y }
     
     // Prevent default to avoid text selection
     event.preventDefault()
@@ -257,8 +301,43 @@ function handleMouseUp(instance, event) {
     instance._panDragState = { isDragging: false, lastX: 0, lastY: 0 }
     
     // Restore cursor to grab (pan mode still active)
-    if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+    const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+    const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
+    const isZoomed = zoomLevelX > 1.0 || zoomLevelY > 1.0
+    
+    if (instance.svg && instance.state.zoom.panMode && isZoomed) {
       instance.svg.style.cursor = 'grab'
+    }
+    
+    return
+  }
+  
+  // End region selection if was selecting
+  if (instance.state.zoom.regionMode && instance.state.zoom.isSelecting) {
+    instance.state.zoom.isSelecting = false
+    
+    // Check if we have a valid selection (minimum size)
+    if (instance.state.zoom.selectionStart && instance.state.zoom.selectionEnd) {
+      const start = instance.state.zoom.selectionStart
+      const end = instance.state.zoom.selectionEnd
+      const width = Math.abs(end.x - start.x)
+      const height = Math.abs(end.y - start.y)
+      
+      // Minimum selection size to trigger zoom
+      const minSize = 10
+      if (width >= minSize && height >= minSize) {
+        // Zoom to the selected region
+        if (instance._zoomToRegion) {
+          instance._zoomToRegion()
+        }
+      } else {
+        // Clear selection if too small
+        instance.state.zoom.selectionStart = null
+        instance.state.zoom.selectionEnd = null
+        if (instance._clearSelectionVisual) {
+          instance._clearSelectionVisual()
+        }
+      }
     }
     
     return
@@ -286,8 +365,22 @@ function handleMouseLeave(instance) {
     instance._panDragState = { isDragging: false, lastX: 0, lastY: 0 }
     
     // Restore cursor to grab (pan mode still active)
-    if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
+    const zoomLevelX = instance.state.zoom.levelX || instance.state.zoom.level
+    const zoomLevelY = instance.state.zoom.levelY || instance.state.zoom.level
+    const isZoomed = zoomLevelX > 1.0 || zoomLevelY > 1.0
+    
+    if (instance.svg && instance.state.zoom.panMode && isZoomed) {
       instance.svg.style.cursor = 'grab'
+    }
+  }
+  
+  // Clear region selection if was selecting
+  if (instance.state.zoom.regionMode && instance.state.zoom.isSelecting) {
+    instance.state.zoom.isSelecting = false
+    instance.state.zoom.selectionStart = null
+    instance.state.zoom.selectionEnd = null
+    if (instance._clearSelectionVisual) {
+      instance._clearSelectionVisual()
     }
   }
   
