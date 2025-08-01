@@ -131,7 +131,7 @@ export class UI {
         const gridSpacingX = (maxX - minX) / 8; // 8 divisions
         const gridSpacingY = (maxY - minY) / 4; // 4 divisions
         
-        // Vertical grid lines (frequency)
+        // Vertical grid lines (frequency - X axis)
         for (let i = 0; i <= 8; i++) {
             const dataX = minX + (i * gridSpacingX);
             const svgCoords = this.zoomDemo.coordinateSystem.dataToSVG(dataX, minY);
@@ -147,7 +147,7 @@ export class UI {
             line.setAttribute('stroke-opacity', '0.3');
             debugGroup.appendChild(line);
             
-            // Add frequency labels (inverted back for readability)
+            // Add frequency labels along X-axis (bottom)
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', svgX);
             text.setAttribute('y', -15);
@@ -155,11 +155,11 @@ export class UI {
             text.setAttribute('font-size', '10');
             text.setAttribute('text-anchor', 'middle');
             text.setAttribute('transform', `translate(0, -15) scale(1, -1) translate(0, 15)`);
-            text.textContent = `${dataX.toFixed(0)}`;
+            text.textContent = `${dataX.toFixed(0)} Hz`;
             debugGroup.appendChild(text);
         }
         
-        // Horizontal grid lines (time)
+        // Horizontal grid lines (time - Y axis)
         for (let i = 0; i <= 4; i++) {
             const dataY = minY + (i * gridSpacingY);
             const svgCoords = this.zoomDemo.coordinateSystem.dataToSVG(minX, dataY);
@@ -175,7 +175,7 @@ export class UI {
             line.setAttribute('stroke-opacity', '0.3');
             debugGroup.appendChild(line);
             
-            // Add time labels to the right of the axis (inverted back for readability)
+            // Add time labels along Y-axis (right side)
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', 1010);
             text.setAttribute('y', svgY);
@@ -183,7 +183,7 @@ export class UI {
             text.setAttribute('font-size', '10');
             text.setAttribute('text-anchor', 'start');
             text.setAttribute('transform', `translate(1010, ${svgY}) scale(1, -1) translate(-1010, ${-svgY})`);
-            text.textContent = `${dataY.toFixed(0)}`;
+            text.textContent = `${dataY.toFixed(0)} time`;
             debugGroup.appendChild(text);
         }
         

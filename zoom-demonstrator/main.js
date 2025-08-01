@@ -166,7 +166,8 @@ class ZoomDemonstrator {
     
     handleRightClick(event) {
         event.preventDefault();
-        this.zoomOut();
+                
+        this.resetZoom();
     }
     
     setMode(mode) {
@@ -181,13 +182,34 @@ class ZoomDemonstrator {
     }
     
     updatePan(deltaX, deltaY) {
-        // Convert screen delta to SVG coordinate delta (accounting for current zoom)
-        const svgDeltaX = deltaX / this.zoomState.scaleX;
-        const svgDeltaY = deltaY / this.zoomState.scaleY;
+        // Pan should move 1:1 with mouse movement in screen space
+        // No need to divide by scale - we want direct movement
+        const svgDeltaX = deltaX * (1000 / this.demoContainer.clientWidth);
+        const svgDeltaY = deltaY * (500 / this.demoContainer.clientHeight);
         
-        // Update pan offset
-        this.zoomState.panX += svgDeltaX;
-        this.zoomState.panY += svgDeltaY;
+        // Calculate new pan values
+        let newPanX = this.zoomState.panX + svgDeltaX;
+        let newPanY = this.zoomState.panY + svgDeltaY;
+        
+        // Calculate pan limits to prevent showing beyond image boundaries
+        const viewportWidth = 1000;
+        const viewportHeight = 500;
+        const scaledImageWidth = viewportWidth * this.zoomState.scaleX;
+        const scaledImageHeight = viewportHeight * this.zoomState.scaleY;
+        
+        // Pan limits: keep image edges within viewport
+        const maxPanX = 0; // Can't pan right (would show empty space on left)
+        const minPanX = Math.min(0, viewportWidth - scaledImageWidth); // Can pan left to show right edge
+        const maxPanY = 0; // Can't pan down (would show empty space on top)
+        const minPanY = Math.min(0, viewportHeight - scaledImageHeight); // Can pan up to show bottom edge
+        
+        // Apply limits
+        newPanX = Math.max(minPanX, Math.min(maxPanX, newPanX));
+        newPanY = Math.max(minPanY, Math.min(maxPanY, newPanY));
+        
+        // Update pan state
+        this.zoomState.panX = newPanX;
+        this.zoomState.panY = newPanY;
         
         this.applyTransform();
     }
@@ -248,9 +270,9 @@ class ZoomDemonstrator {
         const currentViewWidth = 1000; // SVG viewBox width in pixels
         const currentViewHeight = 500; // SVG viewBox height in pixels
         
-        // The zoom factors are relative to the current view
-        const zoomFactorX = currentViewWidth / (width * this.zoomState.scaleX);
-        const zoomFactorY = currentViewHeight / (height * this.zoomState.scaleY);
+        // Calculate absolute zoom levels needed
+        const newScaleX = currentViewWidth / width;
+        const newScaleY = currentViewHeight / height;
         
         // Calculate the center of the selected rectangle in actual SVG coordinates
         const selectionCenterX = x + width / 2;
@@ -260,18 +282,34 @@ class ZoomDemonstrator {
         const viewCenterX = 500; // SVG viewBox center X (0 + 1000/2)
         const viewCenterY = 250; // SVG viewBox center Y (0 + 500/2)
         
-        // Update zoom state
-        this.zoomState.scaleX *= zoomFactorX;
-        this.zoomState.scaleY *= zoomFactorY;
+        // Update zoom state with absolute scale values
+        this.zoomState.scaleX = newScaleX;
+        this.zoomState.scaleY = newScaleY;
         
         // Calculate new pan offset to center the selection
-        // We want: viewCenter = (selectionCenter * newScale) + newPan
-        // So: newPan = viewCenter - (selectionCenter * newScale)
-        this.zoomState.panX = viewCenterX - (selectionCenterX * this.zoomState.scaleX);
-        this.zoomState.panY = viewCenterY - (selectionCenterY * this.zoomState.scaleY);
+        // Transform: displayPoint = (imagePoint * scale) + pan
+        // So: pan = displayPoint - (imagePoint * scale)
+        let newPanX = viewCenterX - (selectionCenterX * newScaleX);
+        let newPanY = viewCenterY - (selectionCenterY * newScaleY);
+        
+        // Apply pan limits (but allow negative pan for centering)
+        const viewportWidth = 1000;
+        const viewportHeight = 500;
+        const scaledImageWidth = viewportWidth * newScaleX;
+        const scaledImageHeight = viewportHeight * newScaleY; 
+        
+        // For zoom operations, we need to allow negative pan to center properly
+        // The limits should be based on keeping the image edges within the viewport
+        const maxPanX = 0; // Can't pan right (would show empty space on left)
+        const minPanX = Math.min(0, viewportWidth - scaledImageWidth); // Can pan left to show right edge
+        const maxPanY = 0; // Can't pan down (would show empty space on top)
+        const minPanY = Math.min(0, viewportHeight - scaledImageHeight); // Can pan up to show bottom edge
+        
+        this.zoomState.panX = Math.max(minPanX, Math.min(maxPanX, newPanX));
+        this.zoomState.panY = Math.max(minPanY, Math.min(maxPanY, newPanY));
         
         this.applyTransform();
-        this.ui.updateStatus(`Zoomed to selection: ${zoomFactorX.toFixed(2)}x × ${zoomFactorY.toFixed(2)}x`);
+        this.ui.updateStatus(`Zoomed: ${newScaleX.toFixed(2)}x × ${newScaleY.toFixed(2)}x`);
     }
     
     hideSelectionRect() {
@@ -292,8 +330,22 @@ class ZoomDemonstrator {
         this.zoomState.scaleY *= factor;
         
         // Recalculate pan to keep the same image point at the center
-        this.zoomState.panX = viewCenterX - (imageCenterX * this.zoomState.scaleX);
-        this.zoomState.panY = viewCenterY - (imageCenterY * this.zoomState.scaleY);
+        let newPanX = viewCenterX - (imageCenterX * this.zoomState.scaleX);
+        let newPanY = viewCenterY - (imageCenterY * this.zoomState.scaleY);
+        
+        // Apply pan limits (allow negative pan for centering)
+        const viewportWidth = 1000;
+        const viewportHeight = 500;
+        const scaledImageWidth = viewportWidth * this.zoomState.scaleX;
+        const scaledImageHeight = viewportHeight * this.zoomState.scaleY;
+        
+        const maxPanX = 0;
+        const minPanX = Math.min(0, viewportWidth - scaledImageWidth);
+        const maxPanY = 0;
+        const minPanY = Math.min(0, viewportHeight - scaledImageHeight);
+        
+        this.zoomState.panX = Math.max(minPanX, Math.min(maxPanX, newPanX));
+        this.zoomState.panY = Math.max(minPanY, Math.min(maxPanY, newPanY));
         
         this.applyTransform();
         this.ui.updateStatus(`Zoom: ${factor}x applied around center`);
