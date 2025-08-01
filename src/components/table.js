@@ -219,23 +219,73 @@ export function applyZoomTransform(instance) {
     return
   }
   
-  // Calculate zoom center in image coordinates (0-1 normalized to image pixels)
-  const centerImageX = centerX * naturalWidth
-  const centerImageY = centerY * naturalHeight
-  
-  // Calculate new image dimensions with separate X and Y scaling
-  const zoomedWidth = naturalWidth * effectiveLevelX
-  const zoomedHeight = naturalHeight * effectiveLevelY
-  
-  // Calculate new position to keep zoom center in the same place
-  const newX = margins.left + centerImageX - (centerImageX * effectiveLevelX)
-  const newY = margins.top + centerImageY - (centerImageY * effectiveLevelY)
-  
-  // Apply zoom to image with separate X and Y scaling
-  instance.spectrogramImage.setAttribute('x', String(newX))
-  instance.spectrogramImage.setAttribute('y', String(newY))
-  instance.spectrogramImage.setAttribute('width', String(zoomedWidth))
-  instance.spectrogramImage.setAttribute('height', String(zoomedHeight))
+  // If we have selection bounds from region zoom, use those directly
+  if (instance.state.zoom.selectionBounds) {
+    const bounds = instance.state.zoom.selectionBounds
+    
+    // The selection bounds tell us exactly what portion of the image should fill the viewport
+    // Calculate the size of the selection in the original image
+    const selectionWidth = (bounds.right - bounds.left) * naturalWidth
+    const selectionHeight = (bounds.bottom - bounds.top) * naturalHeight
+    
+    // We want the selection to fill the axes area (naturalWidth x naturalHeight)
+    // So scale = axes_size / selection_size
+    const scaleX = naturalWidth / selectionWidth
+    const scaleY = naturalHeight / selectionHeight
+    
+    // The scaled image dimensions
+    const scaledImageWidth = naturalWidth * scaleX
+    const scaledImageHeight = naturalHeight * scaleY
+    
+    // Position the image so that the selected region appears at the viewport position
+    // The selection starts at bounds.left (normalized) in the original image
+    // After scaling, this position becomes bounds.left * scaledImageWidth
+    // We want this to align with margins.left, so we offset by the negative of the scaled position
+    const imageX = margins.left - (bounds.left * scaledImageWidth)
+    const imageY = margins.top - (bounds.top * scaledImageHeight)
+    
+    console.log('=== ZOOM TRANSFORM DEBUG (Selection Bounds) ===')
+    console.log('Selection bounds (normalized):', bounds)
+    console.log('Selection size in pixels:', { selectionWidth, selectionHeight })
+    console.log('Scale factors:', { scaleX, scaleY })
+    console.log('Scaled image size:', { width: scaledImageWidth, height: scaledImageHeight })
+    console.log('Image position:', { imageX, imageY })
+    console.log('Viewport check: selection left edge will be at:', imageX + (bounds.left * scaledImageWidth), 'should equal', margins.left)
+    
+    // Apply the calculated position and size
+    instance.spectrogramImage.setAttribute('x', String(imageX))
+    instance.spectrogramImage.setAttribute('y', String(imageY))
+    instance.spectrogramImage.setAttribute('width', String(scaledImageWidth))
+    instance.spectrogramImage.setAttribute('height', String(scaledImageHeight))
+  } else {
+    // Original center-based zoom logic for uniform zoom
+    const visibleWidthFraction = 1 / effectiveLevelX
+    const visibleHeightFraction = 1 / effectiveLevelY
+    
+    const visibleLeft = centerX - (visibleWidthFraction / 2)
+    const visibleTop = centerY - (visibleHeightFraction / 2)
+    
+    const scaleX = effectiveLevelX
+    const scaleY = effectiveLevelY
+    
+    const imageX = margins.left - (visibleLeft * naturalWidth * scaleX)
+    const imageY = margins.top - (visibleTop * naturalHeight * scaleY)
+    
+    console.log('=== ZOOM TRANSFORM DEBUG (Center-based) ===')
+    console.log('Zoom levels:', { effectiveLevelX, effectiveLevelY })
+    console.log('Center point:', { centerX, centerY })
+    console.log('Visible fractions:', { visibleWidthFraction, visibleHeightFraction })
+    console.log('Visible bounds (normalized):', { visibleLeft, visibleTop })
+    console.log('Scale factors:', { scaleX, scaleY })
+    console.log('Image position:', { imageX, imageY })
+    console.log('Image size:', { width: naturalWidth * scaleX, height: naturalHeight * scaleY })
+    
+    // Apply the calculated position and size
+    instance.spectrogramImage.setAttribute('x', String(imageX))
+    instance.spectrogramImage.setAttribute('y', String(imageY))
+    instance.spectrogramImage.setAttribute('width', String(naturalWidth * scaleX))
+    instance.spectrogramImage.setAttribute('height', String(naturalHeight * scaleY))
+  }
   
   // Update axes to reflect the new visible data range
   renderAxes(instance)
@@ -284,9 +334,13 @@ function calculateVisibleDataRange(instance) {
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const margins = instance.state.axes.margins
-  const zoomLevel = instance.state.zoom.level
+  const { level, levelX, levelY } = instance.state.zoom
   
-  if (zoomLevel === 1.0) {
+  // Use separate X and Y levels if they exist
+  const effectiveLevelX = levelX || level
+  const effectiveLevelY = levelY || level
+  
+  if (effectiveLevelX === 1.0 && effectiveLevelY === 1.0) {
     // No zoom - return full range
     return { timeMin, timeMax, freqMin, freqMax }
   }
@@ -319,12 +373,20 @@ function calculateVisibleDataRange(instance) {
   const visibleTimeMax = timeMax - (visibleTop / imageHeight) * timeRange
   const visibleTimeMin = timeMax - (visibleBottom / imageHeight) * timeRange
   
-  return {
+  const result = {
     freqMin: visibleFreqMin,
     freqMax: visibleFreqMax,
     timeMin: visibleTimeMin,
     timeMax: visibleTimeMax
   }
+  
+  console.log('=== VISIBLE DATA RANGE DEBUG ===')
+  console.log('Full data range:', { timeMin, timeMax, freqMin, freqMax })
+  console.log('Image position/size:', { imageLeft, imageTop, imageWidth, imageHeight })
+  console.log('Visible bounds in image:', { visibleLeft, visibleRight, visibleTop, visibleBottom })
+  console.log('Calculated visible data range:', result)
+  
+  return result
 }
 
 /**

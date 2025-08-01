@@ -468,8 +468,9 @@ export class GramFrame {
    * Reset zoom to 1x
    */
   _zoomReset() {
-    // Clear zoom history when resetting
+    // Clear zoom history and selection bounds when resetting
     this.state.zoom.zoomHistory = []
+    this.state.zoom.selectionBounds = null
     this._setZoom(1.0, 0.5, 0.5)
   }
   
@@ -689,6 +690,9 @@ export class GramFrame {
     const margins = this.state.axes.margins
     const { naturalWidth, naturalHeight } = this.state.imageDetails
     
+    console.log('=== CONFIG DEBUG ===')
+    console.log('Config data ranges:', this.state.config)
+    
     // Get selection bounds in SVG coordinates
     const start = this.state.zoom.selectionStart
     const end = this.state.zoom.selectionEnd
@@ -714,7 +718,7 @@ export class GramFrame {
     const selectionHeight = clampedY2 - clampedY1
     
     // Minimum selection size (prevent zooming to tiny areas)
-    const minSelectionSize = 50
+    const minSelectionSize = 10
     if (selectionWidth < minSelectionSize || selectionHeight < minSelectionSize) {
       return
     }
@@ -740,6 +744,23 @@ export class GramFrame {
     const centerX = (clampedX1 + selectionWidth / 2) / naturalWidth
     const centerY = (clampedY1 + selectionHeight / 2) / naturalHeight
     
+    console.log('=== REGION ZOOM DEBUG ===')
+    console.log('Selection in SVG coords:', { x1, y1, x2, y2 })
+    console.log('Selection in image coords:', { imageX1, imageY1, imageX2, imageY2 })
+    console.log('Clamped selection:', { clampedX1, clampedY1, clampedX2, clampedY2 })
+    console.log('Selection dimensions:', { selectionWidth, selectionHeight })
+    console.log('Image dimensions:', { naturalWidth, naturalHeight })
+    console.log('Zoom levels:', { zoomX, zoomY, newZoomLevelX, newZoomLevelY })
+    console.log('Center point (normalized):', { centerX, centerY })
+    
+    // Store the selection bounds for the zoom transform
+    this.state.zoom.selectionBounds = {
+      left: clampedX1 / naturalWidth,
+      top: clampedY1 / naturalHeight,
+      right: clampedX2 / naturalWidth,
+      bottom: clampedY2 / naturalHeight
+    }
+    
     // Apply the zoom with separate X and Y levels
     this._setZoomXY(newZoomLevelX, newZoomLevelY, centerX, centerY)
     
@@ -749,12 +770,8 @@ export class GramFrame {
     this.state.zoom.selectionEnd = null
     this._clearSelectionVisual()
     
-    // Deactivate region zoom mode
-    this.state.zoom.regionMode = false
-    if (this.zoomControls && this.zoomControls.regionZoomButton) {
-      this.zoomControls.regionZoomButton.classList.remove('active')
-      this.zoomControls.regionZoomButton.title = 'Toggle Region Zoom Mode'
-    }
+    // Keep region zoom mode active for continued use
+    // User can manually toggle it off when done
   }
   
   /**

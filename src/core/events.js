@@ -324,7 +324,7 @@ function handleMouseUp(instance, event) {
       const height = Math.abs(end.y - start.y)
       
       // Minimum selection size to trigger zoom
-      const minSize = 20
+      const minSize = 10
       if (width >= minSize && height >= minSize) {
         // Zoom to the selected region
         if (instance._zoomToRegion) {

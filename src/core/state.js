@@ -74,6 +74,7 @@ export const initialState = {
     isSelecting: false, // Whether user is actively selecting a region
     selectionStart: null, // Start point of region selection {x, y} in SVG coordinates
     selectionEnd: null, // End point of region selection {x, y} in SVG coordinates
+    selectionBounds: null, // Normalized bounds of selected region {left, top, right, bottom}
     zoomHistory: [] // Stack of previous zoom states for zoom out functionality
   },
   // Selection state for keyboard fine control

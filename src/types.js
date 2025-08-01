@@ -154,6 +154,7 @@
  * @property {boolean} isSelecting - Whether user is actively selecting a region
  * @property {{x: number, y: number}|null} selectionStart - Start point of region selection in SVG coordinates
  * @property {{x: number, y: number}|null} selectionEnd - End point of region selection in SVG coordinates
+ * @property {{left: number, top: number, right: number, bottom: number}|null} selectionBounds - Normalized bounds of selected region
  * @property {Array<{level: number, levelX: number, levelY: number, centerX: number, centerY: number}>} zoomHistory - Stack of previous zoom states for zoom out functionality
  */
 
