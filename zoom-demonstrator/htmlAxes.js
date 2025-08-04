@@ -227,12 +227,9 @@ export class HTMLAxisRenderer {
                 label.style.fontSize = '11px';
                 label.style.color = '#333';
                 label.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-                label.style.padding = '2px 4px';
-                label.style.borderRadius = '3px';
-                label.style.border = '1px solid #ccc';
+                label.style.padding = '1px 2px';
                 label.style.fontFamily = 'Arial, sans-serif';
                 label.style.whiteSpace = 'nowrap';
-                label.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
                 
                 this.freqLabelsContainer.appendChild(label);
             }
@@ -283,13 +280,10 @@ export class HTMLAxisRenderer {
                 label.style.fontSize = '11px';
                 label.style.color = '#333';
                 label.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-                label.style.padding = '2px 4px';
-                label.style.borderRadius = '3px';
-                label.style.border = '1px solid #ccc';
+                label.style.padding = '1px 2px';
                 label.style.fontFamily = 'Arial, sans-serif';
                 label.style.whiteSpace = 'nowrap';
                 label.style.textAlign = 'right';
-                label.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
                 
                 this.timeLabelsContainer.appendChild(label);
             }
