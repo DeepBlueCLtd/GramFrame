@@ -10,6 +10,9 @@ export class HTMLAxisRenderer {
         this.coordinateSystem = coordinateSystem;
         this.zoomDemo = zoomDemonstrator;
         
+        // Get existing SVG axes group for tick marks
+        this.axesGroup = document.getElementById('axes-group');
+        
         // Create overlay containers
         this.createOverlayContainers();
         
@@ -113,6 +116,70 @@ export class HTMLAxisRenderer {
             return `${(value / 1000).toFixed(1)}k`;
         }
         return Math.round(value).toString();
+    }
+    
+    /**
+     * Add SVG tick marks to existing axes
+     */
+    updateSVGTickMarks() {
+        if (!this.axesGroup) return;
+        
+        // Clear existing tick marks
+        const existingTicks = this.axesGroup.querySelectorAll('.svg-tick');
+        existingTicks.forEach(el => el.remove());
+        
+        const dimensions = this.zoomDemo.getCurrentImageDimensions();
+        const dataRange = this.coordinateSystem.dataRange;
+        const zoomState = this.zoomDemo.zoomState;
+        
+        // Calculate visible data ranges
+        const visibleDataMinX = dataRange.minX + (-zoomState.panX / zoomState.scaleX) * (dataRange.maxX - dataRange.minX) / dimensions.width;
+        const visibleDataMaxX = dataRange.minX + ((dimensions.width - zoomState.panX) / zoomState.scaleX) * (dataRange.maxX - dataRange.minX) / dimensions.width;
+        
+        const visibleDataMinY = dataRange.minY + (-zoomState.panY / zoomState.scaleY) * (dataRange.maxY - dataRange.minY) / dimensions.height;
+        const visibleDataMaxY = dataRange.minY + ((dimensions.height - zoomState.panY) / zoomState.scaleY) * (dataRange.maxY - dataRange.minY) / dimensions.height;
+        
+        // Frequency axis tick marks (horizontal)
+        const freqTickInterval = this.calculateTickSpacing(visibleDataMinX, visibleDataMaxX, dimensions.width);
+        const freqTicks = this.generateTicks(visibleDataMinX, visibleDataMaxX, freqTickInterval);
+        
+        freqTicks.forEach(tickValue => {
+            const svgX = ((tickValue - dataRange.minX) / (dataRange.maxX - dataRange.minX)) * dimensions.width;
+            const displayX = svgX * zoomState.scaleX + zoomState.panX;
+            
+            if (displayX >= -10 && displayX <= dimensions.width + 10) {
+                const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                tick.setAttribute('class', 'svg-tick freq-tick');
+                tick.setAttribute('x1', displayX.toString());
+                tick.setAttribute('y1', '0');
+                tick.setAttribute('x2', displayX.toString());
+                tick.setAttribute('y2', '8'); // 8px tick extending down from axis
+                tick.setAttribute('stroke', '#333');
+                tick.setAttribute('stroke-width', '1');
+                this.axesGroup.appendChild(tick);
+            }
+        });
+        
+        // Time axis tick marks (vertical)
+        const timeTickInterval = this.calculateTickSpacing(visibleDataMinY, visibleDataMaxY, dimensions.height);
+        const timeTicks = this.generateTicks(visibleDataMinY, visibleDataMaxY, timeTickInterval);
+        
+        timeTicks.forEach(tickValue => {
+            const svgY = dimensions.height - ((tickValue - dataRange.minY) / (dataRange.maxY - dataRange.minY)) * dimensions.height;
+            const displayY = svgY * zoomState.scaleY + zoomState.panY;
+            
+            if (displayY >= -10 && displayY <= dimensions.height + 10) {
+                const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                tick.setAttribute('class', 'svg-tick time-tick');
+                tick.setAttribute('x1', '0');
+                tick.setAttribute('y1', displayY.toString());
+                tick.setAttribute('x2', '8'); // 8px tick extending right from axis
+                tick.setAttribute('y2', displayY.toString());
+                tick.setAttribute('stroke', '#333');
+                tick.setAttribute('stroke-width', '1');
+                this.axesGroup.appendChild(tick);
+            }
+        });
     }
     
     /**
@@ -233,12 +300,10 @@ export class HTMLAxisRenderer {
      * Update both axes
      */
     updateAxes() {
-        console.log('updateAxes called');
         this.updateContainerPositions();
+        this.updateSVGTickMarks(); // Add SVG tick marks first
         this.updateFrequencyLabels();
         this.updateTimeLabels();
-        console.log('Frequency labels:', this.freqLabelsContainer.children.length);
-        console.log('Time labels:', this.timeLabelsContainer.children.length);
     }
     
     /**
