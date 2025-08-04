@@ -50,6 +50,13 @@ class ZoomDemonstrator {
                 nativeWidth: 900,
                 nativeHeight: 300,
                 description: 'Scaled (0-800 Hz, 0-400 time)'
+            },
+            'mock': {
+                src: '../sample/mock-gram.png',
+                dataRange: { minX: 0, maxX: 150, minY: 0, maxY: 60 },
+                nativeWidth: 902,
+                nativeHeight: 237,
+                description: 'Mock Gram (0-150 Hz, 0-60 s)'
             }
         };
         
@@ -120,6 +127,7 @@ class ZoomDemonstrator {
         document.getElementById('image-original').addEventListener('click', () => this.switchTestImage('original'));
         document.getElementById('image-scaled').addEventListener('click', () => this.switchTestImage('scaled'));
         document.getElementById('image-offset').addEventListener('click', () => this.switchTestImage('offset'));
+        document.getElementById('image-mock').addEventListener('click', () => this.switchTestImage('mock'));
     }
     
     handleMouseDown(event) {
