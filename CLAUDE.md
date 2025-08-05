@@ -142,3 +142,7 @@ Components are configured via HTML tables with class `gram-config`:
 - **Analysis Mode**: Persistent draggable markers with cross-mode visibility
 - **Harmonics Mode**: Real-time harmonic calculation and display
 - **Doppler Mode**: Speed calculation with bearing and time inputs
+
+## Main strategy
+
+Think carefully and only action the specific task I have given you with the most concise and elegant solution that changes as little code as possible.
