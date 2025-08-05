@@ -306,6 +306,24 @@ export class HTMLAxisRenderer {
     }
     
     /**
+     * Clear all labels (useful when switching images)
+     */
+    clearLabels() {
+        if (this.freqLabelsContainer) {
+            this.freqLabelsContainer.innerHTML = '';
+        }
+        if (this.timeLabelsContainer) {
+            this.timeLabelsContainer.innerHTML = '';
+        }
+        
+        // Clear SVG tick marks
+        if (this.axesGroup) {
+            const existingTicks = this.axesGroup.querySelectorAll('.svg-tick');
+            existingTicks.forEach(el => el.remove());
+        }
+    }
+    
+    /**
      * Update both axes
      */
     updateAxes() {

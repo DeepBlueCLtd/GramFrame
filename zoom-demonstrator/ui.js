@@ -99,7 +99,7 @@ export class UI {
         const dataError = Math.abs(data.x - expectedDataX) + Math.abs(data.y - expectedDataY);
         
         // Check if we're within the expected data bounds
-        const currentConfig = this.zoomDemo.testImages[this.zoomDemo.currentImage];
+        const currentConfig = this.zoomDemo.currentImageConfig;
         const inBounds = (
             data.x >= currentConfig.dataRange.minX && 
             data.x <= currentConfig.dataRange.maxX &&
@@ -134,7 +134,7 @@ export class UI {
         debugGroup.style.pointerEvents = 'none';
         debugGroup.setAttribute('transform', 'scale(1, -1) translate(0, -500)');
         
-        const currentConfig = this.zoomDemo.testImages[this.zoomDemo.currentImage];
+        const currentConfig = this.zoomDemo.currentImageConfig;
         const { minX, maxX, minY, maxY } = currentConfig.dataRange;
         
         // Add pink boundary around the entire SVG viewBox area
