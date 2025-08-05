@@ -32,16 +32,27 @@ export class UI {
      * @param {CoordinateSet} coords - All coordinate representations
      */
     updateCoordinates(coords) {
-        const { screen, svg, image, data, zoom, pan } = coords;
+        /** @type {Point2D} */
+        const screen = coords.screen;
+        /** @type {Point2D} */
+        const svg = coords.svg;
+        /** @type {Point2D} */
+        const image = coords.image;
+        /** @type {Point2D} */
+        const data = coords.data;
+        /** @type {Point2D} */
+        const zoom = coords.zoom;
+        /** @type {Point2D} */
+        const pan = coords.pan;
         
         // Format coordinates with appropriate precision
         const screenStr = `(${screen.x.toFixed(0)}, ${screen.y.toFixed(0)})`;
         const svgStr = `(${svg.x.toFixed(1)}, ${svg.y.toFixed(1)})`;
         const imageStr = `(${image.x.toFixed(0)}, ${image.y.toFixed(0)})`;
         const dataStr = `(${data.x.toFixed(1)} Hz, ${data.y.toFixed(1)} time)`;
-        const zoomStr = zoom.scaleX === zoom.scaleY ? 
-            `${zoom.scaleX.toFixed(2)}x` : 
-            `${zoom.scaleX.toFixed(2)}x × ${zoom.scaleY.toFixed(2)}x`;
+        const zoomStr = zoom.x === zoom.y ? 
+            `${zoom.x.toFixed(2)}x` : 
+            `${zoom.x.toFixed(2)}x × ${zoom.y.toFixed(2)}x`;
         const panStr = `(${pan.x.toFixed(0)}, ${pan.y.toFixed(0)})`;
         
         // Update coordinate display with color coding
