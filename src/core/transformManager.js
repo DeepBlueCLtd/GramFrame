@@ -175,7 +175,6 @@ export class TransformManager {
      * @returns {CoordinateSet} All coordinate representations
      */
     getAllCoordinates(screenX, screenY) {
-        const svgCoords = this.screenToSVG(screenX, screenY);
         const actualSvg = this.screenToActualSVG(screenX, screenY);
         const dataCoords = this.svgToData(actualSvg.x, actualSvg.y);
         const imageCoords = this.dataToImage(dataCoords.x, dataCoords.y);

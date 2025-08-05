@@ -257,7 +257,7 @@ export function runCoordinateTests() {
     const coordSystem = new CoordinateSystem({
         minX: 100, maxX: 900,
         minY: 100, maxY: 500
-    });
+    }, 1000, 500);
     
     // Test 1: SVG pixel to data coordinate mapping
     console.log('Test 1: SVG pixel to data coordinate mapping');
@@ -329,5 +329,5 @@ export function runCoordinateTests() {
 
 // Export for external testing (only in browser environment)
 if (typeof window !== 'undefined') {
-    window.runCoordinateTests = runCoordinateTests;
+    /** @type {any} */ (window).runCoordinateTests = runCoordinateTests;
 }
