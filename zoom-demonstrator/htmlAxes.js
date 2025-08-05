@@ -6,8 +6,8 @@
  */
 
 export class HTMLAxisRenderer {
-    constructor(coordinateSystem, zoomDemonstrator) {
-        this.coordinateSystem = coordinateSystem;
+    constructor(transformManager, zoomDemonstrator) {
+        this.transformManager = transformManager;
         this.zoomDemo = zoomDemonstrator;
         
         // Get existing SVG axes group for tick marks
@@ -128,16 +128,15 @@ export class HTMLAxisRenderer {
         const existingTicks = this.axesGroup.querySelectorAll('.svg-tick');
         existingTicks.forEach(el => el.remove());
         
-        const dimensions = this.zoomDemo.getCurrentImageDimensions();
-        const dataRange = this.coordinateSystem.dataRange;
-        const zoomState = this.zoomDemo.zoomState;
+        const dimensions = this.transformManager.getImageDimensions();
+        const dataRange = this.transformManager.getDataRange();
+        const zoomState = this.transformManager.getZoomState();
+        const visibleBounds = this.transformManager.getVisibleDataBounds();
         
-        // Calculate visible data ranges
-        const visibleDataMinX = dataRange.minX + (-zoomState.panX / zoomState.scaleX) * (dataRange.maxX - dataRange.minX) / dimensions.width;
-        const visibleDataMaxX = dataRange.minX + ((dimensions.width - zoomState.panX) / zoomState.scaleX) * (dataRange.maxX - dataRange.minX) / dimensions.width;
-        
-        const visibleDataMinY = dataRange.minY + (-zoomState.panY / zoomState.scaleY) * (dataRange.maxY - dataRange.minY) / dimensions.height;
-        const visibleDataMaxY = dataRange.minY + ((dimensions.height - zoomState.panY) / zoomState.scaleY) * (dataRange.maxY - dataRange.minY) / dimensions.height;
+        const visibleDataMinX = visibleBounds.minX;
+        const visibleDataMaxX = visibleBounds.maxX;
+        const visibleDataMinY = visibleBounds.minY;
+        const visibleDataMaxY = visibleBounds.maxY;
         
         // Frequency axis tick marks (horizontal)
         const freqTickInterval = this.calculateTickSpacing(visibleDataMinX, visibleDataMaxX, dimensions.width);
@@ -189,15 +188,15 @@ export class HTMLAxisRenderer {
         // Clear existing labels
         this.freqLabelsContainer.innerHTML = '';
         
-        const dimensions = this.zoomDemo.getCurrentImageDimensions();
-        const dataRange = this.coordinateSystem.dataRange;
-        const zoomState = this.zoomDemo.zoomState;
+        const dimensions = this.transformManager.getImageDimensions();
+        const dataRange = this.transformManager.getDataRange();
+        const zoomState = this.transformManager.getZoomState();
+        const visibleBounds = this.transformManager.getVisibleDataBounds();
         const svgRect = document.getElementById('demo-svg').getBoundingClientRect();
         const containerRect = document.getElementById('demo-container').getBoundingClientRect();
         
-        // Calculate visible data range
-        const visibleDataMinX = dataRange.minX + (-zoomState.panX / zoomState.scaleX) * (dataRange.maxX - dataRange.minX) / dimensions.width;
-        const visibleDataMaxX = dataRange.minX + ((dimensions.width - zoomState.panX) / zoomState.scaleX) * (dataRange.maxX - dataRange.minX) / dimensions.width;
+        const visibleDataMinX = visibleBounds.minX;
+        const visibleDataMaxX = visibleBounds.maxX;
         
         // Calculate tick spacing and generate ticks
         const tickInterval = this.calculateTickSpacing(visibleDataMinX, visibleDataMaxX, dimensions.width);
@@ -243,14 +242,14 @@ export class HTMLAxisRenderer {
         // Clear existing labels
         this.timeLabelsContainer.innerHTML = '';
         
-        const dimensions = this.zoomDemo.getCurrentImageDimensions();
-        const dataRange = this.coordinateSystem.dataRange;
-        const zoomState = this.zoomDemo.zoomState;
+        const dimensions = this.transformManager.getImageDimensions();
+        const dataRange = this.transformManager.getDataRange();
+        const zoomState = this.transformManager.getZoomState();
+        const visibleBounds = this.transformManager.getVisibleDataBounds();
         const containerRect = document.getElementById('demo-container').getBoundingClientRect();
         
-        // Calculate visible data range (with Y inversion)
-        const visibleDataMinY = dataRange.minY + (-zoomState.panY / zoomState.scaleY) * (dataRange.maxY - dataRange.minY) / dimensions.height;
-        const visibleDataMaxY = dataRange.minY + ((dimensions.height - zoomState.panY) / zoomState.scaleY) * (dataRange.maxY - dataRange.minY) / dimensions.height;
+        const visibleDataMinY = visibleBounds.minY;
+        const visibleDataMaxY = visibleBounds.maxY;
         
         // Calculate tick spacing and generate ticks
         const tickInterval = this.calculateTickSpacing(visibleDataMinY, visibleDataMaxY, dimensions.height);

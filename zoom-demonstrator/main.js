@@ -11,6 +11,7 @@
 import { CoordinateSystem } from './coordinates.js';
 import { UI } from './ui.js';
 import { HTMLAxisRenderer } from './htmlAxes.js';
+import { TransformManager } from './transformManager.js';
 
 class ZoomDemonstrator {
     constructor() {
@@ -19,14 +20,6 @@ class ZoomDemonstrator {
         this.startPoint = { x: 0, y: 0 };
         this.dragThreshold = 3; // pixels
         this.isDragging = false;
-        
-        // Zoom and pan state with separate X/Y levels
-        this.zoomState = {
-            scaleX: 1.0,
-            scaleY: 1.0,
-            panX: 0,
-            panY: 0
-        };
         
         // Test image configurations with native dimensions
         this.testImages = {
@@ -66,6 +59,13 @@ class ZoomDemonstrator {
     }
     
     init() {
+        // Get DOM elements first
+        this.svg = document.getElementById('demo-svg');
+        this.demoContainer = document.getElementById('demo-container');
+        this.selectionRect = document.getElementById('selection-rect');
+        this.testImage = document.getElementById('test-image');
+        this.clippedContent = document.getElementById('clipped-content');
+        
         // Initialize coordinate system with offset-axes test image
         const imageConfig = this.testImages[this.currentImage];
         this.coordinateSystem = new CoordinateSystem(
@@ -74,18 +74,14 @@ class ZoomDemonstrator {
             imageConfig.nativeHeight
         );
         
+        // Initialize TransformManager
+        this.transformManager = new TransformManager(this.coordinateSystem, this.demoContainer);
+        
         // Initialize UI
         this.ui = new UI(this);
         
-        // Initialize HTML overlay axis renderer
-        this.axisRenderer = new HTMLAxisRenderer(this.coordinateSystem, this);
-        
-        // Get DOM elements
-        this.svg = document.getElementById('demo-svg');
-        this.demoContainer = document.getElementById('demo-container');
-        this.selectionRect = document.getElementById('selection-rect');
-        this.testImage = document.getElementById('test-image');
-        this.clippedContent = document.getElementById('clipped-content');
+        // Initialize HTML overlay axis renderer with TransformManager
+        this.axisRenderer = new HTMLAxisRenderer(this.transformManager, this);
         
         // Set up event listeners
         this.setupEventListeners();
@@ -168,10 +164,11 @@ class ZoomDemonstrator {
         if (!this.isDragging) return;
         
         if (this.currentMode === 'pan') {
-            this.updatePan(deltaX, deltaY);
+            this.transformManager.updatePan(deltaX, deltaY);
             // Update start point for next delta calculation
             this.startPoint.x = screenX;
             this.startPoint.y = screenY;
+            this.applyTransform();
         } else if (this.currentMode === 'zoom') {
             this.updateSelectionRect(screenX, screenY);
         }
@@ -208,46 +205,14 @@ class ZoomDemonstrator {
     }
     
     getCurrentImageDimensions() {
-        const config = this.testImages[this.currentImage];
-        return {
-            width: config.nativeWidth,
-            height: config.nativeHeight
-        };
+        return this.transformManager.getImageDimensions();
     }
     
-    updatePan(deltaX, deltaY) {
-        // Pan should move 1:1 with mouse movement in screen space
-        // No need to divide by scale - we want direct movement
-        const dimensions = this.getCurrentImageDimensions();
-        const svgDeltaX = deltaX * (dimensions.width / this.demoContainer.clientWidth);
-        const svgDeltaY = deltaY * (dimensions.height / this.demoContainer.clientHeight);
-        
-        // Calculate new pan values
-        let newPanX = this.zoomState.panX + svgDeltaX;
-        let newPanY = this.zoomState.panY + svgDeltaY;
-        
-        // Calculate pan limits to prevent showing beyond image boundaries
-        const viewportWidth = dimensions.width;
-        const viewportHeight = dimensions.height;
-        const scaledImageWidth = viewportWidth * this.zoomState.scaleX;
-        const scaledImageHeight = viewportHeight * this.zoomState.scaleY;
-        
-        // Pan limits: keep image edges within viewport
-        const maxPanX = 0; // Can't pan right (would show empty space on left)
-        const minPanX = Math.min(0, viewportWidth - scaledImageWidth); // Can pan left to show right edge
-        const maxPanY = 0; // Can't pan down (would show empty space on top)
-        const minPanY = Math.min(0, viewportHeight - scaledImageHeight); // Can pan up to show bottom edge
-        
-        // Apply limits
-        newPanX = Math.max(minPanX, Math.min(maxPanX, newPanX));
-        newPanY = Math.max(minPanY, Math.min(maxPanY, newPanY));
-        
-        // Update pan state
-        this.zoomState.panX = newPanX;
-        this.zoomState.panY = newPanY;
-        
-        this.applyTransform();
+    // Compatibility property for components that expect zoomState
+    get zoomState() {
+        return this.transformManager.getZoomState();
     }
+    
     
     startSelectionRect() {
         // Get coordinates without Y inversion for selection rectangle
@@ -300,52 +265,10 @@ class ZoomDemonstrator {
     
     zoomToRect(x, y, width, height) {
         // x, y, width, height are in actual SVG coordinates (already inverse-transformed)
-        
-        // Calculate zoom factors for both axes (allowing aspect ratio changes)
-        const dimensions = this.getCurrentImageDimensions();
-        const currentViewWidth = dimensions.width; // SVG viewBox width in pixels
-        const currentViewHeight = dimensions.height; // SVG viewBox height in pixels
-        
-        // Calculate absolute zoom levels needed
-        const newScaleX = currentViewWidth / width;
-        const newScaleY = currentViewHeight / height;
-        
-        // Calculate the center of the selected rectangle in actual SVG coordinates
-        const selectionCenterX = x + width / 2;
-        const selectionCenterY = y + height / 2;
-        
-        // Calculate where this center should be positioned after zoom
-        const viewCenterX = dimensions.width / 2; // SVG viewBox center X
-        const viewCenterY = dimensions.height / 2; // SVG viewBox center Y
-        
-        // Update zoom state with absolute scale values
-        this.zoomState.scaleX = newScaleX;
-        this.zoomState.scaleY = newScaleY;
-        
-        // Calculate new pan offset to center the selection
-        // Transform: displayPoint = (imagePoint * scale) + pan
-        // So: pan = displayPoint - (imagePoint * scale)
-        let newPanX = viewCenterX - (selectionCenterX * newScaleX);
-        let newPanY = viewCenterY - (selectionCenterY * newScaleY);
-        
-        // Apply pan limits (but allow negative pan for centering)
-        const viewportWidth = dimensions.width;
-        const viewportHeight = dimensions.height;
-        const scaledImageWidth = viewportWidth * newScaleX;
-        const scaledImageHeight = viewportHeight * newScaleY; 
-        
-        // For zoom operations, we need to allow negative pan to center properly
-        // The limits should be based on keeping the image edges within the viewport
-        const maxPanX = 0; // Can't pan right (would show empty space on left)
-        const minPanX = Math.min(0, viewportWidth - scaledImageWidth); // Can pan left to show right edge
-        const maxPanY = 0; // Can't pan down (would show empty space on top)
-        const minPanY = Math.min(0, viewportHeight - scaledImageHeight); // Can pan up to show bottom edge
-        
-        this.zoomState.panX = Math.max(minPanX, Math.min(maxPanX, newPanX));
-        this.zoomState.panY = Math.max(minPanY, Math.min(maxPanY, newPanY));
-        
+        this.transformManager.zoomToRect(x, y, width, height);
         this.applyTransform();
-        this.ui.updateStatus(`Zoomed: ${newScaleX.toFixed(2)}x × ${newScaleY.toFixed(2)}x`);
+        const zoomState = this.transformManager.getZoomState();
+        this.ui.updateStatus(`Zoomed: ${zoomState.scaleX.toFixed(2)}x × ${zoomState.scaleY.toFixed(2)}x`);
     }
     
     hideSelectionRect() {
@@ -353,37 +276,7 @@ class ZoomDemonstrator {
     }
     
     zoomByFactor(factor) {
-        // Calculate the center of the current view
-        const dimensions = this.getCurrentImageDimensions();
-        const viewCenterX = dimensions.width / 2; // Center of viewport in SVG pixels
-        const viewCenterY = dimensions.height / 2;
-        
-        // Find what point in the image is currently at the center
-        const imageCenterX = (viewCenterX - this.zoomState.panX) / this.zoomState.scaleX;
-        const imageCenterY = (viewCenterY - this.zoomState.panY) / this.zoomState.scaleY;
-        
-        // Apply the zoom factor
-        this.zoomState.scaleX *= factor;
-        this.zoomState.scaleY *= factor;
-        
-        // Recalculate pan to keep the same image point at the center
-        let newPanX = viewCenterX - (imageCenterX * this.zoomState.scaleX);
-        let newPanY = viewCenterY - (imageCenterY * this.zoomState.scaleY);
-        
-        // Apply pan limits (allow negative pan for centering)
-        const viewportWidth = dimensions.width;
-        const viewportHeight = dimensions.height;
-        const scaledImageWidth = viewportWidth * this.zoomState.scaleX;
-        const scaledImageHeight = viewportHeight * this.zoomState.scaleY;
-        
-        const maxPanX = 0;
-        const minPanX = Math.min(0, viewportWidth - scaledImageWidth);
-        const maxPanY = 0;
-        const minPanY = Math.min(0, viewportHeight - scaledImageHeight);
-        
-        this.zoomState.panX = Math.max(minPanX, Math.min(maxPanX, newPanX));
-        this.zoomState.panY = Math.max(minPanY, Math.min(maxPanY, newPanY));
-        
+        this.transformManager.zoomByFactor(factor);
         this.applyTransform();
         this.ui.updateStatus(`Zoom: ${factor}x applied around center`);
     }
@@ -395,19 +288,14 @@ class ZoomDemonstrator {
     }
     
     resetZoom() {
-        this.zoomState = {
-            scaleX: 1.0,
-            scaleY: 1.0,
-            panX: 0,
-            panY: 0
-        };
+        this.transformManager.resetTransform();
         this.applyTransform();
         this.ui.updateStatus('Zoom reset to 1:1 scale');
     }
     
     applyTransform() {
         // Apply transform to the clipped content group
-        const transform = `translate(${this.zoomState.panX}, ${this.zoomState.panY}) scale(${this.zoomState.scaleX}, ${this.zoomState.scaleY})`;
+        const transform = this.transformManager.getTransformString();
         this.clippedContent.setAttribute('transform', transform);
         
         this.updateDisplay();
@@ -455,8 +343,8 @@ class ZoomDemonstrator {
         // Update coordinate system with new dimensions
         this.coordinateSystem.updateDataRange(config.dataRange, config.nativeWidth, config.nativeHeight);
         
-        // Update axis renderer coordinate system reference
-        this.axisRenderer.coordinateSystem = this.coordinateSystem;
+        // Update TransformManager with new coordinate system
+        this.transformManager.updateCoordinateSystem(this.coordinateSystem);
         
         // Reset zoom state
         this.resetZoom();
@@ -474,23 +362,8 @@ class ZoomDemonstrator {
     }
     
     updateCoordinateDisplay(screenX, screenY) {
-        const svgCoords = this.coordinateSystem.screenToSVG(screenX, screenY);
-        
-        // Apply inverse of current zoom/pan transform to get actual coordinates
-        const actualSvgX = (svgCoords.x - this.zoomState.panX) / this.zoomState.scaleX;
-        const actualSvgY = (svgCoords.y - this.zoomState.panY) / this.zoomState.scaleY;
-        
-        const dataCoords = this.coordinateSystem.svgToData(actualSvgX, actualSvgY);
-        const imageCoords = this.coordinateSystem.dataToImage(dataCoords.x, dataCoords.y);
-        
-        this.ui.updateCoordinates({
-            screen: { x: screenX, y: screenY },
-            svg: { x: actualSvgX, y: actualSvgY },
-            image: imageCoords,
-            data: dataCoords,
-            zoom: { scaleX: this.zoomState.scaleX, scaleY: this.zoomState.scaleY },
-            pan: { x: this.zoomState.panX, y: this.zoomState.panY }
-        });
+        const coords = this.transformManager.getAllCoordinates(screenX, screenY);
+        this.ui.updateCoordinates(coords);
     }
     
     updateDisplay() {
