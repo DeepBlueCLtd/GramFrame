@@ -1,6 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
 // SVG utilities removed - no display element
-import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
+import { updateHarmonicPanelContent, createHarmonicPanel, updateHarmonicRatiosOnly } from '../../components/HarmonicPanel.js'
 import { showManualHarmonicModal } from './ManualHarmonicModal.js'
 import { notifyStateListeners } from '../../core/state.js'
 
@@ -46,10 +46,13 @@ export class HarmonicsMode extends BaseMode {
     // Handle dragging if active (existing harmonic sets or new creation)
     if (this.state.dragState.isDragging || this.state.dragState.isCreatingNewHarmonicSet) {
       this.handleHarmonicSetDrag()
+    } else {
+      // Update ratio column for all harmonic sets when not dragging
+      // This is a lightweight update that only affects the ratio cells
+      if (this.instance.harmonicPanel && this.state.harmonics.harmonicSets.length > 0) {
+        updateHarmonicRatiosOnly(this.instance.harmonicPanel, this.instance)
+      }
     }
-    
-    // Don't update harmonic panel on every mouse move - it causes flicker
-    // The rate updates are not critical enough to justify the performance cost
   }
 
   /**

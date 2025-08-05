@@ -72,6 +72,47 @@ export function updateHarmonicPanelContent(panel, instance) {
 }
 
 /**
+ * Update only the ratio column for all harmonic sets - lightweight version for mouse movement
+ * @param {HTMLElement} panel - Panel element
+ * @param {GramFrame} instance - GramFrame instance
+ */
+export function updateHarmonicRatiosOnly(panel, instance) {
+  if (!panel) {
+    return
+  }
+  
+  const tbody = /** @type {HTMLTableSectionElement} */ (panel.querySelector('.gram-frame-harmonic-table tbody'))
+  if (!tbody) {
+    return
+  }
+  
+  const harmonicSets = instance.state.harmonics.harmonicSets
+  const existingRows = tbody.querySelectorAll('tr')
+  
+  // Only update ratio cells for existing rows
+  harmonicSets.forEach((harmonicSet, index) => {
+    const row = existingRows[index]
+    if (row && row.getAttribute('data-harmonic-id') === harmonicSet.id) {
+      // Update only the ratio cell (column 2)
+      const rateCell = row.cells[2]
+      if (rateCell) {
+        let rate
+        if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
+          rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(2)
+        } else {
+          rate = '5.00' // Representative rate for 5th harmonic
+        }
+        
+        // Only update if the value has changed to prevent unnecessary DOM updates
+        if (rateCell.textContent !== rate) {
+          rateCell.textContent = rate
+        }
+      }
+    }
+  })
+}
+
+/**
  * Update only the changing cells in an existing harmonic row
  * @param {HTMLTableRowElement} row - The table row to update
  * @param {HarmonicSet} harmonicSet - The harmonic set data
