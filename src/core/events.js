@@ -4,7 +4,7 @@
 
 /// <reference path="../types.js" />
 
-import { screenToSVGCoordinates, imageToDataCoordinates } from '../utils/coordinates.js'
+// Old coordinate imports replaced with TransformManager usage
 import { updateCursorIndicators } from '../rendering/cursors.js'
 
 /**
@@ -18,49 +18,25 @@ function screenToDataWithZoom(instance, event) {
   const screenX = event.clientX - svgRect.left
   const screenY = event.clientY - svgRect.top
   
-  // Convert to SVG coordinates
-  const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
-  
-  // Convert to data coordinates (accounting for margins and zoom)
-  const margins = instance.state.axes.margins
-  const zoomLevel = instance.state.zoom.level
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  
-  // Get current image position and dimensions (which may be zoomed)
-  let imageLeft = margins.left
-  let imageTop = margins.top
-  let imageWidth = naturalWidth
-  let imageHeight = naturalHeight
-  
-  if (zoomLevel !== 1.0 && instance.spectrogramImage) {
-    imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
-    imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
-    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+  // Use TransformManager for coordinate transformations if available
+  if (instance.transformManager) {
+    try {
+      const coords = instance.transformManager.getAllCoordinates(screenX, screenY)
+      return {
+        svgCoords: { x: coords.svg.x, y: coords.svg.y },
+        imageX: coords.image.x,
+        imageY: coords.image.y,
+        dataCoords: { freq: coords.data.x, time: coords.data.y }
+      }
+    } catch (error) {
+      console.warn('TransformManager coordinate conversion failed:', error)
+      return null
+    }
   }
   
-  // Convert SVG coordinates to image-relative coordinates
-  const imageX = (svgCoords.x - imageLeft) * (naturalWidth / imageWidth)
-  const imageY = (svgCoords.y - imageTop) * (naturalHeight / imageHeight)
-  
-  // Check if within zoomed image bounds
-  const withinBounds = svgCoords.x >= imageLeft && svgCoords.x <= imageLeft + imageWidth &&
-                      svgCoords.y >= imageTop && svgCoords.y <= imageTop + imageHeight &&
-                      imageX >= 0 && imageX <= naturalWidth &&
-                      imageY >= 0 && imageY <= naturalHeight
-  
-  if (!withinBounds) {
-    return null
-  }
-  
-  const dataCoords = imageToDataCoordinates(
-    imageX, imageY,
-    instance.state.config,
-    instance.state.imageDetails,
-    instance.state.rate
-  )
-  
-  return { svgCoords, imageX, imageY, dataCoords }
+  // Fallback to simple screen coordinate handling if TransformManager not available
+  console.warn('TransformManager not available, using fallback coordinate handling')
+  return null
 }
 
 /**
@@ -127,9 +103,19 @@ export function setupResizeObserver(instance) {
   // Use ResizeObserver to monitor SVG container dimensions
   if (typeof ResizeObserver !== 'undefined') {
     instance.resizeObserver = new ResizeObserver(_entries => {
+      // Update coordinate system container size for zoom/pan functionality
+      if (instance.coordinateSystem && typeof instance.coordinateSystem.updateContainerSize === 'function') {
+        instance.coordinateSystem.updateContainerSize()
+      }
+      
       // Trigger resize handling
       if (instance._handleResize) {
         instance._handleResize()
+      }
+      
+      // Update axes after container resize
+      if (instance._updateAxes) {
+        instance._updateAxes()
       }
     })
     instance.resizeObserver.observe(instance.container)

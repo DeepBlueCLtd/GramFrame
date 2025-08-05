@@ -60,13 +60,18 @@ export function createComponentStructure(instance) {
   instance.imageClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
   clipPath.appendChild(instance.imageClipRect)
   
-  // Create image element within SVG
+  // Create content group for zoom/pan transformations
+  instance.contentGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  instance.contentGroup.setAttribute('class', 'gram-frame-content')
+  instance.svg.appendChild(instance.contentGroup)
+  
+  // Create image element within content group
   instance.spectrogramImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
   instance.spectrogramImage.setAttribute('class', 'gram-frame-spectrogram-image')
   instance.spectrogramImage.setAttribute('clip-path', `url(#${clipPathId})`)
-  instance.svg.appendChild(instance.spectrogramImage)
+  instance.contentGroup.appendChild(instance.spectrogramImage)
   
-  // Create cursor group for overlays
+  // Create cursor group for overlays (outside content group so they don't zoom)
   instance.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   instance.cursorGroup.setAttribute('class', 'gram-frame-cursors')
   instance.svg.appendChild(instance.cursorGroup)
@@ -118,6 +123,11 @@ export function setupSpectrogramImage(instance, imageUrl) {
     // Store natural dimensions
     instance.state.imageDetails.naturalWidth = tempImg.naturalWidth
     instance.state.imageDetails.naturalHeight = tempImg.naturalHeight
+    
+    // Initialize coordinate system and transform manager for zoom/pan functionality
+    if (typeof instance.initializeZoomSystem === 'function') {
+      instance.initializeZoomSystem()
+    }
     
     // Update SVG layout
     updateSVGLayout(instance)

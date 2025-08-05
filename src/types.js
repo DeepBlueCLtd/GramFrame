@@ -123,7 +123,16 @@
 
 /**
  * Analysis mode type
- * @typedef {'analysis'|'harmonics'|'doppler'} ModeType
+ * @typedef {'analysis'|'harmonics'|'doppler'|'pan'|'zoom'} ModeType
+ */
+
+/**
+ * Enhanced zoom/pan state for TransformManager integration
+ * @typedef {Object} ZoomPanState
+ * @property {number} scaleX - X-axis zoom scale factor (1.0 = no zoom)
+ * @property {number} scaleY - Y-axis zoom scale factor (1.0 = no zoom)
+ * @property {number} panX - X-axis pan offset in SVG units
+ * @property {number} panY - Y-axis pan offset in SVG units
  */
 
 /**
@@ -178,6 +187,7 @@
  * @property {DisplayDimensions} displayDimensions - Current display dimensions
  * @property {AxesConfig} axes - Axes configuration
  * @property {ZoomState} zoom - Zoom state configuration
+ * @property {ZoomPanState} zoomState - Enhanced zoom/pan state for TransformManager
  */
 
 /**
@@ -231,6 +241,7 @@
  * @property {HTMLDivElement|null} [container] - Main container element
  * @property {SVGSVGElement|null} [svg] - Main SVG element
  * @property {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @property {SVGGElement|null} [contentGroup] - SVG group for zoomable content
  * @property {SVGGElement|null} [cursorGroup] - SVG group for cursor elements
  * @property {SVGGElement|null} [axesGroup] - SVG group for axes
  * @property {SVGRectElement|null} [imageClipRect] - Clipping rectangle for image
@@ -255,6 +266,8 @@
  * @property {Object<string, *>|null} [modes] - Available modes
  * @property {*|null} [currentMode] - Current active mode
  * @property {*|null} [featureRenderer] - Feature rendering coordinator
+ * @property {*|null} [coordinateSystem] - Coordinate system for zoom/pan operations
+ * @property {*|null} [transformManager] - Transform manager for zoom/pan operations
  * 
  * @property {ResizeObserver|null} [resizeObserver] - Resize observer instance
  * @property {(function(KeyboardEvent): void)|null} [keyboardHandler] - Keyboard event handler
@@ -275,6 +288,11 @@
  * @property {function(): void} [updateSelectionVisuals] - Update selection visuals
  * @property {function(): void} [createUnifiedLayout] - Create unified layout
  * @property {function(): void} [createZoomControls] - Create zoom controls
+ * @property {function(): void} [initializeZoomSystem] - Initialize coordinate system and transform manager
+ * @property {function(number): void} [zoomByFactor] - Zoom by specific factor using TransformManager
+ * @property {function(): void} [resetZoom] - Reset zoom to 1:1 scale using TransformManager
+ * @property {function(): void} [applyTransform] - Apply current transform to SVG content group
+ * @property {function(): void} [_updateAxes] - Update axes rendering
  */
 
 /**

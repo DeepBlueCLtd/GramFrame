@@ -26,7 +26,9 @@ export function getModeDisplayName(mode) {
   const displayNames = {
     'analysis': 'Cross Cursor',
     'harmonics': 'Harmonics', 
-    'doppler': 'Doppler'
+    'doppler': 'Doppler',
+    'pan': 'Pan',
+    'zoom': 'Zoom'
   }
   
   return displayNames[mode] || capitalizeFirstLetter(mode)

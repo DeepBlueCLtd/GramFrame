@@ -28,6 +28,8 @@ import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
 import { ModeFactory } from './modes/ModeFactory.js'
 import { FeatureRenderer } from './core/FeatureRenderer.js'
+import { TransformManager } from './core/transformManager.js'
+import { CoordinateSystem } from './core/coordinates.js'
 
 // Cursor indicators removed - using CSS cursor only
 
@@ -90,6 +92,8 @@ export class GramFrame {
     this.colorPicker = null
     /** @type {SVGSVGElement} */
     this.svg = null
+    /** @type {SVGGElement} */
+    this.contentGroup = null
     /** @type {SVGGElement} */
     this.cursorGroup = null
     /** @type {SVGGElement} */
@@ -159,6 +163,10 @@ export class GramFrame {
     
     // Initialize centralized feature renderer
     this.featureRenderer = new FeatureRenderer(this)
+    
+    // Initialize coordinate system and transform manager for zoom/pan functionality
+    this.coordinateSystem = null // Will be initialized when image is loaded
+    this.transformManager = null // Will be initialized when image is loaded
     
     // Initialize all modes using factory
     const availableModes = ModeFactory.getAvailableModes()
@@ -380,14 +388,14 @@ export class GramFrame {
     zoomInButton.className = 'gram-frame-zoom-btn'
     zoomInButton.textContent = '+'
     zoomInButton.title = 'Zoom In'
-    zoomInButton.addEventListener('click', () => this._zoomIn())
+    zoomInButton.addEventListener('click', () => this.zoomByFactor(2.0))
     
     // Zoom out button
     const zoomOutButton = document.createElement('button')
     zoomOutButton.className = 'gram-frame-zoom-btn'
     zoomOutButton.textContent = '−'
     zoomOutButton.title = 'Zoom Out'
-    zoomOutButton.addEventListener('click', () => this._zoomOut())
+    zoomOutButton.addEventListener('click', () => this.zoomByFactor(0.5))
     
     // Pan toggle button
     const panToggleButton = document.createElement('button')
@@ -401,7 +409,7 @@ export class GramFrame {
     zoomResetButton.className = 'gram-frame-zoom-btn gram-frame-zoom-reset'
     zoomResetButton.textContent = '1:1'
     zoomResetButton.title = 'Reset Zoom'
-    zoomResetButton.addEventListener('click', () => this._zoomReset())
+    zoomResetButton.addEventListener('click', () => this.resetZoom())
     
     zoomContainer.appendChild(zoomInButton)
     zoomContainer.appendChild(zoomOutButton)
@@ -521,6 +529,81 @@ export class GramFrame {
     
     // Update zoom with new center point
     this._setZoom(this.state.zoom.level, newCenterX, newCenterY)
+  }
+  
+  /**
+   * Initialize the coordinate system and transform manager for zoom/pan functionality
+   * Called after image dimensions are available
+   */
+  initializeZoomSystem() {
+    if (!this.state.imageDetails.naturalWidth || !this.state.imageDetails.naturalHeight) {
+      return
+    }
+    
+    // Create data range from config
+    const dataRange = {
+      minX: this.state.config.freqMin,
+      maxX: this.state.config.freqMax,
+      minY: this.state.config.timeMin,
+      maxY: this.state.config.timeMax
+    }
+    
+    // Initialize coordinate system
+    this.coordinateSystem = new CoordinateSystem(
+      dataRange,
+      this.state.imageDetails.naturalWidth,
+      this.state.imageDetails.naturalHeight
+    )
+    
+    // Initialize transform manager
+    this.transformManager = new TransformManager(
+      this.coordinateSystem,
+      this.container
+    )
+  }
+  
+  /**
+   * Zoom by a specific factor using TransformManager
+   * @param {number} factor - Zoom factor (2.0 = zoom in 2x, 0.5 = zoom out 2x)
+   */
+  zoomByFactor(factor) {
+    if (!this.transformManager) {
+      return
+    }
+    
+    this.transformManager.zoomByFactor(factor)
+    this.applyTransform()
+  }
+  
+  /**
+   * Reset zoom to 1:1 scale using TransformManager
+   */
+  resetZoom() {
+    if (!this.transformManager) {
+      return
+    }
+    
+    this.transformManager.resetTransform()
+    this.applyTransform()
+  }
+  
+  /**
+   * Apply the current transform to the SVG content group
+   */
+  applyTransform() {
+    if (!this.transformManager) {
+      return
+    }
+    
+    const transform = this.transformManager.getTransformString()
+    
+    // Apply to the content group (image and other content)
+    if (this.contentGroup) {
+      this.contentGroup.setAttribute('transform', transform)
+    }
+    
+    // Update axes after zoom/pan operations
+    this._updateAxes()
   }
   
   /**
