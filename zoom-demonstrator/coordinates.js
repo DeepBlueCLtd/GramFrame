@@ -19,10 +19,16 @@
 export class CoordinateSystem {
     /**
      * @param {DataRange} dataRange - Data coordinate ranges
-     * @param {number} [imageWidth=1000] - Image width in pixels
-     * @param {number} [imageHeight=500] - Image height in pixels
+     * @param {number} imageWidth - Image width in pixels
+     * @param {number} imageHeight - Image height in pixels
      */
-    constructor(dataRange, imageWidth = 1000, imageHeight = 500) {
+    constructor(dataRange, imageWidth, imageHeight) {
+        if (!dataRange || typeof imageWidth !== 'number' || typeof imageHeight !== 'number') {
+            throw new Error('CoordinateSystem requires dataRange, imageWidth, and imageHeight');
+        }
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            throw new Error('Image dimensions must be positive numbers');
+        }
         /** @type {SVGViewBox} */
         this.svgViewBox = {
             x: 0,
@@ -49,18 +55,27 @@ export class CoordinateSystem {
         this.updateContainerSize();
     }
     
+    /**
+     * Update data range and image dimensions
+     * @param {DataRange} dataRange - New data coordinate ranges
+     * @param {number} imageWidth - New image width in pixels
+     * @param {number} imageHeight - New image height in pixels
+     */
     updateDataRange(dataRange, imageWidth, imageHeight) {
-        this.dataRange = { ...dataRange };
-        
-        // Update image dimensions if provided
-        if (imageWidth !== undefined && imageHeight !== undefined) {
-            this.imageSize.width = imageWidth;
-            this.imageSize.height = imageHeight;
-            
-            // Update SVG viewBox to match image dimensions
-            this.svgViewBox.width = imageWidth;
-            this.svgViewBox.height = imageHeight;
+        if (!dataRange || typeof imageWidth !== 'number' || typeof imageHeight !== 'number') {
+            throw new Error('updateDataRange requires dataRange, imageWidth, and imageHeight');
         }
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            throw new Error('Image dimensions must be positive numbers');
+        }
+        
+        this.dataRange = { ...dataRange };
+        this.imageSize.width = imageWidth;
+        this.imageSize.height = imageHeight;
+        
+        // Update SVG viewBox to match image dimensions
+        this.svgViewBox.width = imageWidth;
+        this.svgViewBox.height = imageHeight;
     }
     
     updateContainerSize() {
