@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Drag-to-Zoom Demonstrator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .mode-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .mode-btn {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .mode-btn.active {
+            background: #007cba;
+            color: white;
+            border-color: #005a85;
+        }
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .zoom-btn {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .zoom-btn:hover {
+            background: #e9e9e9;
+        }
+        .zoom-btn.active {
+            background: #007cba;
+            color: white;
+            border-color: #005a85;
+        }
+        .coordinates {
+            background: #2a2a2a;
+            color: #00ff00;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .demo-container {
+            position: relative;
+            border: 2px solid #ccc;
+            background: #fafafa;
+            overflow: visible;
+            margin: 70px 20px 40px 70px; /* top right bottom left - space for axis labels */
+        }
+        .demo-svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .selection-rect {
+            fill: rgba(0, 123, 186, 0.2);
+            stroke: #007cba;
+            stroke-width: 1;
+            stroke-dasharray: 3,3;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #0066aa;
+        }
+        .test-grid {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        .test-image {
+            text-align: center;
+        }
+        .test-image img {
+            max-width: 200px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Drag-to-Zoom Demonstrator</h1>
+        <p>Test implementation for coordinate transformation and zoom functionality before integration into GramFrame.</p>
+        
+        <div class="controls">
+            <div class="mode-controls">
+                <button class="mode-btn active" data-mode="pan">Pan Mode</button>
+                <button class="mode-btn" data-mode="zoom">Zoom Mode</button>
+            </div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" id="zoom-in">Zoom In (2x)</button>
+                <button class="zoom-btn" id="zoom-out">Zoom Out (0.5x)</button>
+                <button class="zoom-btn" id="zoom-reset">Reset Zoom</button>
+            </div>
+            <div class="image-controls">
+                <button class="zoom-btn" id="image-original">Original Image</button>
+                <button class="zoom-btn" id="image-scaled">Scaled Image</button>
+                <button class="zoom-btn active" id="image-offset">Offset Axes (Default)</button>
+                <button class="zoom-btn" id="image-mock">Mock Gram</button>
+            </div>
+        </div>
+
+        <div class="coordinates" id="coordinates">
+            Screen: (0, 0) | SVG: (0, 0) | Image: (0, 0) | Data: (0.0 Hz, 0.0 s) | Zoom: 1.0x | Pan: (0, 0)
+        </div>
+
+        <div class="demo-container" id="demo-container" style="width: 1000px; height: 500px;">
+            <svg class="demo-svg" id="demo-svg" viewBox="0 0 1000 500">
+                <defs>
+                    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                        <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#ddd" stroke-width="1"/>
+                    </pattern>
+                    <!-- Clipping path to constrain image to data coordinate area -->
+                    <clipPath id="data-area-clip">
+                        <rect x="0" y="0" width="1000" height="500"/>
+                    </clipPath>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+                
+                <!-- Image displayed normally (not inverted) -->
+                <g clip-path="url(#data-area-clip)">
+                    <g id="clipped-content">
+                        <image id="test-image" href="../sample/test-image-offset-axes.png" x="0" y="0" width="1000" height="500" />
+                    </g>
+                </g>
+                
+                <!-- UI elements with Y-axis inversion for correct coordinate system -->
+                <g id="ui-layer" transform="scale(1, -1) translate(0, -500)">
+                    <!-- Border around data coordinate area -->
+                    <rect x="0" y="0" width="1000" height="500" fill="none" stroke="#666" stroke-width="2"/>
+                    
+                    <!-- Overlay group for features -->
+                    <g id="overlay-group">
+                        <!-- Other overlay elements can go here -->
+                    </g>
+                    
+                    
+                    <!-- Axes in pixel coordinate space -->
+                    <g id="axes-group">
+                        <!-- Frequency axis (horizontal) at bottom of image -->
+                        <line x1="0" y1="0" x2="1000" y2="0" stroke="#333" stroke-width="2"/>
+                        <!-- Time axis (vertical) at left of image -->
+                        <line x1="0" y1="0" x2="0" y2="500" stroke="#333" stroke-width="2"/>
+                        
+                        <!-- Dynamic labels and ticks will be generated by JavaScript -->
+                    </g>
+                </g>
+                
+                <!-- Selection rectangle outside of inverted coordinate system -->
+                <rect id="selection-rect" class="selection-rect" style="display: none;" />
+            </svg>
+        </div>
+
+        <div class="status" id="status">
+            Ready. Use Pan mode to drag the view, or Zoom mode to select area for zoom in. Right-click to zoom out.
+        </div>
+
+        <div class="test-grid">
+            <div class="test-image">
+                <h4>Original Test Image</h4>
+                <img src="../sample/test-image.png" alt="Test coordinate grid">
+                <p>Grid pattern for coordinate validation (0-800, 0-400)</p>
+            </div>
+            <div class="test-image">
+                <h4>Scaled Test Image</h4>
+                <img src="../sample/test-image-scaled.png" alt="Scaled test coordinate grid">
+                <p>900×300 scaled version (0-800, 0-400)</p>
+            </div>
+            <div class="test-image">
+                <h4>Offset Axes Test Image (DEFAULT)</h4>
+                <img src="../sample/test-image-offset-axes.png" alt="Offset axes test coordinate grid">
+                <p>Non-zero ranges (100-900 Hz, 100-500 time), 1000×500 pixels</p>
+            </div>
+            <div class="test-image">
+                <h4>Mock Gram Test Image</h4>
+                <img src="../sample/mock-gram.png" alt="Mock spectrogram">
+                <p>Mock spectrogram (0-150 Hz, 0-60 s), 902×237 pixels</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

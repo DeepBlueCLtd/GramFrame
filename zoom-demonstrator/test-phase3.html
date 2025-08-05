@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 3 - Coordinate Transformation Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-results {
+            font-family: 'Courier New', monospace;
+            background: #2a2a2a;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #0056a0;
+        }
+        
+        .zoom-demo-container {
+            border: 1px solid #ccc;
+            background: white;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        #demo-container {
+            border: 2px solid #333;
+            position: relative;
+            display: inline-block;
+            background: #f0f0f0;
+        }
+        
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 4px;
+        }
+        
+        .error {
+            color: #ff0000;
+            background: #ffe0e0;
+        }
+        
+        .success {
+            color: #008000;
+            background: #e0ffe0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Phase 3 - API Compliance & Coordinate Transformation Tests</h1>
+        
+        <div class="test-section">
+            <h2>Coordinate Transformation Tests</h2>
+            <div class="control-panel">
+                <button onclick="runCoordinateTests()">Run Coordinate Tests</button>
+                <button onclick="runZoomPanTests()">Run Zoom/Pan Tests</button>
+                <button onclick="runAPITests()">Run API Compliance Tests</button>
+                <button onclick="runAllTests()">Run All Tests</button>
+            </div>
+            
+            <div id="test-results" class="test-results">
+                Test results will appear here...
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Live Zoom Demonstrator Test</h2>
+            <div class="control-panel">
+                <button onclick="testWithImage('offset')">Test Offset Image</button>
+                <button onclick="testWithImage('original')">Test Original Image</button>
+                <button onclick="testWithImage('scaled')">Test Scaled Image</button>
+                <button onclick="testWithImage('mock')">Test Mock Gram</button>
+            </div>
+            
+            <div id="status" class="status">
+                Ready to test zoom/pan functionality
+            </div>
+            
+            <div class="zoom-demo-container">
+                <div id="demo-container">
+                    <!-- SVG will be inserted here by JavaScript -->
+                </div>
+                <div id="coordinates" style="margin-top: 10px; font-family: monospace;">
+                    Coordinates will appear here...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { runAndDisplayTests } from './coordinateTests.js';
+        import { runAllBasicTests } from './basicCoordinateTests.js';
+        import { testAPICompliance } from './apiComplianceTests.js';
+        import { ZoomPanel } from './ZoomPanel.js';
+        import { getImageConfig } from './imageConfigs.js';
+        
+        let zoomPanel = null;
+        
+        // Coordinate transformation tests
+        window.runCoordinateTests = function() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.textContent = 'Running coordinate transformation tests...\n\n';
+            
+            try {
+                // Run basic tests that don't depend on DOM
+                const basicResults = runAllBasicTests();
+                
+                let output = 'BASIC COORDINATE TESTS:\n';
+                output += '========================\n';
+                output += `Coordinate transformations: ${basicResults.coordinate.summary.passed}/${basicResults.coordinate.summary.total} passed\n`;
+                output += `Zoom calculations: ${basicResults.zoom.filter(r => r.passed).length}/${basicResults.zoom.length} passed\n\n`;
+                
+                // Show detailed results
+                basicResults.coordinate.results.forEach(result => {
+                    output += `${result.name}: ${result.passed ? '✅ PASSED' : '❌ FAILED'}\n`;
+                    if (result.details.length > 0) {
+                        result.details.forEach(detail => output += `  ✅ ${detail}\n`);
+                    }
+                    if (result.errors.length > 0) {
+                        result.errors.forEach(error => output += `  ❌ ${error}\n`);
+                    }
+                    output += '\n';
+                });
+                
+                output += 'ZOOM TRANSFORM TESTS:\n';
+                output += '====================\n';
+                basicResults.zoom.forEach(result => {
+                    output += `${result.name}: ${result.passed ? '✅ PASSED' : '❌ FAILED'}\n`;
+                });
+                
+                output += `\nOVERALL: ${basicResults.allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}\n`;
+                
+                resultsDiv.textContent = output;
+                
+            } catch (error) {
+                resultsDiv.textContent += `\nError running tests: ${error.message}\n`;
+                console.error(error);
+            }
+        };
+        
+        // Zoom/Pan specific tests
+        window.runZoomPanTests = function() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.textContent = 'Running zoom/pan integration tests...\n';
+            
+            // Initialize a test instance if needed
+            if (!zoomPanel) {
+                initializeTestPanel('offset');
+            }
+            
+            // Test zoom operations
+            resultsDiv.textContent += '\nTesting zoom operations:\n';
+            
+            // Test 2x zoom
+            zoomPanel.zoomByFactor(2.0);
+            const state1 = zoomPanel.getState();
+            resultsDiv.textContent += `  2x zoom: ${state1.zoomState.scaleX === 2.0 ? '✅' : '❌'} Scale=${state1.zoomState.scaleX}\n`;
+            
+            // Test reset
+            zoomPanel.resetZoom();
+            const state2 = zoomPanel.getState();
+            resultsDiv.textContent += `  Reset zoom: ${state2.zoomState.scaleX === 1.0 ? '✅' : '❌'} Scale=${state2.zoomState.scaleX}\n`;
+            
+            // Test mode switching
+            resultsDiv.textContent += '\nTesting mode switching:\n';
+            zoomPanel.setMode('zoom');
+            resultsDiv.textContent += `  Switch to zoom mode: ${zoomPanel.getCurrentMode() === 'zoom' ? '✅' : '❌'}\n`;
+            
+            zoomPanel.setMode('pan');
+            resultsDiv.textContent += `  Switch to pan mode: ${zoomPanel.getCurrentMode() === 'pan' ? '✅' : '❌'}\n`;
+        };
+        
+        // API Compliance tests
+        window.runAPITests = function() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.textContent = 'Running API compliance tests...\n';
+            
+            try {
+                const results = testAPICompliance();
+                resultsDiv.textContent += results;
+            } catch (error) {
+                resultsDiv.textContent += `\nError in API tests: ${error.message}\n`;
+            }
+        };
+        
+        // Run all tests
+        window.runAllTests = function() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.textContent = 'Running all tests...\n\n';
+            
+            // Run each test suite
+            runCoordinateTests();
+            resultsDiv.textContent += '\n' + '='.repeat(50) + '\n\n';
+            
+            runZoomPanTests();
+            resultsDiv.textContent += '\n' + '='.repeat(50) + '\n\n';
+            
+            runAPITests();
+        };
+        
+        // Initialize test panel with specific image
+        function initializeTestPanel(imageKey) {
+            const container = document.getElementById('demo-container');
+            
+            // Create SVG structure
+            container.innerHTML = `
+                <svg id="demo-svg" width="800" height="400" viewBox="0 0 800 400" style="border: 1px solid #ccc;">
+                    <defs>
+                        <clipPath id="data-area-clip">
+                            <rect x="0" y="0" width="800" height="400" />
+                        </clipPath>
+                    </defs>
+                    
+                    <g id="clipped-content" clip-path="url(#data-area-clip)">
+                        <image id="test-image" x="0" y="0" width="800" height="400" 
+                               href="../sample/test-image.png" />
+                    </g>
+                    
+                    <g id="ui-layer" transform="scale(1, -1) translate(0, -400)">
+                        <rect x="0" y="0" width="800" height="400" fill="none" stroke="#333" stroke-width="2" />
+                        <rect id="selection-rect" x="0" y="0" width="0" height="0" 
+                              fill="none" stroke="#00ff00" stroke-width="2" stroke-dasharray="5,5" 
+                              style="display: none;" />
+                    </g>
+                    
+                    <g id="axes-group" stroke="#333" stroke-width="1">
+                        <line x1="0" y1="0" x2="800" y2="0" />
+                        <line x1="0" y1="0" x2="0" y2="400" />
+                    </g>
+                </svg>
+            `;
+            
+            // Initialize zoom panel
+            const config = getImageConfig(imageKey);
+            zoomPanel = new ZoomPanel(document.body, config);
+            
+            updateStatus(`Initialized with ${config.description}`);
+        }
+        
+        // Test with specific image
+        window.testWithImage = function(imageKey) {
+            try {
+                if (!zoomPanel) {
+                    initializeTestPanel(imageKey);
+                } else {
+                    const config = getImageConfig(imageKey);
+                    zoomPanel.switchImage(config);
+                }
+                
+                updateStatus(`Testing with ${imageKey} image`, 'success');
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+        
+        // Update status message
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateStatus('Phase 3 test page loaded. Click a button to run tests.');
+        });
+    </script>
+</body>
+</html>
