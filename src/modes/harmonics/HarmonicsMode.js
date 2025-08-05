@@ -48,8 +48,11 @@ export class HarmonicsMode extends BaseMode {
       this.handleHarmonicSetDrag()
     }
     
-    // Don't update harmonic panel on every mouse move - it causes flicker
-    // The rate updates are not critical enough to justify the performance cost
+    // Update harmonic panel ratio values on mouse movement to reflect current cursor position
+    // This ensures existing harmonic sets show their ratio relative to the current mouse position
+    if (this.state.harmonics.harmonicSets.length > 0) {
+      this.updateHarmonicPanel()
+    }
   }
 
   /**
