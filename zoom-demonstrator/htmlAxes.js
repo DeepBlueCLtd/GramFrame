@@ -3,11 +3,20 @@
  * 
  * Creates axis labels as HTML elements positioned absolutely outside the SVG image area.
  * No modifications to SVG coordinate system.
+ * 
+ * @typedef {import('./types.js').AxisLabel} AxisLabel
+ * @typedef {import('./types.js').VisibleDataBounds} VisibleDataBounds
  */
 
 export class HTMLAxisRenderer {
+    /**
+     * @param {import('./transformManager.js').TransformManager} transformManager - Transform manager instance
+     * @param {*} zoomDemonstrator - ZoomDemonstrator instance
+     */
     constructor(transformManager, zoomDemonstrator) {
+        /** @type {import('./transformManager.js').TransformManager} */
         this.transformManager = transformManager;
+        /** @type {*} */
         this.zoomDemo = zoomDemonstrator;
         
         // Get existing SVG axes group for tick marks
@@ -68,6 +77,13 @@ export class HTMLAxisRenderer {
     
     /**
      * Calculate optimal tick spacing
+     */
+    /**
+     * Calculate appropriate tick spacing for axis labels
+     * @param {number} dataMin - Minimum data value
+     * @param {number} dataMax - Maximum data value
+     * @param {number} availablePixels - Available pixels for the axis
+     * @returns {number} Tick interval in data units
      */
     calculateTickSpacing(dataMin, dataMax, availablePixels) {
         const dataRange = dataMax - dataMin;

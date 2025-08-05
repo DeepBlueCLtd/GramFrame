@@ -3,12 +3,20 @@
  * 
  * Provides real-time coordinate display and user interface management
  * for the drag-to-zoom demonstrator
+ * 
+ * @typedef {import('./types.js').CoordinateSet} CoordinateSet
  */
 
 export class UI {
+    /**
+     * @param {*} zoomDemo - ZoomDemonstrator instance
+     */
     constructor(zoomDemo) {
+        /** @type {*} */
         this.zoomDemo = zoomDemo;
+        /** @type {HTMLElement|null} */
         this.coordinatesElement = document.getElementById('coordinates');
+        /** @type {HTMLElement|null} */
         this.statusElement = document.getElementById('status');
         
         this.setupInitialState();
@@ -21,6 +29,7 @@ export class UI {
     /**
      * Update real-time coordinate display
      * Shows screen, SVG, image, and data coordinates with zoom/pan state
+     * @param {CoordinateSet} coords - All coordinate representations
      */
     updateCoordinates(coords) {
         const { screen, svg, image, data, zoom, pan } = coords;
@@ -51,6 +60,7 @@ export class UI {
     
     /**
      * Update status message
+     * @param {string} message - Status message to display
      */
     updateStatus(message) {
         this.statusElement.textContent = message;

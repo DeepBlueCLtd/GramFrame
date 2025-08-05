@@ -6,6 +6,13 @@
  * - Image dimensions: 1000×500 pixels
  * - Data coordinate ranges: 100-900 Hz, 100-500 time units
  * - SVG coordinate space: 100-900, 100-500 (1:1 mapping with data coordinates)
+ * 
+ * @typedef {import('./types.js').TestImageConfig} TestImageConfig
+ * @typedef {import('./types.js').TestImageConfigs} TestImageConfigs
+ * @typedef {import('./types.js').Point2D} Point2D
+ * @typedef {import('./types.js').InteractionMode} InteractionMode
+ * @typedef {import('./types.js').ZoomState} ZoomState
+ * @typedef {import('./types.js').CoordinateSet} CoordinateSet
  */
 
 import { CoordinateSystem } from './coordinates.js';
@@ -15,13 +22,18 @@ import { TransformManager } from './transformManager.js';
 
 class ZoomDemonstrator {
     constructor() {
+        /** @type {InteractionMode} */
         this.currentMode = 'pan';
+        /** @type {boolean} */
         this.isMouseDown = false;
+        /** @type {Point2D} */
         this.startPoint = { x: 0, y: 0 };
+        /** @type {number} */
         this.dragThreshold = 3; // pixels
+        /** @type {boolean} */
         this.isDragging = false;
         
-        // Test image configurations with native dimensions
+        /** @type {TestImageConfigs} */
         this.testImages = {
             'offset': {
                 src: '../sample/test-image-offset-axes.png',
@@ -53,6 +65,7 @@ class ZoomDemonstrator {
             }
         };
         
+        /** @type {string} */
         this.currentImage = 'offset'; // Default to offset-axes as specified
         
         this.init();
@@ -126,6 +139,10 @@ class ZoomDemonstrator {
         document.getElementById('image-mock').addEventListener('click', () => this.switchTestImage('mock'));
     }
     
+    /**
+     * Handle mouse down events
+     * @param {MouseEvent} event - Mouse event
+     */
     handleMouseDown(event) {
         event.preventDefault();
         this.isMouseDown = true;
@@ -142,6 +159,10 @@ class ZoomDemonstrator {
         }
     }
     
+    /**
+     * Handle mouse move events
+     * @param {MouseEvent} event - Mouse event
+     */
     handleMouseMove(event) {
         const rect = this.svg.getBoundingClientRect();
         const screenX = event.clientX - rect.left;
@@ -193,6 +214,10 @@ class ZoomDemonstrator {
         this.resetZoom();
     }
     
+    /**
+     * Set interaction mode
+     * @param {InteractionMode} mode - New interaction mode
+     */
     setMode(mode) {
         this.currentMode = mode;
         
@@ -263,6 +288,13 @@ class ZoomDemonstrator {
         this.zoomToRect(actualX, actualY, actualWidth, actualHeight);
     }
     
+    /**
+     * Zoom to a rectangle in SVG coordinates
+     * @param {number} x - Rectangle X coordinate
+     * @param {number} y - Rectangle Y coordinate  
+     * @param {number} width - Rectangle width
+     * @param {number} height - Rectangle height
+     */
     zoomToRect(x, y, width, height) {
         // x, y, width, height are in actual SVG coordinates (already inverse-transformed)
         this.transformManager.zoomToRect(x, y, width, height);

@@ -8,11 +8,22 @@
  * - SVG coordinate space: 100-900, 100-500 (matches data coordinates exactly)
  * - Data coordinate space: 100-900 Hz, 100-500 time units
  * - Image dimensions: 1000×500 pixels (physical image size)
+ * 
+ * @typedef {import('./types.js').DataRange} DataRange
+ * @typedef {import('./types.js').Point2D} Point2D
+ * @typedef {import('./types.js').SVGViewBox} SVGViewBox
+ * @typedef {import('./types.js').ImageDimensions} ImageDimensions
+ * @typedef {import('./types.js').ContainerDimensions} ContainerDimensions
  */
 
 export class CoordinateSystem {
+    /**
+     * @param {DataRange} dataRange - Data coordinate ranges
+     * @param {number} [imageWidth=1000] - Image width in pixels
+     * @param {number} [imageHeight=500] - Image height in pixels
+     */
     constructor(dataRange, imageWidth = 1000, imageHeight = 500) {
-        // Initialize SVG viewport first
+        /** @type {SVGViewBox} */
         this.svgViewBox = {
             x: 0,
             y: 0, 
@@ -20,13 +31,13 @@ export class CoordinateSystem {
             height: imageHeight
         };
         
-        // Initialize image size
+        /** @type {ImageDimensions} */
         this.imageSize = {
             width: imageWidth,   // Physical image width in pixels
             height: imageHeight  // Physical image height in pixels  
         };
         
-        // Physical SVG container size (pixels) - will be updated dynamically
+        /** @type {ContainerDimensions} */
         this.svgContainer = {
             width: imageWidth,
             height: imageHeight
