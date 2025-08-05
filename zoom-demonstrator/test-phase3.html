@@ -136,6 +136,7 @@
 
     <script type="module">
         import { runAndDisplayTests } from './coordinateTests.js';
+        import { runAllBasicTests } from './basicCoordinateTests.js';
         import { testAPICompliance } from './apiComplianceTests.js';
         import { ZoomPanel } from './ZoomPanel.js';
         import { getImageConfig } from './imageConfigs.js';
@@ -145,22 +146,39 @@
         // Coordinate transformation tests
         window.runCoordinateTests = function() {
             const resultsDiv = document.getElementById('test-results');
-            resultsDiv.textContent = 'Running coordinate transformation tests...\n';
+            resultsDiv.textContent = 'Running coordinate transformation tests...\n\n';
             
             try {
-                const summary = runAndDisplayTests();
-                resultsDiv.textContent = `Tests completed: ${summary.summary.passed} passed, ${summary.summary.failed} failed\n\n`;
+                // Run basic tests that don't depend on DOM
+                const basicResults = runAllBasicTests();
                 
-                // Display detailed results
-                summary.results.forEach(result => {
-                    resultsDiv.textContent += `\n${result.name}: ${result.passed ? '✅ PASSED' : '❌ FAILED'}\n`;
-                    result.details.forEach(detail => {
-                        resultsDiv.textContent += `  ${detail}\n`;
-                    });
-                    result.errors.forEach(error => {
-                        resultsDiv.textContent += `  ❌ ${error}\n`;
-                    });
+                let output = 'BASIC COORDINATE TESTS:\n';
+                output += '========================\n';
+                output += `Coordinate transformations: ${basicResults.coordinate.summary.passed}/${basicResults.coordinate.summary.total} passed\n`;
+                output += `Zoom calculations: ${basicResults.zoom.filter(r => r.passed).length}/${basicResults.zoom.length} passed\n\n`;
+                
+                // Show detailed results
+                basicResults.coordinate.results.forEach(result => {
+                    output += `${result.name}: ${result.passed ? '✅ PASSED' : '❌ FAILED'}\n`;
+                    if (result.details.length > 0) {
+                        result.details.forEach(detail => output += `  ✅ ${detail}\n`);
+                    }
+                    if (result.errors.length > 0) {
+                        result.errors.forEach(error => output += `  ❌ ${error}\n`);
+                    }
+                    output += '\n';
                 });
+                
+                output += 'ZOOM TRANSFORM TESTS:\n';
+                output += '====================\n';
+                basicResults.zoom.forEach(result => {
+                    output += `${result.name}: ${result.passed ? '✅ PASSED' : '❌ FAILED'}\n`;
+                });
+                
+                output += `\nOVERALL: ${basicResults.allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}\n`;
+                
+                resultsDiv.textContent = output;
+                
             } catch (error) {
                 resultsDiv.textContent += `\nError running tests: ${error.message}\n`;
                 console.error(error);

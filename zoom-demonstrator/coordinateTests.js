@@ -220,7 +220,7 @@ function testRoundTrip(coordSystem, config, result) {
  * Mock DOM elements for testing
  */
 function mockDOMElements(config) {
-    // Mock container element
+    // For Node.js testing, mock document completely
     if (typeof document === 'undefined') {
         global.document = {
             getElementById: (id) => {
@@ -229,12 +229,23 @@ function mockDOMElements(config) {
                         getBoundingClientRect: () => ({
                             width: config.imageWidth,
                             height: config.imageHeight
-                        })
+                        }),
+                        clientWidth: config.imageWidth,
+                        clientHeight: config.imageHeight
                     };
                 }
                 return null;
             }
         };
+    }
+    
+    // For browser testing, ensure container exists
+    if (typeof document !== 'undefined' && !document.getElementById('demo-container')) {
+        const container = document.createElement('div');
+        container.id = 'demo-container';
+        container.style.width = `${config.imageWidth}px`;
+        container.style.height = `${config.imageHeight}px`;
+        document.body.appendChild(container);
     }
 }
 
