@@ -68,7 +68,8 @@
       "Bash(git commit:*)",
       "Bash(git restore:*)",
       "Bash(echo:*)",
-      "Bash(gh issue create:*)"
+      "Bash(gh issue create:*)",
+      "Bash(cp:*)"
     ]
   }
 }

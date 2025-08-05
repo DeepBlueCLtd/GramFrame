@@ -1,8 +1,9 @@
 /**
- * ZoomPanel Component
+ * ZoomPanel Component - Phase 2 with BaseMode Architecture
  * 
- * Encapsulates zoom/pan functionality for spectrograms
- * Designed to be integrated into GramFrame as one of many features
+ * Encapsulates zoom/pan functionality using BaseMode pattern
+ * Integrates with centralized state management and mode switching
+ * following GramFrame architecture patterns.
  * 
  * @typedef {import('./types.js').TestImageConfig} TestImageConfig
  * @typedef {import('./types.js').Point2D} Point2D
@@ -15,6 +16,8 @@ import { CoordinateSystem } from './coordinates.js';
 import { UI } from './ui.js';
 import { HTMLAxisRenderer } from './htmlAxes.js';
 import { TransformManager } from './transformManager.js';
+import { StateManager } from './StateManager.js';
+import { ModeManager } from './ModeManager.js';
 
 export class ZoomPanel {
     /**
@@ -24,28 +27,19 @@ export class ZoomPanel {
     constructor(container, initialImageConfig) {
         /** @type {HTMLElement} */
         this.container = container;
-        
-        /** @type {InteractionMode} */
-        this.currentMode = 'pan';
-        /** @type {boolean} */
-        this.isMouseDown = false;
-        /** @type {Point2D} */
-        this.startPoint = { x: 0, y: 0 };
-        /** @type {number} */
-        this.dragThreshold = 3; // pixels
-        /** @type {boolean} */
-        this.isDragging = false;
-        
         /** @type {TestImageConfig} */
         this.currentImageConfig = initialImageConfig;
         
         this.initializeComponents();
         this.setupEventListeners();
+        this.setupResizeObserver();
         this.updateDisplay();
+        
+        console.log('ZoomPanel Phase 2 initialized with BaseMode architecture');
     }
     
     /**
-     * Initialize internal components
+     * Initialize internal components with BaseMode architecture
      */
     initializeComponents() {
         // Get DOM elements
@@ -69,23 +63,98 @@ export class ZoomPanel {
         // Initialize TransformManager
         this.transformManager = new TransformManager(this.coordinateSystem, this.demoContainer);
         
-        // Initialize UI
+        // Initialize State Manager with listener pattern
+        this.stateManager = new StateManager();
+        this.setupStateListeners();
+        
+        // Initialize UI first (before ModeManager)
         this.ui = new UI(this);
         
         // Initialize HTML overlay axis renderer
         this.axisRenderer = new HTMLAxisRenderer(this.transformManager, this);
         
-        console.log('ZoomPanel initialized with image:', this.currentImageConfig.description);
+        // Initialize Mode Manager after UI is ready
+        this.modeManager = new ModeManager(this, this.stateManager);
+        
+        // Update initial state
+        this.stateManager.updateImageConfig(this.currentImageConfig);
+        this.stateManager.updateZoomState(this.transformManager.getZoomState());
+    }
+    
+    /**
+     * Set up state change listeners
+     */
+    setupStateListeners() {
+        this.stateManager.addListener((state) => {
+            // Handle state changes that affect the UI
+            if (state.eventHistory.length > 0) {
+                const lastEvent = state.eventHistory[state.eventHistory.length - 1];
+                
+                switch (lastEvent.action) {
+                    case 'mode_change':
+                        this.onModeChanged(lastEvent.newMode);
+                        break;
+                    case 'zoom_state_update':
+                        this.onZoomStateChanged(lastEvent.newZoomState);
+                        break;
+                    case 'status_update':
+                        // UI already handles this
+                        break;
+                }
+            }
+        });
+    }
+    
+    /**
+     * Handle mode change events
+     * @param {InteractionMode} newMode - New active mode
+     */
+    onModeChanged(newMode) {
+        // Update UI to reflect mode change
+        console.log(`ZoomPanel: Mode changed to ${newMode}`);
+        
+        // Update any mode-specific UI elements
+        this.updateModeUI(newMode);
+    }
+    
+    /**
+     * Handle zoom state change events
+     * @param {ZoomState} newZoomState - New zoom state
+     */
+    onZoomStateChanged(newZoomState) {
+        // Sync TransformManager if needed
+        const currentState = this.transformManager.getZoomState();
+        if (JSON.stringify(currentState) !== JSON.stringify(newZoomState)) {
+            // State is out of sync, update TransformManager
+            this.transformManager.setZoomLevel(newZoomState.scaleX, newZoomState.scaleY);
+            this.transformManager.setViewOffset(newZoomState.panX, newZoomState.panY);
+        }
+    }
+    
+    /**
+     * Update mode-specific UI elements
+     * @param {InteractionMode} mode - Current mode
+     */
+    updateModeUI(mode) {
+        // Update cursor and other mode-specific UI
+        if (this.modeManager) {
+            this.modeManager.updateCursor();
+            
+            // Update any mode indicators in the UI
+            const modeDisplayName = this.modeManager.getCurrentModeDisplayName();
+            // Could update a mode indicator here if needed
+        }
     }
     
     /**
      * Set up event listeners for zoom/pan interactions
      */
     setupEventListeners() {
-        // Mouse events for pan/zoom interactions
+        // Mouse events - delegate to ModeManager
         this.svg.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.svg.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.svg.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        this.svg.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
         this.svg.addEventListener('contextmenu', this.handleRightClick.bind(this));
         
         // Prevent context menu
@@ -93,83 +162,81 @@ export class ZoomPanel {
     }
     
     /**
-     * Handle mouse down events
+     * Setup ResizeObserver for responsive behavior
+     */
+    setupResizeObserver() {
+        if (typeof ResizeObserver !== 'undefined') {
+            this.resizeObserver = new ResizeObserver(entries => {
+                this.handleResize(entries);
+            });
+            
+            // Observe the container
+            this.resizeObserver.observe(this.demoContainer);
+            
+            console.log('ResizeObserver initialized');
+        } else {
+            console.warn('ResizeObserver not available');
+        }
+    }
+    
+    /**
+     * Handle resize events
+     * @param {ResizeObserverEntry[]} entries - Resize observer entries
+     */
+    handleResize(entries) {
+        // Update coordinate system for new container size
+        this.coordinateSystem.updateContainerSize();
+        
+        // Update axis renderer
+        this.axisRenderer.updateAxes();
+        
+        // Notify state manager
+        this.stateManager.notifyStateChange({
+            action: 'resize',
+            containerSize: {
+                width: this.demoContainer.clientWidth,
+                height: this.demoContainer.clientHeight
+            }
+        });
+    }
+    
+    /**
+     * Handle mouse down events - delegate to ModeManager
      * @param {MouseEvent} event - Mouse event
      */
     handleMouseDown(event) {
-        event.preventDefault();
-        this.isMouseDown = true;
-        this.isDragging = false;
-        
-        /** @type {DOMRect} */
-        const rect = this.svg.getBoundingClientRect();
-        this.startPoint = {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-        };
-        
-        if (this.currentMode === 'zoom') {
-            this.startSelectionRect();
-        }
+        const coords = this.getCoordinatesForEvent(event);
+        this.modeManager.handleMouseDown(event, coords);
     }
     
     /**
-     * Handle mouse move events
+     * Handle mouse move events - delegate to ModeManager
      * @param {MouseEvent} event - Mouse event
      */
     handleMouseMove(event) {
-        /** @type {DOMRect} */
-        const rect = this.svg.getBoundingClientRect();
-        /** @type {number} */
-        const screenX = event.clientX - rect.left;
-        /** @type {number} */
-        const screenY = event.clientY - rect.top;
+        const coords = this.getCoordinatesForEvent(event);
         
-        // Update coordinate display regardless of mouse state
-        this.updateCoordinateDisplay(screenX, screenY);
+        // Always update coordinate display
+        this.updateCoordinateDisplay(coords.screen.x, coords.screen.y);
         
-        if (!this.isMouseDown) return;
-        
-        // Check if we've moved enough to start dragging
-        /** @type {number} */
-        const deltaX = screenX - this.startPoint.x;
-        /** @type {number} */
-        const deltaY = screenY - this.startPoint.y;
-        /** @type {number} */
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        
-        if (distance > this.dragThreshold) {
-            this.isDragging = true;
-        }
-        
-        if (!this.isDragging) return;
-        
-        if (this.currentMode === 'pan') {
-            this.transformManager.updatePan(deltaX, deltaY);
-            // Update start point for next delta calculation
-            this.startPoint.x = screenX;
-            this.startPoint.y = screenY;
-            this.applyTransform();
-        } else if (this.currentMode === 'zoom') {
-            this.updateSelectionRect(screenX, screenY);
-        }
+        // Delegate to mode manager
+        this.modeManager.handleMouseMove(event, coords);
     }
     
     /**
-     * Handle mouse up events
+     * Handle mouse up events - delegate to ModeManager
      * @param {MouseEvent} event - Mouse event
      */
     handleMouseUp(event) {
-        if (!this.isMouseDown) return;
-        
-        this.isMouseDown = false;
-        
-        if (this.currentMode === 'zoom' && this.isDragging) {
-            this.finishZoomSelection();
-        }
-        
-        this.isDragging = false;
-        this.hideSelectionRect();
+        const coords = this.getCoordinatesForEvent(event);
+        this.modeManager.handleMouseUp(event, coords);
+    }
+    
+    /**
+     * Handle mouse leave events - delegate to ModeManager
+     */
+    handleMouseLeave() {
+        this.modeManager.handleMouseLeave();
     }
     
     /**
@@ -182,12 +249,35 @@ export class ZoomPanel {
     }
     
     /**
-     * Set interaction mode
+     * Get coordinates for a mouse event
+     * @param {MouseEvent} event - Mouse event
+     * @returns {CoordinateSet} All coordinate representations
+     */
+    getCoordinatesForEvent(event) {
+        /** @type {DOMRect} */
+        const rect = this.svg.getBoundingClientRect();
+        /** @type {number} */
+        const screenX = event.clientX - rect.left;
+        /** @type {number} */
+        const screenY = event.clientY - rect.top;
+        
+        return this.transformManager.getAllCoordinates(screenX, screenY);
+    }
+    
+    /**
+     * Set interaction mode - delegate to ModeManager
      * @param {InteractionMode} mode - New interaction mode
      */
     setMode(mode) {
-        this.currentMode = mode;
-        this.ui.updateStatus(`Switched to ${mode} mode`);
+        this.modeManager.setMode(mode);
+    }
+    
+    /**
+     * Get current mode
+     * @returns {InteractionMode} Current mode
+     */
+    getCurrentMode() {
+        return this.modeManager.getCurrentModeName();
     }
     
     /**
@@ -212,27 +302,33 @@ export class ZoomPanel {
         // Update clipping path to match image dimensions
         /** @type {SVGRectElement} */
         const clipRect = this.container.querySelector('#data-area-clip rect');
-        clipRect.setAttribute('width', imageConfig.nativeWidth.toString());
-        clipRect.setAttribute('height', imageConfig.nativeHeight.toString());
+        if (clipRect) {
+            clipRect.setAttribute('width', imageConfig.nativeWidth.toString());
+            clipRect.setAttribute('height', imageConfig.nativeHeight.toString());
+        }
         
         // Update UI layer transform for coordinate system inversion
         /** @type {SVGGElement} */
         const uiLayer = this.container.querySelector('#ui-layer');
-        uiLayer.setAttribute('transform', `scale(1, -1) translate(0, -${imageConfig.nativeHeight})`);
+        if (uiLayer) {
+            uiLayer.setAttribute('transform', `scale(1, -1) translate(0, -${imageConfig.nativeHeight})`);
+        }
         
         // Update border rectangle in UI layer
         /** @type {SVGRectElement} */
         const borderRect = this.container.querySelector('#ui-layer rect');
-        borderRect.setAttribute('width', imageConfig.nativeWidth.toString());
-        borderRect.setAttribute('height', imageConfig.nativeHeight.toString());
+        if (borderRect) {
+            borderRect.setAttribute('width', imageConfig.nativeWidth.toString());
+            borderRect.setAttribute('height', imageConfig.nativeHeight.toString());
+        }
         
         // Update axes
         /** @type {SVGLineElement} */
         const freqAxis = this.container.querySelector('#axes-group line:first-child');
         /** @type {SVGLineElement} */
         const timeAxis = this.container.querySelector('#axes-group line:last-child');
-        freqAxis.setAttribute('x2', imageConfig.nativeWidth.toString());
-        timeAxis.setAttribute('y2', imageConfig.nativeHeight.toString());
+        if (freqAxis) freqAxis.setAttribute('x2', imageConfig.nativeWidth.toString());
+        if (timeAxis) timeAxis.setAttribute('y2', imageConfig.nativeHeight.toString());
         
         // Update coordinate system with new dimensions
         this.coordinateSystem.updateDataRange(
@@ -248,7 +344,11 @@ export class ZoomPanel {
         this.resetZoom();
         
         // Update axes for new image
+        this.axisRenderer.clearLabels();
         this.axisRenderer.updateAxes();
+        
+        // Update state manager
+        this.stateManager.updateImageConfig(imageConfig);
         
         this.ui.updateStatus(`Switched to ${imageConfig.description} (${imageConfig.nativeWidth}×${imageConfig.nativeHeight}px)`);
     }
@@ -270,106 +370,6 @@ export class ZoomPanel {
     }
     
     /**
-     * Start selection rectangle for zoom mode
-     */
-    startSelectionRect() {
-        // Get coordinates without Y inversion for selection rectangle
-        /** @type {Point2D} */
-        const svgPoint = this.coordinateSystem.screenToSVG(this.startPoint.x, this.startPoint.y, false);
-        
-        this.selectionRect.setAttribute('x', svgPoint.x.toString());
-        this.selectionRect.setAttribute('y', svgPoint.y.toString());
-        this.selectionRect.setAttribute('width', '0');
-        this.selectionRect.setAttribute('height', '0');
-        this.selectionRect.style.display = 'block';
-    }
-    
-    /**
-     * Update selection rectangle during zoom drag
-     * @param {number} screenX - Current screen X coordinate
-     * @param {number} screenY - Current screen Y coordinate
-     */
-    updateSelectionRect(screenX, screenY) {
-        // Get coordinates without Y inversion for selection rectangle
-        /** @type {Point2D} */
-        const startSVG = this.coordinateSystem.screenToSVG(this.startPoint.x, this.startPoint.y, false);
-        /** @type {Point2D} */
-        const currentSVG = this.coordinateSystem.screenToSVG(screenX, screenY, false);
-        
-        /** @type {number} */
-        const x = Math.min(startSVG.x, currentSVG.x);
-        /** @type {number} */
-        const y = Math.min(startSVG.y, currentSVG.y);
-        /** @type {number} */
-        const width = Math.abs(currentSVG.x - startSVG.x);
-        /** @type {number} */
-        const height = Math.abs(currentSVG.y - startSVG.y);
-        
-        this.selectionRect.setAttribute('x', x.toString());
-        this.selectionRect.setAttribute('y', y.toString());
-        this.selectionRect.setAttribute('width', width.toString());
-        this.selectionRect.setAttribute('height', height.toString());
-    }
-    
-    /**
-     * Finish zoom selection and apply zoom
-     */
-    finishZoomSelection() {
-        /** @type {SVGRectElement} */
-        const rect = this.selectionRect;
-        /** @type {number} */
-        const x = parseFloat(rect.getAttribute('x'));
-        /** @type {number} */
-        const y = parseFloat(rect.getAttribute('y'));
-        /** @type {number} */
-        const width = parseFloat(rect.getAttribute('width'));
-        /** @type {number} */
-        const height = parseFloat(rect.getAttribute('height'));
-        
-        // Minimum selection size to prevent accidental tiny zooms
-        if (width < 10 || height < 10) {
-            this.ui.updateStatus('Selection too small for zoom');
-            return;
-        }
-        
-        // Apply inverse transform to get actual coordinates in image space
-        /** @type {ZoomState} */
-        const zoomState = this.zoomState;
-        /** @type {number} */
-        const actualX = (x - zoomState.panX) / zoomState.scaleX;
-        /** @type {number} */
-        const actualY = (y - zoomState.panY) / zoomState.scaleY;
-        /** @type {number} */
-        const actualWidth = width / zoomState.scaleX;
-        /** @type {number} */
-        const actualHeight = height / zoomState.scaleY;
-        
-        this.zoomToRect(actualX, actualY, actualWidth, actualHeight);
-    }
-    
-    /**
-     * Zoom to a rectangle in SVG coordinates
-     * @param {number} x - Rectangle X coordinate
-     * @param {number} y - Rectangle Y coordinate  
-     * @param {number} width - Rectangle width
-     * @param {number} height - Rectangle height
-     */
-    zoomToRect(x, y, width, height) {
-        this.transformManager.zoomToRect(x, y, width, height);
-        this.applyTransform();
-        /** @type {ZoomState} */
-        const zoomState = this.transformManager.getZoomState();
-        this.ui.updateStatus(`Zoomed: ${zoomState.scaleX.toFixed(2)}x × ${zoomState.scaleY.toFixed(2)}x`);
-    }
-    
-    /**
-     * Hide selection rectangle
-     */
-    hideSelectionRect() {
-        this.selectionRect.style.display = 'none';
-    }
-    
-    /**
      * Zoom by factor around center
      * @param {number} factor - Zoom factor
      */
@@ -377,6 +377,9 @@ export class ZoomPanel {
         this.transformManager.zoomByFactor(factor);
         this.applyTransform();
         this.ui.updateStatus(`Zoom: ${factor}x applied around center`);
+        
+        // Update state
+        this.stateManager.updateZoomState(this.transformManager.getZoomState());
     }
     
     /**
@@ -386,6 +389,9 @@ export class ZoomPanel {
         this.transformManager.resetTransform();
         this.applyTransform();
         this.ui.updateStatus('Zoom reset to 1:1 scale');
+        
+        // Update state
+        this.stateManager.updateZoomState(this.transformManager.getZoomState());
     }
     
     /**
@@ -401,6 +407,9 @@ export class ZoomPanel {
         
         // Update axes after zoom/pan
         this.axisRenderer.updateAxes();
+        
+        // Update state
+        this.stateManager.updateZoomState(this.transformManager.getZoomState());
     }
     
     /**
@@ -412,22 +421,68 @@ export class ZoomPanel {
         /** @type {CoordinateSet} */
         const coords = this.transformManager.getAllCoordinates(screenX, screenY);
         this.ui.updateCoordinates(coords);
+        
+        // Update state with cursor position
+        this.stateManager.updateCursorPosition(coords);
+        
+        // Update mode displays
+        this.modeManager.updateDisplays(coords);
     }
     
     /**
      * Update display (placeholder for future enhancements)
      */
     updateDisplay() {
-        // This will be called after transforms are applied
-        // Future enhancements can be added here
+        // Render persistent features for active mode
+        this.modeManager.renderPersistentFeatures();
+        
+        // Render cursor for active mode
+        this.modeManager.renderCursor();
+    }
+    
+    /**
+     * Get current state snapshot
+     * @returns {*} Current state
+     */
+    getState() {
+        return this.stateManager.getState();
+    }
+    
+    /**
+     * Get mode manager instance
+     * @returns {ModeManager} Mode manager
+     */
+    getModeManager() {
+        return this.modeManager;
+    }
+    
+    /**
+     * Get state manager instance
+     * @returns {StateManager} State manager
+     */
+    getStateManager() {
+        return this.stateManager;
     }
     
     /**
      * Destroy the zoom panel and clean up resources
      */
     destroy() {
+        // Clean up resize observer
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+        
+        // Clean up mode manager
+        this.modeManager.destroy();
+        
+        // Clean up axis renderer
         this.axisRenderer.destroy();
-        // Remove event listeners if needed
-        // Additional cleanup can be added here
+        
+        // Clean up state listeners
+        this.stateManager.listeners = [];
+        
+        console.log('ZoomPanel Phase 2 destroyed');
     }
 }
