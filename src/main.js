@@ -47,6 +47,7 @@ import {
 } from './core/keyboardControl.js'
 
 import { setupComponentTable, setupSpectrogramImage, updateSVGLayout, renderAxes, applyZoomTransform } from './components/table.js'
+import { BaseMode } from './modes/BaseMode.js'
 
 /**
  * GramFrame class - Main component implementation
@@ -160,9 +161,9 @@ export class GramFrame {
     // Harmonic management panel will be created by HarmonicsMode when activated
     
     // Initialize mode infrastructure
-    /** @type {Object<string, import('./modes/BaseMode.js').BaseMode>} */
+    /** @type {Object<string, BaseMode>} */
     this.modes = {}
-    /** @type {import('./modes/BaseMode.js').BaseMode} */
+    /** @type {BaseMode} */
     this.currentMode = null
     
     // Initialize centralized feature renderer
