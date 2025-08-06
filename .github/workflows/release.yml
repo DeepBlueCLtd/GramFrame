@@ -246,26 +246,21 @@ jobs:
           echo "release-notes-file=release-notes.md" >> $GITHUB_OUTPUT
 
       - name: Create GitHub release
-        uses: actions/create-release@v1
         id: create-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.validate-tag.outputs.tag }}
-          release_name: "GramFrame v${{ steps.validate-tag.outputs.version }}"
-          body_path: release-notes.md
-          draft: false
-          prerelease: false
-
-      - name: Upload release asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: ./${{ steps.assets.outputs.archive-name }}
-          asset_name: ${{ steps.assets.outputs.archive-name }}
-          asset_content_type: application/gzip
+        run: |
+          echo "🚀 Creating GitHub release..."
+          
+          # Create release with GitHub CLI
+          RELEASE_URL=$(gh release create "${{ steps.validate-tag.outputs.tag }}" \
+            --title "GramFrame v${{ steps.validate-tag.outputs.version }}" \
+            --notes-file release-notes.md \
+            --verify-tag \
+            ./${{ steps.assets.outputs.archive-name }})
+          
+          echo "release-url=$RELEASE_URL" >> $GITHUB_OUTPUT
+          echo "✅ Release created successfully: $RELEASE_URL"
 
       - name: Release summary
         run: |
@@ -274,7 +269,7 @@ jobs:
           echo "   - Tag: ${{ steps.validate-tag.outputs.tag }}"
           echo "   - Version: ${{ steps.validate-tag.outputs.version }}"
           echo "   - Archive: ${{ steps.assets.outputs.archive-name }}"
-          echo "   - Release URL: ${{ steps.create-release.outputs.html_url }}"
+          echo "   - Release URL: ${{ steps.create-release.outputs.release-url }}"
           echo "✅ All steps completed successfully"
 
       - name: Notify completion
@@ -282,7 +277,7 @@ jobs:
         run: |
           if [ ${{ job.status }} == 'success' ]; then
             MESSAGE="✅ GramFrame v${{ steps.validate-tag.outputs.version }} released successfully! 
-            🔗 Release URL: ${{ steps.create-release.outputs.html_url }}
+            🔗 Release URL: ${{ steps.create-release.outputs.release-url }}
             📦 Archive: ${{ steps.assets.outputs.archive-name }}"
           else
             MESSAGE="❌ GramFrame release v${{ steps.validate-tag.outputs.version }} failed
