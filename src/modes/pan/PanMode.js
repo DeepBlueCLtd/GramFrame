@@ -1,4 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
+import { getVersion } from '../../utils/version.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { applyZoomTransform } from '../../components/table.js'
 
@@ -196,6 +197,7 @@ export class PanMode extends BaseMode {
       <p>• Pan is only available when image is zoomed in</p>
       <p>• Click and drag to pan the view when zoomed in</p>
       <p>• Use the zoom controls to zoom in before panning</p>
+      <p>• GramFrame v${getVersion()}</p>
     `
   }
 
