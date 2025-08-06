@@ -583,3 +583,88 @@ None
 
 **Next Steps (Optional):**
 Algorithm now scales from tight zoomed-in views (2Hz intervals) to wide range views (500Hz intervals) while maintaining optimal visual density and "nice" human-readable numbers.
+
+---
+**Agent:** Implementation Agent  
+**Task Reference:** GitHub Issue #106 (Feature: Ensure file:// protocol compatibility for standalone HTML deployment)
+
+**Summary:**
+Successfully implemented file:// protocol compatibility for GramFrame by creating a standalone IIFE (Immediately Invoked Function Expression) build that bundles all dependencies into a single JavaScript file with inlined CSS. This enables GramFrame to function perfectly when HTML files are opened directly from the file system without requiring a web server.
+
+**Details:**
+- **Dual Build System:** Enhanced vite.config.js to support both standard development builds and standalone builds via `BUILD_STANDALONE=true` environment variable
+- **IIFE Bundle Format:** Configured Rollup to output IIFE format instead of ES modules, eliminating CORS issues with `<script type="module">` tags
+- **CSS Inlining:** Implemented custom Rollup plugin that injects CSS content directly into JavaScript bundle and auto-applies styles via `document.head.appendChild(style)`
+- **Relative Path Resolution:** Set `base: './'` to ensure all asset references use relative paths instead of absolute `/assets/` paths
+- **Single File Output:** Created complete standalone bundle at `dist/gramframe.bundle.js` (185KB) with all dependencies and CSS included
+- **Comprehensive Testing:** Created `test-file-protocol.html` with multiple GramFrame instances testing Analysis, Harmonics, and Doppler modes
+
+**Key Architecture Changes:**
+- Vite configuration now conditionally outputs either standard multi-file build or standalone IIFE bundle
+- CSS injection occurs automatically at bundle load time, ensuring styles are available before component initialization
+- Bundle maintains unminified format for field debugging while eliminating external dependencies
+- Backward compatibility preserved - existing development workflow remains unchanged using standard `yarn build`
+
+**Code Impact:**
+- Modified: `vite.config.js` (added conditional build configuration with CSS inlining plugin)
+- Modified: `src/index.js` (added CSS import for bundling)
+- Modified: `package.json` (added `build:standalone` script)
+- Added: `test-file-protocol.html` (comprehensive test file for file:// protocol validation)
+
+**Technical Implementation:**
+```javascript
+// Standalone build configuration (vite.config.js:7-54)
+if (isStandalone) {
+  return {
+    build: {
+      base: './',
+      cssCodeSplit: false,
+      rollupOptions: {
+        input: resolve(__dirname, 'src/index.js'),
+        output: {
+          format: 'iife',
+          name: 'GramFrame',
+          inlineDynamicImports: true,
+          entryFileNames: 'gramframe.bundle.js'
+        },
+        plugins: [{
+          name: 'inline-css',
+          generateBundle(options, bundle) {
+            // CSS injection logic
+            jsFile.code = jsFile.code.replace('(function() {',
+              `(function() {
+  const style = document.createElement('style');
+  style.textContent = ${JSON.stringify(cssContent)};
+  document.head.appendChild(style);`)
+          }
+        }]
+      }
+    }
+  }
+}
+```
+
+**Build Commands:**
+```bash
+# Standard development build
+yarn build
+
+# Standalone file:// compatible build  
+yarn build:standalone
+```
+
+**Testing Results:**
+- TypeScript compilation: ✅ Passed
+- Bundle generation: ✅ Single 185KB file created
+- CSS injection: ✅ Verified in bundle output
+- File protocol compatibility: ✅ Opens directly without server
+- Multi-instance support: ✅ All three modes tested
+- No CORS errors: ✅ Confirmed in browser console
+
+**Status:** Completed
+
+**Issues/Blockers:**
+None
+
+**Deployment Impact:**
+This enables standalone HTML deployment for users who receive spectrogram files without web server infrastructure. Users can now simply open HTML files directly from their file system, making GramFrame suitable for field deployment scenarios and standalone documentation packages.
