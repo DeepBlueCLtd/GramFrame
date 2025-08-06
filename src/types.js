@@ -15,6 +15,7 @@
  * @property {DataCoordinates|null} fMinus - f- marker position
  * @property {DataCoordinates|null} fZero - f₀ marker position
  * @property {number|null} speed - Calculated speed in m/s
+ * @property {string|null} color - Color used for this doppler curve
  * @property {boolean} isDragging - Whether currently dragging a marker
  * @property {string|null} draggedMarker - Which marker is being dragged
  * @property {boolean} isPlacingMarkers - Whether in marker placement mode
@@ -77,7 +78,6 @@
  * @property {boolean} isDragging - Whether currently dragging a marker
  * @property {string|null} draggedMarkerId - ID of marker being dragged
  * @property {DataCoordinates|null} dragStartPosition - Starting position of drag with freq and time properties
- * @property {string} selectedColor - Currently selected color for markers
  */
 
 /**
@@ -103,7 +103,6 @@
  * @property {number|null} baseFrequency - Base frequency for harmonic calculations
  * @property {HarmonicData[]} harmonicData - Array of calculated harmonic data
  * @property {HarmonicSet[]} harmonicSets - Array of harmonic sets with persistent overlays
- * @property {string} selectedColor - Currently selected color for new harmonic sets
  */
 
 
@@ -167,6 +166,7 @@
  * @property {ModeType} mode - Current analysis mode
  * @property {ModeType|null} previousMode - Previous analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
+ * @property {string} selectedColor - Currently selected color for new features across all modes
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {HarmonicsState} harmonics - Harmonics mode state
@@ -235,6 +235,7 @@
  * @property {SVGGElement|null} [cursorGroup] - SVG group for cursor elements
  * @property {SVGGElement|null} [axesGroup] - SVG group for axes
  * @property {SVGRectElement|null} [imageClipRect] - Clipping rectangle for image
+ * @property {SVGRectElement|null} [cursorClipRect] - Clipping rectangle for cursor group
  * @property {HTMLDivElement|null} [readoutPanel] - Container for readouts
  * @property {HTMLDivElement|null} [modeCell] - Mode selection cell
  * @property {HTMLDivElement|null} [mainCell] - Main display cell
@@ -328,6 +329,7 @@
  * @property {SVGGElement} cursorGroup - SVG cursor group element
  * @property {SVGGElement} axesGroup - SVG axes group element
  * @property {SVGRectElement} imageClipRect - SVG image clipping rectangle
+ * @property {SVGRectElement} cursorClipRect - SVG cursor group clipping rectangle
  */
 
 /**
@@ -339,17 +341,11 @@
  * @property {number} freqMax - Maximum visible frequency
  */
 
-/**
- * Harmonics color state for analysis mode
- * @typedef {Object} HarmonicsColorState
- * @property {string} selectedColor - Selected marker color
- */
 
 /**
  * Analysis mode initial state object
  * @typedef {Object} AnalysisInitialState
  * @property {AnalysisState} analysis - Analysis state
- * @property {HarmonicsColorState} harmonics - Harmonics color state
  */
 
 /**

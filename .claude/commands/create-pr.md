@@ -9,7 +9,7 @@ This command creates a pull request for the current branch, analyzing the change
 3. Generate PR title and description based on:
    - Commit messages and change patterns
    - Files modified (scope analysis)
-   - Issue number if branch follows `issue-{number}` pattern
+   - Issue number, if known
 4. Push branch if not already pushed
 5. Create PR using GitHub CLI
 

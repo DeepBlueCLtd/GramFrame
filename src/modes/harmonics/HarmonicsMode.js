@@ -215,10 +215,10 @@ export class HarmonicsMode extends BaseMode {
   addHarmonicSet(anchorTime, spacing) {
     const id = `harmonic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     
-    // Use selected color from color picker, fallback to cycling through predefined colors
+    // Use selected color from global state, fallback to cycling through predefined colors
     let color
-    if (this.state.harmonics && this.state.harmonics.selectedColor) {
-      color = this.state.harmonics.selectedColor
+    if (this.state.selectedColor) {
+      color = this.state.selectedColor
     } else {
       const colorIndex = this.state.harmonics.harmonicSets.length % HarmonicsMode.harmonicColors.length
       color = HarmonicsMode.harmonicColors[colorIndex]
@@ -661,8 +661,7 @@ export class HarmonicsMode extends BaseMode {
       harmonics: {
         baseFrequency: null,
         harmonicData: [],
-        harmonicSets: [],
-        selectedColor: '#ff6b6b'
+        harmonicSets: []
       },
       dragState: {
         isDragging: false,
