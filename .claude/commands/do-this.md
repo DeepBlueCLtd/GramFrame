@@ -23,8 +23,9 @@ Note: when creating the PR, do not attribute `Claude Code`, `Claude`, or `anthro
 
 Once development work is complete in the worktree:
 
-1. Commit your changes: `git add . && git commit -m "fix: description of changes"`
-2. Push the branch: `git push -u origin issue-{issue_number}`
-3. Create PR with GitHub CLI: `gh pr create --title "Fix: Brief description" --body "Fixes #{issue_number}. #{summary of changes, as bulleted list}"`
+1. Invite me to add the changes
+2. Use `tell-me-about-it` to generate a commit message
+3. Push the branch: `git push -u origin issue-{issue_number}`
+4. Create PR using `create-pr` command
 
 Complete the task thoroughly, document all work performed, and send a status report when the task is complete.
