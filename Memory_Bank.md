@@ -785,3 +785,62 @@ Following user feedback to avoid confusion, simplified the release workflow to i
 - Tag validation: ✅ Regex pattern tested with various formats
 - File protocol compatibility: ✅ Per ADR-013 requirements, no web server needed
 - User experience: ✅ Clear single-bundle approach eliminates confusion
+
+---
+**Agent:** Implementation Agent  
+**Task Reference:** GitHub Issue #111 (Add Version Display to Pan Mode Guidance UI)
+
+**Summary:**
+Successfully implemented build-time version injection system and added a subtle version display (v0.0.1) to the pan mode guidance panel, enabling support teams to easily identify which version of GramFrame users are running.
+
+**Details:**
+- **Build-Time Version Injection:** Extended `vite.config.js` to read version from `package.json` and inject it as global `__GRAMFRAME_VERSION__` constant using Vite's define configuration for both development and standalone builds
+- **Version Utility Module:** Created `src/utils/version.js` with `getVersion()` function that safely accesses the injected version and `createVersionDisplay()` function for generating properly styled version elements
+- **UI Integration:** Modified `createModeSwitchingUI` function in `src/components/ModeButtons.js` to automatically add version display to guidance panel as a positioned overlay in the bottom-right corner
+- **Styling:** Added comprehensive CSS styling in `src/gramframe.css` with military-theme consistent design, supporting multiple positioning options (top/bottom, left/right corners)
+
+**Key Architecture Changes:**
+- Version injection works for both standard development builds (`yarn build`) and standalone IIFE builds (`yarn build:standalone`)
+- Version display is automatically positioned as absolute overlay within guidance panel's relative positioning context
+- Built-in fallback to "0.0.1" if version injection fails during development
+- TypeScript-compatible implementation with proper JSDoc annotations and @ts-ignore directives for build-time globals
+
+**Code Impact:**
+- Modified: `vite.config.js` (added version reading from package.json and define configuration for both build types)
+- Created: `src/utils/version.js` (version utility functions with configurable display options)
+- Modified: `src/components/ModeButtons.js` (integrated version display into guidance panel creation)
+- Modified: `src/gramframe.css` (added version display styling with positioning variants)
+- Testing: All 59 existing tests pass, confirming no regression in functionality
+
+**Output/Result:**
+```javascript
+// Version injection in vite.config.js for both builds
+define: {
+  __GRAMFRAME_VERSION__: JSON.stringify(version)
+}
+
+// Version display integration in ModeButtons.js
+const versionDisplay = createVersionDisplay({ position: 'bottom-right' })
+guidancePanel.appendChild(versionDisplay)
+
+// CSS styling for subtle, non-intrusive display
+.gram-frame-version {
+  position: absolute;
+  font-size: 9px;
+  color: #666;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 4px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+```
+
+**Status:** Completed
+
+**Issues/Blockers:**
+Initial TypeScript compilation errors resolved by adding optional parameter annotations and @ts-ignore directive for build-time injected global variable.
+
+**Next Steps:**
+None - version display is fully functional and ready for production use.
+
+---

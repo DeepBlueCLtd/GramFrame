@@ -73,7 +73,8 @@
       "Bash(timeout 30s npx playwright test tests/phase1.spec.ts --grep \"should initialize properly\")",
       "WebFetch(domain:deepbluecltd.github.io)",
       "Bash(yarn build:*)",
-      "Bash(open /Users/ian/git/GramFrame_parent/gram_b/test-file-protocol.html)"
+      "Bash(open /Users/ian/git/GramFrame_parent/gram_b/test-file-protocol.html)",
+      "Bash(open test-standalone.html)"
     ]
   }
 }
