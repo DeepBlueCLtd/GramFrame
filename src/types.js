@@ -123,7 +123,7 @@
 
 /**
  * Analysis mode type
- * @typedef {'analysis'|'harmonics'|'doppler'} ModeType
+ * @typedef {'analysis'|'harmonics'|'doppler'|'pan'} ModeType
  */
 
 /**
