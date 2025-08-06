@@ -74,7 +74,8 @@
       "WebFetch(domain:deepbluecltd.github.io)",
       "Bash(yarn build:*)",
       "Bash(open /Users/ian/git/GramFrame_parent/gram_b/test-file-protocol.html)",
-      "Bash(open test-standalone.html)"
+      "Bash(open test-standalone.html)",
+      "Bash(git tag:*)"
     ]
   }
 }

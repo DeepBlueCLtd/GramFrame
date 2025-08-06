@@ -250,8 +250,12 @@
  * @property {HTMLDivElement|null} [leftColumn] - Left column layout
  * @property {HTMLDivElement|null} [middleColumn] - Middle column layout
  * @property {HTMLDivElement|null} [rightColumn] - Right column layout
+ * @property {HTMLDivElement|null} [modeColumn] - Mode buttons column
+ * @property {HTMLDivElement|null} [guidanceColumn] - Guidance text column  
+ * @property {HTMLDivElement|null} [controlsColumn] - Controls column
  * @property {HTMLDivElement|null} [unifiedLayoutContainer] - Main layout container
  * @property {Object<string, HTMLButtonElement>|null} [modeButtons] - Mode switching buttons
+ * @property {Object<string, HTMLButtonElement[]>|null} [commandButtons] - Command buttons
  * @property {HTMLDivElement|null} [guidancePanel] - Guidance text panel
  * 
  * @property {Object<string, *>|null} [modes] - Available modes

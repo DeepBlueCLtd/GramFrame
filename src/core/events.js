@@ -7,6 +7,7 @@
 import { screenToSVGCoordinates, imageToDataCoordinates } from '../utils/coordinates.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
 import { notifyStateListeners } from './state.js'
+import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 
 /**
  * Convert screen coordinates to data coordinates, accounting for zoom
@@ -161,9 +162,7 @@ function handleMouseMove(instance, event) {
     }
     
     // Update universal cursor readouts (time/freq LEDs) regardless of mode
-    if (instance.updateUniversalCursorReadouts) {
-      instance.updateUniversalCursorReadouts(dataCoords)
-    }
+    updateUniversalCursorReadouts(instance, dataCoords)
     
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseMove === 'function') {

@@ -13,15 +13,22 @@ import {
 
 import {
   updateLEDDisplays,
-  createLEDDisplay,
-  createModeSwitchingUI,
-  createFullFlexLayout,
-  createFlexColumn,
-  createColorPicker
+  createModeSwitchingUI
 } from './components/UIComponents.js'
-import { updateCommandButtonStates, updateModeButtonStates } from './components/ModeButtons.js'
+import { 
+  createUnifiedLayout, 
+  updatePersistentPanels 
+} from './components/MainUI.js'
+import {
+  zoomIn,
+  zoomOut, 
+  zoomReset,
+  setZoom,
+  updateZoomControlStates,
+  handleResize,
+  updateAxes
+} from './core/viewport.js'
 import { getModeDisplayName } from './utils/calculations.js'
-import { formatTime } from './utils/timeFormatter.js'
 
 import { extractConfigData } from './core/configuration.js'
 
@@ -46,7 +53,7 @@ import {
   updateSelectionVisuals
 } from './core/keyboardControl.js'
 
-import { setupComponentTable, setupSpectrogramImage, updateSVGLayout, renderAxes, applyZoomTransform } from './components/table.js'
+import { setupComponentTable, setupSpectrogramImage } from './components/table.js'
 import { BaseMode } from './modes/BaseMode.js'
 
 /**
@@ -109,6 +116,12 @@ export class GramFrame {
     /** @type {HTMLDivElement} */
     this.rightColumn = null
     /** @type {HTMLDivElement} */
+    this.modeColumn = null
+    /** @type {HTMLDivElement} */
+    this.guidanceColumn = null
+    /** @type {HTMLDivElement} */
+    this.controlsColumn = null
+    /** @type {HTMLDivElement} */
     this.unifiedLayoutContainer = null
     /** @type {HTMLElement} */
     this.timeLED = null
@@ -128,7 +141,7 @@ export class GramFrame {
     setupComponentTable(this, configTable)
     
     // Create unified layout
-    this.createUnifiedLayout()
+    createUnifiedLayout(this)
     
     // Create mode switching UI initially (will be updated after modes are initialized)
     const tempContainer = document.createElement('div')
@@ -239,181 +252,8 @@ export class GramFrame {
   
   
   
-  /**
-   * Create unified 3-column layout for readouts
-   */
-  createUnifiedLayout() {
-    // Create main container for unified layout
-    /** @type {HTMLDivElement} */
-    this.unifiedLayoutContainer = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-unified-layout', '2px'))
-    this.unifiedLayoutContainer.style.flexDirection = 'row'
-    this.unifiedLayoutContainer.style.flexWrap = 'nowrap'
-    
-    // Left Panel (600px) - Multi-column horizontal layout
-    this.leftColumn = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-left-column', '4px'))
-    this.leftColumn.style.flex = '0 0 600px'
-    this.leftColumn.style.width = '600px'
-    this.leftColumn.style.flexDirection = 'row'
-    
-    // Column 1: Mode buttons 
-    this.modeColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-mode-column', '8px'))
-    this.modeColumn.style.flex = '0 0 130px'
-    this.modeColumn.style.width = '130px'
-    
-    // Column 2: Guidance panel  
-    this.guidanceColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-guidance-column', '8px'))
-    this.guidanceColumn.style.flex = '1'
-    this.guidanceColumn.style.minWidth = '150px'
-    
-    // Column 3: Controls (time/freq displays, speed, color selector)
-    this.controlsColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-controls-column', '1px'))
-    this.controlsColumn.style.flex = '0 0 220px'
-    this.controlsColumn.style.width = '220px'
-    
-    // Create universal cursor readouts in controls column
-    const cursorContainer = document.createElement('div')
-    cursorContainer.className = 'gram-frame-cursor-leds'
-    this.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
-    cursorContainer.appendChild(this.timeLED)
-    
-    this.freqLED = createLEDDisplay('Frequency (Hz)', '0.0')
-    cursorContainer.appendChild(this.freqLED)
-    
-    // Create doppler speed LED (spans full width)
-    this.speedLED = createLEDDisplay('Doppler Speed (knots)', '0.0')
-    this.speedLED.style.gridColumn = '1 / -1' // Span both columns
-    cursorContainer.appendChild(this.speedLED)
-    
-    this.controlsColumn.appendChild(cursorContainer)
-    
-    // Create color picker in controls column
-    this.colorPicker = createColorPicker(this.state)
-    this.colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Color'
-    this.controlsColumn.appendChild(this.colorPicker)
-    
-    // Add columns to left panel
-    this.leftColumn.appendChild(this.modeColumn)
-    this.leftColumn.appendChild(this.guidanceColumn)
-    this.leftColumn.appendChild(this.controlsColumn)
-    
-    // Middle Column (160px) - Analysis Markers table
-    this.middleColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-middle-column'))
-    this.middleColumn.style.flex = '0 0 160px'
-    this.middleColumn.style.width = '160px'
-    
-    // Create markers container in middle column
-    this.markersContainer = document.createElement('div')
-    this.markersContainer.className = 'gram-frame-markers-persistent-container'
-    this.markersContainer.style.flex = '1'
-    this.markersContainer.style.display = 'flex'
-    this.markersContainer.style.flexDirection = 'column'
-    this.markersContainer.style.minHeight = '0'
-    
-    const markersLabel = document.createElement('h4')
-    markersLabel.textContent = 'Markers'
-    markersLabel.style.margin = '0 0 8px 0'
-    markersLabel.style.textAlign = 'left'
-    markersLabel.style.flexShrink = '0'
-    this.markersContainer.appendChild(markersLabel)
-    
-    this.middleColumn.appendChild(this.markersContainer)
-    
-    // Right Column (200px) - Harmonics sets table
-    this.rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
-    this.rightColumn.style.flex = '0 0 200px'
-    this.rightColumn.style.minWidth = '200px'
-    this.rightColumn.style.width = '200px'
-    
-    // Create harmonics container in right column
-    this.harmonicsContainer = document.createElement('div')
-    this.harmonicsContainer.className = 'gram-frame-harmonics-persistent-container'
-    this.harmonicsContainer.style.flex = '1'
-    this.harmonicsContainer.style.display = 'flex'
-    this.harmonicsContainer.style.flexDirection = 'column'
-    this.harmonicsContainer.style.minHeight = '0'
-    
-    // Create header container with title and button area
-    const harmonicsHeader = document.createElement('div')
-    harmonicsHeader.className = 'gram-frame-harmonics-header'
-    harmonicsHeader.style.display = 'flex'
-    harmonicsHeader.style.justifyContent = 'space-between'
-    harmonicsHeader.style.alignItems = 'center'
-    harmonicsHeader.style.margin = '0 0 8px 0'
-    harmonicsHeader.style.flexShrink = '0'
-    
-    const harmonicsLabel = document.createElement('h4')
-    harmonicsLabel.textContent = 'Harmonics'
-    harmonicsLabel.style.margin = '0'
-    harmonicsLabel.style.textAlign = 'left'
-    harmonicsLabel.style.flexShrink = '0'
-    
-    const harmonicsButtonContainer = document.createElement('div')
-    harmonicsButtonContainer.className = 'gram-frame-harmonics-button-container'
-    harmonicsButtonContainer.style.flexShrink = '0'
-    
-    harmonicsHeader.appendChild(harmonicsLabel)
-    harmonicsHeader.appendChild(harmonicsButtonContainer)
-    this.harmonicsContainer.appendChild(harmonicsHeader)
-    
-    this.rightColumn.appendChild(this.harmonicsContainer)
-    
-    // Assemble the unified layout
-    this.unifiedLayoutContainer.appendChild(this.leftColumn)
-    this.unifiedLayoutContainer.appendChild(this.middleColumn)
-    this.unifiedLayoutContainer.appendChild(this.rightColumn)
-  }
   
-  /**
-   * Update universal cursor readouts (time/freq LEDs) regardless of active mode
-   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-   */
-  updateUniversalCursorReadouts(dataCoords) {
-    if (this.timeLED) {
-      const timeValue = this.timeLED.querySelector('.gram-frame-led-value')
-      if (timeValue) {
-        timeValue.textContent = formatTime(dataCoords.time)
-      }
-    }
-    
-    if (this.freqLED) {
-      const freqValue = this.freqLED.querySelector('.gram-frame-led-value')
-      if (freqValue) {
-        freqValue.textContent = dataCoords.freq.toFixed(2)
-      }
-    }
-  }
   
-  /**
-   * Update persistent panels (markers and harmonics) regardless of active mode
-   */
-  updatePersistentPanels() {
-    // Update analysis markers table
-    const analysisMode = /** @type {any} */ (this.modes['analysis'])
-    if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
-      analysisMode.updateMarkersTable()
-    }
-    
-    // Update harmonics panel - ensure panel reference is always available
-    const harmonicsMode = /** @type {any} */ (this.modes['harmonics'])
-    if (harmonicsMode) {
-
-
-
-      // Make sure the panel reference is set
-      if (!harmonicsMode.instance.harmonicPanel && this.harmonicsContainer) {
-        const existingPanel = this.harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
-
-        if (existingPanel) {
-
-          harmonicsMode.instance.harmonicPanel = existingPanel
-        }
-      }
-      
-      if (typeof harmonicsMode.updateHarmonicPanel === 'function') {
-        harmonicsMode.updateHarmonicPanel()
-      }
-    }
-  }
   
   // Zoom controls removed - now handled by pan mode command buttons
   
@@ -421,25 +261,21 @@ export class GramFrame {
    * Zoom in by increasing zoom level
    */
   _zoomIn() {
-    const currentLevel = this.state.zoom.level
-    const newLevel = Math.min(currentLevel * 1.5, 10.0) // Max 10x zoom
-    this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+    zoomIn(this)
   }
   
   /**
    * Zoom out by decreasing zoom level
    */
   _zoomOut() {
-    const currentLevel = this.state.zoom.level
-    const newLevel = Math.max(currentLevel / 1.5, 1.0) // Min 1x zoom
-    this._setZoom(newLevel, this.state.zoom.centerX, this.state.zoom.centerY)
+    zoomOut(this)
   }
   
   /**
    * Reset zoom to 1x
    */
   _zoomReset() {
-    this._setZoom(1.0, 0.5, 0.5)
+    zoomReset(this)
   }
   
   
@@ -450,21 +286,7 @@ export class GramFrame {
    * @param {number} centerY - Center Y (0-1 normalized)
    */
   _setZoom(level, centerX, centerY) {
-    // Update state
-    this.state.zoom.level = level
-    this.state.zoom.centerX = centerX
-    this.state.zoom.centerY = centerY
-    
-    // Apply zoom transform
-    if (this.svg) {
-      applyZoomTransform(this)
-    }
-    
-    // Update zoom button states
-    this._updateZoomControlStates()
-    
-    // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
+    setZoom(this, level, centerX, centerY)
   }
   
   
@@ -472,40 +294,21 @@ export class GramFrame {
    * Update zoom control button states based on current zoom level
    */
   _updateZoomControlStates() {
-    
-    // Update command button states for all modes (zoom buttons are now in pan mode)
-    if (this.commandButtons && this.modes) {
-      updateCommandButtonStates(this.commandButtons, this.modes)
-    }
-    
-    // Update mode button states (enabled/disabled)
-    if (this.modeButtons && this.modes) {
-      updateModeButtonStates(this.modeButtons, this.modes)
-      
-      // Switch away from pan mode if currently active but now disabled
-      if (this.state.mode === 'pan' && this.modes.pan && !this.modes.pan.isEnabled() && this.state.previousMode) {
-        this._switchMode(this.state.previousMode)
-      }
-    }
+    updateZoomControlStates(this)
   }
   
   /**
    * Update axes when rate changes
    */
   _updateAxes() {
-    if (this.axesGroup) {
-      renderAxes(this)
-    }
+    updateAxes(this)
   }
   
   /**
    * Handle resize events
    */
   _handleResize() {
-    if (this.svg) {
-      updateSVGLayout(this)
-      renderAxes(this)
-    }
+    handleResize(this)
   }
   
   /**
@@ -610,7 +413,7 @@ export class GramFrame {
     }
     
     // Update persistent panels regardless of active mode
-    this.updatePersistentPanels()
+    updatePersistentPanels(this)
     
     // Update cursor indicators
     if (this.featureRenderer) {
