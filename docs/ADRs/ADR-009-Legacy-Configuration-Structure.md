@@ -28,6 +28,8 @@ Refactor configuration from three-column format to two-column format using separ
 - Need to update all existing configurations
 
 ## Implementation
+DO NOT USE THE THREE-COLUMN FORMAT. IT IS NOT SUPPORTED ANYMORE.
+
 Configuration format change:
 ```html
 <!-- Before: Three-column format -->

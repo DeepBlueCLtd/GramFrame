@@ -9,11 +9,12 @@
 
 2. Insert a config table:
 ```html
-<table class="gram-config" frame="box">
-  <tr><td colspan="3"><img src="img/spectrogram.png" /></td></tr>
-  <tr><th>param</th><th>min</th><th>max</th></tr>
-  <tr><td>time (s)</td><td>0</td><td>10</td></tr>
-  <tr><td>freq (Hz)</td><td>0</td><td>2000</td></tr>
+<table class="gram-config">
+  <tr><td colspan="2"><img src="img/spectrogram.png" /></td></tr>
+  <tr><td>time-start</td><td>0</td></tr>
+  <tr><td>time-end</td><td>10</td></tr>
+  <tr><td>freq-start</td><td>0</td></tr>
+  <tr><td>freq-end</td><td>2000</td></tr>
 </table>
 ```
 
