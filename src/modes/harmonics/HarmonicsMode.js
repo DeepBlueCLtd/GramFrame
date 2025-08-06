@@ -3,6 +3,7 @@ import { BaseMode } from '../BaseMode.js'
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { showManualHarmonicModal } from './ManualHarmonicModal.js'
 import { notifyStateListeners } from '../../core/state.js'
+import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordinateTransformations.js'
 
 /**
  * Harmonics mode implementation
@@ -27,6 +28,19 @@ export class HarmonicsMode extends BaseMode {
       <p>• Manually add harmonic lines using [+ Manual] button</p>
       <p>• Click table row + arrow keys (Shift for larger steps)</p>
     `
+  }
+
+  /**
+   * Helper to prepare viewport object for coordinate transformations
+   * @returns {Object} Viewport object with margins, imageDetails, config, zoom
+   */
+  getViewport() {
+    return {
+      margins: this.instance.state.axes.margins,
+      imageDetails: this.instance.state.imageDetails,
+      config: this.instance.state.config,
+      zoom: this.instance.state.zoom
+    }
   }
 
   /**
@@ -556,18 +570,33 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Render a single harmonic set as vertical lines
-   * @param {HarmonicSet} harmonicSet - Harmonic set to render
+   * Get visible harmonics within frequency range
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {Config} config - Configuration object
+   * @returns {number[]} Array of harmonic numbers to render
    */
-  renderHarmonicSet(harmonicSet) {
-    if (!this.instance.cursorGroup) {
-      return
-    }
+  getVisibleHarmonics(harmonicSet, config) {
+    const { freqMin, freqMax } = config
+    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
+    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
     
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    const harmonics = []
+    for (let h = minHarmonic; h <= maxHarmonic; h++) {
+      harmonics.push(h)
+    }
+    return harmonics
+  }
+
+  /**
+   * Calculate harmonic line dimensions and positions
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @returns {Object} Line dimensions with height and top position
+   */
+  calculateHarmonicLineDimensions(harmonicSet) {
+    const { naturalHeight } = this.state.imageDetails
     const margins = this.state.axes.margins
     const zoomLevel = this.state.zoom.level
-    const { timeMin, timeMax, freqMin, freqMax } = this.state.config
+    const { timeMin, timeMax } = this.state.config
     
     // Calculate harmonic line height (20% of spectrogram height)
     const lineHeightRatio = 0.2
@@ -581,75 +610,91 @@ export class HarmonicsMode extends BaseMode {
       lineTop = anchorY - lineHeight / 2
     } else {
       // Zoomed - calculate position based on current image transform
-      if (this.instance.spectrogramImage) {
-        const imageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
-        const imageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
-        
-        lineHeight = imageHeight * lineHeightRatio
-        const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
-        const anchorY = imageTop + normalizedAnchorTime * imageHeight
-        lineTop = anchorY - lineHeight / 2
-      } else {
-        lineHeight = naturalHeight * lineHeightRatio
-        const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
-        const anchorY = margins.top + normalizedAnchorTime * naturalHeight
-        lineTop = anchorY - lineHeight / 2
-      }
+      const imageBounds = getImageBounds(this.getViewport(), this.instance.spectrogramImage)
+      lineHeight = imageBounds.height * lineHeightRatio
+      const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime }
+      const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage)
+      lineTop = anchorSVG.y - lineHeight / 2
     }
     
-    // Calculate frequency range to render
-    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
-    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
+    return { lineHeight, lineTop }
+  }
+
+  /**
+   * Create SVG line element for a harmonic
+   * @param {number} harmonicNumber - Harmonic number
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {number} lineX - X position for the line
+   * @param {number} lineTop - Top Y position for the line
+   * @param {number} lineHeight - Height of the line
+   * @returns {SVGLineElement} SVG line element
+   */
+  createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    line.setAttribute('class', 'gram-frame-harmonic-line')
+    line.setAttribute('data-harmonic-set-id', harmonicSet.id)
+    line.setAttribute('data-harmonic-number', String(harmonicNumber))
+    line.setAttribute('x1', String(lineX))
+    line.setAttribute('y1', String(lineTop))
+    line.setAttribute('x2', String(lineX))
+    line.setAttribute('y2', String(lineTop + lineHeight))
+    line.setAttribute('stroke', harmonicSet.color)
+    line.setAttribute('stroke-width', '2')
+    line.setAttribute('stroke-linecap', 'round')
+    line.setAttribute('opacity', '0.9')
+    return line
+  }
+
+  /**
+   * Create SVG text label for a harmonic number
+   * @param {number} harmonicNumber - Harmonic number
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {number} lineX - X position for the label
+   * @param {number} lineTop - Top Y position for the label
+   * @returns {SVGTextElement} SVG text element
+   */
+  createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop) {
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('class', 'gram-frame-harmonic-number')
+    label.setAttribute('x', String(lineX + 3)) // 3 pixels to the right of line
+    label.setAttribute('y', String(lineTop + 12)) // 12 pixels down from top
+    label.setAttribute('fill', harmonicSet.color)
+    label.setAttribute('font-size', '12')
+    label.setAttribute('font-weight', 'bold')
+    label.setAttribute('font-family', 'Arial, sans-serif')
+    label.textContent = String(harmonicNumber)
+    return label
+  }
+
+  /**
+   * Render a single harmonic set as vertical lines
+   * @param {HarmonicSet} harmonicSet - Harmonic set to render
+   */
+  renderHarmonicSet(harmonicSet) {
+    if (!this.instance.cursorGroup) {
+      return
+    }
+    
+    // Get visible harmonics and line dimensions
+    const visibleHarmonics = this.getVisibleHarmonics(harmonicSet, this.state.config)
+    const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
     
     // Render each harmonic line in this set
-    for (let h = minHarmonic; h <= maxHarmonic; h++) {
-      const harmonicFreq = h * harmonicSet.spacing
+    visibleHarmonics.forEach(harmonicNumber => {
+      const harmonicFreq = harmonicNumber * harmonicSet.spacing
       
-      // Calculate X position
-      const normalizedX = (harmonicFreq - freqMin) / (freqMax - freqMin)
-      let lineX
+      // Calculate X position using coordinate transformation utility
+      const harmonicPoint = { freq: harmonicFreq, time: harmonicSet.anchorTime }
+      const harmonicSVG = calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage)
+      const lineX = harmonicSVG.x
       
-      if (zoomLevel === 1.0) {
-        lineX = margins.left + normalizedX * naturalWidth
-      } else {
-        if (this.instance.spectrogramImage) {
-          const imageLeft = parseFloat(this.instance.spectrogramImage.getAttribute('x') || String(margins.left))
-          const imageWidth = parseFloat(this.instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
-          lineX = imageLeft + normalizedX * imageWidth
-        } else {
-          lineX = margins.left + normalizedX * naturalWidth
-        }
-      }
-      
-      // Create harmonic line (solid)
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      line.setAttribute('class', 'gram-frame-harmonic-line')
-      line.setAttribute('data-harmonic-set-id', harmonicSet.id)
-      line.setAttribute('data-harmonic-number', String(h))
-      line.setAttribute('x1', String(lineX))
-      line.setAttribute('y1', String(lineTop))
-      line.setAttribute('x2', String(lineX))
-      line.setAttribute('y2', String(lineTop + lineHeight))
-      line.setAttribute('stroke', harmonicSet.color)
-      line.setAttribute('stroke-width', '2')
-      line.setAttribute('stroke-linecap', 'round')
-      line.setAttribute('opacity', '0.9')
+      // Create and append line and label elements
+      const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
+      const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop)
       
       this.instance.cursorGroup.appendChild(line)
-      
-      // Add harmonic number label at top-left of line
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('class', 'gram-frame-harmonic-number')
-      label.setAttribute('x', String(lineX + 3)) // 3 pixels to the right of line
-      label.setAttribute('y', String(lineTop + 12)) // 12 pixels down from top
-      label.setAttribute('fill', harmonicSet.color)
-      label.setAttribute('font-size', '12')
-      label.setAttribute('font-weight', 'bold')
-      label.setAttribute('font-family', 'Arial, sans-serif')
-      label.textContent = String(h)
-      
       this.instance.cursorGroup.appendChild(label)
-    }
+    })
   }
 
   /**

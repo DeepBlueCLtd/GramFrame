@@ -5,6 +5,90 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 
 ## Implementation Progress
 
+## Issue #88 Phase A-B - Refactor Large Files and Improve Module Boundaries - 2025-01-06
+
+**Task Reference:** GitHub Issue #88 - Refactor Large Files and Improve Module Boundaries
+**Phase:** A-B (Coordinate Transformation Utilities + High-Complexity Function Refactoring)
+**Complexity Metrics:** 
+- HarmonicsMode.renderHarmonicSet: CC 12→2
+- DopplerMode.handleMouseMove: CC 21→8  
+- table.js:renderFrequencyAxis: CC 32→9
+- Code duplication: 1.42%→1.51% (within target <2%)
+
+**Actions Taken:**
+**Phase A - Coordinate Transformation Utilities:**
+1. **Created reusable coordinate utilities** in `src/utils/coordinateTransformations.js`:
+   - `dataToSVG(dataPoint, viewport, spectrogramImage)` - Universal coordinate transformation with zoom awareness
+   - `screenToDataCoordinates(screenPoint, viewport, svg, spectrogramImage, rate)` - Screen to data conversion
+   - `calculateZoomAwarePosition(point, viewport, spectrogramImage)` - Zoom-aware positioning
+   - `isPointInImageBounds(point, config)` - Boundary validation
+   - `getImageBounds(viewport, spectrogramImage)` - Image bounds calculation
+
+2. **Eliminated coordinate duplication** across all mode classes:
+   - DopplerMode.js: Replaced local `dataToSVG()` method with imported utility, added `getViewport()` helper
+   - HarmonicsMode.js: Updated zoom-aware positioning with utility functions
+   - AnalysisMode.js: Simplified marker positioning using `calculateZoomAwarePosition`
+
+**Phase B - High-Complexity Function Refactoring:**
+3. **HarmonicsMode.renderHarmonicSet refactoring (CC: 12→2):**
+   - `getVisibleHarmonics(harmonicSet, config)` - Filtering logic extraction
+   - `calculateHarmonicLineDimensions(harmonicSet)` - Positioning calculations
+   - `createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)` - SVG line creation
+   - `createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop)` - Label creation
+   - Main function now orchestrates sub-functions with clean separation of concerns
+
+4. **DopplerMode.handleMouseMove refactoring (CC: 21→8):**
+   - `detectClosestMarker(mousePos, doppler)` - Marker proximity detection
+   - `handlePreviewDrag(dataCoords, doppler)` - Preview drag handling
+   - `handleMarkerDrag(dataCoords, doppler)` - Marker dragging logic  
+   - `updateCursorStyle(event, doppler)` - Cursor styling
+   - Eliminated duplicate marker detection code across mouse events
+
+5. **table.js:renderFrequencyAxis refactoring (CC: 32→9, 150→75 lines):**
+   - `calculateAxisTicks(min, max, containerSize, targetSpacing)` - "Nice numbers" algorithm
+   - `formatFrequencyLabels(frequency)` - Label formatting utility
+   - `renderAxisLine(instance, axisConfig)` - Axis line rendering
+   - `renderAxisTicks(instance, tickData, axisConfig)` - Tick rendering
+   - `renderAxisLabels(instance, labelData, axisConfig)` - Label rendering
+   - Separated mathematical calculations from DOM manipulation
+
+**Files Modified:**
+- `src/utils/coordinateTransformations.js` - New utility module (193 lines)
+- `src/modes/doppler/DopplerMode.js` - Coordinate utilities integration, mouse handling refactoring
+- `src/modes/harmonics/HarmonicsMode.js` - Coordinate utilities integration, rendering refactoring
+- `src/modes/analysis/AnalysisMode.js` - Coordinate utilities integration
+- `src/components/table.js` - Axis rendering refactoring with utility extraction
+
+**Key Functions Extracted:**
+```javascript
+// Coordinate transformations
+export function dataToSVG(dataPoint, viewport, spectrogramImage)
+export function screenToDataCoordinates(screenPoint, viewport, svg, spectrogramImage, rate)
+export function calculateZoomAwarePosition(point, viewport, spectrogramImage)
+
+// Harmonics rendering
+getVisibleHarmonics(harmonicSet, config)
+calculateHarmonicLineDimensions(harmonicSet)  
+createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
+createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop)
+
+// Doppler mouse handling
+detectClosestMarker(mousePos, doppler)
+handlePreviewDrag(dataCoords, doppler)
+handleMarkerDrag(dataCoords, doppler)
+updateCursorStyle(event, doppler)
+
+// Axis rendering utilities
+calculateAxisTicks(min, max, containerSize, targetSpacing)
+renderAxisLine(instance, axisConfig)
+renderAxisTicks(instance, tickData, axisConfig)
+renderAxisLabels(instance, labelData, axisConfig)
+```
+
+**Test Results:** All 59 tests passing (17.87s)
+**Challenges:** Fixed TypeScript errors related to unused variables and missing properties in HarmonicSet structure
+**Status:** Completed - Phases A-B successfully implemented with significant complexity reduction and maintainability improvements
+
 ---
 **Agent:** Implementation Agent  
 **Task Reference:** GitHub Issue #101 (SVG Feature Clipping Implementation)

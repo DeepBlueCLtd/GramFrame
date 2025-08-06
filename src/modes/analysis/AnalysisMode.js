@@ -1,6 +1,7 @@
 import { BaseMode } from '../BaseMode.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { formatTime } from '../../utils/timeFormatter.js'
+import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
 
 /**
  * Analysis mode implementation
@@ -19,6 +20,19 @@ export class AnalysisMode extends BaseMode {
       <p>• Right-click markers to delete them</p>
       <p>• Click table row + arrow keys (Shift for larger steps)</p>
     `
+  }
+
+  /**
+   * Helper to prepare viewport object for coordinate transformations
+   * @returns {Object} Viewport object with margins, imageDetails, config, zoom
+   */
+  getViewport() {
+    return {
+      margins: this.instance.state.axes.margins,
+      imageDetails: this.instance.state.imageDetails,
+      config: this.instance.state.config,
+      zoom: this.instance.state.zoom
+    }
   }
 
   /**
@@ -178,37 +192,11 @@ export class AnalysisMode extends BaseMode {
       return
     }
     
-    // Calculate current position based on time/freq values and current zoom/pan state
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    const margins = this.state.axes.margins
-    const zoomLevel = this.state.zoom.level
-    
-    // Convert time/freq to normalized coordinates (0-1)
-    const { timeMin, timeMax, freqMin, freqMax } = this.state.config
-    const normalizedX = (marker.freq - freqMin) / (freqMax - freqMin)
-    const normalizedY = 1.0 - (marker.time - timeMin) / (timeMax - timeMin) // Invert Y for SVG coordinates
-    
-    let currentX, currentY
-    
-    if (zoomLevel === 1.0) {
-      // No zoom - use base image position
-      currentX = margins.left + normalizedX * naturalWidth
-      currentY = margins.top + normalizedY * naturalHeight
-    } else {
-      // Zoomed - calculate position based on current image transform
-      if (this.instance.spectrogramImage) {
-        const imageLeft = parseFloat(this.instance.spectrogramImage.getAttribute('x') || String(margins.left))
-        const imageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
-        const imageWidth = parseFloat(this.instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
-        const imageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
-        
-        currentX = imageLeft + normalizedX * imageWidth
-        currentY = imageTop + normalizedY * imageHeight
-      } else {
-        currentX = margins.left + normalizedX * naturalWidth
-        currentY = margins.top + normalizedY * naturalHeight
-      }
-    }
+    // Calculate current position based on time/freq values and current zoom/pan state using utility
+    const markerPoint = { freq: marker.freq, time: marker.time }
+    const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+    const currentX = markerSVG.x
+    const currentY = markerSVG.y
     
     // Create marker group
     const markerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
