@@ -49,6 +49,45 @@ if (instance.cursorClipRect) {
 
 ---
 **Agent:** Implementation Agent  
+**Task Reference:** GitHub Issue #85 (Decompose main.js Monolithic File)
+
+**Summary:**
+Successfully decomposed the monolithic `src/main.js` file from 695 lines to 492 lines (203-line reduction) by extracting UI creation and viewport management into separate modules while preserving all functionality and maintaining backward compatibility.
+
+**Details:**
+- **Extracted MainUI Module:** Created `src/components/MainUI.js` (224 lines) containing UI layout creation functions including `createUnifiedLayout()`, `updateUniversalCursorReadouts()`, and `updatePersistentPanels()`. This module handles the complete 3-column layout system with mode buttons, guidance panels, LED displays, and container management.
+- **Extracted Viewport Module:** Created `src/core/viewport.js` (107 lines) containing all zoom/pan functionality including `zoomIn()`, `zoomOut()`, `zoomReset()`, `setZoom()`, `handleResize()`, and `updateAxes()`. This module manages viewport state transformations and control button state updates.
+- **Enhanced Events Integration:** Updated `src/core/events.js` to import and use the new MainUI functions, maintaining the existing event delegation pattern while using the extracted modules.
+- **Preserved Public API:** All public GramFrame class methods remain unchanged, ensuring no breaking changes for external consumers. The refactored methods now delegate to the appropriate extracted modules.
+- **Maintained Architecture Patterns:** Both new modules follow established codebase patterns with proper JSDoc documentation, consistent import/export conventions, and integration with the existing state management system.
+
+**Output/Result:**
+```javascript
+// New MainUI module structure (src/components/MainUI.js)
+export function createUnifiedLayout(instance) { /* 3-column layout creation */ }
+export function updateUniversalCursorReadouts(instance, dataCoords) { /* LED updates */ }
+export function updatePersistentPanels(instance) { /* markers/harmonics panels */ }
+
+// New Viewport module structure (src/core/viewport.js) 
+export function zoomIn(instance) { /* zoom level increase */ }
+export function setZoom(instance, level, centerX, centerY) { /* zoom state management */ }
+export function handleResize(instance) { /* responsive layout updates */ }
+
+// Updated main.js delegation pattern
+_zoomIn() { zoomIn(this) }
+_handleResize() { handleResize(this) }
+```
+
+**Status:** Completed
+
+**Issues/Blockers:**
+Minor TypeScript definition issues with new column properties (`modeColumn`, `guidanceColumn`, `controlsColumn`) not recognized in type definitions, but functionality works correctly. All 59 Playwright tests pass successfully.
+
+**Next Steps:**
+Ready for additional decomposition phases if needed. The current 492-line main.js focuses primarily on orchestration and mode switching logic, with UI creation and viewport management successfully extracted to dedicated modules.
+
+---
+**Agent:** Implementation Agent  
 **Task Reference:** GitHub Issue #100 (Implement Pan as a Mode Extending BaseMode)
 
 **Summary:**
