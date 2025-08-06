@@ -209,6 +209,15 @@ export class PanMode extends BaseMode {
   }
 
   /**
+   * Check if pan mode is enabled
+   * Pan mode is only enabled when zoomed in (zoom level > 1.0)
+   * @returns {boolean} True if enabled, false if disabled
+   */
+  isEnabled() {
+    return this.state.zoom.level > 1.0
+  }
+
+  /**
    * Get command buttons for pan mode
    * @returns {Array<CommandButton>} Array of command button definitions
    */

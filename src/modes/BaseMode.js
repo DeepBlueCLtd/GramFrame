@@ -109,6 +109,15 @@ export class BaseMode {
   }
 
   /**
+   * Check if this mode is currently enabled
+   * Override in subclasses to provide mode-specific enable/disable logic
+   * @returns {boolean} True if mode is enabled, false if disabled
+   */
+  isEnabled() {
+    return true
+  }
+
+  /**
    * Reset mode-specific state
    * Override in subclasses to clear mode-specific state properties
    */

@@ -61,10 +61,21 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
       button.classList.add('active')
     }
     
+    // Set disabled state based on mode's isEnabled method
+    const modeInstanceForDisabled = modes[modeType]
+    if (modeInstanceForDisabled && typeof modeInstanceForDisabled.isEnabled === 'function') {
+      if (!modeInstanceForDisabled.isEnabled()) {
+        button.disabled = true
+        button.classList.add('disabled')
+      }
+    }
+    
     // Add click handler
     button.addEventListener('click', (event) => {
       event.preventDefault()
-      modeSwitchCallback(modeType)
+      if (!button.disabled) {
+        modeSwitchCallback(modeType)
+      }
     })
     
     modeButtons[modeType] = button
@@ -141,6 +152,29 @@ export function updateCommandButtonStates(commandButtons, modes) {
           button.disabled = !buttonDef.isEnabled()
         }
       })
+    }
+  })
+}
+
+/**
+ * Update mode button states for all modes
+ * @param {Object<string, HTMLButtonElement>} modeButtons - Mode buttons by mode
+ * @param {Object} modes - Mode instances
+ */
+export function updateModeButtonStates(modeButtons, modes) {
+  Object.keys(modeButtons).forEach(modeType => {
+    const modeInstance = modes[modeType]
+    const button = modeButtons[modeType]
+    
+    if (modeInstance && typeof modeInstance.isEnabled === 'function' && button) {
+      const isEnabled = modeInstance.isEnabled()
+      button.disabled = !isEnabled
+      
+      if (isEnabled) {
+        button.classList.remove('disabled')
+      } else {
+        button.classList.add('disabled')
+      }
     }
   })
 }

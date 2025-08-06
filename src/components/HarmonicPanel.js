@@ -17,7 +17,7 @@ export function createHarmonicPanel(container) {
       <table class="gram-frame-harmonic-table">
         <thead>
           <tr>
-            <th>Color</th>
+            <th></th>
             <th>Spacing (Hz)</th>
             <th>Ratio</th>
             <th>Action</th>

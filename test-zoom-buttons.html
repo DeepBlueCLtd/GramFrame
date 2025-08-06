@@ -44,51 +44,90 @@
         <div class="instructions">
             <h2>Test Instructions:</h2>
             <ol>
-                <li><strong>Layout Check:</strong> Verify mode toolbar and guidance panel are on the LEFT side</li>
-                <li><strong>No Duplicates:</strong> Confirm there's only ONE guidance panel (not two)</li>
-                <li><strong>Pan Button:</strong> Check Pan mode has zoom buttons (− and +) on either side</li>
-                <li><strong>Zoom Out:</strong> Verify zoom out (−) button is disabled at 1:1 zoom level</li>
-                <li><strong>Zoom In:</strong> Click zoom in (+) to increase zoom level</li>
-                <li><strong>Both Enabled:</strong> Verify both buttons become enabled when zoomed in</li>
+                <li><strong>Column Layout:</strong> Verify 3 columns display in a tidy row (left | middle | right)</li>
+                <li><strong>Left Sub-columns:</strong> Check left panel has 3 sub-columns (modes | guidance | controls)</li>
+                <li><strong>Pan Mode Disabled:</strong> Verify Pan button is greyed out/disabled at 1:1 zoom level</li>
+                <li><strong>Zoom In:</strong> Click zoom in (+) button next to Pan to increase zoom level</li>
+                <li><strong>Pan Mode Enabled:</strong> Verify Pan button becomes enabled when zoomed in</li>
+                <li><strong>Pan Zoom Buttons:</strong> Check Pan mode has zoom buttons (− and +) on either side</li>
                 <li><strong>Zoom Out Test:</strong> Test zoom out (−) to decrease zoom level</li>
-                <li><strong>Max Zoom:</strong> Verify zoom in (+) button is disabled at maximum zoom (10x)</li>
-                <li><strong>Mode Switch:</strong> Check that switching to other modes hides the zoom buttons</li>
-                <li><strong>Old Toolbar Gone:</strong> Confirm old zoom toolbar is no longer present</li>
+                <li><strong>Pan Disabled Again:</strong> Verify Pan button becomes disabled when zoom returns to 1:1</li>
+                <li><strong>Mode Switch:</strong> Test switching between modes works correctly</li>
+                <li><strong>Layout Stability:</strong> Confirm columns stay in proper row layout during mode changes</li>
             </ol>
         </div>
 
         <table class="gram-config">
             <tr>
-                <td><img src="sample/sample_spectrogram.png" alt="Sample Spectrogram" /></td>
+                <td colspan="2">
+                    <img src="./sample/mock-gram.png" alt="Sample Spectrogram">
+                </td>
             </tr>
             <tr>
-                <td>time | 0.0 | 10.0</td>
+                <td>time-start</td>
+                <td>0</td>
             </tr>
             <tr>
-                <td>freq | 0.0 | 100.0</td>
+                <td>time-end</td>
+                <td>10</td>
+            </tr>
+            <tr>
+                <td>freq-start</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>freq-end</td>
+                <td>100</td>
             </tr>
         </table>
     </div>
 
-    <script type="module">
-        import { GramFrameAPI } from './src/index.js'
-        
-        // Initialize after DOM is loaded
+    <link rel="stylesheet" href="./src/gramframe.css" />
+    <script type="module" src="./src/main.js"></script>
+    <script>
+        // Initialize after DOM is loaded - similar to debug.html approach
         document.addEventListener('DOMContentLoaded', () => {
             console.log('Initializing GramFrame components...')
-            const instances = GramFrameAPI.init()
-            console.log('Initialized instances:', instances)
             
-            if (instances.length > 0) {
-                const instance = instances[0]
-                console.log('Instance state:', instance.state)
-                console.log('Pan mode available:', !!instance.modes?.pan)
-                
-                // Log command buttons if available
-                if (instance.commandButtons) {
-                    console.log('Command buttons:', instance.commandButtons)
+            // Wait for the main.js module to load and initialize
+            setTimeout(() => {
+                if (window.GramFrame) {
+                    console.log('GramFrame API available')
+                    const instances = window.GramFrame.getInstances()
+                    console.log('Initialized instances:', instances.length)
+                    
+                    if (instances.length > 0) {
+                        const instance = instances[0]
+                        console.log('Instance state:', instance.state)
+                        console.log('Pan mode available:', !!instance.modes?.pan)
+                        
+                        // Log command buttons if available
+                        if (instance.commandButtons) {
+                            console.log('Command buttons:', instance.commandButtons)
+                            // Specifically check for pan mode command buttons
+                            if (instance.commandButtons.pan) {
+                                console.log('Pan mode command buttons:', instance.commandButtons.pan.length)
+                                instance.commandButtons.pan.forEach((btn, i) => {
+                                    console.log(`Pan button ${i}:`, btn.textContent, btn.disabled ? '(disabled)' : '(enabled)')
+                                })
+                            }
+                        }
+                        
+                        // Check current mode
+                        console.log('Current mode:', instance.state.mode)
+                        
+                        // Try to switch to pan mode to test buttons
+                        if (instance.modeButtons && instance.modeButtons.pan) {
+                            setTimeout(() => {
+                                console.log('Switching to pan mode...')
+                                instance.modeButtons.pan.click()
+                            }, 1000)
+                        }
+                    }
+                } else {
+                    console.error('GramFrame API not available on window object')
                 }
-            }
+            }, 100)
         })
     </script>
 </body>

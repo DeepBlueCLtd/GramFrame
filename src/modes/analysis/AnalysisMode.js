@@ -312,7 +312,7 @@ export class AnalysisMode extends BaseMode {
     const headerRow = document.createElement('tr')
     
     const colorHeader = document.createElement('th')
-    colorHeader.textContent = 'Color'
+    colorHeader.textContent = ''
     colorHeader.style.width = '20%'
     headerRow.appendChild(colorHeader)
     

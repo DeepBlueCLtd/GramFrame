@@ -19,7 +19,7 @@ import {
   createFlexColumn,
   createColorPicker
 } from './components/UIComponents.js'
-import { updateCommandButtonStates } from './components/ModeButtons.js'
+import { updateCommandButtonStates, updateModeButtonStates } from './components/ModeButtons.js'
 import { getModeDisplayName } from './utils/calculations.js'
 import { formatTime } from './utils/timeFormatter.js'
 
@@ -135,9 +135,9 @@ export class GramFrame {
     this.commandButtons = modeUI.commandButtons
     this.guidancePanel = modeUI.guidancePanel
     
-    // Add mode UI to left column of unified layout
-    this.leftColumn.insertBefore(this.modesContainer, this.leftColumn.firstChild)
-    this.leftColumn.insertBefore(this.guidancePanel, this.leftColumn.firstChild)
+    // Add mode UI to appropriate columns
+    this.modeColumn.appendChild(this.modesContainer)
+    this.guidanceColumn.appendChild(this.guidancePanel)
     
     // Append unified layout to readout panel
     this.readoutPanel.appendChild(this.unifiedLayoutContainer)
@@ -183,8 +183,8 @@ export class GramFrame {
     this.currentMode = this.modes['analysis']
     
     // Recreate mode UI with command buttons now that modes are available
-    this.leftColumn.removeChild(this.modesContainer)
-    this.leftColumn.removeChild(this.guidancePanel)
+    this.modeColumn.removeChild(this.modesContainer)
+    this.guidanceColumn.removeChild(this.guidancePanel)
     
     const tempContainer2 = document.createElement('div')
     const modeUIWithButtons = createModeSwitchingUI(tempContainer2, this.state, (mode) => this._switchMode(mode), this.modes)
@@ -193,9 +193,9 @@ export class GramFrame {
     this.commandButtons = modeUIWithButtons.commandButtons
     this.guidancePanel = modeUIWithButtons.guidancePanel
     
-    // Add updated mode UI back to left column at the top
-    this.leftColumn.insertBefore(this.modesContainer, this.leftColumn.firstChild)
-    this.leftColumn.insertBefore(this.guidancePanel, this.leftColumn.firstChild)
+    // Add updated mode UI back to appropriate columns
+    this.modeColumn.appendChild(this.modesContainer)
+    this.guidanceColumn.appendChild(this.guidancePanel)
     
     // Initialize guidance panel with analysis mode guidance
     if (this.guidancePanel) {
@@ -243,13 +243,31 @@ export class GramFrame {
     // Create main container for unified layout
     /** @type {HTMLDivElement} */
     this.unifiedLayoutContainer = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-unified-layout', '2px'))
+    this.unifiedLayoutContainer.style.flexDirection = 'row'
+    this.unifiedLayoutContainer.style.flexWrap = 'nowrap'
     
-    // Left Column (250px) - Common controls
-    this.leftColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-left-column', '8px'))
-    this.leftColumn.style.flex = '0 0 250px'
-    this.leftColumn.style.width = '250px'
+    // Left Panel (450px) - Multi-column horizontal layout
+    this.leftColumn = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-left-column', '4px'))
+    this.leftColumn.style.flex = '0 0 450px'
+    this.leftColumn.style.width = '450px'
+    this.leftColumn.style.flexDirection = 'row'
     
-    // Create universal cursor readouts
+    // Column 1: Mode buttons 
+    this.modeColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-mode-column', '8px'))
+    this.modeColumn.style.flex = '0 0 130px'
+    this.modeColumn.style.width = '130px'
+    
+    // Column 2: Guidance panel  
+    this.guidanceColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-guidance-column', '8px'))
+    this.guidanceColumn.style.flex = '1'
+    this.guidanceColumn.style.minWidth = '150px'
+    
+    // Column 3: Controls (time/freq displays, speed, color selector)
+    this.controlsColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-controls-column', '8px'))
+    this.controlsColumn.style.flex = '0 0 170px'
+    this.controlsColumn.style.width = '170px'
+    
+    // Create universal cursor readouts in controls column
     const cursorContainer = document.createElement('div')
     cursorContainer.className = 'gram-frame-cursor-leds'
     this.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
@@ -263,17 +281,22 @@ export class GramFrame {
     this.speedLED.style.gridColumn = '1 / -1' // Span both columns
     cursorContainer.appendChild(this.speedLED)
     
-    this.leftColumn.appendChild(cursorContainer)
+    this.controlsColumn.appendChild(cursorContainer)
     
-    // Create color picker
+    // Create color picker in controls column
     this.colorPicker = createColorPicker(this.state)
     this.colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Color'
-    this.leftColumn.appendChild(this.colorPicker)
+    this.controlsColumn.appendChild(this.colorPicker)
     
-    // Middle Column (300px) - Analysis Markers table
+    // Add columns to left panel
+    this.leftColumn.appendChild(this.modeColumn)
+    this.leftColumn.appendChild(this.guidanceColumn)
+    this.leftColumn.appendChild(this.controlsColumn)
+    
+    // Middle Column (180px) - Analysis Markers table
     this.middleColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-middle-column'))
-    this.middleColumn.style.flex = '0 0 230px'
-    this.middleColumn.style.width = '230px'
+    this.middleColumn.style.flex = '0 0 180px'
+    this.middleColumn.style.width = '180px'
     
     // Create markers container in middle column
     this.markersContainer = document.createElement('div')
@@ -292,9 +315,10 @@ export class GramFrame {
     
     this.middleColumn.appendChild(this.markersContainer)
     
-    // Right Column (300px) - Harmonics sets table
+    // Right Column (flexible) - Harmonics sets table
     this.rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
-    this.rightColumn.style.flex = '0 0 300px'
+    this.rightColumn.style.flex = '1'
+    this.rightColumn.style.minWidth = '200px'
     this.rightColumn.style.width = '300px'
     
     // Create harmonics container in right column
@@ -447,23 +471,19 @@ export class GramFrame {
    * Update zoom control button states based on current zoom level
    */
   _updateZoomControlStates() {
-    const level = this.state.zoom.level
     
     // Update command button states for all modes (zoom buttons are now in pan mode)
     if (this.commandButtons && this.modes) {
       updateCommandButtonStates(this.commandButtons, this.modes)
     }
     
-    // Update pan mode button state based on zoom level
-    if (this.modeButtons && this.modeButtons.pan) {
-      if (level <= 1.0) {
-        this.modeButtons.pan.disabled = true
-        // Switch away from pan mode if currently active
-        if (this.state.mode === 'pan' && this.state.previousMode) {
-          this._switchMode(this.state.previousMode)
-        }
-      } else {
-        this.modeButtons.pan.disabled = false
+    // Update mode button states (enabled/disabled)
+    if (this.modeButtons && this.modes) {
+      updateModeButtonStates(this.modeButtons, this.modes)
+      
+      // Switch away from pan mode if currently active but now disabled
+      if (this.state.mode === 'pan' && this.modes.pan && !this.modes.pan.isEnabled() && this.state.previousMode) {
+        this._switchMode(this.state.previousMode)
       }
     }
   }
