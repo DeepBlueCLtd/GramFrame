@@ -19,6 +19,7 @@ import {
   createFlexColumn,
   createColorPicker
 } from './components/UIComponents.js'
+import { updateCommandButtonStates, updateModeButtonStates } from './components/ModeButtons.js'
 import { getModeDisplayName } from './utils/calculations.js'
 import { formatTime } from './utils/timeFormatter.js'
 
@@ -126,11 +127,17 @@ export class GramFrame {
     // Create unified layout
     this.createUnifiedLayout()
     
-    // Create mode switching UI
-    const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
+    // Create mode switching UI initially (will be updated after modes are initialized)
+    const tempContainer = document.createElement('div')
+    const modeUI = createModeSwitchingUI(tempContainer, this.state, (mode) => this._switchMode(mode))
     this.modesContainer = modeUI.modesContainer
     this.modeButtons = modeUI.modeButtons
+    this.commandButtons = modeUI.commandButtons
     this.guidancePanel = modeUI.guidancePanel
+    
+    // Add mode UI to appropriate columns
+    this.modeColumn.appendChild(this.modesContainer)
+    this.guidanceColumn.appendChild(this.guidancePanel)
     
     // Append unified layout to readout panel
     this.readoutPanel.appendChild(this.unifiedLayoutContainer)
@@ -141,8 +148,7 @@ export class GramFrame {
     // Rate input UI removed - backend functionality preserved for frequency calculations
     this.rateInput = null
     
-    // Create zoom controls
-    this.createZoomControls()
+    // Zoom controls are now integrated into pan mode command buttons
     
     // Set up spectrogram image if we have one from config extraction
     if (this.state.imageDetails.url) {
@@ -175,6 +181,21 @@ export class GramFrame {
     
     // Set initial mode (analysis by default)
     this.currentMode = this.modes['analysis']
+    
+    // Recreate mode UI with command buttons now that modes are available
+    this.modeColumn.removeChild(this.modesContainer)
+    this.guidanceColumn.removeChild(this.guidancePanel)
+    
+    const tempContainer2 = document.createElement('div')
+    const modeUIWithButtons = createModeSwitchingUI(tempContainer2, this.state, (mode) => this._switchMode(mode), this.modes)
+    this.modesContainer = modeUIWithButtons.modesContainer
+    this.modeButtons = modeUIWithButtons.modeButtons
+    this.commandButtons = modeUIWithButtons.commandButtons
+    this.guidancePanel = modeUIWithButtons.guidancePanel
+    
+    // Add updated mode UI back to appropriate columns
+    this.modeColumn.appendChild(this.modesContainer)
+    this.guidanceColumn.appendChild(this.guidancePanel)
     
     // Initialize guidance panel with analysis mode guidance
     if (this.guidancePanel) {
@@ -222,13 +243,31 @@ export class GramFrame {
     // Create main container for unified layout
     /** @type {HTMLDivElement} */
     this.unifiedLayoutContainer = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-unified-layout', '2px'))
+    this.unifiedLayoutContainer.style.flexDirection = 'row'
+    this.unifiedLayoutContainer.style.flexWrap = 'nowrap'
     
-    // Left Column (250px) - Common controls
-    this.leftColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-left-column', '8px'))
-    this.leftColumn.style.flex = '0 0 250px'
-    this.leftColumn.style.width = '250px'
+    // Left Panel (600px) - Multi-column horizontal layout
+    this.leftColumn = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-left-column', '4px'))
+    this.leftColumn.style.flex = '0 0 600px'
+    this.leftColumn.style.width = '600px'
+    this.leftColumn.style.flexDirection = 'row'
     
-    // Create universal cursor readouts
+    // Column 1: Mode buttons 
+    this.modeColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-mode-column', '8px'))
+    this.modeColumn.style.flex = '0 0 130px'
+    this.modeColumn.style.width = '130px'
+    
+    // Column 2: Guidance panel  
+    this.guidanceColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-guidance-column', '8px'))
+    this.guidanceColumn.style.flex = '1'
+    this.guidanceColumn.style.minWidth = '150px'
+    
+    // Column 3: Controls (time/freq displays, speed, color selector)
+    this.controlsColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-controls-column', '1px'))
+    this.controlsColumn.style.flex = '0 0 220px'
+    this.controlsColumn.style.width = '220px'
+    
+    // Create universal cursor readouts in controls column
     const cursorContainer = document.createElement('div')
     cursorContainer.className = 'gram-frame-cursor-leds'
     this.timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0))
@@ -242,17 +281,22 @@ export class GramFrame {
     this.speedLED.style.gridColumn = '1 / -1' // Span both columns
     cursorContainer.appendChild(this.speedLED)
     
-    this.leftColumn.appendChild(cursorContainer)
+    this.controlsColumn.appendChild(cursorContainer)
     
-    // Create color picker
+    // Create color picker in controls column
     this.colorPicker = createColorPicker(this.state)
     this.colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Color'
-    this.leftColumn.appendChild(this.colorPicker)
+    this.controlsColumn.appendChild(this.colorPicker)
     
-    // Middle Column (300px) - Analysis Markers table
+    // Add columns to left panel
+    this.leftColumn.appendChild(this.modeColumn)
+    this.leftColumn.appendChild(this.guidanceColumn)
+    this.leftColumn.appendChild(this.controlsColumn)
+    
+    // Middle Column (160px) - Analysis Markers table
     this.middleColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-middle-column'))
-    this.middleColumn.style.flex = '0 0 230px'
-    this.middleColumn.style.width = '230px'
+    this.middleColumn.style.flex = '0 0 160px'
+    this.middleColumn.style.width = '160px'
     
     // Create markers container in middle column
     this.markersContainer = document.createElement('div')
@@ -271,10 +315,11 @@ export class GramFrame {
     
     this.middleColumn.appendChild(this.markersContainer)
     
-    // Right Column (300px) - Harmonics sets table
+    // Right Column (200px) - Harmonics sets table
     this.rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
-    this.rightColumn.style.flex = '0 0 300px'
-    this.rightColumn.style.width = '300px'
+    this.rightColumn.style.flex = '0 0 200px'
+    this.rightColumn.style.minWidth = '200px'
+    this.rightColumn.style.width = '200px'
     
     // Create harmonics container in right column
     this.harmonicsContainer = document.createElement('div')
@@ -294,7 +339,7 @@ export class GramFrame {
     harmonicsHeader.style.flexShrink = '0'
     
     const harmonicsLabel = document.createElement('h4')
-    harmonicsLabel.textContent = 'Harmonic Sets'
+    harmonicsLabel.textContent = 'Harmonics'
     harmonicsLabel.style.margin = '0'
     harmonicsLabel.style.textAlign = 'left'
     harmonicsLabel.style.flexShrink = '0'
@@ -367,62 +412,7 @@ export class GramFrame {
     }
   }
   
-  /**
-   * Create zoom control UI
-   */
-  createZoomControls() {
-    // Create zoom controls container
-    const zoomContainer = document.createElement('div')
-    zoomContainer.className = 'gram-frame-zoom-controls'
-    
-    // Zoom in button
-    const zoomInButton = document.createElement('button')
-    zoomInButton.className = 'gram-frame-zoom-btn'
-    zoomInButton.textContent = '+'
-    zoomInButton.title = 'Zoom In'
-    zoomInButton.addEventListener('click', () => this._zoomIn())
-    
-    // Zoom out button
-    const zoomOutButton = document.createElement('button')
-    zoomOutButton.className = 'gram-frame-zoom-btn'
-    zoomOutButton.textContent = '−'
-    zoomOutButton.title = 'Zoom Out'
-    zoomOutButton.addEventListener('click', () => this._zoomOut())
-    
-    // Pan toggle button
-    const panToggleButton = document.createElement('button')
-    panToggleButton.className = 'gram-frame-zoom-btn gram-frame-pan-toggle'
-    panToggleButton.textContent = '↔' // Horizontal arrows
-    panToggleButton.title = 'Toggle Pan Mode'
-    panToggleButton.addEventListener('click', () => this._togglePan())
-    
-    // Reset zoom button
-    const zoomResetButton = document.createElement('button')
-    zoomResetButton.className = 'gram-frame-zoom-btn gram-frame-zoom-reset'
-    zoomResetButton.textContent = '1:1'
-    zoomResetButton.title = 'Reset Zoom'
-    zoomResetButton.addEventListener('click', () => this._zoomReset())
-    
-    zoomContainer.appendChild(zoomInButton)
-    zoomContainer.appendChild(zoomOutButton)
-    zoomContainer.appendChild(panToggleButton)
-    zoomContainer.appendChild(zoomResetButton)
-    
-    // Add to main panel (positioned over the spectrogram)
-    this.mainCell.appendChild(zoomContainer)
-    
-    // Store references
-    this.zoomControls = {
-      container: zoomContainer,
-      zoomInButton,
-      zoomOutButton,
-      panToggleButton,
-      zoomResetButton
-    }
-    
-    // Set initial button states (all disabled except zoom in, since we start at 1:1)
-    this._updateZoomControlStates()
-  }
+  // Zoom controls removed - now handled by pan mode command buttons
   
   /**
    * Zoom in by increasing zoom level
@@ -449,35 +439,6 @@ export class GramFrame {
     this._setZoom(1.0, 0.5, 0.5)
   }
   
-  /**
-   * Toggle pan mode
-   */
-  _togglePan() {
-    this.state.zoom.panMode = !this.state.zoom.panMode
-    
-    // Update button appearance
-    if (this.zoomControls && this.zoomControls.panToggleButton) {
-      if (this.state.zoom.panMode) {
-        this.zoomControls.panToggleButton.classList.add('active')
-        this.zoomControls.panToggleButton.title = 'Pan Mode Active - Click to disable'
-      } else {
-        this.zoomControls.panToggleButton.classList.remove('active')
-        this.zoomControls.panToggleButton.title = 'Toggle Pan Mode'
-      }
-    }
-    
-    // Update cursor style for SVG
-    if (this.svg) {
-      if (this.state.zoom.panMode && this.state.zoom.level > 1.0) {
-        this.svg.style.cursor = 'grab'
-      } else {
-        this.svg.style.cursor = 'crosshair'
-      }
-    }
-    
-    // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
-  }
   
   /**
    * Set zoom level and center point
@@ -505,52 +466,24 @@ export class GramFrame {
     notifyStateListeners(this.state, this.stateListeners)
   }
   
-  /**
-   * Pan the image by adjusting the center point
-   * @param {number} deltaX - Change in X position (normalized -1 to 1)
-   * @param {number} deltaY - Change in Y position (normalized -1 to 1)
-   */
-  _panImage(deltaX, deltaY) {
-    if (this.state.zoom.level <= 1.0) {
-      return // No panning when not zoomed
-    }
-    
-    // Calculate new center point, constrained to valid range
-    const newCenterX = Math.max(0, Math.min(1, this.state.zoom.centerX + deltaX))
-    const newCenterY = Math.max(0, Math.min(1, this.state.zoom.centerY + deltaY))
-    
-    // Update zoom with new center point
-    this._setZoom(this.state.zoom.level, newCenterX, newCenterY)
-  }
   
   /**
    * Update zoom control button states based on current zoom level
    */
   _updateZoomControlStates() {
-    if (!this.zoomControls) {
-      return
+    
+    // Update command button states for all modes (zoom buttons are now in pan mode)
+    if (this.commandButtons && this.modes) {
+      updateCommandButtonStates(this.commandButtons, this.modes)
     }
     
-    const level = this.state.zoom.level
-    
-    // Zoom in: disabled when at max zoom (10.0)
-    this.zoomControls.zoomInButton.disabled = (level >= 10.0)
-    
-    // Zoom out: disabled when at 1:1 scale or below
-    this.zoomControls.zoomOutButton.disabled = (level <= 1.0)
-    
-    // Reset zoom: disabled when already at 1:1 scale
-    this.zoomControls.zoomResetButton.disabled = (level === 1.0)
-    
-    // Pan toggle: disabled when at 1:1 scale
-    this.zoomControls.panToggleButton.disabled = (level <= 1.0)
-    
-    // Update pan mode and button state when zoom level changes
-    if (level <= 1.0) {
-      this.state.zoom.panMode = false
-      this.zoomControls.panToggleButton.classList.remove('active')
-      if (this.svg) {
-        this.svg.style.cursor = 'crosshair'
+    // Update mode button states (enabled/disabled)
+    if (this.modeButtons && this.modes) {
+      updateModeButtonStates(this.modeButtons, this.modes)
+      
+      // Switch away from pan mode if currently active but now disabled
+      if (this.state.mode === 'pan' && this.modes.pan && !this.modes.pan.isEnabled() && this.state.previousMode) {
+        this._switchMode(this.state.previousMode)
       }
     }
   }
@@ -601,6 +534,15 @@ export class GramFrame {
    * @param {ModeType} mode - Target mode
    */
   _switchMode(mode) {
+    // Prevent switching to pan mode when not zoomed
+    if (mode === 'pan' && this.state.zoom.level <= 1.0) {
+      console.warn('Cannot switch to pan mode when zoom level is 1:1 or less')
+      return
+    }
+    
+    // Track previous mode
+    this.state.previousMode = this.state.mode
+    
     // Update state
     this.state.mode = mode
     

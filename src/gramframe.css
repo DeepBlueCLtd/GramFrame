@@ -180,7 +180,7 @@
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
   color: #00ff00; /* LED green */
   padding: 6px 0px;
-  border: 2px solid #333;
+  border: 0px solid #333;
   border-radius: 4px;
   display: flex;
   flex-direction: column;
@@ -341,7 +341,66 @@
   height: 100%;
 }
 
-/* Markers table styles */
+/* Unified table styles for both markers and harmonics */
+.gram-frame-table-container {
+  padding: 0;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.gram-frame-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  color: #ccc;
+  table-layout: fixed;
+}
+
+.gram-frame-table th {
+  background: #222;
+  color: #00ff00;
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #444;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gram-frame-table td {
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #444;
+  background: #1a1a1a;
+}
+
+.gram-frame-table tbody tr {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gram-frame-table tbody tr:hover {
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.05),
+    inset 0 -1px 2px rgba(0,0,0,0.2),
+    0 0 4px rgba(255,255,255,0.1);
+}
+
+.gram-frame-table tbody tr:hover td {
+  background: transparent;
+}
+
+/* Legacy markers styles - kept for compatibility */
 .gram-frame-markers-container {
   padding: 8px;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
@@ -421,11 +480,9 @@
 
 /* Military-style mode selection header */
 .gram-frame-mode-header {
-  padding: 10px;
   background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);
   border-bottom: 2px solid #555;
   display: flex;
-  gap: 20px;
   align-items: flex-start;
   justify-content: flex-start;
 }
@@ -439,6 +496,16 @@
   flex: 0 0 auto;
   flex-shrink: 0;
 }
+
+.gram-frame-mode-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+/* Simplified left panel - no sub-columns needed */
 
 /* Guidance panel */
 .gram-frame-guidance {
@@ -471,7 +538,7 @@
 
 /* Military-style metal buttons */
 .gram-frame-mode-btn {
-  padding: 8px 20px;
+  padding: 8px 16px;
   background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);
   color: #ddd;
   border: 2px solid #555;
@@ -481,6 +548,31 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
+  flex: 1;
+  min-width: 0;
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.2),
+    inset 0 -1px 2px rgba(0,0,0,0.3),
+    0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.1s ease;
+}
+
+.gram-frame-command-btn {
+  padding: 8px 10px;
+  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);
+  color: #ddd;
+  border: 2px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+  flex: 0 0 auto;
+  min-width: 32px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: 
     inset 0 1px 2px rgba(255,255,255,0.2),
     inset 0 -1px 2px rgba(0,0,0,0.3),
@@ -511,6 +603,52 @@
   box-shadow: 
     inset 0 2px 4px rgba(0,0,0,0.4),
     0 1px 2px rgba(0,0,0,0.2);
+}
+
+.gram-frame-mode-btn:disabled,
+.gram-frame-mode-btn.disabled {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  color: #666;
+  border-color: #333;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: 
+    inset 0 1px 2px rgba(0,0,0,0.3),
+    0 1px 2px rgba(0,0,0,0.1);
+}
+
+.gram-frame-mode-btn:disabled:hover,
+.gram-frame-mode-btn.disabled:hover {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(0,0,0,0.3),
+    0 1px 2px rgba(0,0,0,0.1);
+  transform: none;
+}
+
+.gram-frame-command-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.3),
+    inset 0 -1px 2px rgba(0,0,0,0.4),
+    0 3px 6px rgba(0,0,0,0.4);
+}
+
+.gram-frame-command-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.4),
+    0 1px 2px rgba(0,0,0,0.2);
+}
+
+.gram-frame-command-btn:disabled {
+  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);
+  color: #666;
+  border-color: #333;
+  cursor: not-allowed;
+  box-shadow: 
+    inset 0 1px 2px rgba(0,0,0,0.3),
+    0 1px 2px rgba(0,0,0,0.1);
 }
 
 /* Rate input UI styles removed - backend functionality preserved */
@@ -582,72 +720,7 @@
   margin: 10px 0;
 }
 
-/* Harmonic Management Panel - always visible in unified layout */
-.gram-frame-harmonic-panel {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 10px;
-  flex: 1;
-  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
-  border: 2px solid #333;
-  border-radius: 4px;
-  box-shadow: 
-    inset 0 2px 6px rgba(0,0,0,0.8),
-    inset 0 -1px 2px rgba(255,255,255,0.05),
-    0 2px 4px rgba(0,0,0,0.5);
-  position: relative;
-  z-index: 1;
-  pointer-events: auto;
-}
-
-.gram-frame-harmonic-header h4 {
-  margin: 0 0 10px 0;
-  font-size: 11px;
-  color: #00ff00;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: bold;
-}
-
-.gram-frame-harmonic-list {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
-}
-
-.gram-frame-harmonic-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'Courier New', monospace;
-  font-size: 11px;
-  color: #ccc;
-}
-
-.gram-frame-harmonic-table th,
-.gram-frame-harmonic-table td {
-  padding: 6px 8px;
-  text-align: left;
-  border-bottom: 1px solid #444;
-}
-
-.gram-frame-harmonic-table th {
-  background: #2a2a2a;
-  color: #00ff00;
-  font-weight: bold;
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 1px;
-}
-
-.gram-frame-harmonic-table td {
-  background: #1a1a1a;
-}
-
-.gram-frame-harmonic-table tr:hover td {
-  background: #2a2a2a;
-}
+/* Legacy harmonic panel styles - now using unified table structure */
 
 .gram-frame-harmonic-spacing,
 .gram-frame-harmonic-rate {
@@ -903,120 +976,73 @@
   transform: translateY(1px);
 }
 
-/* Transform-Based Zoom Controls */
-.gram-frame-zoom-controls {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
-  border: 2px solid #555;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);
-  box-shadow: 
-    inset 0 1px 2px rgba(255,255,255,0.1),
-    inset 0 -1px 2px rgba(0,0,0,0.3),
-    0 4px 8px rgba(0,0,0,0.3);
-  z-index: 10;
-}
-
-.gram-frame-zoom-btn {
-  min-width: 32px;
-  height: 32px;
-  border: 2px solid #666;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 50%, #2a2a2a 100%);
-  color: #fff;
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 
-    0 2px 4px rgba(0,0,0,0.3),
-    inset 0 1px 2px rgba(255,255,255,0.2);
-}
-
-.gram-frame-zoom-btn:hover:not(:disabled) {
-  background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 50%, #3a3a3a 100%);
-  border-color: #777;
-}
-
-.gram-frame-zoom-btn:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: 
-    0 1px 2px rgba(0,0,0,0.4),
-    inset 0 -1px 2px rgba(255,255,255,0.1);
-}
-
-.gram-frame-zoom-btn:disabled {
-  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);
-  color: #666;
-  border-color: #444;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.gram-frame-zoom-reset {
-  font-size: 12px;
-  min-width: 40px;
-}
-
-.gram-frame-pan-toggle.active {
-  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);
-  color: #aaffaa;
-  border-color: #4a8a4a;
-  box-shadow: 
-    inset 0 1px 2px rgba(0,0,0,0.3),
-    inset 0 -1px 2px rgba(255,255,255,0.1),
-    0 0 4px rgba(74, 138, 74, 0.3);
-}
-
-.gram-frame-zoom-display {
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  font-weight: bold;
-  color: #00ff00;
-  text-shadow: 0 0 4px rgba(0,255,0,0.5);
-  min-width: 50px;
-  text-align: center;
-  background: rgba(0,0,0,0.3);
-  padding: 4px 8px;
-  border-radius: 3px;
-  border: 1px solid #333;
-}
+/* Zoom controls removed - now integrated into pan mode command buttons */
 
 /* Unified Layout Styles */
 .gram-frame-unified-layout {
   display: flex;
-  gap: 12px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 2px; /* Match JavaScript gap */
   width: 100%;
   height: 100%;
+  overflow: hidden; /* Prevent columns from overflowing container */
 }
 
 .gram-frame-left-column {
   position: relative; /* Enable absolute positioning for child elements */
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 0 0 250px;
-  width: 250px;
+  flex-direction: row;
+  gap: 4px;
+  flex: 0 0 600px;
+  width: 600px;
+  overflow: hidden;
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
-  border: 1px solid #444;
+  border: 2px solid #333;
   border-radius: 4px;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Left column sub-columns */
+.gram-frame-mode-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 130px;
+  width: 130px;
+  padding: 8px;
+  border: none;
+}
+
+.gram-frame-guidance-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 150px;
+  border: none;
+}
+
+.gram-frame-controls-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 210px;
+  width: 210px;
+  padding: 0px;
+  border: none;
 }
 
 .gram-frame-middle-column {
   display: flex;
   flex-direction: column;
-  flex: 0 0 300px;
-  width: 300px;
-  padding: 10px;
+  flex: 0 0 160px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  padding: 5px;
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
-  border: 1px solid #444;
+  border: 2px solid #333;
   border-radius: 4px;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
 }
@@ -1024,11 +1050,12 @@
 .gram-frame-right-column {
   display: flex;
   flex-direction: column;
-  flex: 0 0 300px;
-  width: 300px;
-  padding: 10px;
+  flex: 0 0 200px;
+  min-width: 200px;
+  width: 200px;
+  padding: 5px;
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
-  border: 1px solid #444;
+  border: 2px solid #333;
   border-radius: 4px;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
 }
@@ -1100,21 +1127,7 @@
   border-color: #4a8a4a !important;
 }
 
-/* Enhanced table row interactivity */
-.gram-frame-markers-table tbody tr,
-.gram-frame-harmonic-table tbody tr {
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.gram-frame-markers-table tbody tr:hover,
-.gram-frame-harmonic-table tbody tr:hover {
-  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
-  box-shadow: 
-    inset 0 1px 2px rgba(255,255,255,0.05),
-    inset 0 -1px 2px rgba(0,0,0,0.2),
-    0 0 4px rgba(255,255,255,0.1);
-}
+/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */
 
 /* Selected Doppler marker highlighting */
 .gram-frame-selected-doppler-marker {

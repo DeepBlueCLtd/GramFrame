@@ -11,22 +11,20 @@
  */
 export function createHarmonicPanel(container) {
   const panel = document.createElement('div')
-  panel.className = 'gram-frame-harmonic-panel'
+  panel.className = 'gram-frame-table-container'
   panel.innerHTML = `
-    <div class="gram-frame-harmonic-list">
-      <table class="gram-frame-harmonic-table">
-        <thead>
-          <tr>
-            <th>Color</th>
-            <th>Spacing (Hz)</th>
-            <th>Ratio</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-        </tbody>
-      </table>
-    </div>
+    <table class="gram-frame-table">
+      <thead>
+        <tr>
+          <th style="width: 15%"></th>
+          <th style="width: 35%">Spacing (Hz)</th>
+          <th style="width: 35%">Ratio</th>
+          <th style="width: 15%"></th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
   `
   
   container.appendChild(panel)
@@ -43,7 +41,7 @@ export function updateHarmonicPanelContent(panel, instance) {
     return
   }
   
-  const tbody = /** @type {HTMLTableSectionElement} */ (panel.querySelector('.gram-frame-harmonic-table tbody'))
+  const tbody = /** @type {HTMLTableSectionElement} */ (panel.querySelector('.gram-frame-table tbody'))
   if (!tbody) {
     return
   }

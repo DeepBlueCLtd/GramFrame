@@ -10,6 +10,7 @@
 import { AnalysisMode } from '../modes/analysis/AnalysisMode.js'
 import { HarmonicsMode } from '../modes/harmonics/HarmonicsMode.js'
 import { DopplerMode } from '../modes/doppler/DopplerMode.js'
+import { PanMode } from '../modes/pan/PanMode.js'
 
 /**
  * Build mode-specific initial state by collecting from all mode classes
@@ -20,7 +21,8 @@ function buildModeInitialState() {
   const modeStates = [
     AnalysisMode.getInitialState(),
     HarmonicsMode.getInitialState(),
-    DopplerMode.getInitialState()
+    DopplerMode.getInitialState(),
+    PanMode.getInitialState()
   ]
   
   // Merge all mode states
@@ -35,7 +37,8 @@ export const initialState = {
   version: '0.0.1',
   timestamp: new Date().toISOString(),
   instanceId: '',
-  mode: 'analysis', // 'analysis', 'harmonics', 'doppler'
+  mode: 'analysis', // 'analysis', 'harmonics', 'doppler', 'pan'
+  previousMode: null, // Previous mode for switching back
   rate: 1,
   cursorPosition: null,
   cursors: [],
@@ -67,7 +70,7 @@ export const initialState = {
     level: 1.0,  // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
     centerX: 0.5, // Center point X (0-1 normalized)
     centerY: 0.5,  // Center point Y (0-1 normalized)
-    panMode: false // Whether pan mode is active
+    panMode: false // Legacy pan mode flag (deprecated - pan is now a proper mode)
   },
   // Selection state for keyboard fine control
   selection: {

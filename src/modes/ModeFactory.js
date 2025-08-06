@@ -2,6 +2,7 @@ import { BaseMode } from './BaseMode.js'
 import { AnalysisMode } from './analysis/AnalysisMode.js'
 import { HarmonicsMode } from './harmonics/HarmonicsMode.js'
 import { DopplerMode } from './doppler/DopplerMode.js'
+import { PanMode } from './pan/PanMode.js'
 
 /**
  * Factory for creating mode instances
@@ -28,8 +29,11 @@ export class ModeFactory {
         case 'doppler':
           return new DopplerMode(instance, state)
         
+        case 'pan':
+          return new PanMode(instance, state)
+        
         default:
-          throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, doppler`)
+          throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, doppler, pan`)
       }
     } catch (error) {
       console.error(`CRITICAL ERROR: Failed to create mode "${modeName}":`, error)
@@ -57,7 +61,7 @@ export class ModeFactory {
    * @returns {ModeType[]} Array of mode names
    */
   static getAvailableModes() {
-    return ['analysis', 'harmonics', 'doppler']
+    return ['analysis', 'harmonics', 'doppler', 'pan']
   }
 
   /**

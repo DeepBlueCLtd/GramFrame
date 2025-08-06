@@ -142,34 +142,6 @@ export function setupResizeObserver(instance) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseMove(instance, event) {
-  // Handle panning if in pan mode and dragging
-  if (instance.state.zoom.panMode && instance.state.zoom.level > 1.0 && instance._panDragState?.isDragging) {
-    const deltaX = event.clientX - instance._panDragState.lastX
-    const deltaY = event.clientY - instance._panDragState.lastY
-    
-    // Convert pixel delta to normalized delta (considering zoom level)
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails
-    const margins = instance.state.axes.margins
-    const svgRect = instance.svg.getBoundingClientRect()
-    
-    // Scale factor based on current zoom and SVG size
-    const scaleX = (naturalWidth + margins.left + margins.right) / svgRect.width
-    const scaleY = (naturalHeight + margins.top + margins.bottom) / svgRect.height
-    
-    // Convert to normalized coordinates (adjust for zoom level)
-    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / instance.state.zoom.level
-    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / instance.state.zoom.level
-    
-    // Apply pan
-    instance._panImage(normalizedDeltaX, normalizedDeltaY)
-    
-    // Update drag state
-    instance._panDragState.lastX = event.clientX
-    instance._panDragState.lastY = event.clientY
-    
-    return // Skip normal cursor handling during pan drag
-  }
-  
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
@@ -216,24 +188,6 @@ function handleMouseMove(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseDown(instance, event) {
-  // Start pan drag if in pan mode and zoomed
-  if (instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
-    instance._panDragState = {
-      isDragging: true,
-      lastX: event.clientX,
-      lastY: event.clientY
-    }
-    
-    // Change cursor to grabbing
-    if (instance.svg) {
-      instance.svg.style.cursor = 'grabbing'
-    }
-    
-    // Prevent default to avoid text selection
-    event.preventDefault()
-    return
-  }
-  
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
@@ -252,18 +206,6 @@ function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseUp(instance, event) {
-  // End pan drag if was dragging
-  if (instance._panDragState?.isDragging) {
-    instance._panDragState = { isDragging: false, lastX: 0, lastY: 0 }
-    
-    // Restore cursor to grab (pan mode still active)
-    if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
-      instance.svg.style.cursor = 'grab'
-    }
-    
-    return
-  }
-  
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
@@ -281,16 +223,6 @@ function handleMouseUp(instance, event) {
  * @param {GramFrame} instance - GramFrame instance
  */
 function handleMouseLeave(instance) {
-  // Stop pan drag if was dragging
-  if (instance._panDragState?.isDragging) {
-    instance._panDragState = { isDragging: false, lastX: 0, lastY: 0 }
-    
-    // Restore cursor to grab (pan mode still active)
-    if (instance.svg && instance.state.zoom.panMode && instance.state.zoom.level > 1.0) {
-      instance.svg.style.cursor = 'grab'
-    }
-  }
-  
   // Clear cursor position
   instance.state.cursorPosition = null
   
