@@ -42,6 +42,9 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
   
+  // For previews, always use the current selectedColor (what the curve will be when created)
+  const color = instance.state.selectedColor || '#ff0000'
+  
   // Determine which point is f- and f+ based on time
   let fMinus, fPlus
   if (startPoint.time < endPoint.time) {
@@ -73,9 +76,9 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
   const zeroSVG = convertToSVG(fZero)
   
   // Draw preview markers (no labels needed)
-  drawPreviewMarker(instance, minusSVG, 'fMinus')
-  drawPreviewMarker(instance, plusSVG, 'fPlus')
-  drawPreviewMarker(instance, zeroSVG, 'fZero')
+  drawPreviewMarker(instance, minusSVG, 'fMinus', color)
+  drawPreviewMarker(instance, plusSVG, 'fPlus', color)
+  drawPreviewMarker(instance, zeroSVG, 'fZero', color)
   
   // Draw preview curve (semi-transparent)
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
@@ -92,7 +95,7 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
   `
   
   path.setAttribute('d', pathData.replace(/\s+/g, ' ').trim())
-  path.setAttribute('stroke', '#ff0000')
+  path.setAttribute('stroke', color)
   path.setAttribute('stroke-width', '2')
   path.setAttribute('fill', 'none')
   path.setAttribute('opacity', '1.0')
@@ -106,8 +109,9 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
  * @param {GramFrame} instance - GramFrame instance
  * @param {SVGCoordinates} svgPos - SVG position {x, y}
  * @param {string} type - Marker type ('fZero', 'fPlus', 'fMinus')
+ * @param {string} color - Color to use for the marker
  */
-function drawPreviewMarker(instance, svgPos, type) {
+function drawPreviewMarker(instance, svgPos, type, color) {
   if (type === 'fZero') {
     // Draw cross-hair for f₀ preview
     const horizontalLine = createSVGLine(
@@ -118,6 +122,7 @@ function drawPreviewMarker(instance, svgPos, type) {
       svgPos.x, svgPos.y - 6, svgPos.x, svgPos.y + 6, 
       'gram-frame-doppler-preview'
     )
+    // Keep f0 marker green as it's the midpoint indicator
     horizontalLine.setAttribute('stroke', '#00ff00')
     verticalLine.setAttribute('stroke', '#00ff00')
     horizontalLine.setAttribute('stroke-width', '1')
@@ -129,7 +134,7 @@ function drawPreviewMarker(instance, svgPos, type) {
   } else {
     // Draw dot for f+ and f- preview
     const circle = createSVGCircle(svgPos.x, svgPos.y, 3, 'gram-frame-doppler-preview')
-    circle.setAttribute('fill', '#ff0000')
+    circle.setAttribute('fill', color)
     circle.setAttribute('opacity', '1.0')
     instance.cursorGroup.appendChild(circle)
   }

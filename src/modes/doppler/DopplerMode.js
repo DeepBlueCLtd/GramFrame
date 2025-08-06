@@ -245,6 +245,11 @@ export class DopplerMode extends BaseMode {
       // Recalculate f₀ as midpoint for final placement
       doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus)
       
+      // Store the color for this doppler curve (only when first created)
+      if (!doppler.color) {
+        doppler.color = this.state.selectedColor || '#ff0000'
+      }
+      
       // Clean up placement state
       doppler.isPlacingMarkers = false
       doppler.tempFirst = null
@@ -315,6 +320,7 @@ export class DopplerMode extends BaseMode {
     this.state.doppler.fMinus = null
     this.state.doppler.fZero = null
     this.state.doppler.speed = null
+    this.state.doppler.color = null
     this.state.doppler.isDragging = false
     this.state.doppler.draggedMarker = null
     this.state.doppler.isPlacingMarkers = false
@@ -379,6 +385,7 @@ export class DopplerMode extends BaseMode {
         fMinus: null, // DataCoordinates: { time, frequency }
         fZero: null,  // DataCoordinates: { time, frequency }
         speed: null,  // calculated speed in m/s
+        color: null,  // color used for this doppler curve
         isDragging: false,
         draggedMarker: null, // 'fPlus', 'fMinus', 'fZero'
         isPlacingMarkers: false,
@@ -558,7 +565,10 @@ export class DopplerMode extends BaseMode {
   renderMarkers() {
     const doppler = this.state.doppler
     
-    // f+ marker (red dot)
+    // Use stored color for existing curve, or global selectedColor for new curves
+    const color = doppler.color || this.state.selectedColor || '#ff0000'
+    
+    // f+ marker (colored dot)
     if (doppler.fPlus) {
       const fPlusSVG = this.dataToSVG(doppler.fPlus)
       const fPlusMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
@@ -566,13 +576,13 @@ export class DopplerMode extends BaseMode {
       fPlusMarker.setAttribute('cx', fPlusSVG.x.toString())
       fPlusMarker.setAttribute('cy', fPlusSVG.y.toString())
       fPlusMarker.setAttribute('r', '4')
-      fPlusMarker.setAttribute('fill', '#ff0000')
+      fPlusMarker.setAttribute('fill', color)
       fPlusMarker.setAttribute('stroke', '#ffffff')
       fPlusMarker.setAttribute('stroke-width', '1')
       this.instance.cursorGroup.appendChild(fPlusMarker)
     }
     
-    // f- marker (red dot)
+    // f- marker (colored dot)
     if (doppler.fMinus) {
       const fMinusSVG = this.dataToSVG(doppler.fMinus)
       const fMinusMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
@@ -580,13 +590,13 @@ export class DopplerMode extends BaseMode {
       fMinusMarker.setAttribute('cx', fMinusSVG.x.toString())
       fMinusMarker.setAttribute('cy', fMinusSVG.y.toString())
       fMinusMarker.setAttribute('r', '4')
-      fMinusMarker.setAttribute('fill', '#ff0000')
+      fMinusMarker.setAttribute('fill', color)
       fMinusMarker.setAttribute('stroke', '#ffffff')
       fMinusMarker.setAttribute('stroke-width', '1')
       this.instance.cursorGroup.appendChild(fMinusMarker)
     }
     
-    // f₀ marker (green crosshair)
+    // f₀ marker (green crosshair) - keep green as it's the midpoint indicator
     if (doppler.fZero) {
       const fZeroSVG = this.dataToSVG(doppler.fZero)
       
@@ -621,6 +631,9 @@ export class DopplerMode extends BaseMode {
     const doppler = this.state.doppler
     if (!doppler.fPlus || !doppler.fMinus || !doppler.fZero) return
     
+    // Use stored color for existing curve, or global selectedColor for new curves
+    const color = doppler.color || this.state.selectedColor || '#ff0000'
+    
     const fPlusSVG = this.dataToSVG(doppler.fPlus)
     const fMinusSVG = this.dataToSVG(doppler.fMinus)
     const fZeroSVG = this.dataToSVG(doppler.fZero)
@@ -638,7 +651,7 @@ export class DopplerMode extends BaseMode {
     const pathData = `M ${fMinusSVG.x} ${fMinusSVG.y} C ${controlPoint1X} ${controlPoint1Y} ${controlPoint2X} ${controlPoint2Y} ${fPlusSVG.x} ${fPlusSVG.y}`
     
     path.setAttribute('d', pathData)
-    path.setAttribute('stroke', '#ff0000')
+    path.setAttribute('stroke', color)
     path.setAttribute('stroke-width', '2')
     path.setAttribute('fill', 'none')
     
@@ -676,7 +689,7 @@ export class DopplerMode extends BaseMode {
       fPlusExtension.setAttribute('y1', fPlusSVG.y.toString())
       fPlusExtension.setAttribute('x2', fPlusSVG.x.toString())
       fPlusExtension.setAttribute('y2', clippedTop.toString())
-      fPlusExtension.setAttribute('stroke', '#ff0000')
+      fPlusExtension.setAttribute('stroke', color)
       fPlusExtension.setAttribute('stroke-width', '2')
       this.instance.cursorGroup.appendChild(fPlusExtension)
     }
@@ -689,7 +702,7 @@ export class DopplerMode extends BaseMode {
       fMinusExtension.setAttribute('y1', fMinusSVG.y.toString())
       fMinusExtension.setAttribute('x2', fMinusSVG.x.toString())
       fMinusExtension.setAttribute('y2', clippedBottom.toString())
-      fMinusExtension.setAttribute('stroke', '#ff0000')
+      fMinusExtension.setAttribute('stroke', color)
       fMinusExtension.setAttribute('stroke-width', '2')
       this.instance.cursorGroup.appendChild(fMinusExtension)
     }

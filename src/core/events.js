@@ -6,6 +6,7 @@
 
 import { screenToSVGCoordinates, imageToDataCoordinates } from '../utils/coordinates.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
+import { notifyStateListeners } from './state.js'
 
 /**
  * Convert screen coordinates to data coordinates, accounting for zoom
@@ -177,9 +178,7 @@ function handleMouseMove(instance, event) {
   updateCursorIndicators(instance)
   
   // Notify listeners of cursor position change
-  import('./state.js').then(({ notifyStateListeners }) => {
-    notifyStateListeners(instance.state, instance.stateListeners)
-  })
+  notifyStateListeners(instance.state, instance.stateListeners)
 }
 
 /**
@@ -235,9 +234,7 @@ function handleMouseLeave(instance) {
   }
   
   // Notify listeners
-  import('./state.js').then(({ notifyStateListeners }) => {
-    notifyStateListeners(instance.state, instance.stateListeners)
-  })
+  notifyStateListeners(instance.state, instance.stateListeners)
 }
 
 /**

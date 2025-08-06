@@ -64,16 +64,8 @@ export function createColorPicker(state) {
   sliderContainer.appendChild(canvas)
   
   // Initialize default color
-  if (!state.harmonics) {
-    state.harmonics = {
-      baseFrequency: null,
-      harmonicData: [],
-      harmonicSets: [],
-      selectedColor: '#ff6b6b' // Default first color
-    }
-  }
-  if (!state.harmonics.selectedColor) {
-    state.harmonics.selectedColor = '#ff6b6b' // Default first color
+  if (!state.selectedColor) {
+    state.selectedColor = '#ff6b6b' // Default first color
   }
   
   // Draw the color palette
@@ -87,7 +79,7 @@ export function createColorPicker(state) {
   // Current color display - now a compact lozenge
   const currentColor = document.createElement('div')
   currentColor.className = 'gram-frame-current-color'
-  currentColor.style.backgroundColor = state.harmonics.selectedColor
+  currentColor.style.backgroundColor = state.selectedColor
   currentColor.style.width = '30px'
   currentColor.style.height = '20px'
   currentColor.style.borderRadius = '10px'
@@ -106,7 +98,7 @@ export function createColorPicker(state) {
     const color = getColorFromPosition(canvasX, canvas.width)
     
     // Update state
-    state.harmonics.selectedColor = color
+    state.selectedColor = color
     
     // Update current color display
     currentColor.style.backgroundColor = color
@@ -116,7 +108,7 @@ export function createColorPicker(state) {
   })
   
   // Initialize indicator position (use canvas coordinates directly)
-  const initialPosition = getPositionFromColor(state.harmonics.selectedColor, canvas.width)
+  const initialPosition = getPositionFromColor(state.selectedColor, canvas.width)
   updateIndicatorPosition(indicator, initialPosition, canvas.width)
   
   return container

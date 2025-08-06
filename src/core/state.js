@@ -40,6 +40,7 @@ export const initialState = {
   mode: 'analysis', // 'analysis', 'harmonics', 'doppler', 'pan'
   previousMode: null, // Previous mode for switching back
   rate: 1,
+  selectedColor: '#ff6b6b', // Currently selected color for new features across all modes
   cursorPosition: null,
   cursors: [],
   imageDetails: {

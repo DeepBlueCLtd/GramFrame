@@ -135,8 +135,8 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   createMarkerAtPosition(dataCoords) {
-    // Get the current marker color from the central color picker
-    const color = this.state.harmonics?.selectedColor || '#ff6b6b'
+    // Get the current marker color from global state
+    const color = this.state.selectedColor || '#ff6b6b'
     
     // Create marker object (we only need time/freq for positioning)
     /** @type {AnalysisMarker} */
@@ -365,11 +365,7 @@ export class AnalysisMode extends BaseMode {
         markers: [],
         isDragging: false,
         draggedMarkerId: null,
-        dragStartPosition: null,
-        selectedColor: '#ff6b6b'
-      },
-      harmonics: {
-        selectedColor: '#ff6b6b' // Default color for markers
+        dragStartPosition: null
       }
     }
   }
@@ -384,8 +380,7 @@ export class AnalysisMode extends BaseMode {
         markers: [],
         isDragging: false,
         draggedMarkerId: null,
-        dragStartPosition: null,
-        selectedColor: '#ff6b6b'
+        dragStartPosition: null
       }
     }
     

@@ -1,5 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
 import { notifyStateListeners } from '../../core/state.js'
+import { applyZoomTransform } from '../../components/table.js'
 
 /**
  * Pan mode - allows users to pan around the spectrogram when zoomed in
@@ -176,9 +177,7 @@ export class PanMode extends BaseMode {
     
     // Apply zoom transform
     if (this.instance.svg) {
-      import('../../components/table.js').then(({ applyZoomTransform }) => {
-        applyZoomTransform(this.instance)
-      })
+      applyZoomTransform(this.instance)
     }
     
     // Note: zoom button states will be updated by the main zoom change handler
