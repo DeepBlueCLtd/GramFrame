@@ -389,12 +389,6 @@ export class GramFrame {
     zoomOutButton.title = 'Zoom Out'
     zoomOutButton.addEventListener('click', () => this._zoomOut())
     
-    // Pan toggle button
-    const panToggleButton = document.createElement('button')
-    panToggleButton.className = 'gram-frame-zoom-btn gram-frame-pan-toggle'
-    panToggleButton.textContent = '↔' // Horizontal arrows
-    panToggleButton.title = 'Toggle Pan Mode'
-    panToggleButton.addEventListener('click', () => this._togglePan())
     
     // Reset zoom button
     const zoomResetButton = document.createElement('button')
@@ -405,7 +399,6 @@ export class GramFrame {
     
     zoomContainer.appendChild(zoomInButton)
     zoomContainer.appendChild(zoomOutButton)
-    zoomContainer.appendChild(panToggleButton)
     zoomContainer.appendChild(zoomResetButton)
     
     // Add to main panel (positioned over the spectrogram)
@@ -416,7 +409,6 @@ export class GramFrame {
       container: zoomContainer,
       zoomInButton,
       zoomOutButton,
-      panToggleButton,
       zoomResetButton
     }
     
@@ -449,35 +441,6 @@ export class GramFrame {
     this._setZoom(1.0, 0.5, 0.5)
   }
   
-  /**
-   * Toggle pan mode
-   */
-  _togglePan() {
-    this.state.zoom.panMode = !this.state.zoom.panMode
-    
-    // Update button appearance
-    if (this.zoomControls && this.zoomControls.panToggleButton) {
-      if (this.state.zoom.panMode) {
-        this.zoomControls.panToggleButton.classList.add('active')
-        this.zoomControls.panToggleButton.title = 'Pan Mode Active - Click to disable'
-      } else {
-        this.zoomControls.panToggleButton.classList.remove('active')
-        this.zoomControls.panToggleButton.title = 'Toggle Pan Mode'
-      }
-    }
-    
-    // Update cursor style for SVG
-    if (this.svg) {
-      if (this.state.zoom.panMode && this.state.zoom.level > 1.0) {
-        this.svg.style.cursor = 'grab'
-      } else {
-        this.svg.style.cursor = 'crosshair'
-      }
-    }
-    
-    // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
-  }
   
   /**
    * Set zoom level and center point
@@ -505,23 +468,6 @@ export class GramFrame {
     notifyStateListeners(this.state, this.stateListeners)
   }
   
-  /**
-   * Pan the image by adjusting the center point
-   * @param {number} deltaX - Change in X position (normalized -1 to 1)
-   * @param {number} deltaY - Change in Y position (normalized -1 to 1)
-   */
-  _panImage(deltaX, deltaY) {
-    if (this.state.zoom.level <= 1.0) {
-      return // No panning when not zoomed
-    }
-    
-    // Calculate new center point, constrained to valid range
-    const newCenterX = Math.max(0, Math.min(1, this.state.zoom.centerX + deltaX))
-    const newCenterY = Math.max(0, Math.min(1, this.state.zoom.centerY + deltaY))
-    
-    // Update zoom with new center point
-    this._setZoom(this.state.zoom.level, newCenterX, newCenterY)
-  }
   
   /**
    * Update zoom control button states based on current zoom level
@@ -542,15 +488,16 @@ export class GramFrame {
     // Reset zoom: disabled when already at 1:1 scale
     this.zoomControls.zoomResetButton.disabled = (level === 1.0)
     
-    // Pan toggle: disabled when at 1:1 scale
-    this.zoomControls.panToggleButton.disabled = (level <= 1.0)
-    
-    // Update pan mode and button state when zoom level changes
-    if (level <= 1.0) {
-      this.state.zoom.panMode = false
-      this.zoomControls.panToggleButton.classList.remove('active')
-      if (this.svg) {
-        this.svg.style.cursor = 'crosshair'
+    // Update pan mode button state based on zoom level
+    if (this.modeButtons && this.modeButtons.pan) {
+      if (level <= 1.0) {
+        this.modeButtons.pan.disabled = true
+        // Switch away from pan mode if currently active
+        if (this.state.mode === 'pan' && this.state.previousMode) {
+          this._switchMode(this.state.previousMode)
+        }
+      } else {
+        this.modeButtons.pan.disabled = false
       }
     }
   }
@@ -601,6 +548,15 @@ export class GramFrame {
    * @param {ModeType} mode - Target mode
    */
   _switchMode(mode) {
+    // Prevent switching to pan mode when not zoomed
+    if (mode === 'pan' && this.state.zoom.level <= 1.0) {
+      console.warn('Cannot switch to pan mode when zoom level is 1:1 or less')
+      return
+    }
+    
+    // Track previous mode
+    this.state.previousMode = this.state.mode
+    
     // Update state
     this.state.mode = mode
     

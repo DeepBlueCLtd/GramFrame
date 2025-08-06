@@ -22,7 +22,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback) {
   
   // Create mode buttons
   /** @type {ModeType[]} */
-  const modes = ['analysis', 'harmonics', 'doppler']
+  const modes = ['analysis', 'harmonics', 'doppler', 'pan']
   /** @type {Object<string, HTMLButtonElement>} */
   const modeButtons = {}
   

@@ -165,6 +165,7 @@
  * @property {string} timestamp - Timestamp of state creation
  * @property {string} instanceId - Unique instance identifier
  * @property {ModeType} mode - Current analysis mode
+ * @property {ModeType|null} previousMode - Previous analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
