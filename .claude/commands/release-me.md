@@ -25,10 +25,12 @@ release-me major
 
 The command uses Claude Code's native tools for a streamlined approach:
 
-1. **Read** package.json to get current version
-2. **Calculate** new version based on increment type
-3. **Edit** package.json with new version
-4. **Create** git tag using Bash tool
+1. **Branch Validation** - Ensure running on main branch (or approved release branch)
+2. **Pre-flight Checks** - Verify clean working directory and git repository status
+3. **Read** package.json to get current version
+4. **Calculate** new version based on increment type
+5. **Edit** package.json with new version
+6. **Create** git tag using Bash tool
 
 ## Implementation
 
@@ -38,6 +40,7 @@ The command uses Claude Code's native tools for a streamlined approach:
 
 The command implements comprehensive error handling with fail-fast approach:
 
+- **Branch Validation**: Fails if not on main branch (or approved release branch)
 - **Git Repository Check**: Fails if not in a git repository
 - **Uncommitted Changes**: Fails if working directory is not clean
 - **File Validation**: Fails if package.json doesn't exist or is invalid
@@ -77,10 +80,21 @@ $ release-me major
 📈 New version: 1.1.0 → 2.0.0
 ```
 
+## Critical Requirements
+
+⚠️ **MUST be run from main branch** - The release command enforces branch validation to prevent releases from feature branches.
+
+As documented in `docs/Release-Process.md`, releases must be created from the main branch:
+```bash
+git checkout main
+git pull origin main
+```
+
 ## Notes
 
 - The command does **not** push the tag automatically - you must push it manually
 - Tag format follows GitHub Actions requirements: `v*.*.*`
 - JSON formatting in package.json is preserved
 - All operations are atomic - if any step fails, previous changes are rolled back
+- Branch validation prevents accidental releases from feature branches
 - Detailed logging helps with debugging and verification
