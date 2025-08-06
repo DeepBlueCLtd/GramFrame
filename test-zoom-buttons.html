@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Zoom Buttons</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px;
+            background: #333;
+            color: #fff;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        h1 { 
+            color: #00ff00; 
+            text-align: center; 
+        }
+        .instructions {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .instructions h2 {
+            color: #00ff00;
+            margin-top: 0;
+        }
+        .instructions ol {
+            margin: 0;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GramFrame Zoom Button Test</h1>
+        
+        <div class="instructions">
+            <h2>Test Instructions:</h2>
+            <ol>
+                <li><strong>Layout Check:</strong> Verify mode toolbar and guidance panel are on the LEFT side</li>
+                <li><strong>No Duplicates:</strong> Confirm there's only ONE guidance panel (not two)</li>
+                <li><strong>Pan Button:</strong> Check Pan mode has zoom buttons (− and +) on either side</li>
+                <li><strong>Zoom Out:</strong> Verify zoom out (−) button is disabled at 1:1 zoom level</li>
+                <li><strong>Zoom In:</strong> Click zoom in (+) to increase zoom level</li>
+                <li><strong>Both Enabled:</strong> Verify both buttons become enabled when zoomed in</li>
+                <li><strong>Zoom Out Test:</strong> Test zoom out (−) to decrease zoom level</li>
+                <li><strong>Max Zoom:</strong> Verify zoom in (+) button is disabled at maximum zoom (10x)</li>
+                <li><strong>Mode Switch:</strong> Check that switching to other modes hides the zoom buttons</li>
+                <li><strong>Old Toolbar Gone:</strong> Confirm old zoom toolbar is no longer present</li>
+            </ol>
+        </div>
+
+        <table class="gram-config">
+            <tr>
+                <td><img src="sample/sample_spectrogram.png" alt="Sample Spectrogram" /></td>
+            </tr>
+            <tr>
+                <td>time | 0.0 | 10.0</td>
+            </tr>
+            <tr>
+                <td>freq | 0.0 | 100.0</td>
+            </tr>
+        </table>
+    </div>
+
+    <script type="module">
+        import { GramFrameAPI } from './src/index.js'
+        
+        // Initialize after DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing GramFrame components...')
+            const instances = GramFrameAPI.init()
+            console.log('Initialized instances:', instances)
+            
+            if (instances.length > 0) {
+                const instance = instances[0]
+                console.log('Instance state:', instance.state)
+                console.log('Pan mode available:', !!instance.modes?.pan)
+                
+                // Log command buttons if available
+                if (instance.commandButtons) {
+                    console.log('Command buttons:', instance.commandButtons)
+                }
+            }
+        })
+    </script>
+</body>
+</html>

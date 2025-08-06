@@ -100,6 +100,15 @@ export class BaseMode {
   }
 
   /**
+   * Get command buttons for this mode
+   * Override in subclasses to provide mode-specific command buttons
+   * @returns {Array<CommandButton>} Array of command button definitions
+   */
+  getCommandButtons() {
+    return []
+  }
+
+  /**
    * Reset mode-specific state
    * Override in subclasses to clear mode-specific state properties
    */

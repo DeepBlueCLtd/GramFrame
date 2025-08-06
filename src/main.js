@@ -19,6 +19,7 @@ import {
   createFlexColumn,
   createColorPicker
 } from './components/UIComponents.js'
+import { updateCommandButtonStates } from './components/ModeButtons.js'
 import { getModeDisplayName } from './utils/calculations.js'
 import { formatTime } from './utils/timeFormatter.js'
 
@@ -126,11 +127,17 @@ export class GramFrame {
     // Create unified layout
     this.createUnifiedLayout()
     
-    // Create mode switching UI
-    const modeUI = createModeSwitchingUI(this.modeCell, this.state, (mode) => this._switchMode(mode))
+    // Create mode switching UI initially (will be updated after modes are initialized)
+    const tempContainer = document.createElement('div')
+    const modeUI = createModeSwitchingUI(tempContainer, this.state, (mode) => this._switchMode(mode))
     this.modesContainer = modeUI.modesContainer
     this.modeButtons = modeUI.modeButtons
+    this.commandButtons = modeUI.commandButtons
     this.guidancePanel = modeUI.guidancePanel
+    
+    // Add mode UI to left column of unified layout
+    this.leftColumn.insertBefore(this.modesContainer, this.leftColumn.firstChild)
+    this.leftColumn.insertBefore(this.guidancePanel, this.leftColumn.firstChild)
     
     // Append unified layout to readout panel
     this.readoutPanel.appendChild(this.unifiedLayoutContainer)
@@ -141,8 +148,7 @@ export class GramFrame {
     // Rate input UI removed - backend functionality preserved for frequency calculations
     this.rateInput = null
     
-    // Create zoom controls
-    this.createZoomControls()
+    // Zoom controls are now integrated into pan mode command buttons
     
     // Set up spectrogram image if we have one from config extraction
     if (this.state.imageDetails.url) {
@@ -175,6 +181,21 @@ export class GramFrame {
     
     // Set initial mode (analysis by default)
     this.currentMode = this.modes['analysis']
+    
+    // Recreate mode UI with command buttons now that modes are available
+    this.leftColumn.removeChild(this.modesContainer)
+    this.leftColumn.removeChild(this.guidancePanel)
+    
+    const tempContainer2 = document.createElement('div')
+    const modeUIWithButtons = createModeSwitchingUI(tempContainer2, this.state, (mode) => this._switchMode(mode), this.modes)
+    this.modesContainer = modeUIWithButtons.modesContainer
+    this.modeButtons = modeUIWithButtons.modeButtons
+    this.commandButtons = modeUIWithButtons.commandButtons
+    this.guidancePanel = modeUIWithButtons.guidancePanel
+    
+    // Add updated mode UI back to left column at the top
+    this.leftColumn.insertBefore(this.modesContainer, this.leftColumn.firstChild)
+    this.leftColumn.insertBefore(this.guidancePanel, this.leftColumn.firstChild)
     
     // Initialize guidance panel with analysis mode guidance
     if (this.guidancePanel) {
@@ -367,54 +388,7 @@ export class GramFrame {
     }
   }
   
-  /**
-   * Create zoom control UI
-   */
-  createZoomControls() {
-    // Create zoom controls container
-    const zoomContainer = document.createElement('div')
-    zoomContainer.className = 'gram-frame-zoom-controls'
-    
-    // Zoom in button
-    const zoomInButton = document.createElement('button')
-    zoomInButton.className = 'gram-frame-zoom-btn'
-    zoomInButton.textContent = '+'
-    zoomInButton.title = 'Zoom In'
-    zoomInButton.addEventListener('click', () => this._zoomIn())
-    
-    // Zoom out button
-    const zoomOutButton = document.createElement('button')
-    zoomOutButton.className = 'gram-frame-zoom-btn'
-    zoomOutButton.textContent = '−'
-    zoomOutButton.title = 'Zoom Out'
-    zoomOutButton.addEventListener('click', () => this._zoomOut())
-    
-    
-    // Reset zoom button
-    const zoomResetButton = document.createElement('button')
-    zoomResetButton.className = 'gram-frame-zoom-btn gram-frame-zoom-reset'
-    zoomResetButton.textContent = '1:1'
-    zoomResetButton.title = 'Reset Zoom'
-    zoomResetButton.addEventListener('click', () => this._zoomReset())
-    
-    zoomContainer.appendChild(zoomInButton)
-    zoomContainer.appendChild(zoomOutButton)
-    zoomContainer.appendChild(zoomResetButton)
-    
-    // Add to main panel (positioned over the spectrogram)
-    this.mainCell.appendChild(zoomContainer)
-    
-    // Store references
-    this.zoomControls = {
-      container: zoomContainer,
-      zoomInButton,
-      zoomOutButton,
-      zoomResetButton
-    }
-    
-    // Set initial button states (all disabled except zoom in, since we start at 1:1)
-    this._updateZoomControlStates()
-  }
+  // Zoom controls removed - now handled by pan mode command buttons
   
   /**
    * Zoom in by increasing zoom level
@@ -473,20 +447,12 @@ export class GramFrame {
    * Update zoom control button states based on current zoom level
    */
   _updateZoomControlStates() {
-    if (!this.zoomControls) {
-      return
-    }
-    
     const level = this.state.zoom.level
     
-    // Zoom in: disabled when at max zoom (10.0)
-    this.zoomControls.zoomInButton.disabled = (level >= 10.0)
-    
-    // Zoom out: disabled when at 1:1 scale or below
-    this.zoomControls.zoomOutButton.disabled = (level <= 1.0)
-    
-    // Reset zoom: disabled when already at 1:1 scale
-    this.zoomControls.zoomResetButton.disabled = (level === 1.0)
+    // Update command button states for all modes (zoom buttons are now in pan mode)
+    if (this.commandButtons && this.modes) {
+      updateCommandButtonStates(this.commandButtons, this.modes)
+    }
     
     // Update pan mode button state based on zoom level
     if (this.modeButtons && this.modeButtons.pan) {

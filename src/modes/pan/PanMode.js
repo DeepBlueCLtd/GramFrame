@@ -209,6 +209,27 @@ export class PanMode extends BaseMode {
   }
 
   /**
+   * Get command buttons for pan mode
+   * @returns {Array<CommandButton>} Array of command button definitions
+   */
+  getCommandButtons() {
+    return [
+      {
+        label: '−',
+        title: 'Zoom Out',
+        action: () => this.instance._zoomOut(),
+        isEnabled: () => this.state.zoom.level > 1.0
+      },
+      {
+        label: '+',
+        title: 'Zoom In',
+        action: () => this.instance._zoomIn(),
+        isEnabled: () => this.state.zoom.level < 10.0
+      }
+    ]
+  }
+
+  /**
    * Get initial state for pan mode
    * @returns {Object} Pan mode initial state
    */

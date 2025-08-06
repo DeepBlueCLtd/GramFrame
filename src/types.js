@@ -269,13 +269,15 @@
  * @property {function(): void} [destroy] - Clean up and destroy instance
  * @property {function(number, number): void} [_panImage] - Pan the image
  * @property {function(number, number, number): void} [_setZoom] - Set zoom level
+ * @property {function(): void} [_zoomIn] - Zoom in
+ * @property {function(): void} [_zoomOut] - Zoom out
+ * @property {function(): void} [_zoomReset] - Reset zoom
  * @property {function(): void} [_handleResize] - Handle resize events
  * @property {function(ModeType): void} [_switchMode] - Switch between modes
  * @property {function(string, string, number): void} [setSelection] - Set selection
  * @property {function(): void} [clearSelection] - Clear selection  
  * @property {function(): void} [updateSelectionVisuals] - Update selection visuals
  * @property {function(): void} [createUnifiedLayout] - Create unified layout
- * @property {function(): void} [createZoomControls] - Create zoom controls
  */
 
 /**
@@ -294,10 +296,20 @@
  */
 
 /**
+ * Command button definition for modes
+ * @typedef {Object} CommandButton
+ * @property {string} label - Button text/symbol
+ * @property {string} title - Button tooltip
+ * @property {function(): void} action - Button click handler
+ * @property {function(): boolean} [isEnabled] - Optional function to determine if button should be enabled
+ */
+
+/**
  * Collection of mode UI elements
  * @typedef {Object} ModeUIElements
  * @property {HTMLDivElement} modesContainer - Container for mode buttons
  * @property {Object<string, HTMLButtonElement>} modeButtons - Mode switching buttons
+ * @property {Object<string, HTMLButtonElement[]>} commandButtons - Command buttons by mode
  * @property {HTMLDivElement} guidancePanel - Guidance text panel
  */
 
