@@ -246,10 +246,10 @@ export class GramFrame {
     this.unifiedLayoutContainer.style.flexDirection = 'row'
     this.unifiedLayoutContainer.style.flexWrap = 'nowrap'
     
-    // Left Panel (450px) - Multi-column horizontal layout
+    // Left Panel (600px) - Multi-column horizontal layout
     this.leftColumn = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-left-column', '4px'))
-    this.leftColumn.style.flex = '0 0 450px'
-    this.leftColumn.style.width = '450px'
+    this.leftColumn.style.flex = '0 0 600px'
+    this.leftColumn.style.width = '600px'
     this.leftColumn.style.flexDirection = 'row'
     
     // Column 1: Mode buttons 
@@ -263,9 +263,9 @@ export class GramFrame {
     this.guidanceColumn.style.minWidth = '150px'
     
     // Column 3: Controls (time/freq displays, speed, color selector)
-    this.controlsColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-controls-column', '8px'))
-    this.controlsColumn.style.flex = '0 0 170px'
-    this.controlsColumn.style.width = '170px'
+    this.controlsColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-controls-column', '1px'))
+    this.controlsColumn.style.flex = '0 0 220px'
+    this.controlsColumn.style.width = '220px'
     
     // Create universal cursor readouts in controls column
     const cursorContainer = document.createElement('div')
@@ -293,10 +293,10 @@ export class GramFrame {
     this.leftColumn.appendChild(this.guidanceColumn)
     this.leftColumn.appendChild(this.controlsColumn)
     
-    // Middle Column (180px) - Analysis Markers table
+    // Middle Column (160px) - Analysis Markers table
     this.middleColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-middle-column'))
-    this.middleColumn.style.flex = '0 0 180px'
-    this.middleColumn.style.width = '180px'
+    this.middleColumn.style.flex = '0 0 160px'
+    this.middleColumn.style.width = '160px'
     
     // Create markers container in middle column
     this.markersContainer = document.createElement('div')
@@ -315,11 +315,11 @@ export class GramFrame {
     
     this.middleColumn.appendChild(this.markersContainer)
     
-    // Right Column (flexible) - Harmonics sets table
+    // Right Column (200px) - Harmonics sets table
     this.rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
-    this.rightColumn.style.flex = '1'
+    this.rightColumn.style.flex = '0 0 200px'
     this.rightColumn.style.minWidth = '200px'
-    this.rightColumn.style.width = '300px'
+    this.rightColumn.style.width = '200px'
     
     // Create harmonics container in right column
     this.harmonicsContainer = document.createElement('div')
@@ -339,7 +339,7 @@ export class GramFrame {
     harmonicsHeader.style.flexShrink = '0'
     
     const harmonicsLabel = document.createElement('h4')
-    harmonicsLabel.textContent = 'Harmonic Sets'
+    harmonicsLabel.textContent = 'Harmonics'
     harmonicsLabel.style.margin = '0'
     harmonicsLabel.style.textAlign = 'left'
     harmonicsLabel.style.flexShrink = '0'

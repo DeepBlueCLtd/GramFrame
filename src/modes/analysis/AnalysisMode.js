@@ -277,8 +277,8 @@ export class AnalysisMode extends BaseMode {
     this.createMarkersTable(markersContainer)
     
     // Store references to existing table elements if they exist
-    this.uiElements.markersTable = markersContainer.querySelector('.gram-frame-markers-table')
-    this.uiElements.markersTableBody = markersContainer.querySelector('.gram-frame-markers-table tbody')
+    this.uiElements.markersTable = markersContainer.querySelector('.gram-frame-table')
+    this.uiElements.markersTableBody = markersContainer.querySelector('.gram-frame-table tbody')
     
     // Store references for central color picker and LEDs (managed by unified layout)
     this.instance.colorPicker = this.instance.colorPicker || null
@@ -292,20 +292,17 @@ export class AnalysisMode extends BaseMode {
    */
   createMarkersTable(markersContainer) {
     // Check if table already exists to prevent duplicates
-    if (markersContainer.querySelector('.gram-frame-markers-table')) {
+    if (markersContainer.querySelector('.gram-frame-table')) {
       return
     }
     
     // The container already has a label, so we just add the table wrapper
     
     const tableWrapper = document.createElement('div')
-    tableWrapper.style.flex = '1'
-    tableWrapper.style.overflow = 'auto'
-    tableWrapper.style.minHeight = '0'
+    tableWrapper.className = 'gram-frame-table-container'
     
     const table = document.createElement('table')
-    table.className = 'gram-frame-markers-table'
-    table.style.height = '100%'
+    table.className = 'gram-frame-table'
     
     // Create table header
     const thead = document.createElement('thead')
@@ -313,21 +310,21 @@ export class AnalysisMode extends BaseMode {
     
     const colorHeader = document.createElement('th')
     colorHeader.textContent = ''
-    colorHeader.style.width = '20%'
+    colorHeader.style.width = '15%'
     headerRow.appendChild(colorHeader)
     
     const timeHeader = document.createElement('th')
     timeHeader.textContent = 'Time (mm:ss)'
-    timeHeader.style.width = '30%'
+    timeHeader.style.width = '35%'
     headerRow.appendChild(timeHeader)
     
     const freqHeader = document.createElement('th')
     freqHeader.textContent = 'Freq (Hz)'
-    freqHeader.style.width = '30%'
+    freqHeader.style.width = '35%'
     headerRow.appendChild(freqHeader)
     
     const deleteHeader = document.createElement('th')
-    deleteHeader.textContent = 'Del'
+    deleteHeader.textContent = ''
     deleteHeader.style.width = '15%'
     headerRow.appendChild(deleteHeader)
     
