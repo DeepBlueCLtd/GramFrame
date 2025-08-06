@@ -66,9 +66,8 @@ export function createComponentStructure(instance) {
   cursorClipPath.setAttribute('id', cursorClipPathId)
   defs.appendChild(cursorClipPath)
   
-  /** @type {SVGRectElement} */
-  instance['cursorClipRect'] = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-  cursorClipPath.appendChild(instance['cursorClipRect'])
+  instance.cursorClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+  cursorClipPath.appendChild(instance.cursorClipRect)
   
   // Create image element within SVG
   instance.spectrogramImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
@@ -104,7 +103,7 @@ export function createComponentStructure(instance) {
     cursorGroup: instance.cursorGroup,
     axesGroup: instance.axesGroup,
     imageClipRect: instance.imageClipRect,
-    cursorClipRect: instance['cursorClipRect']
+    cursorClipRect: instance.cursorClipRect
   }
 }
 
@@ -192,11 +191,11 @@ export function updateSVGLayout(instance) {
   }
   
   // Update cursor clipping rectangle with identical dimensions
-  if (instance['cursorClipRect']) {
-    instance['cursorClipRect'].setAttribute('x', String(margins.left))
-    instance['cursorClipRect'].setAttribute('y', String(margins.top))
-    instance['cursorClipRect'].setAttribute('width', String(axesWidth))
-    instance['cursorClipRect'].setAttribute('height', String(axesHeight))
+  if (instance.cursorClipRect) {
+    instance.cursorClipRect.setAttribute('x', String(margins.left))
+    instance.cursorClipRect.setAttribute('y', String(margins.top))
+    instance.cursorClipRect.setAttribute('width', String(axesWidth))
+    instance.cursorClipRect.setAttribute('height', String(axesHeight))
   }
   
   // Apply zoom if needed

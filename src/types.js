@@ -235,6 +235,7 @@
  * @property {SVGGElement|null} [cursorGroup] - SVG group for cursor elements
  * @property {SVGGElement|null} [axesGroup] - SVG group for axes
  * @property {SVGRectElement|null} [imageClipRect] - Clipping rectangle for image
+ * @property {SVGRectElement|null} [cursorClipRect] - Clipping rectangle for cursor group
  * @property {HTMLDivElement|null} [readoutPanel] - Container for readouts
  * @property {HTMLDivElement|null} [modeCell] - Mode selection cell
  * @property {HTMLDivElement|null} [mainCell] - Main display cell
