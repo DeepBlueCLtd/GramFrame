@@ -7,6 +7,48 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 
 ---
 **Agent:** Implementation Agent  
+**Task Reference:** GitHub Issue #101 (SVG Feature Clipping Implementation)
+
+**Summary:**
+Successfully implemented dual clipping path system to prevent SVG mode-specific features from rendering outside graph area boundaries. All cursor group features (Analysis markers, Harmonics curves, Doppler indicators) are now visually contained within the defined margin boundaries (left: 60px, bottom: 50px, right: 15px, top: 15px).
+
+**Details:**
+- **Dual Clipping Infrastructure:** Extended existing SVG clipping system in `src/components/table.js:55-70` to include a second clipPath for cursor group features alongside the existing image clipping
+- **Cursor Group Clipping:** Created `cursorClipRect` with unique ID (`cursorClip-${instanceId}`) and applied to `cursorGroup` element using identical `clip-path` attribute pattern
+- **Synchronized Updates:** Extended `updateSVGLayout` function (lines 193-198) to maintain identical dimensions between both clipping rectangles, ensuring consistent boundary enforcement
+- **Type System Updates:** Added `cursorClipRect` property to both `TableElements` typedef and `GramFrameInstance` class with proper JSDoc annotations
+
+**Key Architecture Changes:**
+- SVG structure now maintains two synchronized clipping paths: one for spectrogram image, one for all interactive features
+- Clipping rectangles dynamically update with zoom/pan operations through existing `updateSVGLayout` mechanism  
+- All mode-specific rendering (cursors.js, FeatureRenderer.js) automatically respects boundaries without requiring individual modifications
+- Visual integrity preserved across all modes without affecting feature functionality or cross-mode persistence
+
+**Code Impact:**
+- Modified: `src/components/table.js` (added dual clipping path creation and synchronized updates)
+- Modified: `src/types.js` (added cursorClipRect to TableElements typedef)  
+- Modified: `src/main.js` (added cursorClipRect property initialization)
+- Testing: Confirmed visual containment across Analysis, Harmonics, Doppler, and Pan modes with zoom/pan operations
+
+**Technical Implementation:**
+```javascript
+// Dual clipping path creation (table.js:63-70)
+const cursorClipPathId = `cursorClip-${instance.instanceId || Date.now()}`
+const cursorClipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
+cursorClipPath.setAttribute('id', cursorClipPathId)
+instance.cursorGroup.setAttribute('clip-path', `url(#${cursorClipPathId})`)
+
+// Synchronized dimension updates (table.js:193-198)
+if (instance.cursorClipRect) {
+  instance.cursorClipRect.setAttribute('x', String(margins.left))
+  instance.cursorClipRect.setAttribute('y', String(margins.top))
+  instance.cursorClipRect.setAttribute('width', String(axesWidth))
+  instance.cursorClipRect.setAttribute('height', String(axesHeight))
+}
+```
+
+---
+**Agent:** Implementation Agent  
 **Task Reference:** GitHub Issue #100 (Implement Pan as a Mode Extending BaseMode)
 
 **Summary:**
