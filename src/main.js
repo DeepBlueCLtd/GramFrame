@@ -46,7 +46,7 @@ import {
   updateSelectionVisuals
 } from './core/keyboardControl.js'
 
-import { setupComponentTable, setupSpectrogramImage, updateSVGLayout, renderAxes } from './components/table.js'
+import { setupComponentTable, setupSpectrogramImage, updateSVGLayout, renderAxes, applyZoomTransform } from './components/table.js'
 
 /**
  * GramFrame class - Main component implementation
@@ -456,9 +456,7 @@ export class GramFrame {
     
     // Apply zoom transform
     if (this.svg) {
-      import('./components/table.js').then(({ applyZoomTransform }) => {
-        applyZoomTransform(this)
-      })
+      applyZoomTransform(this)
     }
     
     // Update zoom button states

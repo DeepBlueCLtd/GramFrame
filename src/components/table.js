@@ -5,6 +5,7 @@
 /// <reference path="../types.js" />
 
 import { formatTime } from '../utils/timeFormatter.js'
+import { notifyStateListeners } from '../core/state.js'
 
 /**
  * Create the complete DOM structure for the GramFrame component
@@ -137,9 +138,7 @@ export function setupSpectrogramImage(instance, imageUrl) {
     renderAxes(instance)
     
     // Notify listeners of updated dimensions
-    import('../core/state.js').then(({ notifyStateListeners }) => {
-      notifyStateListeners(instance.state, instance.stateListeners)
-    })
+    notifyStateListeners(instance.state, instance.stateListeners)
   }
   tempImg.src = imageUrl
 }
