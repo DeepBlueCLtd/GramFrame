@@ -50,6 +50,11 @@ jobs:
           echo "📦 Installing dependencies..."
           yarn install --frozen-lockfile
 
+      - name: Install Playwright browsers
+        run: |
+          echo "🎭 Installing Playwright browsers..."
+          yarn playwright install
+
       - name: Run type checking
         run: |
           echo "🔍 Running type checking..."
