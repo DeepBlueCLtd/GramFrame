@@ -94,57 +94,9 @@ jobs:
           # Copy standalone bundle (the only build users need)
           cp dist/gramframe.bundle.js release-assets/
           
-          # Copy sample files for testing
+          # Copy test HTML file and required assets
+          cp test-release.html release-assets/index.html
           cp sample/mock-gram.png release-assets/
-          
-          # Create simple test HTML file using the standalone bundle
-          cat > release-assets/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>GramFrame Test</title>
-              <style>
-                  body { font-family: Arial, sans-serif; margin: 20px; }
-                  .test-container { margin: 20px 0; }
-                  .note { background: #e8f4fd; padding: 15px; border-left: 4px solid #0366d6; margin: 10px 0; }
-              </style>
-          </head>
-          <body>
-              <h1>GramFrame Test</h1>
-              
-              <div class="note">
-                  <strong>Ready to use:</strong> This file works when opened directly from your file system. 
-                  Just double-click from Windows Explorer or macOS Finder - no web server required!
-              </div>
-              
-              <div class="test-container">
-                  <h2>Test Configuration</h2>
-                  <table class="gram-config">
-                      <tr>
-                          <td><img src="./mock-gram.png" alt="Mock Spectrogram" style="width: 800px; height: 400px;"></td>
-                      </tr>
-                      <tr><td>time</td><td>0</td><td>10</td></tr>
-                      <tr><td>freq</td><td>0</td><td>50</td></tr>
-                  </table>
-              </div>
-              
-              <div class="note">
-                  <strong>Test Instructions:</strong>
-                  <ol>
-                      <li>Verify the spectrogram component loads above</li>
-                      <li>Test mouse hover for cursor display</li>
-                      <li>Try switching modes (Cross Cursor, Harmonics, Doppler, Pan)</li>
-                      <li>Test marker creation by clicking in Cross Cursor mode</li>
-                  </ol>
-              </div>
-              
-              <!-- Load GramFrame component -->
-              <script src="./gramframe.bundle.js"></script>
-          </body>
-          </html>
-          EOF
           
           # Create simple verification file
           cat > release-assets/README.md << 'EOF'
