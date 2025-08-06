@@ -3,6 +3,7 @@
  * Auto-generated from package.json - do not edit manually
  */
 
+// This value is replaced automatically by the generation script.
 export const VERSION = '0.0.1'
 
 /**
