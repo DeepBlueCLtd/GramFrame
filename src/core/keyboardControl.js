@@ -187,6 +187,9 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     return
   }
   
+  /** @type {Partial<HarmonicSet>} */
+  const updates = {}
+  
   // For horizontal movement (frequency/spacing adjustment)
   if (movement.dx !== 0) {
     // Convert current spacing to pixel width for one harmonic interval
@@ -200,7 +203,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     // Adjust spacing based on horizontal movement
     // Positive dx increases spacing, negative dx decreases spacing
     const spacingChange = movement.dx * pixelToFreqRatio
-    harmonicSet.spacing = Math.max(1.0, harmonicSet.spacing + spacingChange)
+    updates.spacing = Math.max(1.0, harmonicSet.spacing + spacingChange)
   }
   
   // For vertical movement (time/anchor position adjustment)
@@ -219,22 +222,16 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     
     // Convert back to time
     const newNormalizedTime = (newY - margins.top) / naturalHeight
-    harmonicSet.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin)
+    updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin)
     
     // Clamp to valid time range
-    harmonicSet.anchorTime = Math.max(timeMin, Math.min(timeMax, harmonicSet.anchorTime))
+    updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime))
   }
   
-  // Re-render features and update harmonic panel
-  if (instance.featureRenderer) {
-    instance.featureRenderer.renderAllPersistentFeatures()
+  // Use the proper update method to ensure all visual updates and notifications happen
+  if (Object.keys(updates).length > 0 && instance.currentMode && instance.currentMode.updateHarmonicSet) {
+    instance.currentMode.updateHarmonicSet(harmonicSetId, updates)
   }
-  
-  if (instance.currentMode && instance.currentMode.updateHarmonicPanel) {
-    instance.currentMode.updateHarmonicPanel()
-  }
-  
-  notifyStateListeners(instance.state, instance.stateListeners)
 }
 
 
