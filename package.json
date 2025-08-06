@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:standalone": "BUILD_STANDALONE=true vite build",
     "test": "playwright test",
     "typecheck": "tsc --noEmit"
   },

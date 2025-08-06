@@ -7,6 +7,9 @@
 
 /// <reference path="./types.js" />
 
+// Import CSS for bundling in IIFE build
+import './gramframe.css'
+
 // Import the main GramFrame class
 import './main.js'
 
