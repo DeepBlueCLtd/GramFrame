@@ -6,12 +6,14 @@ This command creates a pull request for the current branch, analyzing the change
 
 1. Check current branch and verify it's not the main branch
 2. Analyze git log and diff to understand changes since branching from main
-3. Generate PR title and description based on:
+3. Generate PR title based on:
+   - Issue number, if known. This will probably be at the start of the current branch
+   - Summary of task.
+4. Generate PR description based on:
    - Commit messages and change patterns
    - Files modified (scope analysis)
-   - Issue number, if known
-4. Push branch if not already pushed
-5. Create PR using GitHub CLI
+5. Push branch if not already pushed
+6. Create PR using GitHub CLI
 
 ## Branch Analysis
 
