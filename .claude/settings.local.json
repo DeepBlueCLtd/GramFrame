@@ -74,7 +74,8 @@
       "WebFetch(domain:deepbluecltd.github.io)",
       "Bash(open test-zoom-buttons.html)",
       "Bash(open http://localhost:5174/test-zoom-buttons.html)",
-      "Bash(open http://localhost:5173/test-zoom-buttons.html)"
+      "Bash(open http://localhost:5173/test-zoom-buttons.html)",
+      "Bash(git add:*)"
     ]
   }
 }

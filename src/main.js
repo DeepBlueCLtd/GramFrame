@@ -97,6 +97,8 @@ export class GramFrame {
     this.axesGroup = null
     /** @type {SVGRectElement} */
     this.imageClipRect = null
+    /** @type {SVGRectElement} */
+    this.cursorClipRect = null
     
     // Unified layout containers
     /** @type {HTMLDivElement} */

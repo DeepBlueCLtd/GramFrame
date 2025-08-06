@@ -48,7 +48,7 @@ export function createComponentStructure(instance) {
   instance.svg.style.display = 'block'
   instance.mainCell.appendChild(instance.svg)
   
-  // Create clipping path for image with unique ID
+  // Create clipping paths for both image and cursor group with unique IDs
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
   instance.svg.appendChild(defs)
   
@@ -60,15 +60,25 @@ export function createComponentStructure(instance) {
   instance.imageClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
   clipPath.appendChild(instance.imageClipRect)
   
+  // Create second clipping path for cursor group features
+  const cursorClipPathId = `cursorClip-${instance.instanceId || Date.now()}`
+  const cursorClipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
+  cursorClipPath.setAttribute('id', cursorClipPathId)
+  defs.appendChild(cursorClipPath)
+  
+  instance.cursorClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+  cursorClipPath.appendChild(instance.cursorClipRect)
+  
   // Create image element within SVG
   instance.spectrogramImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
   instance.spectrogramImage.setAttribute('class', 'gram-frame-spectrogram-image')
   instance.spectrogramImage.setAttribute('clip-path', `url(#${clipPathId})`)
   instance.svg.appendChild(instance.spectrogramImage)
   
-  // Create cursor group for overlays
+  // Create cursor group for overlays with clipping applied
   instance.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   instance.cursorGroup.setAttribute('class', 'gram-frame-cursors')
+  instance.cursorGroup.setAttribute('clip-path', `url(#${cursorClipPathId})`)
   instance.svg.appendChild(instance.cursorGroup)
   
   // Create axes group
@@ -92,7 +102,8 @@ export function createComponentStructure(instance) {
     spectrogramImage: instance.spectrogramImage,
     cursorGroup: instance.cursorGroup,
     axesGroup: instance.axesGroup,
-    imageClipRect: instance.imageClipRect
+    imageClipRect: instance.imageClipRect,
+    cursorClipRect: instance.cursorClipRect
   }
 }
 
@@ -177,6 +188,14 @@ export function updateSVGLayout(instance) {
     instance.imageClipRect.setAttribute('y', String(margins.top))
     instance.imageClipRect.setAttribute('width', String(axesWidth))
     instance.imageClipRect.setAttribute('height', String(axesHeight))
+  }
+  
+  // Update cursor clipping rectangle with identical dimensions
+  if (instance.cursorClipRect) {
+    instance.cursorClipRect.setAttribute('x', String(margins.left))
+    instance.cursorClipRect.setAttribute('y', String(margins.top))
+    instance.cursorClipRect.setAttribute('width', String(axesWidth))
+    instance.cursorClipRect.setAttribute('height', String(axesHeight))
   }
   
   // Apply zoom if needed

@@ -328,6 +328,7 @@
  * @property {SVGGElement} cursorGroup - SVG cursor group element
  * @property {SVGGElement} axesGroup - SVG axes group element
  * @property {SVGRectElement} imageClipRect - SVG image clipping rectangle
+ * @property {SVGRectElement} cursorClipRect - SVG cursor group clipping rectangle
  */
 
 /**
