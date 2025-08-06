@@ -505,7 +505,7 @@ export class AnalysisMode extends BaseMode {
     // Update frequency cell (third cell)
     const freqCell = row.cells[2]
     if (freqCell) {
-      const newFreq = marker.freq.toFixed(1)
+      const newFreq = marker.freq.toFixed(2)
       if (freqCell.textContent !== newFreq) {
         freqCell.textContent = newFreq
       }
@@ -568,7 +568,7 @@ export class AnalysisMode extends BaseMode {
       
       // Frequency cell
       const freqCell = document.createElement('td')
-      freqCell.textContent = marker.freq.toFixed(1)
+      freqCell.textContent = marker.freq.toFixed(2)
       row.appendChild(freqCell)
       
       // Delete button cell

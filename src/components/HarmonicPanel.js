@@ -79,7 +79,7 @@ function updateHarmonicRow(row, harmonicSet, instance) {
   // Update spacing cell if changed
   const spacingCell = row.cells[1]
   if (spacingCell) {
-    const newSpacing = harmonicSet.spacing.toFixed(1)
+    const newSpacing = harmonicSet.spacing.toFixed(2)
     if (spacingCell.textContent !== newSpacing) {
       spacingCell.textContent = newSpacing
     }
@@ -90,9 +90,9 @@ function updateHarmonicRow(row, harmonicSet, instance) {
   if (rateCell) {
     let rate
     if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-      rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(2)
+      rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3)
     } else {
-      rate = '5.00' // Representative rate for 5th harmonic
+      rate = '5.000' // Representative rate for 5th harmonic
     }
     
     if (rateCell.textContent !== rate) {
@@ -149,7 +149,7 @@ function createHarmonicRow(harmonicSet, instance, index) {
   // Spacing cell
   const spacingCell = document.createElement('td')
   spacingCell.className = 'gram-frame-harmonic-spacing'
-  spacingCell.textContent = harmonicSet.spacing.toFixed(1)
+  spacingCell.textContent = harmonicSet.spacing.toFixed(2)
   row.appendChild(spacingCell)
   
   // Rate cell
@@ -157,9 +157,9 @@ function createHarmonicRow(harmonicSet, instance, index) {
   rateCell.className = 'gram-frame-harmonic-rate'
   let rate
   if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-    rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(2)
+    rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3)
   } else {
-    rate = '5.00'
+    rate = '5.000'
   }
   rateCell.textContent = rate
   row.appendChild(rateCell)

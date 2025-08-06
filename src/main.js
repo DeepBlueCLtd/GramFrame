@@ -375,7 +375,7 @@ export class GramFrame {
     if (this.freqLED) {
       const freqValue = this.freqLED.querySelector('.gram-frame-led-value')
       if (freqValue) {
-        freqValue.textContent = dataCoords.freq.toFixed(1)
+        freqValue.textContent = dataCoords.freq.toFixed(2)
       }
     }
   }
