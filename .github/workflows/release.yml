@@ -1,0 +1,336 @@
+name: Release
+
+# Trigger on version tags (v*.*.*)
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Permissions required for creating releases
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog generation
+
+      - name: Validate tag format
+        id: validate-tag
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "Tag: $TAG"
+          
+          # Validate semantic versioning format (v*.*.*)
+          if [[ ! $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid tag format. Expected format: v*.*.* (e.g., v1.0.0)"
+            echo "Received: $TAG"
+            exit 1
+          fi
+          
+          # Extract version without 'v' prefix
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "✅ Tag format validated: $TAG (version: $VERSION)"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          yarn install --frozen-lockfile
+
+      - name: Run type checking
+        run: |
+          echo "🔍 Running type checking..."
+          yarn typecheck
+
+      - name: Build standalone version
+        run: |
+          echo "🏗️ Building standalone version for file:// protocol compatibility..."
+          yarn build:standalone
+          
+          # Verify standalone bundle exists
+          if [ ! -f "dist/gramframe.bundle.js" ]; then
+            echo "❌ Standalone build failed: gramframe.bundle.js not found"
+            exit 1
+          fi
+          
+          # Check bundle size (should be substantial due to inlined CSS/assets)
+          BUNDLE_SIZE=$(stat -c%s "dist/gramframe.bundle.js" 2>/dev/null || stat -f%z "dist/gramframe.bundle.js")
+          if [ "$BUNDLE_SIZE" -lt 100000 ]; then
+            echo "❌ Standalone bundle too small ($BUNDLE_SIZE bytes), likely incomplete"
+            exit 1
+          fi
+          
+          echo "✅ Standalone build successful"
+          echo "📋 Bundle size: $BUNDLE_SIZE bytes"
+          echo "📋 Standalone build contents:"
+          ls -la dist/
+
+      - name: Run tests
+        run: |
+          echo "🧪 Running tests..."
+          yarn test
+
+      - name: Prepare release assets
+        id: assets
+        run: |
+          echo "📦 Preparing release assets..."
+          
+          # Create release directory
+          mkdir -p release-assets
+          
+          # Copy standalone bundle (the only build users need)
+          cp dist/gramframe.bundle.js release-assets/
+          
+          # Copy sample files for testing
+          cp sample/mock-gram.png release-assets/
+          
+          # Create simple test HTML file using the standalone bundle
+          cat > release-assets/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>GramFrame Test</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 20px; }
+                  .test-container { margin: 20px 0; }
+                  .note { background: #e8f4fd; padding: 15px; border-left: 4px solid #0366d6; margin: 10px 0; }
+              </style>
+          </head>
+          <body>
+              <h1>GramFrame Test</h1>
+              
+              <div class="note">
+                  <strong>Ready to use:</strong> This file works when opened directly from your file system. 
+                  Just double-click from Windows Explorer or macOS Finder - no web server required!
+              </div>
+              
+              <div class="test-container">
+                  <h2>Test Configuration</h2>
+                  <table class="gram-config">
+                      <tr>
+                          <td><img src="./mock-gram.png" alt="Mock Spectrogram" style="width: 800px; height: 400px;"></td>
+                      </tr>
+                      <tr><td>time</td><td>0</td><td>10</td></tr>
+                      <tr><td>freq</td><td>0</td><td>50</td></tr>
+                  </table>
+              </div>
+              
+              <div class="note">
+                  <strong>Test Instructions:</strong>
+                  <ol>
+                      <li>Verify the spectrogram component loads above</li>
+                      <li>Test mouse hover for cursor display</li>
+                      <li>Try switching modes (Cross Cursor, Harmonics, Doppler, Pan)</li>
+                      <li>Test marker creation by clicking in Cross Cursor mode</li>
+                  </ol>
+              </div>
+              
+              <!-- Load GramFrame component -->
+              <script src="./gramframe.bundle.js"></script>
+          </body>
+          </html>
+          EOF
+          
+          # Create simple verification file
+          cat > release-assets/README.md << 'EOF'
+          # GramFrame Release
+          
+          ## Quick Start
+          
+          1. **Double-click `index.html`** from your file explorer
+          2. The component will load automatically - no web server required!
+          3. Test all interactions with the spectrogram
+          
+          ## Files Included
+          
+          - **`gramframe.bundle.js`** - Complete GramFrame component (file:// compatible)
+          - **`index.html`** - Sample HTML page demonstrating usage
+          - **`mock-gram.png`** - Test spectrogram image
+          - **`README.md`** - This guide
+          
+          ## How to Use in Your Training Materials
+          
+          1. Include `gramframe.bundle.js` in your HTML training materials
+          2. Add spectrogram configuration tables with class `gram-config`
+          3. Component auto-initializes when the page loads
+          
+          ### Example HTML Structure
+          
+          ```html
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Training Material</title>
+          </head>
+          <body>
+              <h1>Spectrogram Analysis</h1>
+              
+              <!-- Your spectrogram configuration -->
+              <table class="gram-config">
+                  <tr>
+                      <td><img src="your-spectrogram.png" alt="Spectrogram"></td>
+                  </tr>
+                  <tr><td>time</td><td>0</td><td>10</td></tr>
+                  <tr><td>freq</td><td>0</td><td>100</td></tr>
+              </table>
+              
+              <!-- Load GramFrame component -->
+              <script src="./gramframe.bundle.js"></script>
+          </body>
+          </html>
+          ```
+          
+          ## Technical Details
+          
+          - **File Protocol Compatible**: Works with `file://` URLs (double-click HTML files)
+          - **Self-Contained**: All CSS and assets bundled in single JavaScript file
+          - **Auto-Detection**: Automatically finds and enhances `gram-config` tables
+          - **No Dependencies**: No external libraries or web server required
+          
+          ## Version Information
+          
+          - **Version**: ${{ steps.validate-tag.outputs.version }}
+          - **Tag**: ${{ steps.validate-tag.outputs.tag }}
+          - **Build Date**: $(date -u)
+          - **Bundle Size**: $(du -h dist/gramframe.bundle.js | cut -f1)
+          EOF
+          
+          # Create compressed archive
+          ARCHIVE_NAME="gramframe-${{ steps.validate-tag.outputs.version }}.tar.gz"
+          tar -czf "$ARCHIVE_NAME" -C release-assets .
+          
+          echo "archive-name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+          echo "✅ Release assets prepared"
+          echo "📋 Asset contents:"
+          ls -la release-assets/
+          echo "📦 Archive contents:"
+          tar -tzf "$ARCHIVE_NAME"
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          echo "📝 Generating release notes..."
+          
+          # Get previous tag
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
+          CURRENT_TAG=${{ steps.validate-tag.outputs.tag }}
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, creating initial release notes"
+            RELEASE_NOTES="## 🎉 Initial Release
+
+            This is the first release of GramFrame v${{ steps.validate-tag.outputs.version }}.
+
+            ### 📦 What's Included
+            - **GramFrame Component**: Complete standalone bundle (\`gramframe.bundle.js\`)
+            - **Test Page**: Ready-to-use HTML sample (\`index.html\`)
+            - **Mock Spectrogram**: Test image for verification
+            - **Documentation**: Usage guide and examples
+
+            ### 🚀 Quick Start
+            1. Download and extract the release archive
+            2. **Double-click \`index.html\`** from your file explorer
+            3. Component loads automatically - no web server required!
+
+            ### 🔧 Key Features
+            - **File Protocol Compatible**: Works directly from file system (double-click HTML files)
+            - **Self-Contained**: Single JavaScript file with all dependencies bundled
+            - **Auto-Detection**: Automatically enhances HTML tables with class \`gram-config\`
+            - **Complete Modes**: Cross Cursor, Harmonics, Doppler, and Pan interaction modes
+            - **Training Ready**: Perfect for distributing spectrogram training materials"
+          else
+            echo "Generating changelog from $PREVIOUS_TAG to $CURRENT_TAG"
+            
+            # Generate commit log
+            COMMIT_LOG=$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$CURRENT_TAG" | head -20)
+            
+            if [ -z "$COMMIT_LOG" ]; then
+              COMMIT_LOG="- No commits found in this release"
+            fi
+            
+            RELEASE_NOTES="## 🔄 Release v${{ steps.validate-tag.outputs.version }}
+
+            ### 📦 What's Included
+            - **GramFrame Component**: Complete standalone bundle (\`gramframe.bundle.js\`)
+            - **Test Page**: Ready-to-use HTML sample (\`index.html\`)
+            - **Mock Spectrogram**: Test image for verification
+            - **Documentation**: Usage guide and examples
+
+            ### 🚀 Quick Start
+            1. Download and extract the release archive
+            2. **Double-click \`index.html\`** from your file explorer
+            3. Component loads automatically - no web server required!
+
+            ### 📋 Changes Since $PREVIOUS_TAG
+            $COMMIT_LOG
+
+            ### 🔗 Full Changelog
+            Compare changes: [\`$PREVIOUS_TAG...$CURRENT_TAG\`](https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG)"
+          fi
+          
+          # Save release notes to file for GitHub release
+          echo "$RELEASE_NOTES" > release-notes.md
+          echo "✅ Release notes generated"
+          echo "release-notes-file=release-notes.md" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        id: create-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.validate-tag.outputs.tag }}
+          release_name: "GramFrame v${{ steps.validate-tag.outputs.version }}"
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ./${{ steps.assets.outputs.archive-name }}
+          asset_name: ${{ steps.assets.outputs.archive-name }}
+          asset_content_type: application/gzip
+
+      - name: Release summary
+        run: |
+          echo "🎉 Release completed successfully!"
+          echo "📊 Release Summary:"
+          echo "   - Tag: ${{ steps.validate-tag.outputs.tag }}"
+          echo "   - Version: ${{ steps.validate-tag.outputs.version }}"
+          echo "   - Archive: ${{ steps.assets.outputs.archive-name }}"
+          echo "   - Release URL: ${{ steps.create-release.outputs.html_url }}"
+          echo "✅ All steps completed successfully"
+
+      - name: Notify completion
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            MESSAGE="✅ GramFrame v${{ steps.validate-tag.outputs.version }} released successfully! 
+            🔗 Release URL: ${{ steps.create-release.outputs.html_url }}
+            📦 Archive: ${{ steps.assets.outputs.archive-name }}"
+          else
+            MESSAGE="❌ GramFrame release v${{ steps.validate-tag.outputs.version }} failed
+            📋 Check workflow logs for details"
+          fi
+          
+          echo "Sending notification: $MESSAGE"
+          curl -d "$MESSAGE" ntfy.sh/iancc2025 || echo "Notification failed but continuing..."
