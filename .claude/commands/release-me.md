@@ -30,7 +30,8 @@ The command uses Claude Code's native tools for a streamlined approach:
 3. **Read** package.json to get current version
 4. **Calculate** new version based on increment type
 5. **Edit** package.json with new version
-6. **Create** git tag using Bash tool
+6. **User Confirmation** - Prompt user to confirm git tag creation
+7. **Create and Push** git tag using Bash tool
 
 ## Implementation
 
@@ -90,11 +91,19 @@ git checkout main
 git pull origin main
 ```
 
+## User Interaction
+
+The command requires user confirmation before creating and pushing the git tag:
+- After updating package.json, the command will prompt for confirmation
+- Once user confirms, the command will create the git tag and push it to remote
+- This ensures the user has control over when the release is published
+- The tag push automatically triggers GitHub Actions release workflow
+
 ## Notes
 
-- The command does **not** push the tag automatically - you must push it manually
 - Tag format follows GitHub Actions requirements: `v*.*.*`
 - JSON formatting in package.json is preserved
 - All operations are atomic - if any step fails, previous changes are rolled back
 - Branch validation prevents accidental releases from feature branches
 - Detailed logging helps with debugging and verification
+- Automatic tag push eliminates the manual step of `git push origin v*.*.*`
