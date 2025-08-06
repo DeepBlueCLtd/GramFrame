@@ -116,6 +116,12 @@ export class GramFrame {
     /** @type {HTMLDivElement} */
     this.rightColumn = null
     /** @type {HTMLDivElement} */
+    this.modeColumn = null
+    /** @type {HTMLDivElement} */
+    this.guidanceColumn = null
+    /** @type {HTMLDivElement} */
+    this.controlsColumn = null
+    /** @type {HTMLDivElement} */
     this.unifiedLayoutContainer = null
     /** @type {HTMLElement} */
     this.timeLED = null
