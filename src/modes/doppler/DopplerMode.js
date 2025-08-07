@@ -11,6 +11,7 @@ import {
   drawDopplerPreview
 } from '../../rendering/cursors.js'
 import { dataToSVG } from '../../utils/coordinateTransformations.js'
+import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 
 // Constants
 const MS_TO_KNOTS_CONVERSION = 1.94384
@@ -27,6 +28,118 @@ const DopplerDraggedMarker = {
  * Handles Doppler marker placement, dragging, and speed calculations
  */
 export class DopplerMode extends BaseMode {
+  /**
+   * Initialize DopplerMode with drag handler
+   * @param {Object} instance - GramFrame instance
+   * @param {Object} state - State object
+   */
+  constructor(instance, state) {
+    super(instance, state)
+    
+    // Initialize drag handler for existing marker dragging (not preview drag)
+    this.dragHandler = new BaseDragHandler(instance, {
+      findTargetAt: (position) => this.findDopplerMarkerAtPosition(position),
+      onDragStart: (target, position) => this.onMarkerDragStart(target, position),
+      onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+      onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
+      updateCursor: (style) => this.updateCursorStyle(style)
+    })
+  }
+
+  /**
+   * Find doppler marker at given position
+   * Returns a drag target object compatible with BaseDragHandler
+   * @param {DataCoordinates} position - Position to check
+   * @returns {Object|null} Drag target if found, null otherwise
+   */
+  findDopplerMarkerAtPosition(position) {
+    const doppler = this.state.doppler
+    if (!doppler) return null
+    
+    const mousePos = { x: position.time, y: position.freq } // Simplified conversion
+    const tolerance = 20 // SVG pixels tolerance
+    
+    // Check each marker type
+    if (doppler.fPlus) {
+      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
+      if (this.getMarkerDistance(mousePos, fPlusSVG) < tolerance) {
+        return {
+          id: 'fPlus',
+          type: 'dopplerMarker',
+          position: doppler.fPlus,
+          data: { markerType: DopplerDraggedMarker.fPlus }
+        }
+      }
+    }
+    
+    if (doppler.fMinus) {
+      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage)
+      if (this.getMarkerDistance(mousePos, fMinusSVG) < tolerance) {
+        return {
+          id: 'fMinus',
+          type: 'dopplerMarker',
+          position: doppler.fMinus,
+          data: { markerType: DopplerDraggedMarker.fMinus }
+        }
+      }
+    }
+    
+    if (doppler.fZero) {
+      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage)
+      if (this.getMarkerDistance(mousePos, fZeroSVG) < tolerance) {
+        return {
+          id: 'fZero',
+          type: 'dopplerMarker',
+          position: doppler.fZero,
+          data: { markerType: DopplerDraggedMarker.fZero }
+        }
+      }
+    }
+    
+    return null
+  }
+
+  /**
+   * Start dragging a doppler marker
+   * @param {Object} target - Drag target with id and type
+   * @param {DataCoordinates} position - Start position
+   */
+  onMarkerDragStart(target, _position) {
+    const doppler = this.state.doppler
+    doppler.isDragging = true
+    doppler.draggedMarker = target.data.markerType
+  }
+
+  /**
+   * Update doppler marker position during drag
+   * @param {Object} target - Drag target with id and type
+   * @param {DataCoordinates} currentPos - Current position
+   * @param {DataCoordinates} startPos - Start position
+   */
+  onMarkerDragUpdate(_target, currentPos, _startPos) {
+    this.handleMarkerDrag(currentPos, this.state.doppler)
+  }
+
+  /**
+   * End dragging a doppler marker
+   * @param {Object} target - Drag target with id and type
+   * @param {DataCoordinates} position - End position
+   */
+  onMarkerDragEnd(_target, _position) {
+    const doppler = this.state.doppler
+    doppler.isDragging = false
+    doppler.draggedMarker = null
+  }
+
+  /**
+   * Update cursor style for drag operations
+   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+   */
+  updateCursorStyle(style) {
+    if (this.instance.svg) {
+      this.instance.svg.style.cursor = style === 'grab' ? 'move' : style
+    }
+  }
   /**
    * Get guidance text for doppler mode
    * @returns {string} HTML content for the guidance panel
@@ -136,16 +249,6 @@ export class DopplerMode extends BaseMode {
     notifyStateListeners(this.state, this.instance.stateListeners)
   }
 
-  /**
-   * Update cursor style based on marker proximity
-   * @param {MouseEvent} event - Mouse event
-   * @param {DopplerState} doppler - Doppler state
-   */
-  updateCursorStyle(event, doppler) {
-    const mousePos = this.getMousePosition(event)
-    const { marker: closestMarker } = this.detectClosestMarker(mousePos, doppler)
-    this.instance.svg.style.cursor = closestMarker ? 'move' : 'crosshair'
-  }
 
   /**
    * Handle mouse move events in doppler mode
@@ -155,21 +258,18 @@ export class DopplerMode extends BaseMode {
   handleMouseMove(event, dataCoords) {
     const doppler = this.state.doppler
     
-    // Handle preview drag when placing markers
+    // Handle preview drag when placing markers (not managed by BaseDragHandler)
     if (doppler.isPreviewDrag && doppler.tempFirst) {
       this.handlePreviewDrag(dataCoords, doppler)
       return
     }
     
-    // Handle marker dragging
-    if (doppler.isDragging && doppler.draggedMarker) {
-      this.handleMarkerDrag(dataCoords, doppler)
-      return
-    }
-    
-    // Update cursor style when hovering over markers
-    if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-      this.updateCursorStyle(event, doppler)
+    // Handle existing marker dragging through drag handler
+    if (this.dragHandler.isDragging()) {
+      this.dragHandler.handleMouseMove(dataCoords)
+    } else if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
+      // Update cursor for hover when not dragging
+      this.dragHandler.updateCursorForHover(dataCoords)
     }
   }
 
@@ -181,53 +281,10 @@ export class DopplerMode extends BaseMode {
   handleMouseDown(event, dataCoords) {
     const doppler = this.state.doppler
     
-    // Check if clicking on an existing marker for dragging
+    // Try to start drag on existing marker
     if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-      const mousePos = this.getMousePosition(event)
-      
-      // Find the closest marker that's within range
-      /** @type {string|null} */
-      let closestMarker = null
-      let closestDistance = Infinity
-      
-      if (doppler.fPlus) {
-        const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
-        if (this.isNearMarker(mousePos, fPlusSVG)) {
-          const distance = this.getMarkerDistance(mousePos, fPlusSVG)
-          if (distance < closestDistance) {
-            closestDistance = distance
-            closestMarker = DopplerDraggedMarker.fPlus
-          }
-        }
-      }
-      
-      if (doppler.fMinus) {
-        const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage)
-        if (this.isNearMarker(mousePos, fMinusSVG)) {
-          const distance = this.getMarkerDistance(mousePos, fMinusSVG)
-          if (distance < closestDistance) {
-            closestDistance = distance
-            closestMarker = DopplerDraggedMarker.fMinus
-          }
-        }
-      }
-      
-      if (doppler.fZero) {
-        const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage)
-        if (this.isNearMarker(mousePos, fZeroSVG)) {
-          const distance = this.getMarkerDistance(mousePos, fZeroSVG)
-          if (distance < closestDistance) {
-            closestDistance = distance
-            closestMarker = DopplerDraggedMarker.fZero
-          }
-        }
-      }
-      
-      // Start dragging the closest marker
-      if (closestMarker) {
-        doppler.isDragging = true
-        doppler.draggedMarker = closestMarker
-        this.instance.svg.style.cursor = 'grabbing'
+      const dragStarted = this.dragHandler.startDrag(dataCoords)
+      if (dragStarted) {
         notifyStateListeners(this.state, this.instance.stateListeners)
         return
       }
@@ -261,12 +318,12 @@ export class DopplerMode extends BaseMode {
   /**
    * Handle mouse up events in doppler mode
    * @param {MouseEvent} _event - Mouse event (unused)
-   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused)
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseUp(_event, _dataCoords) {
+  handleMouseUp(_event, dataCoords) {
     const doppler = this.state.doppler
     
-    // Complete marker placement
+    // Complete marker placement (preview drag mode)
     if (doppler.isPreviewDrag && doppler.tempFirst) {
       // Markers are already set during mouse move, just need to finalize
       // Ensure f+ is the later marker (higher time), f- is the earlier marker
@@ -301,12 +358,9 @@ export class DopplerMode extends BaseMode {
       return
     }
     
-    // Complete marker dragging
-    if (doppler.isDragging) {
-      doppler.isDragging = false
-      doppler.draggedMarker = null
-      this.instance.svg.style.cursor = 'crosshair'
-      
+    // Complete existing marker dragging through drag handler
+    if (this.dragHandler.isDragging()) {
+      this.dragHandler.endDrag(dataCoords)
       notifyStateListeners(this.state, this.instance.stateListeners)
     }
   }

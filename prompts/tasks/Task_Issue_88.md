@@ -208,3 +208,118 @@ If any part of this task assignment is unclear, please state your specific quest
 4. **Document thoroughly** - Comprehensive Memory Bank logging essential
 
 Begin with **Phase A (coordinate transformation utilities)** as this provides the highest impact with lowest risk, establishing reusable utilities that will support the subsequent phases.
+
+## PHASE C CONTINUATION - Priority #3 Implementation
+
+**IMPORTANT:** Phases A and B have been completed successfully. This section defines the remaining work for Priority #3 (Structural Improvements) that was previously marked as out of scope.
+
+#### **Phase C1: Extract Base Drag Handling (Priority #3.1)**
+
+**Rationale:** Eliminate duplicate drag patterns across all three modes by creating a shared base drag handler.
+
+**Specific Actions:**
+1. **Create shared drag handler module**: `src/modes/shared/BaseDragHandler.js`
+2. **Analyze common drag patterns** across:
+   - `src/modes/analysis/AnalysisMode.js` - marker dragging functionality
+   - `src/modes/doppler/DopplerMode.js` - marker dragging and proximity detection
+   - `src/modes/harmonics/HarmonicsMode.js` - harmonic set dragging
+3. **Extract common drag lifecycle methods:**
+   - `startDrag(event, dataCoords, dragTarget)` - Initialize drag operation
+   - `updateDrag(event, dataCoords, dragTarget)` - Handle drag movement
+   - `endDrag(event, dataCoords, dragTarget)` - Finalize drag operation
+   - `detectDragProximity(mousePos, targets)` - Proximity detection
+4. **Create base class or composition pattern** for shared drag functionality
+5. **Update all mode classes** to use the shared drag handler
+6. **Run tests after each mode update** to ensure no regressions
+
+**Expected Outcome:** Eliminate duplicate drag handling code across modes, create reusable drag infrastructure
+
+#### **Phase C2: Split main.js Constructor (Priority #3.2)**
+
+**Rationale:** The constructor is 177 lines long (lines 67-244), making it difficult to maintain and test individual initialization concerns.
+
+**Current Constructor Structure Analysis:**
+- **Lines 67-79:** State and property initialization
+- **Lines 80-136:** DOM element property declarations  
+- **Lines 137-144:** Configuration extraction and table setup
+- **Lines 145-163:** Unified layout creation and mode UI setup
+- **Lines 169-175:** Spectrogram image setup
+- **Lines 176-199:** Mode infrastructure initialization
+- **Lines 201-220:** Mode UI recreation with command buttons
+- **Lines 221-244:** Event listeners and final initialization
+
+**Specific Actions:**
+1. **Create initialization modules:**
+   - `src/core/initialization/DOMSetup.js` - DOM element creation and property setup
+   - `src/core/initialization/EventBindings.js` - Event listener registration and cleanup
+   - `src/core/initialization/ModeInitialization.js` - Mode system setup and configuration
+   - `src/core/initialization/UISetup.js` - Unified layout and mode UI creation
+
+2. **Extract initialization functions:**
+   ```javascript
+   // DOMSetup.js
+   export function initializeDOMProperties(instance)
+   export function setupSpectrogramComponents(instance)
+   
+   // EventBindings.js  
+   export function setupAllEventListeners(instance)
+   export function setupStateListeners(instance)
+   
+   // ModeInitialization.js
+   export function initializeModeInfrastructure(instance)
+   export function setupModeUI(instance)
+   
+   // UISetup.js
+   export function createUnifiedLayoutStructure(instance)
+   export function setupPersistentContainers(instance)
+   ```
+
+3. **Refactor constructor to orchestrate initialization:**
+   ```javascript
+   constructor(configTable) {
+     // Core state initialization (< 10 lines)
+     this.state = createInitialState()
+     this.configTable = configTable
+     this.stateListeners = []
+     this.instanceId = ''
+     
+     // Delegate to initialization modules (< 15 lines)
+     initializeDOMProperties(this)
+     extractConfigData(this)
+     createUnifiedLayoutStructure(this)
+     initializeModeInfrastructure(this)
+     setupModeUI(this)
+     setupAllEventListeners(this)
+     setupStateListeners(this)
+     
+     // Final state notification (< 5 lines)
+     notifyStateListeners(this.state, this.stateListeners)
+   }
+   ```
+
+4. **Create factory/builder pattern** for cleaner initialization sequence
+5. **Update imports** to include new initialization modules
+6. **Ensure each module is <50 lines** and has focused responsibilities
+
+**Expected Outcome:** Constructor reduced from 177 → <30 lines, with initialization logic split into focused modules of <50 lines each
+
+#### **Implementation Guidelines for Phase C**
+
+**Quality Assurance Requirements:**
+1. **Run tests after each module creation:** `yarn test`
+2. **Verify no functionality changes:** All existing features must work identically
+3. **Maintain existing interfaces:** External API must remain unchanged
+4. **Follow existing code patterns:** Use established JSDoc and import/export styles
+
+**Refactoring Safety Protocol:**
+1. **One module at a time:** Complete and test each extraction before moving to the next
+2. **Incremental commits:** Commit working state after each successful extraction
+3. **Preserve original code:** Keep original functions commented until tests pass
+4. **Cross-mode testing:** Test all modes after changes to shared utilities
+
+**Success Metrics for Phase C:**
+- **Base drag handler created:** Shared functionality across all modes
+- **Constructor length:** 177 → <30 lines
+- **Initialization modules:** 4 focused modules, each <50 lines
+- **Test coverage maintained:** All 59 tests continue to pass
+- **No regressions:** All existing functionality preserved
