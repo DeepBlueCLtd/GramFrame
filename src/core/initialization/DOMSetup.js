@@ -10,6 +10,8 @@
 
 import { extractConfigData } from '../configuration.js'
 import { setupComponentTable } from '../../components/table.js'
+import { BaseMode } from '../../modes/BaseMode.js'
+import { FeatureRenderer } from '../FeatureRenderer.js'
 
 /**
  * Initialize DOM properties and set them on the instance
