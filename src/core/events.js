@@ -242,9 +242,15 @@ function handleMouseLeave(instance) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleContextMenu(instance, event) {
-  // Delegate to current mode for mode-specific handling
-  if (instance.currentMode && typeof instance.currentMode.handleContextMenu === 'function') {
-    instance.currentMode.handleContextMenu(event)
+  const result = screenToDataWithZoom(instance, event)
+  
+  if (result) {
+    const { dataCoords } = result
+    
+    // Delegate to current mode for mode-specific handling
+    if (instance.currentMode && typeof instance.currentMode.handleContextMenu === 'function') {
+      instance.currentMode.handleContextMenu(event, dataCoords)
+    }
   }
 }
 

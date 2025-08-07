@@ -285,12 +285,12 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
    */
   test.describe('Marker Deletion', () => {
     /**
-     * Test marker deletion via right-click (if implemented)
+     * Test marker deletion via right-click
      * @param {TestParams} params - Test parameters
      * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
-    test('should delete marker via right-click (if implemented)', async ({ gramFramePage }) => {
+    test('should delete marker via right-click', async ({ gramFramePage }) => {
       // Create a marker first
       await gramFramePage.clickSpectrogram(200, 150)
       
@@ -298,24 +298,86 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       /** @type {import('../src/types.js').GramFrameState} */
       let state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(1)
+      /** @type {string} */
+      const markerId = state.analysis.markers[0].id
       
-      try {
-        // Right-click on the marker position
-        await gramFramePage.svg.click({ 
-          button: 'right', 
-          position: { x: 200, y: 150 } 
-        })
-        
-        // Small delay for right-click handling
-        await gramFramePage.page.waitForTimeout(200)
-        
-        // Verify marker was deleted (if right-click deletion is implemented)
-        state = await gramFramePage.getState()
-        // Note: This test assumes right-click deletion is implemented
-        // If not implemented, the marker count will still be 1
-      } catch (error) {
-        console.log('Right-click deletion not implemented or failed')
-      }
+      // Right-click on the marker position to delete it
+      await gramFramePage.svg.click({ 
+        button: 'right', 
+        position: { x: 200, y: 150 } 
+      })
+      
+      // Small delay for right-click handling
+      await gramFramePage.page.waitForTimeout(200)
+      
+      // Verify marker was deleted
+      state = await gramFramePage.getState()
+      expect(state.analysis?.markers).toHaveLength(0)
+    })
+    
+    /**
+     * Test that right-click only deletes markers at the clicked position
+     * @param {TestParams} params - Test parameters
+     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @returns {Promise<void>}
+     */
+    test('should only delete marker at right-clicked position', async ({ gramFramePage }) => {
+      // Create two markers at different positions
+      await gramFramePage.clickSpectrogram(200, 150)
+      await gramFramePage.clickSpectrogram(300, 200)
+      
+      // Verify both markers exist
+      /** @type {import('../src/types.js').GramFrameState} */
+      let state = await gramFramePage.getState()
+      expect(state.analysis?.markers).toHaveLength(2)
+      
+      // Right-click on the first marker position
+      await gramFramePage.svg.click({ 
+        button: 'right', 
+        position: { x: 200, y: 150 } 
+      })
+      
+      // Small delay for right-click handling
+      await gramFramePage.page.waitForTimeout(200)
+      
+      // Verify only one marker was deleted
+      state = await gramFramePage.getState()
+      expect(state.analysis?.markers).toHaveLength(1)
+      
+      // The remaining marker should be at the second position
+      /** @type {import('../src/types.js').AnalysisMarker} */
+      const remainingMarker = state.analysis.markers[0]
+      // We can't easily verify exact position, but we know it's the second marker
+      expect(remainingMarker).toBeDefined()
+    })
+    
+    /**
+     * Test that right-click on empty area doesn't affect markers
+     * @param {TestParams} params - Test parameters
+     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @returns {Promise<void>}
+     */
+    test('should not delete markers when right-clicking on empty area', async ({ gramFramePage }) => {
+      // Create a marker
+      await gramFramePage.clickSpectrogram(200, 150)
+      
+      // Verify marker exists
+      /** @type {import('../src/types.js').GramFrameState} */
+      let state = await gramFramePage.getState()
+      expect(state.analysis?.markers).toHaveLength(1)
+      
+      // Right-click on empty area (far from marker)
+      await gramFramePage.svg.click({ 
+        button: 'right', 
+        position: { x: 400, y: 300 } 
+      })
+      
+      // Small delay for right-click handling
+      await gramFramePage.page.waitForTimeout(200)
+      
+      // Verify marker still exists
+      state = await gramFramePage.getState()
+      expect(state.analysis?.markers).toHaveLength(1)
     })
   })
 

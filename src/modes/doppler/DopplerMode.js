@@ -581,8 +581,9 @@ export class DopplerMode extends BaseMode {
   /**
    * Handle context menu (right-click) events in doppler mode
    * @param {MouseEvent} event - Mouse event
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused)
    */
-  handleContextMenu(event) {
+  handleContextMenu(event, _dataCoords) {
     event.preventDefault()
     this.resetState()
     this.updateSpeedLED() // Reset the speed LED display
