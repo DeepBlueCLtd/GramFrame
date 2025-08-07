@@ -70,9 +70,9 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Update harmonic set during drag
-   * @param {Object} target - Drag target with id and type
+   * @param {Object} _target - Drag target with id and type (unused)
    * @param {DataCoordinates} currentPos - Current position
-   * @param {DataCoordinates} startPos - Start position
+   * @param {DataCoordinates} _startPos - Start position (unused)
    */
   onHarmonicSetDragUpdate(_target, currentPos, _startPos) {
     // Update cursor position for legacy compatibility
@@ -88,8 +88,8 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * End dragging a harmonic set
-   * @param {Object} target - Drag target with id and type
-   * @param {DataCoordinates} position - End position
+   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DataCoordinates} _position - End position (unused)
    */
   onHarmonicSetDragEnd(_target, _position) {
     // Clear legacy drag state

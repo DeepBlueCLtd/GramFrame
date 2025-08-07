@@ -50,7 +50,7 @@ export class AnalysisMode extends BaseMode {
    * Update marker position during drag
    * @param {Object} target - Drag target with id and type
    * @param {DataCoordinates} currentPos - Current position
-   * @param {DataCoordinates} startPos - Start position
+   * @param {DataCoordinates} _startPos - Start position (unused)
    */
   onMarkerDragUpdate(target, currentPos, _startPos) {
     const marker = this.state.analysis.markers.find(m => m.id === target.id)
@@ -80,8 +80,8 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * End dragging a marker
-   * @param {Object} target - Drag target with id and type
-   * @param {DataCoordinates} position - End position
+   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DataCoordinates} _position - End position (unused)
    */
   onMarkerDragEnd(_target, _position) {
     // Clear analysis drag state

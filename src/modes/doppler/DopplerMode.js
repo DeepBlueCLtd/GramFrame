@@ -102,7 +102,7 @@ export class DopplerMode extends BaseMode {
   /**
    * Start dragging a doppler marker
    * @param {Object} target - Drag target with id and type
-   * @param {DataCoordinates} position - Start position
+   * @param {DataCoordinates} _position - Start position (unused)
    */
   onMarkerDragStart(target, _position) {
     const doppler = this.state.doppler
@@ -112,9 +112,9 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Update doppler marker position during drag
-   * @param {Object} target - Drag target with id and type
+   * @param {Object} _target - Drag target with id and type (unused)
    * @param {DataCoordinates} currentPos - Current position
-   * @param {DataCoordinates} startPos - Start position
+   * @param {DataCoordinates} _startPos - Start position (unused)
    */
   onMarkerDragUpdate(_target, currentPos, _startPos) {
     this.handleMarkerDrag(currentPos, this.state.doppler)
@@ -122,8 +122,8 @@ export class DopplerMode extends BaseMode {
 
   /**
    * End dragging a doppler marker
-   * @param {Object} target - Drag target with id and type
-   * @param {DataCoordinates} position - End position
+   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DataCoordinates} _position - End position (unused)
    */
   onMarkerDragEnd(_target, _position) {
     const doppler = this.state.doppler
@@ -252,10 +252,10 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Handle mouse move events in doppler mode
-   * @param {MouseEvent} event - Mouse event
+   * @param {MouseEvent} _event - Mouse event
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseMove(event, dataCoords) {
+  handleMouseMove(_event, dataCoords) {
     const doppler = this.state.doppler
     
     // Handle preview drag when placing markers (not managed by BaseDragHandler)
@@ -275,10 +275,10 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Handle mouse down events in doppler mode
-   * @param {MouseEvent} event - Mouse event
+   * @param {MouseEvent} _event - Mouse event
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseDown(event, dataCoords) {
+  handleMouseDown(_event, dataCoords) {
     const doppler = this.state.doppler
     
     // Try to start drag on existing marker

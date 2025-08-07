@@ -55,6 +55,65 @@ import {
  * GramFrame class - Main component implementation
  */
 export class GramFrame {
+  // Core properties
+  state;
+  configTable;
+  stateListeners;
+  instanceId;
+  
+  // DOM element properties
+  container;
+  readoutPanel;
+  modeCell;
+  mainCell;
+  modeLED;
+  rateLED;
+  colorPicker;
+  svg;
+  cursorGroup;
+  axesGroup;
+  imageClipRect;
+  cursorClipRect;
+  
+  // Unified layout containers
+  leftColumn;
+  middleColumn;
+  rightColumn;
+  modeColumn;
+  guidanceColumn;
+  controlsColumn;
+  unifiedLayoutContainer;
+  timeLED;
+  freqLED;
+  speedLED;
+  markersContainer;
+  harmonicsContainer;
+  
+  // Spectrogram image
+  spectrogramImage;
+  
+  // Mode switching UI
+  modesContainer;
+  modeButtons;
+  commandButtons;
+  guidancePanel;
+  
+  // Mode system
+  modes;
+  currentMode;
+  featureRenderer;
+  
+  // Keyboard control functions
+  setSelection;
+  clearSelection;
+  updateSelectionVisuals;
+  
+  // ResizeObserver
+  resizeObserver;
+  
+  // Bound event handlers
+  _boundHandleResize;
+  
   /**
    * Creates a new GramFrame instance
    * @param {HTMLTableElement} configTable - Configuration table element to replace
