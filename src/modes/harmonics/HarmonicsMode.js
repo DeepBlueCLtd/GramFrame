@@ -3,12 +3,113 @@ import { BaseMode } from '../BaseMode.js'
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { showManualHarmonicModal } from './ManualHarmonicModal.js'
 import { notifyStateListeners } from '../../core/state.js'
+import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordinateTransformations.js'
+import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 
 /**
  * Harmonics mode implementation
  * Handles harmonic set creation, dragging, and rendering
  */
 export class HarmonicsMode extends BaseMode {
+  /**
+   * Initialize HarmonicsMode with drag handler
+   * @param {Object} instance - GramFrame instance
+   * @param {Object} state - State object
+   */
+  constructor(instance, state) {
+    super(instance, state)
+    
+    // Initialize drag handler for existing harmonic set dragging (not for new creation)
+    this.dragHandler = new BaseDragHandler(instance, {
+      findTargetAt: (position) => this.findHarmonicSetTarget(position),
+      onDragStart: (target, position) => this.onHarmonicSetDragStart(target, position),
+      onDragUpdate: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
+      onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
+      updateCursor: (style) => this.updateCursorStyle(style)
+    })
+  }
+
+  /**
+   * Find harmonic set target for drag handler
+   * @param {DataCoordinates} position - Position to check
+   * @returns {Object|null} Drag target if found, null otherwise
+   */
+  findHarmonicSetTarget(position) {
+    const harmonicSet = this.findHarmonicSetAtFrequency(position.freq)
+    if (harmonicSet) {
+      return {
+        id: harmonicSet.id,
+        type: 'harmonicSet',
+        position: position,
+        data: {
+          harmonicSet: harmonicSet,
+          clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq)
+        }
+      }
+    }
+    return null
+  }
+
+  /**
+   * Start dragging a harmonic set
+   * @param {Object} target - Drag target with id and type
+   * @param {DataCoordinates} position - Start position
+   */
+  onHarmonicSetDragStart(target, position) {
+    const harmonicSet = target.data.harmonicSet
+    const clickedHarmonicNumber = target.data.clickedHarmonicNumber
+    
+    // Update legacy drag state for backward compatibility
+    this.state.dragState.isDragging = true
+    this.state.dragState.dragStartPosition = { ...position }
+    this.state.dragState.draggedHarmonicSetId = harmonicSet.id
+    this.state.dragState.originalSpacing = harmonicSet.spacing
+    this.state.dragState.originalAnchorTime = harmonicSet.anchorTime
+    this.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber
+  }
+
+  /**
+   * Update harmonic set during drag
+   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DataCoordinates} currentPos - Current position
+   * @param {DataCoordinates} _startPos - Start position (unused)
+   */
+  onHarmonicSetDragUpdate(_target, currentPos, _startPos) {
+    // Update cursor position for legacy compatibility
+    this.state.cursorPosition = {
+      freq: currentPos.freq,
+      time: currentPos.time,
+      x: 0, y: 0, svgX: 0, svgY: 0, imageX: 0, imageY: 0 // Minimal values for compatibility
+    }
+    
+    // Use existing drag handling logic
+    this.handleHarmonicSetDrag()
+  }
+
+  /**
+   * End dragging a harmonic set
+   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DataCoordinates} _position - End position (unused)
+   */
+  onHarmonicSetDragEnd(_target, _position) {
+    // Clear legacy drag state
+    this.state.dragState.isDragging = false
+    this.state.dragState.dragStartPosition = null
+    this.state.dragState.draggedHarmonicSetId = null
+    this.state.dragState.originalSpacing = null
+    this.state.dragState.originalAnchorTime = null
+    this.state.dragState.clickedHarmonicNumber = null
+  }
+
+  /**
+   * Update cursor style for drag operations
+   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+   */
+  updateCursorStyle(style) {
+    if (this.instance.spectrogramImage) {
+      this.instance.spectrogramImage.style.cursor = style
+    }
+  }
   /**
    * Color palette for harmonic sets
    * @type {string[]}
@@ -30,22 +131,39 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Helper to prepare viewport object for coordinate transformations
+   * @returns {Object} Viewport object with margins, imageDetails, config, zoom
+   */
+  getViewport() {
+    return {
+      margins: this.instance.state.axes.margins,
+      imageDetails: this.instance.state.imageDetails,
+      config: this.instance.state.config,
+      zoom: this.instance.state.zoom
+    }
+  }
+
+  /**
    * Handle mouse move events in harmonics mode
    * @param {MouseEvent} _event - Mouse event
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(_event, dataCoords) {
-    // Update cursor style based on whether we're hovering over a harmonic line
-    const harmonicSet = this.findHarmonicSetAtFrequency(dataCoords.freq)
-    if (harmonicSet && this.instance.spectrogramImage && !this.state.dragState.isDragging && !this.state.dragState.isCreatingNewHarmonicSet) {
-      this.instance.spectrogramImage.style.cursor = 'grab'
-    } else if (!this.state.dragState.isDragging && !this.state.dragState.isCreatingNewHarmonicSet) {
-      this.instance.spectrogramImage.style.cursor = 'crosshair'
-    }
-    
-    // Handle dragging if active (existing harmonic sets or new creation)
-    if (this.state.dragState.isDragging || this.state.dragState.isCreatingNewHarmonicSet) {
+    // Handle existing harmonic set dragging through drag handler
+    if (this.dragHandler.isDragging()) {
+      this.dragHandler.handleMouseMove(dataCoords)
+    } else if (this.state.dragState.isCreatingNewHarmonicSet) {
+      // Handle new creation drag (not managed by BaseDragHandler)
+      // Update cursor position for legacy compatibility
+      this.state.cursorPosition = {
+        freq: dataCoords.freq,
+        time: dataCoords.time,
+        x: 0, y: 0, svgX: 0, svgY: 0, imageX: 0, imageY: 0 // Minimal values
+      }
       this.handleHarmonicSetDrag()
+    } else {
+      // Update cursor for hover when not dragging
+      this.dragHandler.updateCursorForHover(dataCoords)
     }
     
     // Update harmonic panel ratio values on mouse movement to reflect current cursor position
@@ -66,14 +184,11 @@ export class HarmonicsMode extends BaseMode {
       return
     }
     
-    // Check if clicking on existing harmonic line for dragging
-    const existingHarmonicSet = this.findHarmonicSetAtFrequency(dataCoords.freq)
+    // Try to start drag on existing harmonic set
+    const dragStarted = this.dragHandler.startDrag(dataCoords)
     
-    if (existingHarmonicSet) {
-      // Start dragging existing harmonic set
-      this.startHarmonicSetDrag(existingHarmonicSet, dataCoords)
-    } else {
-      // Start creating new harmonic set - wait for drag to complete
+    if (!dragStarted) {
+      // No existing harmonic set found, start creating new harmonic set
       this.startNewHarmonicSetCreation(dataCoords)
     }
   }
@@ -84,19 +199,18 @@ export class HarmonicsMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseUp(_event, dataCoords) {
-    // End dragging if active
-    if (this.state.dragState.isDragging) {
-      this.endHarmonicSetDrag()
+    // End existing harmonic set dragging through drag handler
+    if (this.dragHandler.isDragging()) {
+      this.dragHandler.endDrag(dataCoords)
     }
     
-    // Complete new harmonic set creation if in creation mode
+    // Complete new harmonic set creation if in creation mode (not managed by BaseDragHandler)
     if (this.state.dragState.isCreatingNewHarmonicSet) {
       this.completeNewHarmonicSetCreation(dataCoords)
-    }
-    
-    // Reset cursor
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = 'crosshair'
+      // Reset cursor after creation
+      if (this.instance.spectrogramImage) {
+        this.instance.spectrogramImage.style.cursor = 'crosshair'
+      }
     }
   }
 
@@ -411,41 +525,6 @@ export class HarmonicsMode extends BaseMode {
     this.state.dragState.clickedHarmonicNumber = null
   }
 
-  /**
-   * Start dragging a harmonic set
-   * @param {HarmonicSet} harmonicSet - The harmonic set to drag
-   * @param {DataCoordinates} dataCoords - Current cursor coordinates
-   */
-  startHarmonicSetDrag(harmonicSet, dataCoords) {
-    // Find which harmonic number the user clicked on
-    const clickedHarmonicNumber = this.findClickedHarmonicNumber(harmonicSet, dataCoords.freq)
-    
-    // Initialize drag state
-    this.state.dragState.isDragging = true
-    this.state.dragState.dragStartPosition = { ...dataCoords }
-    this.state.dragState.draggedHarmonicSetId = harmonicSet.id
-    this.state.dragState.originalSpacing = harmonicSet.spacing
-    this.state.dragState.originalAnchorTime = harmonicSet.anchorTime
-    this.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber
-    
-    // Change cursor to grabbing
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = 'grabbing'
-    }
-  }
-
-  /**
-   * End dragging a harmonic set
-   */
-  endHarmonicSetDrag() {
-    this.state.dragState.isDragging = false
-    this.state.dragState.dragStartPosition = null
-    this.state.dragState.draggedHarmonicSetId = null
-    this.state.dragState.originalSpacing = null
-    this.state.dragState.originalAnchorTime = null
-    this.state.dragState.clickedHarmonicNumber = null
-    this.state.dragState.isCreatingNewHarmonicSet = false
-  }
 
   /**
    * Find which harmonic number was clicked
@@ -556,18 +635,33 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Render a single harmonic set as vertical lines
-   * @param {HarmonicSet} harmonicSet - Harmonic set to render
+   * Get visible harmonics within frequency range
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {Config} config - Configuration object
+   * @returns {number[]} Array of harmonic numbers to render
    */
-  renderHarmonicSet(harmonicSet) {
-    if (!this.instance.cursorGroup) {
-      return
-    }
+  getVisibleHarmonics(harmonicSet, config) {
+    const { freqMin, freqMax } = config
+    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
+    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
     
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
+    const harmonics = []
+    for (let h = minHarmonic; h <= maxHarmonic; h++) {
+      harmonics.push(h)
+    }
+    return harmonics
+  }
+
+  /**
+   * Calculate harmonic line dimensions and positions
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @returns {Object} Line dimensions with height and top position
+   */
+  calculateHarmonicLineDimensions(harmonicSet) {
+    const { naturalHeight } = this.state.imageDetails
     const margins = this.state.axes.margins
     const zoomLevel = this.state.zoom.level
-    const { timeMin, timeMax, freqMin, freqMax } = this.state.config
+    const { timeMin, timeMax } = this.state.config
     
     // Calculate harmonic line height (20% of spectrogram height)
     const lineHeightRatio = 0.2
@@ -581,75 +675,91 @@ export class HarmonicsMode extends BaseMode {
       lineTop = anchorY - lineHeight / 2
     } else {
       // Zoomed - calculate position based on current image transform
-      if (this.instance.spectrogramImage) {
-        const imageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
-        const imageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
-        
-        lineHeight = imageHeight * lineHeightRatio
-        const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
-        const anchorY = imageTop + normalizedAnchorTime * imageHeight
-        lineTop = anchorY - lineHeight / 2
-      } else {
-        lineHeight = naturalHeight * lineHeightRatio
-        const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
-        const anchorY = margins.top + normalizedAnchorTime * naturalHeight
-        lineTop = anchorY - lineHeight / 2
-      }
+      const imageBounds = getImageBounds(this.getViewport(), this.instance.spectrogramImage)
+      lineHeight = imageBounds.height * lineHeightRatio
+      const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime }
+      const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage)
+      lineTop = anchorSVG.y - lineHeight / 2
     }
     
-    // Calculate frequency range to render
-    const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
-    const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
+    return { lineHeight, lineTop }
+  }
+
+  /**
+   * Create SVG line element for a harmonic
+   * @param {number} harmonicNumber - Harmonic number
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {number} lineX - X position for the line
+   * @param {number} lineTop - Top Y position for the line
+   * @param {number} lineHeight - Height of the line
+   * @returns {SVGLineElement} SVG line element
+   */
+  createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    line.setAttribute('class', 'gram-frame-harmonic-line')
+    line.setAttribute('data-harmonic-set-id', harmonicSet.id)
+    line.setAttribute('data-harmonic-number', String(harmonicNumber))
+    line.setAttribute('x1', String(lineX))
+    line.setAttribute('y1', String(lineTop))
+    line.setAttribute('x2', String(lineX))
+    line.setAttribute('y2', String(lineTop + lineHeight))
+    line.setAttribute('stroke', harmonicSet.color)
+    line.setAttribute('stroke-width', '2')
+    line.setAttribute('stroke-linecap', 'round')
+    line.setAttribute('opacity', '0.9')
+    return line
+  }
+
+  /**
+   * Create SVG text label for a harmonic number
+   * @param {number} harmonicNumber - Harmonic number
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {number} lineX - X position for the label
+   * @param {number} lineTop - Top Y position for the label
+   * @returns {SVGTextElement} SVG text element
+   */
+  createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop) {
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('class', 'gram-frame-harmonic-number')
+    label.setAttribute('x', String(lineX + 3)) // 3 pixels to the right of line
+    label.setAttribute('y', String(lineTop + 12)) // 12 pixels down from top
+    label.setAttribute('fill', harmonicSet.color)
+    label.setAttribute('font-size', '12')
+    label.setAttribute('font-weight', 'bold')
+    label.setAttribute('font-family', 'Arial, sans-serif')
+    label.textContent = String(harmonicNumber)
+    return label
+  }
+
+  /**
+   * Render a single harmonic set as vertical lines
+   * @param {HarmonicSet} harmonicSet - Harmonic set to render
+   */
+  renderHarmonicSet(harmonicSet) {
+    if (!this.instance.cursorGroup) {
+      return
+    }
+    
+    // Get visible harmonics and line dimensions
+    const visibleHarmonics = this.getVisibleHarmonics(harmonicSet, this.state.config)
+    const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
     
     // Render each harmonic line in this set
-    for (let h = minHarmonic; h <= maxHarmonic; h++) {
-      const harmonicFreq = h * harmonicSet.spacing
+    visibleHarmonics.forEach(harmonicNumber => {
+      const harmonicFreq = harmonicNumber * harmonicSet.spacing
       
-      // Calculate X position
-      const normalizedX = (harmonicFreq - freqMin) / (freqMax - freqMin)
-      let lineX
+      // Calculate X position using coordinate transformation utility
+      const harmonicPoint = { freq: harmonicFreq, time: harmonicSet.anchorTime }
+      const harmonicSVG = calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage)
+      const lineX = harmonicSVG.x
       
-      if (zoomLevel === 1.0) {
-        lineX = margins.left + normalizedX * naturalWidth
-      } else {
-        if (this.instance.spectrogramImage) {
-          const imageLeft = parseFloat(this.instance.spectrogramImage.getAttribute('x') || String(margins.left))
-          const imageWidth = parseFloat(this.instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
-          lineX = imageLeft + normalizedX * imageWidth
-        } else {
-          lineX = margins.left + normalizedX * naturalWidth
-        }
-      }
-      
-      // Create harmonic line (solid)
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      line.setAttribute('class', 'gram-frame-harmonic-line')
-      line.setAttribute('data-harmonic-set-id', harmonicSet.id)
-      line.setAttribute('data-harmonic-number', String(h))
-      line.setAttribute('x1', String(lineX))
-      line.setAttribute('y1', String(lineTop))
-      line.setAttribute('x2', String(lineX))
-      line.setAttribute('y2', String(lineTop + lineHeight))
-      line.setAttribute('stroke', harmonicSet.color)
-      line.setAttribute('stroke-width', '2')
-      line.setAttribute('stroke-linecap', 'round')
-      line.setAttribute('opacity', '0.9')
+      // Create and append line and label elements
+      const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
+      const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop)
       
       this.instance.cursorGroup.appendChild(line)
-      
-      // Add harmonic number label at top-left of line
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('class', 'gram-frame-harmonic-number')
-      label.setAttribute('x', String(lineX + 3)) // 3 pixels to the right of line
-      label.setAttribute('y', String(lineTop + 12)) // 12 pixels down from top
-      label.setAttribute('fill', harmonicSet.color)
-      label.setAttribute('font-size', '12')
-      label.setAttribute('font-weight', 'bold')
-      label.setAttribute('font-family', 'Arial, sans-serif')
-      label.textContent = String(h)
-      
       this.instance.cursorGroup.appendChild(label)
-    }
+    })
   }
 
   /**

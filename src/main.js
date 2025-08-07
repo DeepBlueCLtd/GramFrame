@@ -12,13 +12,22 @@ import {
 } from './core/state.js'
 
 import {
-  updateLEDDisplays,
-  createModeSwitchingUI
+  updateLEDDisplays
 } from './components/UIComponents.js'
 import { 
-  createUnifiedLayout, 
   updatePersistentPanels 
 } from './components/MainUI.js'
+
+// Initialization modules
+import { initializeDOMProperties, setupSpectrogramComponents } from './core/initialization/DOMSetup.js'
+import { setupAllEventListeners, setupStateListeners } from './core/initialization/EventBindings.js'
+import { initializeModeInfrastructure, setupModeUI } from './core/initialization/ModeInitialization.js'
+import { 
+  createUnifiedLayoutStructure, 
+  setupPersistentContainers, 
+  updateModeUIWithCommands,
+  setupSpectrogramIfAvailable 
+} from './core/initialization/UISetup.js'
 import {
   zoomIn,
   zoomOut, 
@@ -30,216 +39,105 @@ import {
 } from './core/viewport.js'
 import { getModeDisplayName } from './utils/calculations.js'
 
-import { extractConfigData } from './core/configuration.js'
-
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
-
-import { ModeFactory } from './modes/ModeFactory.js'
-import { FeatureRenderer } from './core/FeatureRenderer.js'
 
 // Cursor indicators removed - using CSS cursor only
 
 import {
-  setupEventListeners,
-  setupResizeObserver,
   cleanupEventListeners
 } from './core/events.js'
 
 import {
-  initializeKeyboardControl,
-  cleanupKeyboardControl,
-  setSelection,
-  clearSelection,
-  updateSelectionVisuals
+  cleanupKeyboardControl
 } from './core/keyboardControl.js'
-
-import { setupComponentTable, setupSpectrogramImage } from './components/table.js'
-import { BaseMode } from './modes/BaseMode.js'
 
 /**
  * GramFrame class - Main component implementation
  */
 export class GramFrame {
+  // Core properties
+  state;
+  configTable;
+  stateListeners;
+  instanceId;
+  
+  // DOM element properties
+  container;
+  readoutPanel;
+  modeCell;
+  mainCell;
+  modeLED;
+  rateLED;
+  colorPicker;
+  svg;
+  cursorGroup;
+  axesGroup;
+  imageClipRect;
+  cursorClipRect;
+  
+  // Unified layout containers
+  leftColumn;
+  middleColumn;
+  rightColumn;
+  modeColumn;
+  guidanceColumn;
+  controlsColumn;
+  unifiedLayoutContainer;
+  timeLED;
+  freqLED;
+  speedLED;
+  markersContainer;
+  harmonicsContainer;
+  
+  // Spectrogram image
+  spectrogramImage;
+  
+  // Mode switching UI
+  modesContainer;
+  modeButtons;
+  commandButtons;
+  guidancePanel;
+  
+  // Mode system
+  modes;
+  currentMode;
+  featureRenderer;
+  
+  // Keyboard control functions
+  setSelection;
+  clearSelection;
+  updateSelectionVisuals;
+  
+  // ResizeObserver
+  resizeObserver;
+  
+  // Bound event handlers
+  _boundHandleResize;
+  
   /**
    * Creates a new GramFrame instance
    * @param {HTMLTableElement} configTable - Configuration table element to replace
    */
   constructor(configTable) {
+    // Core state initialization
     this.state = createInitialState()
     this.configTable = configTable
-    
-    /**
-     * Array of state listener functions for this specific instance
-     * @type {StateListener[]}
-     */
     this.stateListeners = []
-    
-    /** @type {string} */
     this.instanceId = ''
     
-    /** @type {SVGImageElement} */
-    this.spectrogramImage = null
+    // Delegate to initialization modules
+    initializeDOMProperties(this)
+    setupSpectrogramComponents(this)
+    createUnifiedLayoutStructure(this)
+    setupPersistentContainers(this)
+    setupSpectrogramIfAvailable(this)
+    initializeModeInfrastructure(this)
+    setupModeUI(this)
+    updateModeUIWithCommands(this)
+    setupAllEventListeners(this)
+    setupStateListeners(this)
     
-    // Initialize DOM element properties (will be populated by setupComponentTable)
-    /** @type {HTMLDivElement} */
-    this.container = null
-    /** @type {HTMLDivElement} */
-    this.readoutPanel = null
-    /** @type {HTMLDivElement} */
-    this.modeCell = null
-    /** @type {HTMLDivElement} */
-    this.mainCell = null
-    /** @type {HTMLButtonElement} */
-    this.manualButton = null
-    /** @type {HTMLElement} */
-    this.modeLED = null
-    /** @type {HTMLElement} */
-    this.rateLED = null
-    /** @type {HTMLElement} */
-    this.colorPicker = null
-    /** @type {SVGSVGElement} */
-    this.svg = null
-    /** @type {SVGGElement} */
-    this.cursorGroup = null
-    /** @type {SVGGElement} */
-    this.axesGroup = null
-    /** @type {SVGRectElement} */
-    this.imageClipRect = null
-    /** @type {SVGRectElement} */
-    this.cursorClipRect = null
-    
-    // Unified layout containers
-    /** @type {HTMLDivElement} */
-    this.leftColumn = null
-    /** @type {HTMLDivElement} */
-    this.middleColumn = null
-    /** @type {HTMLDivElement} */
-    this.rightColumn = null
-    /** @type {HTMLDivElement} */
-    this.modeColumn = null
-    /** @type {HTMLDivElement} */
-    this.guidanceColumn = null
-    /** @type {HTMLDivElement} */
-    this.controlsColumn = null
-    /** @type {HTMLDivElement} */
-    this.unifiedLayoutContainer = null
-    /** @type {HTMLElement} */
-    this.timeLED = null
-    /** @type {HTMLElement} */
-    this.freqLED = null
-    /** @type {HTMLElement} */
-    this.speedLED = null
-    /** @type {HTMLDivElement} */
-    this.markersContainer = null
-    /** @type {HTMLDivElement} */
-    this.harmonicsContainer = null
-    
-    // Extract config data from table BEFORE replacing it
-    extractConfigData(this)
-    
-    // Create complete component table structure including DOM and SVG
-    setupComponentTable(this, configTable)
-    
-    // Create unified layout
-    createUnifiedLayout(this)
-    
-    // Create mode switching UI initially (will be updated after modes are initialized)
-    const tempContainer = document.createElement('div')
-    const modeUI = createModeSwitchingUI(tempContainer, this.state, (mode) => this._switchMode(mode))
-    this.modesContainer = modeUI.modesContainer
-    this.modeButtons = modeUI.modeButtons
-    this.commandButtons = modeUI.commandButtons
-    this.guidancePanel = modeUI.guidancePanel
-    
-    // Add mode UI to appropriate columns
-    this.modeColumn.appendChild(this.modesContainer)
-    this.guidanceColumn.appendChild(this.guidancePanel)
-    
-    // Append unified layout to readout panel
-    this.readoutPanel.appendChild(this.unifiedLayoutContainer)
-    
-    // Append readout panel to mode cell
-    this.modeCell.appendChild(this.readoutPanel)
-    
-    // Rate input UI removed - backend functionality preserved for frequency calculations
-    this.rateInput = null
-    
-    // Zoom controls are now integrated into pan mode command buttons
-    
-    // Set up spectrogram image if we have one from config extraction
-    if (this.state.imageDetails.url) {
-      setupSpectrogramImage(this, this.state.imageDetails.url)
-    }
-    
-    // Harmonic management panel will be created by HarmonicsMode when activated
-    
-    // Initialize mode infrastructure
-    /** @type {Object<string, BaseMode>} */
-    this.modes = {}
-    /** @type {BaseMode} */
-    this.currentMode = null
-    
-    // Initialize centralized feature renderer
-    this.featureRenderer = new FeatureRenderer(this)
-    
-    // Initialize all modes using factory
-    const availableModes = ModeFactory.getAvailableModes()
-    availableModes.forEach(modeName => {
-      this.modes[modeName] = ModeFactory.createMode(modeName, this, this.state)
-    })
-    
-    // Initialize all persistent containers with their respective content
-    // Analysis markers in middle column (always visible)
-    this.modes['analysis'].createUI(this.markersContainer)
-    
-    // Harmonics sets in right column (always visible)  
-    this.modes['harmonics'].createUI(this.harmonicsContainer)
-    
-    // Set initial mode (analysis by default)
-    this.currentMode = this.modes['analysis']
-    
-    // Recreate mode UI with command buttons now that modes are available
-    this.modeColumn.removeChild(this.modesContainer)
-    this.guidanceColumn.removeChild(this.guidancePanel)
-    
-    const tempContainer2 = document.createElement('div')
-    const modeUIWithButtons = createModeSwitchingUI(tempContainer2, this.state, (mode) => this._switchMode(mode), this.modes)
-    this.modesContainer = modeUIWithButtons.modesContainer
-    this.modeButtons = modeUIWithButtons.modeButtons
-    this.commandButtons = modeUIWithButtons.commandButtons
-    this.guidancePanel = modeUIWithButtons.guidancePanel
-    
-    // Add updated mode UI back to appropriate columns
-    this.modeColumn.appendChild(this.modesContainer)
-    this.guidanceColumn.appendChild(this.guidancePanel)
-    
-    // Initialize guidance panel with analysis mode guidance
-    if (this.guidancePanel) {
-      this.guidancePanel.innerHTML = this.currentMode.getGuidanceText()
-    }
-    
-    // Apply any globally registered listeners to this new instance
-    getGlobalStateListeners().forEach(listener => {
-      if (!this.stateListeners.includes(listener)) {
-        this.stateListeners.push(listener)
-      }
-    })
-    
-    // Setup event listeners
-    setupEventListeners(this)
-    
-    // Setup ResizeObserver for responsive behavior
-    setupResizeObserver(this)
-    
-    // Initialize keyboard control for fine positioning
-    initializeKeyboardControl(this)
-    
-    // Store keyboard control functions on instance for easy access
-    this.setSelection = (type, id, index) => setSelection(this, type, id, index)
-    this.clearSelection = () => clearSelection(this)
-    this.updateSelectionVisuals = () => updateSelectionVisuals(this)
-    
-    // Notify listeners of initial state
+    // Final state notification
     notifyStateListeners(this.state, this.stateListeners)
   }
   

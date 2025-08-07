@@ -254,6 +254,7 @@
  * @property {HTMLDivElement|null} [guidanceColumn] - Guidance text column  
  * @property {HTMLDivElement|null} [controlsColumn] - Controls column
  * @property {HTMLDivElement|null} [unifiedLayoutContainer] - Main layout container
+ * @property {HTMLDivElement|null} [modesContainer] - Container for modes
  * @property {Object<string, HTMLButtonElement>|null} [modeButtons] - Mode switching buttons
  * @property {Object<string, HTMLButtonElement[]>|null} [commandButtons] - Command buttons
  * @property {HTMLDivElement|null} [guidancePanel] - Guidance text panel

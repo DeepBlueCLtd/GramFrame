@@ -405,33 +405,20 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
  * @param {number} freqMin - Minimum frequency value
  * @param {number} freqMax - Maximum frequency value
  */
-function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
-  const axisY = margins.top + _naturalHeight
-  const axisStartX = margins.left
-  const axisEndX = margins.left + naturalWidth
-  
-  // Draw main axis line (horizontal)
-  const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  axisLine.setAttribute('x1', String(axisStartX))
-  axisLine.setAttribute('y1', String(axisY))
-  axisLine.setAttribute('x2', String(axisEndX))
-  axisLine.setAttribute('y2', String(axisY))
-  axisLine.setAttribute('class', 'gram-frame-axis-line')
-  instance.axesGroup.appendChild(axisLine)
-  
-  // Calculate display frequency range (scaled by rate)
-  const rate = instance.state.rate
-  const displayFreqMin = freqMin / rate
-  const displayFreqMax = freqMax / rate
-  const freqRange = displayFreqMax - displayFreqMin
-  
-  // Nice numbers algorithm for adaptive tick spacing
-  // Target: 50-100 pixels between major ticks for optimal readability
-  const targetMajorSpacing = 80 // pixels
+/**
+ * Calculate axis ticks using "nice numbers" algorithm
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @param {number} containerSize - Container size in pixels
+ * @param {number} targetSpacing - Target spacing between major ticks in pixels
+ * @returns {Object} Tick calculation results with major and minor intervals, starts, and tick counts
+ */
+function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
+  const range = max - min
   
   // Calculate how many major ticks would fit with target spacing
-  const targetMajorTicks = Math.max(2, Math.floor(naturalWidth / targetMajorSpacing))
-  const rawMajorInterval = freqRange / (targetMajorTicks - 1)
+  const targetMajorTicks = Math.max(2, Math.floor(containerSize / targetSpacing))
+  const rawMajorInterval = range / (targetMajorTicks - 1)
   
   // Nice numbers algorithm: find the "nicest" interval near the raw interval
   function niceNum(range, round) {
@@ -470,91 +457,162 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
     minorInterval = majorInterval / 2 // fallback
   }
   
+  // Calculate starting points aligned to intervals
+  const majorStart = Math.ceil(min / majorInterval) * majorInterval
+  const minorStart = Math.ceil(min / minorInterval) * minorInterval
+  
   // Calculate expected number of ticks for safety limits
-  const expectedMajorTicks = Math.ceil(freqRange / majorInterval) + 2
-  const expectedMinorTicks = Math.ceil(freqRange / minorInterval) + 2
+  const expectedMajorTicks = Math.ceil(range / majorInterval) + 2
+  const expectedMinorTicks = Math.ceil(range / minorInterval) + 2
   const maxTicks = Math.max(200, expectedMajorTicks + expectedMinorTicks)
   
-  // Calculate starting points aligned to intervals
-  const majorStart = Math.ceil(displayFreqMin / majorInterval) * majorInterval
-  const minorStart = Math.ceil(displayFreqMin / minorInterval) * minorInterval
+  return {
+    majorInterval,
+    minorInterval,
+    majorStart,
+    minorStart,
+    expectedMajorTicks,
+    expectedMinorTicks,
+    maxTicks
+  }
+}
+
+/**
+ * Format frequency labels with appropriate units
+ * @param {number} frequency - Frequency value
+ * @returns {string} Formatted label
+ */
+function formatFrequencyLabels(frequency) {
+  return Math.round(frequency) + 'Hz'
+}
+
+/**
+ * Render main axis line
+ * @param {Object} instance - Component instance
+ * @param {Object} axisConfig - Axis configuration with start/end positions
+ */
+function renderAxisLine(instance, axisConfig) {
+  const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  axisLine.setAttribute('x1', String(axisConfig.startX))
+  axisLine.setAttribute('y1', String(axisConfig.y))
+  axisLine.setAttribute('x2', String(axisConfig.endX))
+  axisLine.setAttribute('y2', String(axisConfig.y))
+  axisLine.setAttribute('class', 'gram-frame-axis-line')
+  instance.axesGroup.appendChild(axisLine)
+}
+
+/**
+ * Render axis tick marks
+ * @param {Object} instance - Component instance
+ * @param {Array} tickData - Array of tick positions and types
+ * @param {Object} axisConfig - Axis configuration
+ */
+function renderAxisTicks(instance, tickData, axisConfig) {
+  tickData.forEach(tickInfo => {
+    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    tick.setAttribute('x1', String(tickInfo.x))
+    tick.setAttribute('y1', String(axisConfig.y))
+    tick.setAttribute('x2', String(tickInfo.x))
+    tick.setAttribute('y2', String(axisConfig.y + tickInfo.height))
+    tick.setAttribute('class', tickInfo.className)
+    instance.axesGroup.appendChild(tick)
+  })
+}
+
+/**
+ * Render axis labels
+ * @param {Object} instance - Component instance
+ * @param {Array} labelData - Array of label positions and text
+ * @param {Object} axisConfig - Axis configuration
+ */
+function renderAxisLabels(instance, labelData, axisConfig) {
+  labelData.forEach(labelInfo => {
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    label.setAttribute('x', String(labelInfo.x))
+    label.setAttribute('y', String(axisConfig.y + 25))
+    label.setAttribute('text-anchor', 'middle')
+    label.setAttribute('class', labelInfo.className)
+    label.textContent = labelInfo.text
+    instance.axesGroup.appendChild(label)
+  })
+}
+
+function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
+  const axisY = margins.top + _naturalHeight
+  const axisStartX = margins.left
+  const axisEndX = margins.left + naturalWidth
   
-  // Render minor ticks (smaller, no labels)
-  const numMinorTicks = Math.floor((displayFreqMax - minorStart) / minorInterval) + 1
-  if (numMinorTicks <= maxTicks) {
+  // Calculate display frequency range (scaled by rate)
+  const rate = instance.state.rate
+  const displayFreqMin = freqMin / rate
+  const displayFreqMax = freqMax / rate
+  const freqRange = displayFreqMax - displayFreqMin
+  
+  // Prepare axis configuration
+  const axisConfig = { y: axisY, startX: axisStartX, endX: axisEndX }
+  
+  // Render main axis line
+  renderAxisLine(instance, axisConfig)
+  
+  // Calculate tick positions using nice numbers algorithm
+  const tickCalculation = calculateAxisTicks(displayFreqMin, displayFreqMax, naturalWidth)
+  
+  // Prepare tick and label data
+  const minorTickData = []
+  const majorTickData = []
+  const labelData = []
+  
+  // Generate minor ticks
+  const numMinorTicks = Math.floor((displayFreqMax - tickCalculation.minorStart) / tickCalculation.minorInterval) + 1
+  if (numMinorTicks <= tickCalculation.maxTicks) {
     for (let i = 0; i < numMinorTicks; i++) {
-      const freq = minorStart + (i * minorInterval)
+      const freq = tickCalculation.minorStart + (i * tickCalculation.minorInterval)
       if (freq > displayFreqMax) break
       
       // Skip minor ticks that coincide with major ticks
-      if (Math.abs(freq % majorInterval) < 0.01) continue
+      if (Math.abs(freq % tickCalculation.majorInterval) < 0.01) continue
       
       const x = axisStartX + ((freq - displayFreqMin) / freqRange) * naturalWidth
-      
-      // Draw minor tick mark (shorter)
-      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', String(x))
-      tick.setAttribute('y1', String(axisY))
-      tick.setAttribute('x2', String(x))
-      tick.setAttribute('y2', String(axisY + 4))
-      tick.setAttribute('class', 'gram-frame-axis-tick-minor')
-      instance.axesGroup.appendChild(tick)
+      minorTickData.push({ x, height: 4, className: 'gram-frame-axis-tick-minor' })
     }
   }
   
-  // Render major ticks (longer, with labels)
-  const numMajorTicks = Math.floor((displayFreqMax - majorStart) / majorInterval) + 1
-  if (numMajorTicks <= maxTicks) {
+  // Generate major ticks and labels
+  const numMajorTicks = Math.floor((displayFreqMax - tickCalculation.majorStart) / tickCalculation.majorInterval) + 1
+  if (numMajorTicks <= tickCalculation.maxTicks) {
     for (let i = 0; i < numMajorTicks; i++) {
-      const freq = majorStart + (i * majorInterval)
+      const freq = tickCalculation.majorStart + (i * tickCalculation.majorInterval)
       if (freq > displayFreqMax) break
       
       const x = axisStartX + ((freq - displayFreqMin) / freqRange) * naturalWidth
       
-      // Draw major tick mark (longer)
-      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', String(x))
-      tick.setAttribute('y1', String(axisY))
-      tick.setAttribute('x2', String(x))
-      tick.setAttribute('y2', String(axisY + 8))
-      tick.setAttribute('class', 'gram-frame-axis-tick-major')
-      instance.axesGroup.appendChild(tick)
-      
-      // Draw label (slightly smaller as requested)
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', String(x))
-      label.setAttribute('y', String(axisY + 25))
-      label.setAttribute('text-anchor', 'middle')
-      label.setAttribute('class', 'gram-frame-axis-label-major')
-      label.textContent = Math.round(freq) + 'Hz'
-      instance.axesGroup.appendChild(label)
+      majorTickData.push({ x, height: 8, className: 'gram-frame-axis-tick-major' })
+      labelData.push({
+        x,
+        text: formatFrequencyLabels(freq),
+        className: 'gram-frame-axis-label-major'
+      })
     }
   } else {
-    // Fallback to original behavior for extremely dense cases
+    // Fallback to simple tick spacing for extremely dense cases
     const tickCount = 5
-    const tickInterval = freqRange / (tickCount - 1)
-    
     for (let i = 0; i < tickCount; i++) {
-      const freq = displayFreqMin + (i * tickInterval)
+      const freq = displayFreqMin + (i * freqRange / (tickCount - 1))
       const x = axisStartX + (i / (tickCount - 1)) * naturalWidth
       
-      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      tick.setAttribute('x1', String(x))
-      tick.setAttribute('y1', String(axisY))
-      tick.setAttribute('x2', String(x))
-      tick.setAttribute('y2', String(axisY + 8))
-      tick.setAttribute('class', 'gram-frame-axis-tick')
-      instance.axesGroup.appendChild(tick)
-      
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', String(x))
-      label.setAttribute('y', String(axisY + 25))
-      label.setAttribute('text-anchor', 'middle')
-      label.setAttribute('class', 'gram-frame-axis-label')
-      label.textContent = Math.round(freq) + 'Hz'
-      instance.axesGroup.appendChild(label)
+      majorTickData.push({ x, height: 8, className: 'gram-frame-axis-tick' })
+      labelData.push({
+        x,
+        text: formatFrequencyLabels(freq),
+        className: 'gram-frame-axis-label'
+      })
     }
   }
+  
+  // Render all ticks and labels
+  renderAxisTicks(instance, minorTickData, axisConfig)
+  renderAxisTicks(instance, majorTickData, axisConfig)
+  renderAxisLabels(instance, labelData, axisConfig)
 }
 
 

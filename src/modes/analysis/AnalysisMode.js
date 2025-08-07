@@ -1,12 +1,105 @@
 import { BaseMode } from '../BaseMode.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { formatTime } from '../../utils/timeFormatter.js'
+import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
+import { BaseDragHandler, isWithinTolerance } from '../shared/BaseDragHandler.js'
 
 /**
  * Analysis mode implementation
  * Provides crosshair rendering, basic time/frequency display, and persistent markers
  */
 export class AnalysisMode extends BaseMode {
+  /**
+   * Initialize AnalysisMode with drag handler
+   * @param {Object} instance - GramFrame instance
+   * @param {Object} state - State object
+   */
+  constructor(instance, state) {
+    super(instance, state)
+    
+    // Initialize drag handler with analysis-specific callbacks
+    this.dragHandler = new BaseDragHandler(instance, {
+      findTargetAt: (position) => this.findMarkerAtPosition(position),
+      onDragStart: (target, position) => this.onMarkerDragStart(target, position),
+      onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+      onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
+      updateCursor: (style) => this.updateCursorStyle(style)
+    })
+  }
+
+  /**
+   * Start dragging a marker
+   * @param {Object} target - Drag target with id and type
+   * @param {DataCoordinates} position - Start position
+   */
+  onMarkerDragStart(target, position) {
+    // Store drag state in analysis state
+    this.state.analysis.isDragging = true
+    this.state.analysis.draggedMarkerId = target.id
+    this.state.analysis.dragStartPosition = { ...position }
+    
+    // Auto-select the marker being dragged
+    const marker = this.state.analysis.markers.find(m => m.id === target.id)
+    if (marker) {
+      const index = this.state.analysis.markers.findIndex(m => m.id === target.id)
+      this.instance.setSelection('marker', target.id, index)
+    }
+  }
+
+  /**
+   * Update marker position during drag
+   * @param {Object} target - Drag target with id and type
+   * @param {DataCoordinates} currentPos - Current position
+   * @param {DataCoordinates} _startPos - Start position (unused)
+   */
+  onMarkerDragUpdate(target, currentPos, _startPos) {
+    const marker = this.state.analysis.markers.find(m => m.id === target.id)
+    if (marker) {
+      // Update marker position
+      marker.freq = currentPos.freq
+      marker.time = currentPos.time
+      
+      // Re-render persistent features
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures()
+      }
+      
+      // Throttle table updates - use requestAnimationFrame
+      if (!this.updateTableScheduled) {
+        this.updateTableScheduled = true
+        requestAnimationFrame(() => {
+          this.updateMarkersTable()
+          this.updateTableScheduled = false
+        })
+      }
+      
+      // Notify listeners
+      notifyStateListeners(this.state, this.instance.stateListeners)
+    }
+  }
+
+  /**
+   * End dragging a marker
+   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DataCoordinates} _position - End position (unused)
+   */
+  onMarkerDragEnd(_target, _position) {
+    // Clear analysis drag state
+    this.state.analysis.isDragging = false
+    this.state.analysis.draggedMarkerId = null
+    this.state.analysis.dragStartPosition = null
+  }
+
+  /**
+   * Update cursor style for drag operations
+   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+   */
+  updateCursorStyle(style) {
+    if (this.instance.spectrogramImage) {
+      this.instance.spectrogramImage.style.cursor = style
+    }
+  }
+
   /**
    * Get guidance text for analysis mode
    * @returns {string} HTML content for the guidance panel
@@ -22,44 +115,30 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
+   * Helper to prepare viewport object for coordinate transformations
+   * @returns {Object} Viewport object with margins, imageDetails, config, zoom
+   */
+  getViewport() {
+    return {
+      margins: this.instance.state.axes.margins,
+      imageDetails: this.instance.state.imageDetails,
+      config: this.instance.state.config,
+      zoom: this.instance.state.zoom
+    }
+  }
+
+  /**
    * Handle mouse move events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(_event, dataCoords) {
-    // Update cursor style based on whether we're hovering over an existing marker
-    const existingMarker = this.findMarkerAtPosition(dataCoords)
-    if (existingMarker && this.instance.spectrogramImage && !this.state.analysis.isDragging) {
-      this.instance.spectrogramImage.style.cursor = 'grab'
-    } else if (!this.state.analysis.isDragging) {
-      this.instance.spectrogramImage.style.cursor = 'crosshair'
-    }
-    
-    // Handle marker dragging
-    if (this.state.analysis.isDragging && this.state.analysis.draggedMarkerId) {
-      const marker = this.state.analysis.markers.find(m => m.id === this.state.analysis.draggedMarkerId)
-      if (marker) {
-        // Update marker position
-        marker.freq = dataCoords.freq
-        marker.time = dataCoords.time
-        
-        // Re-render persistent features
-        if (this.instance.featureRenderer) {
-          this.instance.featureRenderer.renderAllPersistentFeatures()
-        }
-        
-        // Throttle table updates - use requestAnimationFrame
-        if (!this.updateTableScheduled) {
-          this.updateTableScheduled = true
-          requestAnimationFrame(() => {
-            this.updateMarkersTable()
-            this.updateTableScheduled = false
-          })
-        }
-        
-        // Notify listeners
-        notifyStateListeners(this.state, this.instance.stateListeners)
-      }
+    // Handle drag operations through drag handler
+    if (this.dragHandler.isDragging()) {
+      this.dragHandler.handleMouseMove(dataCoords)
+    } else {
+      // Update cursor style for hover
+      this.dragHandler.updateCursorForHover(dataCoords)
     }
     
     // Universal cursor readouts are now handled centrally in main.js
@@ -77,25 +156,11 @@ export class AnalysisMode extends BaseMode {
       return
     }
     
-    // Check if clicking on an existing marker for dragging
-    const existingMarker = this.findMarkerAtPosition(dataCoords)
+    // Try to start drag on existing marker
+    const dragStarted = this.dragHandler.startDrag(dataCoords)
     
-    if (existingMarker) {
-      // Start dragging existing marker
-      this.state.analysis.isDragging = true
-      this.state.analysis.draggedMarkerId = existingMarker.id
-      this.state.analysis.dragStartPosition = { ...dataCoords }
-      
-      // Change cursor to grabbing
-      if (this.instance.spectrogramImage) {
-        this.instance.spectrogramImage.style.cursor = 'grabbing'
-      }
-      
-      // Auto-select the marker being dragged
-      const index = this.state.analysis.markers.findIndex(m => m.id === existingMarker.id)
-      this.instance.setSelection('marker', existingMarker.id, index)
-    } else {
-      // Create marker at click location
+    if (!dragStarted) {
+      // No marker found, create new marker at click location
       this.createMarkerAtPosition(dataCoords)
     }
   }
@@ -103,20 +168,11 @@ export class AnalysisMode extends BaseMode {
   /**
    * Handle mouse up events in analysis mode
    * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in current implementation)
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseUp(_event, _dataCoords) {
-    // End marker dragging
-    if (this.state.analysis.isDragging) {
-      this.state.analysis.isDragging = false
-      this.state.analysis.draggedMarkerId = null
-      this.state.analysis.dragStartPosition = null
-      
-      // Reset cursor to crosshair
-      if (this.instance.spectrogramImage) {
-        this.instance.spectrogramImage.style.cursor = 'crosshair'
-      }
-    }
+  handleMouseUp(_event, dataCoords) {
+    // End drag operation through drag handler
+    this.dragHandler.endDrag(dataCoords)
   }
 
   /**
@@ -178,37 +234,11 @@ export class AnalysisMode extends BaseMode {
       return
     }
     
-    // Calculate current position based on time/freq values and current zoom/pan state
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    const margins = this.state.axes.margins
-    const zoomLevel = this.state.zoom.level
-    
-    // Convert time/freq to normalized coordinates (0-1)
-    const { timeMin, timeMax, freqMin, freqMax } = this.state.config
-    const normalizedX = (marker.freq - freqMin) / (freqMax - freqMin)
-    const normalizedY = 1.0 - (marker.time - timeMin) / (timeMax - timeMin) // Invert Y for SVG coordinates
-    
-    let currentX, currentY
-    
-    if (zoomLevel === 1.0) {
-      // No zoom - use base image position
-      currentX = margins.left + normalizedX * naturalWidth
-      currentY = margins.top + normalizedY * naturalHeight
-    } else {
-      // Zoomed - calculate position based on current image transform
-      if (this.instance.spectrogramImage) {
-        const imageLeft = parseFloat(this.instance.spectrogramImage.getAttribute('x') || String(margins.left))
-        const imageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
-        const imageWidth = parseFloat(this.instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
-        const imageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
-        
-        currentX = imageLeft + normalizedX * imageWidth
-        currentY = imageTop + normalizedY * imageHeight
-      } else {
-        currentX = margins.left + normalizedX * naturalWidth
-        currentY = margins.top + normalizedY * naturalHeight
-      }
-    }
+    // Calculate current position based on time/freq values and current zoom/pan state using utility
+    const markerPoint = { freq: marker.freq, time: marker.time }
+    const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+    const currentX = markerSVG.x
+    const currentY = markerSVG.y
     
     // Create marker group
     const markerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
@@ -357,12 +387,14 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Get initial state for analysis mode
-   * @returns {AnalysisInitialState} Analysis mode state including markers and harmonics for color picker
+   * @returns {AnalysisInitialState} Analysis mode state including markers
    */
   static getInitialState() {
     return {
       analysis: {
         markers: [],
+        // Note: isDragging, draggedMarkerId, dragStartPosition are now managed by BaseDragHandler
+        // but kept here for backward compatibility with existing code
         isDragging: false,
         draggedMarkerId: null,
         dragStartPosition: null
@@ -434,21 +466,34 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Find marker at given position (with tolerance)
+   * Returns a drag target object compatible with BaseDragHandler
    * @param {DataCoordinates} position - Position to check
-   * @returns {AnalysisMarker|null} Marker if found, null otherwise
+   * @returns {Object|null} Drag target if found, null otherwise
    */
   findMarkerAtPosition(position) {
     if (!this.state.analysis || !this.state.analysis.markers) return null
     
-    const tolerance = {
-      time: (this.state.config.timeMax - this.state.config.timeMin) * 0.02, // 2% of time range
-      freq: (this.state.config.freqMax - this.state.config.freqMin) * 0.02  // 2% of freq range
+    const toleranceTime = (this.state.config.timeMax - this.state.config.timeMin) * 0.02 // 2% of time range
+    const toleranceFreq = (this.state.config.freqMax - this.state.config.freqMin) * 0.02 // 2% of freq range
+    
+    const marker = this.state.analysis.markers.find(marker => 
+      isWithinTolerance(
+        position, 
+        { freq: marker.freq, time: marker.time },
+        Math.max(toleranceTime, toleranceFreq)
+      )
+    )
+    
+    if (marker) {
+      return {
+        id: marker.id,
+        type: 'marker',
+        position: { freq: marker.freq, time: marker.time },
+        data: marker
+      }
     }
     
-    return this.state.analysis.markers.find(marker => 
-      Math.abs(marker.time - position.time) < tolerance.time &&
-      Math.abs(marker.freq - position.freq) < tolerance.freq
-    )
+    return null
   }
 
   /**

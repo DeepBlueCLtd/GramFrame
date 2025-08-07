@@ -4,7 +4,7 @@
  */
 
 // This value is replaced automatically by the generation script.
-export const VERSION = '0.0.1'
+export const VERSION = '0.1.2'
 
 /**
  * Get the current version of GramFrame
