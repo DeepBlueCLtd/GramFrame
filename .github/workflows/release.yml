@@ -168,15 +168,15 @@ jobs:
           EOF
           
           # Create compressed archive
-          ARCHIVE_NAME="gramframe-${{ steps.validate-tag.outputs.version }}.tar.gz"
-          tar -czf "$ARCHIVE_NAME" -C release-assets .
+          ARCHIVE_NAME="gramframe-${{ steps.validate-tag.outputs.version }}.zip"
+          cd release-assets && zip -r "../$ARCHIVE_NAME" . && cd ..
           
           echo "archive-name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
           echo "✅ Release assets prepared"
           echo "📋 Asset contents:"
           ls -la release-assets/
           echo "📦 Archive contents:"
-          tar -tzf "$ARCHIVE_NAME"
+          unzip -l "$ARCHIVE_NAME"
 
       - name: Generate release notes
         id: release-notes
