@@ -183,6 +183,22 @@ export class AnalysisMode extends BaseMode {
     // Analysis mode specific cleanup can be added here if needed
   }
 
+  /**
+   * Handle context menu (right-click) events in analysis mode
+   * @param {MouseEvent} event - Mouse event
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+   */
+  handleContextMenu(event, dataCoords) {
+    event.preventDefault() // Prevent default context menu
+    
+    // Find marker at right-click position
+    const target = this.findMarkerAtPosition(dataCoords)
+    if (target) {
+      // Delete the marker
+      this.removeMarker(target.id)
+    }
+  }
+
   // Cursor position updates are now handled universally in main.js
   // No need for mode-specific cursor position management
 
