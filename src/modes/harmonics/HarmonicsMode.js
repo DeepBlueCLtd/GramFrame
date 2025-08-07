@@ -492,7 +492,7 @@ export class HarmonicsMode extends BaseMode {
     }
     
     // Ensure minimum spacing
-    initialSpacing = Math.max(initialSpacing, 1.0)
+    initialSpacing = Math.max(initialSpacing, 0.1)
     
     // Create the harmonic set immediately
     const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing)
@@ -561,7 +561,7 @@ export class HarmonicsMode extends BaseMode {
     newSpacing = currentPos.freq / clickedHarmonicNumber
     
     // Ensure minimum spacing
-    newSpacing = Math.max(newSpacing, 1.0)
+    newSpacing = Math.max(newSpacing, 0.1)
     
     // Allow vertical movement for both new creation and existing drags
     const deltaTime = currentPos.time - startPos.time

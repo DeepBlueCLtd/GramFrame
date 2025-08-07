@@ -21,9 +21,9 @@ export function showManualHarmonicModal(state, addHarmonicSet) {
     </div>
     <div class="gram-frame-modal-body">
       <label for="harmonic-spacing-input">Harmonic spacing (Hz):</label>
-      <input type="number" id="harmonic-spacing-input" min="1.0" step="0.1" placeholder="Enter spacing in Hz">
+      <input type="number" id="harmonic-spacing-input" min="0.1" step="0.1" placeholder="Enter spacing in Hz">
       <div class="gram-frame-modal-error" id="spacing-error" style="display: none; color: red; font-size: 12px; margin-top: 5px;">
-        Please enter a number ≥ 1.0
+        Please enter a number ≥ 0.1
       </div>
     </div>
     <div class="gram-frame-modal-footer">
@@ -44,7 +44,7 @@ export function showManualHarmonicModal(state, addHarmonicSet) {
   // Input validation
   const validateInput = () => {
     const value = parseFloat(spacingInput.value)
-    const isValid = !isNaN(value) && value >= 1.0
+    const isValid = !isNaN(value) && value >= 0.1
 
     if (spacingInput.value.trim() === '') {
       // Empty input - hide error, disable button
@@ -79,7 +79,7 @@ export function showManualHarmonicModal(state, addHarmonicSet) {
   // Add harmonic function
   function addHarmonic() {
     const spacing = parseFloat(spacingInput.value)
-    if (!isNaN(spacing) && spacing >= 1.0) {
+    if (!isNaN(spacing) && spacing >= 0.1) {
       // Determine anchor time: use cursor position if available, otherwise midpoint
       let anchorTime
       if (state.cursorPosition) {
