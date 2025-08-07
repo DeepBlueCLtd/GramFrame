@@ -77,7 +77,8 @@
       "Bash(open test-standalone.html)",
       "Bash(git tag:*)",
       "Bash(cat:*)",
-      "Bash(yamllint:*)"
+      "Bash(yamllint:*)",
+      "Bash(git add package.json)"
     ]
   }
 }
