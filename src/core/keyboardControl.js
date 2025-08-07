@@ -228,9 +228,29 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime))
   }
   
-  // Use the proper update method to ensure all visual updates and notifications happen
-  if (Object.keys(updates).length > 0 && instance.currentMode && instance.currentMode.updateHarmonicSet) {
-    instance.currentMode.updateHarmonicSet(harmonicSetId, updates)
+  // Apply updates directly to the harmonic set
+  if (Object.keys(updates).length > 0) {
+    const setIndex = instance.state.harmonics.harmonicSets.findIndex(set => set.id === harmonicSetId)
+    if (setIndex !== -1) {
+      Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates)
+      
+      // Update visual elements if harmonic panel exists
+      if (instance.harmonicPanel) {
+        // Dynamically import to avoid circular dependencies
+        import('../components/HarmonicPanel.js').then(({ updateHarmonicPanelContent }) => {
+          updateHarmonicPanelContent(instance.harmonicPanel, instance)
+        }).catch(() => {
+          // Harmonic panel will update on next render cycle
+        })
+      }
+      
+      // Trigger re-render of persistent features to show updated harmonic set
+      if (instance.featureRenderer) {
+        instance.featureRenderer.renderAllPersistentFeatures()
+      }
+      
+      notifyStateListeners(instance.state, instance.stateListeners)
+    }
   }
 }
 
