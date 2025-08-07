@@ -283,6 +283,7 @@
  * @property {function(string, string, number): void} [setSelection] - Set selection
  * @property {function(): void} [clearSelection] - Clear selection  
  * @property {function(): void} [updateSelectionVisuals] - Update selection visuals
+ * @property {function(string): void} [removeHarmonicSet] - Remove harmonic set by ID
  * @property {function(): void} [createUnifiedLayout] - Create unified layout
  */
 
