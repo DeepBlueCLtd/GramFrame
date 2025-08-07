@@ -193,9 +193,7 @@ function createHarmonicRow(harmonicSet, instance, index) {
   deleteButton.addEventListener('click', (e) => {
     e.preventDefault()
     e.stopPropagation()
-    if (instance.currentMode && instance.currentMode.removeHarmonicSet) {
-      instance.currentMode.removeHarmonicSet(harmonicSet.id)
-    }
+    instance.removeHarmonicSet(harmonicSet.id)
   })
   
   return row

@@ -8,6 +8,7 @@
 /// <reference path="../types.js" />
 
 import { notifyStateListeners } from './state.js'
+import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 
 /**
  * Movement increments in pixels
@@ -345,6 +346,36 @@ export function clearSelection(instance) {
   updateSelectionVisuals(instance)
   
   notifyStateListeners(instance.state, instance.stateListeners)
+}
+
+/**
+ * Remove a harmonic set by ID
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {string} id - Harmonic set ID to remove
+ */
+export function removeHarmonicSet(instance, id) {
+  const setIndex = instance.state.harmonics.harmonicSets.findIndex(set => set.id === id)
+  if (setIndex !== -1) {
+    // Clear selection if removing the selected harmonic set
+    if (instance.state.selection.selectedType === 'harmonicSet' && 
+        instance.state.selection.selectedId === id) {
+      clearSelection(instance)
+    }
+    
+    instance.state.harmonics.harmonicSets.splice(setIndex, 1)
+    
+    // Update visual elements
+    if (instance.harmonicPanel) {
+      updateHarmonicPanelContent(instance.harmonicPanel, instance)
+    }
+    
+    // Trigger re-render of persistent features to remove the harmonic set
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures()
+    }
+    
+    notifyStateListeners(instance.state, instance.stateListeners)
+  }
 }
 
 

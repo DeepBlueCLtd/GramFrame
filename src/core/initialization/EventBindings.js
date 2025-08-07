@@ -9,7 +9,7 @@
 /// <reference path="../../types.js" />
 
 import { setupEventListeners, setupResizeObserver } from '../events.js'
-import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals } from '../keyboardControl.js'
+import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet } from '../keyboardControl.js'
 import { getGlobalStateListeners } from '../state.js'
 
 /**
@@ -30,6 +30,7 @@ export function setupAllEventListeners(instance) {
   instance.setSelection = (type, id, index) => setSelection(instance, type, id, index)
   instance.clearSelection = () => clearSelection(instance)
   instance.updateSelectionVisuals = () => updateSelectionVisuals(instance)
+  instance.removeHarmonicSet = (id) => removeHarmonicSet(instance, id)
 }
 
 /**
