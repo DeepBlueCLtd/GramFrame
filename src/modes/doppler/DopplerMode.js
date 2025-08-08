@@ -625,6 +625,10 @@ export class DopplerMode extends BaseMode {
     const isInDopplerMode = this.instance.state.mode === 'doppler'
     const pointerEvents = isInDopplerMode ? 'auto' : 'none'
     
+    // Check if we're in doppler mode to enable/disable pointer events
+    const isInDopplerMode = this.state.mode === 'doppler'
+    const pointerEvents = isInDopplerMode ? 'auto' : 'none'
+    
     // f+ marker (colored dot)
     if (doppler.fPlus) {
       const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
