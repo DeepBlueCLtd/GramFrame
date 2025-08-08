@@ -5,6 +5,45 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 
 ## Implementation Progress
 
+## Issue #130 - Fix Manual Harmonics Visibility When Zoomed - 2025-01-08
+
+**Task Reference:** GitHub Issue #130 and Task Assignment Prompt Task_Issue_130.md
+**Problem:** Manual harmonics were placed at the center of the overall time period instead of the center of the currently visible (zoomed) time period, making them invisible to users when zoomed in.
+
+**Root Cause Analysis:**
+- In `ManualHarmonicModal.js` (lines 88-89), when no cursor position was available, anchor time was calculated using `(state.config.timeMin + state.config.timeMax) / 2` 
+- This used the **full time range** rather than the **visible time range** when zoomed
+- Users had to zoom out to see newly created manual harmonics, degrading user experience
+
+**Solution Implemented:**
+1. **Exported existing infrastructure:** Modified `calculateVisibleDataRange()` function in `src/components/table.js` from private to exported function to enable reuse
+2. **Enhanced modal interface:** Updated `showManualHarmonicModal()` signature to accept GramFrame instance parameter for access to zoom state
+3. **Created helper function:** Added `calculateVisibleTimePeriodCenter(state, instance)` in `ManualHarmonicModal.js` that:
+   - Returns full time range center when zoom level = 1.0 (backward compatibility)
+   - Calculates visible time range center using `calculateVisibleDataRange()` when zoomed
+4. **Updated anchor calculation:** Modified `addHarmonic()` function to use zoom-aware center calculation when no cursor position available
+
+**Key Code Changes:**
+- `src/components/table.js`: Exported `calculateVisibleDataRange()` function
+- `src/modes/harmonics/HarmonicsMode.js`: Updated modal call to pass instance parameter
+- `src/modes/harmonics/ManualHarmonicModal.js`: 
+  - Added import for `calculateVisibleDataRange`
+  - Added `calculateVisibleTimePeriodCenter()` helper function  
+  - Updated modal signature and anchor time calculation logic
+
+**Testing and Verification:**
+- All harmonics mode tests pass (10/10 tests successful)
+- TypeScript compilation successful with no errors
+- Build process successful with no issues
+- No regression in existing functionality confirmed
+
+**Technical Decisions:**
+- Leveraged existing `calculateVisibleDataRange()` infrastructure rather than duplicating zoom logic
+- Maintained backward compatibility by preserving behavior when zoom level = 1.0
+- Used dependency injection pattern to pass GramFrame instance to modal for clean separation of concerns
+
+**Result:** Manual harmonics are now positioned at the center of the visible viewport when zoomed, immediately visible to users without requiring zoom out operation.
+
 ## Issue #88 Phase A-B - Refactor Large Files and Improve Module Boundaries - 2025-01-06
 
 **Task Reference:** GitHub Issue #88 - Refactor Large Files and Improve Module Boundaries

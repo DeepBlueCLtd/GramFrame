@@ -1,11 +1,31 @@
+import { calculateVisibleDataRange } from '../../components/table.js'
+
+/**
+ * Calculate the center of the visible time period based on current zoom state
+ * @param {GramFrameState} state - Current harmonics mode state
+ * @param {GramFrame} instance - GramFrame instance for accessing zoom state
+ * @returns {number} Center time of visible period
+ */
+function calculateVisibleTimePeriodCenter(state, instance) {
+  if (state.zoom.level === 1.0) {
+    // Not zoomed - use full time range center
+    return (state.config.timeMin + state.config.timeMax) / 2
+  }
+  
+  // Zoomed - calculate visible time range center
+  const visibleRange = calculateVisibleDataRange(instance)
+  return (visibleRange.timeMin + visibleRange.timeMax) / 2
+}
+
 /**
  * Manual Harmonic Modal
  * Extracted from HarmonicsMode.showManualHarmonicModal
  *
  * @param {GramFrameState} state - Current harmonics mode state
  * @param {Function} addHarmonicSet - Function to add a harmonic set (anchorTime, spacing)
+ * @param {GramFrame} instance - GramFrame instance for accessing zoom state
  */
-export function showManualHarmonicModal(state, addHarmonicSet) {
+export function showManualHarmonicModal(state, addHarmonicSet, instance) {
   // Create modal overlay
   const overlay = document.createElement('div')
   overlay.className = 'gram-frame-modal-overlay'
@@ -80,13 +100,13 @@ export function showManualHarmonicModal(state, addHarmonicSet) {
   function addHarmonic() {
     const spacing = parseFloat(spacingInput.value)
     if (!isNaN(spacing) && spacing >= 0.1) {
-      // Determine anchor time: use cursor position if available, otherwise midpoint
+      // Determine anchor time: use cursor position if available, otherwise center of visible time period
       let anchorTime
       if (state.cursorPosition) {
         anchorTime = state.cursorPosition.time
       } else {
-        // Use midpoint of time range
-        anchorTime = (state.config.timeMin + state.config.timeMax) / 2
+        // Use center of visible time period (zoom-aware)
+        anchorTime = calculateVisibleTimePeriodCenter(state, instance)
       }
       addHarmonicSet(anchorTime, spacing)
       closeModal()
