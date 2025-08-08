@@ -294,7 +294,7 @@ export function renderAxes(instance) {
  * @param {GramFrame} instance - GramFrame instance
  * @returns {DataRange} Visible data range
  */
-function calculateVisibleDataRange(instance) {
+export function calculateVisibleDataRange(instance) {
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const margins = instance.state.axes.margins
