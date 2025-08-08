@@ -8,6 +8,7 @@ import { screenToSVGCoordinates, imageToDataCoordinates } from '../utils/coordin
 import { updateCursorIndicators } from '../rendering/cursors.js'
 import { notifyStateListeners } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
+import { setFocusedInstance } from './FocusManager.js'
 
 /**
  * Convert screen coordinates to data coordinates, accounting for zoom
@@ -186,6 +187,9 @@ function handleMouseMove(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseDown(instance, event) {
+  // Set focus when user interacts with this instance
+  setFocusedInstance(instance)
+  
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
