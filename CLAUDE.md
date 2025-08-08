@@ -103,8 +103,20 @@ curl -d "status here" ntfy.sh/iancc2025
 
 Components are configured via HTML tables with class `gram-config`:
 - First row contains `<img>` element with spectrogram image
-- Subsequent rows define time/frequency ranges as `param | min | max`
+- Subsequent rows define individual parameters: `time-start`, `time-end`, `freq-start`, `freq-end`
+- Uses 2-column format: `parameter | value` (NOT the legacy 3-column format)
 - Tables are automatically detected and replaced on page load
+
+Example configuration:
+```html
+<table class="gram-config">
+  <tr><td colspan="2"><img src="spectrogram.png"></td></tr>
+  <tr><td>time-start</td><td>0</td></tr>
+  <tr><td>time-end</td><td>60</td></tr>
+  <tr><td>freq-start</td><td>0</td></tr>
+  <tr><td>freq-end</td><td>20000</td></tr>
+</table>
+```
 
 ### Test Architecture
 
