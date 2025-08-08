@@ -60,6 +60,22 @@ jobs:
           echo "🔍 Running type checking..."
           yarn typecheck
 
+      - name: Update version for release
+        run: |
+          echo "🏷️ Updating version.js with actual version from package.json..."
+          yarn generate-version
+          
+          # Verify version was updated correctly
+          VERSION_IN_FILE=$(grep "export const VERSION" src/utils/version.js | cut -d"'" -f2)
+          PACKAGE_VERSION="${{ steps.validate-tag.outputs.version }}"
+          
+          if [ "$VERSION_IN_FILE" != "$PACKAGE_VERSION" ]; then
+            echo "❌ Version mismatch: version.js has '$VERSION_IN_FILE', expected '$PACKAGE_VERSION'"
+            exit 1
+          fi
+          
+          echo "✅ Version updated successfully to $PACKAGE_VERSION"
+
       - name: Build standalone version
         run: |
           echo "🏗️ Building standalone version for file:// protocol compatibility..."
