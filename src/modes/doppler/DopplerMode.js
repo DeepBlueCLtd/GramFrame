@@ -644,6 +644,10 @@ export class DopplerMode extends BaseMode {
     // Use stored color for existing curve, or global selectedColor for new curves
     const color = doppler.color || this.state.selectedColor || '#ff0000'
     
+    // Check if we're in doppler mode to enable/disable pointer events
+    const isInDopplerMode = this.state.mode === 'doppler'
+    const pointerEvents = isInDopplerMode ? 'auto' : 'none'
+    
     // f+ marker (colored dot)
     if (doppler.fPlus) {
       const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
@@ -655,6 +659,7 @@ export class DopplerMode extends BaseMode {
       fPlusMarker.setAttribute('fill', color)
       fPlusMarker.setAttribute('stroke', '#ffffff')
       fPlusMarker.setAttribute('stroke-width', '1')
+      fPlusMarker.setAttribute('pointer-events', pointerEvents)
       this.instance.cursorGroup.appendChild(fPlusMarker)
     }
     
@@ -669,6 +674,7 @@ export class DopplerMode extends BaseMode {
       fMinusMarker.setAttribute('fill', color)
       fMinusMarker.setAttribute('stroke', '#ffffff')
       fMinusMarker.setAttribute('stroke-width', '1')
+      fMinusMarker.setAttribute('pointer-events', pointerEvents)
       this.instance.cursorGroup.appendChild(fMinusMarker)
     }
     
@@ -685,6 +691,7 @@ export class DopplerMode extends BaseMode {
       hLine.setAttribute('y2', fZeroSVG.y.toString())
       hLine.setAttribute('stroke', '#00ff00')
       hLine.setAttribute('stroke-width', '2')
+      hLine.setAttribute('pointer-events', pointerEvents)
       this.instance.cursorGroup.appendChild(hLine)
       
       // Vertical line
@@ -696,6 +703,7 @@ export class DopplerMode extends BaseMode {
       vLine.setAttribute('y2', (fZeroSVG.y + 8).toString())
       vLine.setAttribute('stroke', '#00ff00')
       vLine.setAttribute('stroke-width', '2')
+      vLine.setAttribute('pointer-events', pointerEvents)
       this.instance.cursorGroup.appendChild(vLine)
     }
   }
