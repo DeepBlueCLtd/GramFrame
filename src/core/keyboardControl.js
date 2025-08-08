@@ -9,7 +9,7 @@
 
 import { notifyStateListeners } from './state.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
-import { registerInstance, unregisterInstance, getFocusedInstance, isInstanceFocused, focusNextInstance, focusPreviousInstance } from './FocusManager.js'
+import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance } from './FocusManager.js'
 
 /**
  * Movement increments in pixels
@@ -354,6 +354,9 @@ function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
  * @param {number} index - Index in table for display purposes
  */
 export function setSelection(instance, type, id, index) {
+  // When selecting an item, also focus the instance
+  setFocusedInstance(instance)
+  
   instance.state.selection.selectedType = type
   instance.state.selection.selectedId = id
   instance.state.selection.selectedIndex = index

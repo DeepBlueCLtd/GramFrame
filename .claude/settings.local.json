@@ -81,7 +81,8 @@
       "Bash(git add package.json)",
       "Bash(open http://localhost:5173/debug.html)",
       "Bash(touch:*)",
-      "Bash(open http://localhost:5173/debug-multiple.html)"
+      "Bash(open http://localhost:5173/debug-multiple.html)",
+      "Bash(open http://localhost:5173/debug-focus-test.html)"
     ]
   }
 }
