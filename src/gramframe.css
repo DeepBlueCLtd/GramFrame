@@ -779,30 +779,15 @@
 
 /* Doppler mode styles */
 .gram-frame-doppler-fPlus {
-  cursor: grab;
   pointer-events: auto;
-}
-
-.gram-frame-doppler-fPlus:active {
-  cursor: grabbing;
 }
 
 .gram-frame-doppler-fMinus {
-  cursor: grab;
   pointer-events: auto;
-}
-
-.gram-frame-doppler-fMinus:active {
-  cursor: grabbing;
 }
 
 .gram-frame-doppler-crosshair {
-  cursor: grab;
   pointer-events: auto;
-}
-
-.gram-frame-doppler-crosshair:active {
-  cursor: grabbing;
 }
 
 .gram-frame-doppler-curve {
