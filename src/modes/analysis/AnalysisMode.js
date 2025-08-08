@@ -3,7 +3,7 @@ import { notifyStateListeners } from '../../core/state.js'
 import { formatTime } from '../../utils/timeFormatter.js'
 import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
-import { getModeSpecificTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
+import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
 
 /**
  * Analysis mode implementation
@@ -88,6 +88,16 @@ export class AnalysisMode extends BaseMode {
     this.instance.state.analysis.isDragging = false
     this.instance.state.analysis.draggedMarkerId = null
     this.instance.state.analysis.dragStartPosition = null
+  }
+
+  /**
+   * Update cursor style for drag operations
+   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+   */
+  updateCursorStyle(style) {
+    if (this.instance.svg) {
+      this.instance.svg.style.cursor = style
+    }
   }
 
   /**
@@ -468,15 +478,45 @@ export class AnalysisMode extends BaseMode {
   findMarkerAtPosition(position) {
     if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null
     
-    const tolerance = getModeSpecificTolerance('analysis', this.getViewport(), this.instance.spectrogramImage)
+    const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
     
-    const marker = this.instance.state.analysis.markers.find(marker => 
-      isWithinToleranceRadius(
+    // Check each marker to see if position hits the crosshair lines
+    const marker = this.instance.state.analysis.markers.find(marker => {
+      // Check if we're close to the marker center (original behavior)
+      if (isWithinToleranceRadius(
         position, 
         { freq: marker.freq, time: marker.time },
         tolerance
-      )
-    )
+      )) {
+        return true
+      }
+      
+      // Additionally check if we're on the crosshair lines
+      // The crosshair extends 15 pixels in each direction in SVG space
+      // We need to convert this to data space for comparison
+      
+      // Convert marker position to SVG coordinates
+      const markerPoint = { freq: marker.freq, time: marker.time }
+      const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+      
+      // Convert click position to SVG coordinates
+      const clickSVG = calculateZoomAwarePosition(position, this.getViewport(), this.instance.spectrogramImage)
+      
+      const crosshairSize = 15 // pixels in SVG space
+      const lineThickness = 3 // effective hit area around the line (half of stroke-width + tolerance)
+      
+      // Check horizontal line: Y must be close, X must be within crosshair extent
+      const onHorizontalLine = 
+        Math.abs(clickSVG.y - markerSVG.y) <= lineThickness &&
+        Math.abs(clickSVG.x - markerSVG.x) <= crosshairSize
+      
+      // Check vertical line: X must be close, Y must be within crosshair extent  
+      const onVerticalLine = 
+        Math.abs(clickSVG.x - markerSVG.x) <= lineThickness &&
+        Math.abs(clickSVG.y - markerSVG.y) <= crosshairSize
+      
+      return onHorizontalLine || onVerticalLine
+    })
     
     if (marker) {
       return {

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursor Feedback Test</title>
+  <link rel="stylesheet" href="src/gramframe.css">
+  <style>
+    body {
+      margin: 20px;
+      font-family: Arial, sans-serif;
+      background: #2a2a2a;
+      color: #fff;
+    }
+    
+    #status {
+      margin: 20px 0;
+      padding: 10px;
+      background: #333;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    
+    h1 {
+      color: #4CAF50;
+    }
+    
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cursor Feedback Test</h1>
+  
+  <div class="test-section">
+    <h2>Instructions:</h2>
+    <ol>
+      <li>Click on the spectrogram to create analysis markers</li>
+      <li>Hover over a marker - cursor should change to 'grab' hand</li>
+      <li>Click and drag a marker - cursor should change to 'grabbing' hand</li>
+      <li>Release the marker - cursor should return to 'grab' when hovering, 'crosshair' otherwise</li>
+    </ol>
+    <p style="color: #4CAF50; margin-top: 10px;">
+      <strong>Enhanced Hit Area:</strong> You can now click and drag markers by grabbing any part of the crosshair lines, not just the center!
+    </p>
+  </div>
+  
+  <div id="status">Cursor State: <span id="cursor-state">Loading...</span></div>
+  
+  <table class="gram-config">
+    <tr>
+      <td colspan="2">
+        <img src="./sample/mock-gram.png" alt="Test Spectrogram">
+      </td>
+    </tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>20000</td></tr>
+  </table>
+  
+  <script type="module">
+    import GramFrame from './src/index.js'
+    
+    // Wait for GramFrame to initialize
+    setTimeout(() => {
+      const gramFrame = window.gramFrameInstances?.[0]
+      if (gramFrame && gramFrame.svg) {
+        // Create observer to monitor cursor changes
+        const cursorStateElement = document.getElementById('cursor-state')
+        
+        // Use MutationObserver to track cursor changes
+        const observer = new MutationObserver(() => {
+          const currentCursor = gramFrame.svg.style.cursor || 'default'
+          cursorStateElement.textContent = currentCursor
+          cursorStateElement.style.color = 
+            currentCursor === 'grab' ? '#4CAF50' :
+            currentCursor === 'grabbing' ? '#ff9800' :
+            currentCursor === 'crosshair' ? '#2196F3' :
+            '#fff'
+        })
+        
+        observer.observe(gramFrame.svg, {
+          attributes: true,
+          attributeFilter: ['style']
+        })
+        
+        // Initial cursor state
+        cursorStateElement.textContent = gramFrame.svg.style.cursor || 'crosshair'
+        
+        // Add some test markers for immediate testing
+        if (gramFrame.state?.currentMode === 'analysis' && gramFrame.currentMode) {
+          setTimeout(() => {
+            // Create a few test markers
+            gramFrame.currentMode.createMarkerAtPosition({ freq: 5000, time: 20 })
+            gramFrame.currentMode.createMarkerAtPosition({ freq: 10000, time: 30 })
+            gramFrame.currentMode.createMarkerAtPosition({ freq: 15000, time: 40 })
+            console.log('Test markers created')
+          }, 500)
+        }
+      }
+    }, 1000)
+  </script>
+</body>
+</html>
