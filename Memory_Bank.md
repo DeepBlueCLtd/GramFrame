@@ -439,11 +439,10 @@ Created base infrastructure for polymorphic mode system:
 ### GitHub Issue #32: Refactor Configuration Table Structure to Legacy Format (Completed)
 **Date: July 29, 2025**
 
-Refactored configuration table to support legacy row-based format with improved parsing:
-- Row-based structure: parameter | min | max
-- Flexible parameter name handling with aliases
-- Enhanced validation and error messages
-- 100% backward compatibility maintained
+Refactored configuration table to support modern 2-column format with improved parsing:
+- 2-column structure: parameter | value (time-start, time-end, freq-start, freq-end)
+- Enhanced validation and error messages  
+- Replaced legacy 3-column (param|min|max) format which is no longer supported
 
 ### GitHub Issue #44: Fix Axis Text Labels Resize Issue (Completed)
 **Date: July 29, 2025**

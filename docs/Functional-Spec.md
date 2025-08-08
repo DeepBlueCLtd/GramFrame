@@ -18,6 +18,7 @@
 ## Configuration
 - Defined by `<table class="gram-config">`
 - Hidden on activation
+- Uses 2-column format: `parameter | value`
 - Includes:
   - Top row: spectrogram image
-  - Headers: `param`, `min`, `max`
+  - Parameters: `time-start`, `time-end`, `freq-start`, `freq-end`
