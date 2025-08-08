@@ -60,6 +60,12 @@ export class HarmonicsMode extends BaseMode {
     const harmonicSet = target.data.harmonicSet
     const clickedHarmonicNumber = target.data.clickedHarmonicNumber
     
+    // Auto-select the harmonic set being dragged (consistent with analysis markers)
+    const index = this.state.harmonics.harmonicSets.findIndex(set => set.id === harmonicSet.id)
+    if (index !== -1) {
+      this.instance.setSelection('harmonicSet', harmonicSet.id, index)
+    }
+    
     // Update legacy drag state for backward compatibility
     this.state.dragState.isDragging = true
     this.state.dragState.dragStartPosition = { ...position }
