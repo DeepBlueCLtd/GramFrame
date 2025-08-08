@@ -101,17 +101,19 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
-   * Get guidance text for analysis mode
-   * @returns {string} HTML content for the guidance panel
+   * Get guidance content for analysis mode
+   * @returns {Object} Structured guidance content
    */
   getGuidanceText() {
-    return `
-      <h4>Cross Cursor Mode</h4>
-      <p>• Click to place persistent markers</p>
-      <p>• Drag existing markers to reposition them</p>
-      <p>• Right-click markers to delete them</p>
-      <p>• Click table row + arrow keys (Shift for larger steps)</p>
-    `
+    return {
+      title: 'Cross Cursor Mode',
+      items: [
+        'Click to place persistent markers',
+        'Drag existing markers to reposition them',
+        'Right-click markers to delete them',
+        'Click table row + arrow keys (Shift for larger steps)'
+      ]
+    }
   }
 
   /**

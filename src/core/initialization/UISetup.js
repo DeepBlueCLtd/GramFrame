@@ -11,6 +11,7 @@
 import { createUnifiedLayout } from '../../components/MainUI.js'
 import { createModeSwitchingUI } from '../../components/ModeButtons.js'
 import { setupSpectrogramImage } from '../../components/table.js'
+import { updateGuidancePanel } from '../../utils/secureHTML.js'
 
 /**
  * Create unified layout structure for the GramFrame instance
@@ -67,7 +68,8 @@ export function updateModeUIWithCommands(instance) {
   
   // Set initial guidance content after recreating the panel
   if (instance.currentMode && instance.guidancePanel) {
-    instance.guidancePanel.innerHTML = instance.currentMode.getGuidanceText()
+    const guidanceContent = instance.currentMode.getGuidanceText()
+    updateGuidancePanel(instance.guidancePanel, guidanceContent)
   }
 }
 

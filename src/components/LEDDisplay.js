@@ -18,10 +18,19 @@ import { getModeDisplayName } from '../utils/calculations.js'
 export function createLEDDisplay(label, value) {
   const led = document.createElement('div')
   led.className = 'gram-frame-led'
-  led.innerHTML = `
-    <div class="gram-frame-led-label">${label}</div>
-    <div class="gram-frame-led-value">${value}</div>
-  `
+  
+  // Create label element safely
+  const labelDiv = document.createElement('div')
+  labelDiv.className = 'gram-frame-led-label'
+  labelDiv.textContent = label
+  
+  // Create value element safely
+  const valueDiv = document.createElement('div')
+  valueDiv.className = 'gram-frame-led-value'
+  valueDiv.textContent = value
+  
+  led.appendChild(labelDiv)
+  led.appendChild(valueDiv)
   return led
 }
 
