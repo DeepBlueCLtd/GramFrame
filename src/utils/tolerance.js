@@ -140,6 +140,7 @@ export function findClosestTarget(position, targets, tolerance) {
   return closestTarget
 }
 
+
 /**
  * Get uniform tolerance calculation for all modes
  * @param {Object} viewport - Viewport configuration

@@ -60,6 +60,12 @@ export class HarmonicsMode extends BaseMode {
     const harmonicSet = target.data.harmonicSet
     const clickedHarmonicNumber = target.data.clickedHarmonicNumber
     
+    // Auto-select the harmonic set being dragged (consistent with analysis markers)
+    const index = this.state.harmonics.harmonicSets.findIndex(set => set.id === harmonicSet.id)
+    if (index !== -1) {
+      this.instance.setSelection('harmonicSet', harmonicSet.id, index)
+    }
+    
     // Update legacy drag state for backward compatibility
     this.state.dragState.isDragging = true
     this.state.dragState.dragStartPosition = { ...position }
@@ -107,8 +113,8 @@ export class HarmonicsMode extends BaseMode {
    * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
    */
   updateCursorStyle(style) {
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = style
+    if (this.instance.svg) {
+      this.instance.svg.style.cursor = style
     }
   }
   /**
@@ -211,8 +217,8 @@ export class HarmonicsMode extends BaseMode {
     if (this.state.dragState.isCreatingNewHarmonicSet) {
       this.completeNewHarmonicSetCreation(dataCoords)
       // Reset cursor after creation
-      if (this.instance.spectrogramImage) {
-        this.instance.spectrogramImage.style.cursor = 'crosshair'
+      if (this.instance.svg) {
+        this.instance.svg.style.cursor = 'crosshair'
       }
     }
   }
@@ -504,8 +510,8 @@ export class HarmonicsMode extends BaseMode {
     this.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber
     
     // Change cursor to indicate drag interaction
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = 'grabbing'
+    if (this.instance.svg) {
+      this.instance.svg.style.cursor = 'grabbing'
     }
   }
 

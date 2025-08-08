@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Selection Flicker Test</title>
+  <link rel="stylesheet" href="src/gramframe.css">
+  <style>
+    body {
+      margin: 20px;
+      font-family: Arial, sans-serif;
+      background: #2a2a2a;
+      color: #fff;
+    }
+    
+    h1 {
+      color: #4CAF50;
+    }
+    
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+    
+    .warning {
+      color: #ff9800;
+      font-weight: bold;
+    }
+    
+    .success {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    
+    #height-monitor {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px;
+      background: #333;
+      border: 2px solid #555;
+      border-radius: 4px;
+      font-family: monospace;
+      z-index: 1000;
+    }
+    
+    .height-changed {
+      color: #ff4444 !important;
+      font-weight: bold;
+    }
+    
+    .height-stable {
+      color: #4CAF50 !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>Selection Flicker Test</h1>
+  
+  <div id="height-monitor">
+    <div>Table Height: <span id="table-height">-</span>px</div>
+    <div>Image Top: <span id="image-top">-</span>px</div>
+    <div>Status: <span id="height-status" class="height-stable">Stable</span></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test Instructions:</h2>
+    <ol>
+      <li>Click on the spectrogram to create several analysis markers</li>
+      <li>Click and drag markers around - this will auto-select them</li>
+      <li class="warning">OLD BUG: Each selection change would cause the table to change height, making the image flicker vertically</li>
+      <li class="success">FIXED: Table height should remain constant, preventing any vertical movement</li>
+      <li>The height monitor (top right) will show if any height changes occur</li>
+      <li>Try rapidly clicking between different markers in the table</li>
+    </ol>
+    <p><strong>Auto-test:</strong> The page will automatically create markers and rapidly switch selection to test stability.</p>
+  </div>
+  
+  <table class="gram-config">
+    <tr>
+      <td colspan="2">
+        <img src="./sample/mock-gram.png" alt="Test Spectrogram">
+      </td>
+    </tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>20000</td></tr>
+  </table>
+  
+  <script type="module">
+    import GramFrame from './src/index.js'
+    
+    // Height monitoring
+    let lastTableHeight = 0
+    let lastImageTop = 0
+    let stabilityTimer = null
+    
+    function checkHeights() {
+      const table = document.querySelector('.gram-frame-table')
+      const image = document.querySelector('.gram-frame-svg')
+      
+      if (table && image) {
+        const currentTableHeight = table.offsetHeight
+        const currentImageTop = image.getBoundingClientRect().top
+        
+        document.getElementById('table-height').textContent = currentTableHeight
+        document.getElementById('image-top').textContent = Math.round(currentImageTop)
+        
+        const status = document.getElementById('height-status')
+        
+        if (lastTableHeight > 0 && currentTableHeight !== lastTableHeight) {
+          // Height changed - show error
+          status.textContent = 'CHANGED!'
+          status.className = 'height-changed'
+          console.error('Table height changed:', lastTableHeight, '->', currentTableHeight)
+          
+          // Reset status after 2 seconds
+          clearTimeout(stabilityTimer)
+          stabilityTimer = setTimeout(() => {
+            status.textContent = 'Stable'
+            status.className = 'height-stable'
+          }, 2000)
+        }
+        
+        if (lastImageTop > 0 && Math.abs(currentImageTop - lastImageTop) > 1) {
+          // Image moved vertically
+          console.warn('Image position shifted:', Math.round(lastImageTop), '->', Math.round(currentImageTop))
+        }
+        
+        lastTableHeight = currentTableHeight
+        lastImageTop = currentImageTop
+      }
+    }
+    
+    // Monitor heights continuously
+    setInterval(checkHeights, 100)
+    
+    // Auto-test after initialization
+    setTimeout(() => {
+      const gramFrame = window.gramFrameInstances?.[0]
+      if (gramFrame && gramFrame.state?.currentMode === 'analysis' && gramFrame.currentMode) {
+        console.log('Starting auto-test...')
+        
+        // Create test markers
+        const markers = [
+          { freq: 5000, time: 15 },
+          { freq: 10000, time: 25 },
+          { freq: 15000, time: 35 },
+          { freq: 7500, time: 45 },
+          { freq: 12500, time: 20 }
+        ]
+        
+        markers.forEach(pos => {
+          gramFrame.currentMode.createMarkerAtPosition(pos)
+        })
+        
+        console.log('Created', markers.length, 'test markers')
+        
+        // Rapidly switch selection to test for flicker
+        setTimeout(() => {
+          console.log('Testing rapid selection changes...')
+          let index = 0
+          const rapidTest = setInterval(() => {
+            const markerRows = document.querySelectorAll('tr[data-marker-id]')
+            if (markerRows.length > 0) {
+              // Click on different rows rapidly
+              markerRows[index % markerRows.length].click()
+              index++
+              
+              if (index > 20) {
+                clearInterval(rapidTest)
+                console.log('Rapid selection test complete')
+              }
+            }
+          }, 200) // Switch selection 5 times per second
+        }, 1000)
+      }
+    }, 1500)
+  </script>
+</body>
+</html>

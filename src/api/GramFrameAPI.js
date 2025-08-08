@@ -62,14 +62,7 @@ export function createGramFrameAPI(GramFrame) {
         }
       })
       
-      // Log summary
-      if (instances.length > 0) {
-        console.log(`GramFrame: Successfully initialized ${instances.length} component${instances.length === 1 ? '' : 's'}`)
-      }
-      
-      if (errors.length > 0) {
-        console.warn(`GramFrame: ${errors.length} error${errors.length === 1 ? '' : 's'} encountered during initialization`, errors)
-      }
+      // Log summary - removed debug console statements
       
       // Store instances for global access
       this._instances = instances

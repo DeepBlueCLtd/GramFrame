@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmonics-Doppler Interaction Test</title>
+  <link rel="stylesheet" href="src/gramframe.css">
+  <style>
+    body {
+      margin: 20px;
+      font-family: Arial, sans-serif;
+      background: #2a2a2a;
+      color: #fff;
+    }
+    
+    #status {
+      margin: 20px 0;
+      padding: 10px;
+      background: #333;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    
+    h1 {
+      color: #4CAF50;
+    }
+    
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+    
+    .warning {
+      color: #ff9800;
+      font-weight: bold;
+    }
+    
+    .success {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Harmonics-Doppler Interaction Test</h1>
+  
+  <div class="test-section">
+    <h2>Test Instructions:</h2>
+    <ol>
+      <li>Start in <strong>Doppler Mode</strong> and create a doppler curve (click and drag)</li>
+      <li>Switch to <strong>Harmonics Mode</strong></li>
+      <li>Move your mouse over the doppler markers (the colored dots and green crosshair)</li>
+      <li class="warning">OLD BUG: Cursor would change to grab hand over doppler markers</li>
+      <li class="success">FIXED: Cursor should remain as crosshair when hovering over doppler markers in harmonics mode</li>
+      <li>Click on a doppler marker - it should create new harmonics, NOT drag the doppler marker</li>
+      <li>Switch back to <strong>Doppler Mode</strong></li>
+      <li>Now the doppler markers should show grab cursor and be draggable</li>
+    </ol>
+  </div>
+  
+  <div id="status">
+    Current Mode: <span id="current-mode">Loading...</span> | 
+    Cursor State: <span id="cursor-state">Loading...</span>
+  </div>
+  
+  <table class="gram-config">
+    <tr>
+      <td colspan="2">
+        <img src="./sample/mock-gram.png" alt="Test Spectrogram">
+      </td>
+    </tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>20000</td></tr>
+  </table>
+  
+  <script type="module">
+    import GramFrame from './src/index.js'
+    
+    // Wait for GramFrame to initialize
+    setTimeout(() => {
+      const gramFrame = window.gramFrameInstances?.[0]
+      if (gramFrame && gramFrame.svg) {
+        const modeElement = document.getElementById('current-mode')
+        const cursorStateElement = document.getElementById('cursor-state')
+        
+        // Monitor mode changes
+        const updateMode = () => {
+          const currentMode = gramFrame.state?.mode || 'unknown'
+          modeElement.textContent = currentMode.charAt(0).toUpperCase() + currentMode.slice(1)
+          modeElement.style.color = 
+            currentMode === 'doppler' ? '#ff9800' :
+            currentMode === 'harmonics' ? '#9c27b0' :
+            currentMode === 'analysis' ? '#2196F3' :
+            '#fff'
+        }
+        
+        // Use MutationObserver to track cursor changes
+        const observer = new MutationObserver(() => {
+          const currentCursor = gramFrame.svg.style.cursor || 'default'
+          cursorStateElement.textContent = currentCursor
+          cursorStateElement.style.color = 
+            currentCursor === 'grab' ? '#4CAF50' :
+            currentCursor === 'grabbing' ? '#ff9800' :
+            currentCursor === 'crosshair' ? '#2196F3' :
+            '#fff'
+        })
+        
+        observer.observe(gramFrame.svg, {
+          attributes: true,
+          attributeFilter: ['style']
+        })
+        
+        // Monitor mode button clicks
+        const modeButtons = document.querySelectorAll('.gram-frame-mode-btn')
+        modeButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            setTimeout(updateMode, 50)
+          })
+        })
+        
+        // Initial states
+        updateMode()
+        cursorStateElement.textContent = gramFrame.svg.style.cursor || 'crosshair'
+        
+        console.log('Test ready! Follow the instructions above.')
+      }
+    }, 1000)
+  </script>
+</body>
+</html>
