@@ -393,6 +393,7 @@
 .gram-frame-table tbody tr {
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .gram-frame-table tbody tr:hover {
@@ -1107,16 +1108,22 @@
 .gram-frame-selected-row {
   background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;
   color: #aaffaa !important;
-  border: 2px solid #4a8a4a !important;
+  outline: 2px solid #4a8a4a !important;
+  outline-offset: -1px;
+  position: relative;
+  z-index: 10;
   box-shadow: 
-    inset 0 1px 2px rgba(255,255,255,0.1),
-    inset 0 -1px 2px rgba(0,0,0,0.3),
-    0 0 6px rgba(74, 138, 74, 0.4) !important;
+    inset 0 2px 4px rgba(255,255,255,0.15),
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    0 0 8px rgba(74, 138, 74, 0.6),
+    0 0 2px rgba(74, 138, 74, 0.8) !important;
 }
 
 .gram-frame-selected-row td {
   color: #aaffaa !important;
   border-color: #4a8a4a !important;
+  position: relative;
+  z-index: 11;
 }
 
 /* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */
