@@ -3,7 +3,7 @@ import { notifyStateListeners } from '../../core/state.js'
 import { formatTime } from '../../utils/timeFormatter.js'
 import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
-import { getModeSpecificTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
+import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
 
 /**
  * Analysis mode implementation
@@ -492,7 +492,7 @@ export class AnalysisMode extends BaseMode {
   findMarkerAtPosition(position) {
     if (!this.state.analysis || !this.state.analysis.markers) return null
     
-    const tolerance = getModeSpecificTolerance('analysis', this.getViewport(), this.instance.spectrogramImage)
+    const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
     
     const marker = this.state.analysis.markers.find(marker => 
       isWithinToleranceRadius(
