@@ -1,10 +1,10 @@
 /**
- * Generated version constants
- * Auto-generated from package.json - do not edit manually
+ * Version constants for GramFrame
+ * Uses placeholder during development, updated to actual version during releases
  */
 
-// This value is replaced automatically by the generation script.
-export const VERSION = '0.1.4'
+// Placeholder version for development - updated automatically during release builds
+export const VERSION = 'DEV'
 
 /**
  * Get the current version of GramFrame

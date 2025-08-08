@@ -44,6 +44,84 @@ GramFrame is a component for displaying and interacting with spectrograms. It pr
 
 **Result:** Manual harmonics are now positioned at the center of the visible viewport when zoomed, immediately visible to users without requiring zoom out operation.
 
+---
+**Agent:** Implementation Agent
+**Task Reference:** GitHub Issue #126 - Version.js Server-Only Update Implementation
+
+**Summary:**
+Implemented placeholder version strategy to prevent local builds from modifying version.js, requiring commits after version bumps. Version updates now occur only during release pipeline.
+
+**Details:**
+1. **Modified version.js placeholder strategy:**
+   - Changed VERSION constant from '0.1.4' to 'DEV' placeholder
+   - Updated comments to explain development vs release versioning
+   - Maintained identical API structure for compatibility
+
+2. **Updated package.json build scripts:**
+   - Removed `npm run generate-version &&` from `dev`, `build`, and `build:standalone` commands  
+   - Kept `generate-version` script intact for release pipeline usage
+   - Local builds now run directly with Vite, avoiding version file modifications
+
+3. **Enhanced release workflow (.github/workflows/release.yml):**
+   - Added "Update version for release" step after type checking, before building
+   - Step runs `yarn generate-version` to update version.js with actual package.json version
+   - Includes verification that version was updated correctly with error handling
+   - Ensures release builds contain correct version information
+
+4. **Verification testing:**
+   - Confirmed `yarn dev`, `yarn build`, and `yarn build:standalone` work without modifying version.js
+   - Tested `yarn generate-version` script functions correctly when called manually
+   - Verified git status shows no unwanted changes after local builds
+
+**Output/Result:**
+```javascript
+// src/utils/version.js - Key changes
+/**
+ * Version constants for GramFrame
+ * Uses placeholder during development, updated to actual version during releases
+ */
+
+// Placeholder version for development - updated automatically during release builds
+export const VERSION = 'DEV'
+```
+
+```json
+// package.json - Script modifications
+"scripts": {
+  "generate-version": "node scripts/generate-version.js",
+  "dev": "vite",
+  "build": "vite build", 
+  "build:standalone": "BUILD_STANDALONE=true vite build"
+}
+```
+
+```yaml
+# .github/workflows/release.yml - New step added
+- name: Update version for release
+  run: |
+    echo "🏷️ Updating version.js with actual version from package.json..."
+    yarn generate-version
+    
+    # Verify version was updated correctly
+    VERSION_IN_FILE=$(grep "export const VERSION" src/utils/version.js | cut -d"'" -f2)
+    PACKAGE_VERSION="${{ steps.validate-tag.outputs.version }}"
+    
+    if [ "$VERSION_IN_FILE" != "$PACKAGE_VERSION" ]; then
+      echo "❌ Version mismatch: version.js has '$VERSION_IN_FILE', expected '$PACKAGE_VERSION'"
+      exit 1
+    fi
+    
+    echo "✅ Version updated successfully to $PACKAGE_VERSION"
+```
+
+**Status:** Completed
+
+**Issues/Blockers:**
+None
+
+**Next Steps:**
+Ready for pull request creation. Implementation successfully addresses GitHub Issue #126 by eliminating the need to commit version.js changes after local development builds.
+
 ## Issue #88 Phase A-B - Refactor Large Files and Improve Module Boundaries - 2025-01-06
 
 **Task Reference:** GitHub Issue #88 - Refactor Large Files and Improve Module Boundaries
