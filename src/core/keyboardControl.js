@@ -9,6 +9,7 @@
 
 import { notifyStateListeners } from './state.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
+import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance } from './FocusManager.js'
 
 /**
  * Movement increments in pixels
@@ -19,17 +20,24 @@ const MOVEMENT_INCREMENTS = {
 }
 
 /**
+ * Global keyboard handler - only one listener for all instances
+ */
+let globalKeyboardHandler = null
+let keyboardHandlerInitialized = false
+
+/**
  * Initialize keyboard control system for a GramFrame instance
  * @param {GramFrame} instance - GramFrame instance
  */
 export function initializeKeyboardControl(instance) {
-  // Add keyboard event listener at document level
-  const keyboardHandler = (event) => handleKeyboardEvent(event, instance)
-  document.addEventListener('keydown', keyboardHandler)
+  // Register this instance for focus management
+  registerInstance(instance)
   
-  // Store handler reference for cleanup
-  if (!instance.keyboardHandler) {
-    instance.keyboardHandler = keyboardHandler
+  // Only set up the global keyboard handler once
+  if (!keyboardHandlerInitialized) {
+    globalKeyboardHandler = (event) => handleGlobalKeyboardEvent(event)
+    document.addEventListener('keydown', globalKeyboardHandler)
+    keyboardHandlerInitialized = true
   }
 }
 
@@ -38,25 +46,44 @@ export function initializeKeyboardControl(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function cleanupKeyboardControl(instance) {
-  if (instance.keyboardHandler) {
-    document.removeEventListener('keydown', instance.keyboardHandler)
-    instance.keyboardHandler = null
-  }
+  // Unregister this instance from focus management
+  unregisterInstance(instance)
+  
+  
+  // Note: We don't remove the global handler here to avoid issues
+  // if multiple instances are being destroyed. The handler will
+  // simply do nothing if no instances are focused.
 }
 
 /**
- * Handle keyboard events for selected items
+ * Global keyboard event handler that routes to the focused instance
  * @param {KeyboardEvent} event - Keyboard event
- * @param {GramFrame} instance - GramFrame instance
  */
-function handleKeyboardEvent(event, instance) {
+function handleGlobalKeyboardEvent(event) {
+  // Handle Tab navigation between instances
+  if (event.key === 'Tab') {
+    if (event.shiftKey) {
+      focusPreviousInstance()
+    } else {
+      focusNextInstance()
+    }
+    event.preventDefault()
+    return
+  }
+  
+  // Get the currently focused instance
+  const focusedInstance = getFocusedInstance()
+  if (!focusedInstance) {
+    return // No instance is focused
+  }
+  
   // Only handle arrow keys for movement
   if (!isArrowKey(event.key)) {
     return
   }
   
-  // Check if there's a selected item
-  const selection = instance.state.selection
+  // Check if there's a selected item in the focused instance
+  const selection = focusedInstance.state.selection
   if (!selection || !selection.selectedType || !selection.selectedId) {
     return // No selection
   }
@@ -70,7 +97,7 @@ function handleKeyboardEvent(event, instance) {
   
   // Account for zoom level - scale movement down when zoomed in
   // This ensures 1 pixel movement on screen regardless of zoom level
-  const zoomLevel = instance.state.zoom.level || 1.0
+  const zoomLevel = focusedInstance.state.zoom.level || 1.0
   const increment = baseIncrement / zoomLevel
   
   // Calculate movement direction
@@ -78,9 +105,9 @@ function handleKeyboardEvent(event, instance) {
   
   // Apply movement based on selected item type
   if (selection.selectedType === 'marker') {
-    moveSelectedMarker(instance, selection.selectedId, movement)
+    moveSelectedMarker(focusedInstance, selection.selectedId, movement)
   } else if (selection.selectedType === 'harmonicSet') {
-    moveSelectedHarmonicSet(instance, selection.selectedId, movement)
+    moveSelectedHarmonicSet(focusedInstance, selection.selectedId, movement)
   }
 }
 
@@ -323,6 +350,9 @@ function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
  * @param {number} index - Index in table for display purposes
  */
 export function setSelection(instance, type, id, index) {
+  // When selecting an item, also focus the instance
+  setFocusedInstance(instance)
+  
   instance.state.selection.selectedType = type
   instance.state.selection.selectedId = id
   instance.state.selection.selectedIndex = index
