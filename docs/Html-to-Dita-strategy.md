@@ -4,9 +4,9 @@
 ## ✅ Objective
 Convert each HTML page to a DITA topic that:
 - Captures the **document title**
-- Includes a **configuration table** for the legacy applet:
+- Includes a **configuration table** for the component:
   - First row: spectrogram image in a merged table cell
-  - Following rows: parameter name, min, and max
+  - Following rows: parameter name and value (time-start, time-end, freq-start, freq-end)
 
 ---
 
@@ -34,7 +34,7 @@ Write a script using `BeautifulSoup` to:
 - Extract:
   - Title
   - Spectrogram image name (from `<img>` in first row of the config table)
-  - Param rows: `[name, min, max]`
+  - Parameter rows: `[name, value]` (using 2-column format, NOT 3-column)
 
 Then generate a `.dita` file with the following structure:
 

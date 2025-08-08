@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "generate-version": "node scripts/generate-version.js",
-    "dev": "npm run generate-version && vite",
-    "build": "npm run generate-version && vite build",
-    "build:standalone": "npm run generate-version && BUILD_STANDALONE=true vite build",
+    "dev": "vite",
+    "build": "vite build",
+    "build:standalone": "BUILD_STANDALONE=true vite build",
     "test": "playwright test",
     "typecheck": "tsc --noEmit"
   },
