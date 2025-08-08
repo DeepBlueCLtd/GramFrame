@@ -56,13 +56,16 @@ export class DopplerMode extends BaseMode {
     const doppler = this.state.doppler
     if (!doppler) return null
     
-    const mousePos = { x: position.time, y: position.freq } // Simplified conversion
-    const tolerance = 20 // SVG pixels tolerance
+    // Calculate tolerance using same approach as AnalysisMode (2% of range)
+    const toleranceTime = (this.state.config.timeMax - this.state.config.timeMin) * 0.02
+    const toleranceFreq = (this.state.config.freqMax - this.state.config.freqMin) * 0.02
+    const tolerance = { time: toleranceTime, freq: toleranceFreq }
     
-    // Check each marker type
+    // Check each marker type using data coordinate comparison
     if (doppler.fPlus) {
-      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
-      if (this.getMarkerDistance(mousePos, fPlusSVG) < tolerance) {
+      const timeDiff = Math.abs(position.time - doppler.fPlus.time)
+      const freqDiff = Math.abs(position.freq - doppler.fPlus.freq)
+      if (timeDiff <= tolerance.time && freqDiff <= tolerance.freq) {
         return {
           id: 'fPlus',
           type: 'dopplerMarker',
@@ -73,8 +76,9 @@ export class DopplerMode extends BaseMode {
     }
     
     if (doppler.fMinus) {
-      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage)
-      if (this.getMarkerDistance(mousePos, fMinusSVG) < tolerance) {
+      const timeDiff = Math.abs(position.time - doppler.fMinus.time)
+      const freqDiff = Math.abs(position.freq - doppler.fMinus.freq)
+      if (timeDiff <= tolerance.time && freqDiff <= tolerance.freq) {
         return {
           id: 'fMinus',
           type: 'dopplerMarker',
@@ -85,8 +89,9 @@ export class DopplerMode extends BaseMode {
     }
     
     if (doppler.fZero) {
-      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage)
-      if (this.getMarkerDistance(mousePos, fZeroSVG) < tolerance) {
+      const timeDiff = Math.abs(position.time - doppler.fZero.time)
+      const freqDiff = Math.abs(position.freq - doppler.fZero.freq)
+      if (timeDiff <= tolerance.time && freqDiff <= tolerance.freq) {
         return {
           id: 'fZero',
           type: 'dopplerMarker',
@@ -156,51 +161,6 @@ export class DopplerMode extends BaseMode {
     }
   }
 
-  /**
-   * Detect which marker is closest to mouse position
-   * @param {ScreenCoordinates} mousePos - Mouse position
-   * @param {DopplerState} doppler - Doppler state
-   * @returns {Object} Closest marker info with type and distance
-   */
-  detectClosestMarker(mousePos, doppler) {
-    let closestMarker = null
-    let closestDistance = Infinity
-    
-    if (doppler.fPlus) {
-      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
-      if (this.isNearMarker(mousePos, fPlusSVG)) {
-        const distance = this.getMarkerDistance(mousePos, fPlusSVG)
-        if (distance < closestDistance) {
-          closestDistance = distance
-          closestMarker = DopplerDraggedMarker.fPlus
-        }
-      }
-    }
-    
-    if (doppler.fMinus) {
-      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage)
-      if (this.isNearMarker(mousePos, fMinusSVG)) {
-        const distance = this.getMarkerDistance(mousePos, fMinusSVG)
-        if (distance < closestDistance) {
-          closestDistance = distance
-          closestMarker = DopplerDraggedMarker.fMinus
-        }
-      }
-    }
-    
-    if (doppler.fZero) {
-      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage)
-      if (this.isNearMarker(mousePos, fZeroSVG)) {
-        const distance = this.getMarkerDistance(mousePos, fZeroSVG)
-        if (distance < closestDistance) {
-          closestDistance = distance
-          closestMarker = DopplerDraggedMarker.fZero
-        }
-      }
-    }
-    
-    return { marker: closestMarker, distance: closestDistance }
-  }
 
   /**
    * Handle preview drag when placing markers
@@ -558,17 +518,6 @@ export class DopplerMode extends BaseMode {
     return isNearMarker(mousePos, markerSVG, 20)
   }
 
-  /**
-   * Calculate distance between mouse and marker
-   * @param {ScreenCoordinates} mousePos - Mouse position with x, y coordinates
-   * @param {SVGCoordinates} markerSVG - Marker SVG position with x, y coordinates
-   * @returns {number} Distance in pixels
-   */
-  getMarkerDistance(mousePos, markerSVG) {
-    const dx = mousePos.x - markerSVG.x
-    const dy = mousePos.y - markerSVG.y
-    return Math.sqrt(dx * dx + dy * dy)
-  }
 
   /**
    * Calculate midpoint between two markers
