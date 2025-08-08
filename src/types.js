@@ -264,7 +264,6 @@
  * @property {*|null} [featureRenderer] - Feature rendering coordinator
  * 
  * @property {ResizeObserver|null} [resizeObserver] - Resize observer instance
- * @property {(function(KeyboardEvent): void)|null} [keyboardHandler] - Keyboard event handler
  * @property {(function(Event): void)|null} [_boundHandleResize] - Bound resize handler
  * @property {Object|null} [_panDragState] - Pan drag state
  * @property {Object|null} [zoomControls] - Zoom control elements

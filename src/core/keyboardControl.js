@@ -49,10 +49,6 @@ export function cleanupKeyboardControl(instance) {
   // Unregister this instance from focus management
   unregisterInstance(instance)
   
-  // If no instances remain, clean up global handler
-  if (instance.keyboardHandler) {
-    instance.keyboardHandler = null
-  }
   
   // Note: We don't remove the global handler here to avoid issues
   // if multiple instances are being destroyed. The handler will
