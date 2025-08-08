@@ -72,32 +72,3 @@ export function updateGuidancePanel(guidancePanel, content) {
   }
 }
 
-/**
- * Legacy helper: Parse HTML string content to structured format
- * This helps transition existing getGuidanceText() methods to the new format
- * 
- * @deprecated Use structured content directly instead of HTML strings
- * @param {string} htmlString - Legacy HTML string
- * @returns {GuidanceContent} Structured content object
- */
-export function parseGuidanceHTML(htmlString) {
-  console.warn('parseGuidanceHTML is deprecated - use structured content instead')
-  
-  // Create temporary container to parse HTML safely
-  const tempDiv = document.createElement('div')
-  tempDiv.innerHTML = htmlString
-  
-  // Extract title from h4
-  const titleElement = tempDiv.querySelector('h4')
-  const title = titleElement ? titleElement.textContent : ''
-  
-  // Extract items from paragraphs
-  const paragraphs = tempDiv.querySelectorAll('p')
-  const items = Array.from(paragraphs).map(p => {
-    const text = p.textContent || ''
-    // Remove bullet point if present to avoid double bullets
-    return text.startsWith('• ') ? text.substring(2) : text
-  })
-  
-  return { title, items }
-}
