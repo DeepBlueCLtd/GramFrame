@@ -141,6 +141,58 @@ export function findClosestTarget(position, targets, tolerance) {
 }
 
 /**
+ * Mode-specific tolerance configurations
+ * @type {Object}
+ */
+export const MODE_TOLERANCES = {
+  analysis: {
+    pixelRadius: 16, // Larger hit area for analysis markers (matches crosshair visual size)
+    minDataTolerance: {
+      time: 0.01,
+      freq: 1.0
+    },
+    maxDataTolerance: {
+      time: 0.5,
+      freq: 50.0
+    }
+  },
+  harmonics: {
+    pixelRadius: 10, // Medium hit area for harmonic lines
+    minDataTolerance: {
+      time: 0.01,
+      freq: 1.0
+    },
+    maxDataTolerance: {
+      time: 0.5,
+      freq: 50.0
+    }
+  },
+  doppler: {
+    pixelRadius: 12, // Medium-large hit area for doppler markers
+    minDataTolerance: {
+      time: 0.01,
+      freq: 1.0
+    },
+    maxDataTolerance: {
+      time: 0.5,
+      freq: 50.0
+    }
+  }
+}
+
+/**
+ * Get mode-specific tolerance calculation
+ * @param {string} mode - Mode name (analysis, harmonics, doppler)
+ * @param {Object} viewport - Viewport configuration
+ * @param {HTMLElement|SVGImageElement} spectrogramImage - Spectrogram image element
+ * @returns {Object} Tolerance object with time and freq properties
+ */
+export function getModeSpecificTolerance(mode, viewport, spectrogramImage) {
+  const modeConfig = MODE_TOLERANCES[mode] || DEFAULT_TOLERANCE
+  return calculateDataTolerance(viewport, spectrogramImage, modeConfig)
+}
+
+/**
  * Get uniform tolerance calculation for all modes
  * @param {Object} viewport - Viewport configuration
  * @param {HTMLElement|SVGImageElement} spectrogramImage - Spectrogram image element
