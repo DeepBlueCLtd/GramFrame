@@ -36,10 +36,12 @@ test.describe('Keyboard Focus with Multiple GramFrames', () => {
     await ensureMarkerExistsIn(gramFrame2, page)
 
     const getMarkerPosition = async (container) => {
-      const marker = container.locator('.gram-frame-marker, [data-test="marker-cross"], .analysis-marker').first()
-      const bb = await marker.boundingBox()
-      if (!bb) return null
-      return { x: bb.x + bb.width / 2, y: bb.y + bb.height / 2 }
+      const marker = container.locator(
+        '.gram-frame-marker, [data-test="marker-cross"], .analysis-marker, .cross-cursor-marker'
+      ).first()
+      const boundingBox = await marker.boundingBox()
+      if (!boundingBox) return null
+      return { x: boundingBox.x + boundingBox.width / 2, y: boundingBox.y + boundingBox.height / 2 }
     }
 
     const marker1InitialPos = await getMarkerPosition(gramFrame1)
@@ -48,11 +50,14 @@ test.describe('Keyboard Focus with Multiple GramFrames', () => {
     expect(marker2InitialPos).not.toBeNull()
 
     await gramFrame1.click()
-    await gramFrame1.locator('.gram-frame-marker, [data-test="marker-cross"], .analysis-marker').first().click()
-    await page.waitForTimeout(80)
+    const marker1 = gramFrame1.locator(
+      '.gram-frame-marker, [data-test="marker-cross"], .analysis-marker, .cross-cursor-marker'
+    ).first()
+    await marker1.click()
+    await page.waitForTimeout(100)
 
     await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(120)
+    await page.waitForTimeout(200)
 
     const marker1NewPos = await getMarkerPosition(gramFrame1)
     const marker2NewPos = await getMarkerPosition(gramFrame2)
@@ -69,23 +74,31 @@ test.describe('Keyboard Focus with Multiple GramFrames', () => {
     await ensureMarkerExistsIn(gramFrame2, page)
 
     const getMarkerPosition = async (container) => {
-      const marker = container.locator('.gram-frame-marker, [data-test="marker-cross"], .analysis-marker').first()
-      const bb = await marker.boundingBox()
-      if (!bb) return null
-      return { x: bb.x + bb.width / 2, y: bb.y + bb.height / 2 }
+      const marker = container.locator(
+        '.gram-frame-marker, [data-test="marker-cross"], .analysis-marker, .cross-cursor-marker'
+      ).first()
+      const boundingBox = await marker.boundingBox()
+      if (!boundingBox) return null
+      return { x: boundingBox.x + boundingBox.width / 2, y: boundingBox.y + boundingBox.height / 2 }
     }
 
     await gramFrame1.click()
-    await gramFrame1.locator('.gram-frame-marker, [data-test="marker-cross"], .analysis-marker').first().click()
+    const marker1 = gramFrame1.locator(
+      '.gram-frame-marker, [data-test="marker-cross"], .analysis-marker, .cross-cursor-marker'
+    ).first()
+    await marker1.click()
     const marker1InitialPos = await getMarkerPosition(gramFrame1)
     const marker2InitialPos = await getMarkerPosition(gramFrame2)
 
     await gramFrame2.click()
-    await gramFrame2.locator('.gram-frame-marker, [data-test="marker-cross"], .analysis-marker').first().click()
-    await page.waitForTimeout(80)
+    const marker2 = gramFrame2.locator(
+      '.gram-frame-marker, [data-test="marker-cross"], .analysis-marker, .cross-cursor-marker'
+    ).first()
+    await marker2.click()
+    await page.waitForTimeout(100)
 
     await page.keyboard.press('ArrowLeft')
-    await page.waitForTimeout(120)
+    await page.waitForTimeout(200)
 
     const marker1NewPos = await getMarkerPosition(gramFrame1)
     const marker2NewPos = await getMarkerPosition(gramFrame2)
@@ -98,26 +111,23 @@ test.describe('Keyboard Focus with Multiple GramFrames', () => {
     const gramFrame1 = page.locator('.gram-frame-container').first()
     const gramFrame2 = page.locator('.gram-frame-container').nth(1)
 
-    // Reset any lingering focus class and blur active element
-    await page.evaluate(() => {
-      document.querySelectorAll('.gram-frame-focused').forEach(el => el.classList.remove('gram-frame-focused'))
-      if (document.activeElement && document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur()
-      }
-    })
+    const hasFocusClass1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
+    const hasFocusClass2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
+    expect(hasFocusClass1).toBe(false)
+    expect(hasFocusClass2).toBe(false)
 
     await gramFrame1.click()
-    await page.waitForTimeout(40)
-    let hasFocus1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
-    let hasFocus2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
-    expect(hasFocus1).toBe(true)
-    expect(hasFocus2).toBe(false)
+    await page.waitForTimeout(100)
+    const hasFocusAfterClick1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
+    const hasFocusAfterClick2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
+    expect(hasFocusAfterClick1).toBe(true)
+    expect(hasFocusAfterClick2).toBe(false)
 
     await gramFrame2.click()
-    await page.waitForTimeout(40)
-    hasFocus1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
-    hasFocus2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
-    expect(hasFocus1).toBe(false)
-    expect(hasFocus2).toBe(true)
+    await page.waitForTimeout(100)
+    const hasFocusAfterSwitch1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
+    const hasFocusAfterSwitch2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
+    expect(hasFocusAfterSwitch1).toBe(false)
+    expect(hasFocusAfterSwitch2).toBe(true)
   })
 })

@@ -33,31 +33,29 @@ test.describe('Keyboard Focus Behavior', () => {
   test('should only respond to keyboard events in focused instance', async ({ page }) => {
     await page.goto('http://localhost:5173/debug-multiple.html')
 
-    // Wait until two instances are ready
     await page.waitForSelector('.gram-frame-container', { timeout: 15000 })
-    const count = await page.locator('.gram-frame-container').count()
-    expect(count).toBeGreaterThanOrEqual(2)
+    const containers = await page.locator('.gram-frame-container').count()
+    expect(containers).toBe(2)
 
     const gramFrame1 = page.locator('.gram-frame-container').first()
     const gramFrame2 = page.locator('.gram-frame-container').nth(1)
 
-    // Make sure markers exist
     const marker1 = await ensureMarkerExistsIn(gramFrame1, page)
     const marker2 = await ensureMarkerExistsIn(gramFrame2, page)
 
-    // Focus first instance
+    // Focus on first GramFrame and select its marker
     await gramFrame1.click()
     await marker1.click()
-    await page.waitForTimeout(80)
+    await page.waitForTimeout(200)
 
     const initialPos1 = await marker1.boundingBox()
     const initialPos2 = await marker2.boundingBox()
     expect(initialPos1).not.toBeNull()
     expect(initialPos2).not.toBeNull()
 
-    // Arrow key should affect only focused instance
+    // Press arrow key - should only move marker in focused instance
     await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(120)
+    await page.waitForTimeout(300)
 
     const newPos1 = await marker1.boundingBox()
     const newPos2 = await marker2.boundingBox()
@@ -68,19 +66,19 @@ test.describe('Keyboard Focus Behavior', () => {
     // Switch focus to second instance
     await gramFrame2.click()
     await marker2.click()
-    await page.waitForTimeout(80)
+    await page.waitForTimeout(200)
 
-    const before2_1 = await marker1.boundingBox()
-    const before2_2 = await marker2.boundingBox()
+    const beforeSecondMove1 = await marker1.boundingBox()
+    const beforeSecondMove2 = await marker2.boundingBox()
 
     await page.keyboard.press('ArrowLeft')
-    await page.waitForTimeout(120)
+    await page.waitForTimeout(300)
 
-    const after2_1 = await marker1.boundingBox()
-    const after2_2 = await marker2.boundingBox()
+    const afterSecondMove1 = await marker1.boundingBox()
+    const afterSecondMove2 = await marker2.boundingBox()
 
-    expect(Math.abs(after2_1.x - before2_1.x)).toBeLessThan(2)
-    expect(Math.abs(after2_1.y - before2_1.y)).toBeLessThan(2)
-    expect(after2_2.x).toBeLessThan(before2_2.x)
+    expect(Math.abs(afterSecondMove1.x - beforeSecondMove1.x)).toBeLessThan(2)
+    expect(Math.abs(afterSecondMove1.y - beforeSecondMove1.y)).toBeLessThan(2)
+    expect(afterSecondMove2.x).toBeLessThan(beforeSecondMove2.x)
   })
 })
