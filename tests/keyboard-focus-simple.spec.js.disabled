@@ -48,8 +48,6 @@ test.describe('Keyboard Focus Behavior', () => {
     await marker1.click()
     await page.waitForTimeout(200)
 
-
-
     const initialPos1 = await marker1.boundingBox()
     const initialPos2 = await marker2.boundingBox()
     expect(initialPos1).not.toBeNull()
