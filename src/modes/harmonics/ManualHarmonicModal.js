@@ -7,8 +7,10 @@ import { calculateVisibleDataRange } from '../../components/table.js'
  * @returns {number} Center time of visible period
  */
 function calculateVisibleTimePeriodCenter(state, instance) {
-  if (state.zoom.level === 1.0) {
-    // Not zoomed - use full time range center
+  // Use epsilon comparison for floating point zoom level check
+  const ZOOM_EPSILON = 0.001
+  if (Math.abs(state.zoom.level - 1.0) < ZOOM_EPSILON) {
+    // Not zoomed (zoom level close to 1.0) - use full time range center
     return (state.config.timeMin + state.config.timeMax) / 2
   }
   
