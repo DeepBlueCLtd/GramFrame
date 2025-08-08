@@ -5,6 +5,7 @@ import { showManualHarmonicModal } from './ManualHarmonicModal.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
+import { getModeSpecificTolerance } from '../../utils/tolerance.js'
 
 /**
  * Harmonics mode implementation
@@ -442,14 +443,9 @@ export class HarmonicsMode extends BaseMode {
         
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          // Use a 5-pixel tolerance for clicking on lines
-          const pixelTolerance = 5
-          const freqRange = freqMax - freqMin
-          const { naturalWidth } = this.state.imageDetails
-          // Convert pixel tolerance to frequency units
-          const tolerance = (pixelTolerance / naturalWidth) * freqRange
+          const tolerance = getModeSpecificTolerance('harmonics', this.getViewport(), this.instance.spectrogramImage)
           
-          if (Math.abs(freq - expectedFreq) < tolerance) {
+          if (Math.abs(freq - expectedFreq) < tolerance.freq) {
             // Also check if cursor is within the vertical range of the harmonic line
             // Harmonic lines have 20% of SVG height, centered on anchor time
             const { naturalHeight } = this.state.imageDetails

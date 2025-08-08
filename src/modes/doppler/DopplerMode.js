@@ -12,6 +12,7 @@ import {
 } from '../../rendering/cursors.js'
 import { dataToSVG } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
+import { getModeSpecificTolerance } from '../../utils/tolerance.js'
 
 // Constants
 const MS_TO_KNOTS_CONVERSION = 1.94384
@@ -56,13 +57,13 @@ export class DopplerMode extends BaseMode {
     const doppler = this.state.doppler
     if (!doppler) return null
     
-    const mousePos = { x: position.time, y: position.freq } // Simplified conversion
-    const tolerance = 20 // SVG pixels tolerance
+    const tolerance = getModeSpecificTolerance('doppler', this.getViewport(), this.instance.spectrogramImage)
     
     // Check each marker type
     if (doppler.fPlus) {
-      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
-      if (this.getMarkerDistance(mousePos, fPlusSVG) < tolerance) {
+      const timeDiff = Math.abs(position.time - doppler.fPlus.time)
+      const freqDiff = Math.abs(position.freq - doppler.fPlus.freq)
+      if (timeDiff <= tolerance.time && freqDiff <= tolerance.freq) {
         return {
           id: 'fPlus',
           type: 'dopplerMarker',
@@ -73,8 +74,9 @@ export class DopplerMode extends BaseMode {
     }
     
     if (doppler.fMinus) {
-      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage)
-      if (this.getMarkerDistance(mousePos, fMinusSVG) < tolerance) {
+      const timeDiff = Math.abs(position.time - doppler.fMinus.time)
+      const freqDiff = Math.abs(position.freq - doppler.fMinus.freq)
+      if (timeDiff <= tolerance.time && freqDiff <= tolerance.freq) {
         return {
           id: 'fMinus',
           type: 'dopplerMarker',
@@ -85,8 +87,9 @@ export class DopplerMode extends BaseMode {
     }
     
     if (doppler.fZero) {
-      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage)
-      if (this.getMarkerDistance(mousePos, fZeroSVG) < tolerance) {
+      const timeDiff = Math.abs(position.time - doppler.fZero.time)
+      const freqDiff = Math.abs(position.freq - doppler.fZero.freq)
+      if (timeDiff <= tolerance.time && freqDiff <= tolerance.freq) {
         return {
           id: 'fZero',
           type: 'dopplerMarker',
