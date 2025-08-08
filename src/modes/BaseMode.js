@@ -89,14 +89,16 @@ export class BaseMode {
   }
 
   /**
-   * Get guidance text for this mode
-   * @returns {string} HTML content for the guidance panel
+   * Get guidance content for this mode
+   * @returns {Object} Structured guidance content
    */
   getGuidanceText() {
-    return `
-      <h4>Base Mode</h4>
-      <p>• No specific guidance available</p>
-    `
+    return {
+      title: 'Base Mode',
+      items: [
+        'No specific guidance available'
+      ]
+    }
   }
 
   /**
