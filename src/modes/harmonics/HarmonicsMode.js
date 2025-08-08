@@ -107,8 +107,8 @@ export class HarmonicsMode extends BaseMode {
    * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
    */
   updateCursorStyle(style) {
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = style
+    if (this.instance.svg) {
+      this.instance.svg.style.cursor = style
     }
   }
   /**
@@ -211,8 +211,8 @@ export class HarmonicsMode extends BaseMode {
     if (this.state.dragState.isCreatingNewHarmonicSet) {
       this.completeNewHarmonicSetCreation(dataCoords)
       // Reset cursor after creation
-      if (this.instance.spectrogramImage) {
-        this.instance.spectrogramImage.style.cursor = 'crosshair'
+      if (this.instance.svg) {
+        this.instance.svg.style.cursor = 'crosshair'
       }
     }
   }
@@ -504,8 +504,8 @@ export class HarmonicsMode extends BaseMode {
     this.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber
     
     // Change cursor to indicate drag interaction
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = 'grabbing'
+    if (this.instance.svg) {
+      this.instance.svg.style.cursor = 'grabbing'
     }
   }
 
