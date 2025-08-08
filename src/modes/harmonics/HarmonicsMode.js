@@ -5,7 +5,7 @@ import { showManualHarmonicModal } from './ManualHarmonicModal.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
-import { getModeSpecificTolerance } from '../../utils/tolerance.js'
+import { getUniformTolerance } from '../../utils/tolerance.js'
 
 /**
  * Harmonics mode implementation
@@ -443,7 +443,7 @@ export class HarmonicsMode extends BaseMode {
         
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          const tolerance = getModeSpecificTolerance('harmonics', this.getViewport(), this.instance.spectrogramImage)
+          const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
           
           if (Math.abs(freq - expectedFreq) < tolerance.freq) {
             // Also check if cursor is within the vertical range of the harmonic line
