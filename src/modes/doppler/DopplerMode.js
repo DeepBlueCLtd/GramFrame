@@ -12,6 +12,7 @@ import {
 } from '../../rendering/cursors.js'
 import { dataToSVG } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
+import { getModeSpecificTolerance } from '../../utils/tolerance.js'
 
 // Constants
 const MS_TO_KNOTS_CONVERSION = 1.94384
@@ -56,10 +57,7 @@ export class DopplerMode extends BaseMode {
     const doppler = this.state.doppler
     if (!doppler) return null
     
-    // Calculate tolerance using same approach as AnalysisMode (2% of range)
-    const toleranceTime = (this.state.config.timeMax - this.state.config.timeMin) * 0.02
-    const toleranceFreq = (this.state.config.freqMax - this.state.config.freqMin) * 0.02
-    const tolerance = { time: toleranceTime, freq: toleranceFreq }
+    const tolerance = getModeSpecificTolerance('doppler', this.getViewport(), this.instance.spectrogramImage)
     
     // Check each marker type using data coordinate comparison
     if (doppler.fPlus) {
