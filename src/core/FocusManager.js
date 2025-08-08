@@ -20,10 +20,8 @@ let registeredInstances = new Set()
 export function registerInstance(instance) {
   registeredInstances.add(instance)
   
-  // If this is the first instance, make it focused by default
-  if (registeredInstances.size === 1 && !currentFocusedInstance) {
-    setFocusedInstance(instance)
-  }
+  // Don't auto-focus the first instance - let user explicitly interact to focus
+  // This prevents unwanted focus behavior when multiple instances exist on a page
 }
 
 /**

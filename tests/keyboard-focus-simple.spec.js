@@ -24,12 +24,13 @@ test.describe('Keyboard Focus Behavior', () => {
     await page.waitForTimeout(200)
     
     // Verify markers exist in both frames
-    const marker1 = gramFrame1.locator('.gram-frame-marker').first()
-    const marker2 = gramFrame2.locator('.gram-frame-marker').first()
+    const marker1 = gramFrame1.locator('.gram-frame-analysis-marker').first()
+    const marker2 = gramFrame2.locator('.gram-frame-analysis-marker').first()
     
-    // Focus on first GramFrame and select its marker
+    // Focus on first GramFrame and select its marker by clicking on the marker table row
     await gramFrame1.click()
-    await marker1.click()
+    const markerRow1 = gramFrame1.locator('tr[data-marker-id]').first()
+    await markerRow1.click()
     await page.waitForTimeout(200)
     
     // Get initial positions of both markers
@@ -53,9 +54,10 @@ test.describe('Keyboard Focus Behavior', () => {
     expect(Math.abs(newPos2.x - initialPos2.x)).toBeLessThan(2) // Allow small measurement error
     expect(Math.abs(newPos2.y - initialPos2.y)).toBeLessThan(2)
     
-    // Now switch focus to second instance
+    // Now switch focus to second instance and select its marker
     await gramFrame2.click()
-    await marker2.click()
+    const markerRow2 = gramFrame2.locator('tr[data-marker-id]').first()
+    await markerRow2.click()
     await page.waitForTimeout(200)
     
     // Get current positions
