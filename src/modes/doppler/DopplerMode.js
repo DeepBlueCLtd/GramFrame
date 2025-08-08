@@ -622,7 +622,7 @@ export class DopplerMode extends BaseMode {
     const color = doppler.color || this.instance.state.selectedColor || '#ff0000'
     
     // Check if we're in doppler mode to enable/disable pointer events
-    const isInDopplerMode = this.state.mode === 'doppler'
+    const isInDopplerMode = this.instance.state.mode === 'doppler'
     const pointerEvents = isInDopplerMode ? 'auto' : 'none'
     
     // f+ marker (colored dot)
