@@ -245,11 +245,21 @@ export function createGramFrameAPI(GramFrame) {
           font-size: 14px;
         `
         
-        errorDiv.innerHTML = `
-          <strong>GramFrame Initialization Error:</strong><br>
-          ${errorMsg}<br>
-          <small>Check the browser console for detailed error information.</small>
-        `
+        // Create content safely without innerHTML
+        const strongElement = document.createElement('strong')
+        strongElement.textContent = 'GramFrame Initialization Error:'
+        
+        const errorText = document.createElement('div')
+        errorText.textContent = errorMsg
+        
+        const smallElement = document.createElement('small')
+        smallElement.textContent = 'Check the browser console for detailed error information.'
+        
+        errorDiv.appendChild(strongElement)
+        errorDiv.appendChild(document.createElement('br'))
+        errorDiv.appendChild(errorText)
+        errorDiv.appendChild(document.createElement('br'))
+        errorDiv.appendChild(smallElement)
         
         // Insert error indicator after the table
         if (table.parentNode) {

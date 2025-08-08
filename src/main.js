@@ -38,6 +38,7 @@ import {
   updateAxes
 } from './core/viewport.js'
 import { getModeDisplayName } from './utils/calculations.js'
+import { updateGuidancePanel } from './utils/secureHTML.js'
 
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
@@ -296,7 +297,8 @@ export class GramFrame {
     
     // Update guidance panel using mode's guidance text
     if (this.guidancePanel) {
-      this.guidancePanel.innerHTML = this.currentMode.getGuidanceText()
+      const guidanceContent = this.currentMode.getGuidanceText()
+      updateGuidancePanel(this.guidancePanel, guidanceContent)
     }
     
     // Update LED display visibility

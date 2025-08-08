@@ -117,17 +117,19 @@ export class HarmonicsMode extends BaseMode {
   static harmonicColors = ['#ff6b6b', '#2ecc71', '#f39c12', '#9b59b6', '#ffc93c', '#ff9ff3', '#45b7d1', '#e67e22']
 
   /**
-   * Get guidance text for harmonics mode
-   * @returns {string} HTML content for the guidance panel
+   * Get guidance content for harmonics mode
+   * @returns {Object} Structured guidance content
    */
   getGuidanceText() {
-    return `
-      <h4>Harmonics Mode</h4>
-      <p>• Click & drag to generate harmonic lines</p>
-      <p>• Drag existing harmonic lines to adjust spacing intervals</p>
-      <p>• Manually add harmonic lines using [+ Manual] button</p>
-      <p>• Click table row + arrow keys (Shift for larger steps)</p>
-    `
+    return {
+      title: 'Harmonics Mode',
+      items: [
+        'Click & drag to generate harmonic lines',
+        'Drag existing harmonic lines to adjust spacing intervals',
+        'Manually add harmonic lines using [+ Manual] button',
+        'Click table row + arrow keys (Shift for larger steps)'
+      ]
+    }
   }
 
   /**

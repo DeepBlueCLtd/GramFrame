@@ -141,17 +141,19 @@ export class DopplerMode extends BaseMode {
     }
   }
   /**
-   * Get guidance text for doppler mode
-   * @returns {string} HTML content for the guidance panel
+   * Get guidance content for doppler mode
+   * @returns {Object} Structured guidance content
    */
   getGuidanceText() {
-    return `
-      <h4>Doppler Mode</h4>
-      <p>• Click & drag to place markers for f+ and f-</p>
-      <p>• Drag markers to adjust positions</p>
-      <p>• f₀ marker shows automatically at the midpoint</p>
-      <p>• Right-click to reset all markers</p>
-    `
+    return {
+      title: 'Doppler Mode',
+      items: [
+        'Click & drag to place markers for f+ and f-',
+        'Drag markers to adjust positions',
+        'f₀ marker shows automatically at the midpoint',
+        'Right-click to reset all markers'
+      ]
+    }
   }
 
   /**

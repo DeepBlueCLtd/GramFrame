@@ -188,17 +188,19 @@ export class PanMode extends BaseMode {
   }
 
   /**
-   * Get guidance text for pan mode
-   * @returns {string} HTML content for the guidance panel
+   * Get guidance content for pan mode
+   * @returns {Object} Structured guidance content
    */
   getGuidanceText() {
-    return `
-      <h4>Pan Mode</h4>
-      <p>• Pan is only available when image is zoomed in</p>
-      <p>• Click and drag to pan the view when zoomed in</p>
-      <p>• Use the zoom controls to zoom in before panning</p>
-      <p>• GramFrame v${getVersion()}</p>
-    `
+    return {
+      title: 'Pan Mode',
+      items: [
+        'Pan is only available when image is zoomed in',
+        'Click and drag to pan the view when zoomed in',
+        'Use the zoom controls to zoom in before panning',
+        `GramFrame v${getVersion()}`
+      ]
+    }
   }
 
   /**

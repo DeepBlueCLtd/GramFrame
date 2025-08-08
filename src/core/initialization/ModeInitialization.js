@@ -11,6 +11,7 @@
 import { ModeFactory } from '../../modes/ModeFactory.js'
 import { FeatureRenderer } from '../FeatureRenderer.js'
 import { BaseMode } from '../../modes/BaseMode.js'
+import { updateGuidancePanel } from '../../utils/secureHTML.js'
 
 /**
  * Initialize mode infrastructure including feature renderer and mode instances
@@ -50,6 +51,7 @@ export function setupModeUI(instance) {
   
   // Initialize guidance panel with analysis mode guidance
   if (instance.guidancePanel) {
-    instance.guidancePanel.innerHTML = instance.currentMode.getGuidanceText()
+    const guidanceContent = instance.currentMode.getGuidanceText()
+    updateGuidancePanel(instance.guidancePanel, guidanceContent)
   }
 }
