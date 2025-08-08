@@ -64,6 +64,11 @@ export function updateModeUIWithCommands(instance) {
   // Add updated mode UI back to appropriate columns
   instance.modeColumn.appendChild(instance.modesContainer)
   instance.guidanceColumn.appendChild(instance.guidancePanel)
+  
+  // Set initial guidance content after recreating the panel
+  if (instance.currentMode && instance.guidancePanel) {
+    instance.guidancePanel.innerHTML = instance.currentMode.getGuidanceText()
+  }
 }
 
 /**
