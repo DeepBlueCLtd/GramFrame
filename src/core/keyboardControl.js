@@ -417,26 +417,30 @@ export function removeHarmonicSet(instance, id) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function updateSelectionVisuals(instance) {
-  // Clear existing selection highlights
-  const existingHighlights = document.querySelectorAll('.gram-frame-selected-row')
-  existingHighlights.forEach(el => {
-    el.classList.remove('gram-frame-selected-row')
-  })
+  // Clear existing selection highlights ONLY within this instance's container
+  if (instance.container) {
+    const existingHighlights = instance.container.querySelectorAll('.gram-frame-selected-row')
+    existingHighlights.forEach(el => {
+      el.classList.remove('gram-frame-selected-row')
+    })
+  }
   
   // Apply selection highlight if there's a selection
   const selection = instance.state.selection
   if (selection.selectedType && selection.selectedId) {
+    const container = instance.container || document
+    
     if (selection.selectedType === 'marker') {
-      // Find marker table row by data attribute
+      // Find marker table row by data attribute within this instance
       const selector = `tr[data-marker-id="${selection.selectedId}"]`
-      const row = document.querySelector(selector)
+      const row = container.querySelector(selector)
       if (row) {
         row.classList.add('gram-frame-selected-row')
       }
     } else if (selection.selectedType === 'harmonicSet') {
-      // Find harmonic table row by data attribute
+      // Find harmonic table row by data attribute within this instance
       const selector = `tr[data-harmonic-id="${selection.selectedId}"]`
-      const row = document.querySelector(selector)
+      const row = container.querySelector(selector)
       if (row) {
         row.classList.add('gram-frame-selected-row')
       }
