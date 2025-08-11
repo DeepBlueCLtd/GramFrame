@@ -92,16 +92,6 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
-   * Update cursor style for drag operations
-   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
-   */
-  updateCursorStyle(style) {
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = style
-    }
-  }
-
-  /**
    * Get guidance content for analysis mode
    * @returns {Object} Structured guidance content
    */
@@ -114,19 +104,6 @@ export class AnalysisMode extends BaseMode {
         'Right-click markers to delete them',
         'Click table row + arrow keys (Shift for larger steps)'
       ]
-    }
-  }
-
-  /**
-   * Helper to prepare viewport object for coordinate transformations
-   * @returns {Object} Viewport object with margins, imageDetails, config, zoom
-   */
-  getViewport() {
-    return {
-      margins: this.instance.state.axes.margins,
-      imageDetails: this.instance.state.imageDetails,
-      config: this.instance.state.config,
-      zoom: this.instance.state.zoom
     }
   }
 

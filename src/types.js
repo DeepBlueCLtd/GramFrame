@@ -150,6 +150,15 @@
  */
 
 /**
+ * Viewport configuration for coordinate transformations
+ * @typedef {Object} ViewportConfig
+ * @property {AxesMargins} margins - SVG margins configuration
+ * @property {ImageDetails} imageDetails - Image dimensions
+ * @property {Config} config - Time/frequency range configuration
+ * @property {ZoomState} zoom - Current zoom state
+ */
+
+/**
  * Selection state for keyboard fine control
  * @typedef {Object} SelectionState
  * @property {string|null} selectedType - Type of selected item ('marker' | 'harmonicSet' | null)

@@ -135,15 +135,6 @@ export class DopplerMode extends BaseMode {
   }
 
   /**
-   * Update cursor style for drag operations
-   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
-   */
-  updateCursorStyle(style) {
-    if (this.instance.svg) {
-      this.instance.svg.style.cursor = style === 'grab' ? 'move' : style
-    }
-  }
-  /**
    * Get guidance content for doppler mode
    * @returns {Object} Structured guidance content
    */
@@ -534,19 +525,6 @@ export class DopplerMode extends BaseMode {
     return {
       x: screenX,
       y: screenY
-    }
-  }
-
-  /**
-   * Helper to prepare viewport object for coordinate transformations
-   * @returns {Object} Viewport object with margins, imageDetails, config, zoom
-   */
-  getViewport() {
-    return {
-      margins: this.instance.state.axes.margins,
-      imageDetails: this.instance.state.imageDetails,
-      config: this.instance.state.config,
-      zoom: this.instance.state.zoom
     }
   }
 

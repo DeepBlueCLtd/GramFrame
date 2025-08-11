@@ -103,15 +103,6 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Update cursor style for drag operations
-   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
-   */
-  updateCursorStyle(style) {
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = style
-    }
-  }
-  /**
    * Color palette for harmonic sets
    * @type {string[]}
    */
@@ -130,19 +121,6 @@ export class HarmonicsMode extends BaseMode {
         'Manually add harmonic lines using [+ Manual] button',
         'Click table row + arrow keys (Shift for larger steps)'
       ]
-    }
-  }
-
-  /**
-   * Helper to prepare viewport object for coordinate transformations
-   * @returns {Object} Viewport object with margins, imageDetails, config, zoom
-   */
-  getViewport() {
-    return {
-      margins: this.instance.state.axes.margins,
-      imageDetails: this.instance.state.imageDetails,
-      config: this.instance.state.config,
-      zoom: this.instance.state.zoom
     }
   }
 
