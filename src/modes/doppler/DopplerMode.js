@@ -32,10 +32,9 @@ export class DopplerMode extends BaseMode {
   /**
    * Initialize DopplerMode with drag handler
    * @param {Object} instance - GramFrame instance
-   * @param {Object} state - State object
    */
-  constructor(instance, state) {
-    super(instance, state)
+  constructor(instance) {
+    super(instance)
     
     // Initialize drag handler for existing marker dragging (not preview drag)
     this.dragHandler = new BaseDragHandler(instance, {
@@ -54,7 +53,7 @@ export class DopplerMode extends BaseMode {
    * @returns {Object|null} Drag target if found, null otherwise
    */
   findDopplerMarkerAtPosition(position) {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     if (!doppler) return null
     
     const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
@@ -108,7 +107,7 @@ export class DopplerMode extends BaseMode {
    * @param {DataCoordinates} _position - Start position (unused)
    */
   onMarkerDragStart(target, _position) {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     doppler.isDragging = true
     doppler.draggedMarker = target.data.markerType
   }
@@ -120,7 +119,7 @@ export class DopplerMode extends BaseMode {
    * @param {DataCoordinates} _startPos - Start position (unused)
    */
   onMarkerDragUpdate(_target, currentPos, _startPos) {
-    this.handleMarkerDrag(currentPos, this.state.doppler)
+    this.handleMarkerDrag(currentPos, this.instance.state.doppler)
   }
 
   /**
@@ -129,7 +128,7 @@ export class DopplerMode extends BaseMode {
    * @param {DataCoordinates} _position - End position (unused)
    */
   onMarkerDragEnd(_target, _position) {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     doppler.isDragging = false
     doppler.draggedMarker = null
   }
@@ -242,7 +241,7 @@ export class DopplerMode extends BaseMode {
     // Update speed calculation
     this.calculateAndUpdateDopplerSpeed()
     this.renderDopplerFeatures()
-    notifyStateListeners(this.state, this.instance.stateListeners)
+    notifyStateListeners(this.instance.state, this.instance.stateListeners)
   }
 
 
@@ -252,7 +251,7 @@ export class DopplerMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(_event, dataCoords) {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     
     // Handle preview drag when placing markers (not managed by BaseDragHandler)
     if (doppler.isPreviewDrag && doppler.tempFirst) {
@@ -275,13 +274,13 @@ export class DopplerMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseDown(_event, dataCoords) {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     
     // Try to start drag on existing marker
     if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
       const dragStarted = this.dragHandler.startDrag(dataCoords)
       if (dragStarted) {
-        notifyStateListeners(this.state, this.instance.stateListeners)
+        notifyStateListeners(this.instance.state, this.instance.stateListeners)
         return
       }
     }
@@ -317,7 +316,7 @@ export class DopplerMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseUp(_event, dataCoords) {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     
     // Complete marker placement (preview drag mode)
     if (doppler.isPreviewDrag && doppler.tempFirst) {
@@ -337,7 +336,7 @@ export class DopplerMode extends BaseMode {
       
       // Store the color for this doppler curve (only when first created)
       if (!doppler.color) {
-        doppler.color = this.state.selectedColor || '#ff0000'
+        doppler.color = this.instance.state.selectedColor || '#ff0000'
       }
       
       // Clean up placement state
@@ -350,14 +349,14 @@ export class DopplerMode extends BaseMode {
       this.calculateAndUpdateDopplerSpeed()
       this.renderDopplerFeatures()
       
-      notifyStateListeners(this.state, this.instance.stateListeners)
+      notifyStateListeners(this.instance.state, this.instance.stateListeners)
       return
     }
     
     // Complete existing marker dragging through drag handler
     if (this.dragHandler.isDragging()) {
       this.dragHandler.endDrag(dataCoords)
-      notifyStateListeners(this.state, this.instance.stateListeners)
+      notifyStateListeners(this.instance.state, this.instance.stateListeners)
     }
   }
 
@@ -403,21 +402,21 @@ export class DopplerMode extends BaseMode {
    * Reset doppler-specific state
    */
   resetState() {
-    this.state.doppler.fPlus = null
-    this.state.doppler.fMinus = null
-    this.state.doppler.fZero = null
-    this.state.doppler.speed = null
-    this.state.doppler.color = null
-    this.state.doppler.isDragging = false
-    this.state.doppler.draggedMarker = null
-    this.state.doppler.isPlacingMarkers = false
-    this.state.doppler.markersPlaced = 0
-    this.state.doppler.tempFirst = null
-    this.state.doppler.isPreviewDrag = false
-    this.state.doppler.previewEnd = null
+    this.instance.state.doppler.fPlus = null
+    this.instance.state.doppler.fMinus = null
+    this.instance.state.doppler.fZero = null
+    this.instance.state.doppler.speed = null
+    this.instance.state.doppler.color = null
+    this.instance.state.doppler.isDragging = false
+    this.instance.state.doppler.draggedMarker = null
+    this.instance.state.doppler.isPlacingMarkers = false
+    this.instance.state.doppler.markersPlaced = 0
+    this.instance.state.doppler.tempFirst = null
+    this.instance.state.doppler.isPreviewDrag = false
+    this.instance.state.doppler.previewEnd = null
     
     // Visual updates removed - no display element
-    notifyStateListeners(this.state, this.instance.stateListeners)
+    notifyStateListeners(this.instance.state, this.instance.stateListeners)
   }
 
   /**
@@ -425,12 +424,12 @@ export class DopplerMode extends BaseMode {
    */
   cleanup() {
     // Only clear transient drag state, preserve marker positions
-    this.state.doppler.isDragging = false
-    this.state.doppler.draggedMarker = null
-    this.state.doppler.isPlacingMarkers = false
-    this.state.doppler.tempFirst = null
-    this.state.doppler.isPreviewDrag = false
-    this.state.doppler.previewEnd = null
+    this.instance.state.doppler.isDragging = false
+    this.instance.state.doppler.draggedMarker = null
+    this.instance.state.doppler.isPlacingMarkers = false
+    this.instance.state.doppler.tempFirst = null
+    this.instance.state.doppler.isPreviewDrag = false
+    this.instance.state.doppler.previewEnd = null
   }
   
   /**
@@ -446,18 +445,18 @@ export class DopplerMode extends BaseMode {
    * Calculate and update Doppler speed
    */
   calculateAndUpdateDopplerSpeed() {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     
     if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
       const speed = calculateDopplerSpeed(doppler.fPlus, doppler.fMinus, doppler.fZero)
-      this.state.doppler.speed = speed
+      this.instance.state.doppler.speed = speed
       
       // Update speed LED with calculated value
       this.updateSpeedLED()
       
       // Update LED displays with speed
-      updateLEDDisplays(this.instance, this.state)
-      notifyStateListeners(this.state, this.instance.stateListeners)
+      updateLEDDisplays(this.instance, this.instance.state)
+      notifyStateListeners(this.instance.state, this.instance.stateListeners)
     }
   }
 
@@ -488,9 +487,9 @@ export class DopplerMode extends BaseMode {
    * Update the speed LED display with current speed value
    */
   updateSpeedLED() {
-    if (this.instance.speedLED && this.state.doppler.speed !== null) {
+    if (this.instance.speedLED && this.instance.state.doppler.speed !== null) {
       // Convert m/s to knots: 1 m/s = 1.94384 knots
-      const speedInKnots = this.state.doppler.speed * MS_TO_KNOTS_CONVERSION
+      const speedInKnots = this.instance.state.doppler.speed * MS_TO_KNOTS_CONVERSION
       this.instance.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
     } else if (this.instance.speedLED) {
       this.instance.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
@@ -583,7 +582,7 @@ export class DopplerMode extends BaseMode {
     const existingFeatures = this.instance.cursorGroup.querySelectorAll('.doppler-feature, .gram-frame-doppler-preview, .gram-frame-doppler-curve, .gram-frame-doppler-extension, .gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-crosshair')
     existingFeatures.forEach(element => element.remove())
     
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     
     // Render preview during placement OR final markers and curves
     if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
@@ -617,10 +616,10 @@ export class DopplerMode extends BaseMode {
    * Render doppler markers (f+, f-, f₀) with zoom awareness
    */
   renderMarkers() {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     
     // Use stored color for existing curve, or global selectedColor for new curves
-    const color = doppler.color || this.state.selectedColor || '#ff0000'
+    const color = doppler.color || this.instance.state.selectedColor || '#ff0000'
     
     // f+ marker (colored dot)
     if (doppler.fPlus) {
@@ -682,11 +681,11 @@ export class DopplerMode extends BaseMode {
    * Render Doppler curve between markers with vertical extensions (zoom-aware)
    */
   renderDopplerCurve() {
-    const doppler = this.state.doppler
+    const doppler = this.instance.state.doppler
     if (!doppler.fPlus || !doppler.fMinus || !doppler.fZero) return
     
     // Use stored color for existing curve, or global selectedColor for new curves
-    const color = doppler.color || this.state.selectedColor || '#ff0000'
+    const color = doppler.color || this.instance.state.selectedColor || '#ff0000'
     
     const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
     const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage)

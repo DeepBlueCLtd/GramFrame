@@ -30,7 +30,7 @@ export function initializeModeInfrastructure(instance) {
   // Initialize all modes using factory
   const availableModes = ModeFactory.getAvailableModes()
   availableModes.forEach(modeName => {
-    instance.modes[modeName] = ModeFactory.createMode(modeName, instance, instance.state)
+    instance.modes[modeName] = ModeFactory.createMode(modeName, instance)
   })
 }
 
