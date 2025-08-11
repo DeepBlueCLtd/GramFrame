@@ -242,7 +242,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     // Convert current anchor time to SVG coordinates
     const { naturalHeight } = instance.state.imageDetails
     const { timeMin, timeMax } = instance.state.config
-    const margins = instance.state.axes.margins
+    const margins = instance.state.margins
     
     // Calculate current anchor position in SVG space
     const normalizedTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
