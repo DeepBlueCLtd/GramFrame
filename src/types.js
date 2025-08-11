@@ -134,11 +134,6 @@
  * @property {number} top - Top margin
  */
 
-/**
- * Axes configuration
- * @typedef {Object} AxesConfig
- * @property {AxesMargins} margins - Margin configuration for axes
- */
 
 /**
  * Zoom state configuration
@@ -186,7 +181,7 @@
  * @property {ImageDetails} imageDetails - Image source and dimensions
  * @property {Config} config - Time and frequency configuration
  * @property {DisplayDimensions} displayDimensions - Current display dimensions
- * @property {AxesConfig} axes - Axes configuration
+ * @property {AxesMargins} margins - Axes margin configuration
  * @property {ZoomState} zoom - Zoom state configuration
  */
 

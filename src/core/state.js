@@ -58,13 +58,11 @@ export const initialState = {
     width: 0,
     height: 0
   },
-  axes: {
-    margins: {
-      left: 60,    // Space for time axis labels
-      bottom: 50,  // Space for frequency axis labels  
-      right: 15,   // Small right margin
-      top: 15      // Small top margin
-    }
+  margins: {
+    left: 60,    // Space for time axis labels
+    bottom: 50,  // Space for frequency axis labels  
+    right: 15,   // Small right margin
+    top: 15      // Small top margin
   },
   // Simple zoom state for transform-based zoom
   zoom: {

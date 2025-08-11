@@ -166,7 +166,7 @@ function moveSelectedMarker(instance, markerId, movement) {
     instance.state.config,
     instance.state.imageDetails,
     instance.state.rate,
-    instance.state.axes.margins
+    instance.state.margins
   )
   
   // Apply movement in SVG space
@@ -182,7 +182,7 @@ function moveSelectedMarker(instance, markerId, movement) {
     instance.state.config,
     instance.state.imageDetails,
     instance.state.rate,
-    instance.state.axes.margins
+    instance.state.margins
   )
   
   // Update marker position

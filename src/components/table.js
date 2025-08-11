@@ -149,7 +149,7 @@ export function setupSpectrogramImage(instance, imageUrl) {
  */
 export function updateSVGLayout(instance) {
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  const margins = instance.state.axes.margins
+  const margins = instance.state.margins
   
   if (!naturalWidth || !naturalHeight) {
     return
@@ -208,7 +208,7 @@ export function updateSVGLayout(instance) {
 export function applyZoomTransform(instance) {
   const { level, centerX, centerY } = instance.state.zoom
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  const margins = instance.state.axes.margins
+  const margins = instance.state.margins
   
   if (!instance.spectrogramImage) {
     return
@@ -273,7 +273,7 @@ export function renderAxes(instance) {
   instance.axesGroup.innerHTML = ''
   
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  const margins = instance.state.axes.margins
+  const margins = instance.state.margins
   
   if (!naturalWidth || !naturalHeight) {
     return
@@ -297,7 +297,7 @@ export function renderAxes(instance) {
 export function calculateVisibleDataRange(instance) {
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  const margins = instance.state.axes.margins
+  const margins = instance.state.margins
   const zoomLevel = instance.state.zoom.level
   
   if (zoomLevel === 1.0) {

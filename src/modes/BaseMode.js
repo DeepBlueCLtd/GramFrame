@@ -186,7 +186,7 @@ export class BaseMode {
    */
   getViewport() {
     return {
-      margins: this.instance.state.axes.margins,
+      margins: this.instance.state.margins,
       imageDetails: this.instance.state.imageDetails,
       config: this.instance.state.config,
       zoom: this.instance.state.zoom

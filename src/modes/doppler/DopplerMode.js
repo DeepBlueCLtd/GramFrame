@@ -712,7 +712,7 @@ export class DopplerMode extends BaseMode {
     this.instance.cursorGroup.appendChild(path)
     
     // Vertical extensions - clip to intersection of zoomed view and spectrogram data area
-    const margins = this.instance.state.axes.margins
+    const margins = this.instance.state.margins
     const { naturalHeight } = this.instance.state.imageDetails
     const zoomLevel = this.instance.state.zoom.level
     
