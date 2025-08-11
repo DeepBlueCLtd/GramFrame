@@ -134,11 +134,6 @@
  * @property {number} top - Top margin
  */
 
-/**
- * Axes configuration
- * @typedef {Object} AxesConfig
- * @property {AxesMargins} margins - Margin configuration for axes
- */
 
 /**
  * Zoom state configuration
@@ -147,6 +142,15 @@
  * @property {number} centerX - Center point X (0-1 normalized)
  * @property {number} centerY - Center point Y (0-1 normalized)
  * @property {boolean} panMode - Whether pan mode is active
+ */
+
+/**
+ * Viewport configuration for coordinate transformations
+ * @typedef {Object} ViewportConfig
+ * @property {AxesMargins} margins - SVG margins configuration
+ * @property {ImageDetails} imageDetails - Image dimensions
+ * @property {Config} config - Time/frequency range configuration
+ * @property {ZoomState} zoom - Current zoom state
  */
 
 /**
@@ -177,7 +181,7 @@
  * @property {ImageDetails} imageDetails - Image source and dimensions
  * @property {Config} config - Time and frequency configuration
  * @property {DisplayDimensions} displayDimensions - Current display dimensions
- * @property {AxesConfig} axes - Axes configuration
+ * @property {AxesMargins} margins - Axes margin configuration
  * @property {ZoomState} zoom - Zoom state configuration
  */
 

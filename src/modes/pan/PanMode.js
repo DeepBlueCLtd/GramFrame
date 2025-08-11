@@ -11,10 +11,9 @@ export class PanMode extends BaseMode {
   /**
    * Constructor for pan mode
    * @param {GramFrame} instance - GramFrame instance
-   * @param {GramFrameState} state - GramFrame state object
    */
-  constructor(instance, state) {
-    super(instance, state)
+  constructor(instance) {
+    super(instance)
     this.isDragging = false
     this.dragState = {
       lastX: 0,
@@ -27,7 +26,7 @@ export class PanMode extends BaseMode {
    */
   activate() {
     // Set cursor to grab if zoomed
-    if (this.instance.svg && this.state.zoom.level > 1.0) {
+    if (this.instance.svg && this.instance.state.zoom.level > 1.0) {
       this.instance.svg.style.cursor = 'grab'
     }
     
@@ -57,7 +56,7 @@ export class PanMode extends BaseMode {
    */
   handleMouseDown(event, _dataCoords) {
     // Only allow panning when zoomed
-    if (this.state.zoom.level <= 1.0) {
+    if (this.instance.state.zoom.level <= 1.0) {
       return
     }
     
@@ -83,7 +82,7 @@ export class PanMode extends BaseMode {
    * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
    */
   handleMouseMove(event, _dataCoords) {
-    if (!this.isDragging || this.state.zoom.level <= 1.0) {
+    if (!this.isDragging || this.instance.state.zoom.level <= 1.0) {
       return
     }
     
@@ -92,8 +91,8 @@ export class PanMode extends BaseMode {
     const deltaY = event.clientY - this.dragState.lastY
     
     // Convert pixel delta to normalized delta (considering zoom level)
-    const { naturalWidth, naturalHeight } = this.state.imageDetails
-    const margins = this.state.axes.margins
+    const { naturalWidth, naturalHeight } = this.instance.state.imageDetails
+    const margins = this.instance.state.margins
     const svgRect = this.instance.svg.getBoundingClientRect()
     
     // Scale factor based on current zoom and SVG size
@@ -101,8 +100,8 @@ export class PanMode extends BaseMode {
     const scaleY = (naturalHeight + margins.top + margins.bottom) / svgRect.height
     
     // Convert to normalized coordinates (adjust for zoom level)
-    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / this.state.zoom.level
-    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / this.state.zoom.level
+    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / this.instance.state.zoom.level
+    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / this.instance.state.zoom.level
     
     // Apply pan
     this.panImage(normalizedDeltaX, normalizedDeltaY)
@@ -126,7 +125,7 @@ export class PanMode extends BaseMode {
     this.isDragging = false
     
     // Restore cursor to grab (pan mode still active)
-    if (this.instance.svg && this.state.zoom.level > 1.0) {
+    if (this.instance.svg && this.instance.state.zoom.level > 1.0) {
       this.instance.svg.style.cursor = 'grab'
     }
   }
@@ -140,7 +139,7 @@ export class PanMode extends BaseMode {
       this.isDragging = false
       
       // Restore cursor
-      if (this.instance.svg && this.state.zoom.level > 1.0) {
+      if (this.instance.svg && this.instance.state.zoom.level > 1.0) {
         this.instance.svg.style.cursor = 'grab'
       }
     }
@@ -152,16 +151,16 @@ export class PanMode extends BaseMode {
    * @param {number} deltaY - Change in Y position (normalized -1 to 1)
    */
   panImage(deltaX, deltaY) {
-    if (this.state.zoom.level <= 1.0) {
+    if (this.instance.state.zoom.level <= 1.0) {
       return // No panning when not zoomed
     }
     
     // Calculate new center point, constrained to valid range
-    const newCenterX = Math.max(0, Math.min(1, this.state.zoom.centerX + deltaX))
-    const newCenterY = Math.max(0, Math.min(1, this.state.zoom.centerY + deltaY))
+    const newCenterX = Math.max(0, Math.min(1, this.instance.state.zoom.centerX + deltaX))
+    const newCenterY = Math.max(0, Math.min(1, this.instance.state.zoom.centerY + deltaY))
     
     // Update zoom with new center point
-    this.setZoom(this.state.zoom.level, newCenterX, newCenterY)
+    this.setZoom(this.instance.state.zoom.level, newCenterX, newCenterY)
   }
 
   /**
@@ -172,9 +171,9 @@ export class PanMode extends BaseMode {
    */
   setZoom(level, centerX, centerY) {
     // Update state
-    this.state.zoom.level = level
-    this.state.zoom.centerX = centerX
-    this.state.zoom.centerY = centerY
+    this.instance.state.zoom.level = level
+    this.instance.state.zoom.centerX = centerX
+    this.instance.state.zoom.centerY = centerY
     
     // Apply zoom transform
     if (this.instance.svg) {
@@ -184,7 +183,7 @@ export class PanMode extends BaseMode {
     // Note: zoom button states will be updated by the main zoom change handler
     
     // Notify listeners
-    notifyStateListeners(this.state, this.instance.stateListeners)
+    notifyStateListeners(this.instance.state, this.instance.stateListeners)
   }
 
   /**
@@ -217,7 +216,7 @@ export class PanMode extends BaseMode {
    * @returns {boolean} True if enabled, false if disabled
    */
   isEnabled() {
-    return this.state.zoom.level > 1.0
+    return this.instance.state.zoom.level > 1.0
   }
 
   /**
@@ -230,13 +229,13 @@ export class PanMode extends BaseMode {
         label: '−',
         title: 'Zoom Out',
         action: () => this.instance._zoomOut(),
-        isEnabled: () => this.state.zoom.level > 1.0
+        isEnabled: () => this.instance.state.zoom.level > 1.0
       },
       {
         label: '+',
         title: 'Zoom In',
         action: () => this.instance._zoomIn(),
-        isEnabled: () => this.state.zoom.level < 10.0
+        isEnabled: () => this.instance.state.zoom.level < 10.0
       }
     ]
   }

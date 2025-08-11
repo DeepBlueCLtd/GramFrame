@@ -7,11 +7,9 @@ export class BaseMode {
   /**
    * Constructor for base mode
    * @param {GramFrame} instance - GramFrame instance
-   * @param {GramFrameState} state - GramFrame state object
    */
-  constructor(instance, state) {
+  constructor(instance) {
     this.instance = instance
-    this.state = state
   }
 
   /**
@@ -178,5 +176,28 @@ export class BaseMode {
   static getInitialState() {
     // Default implementation - override in subclasses
     return {}
+  }
+
+  /**
+   * Get viewport configuration for coordinate transformations
+   * @returns {ViewportConfig} Viewport configuration object
+   */
+  getViewport() {
+    return {
+      margins: this.instance.state.margins,
+      imageDetails: this.instance.state.imageDetails,
+      config: this.instance.state.config,
+      zoom: this.instance.state.zoom
+    }
+  }
+
+  /**
+   * Update cursor style for drag operations
+   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+   */
+  updateCursorStyle(style) {
+    if (this.instance.spectrogramImage) {
+      this.instance.spectrogramImage.style.cursor = style
+    }
   }
 }

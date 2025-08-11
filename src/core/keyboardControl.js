@@ -88,6 +88,7 @@ function handleGlobalKeyboardEvent(event) {
     return // No selection
   }
   
+  
   // Prevent default browser behavior
   event.preventDefault()
   event.stopPropagation()
@@ -157,13 +158,15 @@ function moveSelectedMarker(instance, markerId, movement) {
     return
   }
   
+  
   // Convert current marker position to SVG coordinates
   const currentSVG = dataToSVGCoordinates(
     marker.freq, 
     marker.time, 
     instance.state.config,
     instance.state.imageDetails,
-    instance.state.rate
+    instance.state.rate,
+    instance.state.margins
   )
   
   // Apply movement in SVG space
@@ -179,7 +182,7 @@ function moveSelectedMarker(instance, markerId, movement) {
     instance.state.config,
     instance.state.imageDetails,
     instance.state.rate,
-    instance.state.axes.margins
+    instance.state.margins
   )
   
   // Update marker position
@@ -239,7 +242,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     // Convert current anchor time to SVG coordinates
     const { naturalHeight } = instance.state.imageDetails
     const { timeMin, timeMax } = instance.state.config
-    const margins = instance.state.axes.margins
+    const margins = instance.state.margins
     
     // Calculate current anchor position in SVG space
     const normalizedTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
@@ -290,12 +293,12 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
  * @param {Config} config - Configuration object
  * @param {ImageDetails} imageDetails - Image dimensions
  * @param {number} rate - Rate scaling factor
+ * @param {AxesMargins} margins - Axes margins
  * @returns {SVGCoordinates} SVG coordinates {x, y}
  */
-function dataToSVGCoordinates(freq, time, config, imageDetails, rate) {
+function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
-  const margins = { left: 60, top: 15 } // Use default margins
   
   // Convert frequency back to raw frequency space for positioning
   const rawFreq = freq * rate

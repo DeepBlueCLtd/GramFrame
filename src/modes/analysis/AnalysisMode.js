@@ -13,10 +13,9 @@ export class AnalysisMode extends BaseMode {
   /**
    * Initialize AnalysisMode with drag handler
    * @param {Object} instance - GramFrame instance
-   * @param {Object} state - State object
    */
-  constructor(instance, state) {
-    super(instance, state)
+  constructor(instance) {
+    super(instance)
     
     // Initialize drag handler with analysis-specific callbacks
     this.dragHandler = new BaseDragHandler(instance, {
@@ -35,14 +34,14 @@ export class AnalysisMode extends BaseMode {
    */
   onMarkerDragStart(target, position) {
     // Store drag state in analysis state
-    this.state.analysis.isDragging = true
-    this.state.analysis.draggedMarkerId = target.id
-    this.state.analysis.dragStartPosition = { ...position }
+    this.instance.state.analysis.isDragging = true
+    this.instance.state.analysis.draggedMarkerId = target.id
+    this.instance.state.analysis.dragStartPosition = { ...position }
     
     // Auto-select the marker being dragged
-    const marker = this.state.analysis.markers.find(m => m.id === target.id)
+    const marker = this.instance.state.analysis.markers.find(m => m.id === target.id)
     if (marker) {
-      const index = this.state.analysis.markers.findIndex(m => m.id === target.id)
+      const index = this.instance.state.analysis.markers.findIndex(m => m.id === target.id)
       this.instance.setSelection('marker', target.id, index)
     }
   }
@@ -54,7 +53,7 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} _startPos - Start position (unused)
    */
   onMarkerDragUpdate(target, currentPos, _startPos) {
-    const marker = this.state.analysis.markers.find(m => m.id === target.id)
+    const marker = this.instance.state.analysis.markers.find(m => m.id === target.id)
     if (marker) {
       // Update marker position
       marker.freq = currentPos.freq
@@ -75,7 +74,7 @@ export class AnalysisMode extends BaseMode {
       }
       
       // Notify listeners
-      notifyStateListeners(this.state, this.instance.stateListeners)
+      notifyStateListeners(this.instance.state, this.instance.stateListeners)
     }
   }
 
@@ -86,9 +85,9 @@ export class AnalysisMode extends BaseMode {
    */
   onMarkerDragEnd(_target, _position) {
     // Clear analysis drag state
-    this.state.analysis.isDragging = false
-    this.state.analysis.draggedMarkerId = null
-    this.state.analysis.dragStartPosition = null
+    this.instance.state.analysis.isDragging = false
+    this.instance.state.analysis.draggedMarkerId = null
+    this.instance.state.analysis.dragStartPosition = null
   }
 
   /**
@@ -114,19 +113,6 @@ export class AnalysisMode extends BaseMode {
         'Right-click markers to delete them',
         'Click table row + arrow keys (Shift for larger steps)'
       ]
-    }
-  }
-
-  /**
-   * Helper to prepare viewport object for coordinate transformations
-   * @returns {Object} Viewport object with margins, imageDetails, config, zoom
-   */
-  getViewport() {
-    return {
-      margins: this.instance.state.axes.margins,
-      imageDetails: this.instance.state.imageDetails,
-      config: this.instance.state.config,
-      zoom: this.instance.state.zoom
     }
   }
 
@@ -211,7 +197,7 @@ export class AnalysisMode extends BaseMode {
    */
   createMarkerAtPosition(dataCoords) {
     // Get the current marker color from global state
-    const color = this.state.selectedColor || '#ff6b6b'
+    const color = this.instance.state.selectedColor || '#ff6b6b'
     
     // Create marker object (we only need time/freq for positioning)
     /** @type {AnalysisMarker} */
@@ -230,7 +216,7 @@ export class AnalysisMode extends BaseMode {
    * Render persistent features for analysis mode
    */
   renderPersistentFeatures() {
-    if (!this.instance.cursorGroup || !this.state.analysis?.markers) {
+    if (!this.instance.cursorGroup || !this.instance.state.analysis?.markers) {
       return
     }
     
@@ -239,7 +225,7 @@ export class AnalysisMode extends BaseMode {
     existingMarkers.forEach(marker => marker.remove())
     
     // Render all markers
-    this.state.analysis.markers.forEach(marker => {
+    this.instance.state.analysis.markers.forEach(marker => {
       this.renderMarker(marker)
     })
   }
@@ -426,8 +412,8 @@ export class AnalysisMode extends BaseMode {
    * @param {AnalysisMarker} marker - Marker object with all properties
    */
   addMarker(marker) {
-    if (!this.state.analysis) {
-      this.state.analysis = { 
+    if (!this.instance.state.analysis) {
+      this.instance.state.analysis = { 
         markers: [],
         isDragging: false,
         draggedMarkerId: null,
@@ -435,10 +421,10 @@ export class AnalysisMode extends BaseMode {
       }
     }
     
-    this.state.analysis.markers.push(marker)
+    this.instance.state.analysis.markers.push(marker)
     
     // Auto-select the newly created marker
-    const index = this.state.analysis.markers.length - 1
+    const index = this.instance.state.analysis.markers.length - 1
     this.instance.setSelection('marker', marker.id, index)
     
     // Update markers table
@@ -450,7 +436,7 @@ export class AnalysisMode extends BaseMode {
     }
     
     // Notify listeners
-    notifyStateListeners(this.state, this.instance.stateListeners)
+    notifyStateListeners(this.instance.state, this.instance.stateListeners)
   }
 
   /**
@@ -458,17 +444,17 @@ export class AnalysisMode extends BaseMode {
    * @param {string} markerId - ID of marker to remove
    */
   removeMarker(markerId) {
-    if (!this.state.analysis || !this.state.analysis.markers) return
+    if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return
     
-    const index = this.state.analysis.markers.findIndex(m => m.id === markerId)
+    const index = this.instance.state.analysis.markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
       // Clear selection if removing the selected marker
-      if (this.state.selection.selectedType === 'marker' && 
-          this.state.selection.selectedId === markerId) {
+      if (this.instance.state.selection.selectedType === 'marker' && 
+          this.instance.state.selection.selectedId === markerId) {
         this.instance.clearSelection()
       }
       
-      this.state.analysis.markers.splice(index, 1)
+      this.instance.state.analysis.markers.splice(index, 1)
       
       // Update markers table
       this.updateMarkersTable()
@@ -479,7 +465,7 @@ export class AnalysisMode extends BaseMode {
       }
       
       // Notify listeners
-      notifyStateListeners(this.state, this.instance.stateListeners)
+      notifyStateListeners(this.instance.state, this.instance.stateListeners)
     }
   }
 
@@ -490,12 +476,12 @@ export class AnalysisMode extends BaseMode {
    * @returns {Object|null} Drag target if found, null otherwise
    */
   findMarkerAtPosition(position) {
-    if (!this.state.analysis || !this.state.analysis.markers) return null
+    if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null
     
     const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
     
     // Check each marker to see if position hits the crosshair lines
-    const marker = this.state.analysis.markers.find(marker => {
+    const marker = this.instance.state.analysis.markers.find(marker => {
       // Check if we're close to the marker center (original behavior)
       if (isWithinToleranceRadius(
         position, 
@@ -550,10 +536,10 @@ export class AnalysisMode extends BaseMode {
   updateMarkersTable() {
     if (!this.uiElements.markersTableBody) return
     
-    if (!this.state.analysis || !this.state.analysis.markers) return
+    if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return
     
     const existingRows = this.uiElements.markersTableBody.querySelectorAll('tr')
-    const markers = this.state.analysis.markers
+    const markers = this.instance.state.analysis.markers
     
     // Update existing rows or create new ones
     markers.forEach((marker, index) => {
@@ -607,7 +593,7 @@ export class AnalysisMode extends BaseMode {
   rebuildMarkersTableFrom(startIndex) {
     if (!this.uiElements.markersTableBody) return
     
-    const markers = this.state.analysis.markers
+    const markers = this.instance.state.analysis.markers
     const existingRows = this.uiElements.markersTableBody.querySelectorAll('tr')
     
     // Remove rows from startIndex onward
@@ -629,8 +615,8 @@ export class AnalysisMode extends BaseMode {
         }
         
         // Toggle selection
-        if (this.state.selection.selectedType === 'marker' && 
-            this.state.selection.selectedId === marker.id) {
+        if (this.instance.state.selection.selectedType === 'marker' && 
+            this.instance.state.selection.selectedId === marker.id) {
           this.instance.clearSelection()
         } else {
           this.instance.setSelection('marker', marker.id, index)

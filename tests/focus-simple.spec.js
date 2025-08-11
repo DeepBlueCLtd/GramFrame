@@ -13,14 +13,14 @@ test.describe('Simple Focus Test', () => {
     const gramFrame1 = page.locator('.gram-frame-container').first()
     const gramFrame2 = page.locator('.gram-frame-container').nth(1)
     
-    // Initially, the first instance should be focused (auto-focus)
+    // Initially, no instance should be focused until user interaction
     await page.waitForTimeout(500) // Let focus system initialize
     
     const initialFocus1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
     const initialFocus2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
     
-    // First should be focused initially
-    expect(initialFocus1).toBe(true)
+    // Neither should be focused initially
+    expect(initialFocus1).toBe(false)
     expect(initialFocus2).toBe(false)
     
     // Click on the second GramFrame to switch focus
