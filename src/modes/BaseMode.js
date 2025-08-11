@@ -7,11 +7,9 @@ export class BaseMode {
   /**
    * Constructor for base mode
    * @param {GramFrame} instance - GramFrame instance
-   * @param {GramFrameState} state - GramFrame state object
    */
-  constructor(instance, state) {
+  constructor(instance) {
     this.instance = instance
-    this.state = state
   }
 
   /**

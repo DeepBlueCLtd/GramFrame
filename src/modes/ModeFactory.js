@@ -13,24 +13,23 @@ export class ModeFactory {
    * Create a mode instance based on mode name
    * @param {ModeType} modeName - Name of the mode
    * @param {GramFrame} instance - GramFrame instance
-   * @param {GramFrameState} state - GramFrame state object
    * @returns {BaseMode} Mode instance
    * @throws {Error} If mode name is invalid or mode class is not available
    */
-  static createMode(modeName, instance, state) {
+  static createMode(modeName, instance) {
     try {
       switch (modeName) {
         case 'analysis':
-          return new AnalysisMode(instance, state)
+          return new AnalysisMode(instance)
         
         case 'harmonics':
-          return new HarmonicsMode(instance, state)
+          return new HarmonicsMode(instance)
         
         case 'doppler':
-          return new DopplerMode(instance, state)
+          return new DopplerMode(instance)
         
         case 'pan':
-          return new PanMode(instance, state)
+          return new PanMode(instance)
         
         default:
           throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, doppler, pan`)
@@ -42,7 +41,7 @@ export class ModeFactory {
         stack: error instanceof Error ? error.stack : undefined,
         modeName,
         instanceType: instance?.constructor?.name,
-        stateExists: !!state
+        stateExists: !!instance?.state
       })
       
       // In test environments, throw the error to fail fast
@@ -52,7 +51,7 @@ export class ModeFactory {
       
       // Fallback to base mode to prevent complete failure in production
       console.warn(`Falling back to BaseMode for "${modeName}" due to error`)
-      return new BaseMode(instance, state)
+      return new BaseMode(instance)
     }
   }
 
