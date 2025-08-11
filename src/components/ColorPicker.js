@@ -33,7 +33,7 @@ const COLOR_PALETTE = [
 export function createColorPicker(state) {
   const container = document.createElement('div')
   container.className = 'gram-frame-color-picker'
-  container.style.display = (state.mode === 'harmonics' || state.mode === 'analysis') ? 'block' : 'none'
+  container.style.display = 'block'
   
   // Label
   const label = document.createElement('div')
