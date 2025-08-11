@@ -25,7 +25,7 @@ function screenToDataWithZoom(instance, event) {
   const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
   
   // Convert to data coordinates (accounting for margins and zoom)
-  const margins = instance.state.axes.margins
+  const margins = instance.state.margins
   const zoomLevel = instance.state.zoom.level
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   

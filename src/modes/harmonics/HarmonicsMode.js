@@ -635,7 +635,7 @@ export class HarmonicsMode extends BaseMode {
    */
   calculateHarmonicLineDimensions(harmonicSet) {
     const { naturalHeight } = this.state.imageDetails
-    const margins = this.state.axes.margins
+    const margins = this.state.margins
     const zoomLevel = this.state.zoom.level
     const { timeMin, timeMax } = this.state.config
     

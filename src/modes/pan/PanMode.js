@@ -93,7 +93,7 @@ export class PanMode extends BaseMode {
     
     // Convert pixel delta to normalized delta (considering zoom level)
     const { naturalWidth, naturalHeight } = this.state.imageDetails
-    const margins = this.state.axes.margins
+    const margins = this.state.margins
     const svgRect = this.instance.svg.getBoundingClientRect()
     
     // Scale factor based on current zoom and SVG size

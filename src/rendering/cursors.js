@@ -38,7 +38,7 @@ export function updateCursorIndicators(instance) {
  * @param {DataCoordinates} endPoint - Current drag end point
  */
 export function drawDopplerPreview(instance, startPoint, endPoint) {
-  const margins = instance.state.axes.margins
+  const margins = instance.state.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
   
