@@ -269,58 +269,70 @@
       const forceUpdateBtn = document.getElementById('force-update')
       
       // Display initial state
-      stateDisplay.textContent = 'Component loaded. Waiting for state updates...'
+      stateDisplay.textContent = 'Loading...'
       
-      // Register state listener
-      if (window.GramFrame) {
-        window.GramFrame.addStateListener((state) => {
-          // Update state display with formatted JSON
-          stateDisplay.textContent = JSON.stringify(state, null, 2)
+      // Wait for GramFrame to be available and set up additional listeners for diagnostics
+      function waitForGramFrame() {
+        if (window.GramFrame) {
+          stateDisplay.textContent = 'GramFrame loaded, waiting for state...'
           
-          // Update image details
-          if (state.imageDetails) {
-            imageUrl.textContent = state.imageDetails.url || '-'
-            
-            if (state.imageDetails.naturalWidth && state.imageDetails.naturalHeight) {
-              imageSize.textContent = `${state.imageDetails.naturalWidth} × ${state.imageDetails.naturalHeight} px`
-            } else {
-              imageSize.textContent = '-'
+          // Add a secondary listener for updating diagnostics (main state display is handled by main.js)
+          window.GramFrame.addStateListener((state) => {
+            // Update image details
+            if (state.imageDetails) {
+              imageUrl.textContent = state.imageDetails.url || '-'
+              
+              if (state.imageDetails.naturalWidth && state.imageDetails.naturalHeight) {
+                imageSize.textContent = `${state.imageDetails.naturalWidth} × ${state.imageDetails.naturalHeight} px`
+              } else {
+                imageSize.textContent = '-'
+              }
             }
-          }
-          
-          // Update time and frequency ranges
-          if (state.config) {
-            timeRange.textContent = `${state.config.timeMin} to ${state.config.timeMax} s`
-            freqRange.textContent = `${state.config.freqMin} to ${state.config.freqMax} Hz`
-          }
-          
-          // Update mouse coordinates
-          if (state.cursorPosition) {
-            mouseCanvasPos.textContent = `(${state.cursorPosition.x}, ${state.cursorPosition.y})`
-            mouseTime.textContent = `${state.cursorPosition.time.toFixed(2)} s`
-            mouseFreq.textContent = `${state.cursorPosition.freq.toFixed(2)} Hz`
-          } else {
-            mouseCanvasPos.textContent = '-'
-            mouseTime.textContent = '-'
-            mouseFreq.textContent = '-'
-          }
-        })
-        
-        // Add event listeners for control buttons
-        toggleBoundsBtn.addEventListener('click', () => {
+            
+            // Update time and frequency ranges
+            if (state.config) {
+              timeRange.textContent = `${state.config.timeMin} to ${state.config.timeMax} s`
+              freqRange.textContent = `${state.config.freqMin} to ${state.config.freqMax} Hz`
+            }
+            
+            // Update mouse coordinates
+            if (state.cursorPosition) {
+              mouseCanvasPos.textContent = `(${state.cursorPosition.x}, ${state.cursorPosition.y})`
+              mouseTime.textContent = `${state.cursorPosition.time.toFixed(2)} s`
+              mouseFreq.textContent = `${state.cursorPosition.freq.toFixed(2)} Hz`
+            } else {
+              mouseCanvasPos.textContent = '-'
+              mouseTime.textContent = '-'
+              mouseFreq.textContent = '-'
+            }
+          })
+        } else {
+          // GramFrame not ready yet, try again in 100ms
+          setTimeout(waitForGramFrame, 100)
+        }
+      }
+      waitForGramFrame()
+      
+      // Add event listeners for control buttons (they wait for GramFrame to exist)
+      toggleBoundsBtn.addEventListener('click', () => {
+        if (window.GramFrame) {
           window.GramFrame.toggleCanvasBoundsOverlay()
-        })
-        
-        toggleGridBtn.addEventListener('click', () => {
+        }
+      })
+      
+      toggleGridBtn.addEventListener('click', () => {
+        if (window.GramFrame) {
           // Toggle grid state
           const gridEnabled = toggleGridBtn.classList.toggle('active')
           window.GramFrame.setDebugGrid(gridEnabled)
-        })
-        
-        forceUpdateBtn.addEventListener('click', () => {
+        }
+      })
+      
+      forceUpdateBtn.addEventListener('click', () => {
+        if (window.GramFrame) {
           window.GramFrame.__test__forceUpdate()
-        })
-      }
+        }
+      })
     })
   </script>
 </body>
