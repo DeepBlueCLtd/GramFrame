@@ -13,6 +13,10 @@ test.describe('Simple Focus Test', () => {
     const gramFrame1 = page.locator('.gram-frame-container').first()
     const gramFrame2 = page.locator('.gram-frame-container').nth(1)
     
+    // Get the SVG elements within each container (where focus events are handled)
+    const svg1 = gramFrame1.locator('svg').first()
+    const svg2 = gramFrame2.locator('svg').first()
+    
     // Initially, no instance should be focused until user interaction
     await page.waitForTimeout(500) // Let focus system initialize
     
@@ -23,8 +27,8 @@ test.describe('Simple Focus Test', () => {
     expect(initialFocus1).toBe(false)
     expect(initialFocus2).toBe(false)
     
-    // Click on the second GramFrame to switch focus
-    await gramFrame2.click()
+    // Click on the second GramFrame's SVG to switch focus
+    await svg2.click()
     await page.waitForTimeout(200)
     
     // Check focus has switched
@@ -34,8 +38,8 @@ test.describe('Simple Focus Test', () => {
     expect(afterClick1).toBe(false)
     expect(afterClick2).toBe(true)
     
-    // Click on the first GramFrame to switch back
-    await gramFrame1.click()
+    // Click on the first GramFrame's SVG to switch back
+    await svg1.click()
     await page.waitForTimeout(200)
     
     // Check focus has switched back
