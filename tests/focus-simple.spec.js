@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('Simple Focus Test', () => {
   test('should demonstrate multiple GramFrame focus works', async ({ page }) => {
     // Navigate to the debug page with multiple instances
-    await page.goto('http://localhost:5174/debug-multiple.html')
+    await page.goto('http://localhost:5173/debug-multiple.html')
     
     // Wait for both GramFrames to initialize
     await page.waitForSelector('.gram-frame-container', { timeout: 15000 })
