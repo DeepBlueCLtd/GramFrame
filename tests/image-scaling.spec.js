@@ -20,14 +20,14 @@ test.describe('Image Scaling Tests', () => {
 
   test('should automatically scale large images to 1200px max width', async ({ page }) => {
     // Get all containers
-    const containers = await page.locator('.gram-frame-container').all()
-    expect(containers.length).toBe(3)
+    const containers = page.locator('.gram-frame-container')
+    await expect(containers).toHaveCount(3)
     
     // Find the container with the large image (third instance, second table)
-    const largeImageContainer = containers[2]
+    const largeImageContainer = containers.nth(2)
     
     // Get the SVG image element
-    const svgImage = await largeImageContainer.locator('.gram-frame-spectrogram-image').first()
+    const svgImage = largeImageContainer.locator('.gram-frame-spectrogram-image').first()
     await expect(svgImage).toBeVisible()
     
     // Verify the image is using the large image file
@@ -69,9 +69,6 @@ test.describe('Image Scaling Tests', () => {
   })
 
   test('should store scaled dimensions in state', async ({ page }) => {
-    // Get the third container (with large image)
-    const largeImageContainer = page.locator('.gram-frame-container').nth(2)
-    
     // Get the GramFrame instance state
     const imageDetails = await page.evaluate(() => {
       const instances = window.GramFrame.__test__getInstances()
@@ -90,18 +87,10 @@ test.describe('Image Scaling Tests', () => {
 
   test('should maintain coordinate accuracy with scaled images', async ({ page }) => {
     const largeImageContainer = page.locator('.gram-frame-container').nth(2)
-    const svg = await largeImageContainer.locator('.gram-frame-svg').first()
+    const svg = largeImageContainer.locator('.gram-frame-svg').first()
     
-    // Get SVG bounding box (includes the image area)
-    const svgBox = await svg.boundingBox()
-    expect(svgBox).toBeTruthy()
-    
-    // Calculate center of the image area (accounting for margins)
+    // Hover over the center of the image (accounting for margins)
     // Margins: left=60, top=15
-    const imageCenterX = svgBox.x + 60 + (1200 / 2) // left margin + half image width
-    const imageCenterY = svgBox.y + 15 + (315 / 2)  // top margin + half image height
-    
-    // Hover over the center of the image
     await svg.hover({ position: { x: 60 + (1200 / 2), y: 15 + (315 / 2) } })
     await page.waitForTimeout(500) // Allow coordinate update
     
@@ -123,12 +112,7 @@ test.describe('Image Scaling Tests', () => {
 
   test('should not scale images smaller than 1200px', async ({ page }) => {
     // Check the first two instances (smaller images)
-    const containers = await page.locator('.gram-frame-container').all()
-    
     for (let i = 0; i < 2; i++) {
-      const container = containers[i]
-      const svgImage = await container.locator('.gram-frame-spectrogram-image').first()
-      
       const imageDetails = await page.evaluate((index) => {
         const instances = window.GramFrame.__test__getInstances()
         if (instances.length > index) {
@@ -144,7 +128,7 @@ test.describe('Image Scaling Tests', () => {
 
   test('should handle SVG layout correctly with scaled images', async ({ page }) => {
     const largeImageContainer = page.locator('.gram-frame-container').nth(2)
-    const svg = await largeImageContainer.locator('.gram-frame-svg').first()
+    const svg = largeImageContainer.locator('.gram-frame-svg').first()
     
     // Get SVG dimensions and viewBox
     const svgWidth = await svg.evaluate(el => el.style.width)
