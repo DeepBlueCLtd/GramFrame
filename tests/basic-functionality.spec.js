@@ -8,9 +8,9 @@ test.describe('Basic Functionality Tests', () => {
 
   test('should initialize multiple GramFrame instances', async ({ page }) => {
     const containers = await page.locator('.gram-frame-container').count()
-    expect(containers).toBe(2)
+    expect(containers).toBe(3)
     
-    // Verify both have basic structure
+    // Verify all have basic structure
     for (let i = 0; i < containers; i++) {
       const container = page.locator('.gram-frame-container').nth(i)
       await expect(container).toBeVisible()

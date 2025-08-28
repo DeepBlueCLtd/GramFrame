@@ -4,6 +4,9 @@
 
 /// <reference path="../types.js" />
 
+// Maximum image width in pixels - images wider than this will be scaled down
+const MAX_IMAGE_WIDTH = 1200
+
 import { formatTime } from '../utils/timeFormatter.js'
 import { notifyStateListeners } from '../core/state.js'
 
@@ -74,6 +77,7 @@ export function createComponentStructure(instance) {
   instance.spectrogramImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
   instance.spectrogramImage.setAttribute('class', 'gram-frame-spectrogram-image')
   instance.spectrogramImage.setAttribute('clip-path', `url(#${clipPathId})`)
+  instance.spectrogramImage.setAttribute('preserveAspectRatio', 'none')
   instance.svg.appendChild(instance.spectrogramImage)
   
   // Create cursor group for overlays with clipping applied
@@ -127,9 +131,22 @@ export function setupSpectrogramImage(instance, imageUrl) {
   // Load image to get natural dimensions
   const tempImg = new Image()
   tempImg.onload = function() {
-    // Store natural dimensions
-    instance.state.imageDetails.naturalWidth = tempImg.naturalWidth
-    instance.state.imageDetails.naturalHeight = tempImg.naturalHeight
+    // Get original dimensions
+    let imageWidth = tempImg.naturalWidth
+    let imageHeight = tempImg.naturalHeight
+    
+    // Apply automatic scaling for images wider than the maximum allowed width
+    if (imageWidth > MAX_IMAGE_WIDTH) {
+      const scaleFactor = MAX_IMAGE_WIDTH / imageWidth
+      imageWidth = MAX_IMAGE_WIDTH
+      imageHeight = Math.round(imageHeight * scaleFactor)
+      
+      console.log(`GramFrame: Scaling down large image from ${tempImg.naturalWidth}x${tempImg.naturalHeight} to ${imageWidth}x${imageHeight} (scale factor: ${scaleFactor.toFixed(3)})`)
+    }
+    
+    // Store scaled dimensions as natural dimensions
+    instance.state.imageDetails.naturalWidth = imageWidth
+    instance.state.imageDetails.naturalHeight = imageHeight
     
     // Update SVG layout
     updateSVGLayout(instance)

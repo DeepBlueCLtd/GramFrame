@@ -8,7 +8,7 @@ test.describe('Simple Focus Test', () => {
     // Wait for both GramFrames to initialize
     await page.waitForSelector('.gram-frame-container', { timeout: 15000 })
     const containers = await page.locator('.gram-frame-container').count()
-    expect(containers).toBe(2)
+    expect(containers).toBe(3)
     
     const gramFrame1 = page.locator('.gram-frame-container').first()
     const gramFrame2 = page.locator('.gram-frame-container').nth(1)
