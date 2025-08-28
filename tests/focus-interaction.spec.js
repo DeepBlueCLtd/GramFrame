@@ -5,7 +5,7 @@ test.describe('Simple Interaction Tests', () => {
     await page.goto('http://localhost:5173/debug-multiple.html')
     await page.waitForSelector('.gram-frame-container', { timeout: 10000 })
     const containers = await page.locator('.gram-frame-container').count()
-    expect(containers).toBe(2)
+    expect(containers).toBe(3)
   })
 
   test('should handle basic interactions', async ({ page }) => {
