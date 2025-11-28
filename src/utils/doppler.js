@@ -25,7 +25,7 @@ export function calculateMidpoint(fPlus, fMinus) {
  * @param {number} speedOfSound - Speed of sound in water (default: 1500 m/s)
  * @returns {number} Calculated speed in m/s
  */
-export function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1500) {
+export function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1481) {
   // Use provided fZero or calculate midpoint
   const f0 = fZero ? fZero.freq : calculateMidpoint(fPlus, fMinus).freq
   
@@ -33,7 +33,7 @@ export function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound 
   const deltaF = (fPlus.freq - fMinus.freq) / 2
   
   // Apply Doppler formula: v = (c / f₀) × Δf
-  const speed = (speedOfSound / f0) * deltaF
+  const speed = (speedOfSound / f0) * (deltaF)
   
   return Math.abs(speed) // Return absolute value for speed
 }
