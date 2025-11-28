@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GramFrame Tab Navigation Test</title>
+  <link rel="stylesheet" href="../src/gramframe.css" />
+  <script type="module" src="../src/main.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+
+    h1 {
+      color: #333;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+
+    .test-container {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .form-section {
+      flex: 1;
+      min-width: 300px;
+      max-width: 400px;
+    }
+
+    .gram-section {
+      flex: 2;
+      min-width: 400px;
+    }
+
+    .login-form {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    .login-form h2 {
+      margin-top: 0;
+      color: #444;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+      outline: 2px solid #4CAF50;
+      border-color: #4CAF50;
+    }
+
+    .form-group button {
+      width: 100%;
+      padding: 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .form-group button:focus {
+      outline: 2px solid #333;
+      outline-offset: 2px;
+    }
+
+    .form-group button:hover {
+      background-color: #45a049;
+    }
+
+    .instructions {
+      background: #e7f3fe;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .instructions h3 {
+      margin-top: 0;
+      color: #1565c0;
+    }
+
+    .instructions ul {
+      margin-bottom: 0;
+    }
+
+    table.gram-config {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    table.gram-config td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tab Navigation Test</h1>
+
+  <div class="instructions">
+    <h3>Test Instructions</h3>
+    <ul>
+      <li>Tab should move focus between Username → Password → Login button</li>
+      <li>Shift+Tab should move focus in reverse</li>
+      <li>Clicking the spectrogram should focus it (blue border)</li>
+      <li>When spectrogram is focused, Tab should switch between GramFrame instances</li>
+      <li>Clicking a form field should restore normal Tab behavior</li>
+    </ul>
+  </div>
+
+  <div class="test-container">
+    <div class="form-section">
+      <form class="login-form" onsubmit="return false;">
+        <h2>Login Form</h2>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" placeholder="Enter username" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter password" />
+        </div>
+        <div class="form-group">
+          <button type="submit" id="login-btn">Login</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="gram-section">
+      <h2>Spectrogram</h2>
+      <table class="gram-config">
+        <tr>
+          <td colspan="2">
+            <img src="./mock-gram.png" alt="Sample Spectrogram">
+          </td>
+        </tr>
+        <tr>
+          <td>time-start</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>time-end</td>
+          <td>60</td>
+        </tr>
+        <tr>
+          <td>freq-start</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>freq-end</td>
+          <td>100</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

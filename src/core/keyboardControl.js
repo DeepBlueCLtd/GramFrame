@@ -60,8 +60,13 @@ export function cleanupKeyboardControl(instance) {
  * @param {KeyboardEvent} event - Keyboard event
  */
 function handleGlobalKeyboardEvent(event) {
-  // Handle Tab navigation between instances
+  // Get the currently focused instance
+  const focusedInstance = getFocusedInstance()
+
+  // Handle Tab navigation between instances (only when a GramFrame is focused)
   if (event.key === 'Tab') {
+    if (!focusedInstance) return  // Let Tab work normally for form navigation
+
     if (event.shiftKey) {
       focusPreviousInstance()
     } else {
@@ -70,9 +75,6 @@ function handleGlobalKeyboardEvent(event) {
     event.preventDefault()
     return
   }
-  
-  // Get the currently focused instance
-  const focusedInstance = getFocusedInstance()
   if (!focusedInstance) {
     return // No instance is focused
   }
