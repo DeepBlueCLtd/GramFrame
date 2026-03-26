@@ -11,9 +11,9 @@
 
 **Purpose**: Read existing documentation to understand current state before enriching or creating new docs.
 
-- [ ] T001 [P] Read existing docs/Tech-Architecture.md and note gaps per research.md findings
-- [ ] T002 [P] Read existing docs/HTML-Integration-Guide.md and note gaps per research.md findings
-- [ ] T003 [P] Read existing README.md and identify where documentation index section will go
+- [X] T001 [P] Read existing docs/Tech-Architecture.md and note gaps per research.md findings
+- [X] T002 [P] Read existing docs/HTML-Integration-Guide.md and note gaps per research.md findings
+- [X] T003 [P] Read existing README.md and identify where documentation index section will go
 
 **Checkpoint**: Existing doc state understood — enrichment and creation can begin.
 
@@ -25,13 +25,13 @@
 
 **CRITICAL**: Documentation accuracy depends on understanding the current codebase. Complete this before writing any guides.
 
-- [ ] T004 [P] Audit src/core/state.js — produce notes on: state shape, listener registration API, deep-copy contract, key state fields
-- [ ] T005 [P] Audit src/modes/BaseMode.js and src/modes/ModeFactory.js — produce notes on: mode lifecycle, required overrides, factory registration, error handling
-- [ ] T006 [P] Audit src/utils/coordinates.js — produce notes on: each transform function, input/output types, the screen → SVG → image → data chain
-- [ ] T007 [P] Audit src/core/configuration.js — produce notes on: parsing flow (HTML table → config object), supported parameters, validation
-- [ ] T008 [P] Audit src/core/FeatureRenderer.js — produce notes on: cross-mode coordination API, feature lifecycle, rendering triggers
-- [ ] T009 [P] Audit src/rendering/cursors.js and src/rendering/axes.js — produce notes on: SVG element creation patterns, positioning logic, update triggers
-- [ ] T010 [P] Audit src/core/events.js — produce notes on: event binding strategy, ResizeObserver setup, mode-specific delegation
+- [X] T004 [P] Audit src/core/state.js — produce notes on: state shape, listener registration API, deep-copy contract, key state fields
+- [X] T005 [P] Audit src/modes/BaseMode.js and src/modes/ModeFactory.js — produce notes on: mode lifecycle, required overrides, factory registration, error handling
+- [X] T006 [P] Audit src/utils/coordinates.js — produce notes on: each transform function, input/output types, the screen → SVG → image → data chain
+- [X] T007 [P] Audit src/core/configuration.js — produce notes on: parsing flow (HTML table → config object), supported parameters, validation
+- [X] T008 [P] Audit src/core/FeatureRenderer.js — produce notes on: cross-mode coordination API, feature lifecycle, rendering triggers
+- [X] T009 [P] Audit src/rendering/cursors.js and src/rendering/axes.js — produce notes on: SVG element creation patterns, positioning logic, update triggers
+- [X] T010 [P] Audit src/core/events.js — produce notes on: event binding strategy, ResizeObserver setup, mode-specific delegation
 
 **Checkpoint**: Codebase audit complete — all doc content can now be written accurately.
 
@@ -43,13 +43,13 @@
 
 **Independent Test**: A new developer can answer "Where does cursor rendering happen?", "How do modes communicate?", and "How does config get parsed?" from this document alone.
 
-- [ ] T011 [US1] Enrich docs/Tech-Architecture.md — add system diagram (ASCII) showing subsystem relationships (GramFrame → modes, rendering, state, events, configuration, coordinates) (FR-004)
-- [ ] T012 [US1] Enrich docs/Tech-Architecture.md — add Mode System section: BaseMode contract, ModeFactory registration, mode directory convention, FeatureRenderer coordination
-- [ ] T013 [US1] Enrich docs/Tech-Architecture.md — add Rendering Pipeline section: SVG overlay strategy, cursor/axis rendering, coordinate transform chain
-- [ ] T014 [US1] Enrich docs/Tech-Architecture.md — add State Management section: state.js structure, listener pattern, deep-copy contract, HMR preservation
-- [ ] T015 [US1] Enrich docs/Tech-Architecture.md — add Event Handling section: event flow, ResizeObserver, mode-specific event delegation
-- [ ] T016 [US1] Enrich docs/Tech-Architecture.md — add Configuration section: HTML table parsing, parameter types, auto-discovery on DOMContentLoaded
-- [ ] T017 [US1] Enrich docs/Tech-Architecture.md — add ADR cross-references (ADR-001, ADR-002, ADR-004, ADR-005, ADR-008, ADR-011) and date stamp
+- [X] T011 [US1] Enrich docs/Tech-Architecture.md — add system diagram (ASCII) showing subsystem relationships (GramFrame → modes, rendering, state, events, configuration, coordinates) (FR-004)
+- [X] T012 [US1] Enrich docs/Tech-Architecture.md — add Mode System section: BaseMode contract, ModeFactory registration, mode directory convention, FeatureRenderer coordination
+- [X] T013 [US1] Enrich docs/Tech-Architecture.md — add Rendering Pipeline section: SVG overlay strategy, cursor/axis rendering, coordinate transform chain
+- [X] T014 [US1] Enrich docs/Tech-Architecture.md — add State Management section: state.js structure, listener pattern, deep-copy contract, HMR preservation
+- [X] T015 [US1] Enrich docs/Tech-Architecture.md — add Event Handling section: event flow, ResizeObserver, mode-specific event delegation
+- [X] T016 [US1] Enrich docs/Tech-Architecture.md — add Configuration section: HTML table parsing, parameter types, auto-discovery on DOMContentLoaded
+- [X] T017 [US1] Enrich docs/Tech-Architecture.md — add ADR cross-references (ADR-001, ADR-002, ADR-004, ADR-005, ADR-008, ADR-011) and date stamp
 
 **Checkpoint**: Architecture guide complete and independently useful.
 
@@ -61,11 +61,11 @@
 
 **Independent Test**: Developer with Node.js can follow guide from clone to `yarn dev` + `yarn test` with zero undocumented steps.
 
-- [ ] T018 [US2] Create docs/Getting-Started.md — prerequisites section (Node.js version, Yarn, browser for Playwright)
-- [ ] T019 [US2] Enrich docs/Getting-Started.md — clone, install, and first-run instructions (`yarn install`, `yarn dev`, opening browser)
-- [ ] T020 [US2] Enrich docs/Getting-Started.md — development workflow section (hot reload with Vite, debug.html usage, sample/ directory)
-- [ ] T021 [US2] Enrich docs/Getting-Started.md — testing section (`yarn test`, `yarn typecheck`, `yarn build`, running individual tests with Playwright)
-- [ ] T022 [US2] Enrich docs/Getting-Started.md — tooling overview (Vite for build, Playwright for e2e, JSDoc for types) with cross-references to Testing-Strategy.md and ADR-010
+- [X] T018 [US2] Create docs/Getting-Started.md — prerequisites section (Node.js version, Yarn, browser for Playwright)
+- [X] T019 [US2] Enrich docs/Getting-Started.md — clone, install, and first-run instructions (`yarn install`, `yarn dev`, opening browser)
+- [X] T020 [US2] Enrich docs/Getting-Started.md — development workflow section (hot reload with Vite, debug.html usage, sample/ directory)
+- [X] T021 [US2] Enrich docs/Getting-Started.md — testing section (`yarn test`, `yarn typecheck`, `yarn build`, running individual tests with Playwright)
+- [X] T022 [US2] Enrich docs/Getting-Started.md — tooling overview (Vite for build, Playwright for e2e, JSDoc for types) with cross-references to Testing-Strategy.md and ADR-010
 
 **Checkpoint**: Getting-started guide complete and independently useful.
 
@@ -77,9 +77,9 @@
 
 **Independent Test**: A content author with HTML knowledge can embed a working GramFrame instance using only this guide.
 
-- [ ] T023 [US3] Enrich docs/HTML-Integration-Guide.md — add complete parameter reference table (time-start, time-end, freq-start, freq-end, and any other supported parameters)
-- [ ] T024 [US3] Enrich docs/HTML-Integration-Guide.md — add multi-instance example showing two independent GramFrame instances on one page
-- [ ] T025 [US3] Enrich docs/HTML-Integration-Guide.md — add troubleshooting section (common mistakes, missing image, wrong parameter names) and cross-references to ADR-005 and ADR-013
+- [X] T023 [US3] Enrich docs/HTML-Integration-Guide.md — add complete parameter reference table (time-start, time-end, freq-start, freq-end, and any other supported parameters)
+- [X] T024 [US3] Enrich docs/HTML-Integration-Guide.md — add multi-instance example showing two independent GramFrame instances on one page
+- [X] T025 [US3] Enrich docs/HTML-Integration-Guide.md — add troubleshooting section (common mistakes, missing image, wrong parameter names) and cross-references to ADR-005 and ADR-013
 
 **Checkpoint**: Integration guide complete and independently useful.
 
@@ -91,9 +91,9 @@
 
 **Independent Test**: A developer can identify the 3-5 source files to modify for a new SVG overlay within 5 minutes.
 
-- [ ] T026 [P] [US4] Create docs/Adding-Graphical-Features.md — code area map listing key files: src/rendering/ (cursors, axes), src/utils/coordinates.js, src/utils/svg.js, src/core/events.js, src/core/FeatureRenderer.js
-- [ ] T027 [US4] Enrich docs/Adding-Graphical-Features.md — coordinate transform guide: explain screen → SVG → image → data chain with file pointers
-- [ ] T028 [US4] Enrich docs/Adding-Graphical-Features.md — mode extension tips: BaseMode contract, ModeFactory registration, directory convention, cross-references to ADR-001, ADR-002, ADR-008, ADR-011
+- [X] T026 [P] [US4] Create docs/Adding-Graphical-Features.md — code area map listing key files: src/rendering/ (cursors, axes), src/utils/coordinates.js, src/utils/svg.js, src/core/events.js, src/core/FeatureRenderer.js
+- [X] T027 [US4] Enrich docs/Adding-Graphical-Features.md — coordinate transform guide: explain screen → SVG → image → data chain with file pointers
+- [X] T028 [US4] Enrich docs/Adding-Graphical-Features.md — mode extension tips: BaseMode contract, ModeFactory registration, directory convention, cross-references to ADR-001, ADR-002, ADR-008, ADR-011
 
 **Checkpoint**: Graphical features guide complete and independently useful.
 
@@ -105,9 +105,9 @@
 
 **Independent Test**: A developer can trace storage location and data flow for any piece of runtime state using this guide alone.
 
-- [ ] T029 [P] [US5] Create docs/Data-and-State-Guide.md — state.js section: state shape, listener registration, deep-copy contract, common state fields
-- [ ] T030 [US5] Enrich docs/Data-and-State-Guide.md — configuration parsing section: HTML table → config object flow, parameter validation, DOMContentLoaded lifecycle
-- [ ] T031 [US5] Enrich docs/Data-and-State-Guide.md — persistence overview: what is persisted (if anything) across sessions, what is ephemeral, cross-reference to ADR-004
+- [X] T029 [P] [US5] Create docs/Data-and-State-Guide.md — state.js section: state shape, listener registration, deep-copy contract, common state fields
+- [X] T030 [US5] Enrich docs/Data-and-State-Guide.md — configuration parsing section: HTML table → config object flow, parameter validation, DOMContentLoaded lifecycle
+- [X] T031 [US5] Enrich docs/Data-and-State-Guide.md — persistence overview: what is persisted (if anything) across sessions, what is ephemeral, cross-reference to ADR-004
 
 **Checkpoint**: Data and state guide complete and independently useful.
 
@@ -119,9 +119,9 @@
 
 **Independent Test**: A developer investigating a mispositioned annotation can narrow the issue to the correct subsystem within 10 minutes.
 
-- [ ] T032 [P] [US6] Create docs/Rendering-Troubleshooting.md — rendering pipeline map: which files handle cursor rendering, axis rendering, overlay positioning, feature persistence
-- [ ] T033 [US6] Enrich docs/Rendering-Troubleshooting.md — common failure points: coordinate transform mismatches, SVG viewBox issues, resize/redraw timing, state-rendering sync
-- [ ] T034 [US6] Enrich docs/Rendering-Troubleshooting.md — debugging tips: browser devtools SVG inspection, debug.html usage, coordinate logging, cross-references to ADR-001, ADR-002, Component-Strategy.md
+- [X] T032 [P] [US6] Create docs/Rendering-Troubleshooting.md — rendering pipeline map: which files handle cursor rendering, axis rendering, overlay positioning, feature persistence
+- [X] T033 [US6] Enrich docs/Rendering-Troubleshooting.md — common failure points: coordinate transform mismatches, SVG viewBox issues, resize/redraw timing, state-rendering sync
+- [X] T034 [US6] Enrich docs/Rendering-Troubleshooting.md — debugging tips: browser devtools SVG inspection, debug.html usage, coordinate logging, cross-references to ADR-001, ADR-002, Component-Strategy.md
 
 **Checkpoint**: Troubleshooting guide complete and independently useful.
 
@@ -131,10 +131,10 @@
 
 **Purpose**: README update, cross-document consistency, final validation.
 
-- [ ] T035 Update README.md — add "Developer Documentation" section with links to all 6 guides (Tech-Architecture, Getting-Started, HTML-Integration-Guide, Adding-Graphical-Features, Data-and-State-Guide, Rendering-Troubleshooting)
-- [ ] T036 Cross-document consistency check — verify all file path references are accurate, all ADR cross-references link to real files, no contradictions between guides
-- [ ] T037 Add date stamps to all new and enriched documents (Last updated: YYYY-MM-DD)
-- [ ] T038 Run `yarn test` and `yarn typecheck` and `yarn build` to confirm zero regressions
+- [X] T035 Update README.md — add "Developer Documentation" section with links to all 6 guides (Tech-Architecture, Getting-Started, HTML-Integration-Guide, Adding-Graphical-Features, Data-and-State-Guide, Rendering-Troubleshooting)
+- [X] T036 Cross-document consistency check — verify all file path references are accurate, all ADR cross-references link to real files, no contradictions between guides
+- [X] T037 Add date stamps to all new and enriched documents (Last updated: YYYY-MM-DD)
+- [X] T038 Run `yarn test` and `yarn typecheck` and `yarn build` to confirm zero regressions
 
 ---
 

@@ -12,6 +12,16 @@ This component provides an interactive overlay for sonar spectrogram images, ena
 - Fully self-contained JavaScript (no build step)
 - Developer diagnostics mode available via standalone page
 
+## Developer Documentation
+
+- [Getting Started](docs/Getting-Started.md) — Prerequisites, setup, and development workflow
+- [Technical Architecture](docs/Tech-Architecture.md) — System architecture, mode system, rendering pipeline, state management
+- [HTML Integration Guide](docs/HTML-Integration-Guide.md) — Embedding GramFrame in HTML pages
+- [Adding Graphical Features](docs/Adding-Graphical-Features.md) — Code area guide for new visual features
+- [Data and State Guide](docs/Data-and-State-Guide.md) — State management patterns and data flow
+- [Rendering Troubleshooting](docs/Rendering-Troubleshooting.md) — Debugging rendering and coordinate issues
+- [Architecture Decision Records](docs/ADRs/) — Design decisions and rationale
+
 ## Target Audience
 
 Trainees or students using sonar training manuals in HTML format.
