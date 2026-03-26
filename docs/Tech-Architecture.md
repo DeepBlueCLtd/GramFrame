@@ -137,6 +137,15 @@ The component creates an SVG element overlaying the spectrogram image. Key SVG g
 - **`axesGroup`** — Axis tick marks and labels (time on Y-axis, frequency on X-axis)
 - **`cursorGroup`** — All interactive features: markers, harmonic lines, Doppler curves, cursor indicators
 
+### Axis Rendering (`src/components/table.js`)
+
+Axes are rendered by `renderAxes(instance)` in `src/components/table.js`:
+
+- **Time axis** (vertical, left side): 5 evenly-spaced ticks with formatted time labels
+- **Frequency axis** (horizontal, bottom): Uses a "nice numbers" algorithm (`calculateAxisTicks`) for major/minor tick intervals, applies rate scaling to displayed frequencies
+
+`updateSVGLayout(instance)` sets the SVG `width`, `height`, and `viewBox` to the image's natural dimensions plus margins, and positions the `<image>` element at `(margins.left, margins.top)`.
+
 ### Cursor and Feature Rendering (`src/rendering/cursors.js`)
 
 `updateCursorIndicators(instance)` is the main render entry point:

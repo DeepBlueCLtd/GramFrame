@@ -15,7 +15,8 @@ Understanding which files handle what is the first step in narrowing down a rend
 | SVG element creation | `src/utils/svg.js` | `createSVGLine`, `createSVGText`, `createSVGCircle` |
 | Coordinate transforms | `src/utils/coordinates.js` | `screenToSVGCoordinates`, `imageToDataCoordinates` |
 | Zoom-aware conversion | `src/core/events.js` | `screenToDataWithZoom()` — full pipeline with zoom |
-| Viewport and axes | `src/core/viewport.js` | `handleResize()`, `updateAxes()`, zoom operations |
+| SVG layout and axes | `src/components/table.js` | `updateSVGLayout()`, `renderAxes()`, `applyZoomTransform()` |
+| Viewport operations | `src/core/viewport.js` | `handleResize()`, `updateAxes()`, zoom operations |
 | Mode-specific rendering | `src/modes/*/` | Each mode's `renderPersistentFeatures()` and `renderCursor()` |
 | Event triggering | `src/core/events.js` | Mouse handlers that trigger re-renders |
 

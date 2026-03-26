@@ -11,6 +11,8 @@ When adding a new graphical feature, you will likely need to work with these fil
 | File | Purpose | When to Touch |
 |------|---------|---------------|
 | `src/rendering/cursors.js` | Main render entry point; clears and redraws all features | Adding a new visual element type |
+| `src/components/table.js` | SVG layout, axis rendering, zoom transforms | Changing axes or SVG structure |
+| `src/utils/coordinateTransformations.js` | Zoom-aware transforms, `dataToSVG()` | Positioning elements when zoomed |
 | `src/utils/svg.js` | SVG element creation helpers (`createSVGLine`, `createSVGText`, `createSVGCircle`) | Creating new SVG shapes |
 | `src/utils/coordinates.js` | Coordinate transforms (screen → SVG → image → data) | Positioning elements on the spectrogram |
 | `src/core/FeatureRenderer.js` | Cross-mode feature visibility coordinator | Feature needs to persist across mode switches |
