@@ -154,3 +154,9 @@ Example configuration:
 - **Analysis Mode**: Persistent draggable markers with cross-mode visibility
 - **Harmonics Mode**: Real-time harmonic calculation and display
 - **Doppler Mode**: Speed calculation with bearing and time inputs
+
+## Active Technologies
+- Markdown documentation (no code changes) + N/A (documentation-only feature) (154-enrich-docs)
+
+## Recent Changes
+- 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)
