@@ -1,0 +1,1178 @@
+/**
+ * GramFrame Component Styles - Military/Industrial Theme
+ */
+
+/* Container that replaces the config table */
+.gram-frame-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #1a1a1a;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  margin-bottom: 20px;
+}
+
+/* Focus indicator for multiple instances */
+.gram-frame-container.gram-frame-focused {
+  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);
+  border-radius: 8px;
+}
+
+/* Military-style table layout for proper resizing */
+.gram-frame-table {
+  display: table;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  border: 3px solid #444;
+  border-radius: 8px;
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.1),
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    0 4px 8px rgba(0,0,0,0.5);
+}
+
+.gram-frame-row {
+  display: table-row;
+}
+
+.gram-frame-row:nth-child(2) {
+  height: 100%; /* Main panel row should stretch */
+}
+
+.gram-frame-cell {
+  display: table-cell;
+  vertical-align: middle;
+  padding: 0;
+}
+
+
+/* Main panel with military frame */
+.gram-frame-main-panel {
+  padding: 15px;
+  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);
+  border: 3px solid #555;
+  border-radius: 8px;
+  box-shadow: 
+    inset 0 3px 6px rgba(0,0,0,0.5),
+    inset 0 -2px 4px rgba(255,255,255,0.1),
+    0 0 10px rgba(0,0,0,0.7);
+  position: relative;
+}
+
+.gram-frame-main-panel:before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  border: 1px solid #666;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* SVG container for drawing the spectrogram and overlays */
+.gram-frame-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #000;
+  border: 2px solid #333;
+  border-radius: 4px;
+  cursor: crosshair;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+}
+
+/* SVG image element for the spectrogram */
+.gram-frame-image {
+  /* Remove width/height CSS to allow SVG attributes to control positioning */
+}
+
+/* SVG axes styling - white on dark background */
+.gram-frame-axis-line {
+  stroke: #fff;
+  stroke-width: 1;
+  fill: none;
+}
+
+.gram-frame-axis-tick {
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.gram-frame-axis-tick-major {
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.gram-frame-axis-tick-minor {
+  stroke: #fff;
+  stroke-width: 1;
+}
+
+.gram-frame-axis-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 12px;
+  fill: #fff;
+  dominant-baseline: central;
+}
+
+.gram-frame-axis-label-major {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 10px;
+  fill: #fff;
+  dominant-baseline: central;
+}
+
+
+
+
+/* Military-style display panel */
+.gram-frame-display-panel {
+  padding: 10px;
+  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);
+  border-top: 2px solid #555;
+}
+
+.gram-frame-readout {
+  flex: 0 1 auto;
+  padding: 0;
+  background: transparent;
+}
+
+/* Harmonics mode CSS removed - now using unified layout */
+
+/* Harmonics layout container - two columns */
+
+/* Left column for controls - 40% width */
+.gram-frame-harmonics-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 0 0 40%;
+  max-width: 40%;
+}
+
+/* Top row in left column */
+.gram-frame-harmonics-top-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+/* Right column for table - 60% width */
+.gram-frame-harmonics-table-column {
+  flex: 0 0 60%;
+  max-width: 60%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Make color picker more compact in harmonics mode */
+.gram-frame-harmonics-mode .gram-frame-color-picker {
+  margin: 0;
+}
+
+/* Harmonic panel layout - always visible in unified layout */
+
+/* Military-style display windows */
+.gram-frame-led {
+  font-family: 'Courier New', monospace;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  color: #00ff00; /* LED green */
+  padding: 6px 0px;
+  border: 0px solid #333;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 100px;
+  text-align: center;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+  position: relative;
+  font-size: 11px;
+  height: fit-content;
+}
+
+.gram-frame-led:before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border: 1px solid #444;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* LED label */
+.gram-frame-led-label {
+  font-size: 10px;
+  color: #00ff00;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+/* LED value */
+.gram-frame-led-value {
+  font-size: 14px;
+  font-weight: bold;
+  text-shadow: 0 0 4px #00ff00;
+}
+
+/* Manual harmonic button */
+.gram-frame-manual-button {
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);
+  color: #ddd;
+  border: 2px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.2),
+    inset 0 -1px 2px rgba(0,0,0,0.3),
+    0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.1s ease;
+  min-width: 80px;
+}
+
+.gram-frame-manual-button:hover {
+  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.3),
+    inset 0 -1px 2px rgba(0,0,0,0.4),
+    0 3px 6px rgba(0,0,0,0.4);
+}
+
+.gram-frame-manual-button:active {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.4),
+    0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Color picker for harmonics */
+.gram-frame-color-picker {
+  margin-top: 0;
+  padding: 8px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+  max-width: 200px;
+  flex-shrink: 0;
+}
+
+.gram-frame-color-picker-label {
+  font-size: 10px;
+  color: #00ff00;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.gram-frame-color-palette {
+  position: relative;
+}
+
+.gram-frame-color-canvas {
+  width: 140px;
+  max-width: 140px;
+  height: 20px;
+  border: 1px solid #555;
+  border-radius: 2px;
+  cursor: pointer;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.gram-frame-color-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 26px;
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 1px;
+  pointer-events: none;
+  box-shadow: 0 0 2px rgba(0,0,0,0.8);
+}
+
+/* Analysis mode layout styles */
+.gram-frame-analysis-layout {
+  height: 100%;
+}
+
+.gram-frame-analysis-controls {
+  align-self: flex-start;
+}
+
+.gram-frame-analysis-leds {
+  /* Side-by-side LEDs container */
+}
+
+.gram-frame-analysis-leds .gram-frame-led {
+  /* Ensure LEDs in the horizontal container are sized properly */
+  font-size: 9px; /* Slightly smaller to fit side-by-side */
+}
+
+.gram-frame-analysis-leds .gram-frame-led-label {
+  font-size: 8px; /* Smaller label text */
+  color: #00ff00;
+}
+
+.gram-frame-analysis-markers {
+  height: 100%;
+}
+
+/* Unified table styles for both markers and harmonics */
+.gram-frame-table-container {
+  padding: 0;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.gram-frame-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  color: #ccc;
+  table-layout: fixed;
+}
+
+.gram-frame-table th {
+  background: #222;
+  color: #00ff00;
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #444;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gram-frame-table td {
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #444;
+  background: #1a1a1a;
+}
+
+.gram-frame-table tbody tr {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.gram-frame-table tbody tr:hover {
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.05),
+    inset 0 -1px 2px rgba(0,0,0,0.2),
+    0 0 4px rgba(255,255,255,0.1);
+}
+
+.gram-frame-table tbody tr:hover td {
+  background: transparent;
+}
+
+/* Legacy markers styles - kept for compatibility */
+.gram-frame-markers-container {
+  padding: 8px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+}
+
+.gram-frame-markers-label {
+  font-size: 10px;
+  color: #00ff00;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.gram-frame-markers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  color: #ccc;
+  table-layout: fixed;
+}
+
+.gram-frame-markers-table th {
+  background: #222;
+  color: #00ff00;
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #444;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gram-frame-markers-table td {
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #444;
+  background: #1a1a1a;
+}
+
+.gram-frame-color-swatch {
+  margin: 0 auto;
+  display: block;
+}
+
+.gram-frame-marker-delete-btn {
+  padding: 2px 6px;
+  border-radius: 2px;
+  transition: background-color 0.2s;
+}
+
+.gram-frame-marker-delete-btn:hover {
+  background-color: #ff4444 !important;
+  color: #fff !important;
+}
+
+/* Marker rendering styles */
+.gram-frame-marker-line {
+  opacity: 0.8;
+}
+
+.gram-frame-marker-point {
+  opacity: 0.9;
+}
+
+.gram-frame-current-color {
+  border: 1px solid #555;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* Military-style mode selection header */
+.gram-frame-mode-header {
+  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);
+  border-bottom: 2px solid #555;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.gram-frame-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: stretch;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+}
+
+.gram-frame-mode-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+/* Simplified left panel - no sub-columns needed */
+
+/* Guidance panel */
+.gram-frame-guidance {
+  flex: 1;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+}
+
+.gram-frame-guidance h4 {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  color: #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.gram-frame-guidance p {
+  margin: 0 0 4px 0;
+}
+
+/* Military-style metal buttons */
+.gram-frame-mode-btn {
+  padding: 8px 6px;
+  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);
+  color: #ddd;
+  border: 2px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex: 1;
+  min-width: 0;
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.2),
+    inset 0 -1px 2px rgba(0,0,0,0.3),
+    0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.1s ease;
+}
+
+.gram-frame-command-btn {
+  padding: 8px 10px;
+  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);
+  color: #ddd;
+  border: 2px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+  flex: 0 0 auto;
+  min-width: 32px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.2),
+    inset 0 -1px 2px rgba(0,0,0,0.3),
+    0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.1s ease;
+}
+
+.gram-frame-mode-btn:hover {
+  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.3),
+    inset 0 -1px 2px rgba(0,0,0,0.4),
+    0 3px 6px rgba(0,0,0,0.4);
+}
+
+.gram-frame-mode-btn.active {
+  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);
+  color: #aaffaa;
+  border-color: #4a8a4a;
+  box-shadow: 
+    inset 0 1px 2px rgba(0,0,0,0.3),
+    inset 0 -1px 2px rgba(255,255,255,0.1),
+    0 0 4px rgba(74, 138, 74, 0.3);
+}
+
+.gram-frame-mode-btn:active {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.4),
+    0 1px 2px rgba(0,0,0,0.2);
+}
+
+.gram-frame-mode-btn:disabled,
+.gram-frame-mode-btn.disabled {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  color: #666;
+  border-color: #333;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: 
+    inset 0 1px 2px rgba(0,0,0,0.3),
+    0 1px 2px rgba(0,0,0,0.1);
+}
+
+.gram-frame-mode-btn:disabled:hover,
+.gram-frame-mode-btn.disabled:hover {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(0,0,0,0.3),
+    0 1px 2px rgba(0,0,0,0.1);
+  transform: none;
+}
+
+.gram-frame-command-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(255,255,255,0.3),
+    inset 0 -1px 2px rgba(0,0,0,0.4),
+    0 3px 6px rgba(0,0,0,0.4);
+}
+
+.gram-frame-command-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.4),
+    0 1px 2px rgba(0,0,0,0.2);
+}
+
+.gram-frame-command-btn:disabled {
+  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);
+  color: #666;
+  border-color: #333;
+  cursor: not-allowed;
+  box-shadow: 
+    inset 0 1px 2px rgba(0,0,0,0.3),
+    0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Clear gram button — trainer pages only */
+.gram-frame-clear-btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);
+  color: #ddd;
+  border: 2px solid #6a3a3a;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,0.15),
+    inset 0 -1px 2px rgba(0,0,0,0.3),
+    0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.1s ease;
+  width: 100%;
+}
+
+.gram-frame-clear-btn:hover {
+  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,0.25),
+    inset 0 -1px 2px rgba(0,0,0,0.4),
+    0 3px 6px rgba(0,0,0,0.4);
+}
+
+.gram-frame-clear-btn:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.4),
+    0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Rate input UI styles removed - backend functionality preserved */
+
+/* SVG cursor styles removed - using CSS cursor only */
+
+/* SVG Harmonic line styles */
+
+
+.gram-frame-harmonic-line {
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+  stroke-linecap: round;
+}
+
+
+.gram-frame-harmonic-number {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+  /* Add text shadow for readability */
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+/* SVG Harmonic Set styles (new system) */
+
+.gram-frame-harmonic-set-line {
+  stroke-width: 2;
+  fill: none;
+  pointer-events: auto !important;
+  /*cursor: grab !important;*/
+  stroke-linecap: round;
+}
+
+.gram-frame-harmonic-set-line:hover {
+  stroke-width: 3;
+  /* cursor: grab !important; */
+}
+
+.gram-frame-harmonic-set-line:active {
+  cursor: grabbing !important;
+}
+
+/* Legacy harmonic styles (for backward compatibility) */
+.gram-frame-harmonic {
+  position: absolute;
+  height: 1px;
+  background-color: rgba(255, 255, 0, 0.7);
+  pointer-events: none;
+}
+
+
+
+/* Debug grid */
+
+/* Canvas boundary overlay */
+
+/* Message display */
+
+/* Error state */
+.gram-frame-error {
+  padding: 10px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+/* Legacy harmonic panel styles - now using unified table structure */
+
+.gram-frame-harmonic-spacing,
+.gram-frame-harmonic-rate {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.gram-frame-harmonic-color {
+  width: 20px;
+  height: 12px;
+  border: 1px solid #555;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.gram-frame-harmonic-delete {
+  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);
+  color: #ff6666;
+  border: 1px solid #555;
+  border-radius: 2px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+}
+
+.gram-frame-harmonic-delete:hover {
+  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);
+  border-color: #777;
+}
+
+.gram-frame-harmonic-delete:active {
+  transform: translateY(1px);
+}
+
+.gram-frame-harmonic-empty {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
+}
+
+/* Doppler mode styles */
+.gram-frame-doppler-fPlus {
+  pointer-events: auto;
+}
+
+.gram-frame-doppler-fMinus {
+  pointer-events: auto;
+}
+
+.gram-frame-doppler-crosshair {
+  pointer-events: auto;
+}
+
+.gram-frame-doppler-curve {
+  pointer-events: none;
+}
+
+.gram-frame-doppler-guide {
+  pointer-events: none;
+}
+
+.gram-frame-doppler-label {
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+}
+
+/* Cursor position readout styles */
+.gram-frame-cursor-readout {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  border: 1px solid #444;
+  border-radius: 4px;
+}
+
+.gram-frame-readout-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.gram-frame-readout-label {
+  font-size: 10px;
+  color: #aaa;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+.gram-frame-readout-value {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  color: #00ff00;
+  background: #000;
+  padding: 4px 8px;
+  border: 1px solid #333;
+  border-radius: 2px;
+  text-align: center;
+  min-width: 60px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+}
+
+/* Modal dialog styles */
+.gram-frame-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.gram-frame-modal {
+  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  border: 2px solid #555;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  min-width: 350px;
+  max-width: 500px;
+  color: #ddd;
+}
+
+.gram-frame-modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #444;
+  background: linear-gradient(180deg, #444 0%, #333 100%);
+  border-radius: 6px 6px 0 0;
+}
+
+.gram-frame-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+  text-align: center;
+}
+
+.gram-frame-modal-body {
+  padding: 20px;
+}
+
+.gram-frame-modal-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gram-frame-modal-input-group label {
+  font-weight: bold;
+  color: #ccc;
+  font-size: 14px;
+}
+
+.gram-frame-modal-input-group input {
+  padding: 10px 12px;
+  border: 2px solid #555;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  color: #fff;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+.gram-frame-modal-input-group input:focus {
+  outline: none;
+  border-color: #777;
+  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);
+}
+
+.gram-frame-modal-error {
+  color: #ff6b6b;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.gram-frame-modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #444;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-radius: 0 0 6px 6px;
+}
+
+.gram-frame-modal-btn {
+  padding: 8px 16px;
+  border: 2px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+  transition: all 0.1s ease;
+  min-width: 80px;
+}
+
+.gram-frame-modal-cancel {
+  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);
+  color: #ffaaaa;
+}
+
+.gram-frame-modal-cancel:hover {
+  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);
+}
+
+.gram-frame-modal-add {
+  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);
+  color: #aaffaa;
+}
+
+.gram-frame-modal-add:hover {
+  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);
+}
+
+.gram-frame-modal-add:disabled {
+  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);
+  color: #666;
+  cursor: not-allowed;
+}
+
+.gram-frame-modal-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Zoom controls removed - now integrated into pan mode command buttons */
+
+/* Unified Layout Styles */
+.gram-frame-unified-layout {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 2px; /* Match JavaScript gap */
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Prevent columns from overflowing container */
+}
+
+.gram-frame-left-column {
+  position: relative; /* Enable absolute positioning for child elements */
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  flex: 0 0 600px;
+  width: 600px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Left column sub-columns */
+.gram-frame-mode-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 130px;
+  width: 130px;
+  padding: 8px;
+  border: none;
+}
+
+.gram-frame-guidance-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 150px;
+  border: none;
+}
+
+.gram-frame-controls-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 210px;
+  width: 210px;
+  padding: 0px;
+  border: none;
+}
+
+.gram-frame-middle-column {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 160px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  padding: 5px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.gram-frame-right-column {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 200px;
+  min-width: 200px;
+  width: 200px;
+  padding: 5px;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.gram-frame-cursor-leds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-items: flex-start;
+  flex: 0 0 auto;
+  height: fit-content;
+}
+
+.gram-frame-markers-persistent-container,
+.gram-frame-harmonics-persistent-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.gram-frame-markers-persistent-container h4,
+.gram-frame-harmonics-persistent-container h4 {
+  margin: 0 0 8px 0;
+  flex-shrink: 0;
+  color: #ddd;
+  font-size: 14px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 4px;
+}
+
+.gram-frame-harmonics-button-container {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Responsive behavior for smaller screens */
+@media (max-width: 1200px) {
+  .gram-frame-unified-layout {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .gram-frame-left-column,
+  .gram-frame-middle-column,
+  .gram-frame-right-column {
+    flex: 0 0 auto;
+    min-height: 200px;
+  }
+}
+
+/* Selection highlighting for keyboard control */
+.gram-frame-selected-row {
+  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;
+  color: #aaffaa !important;
+  outline: 2px solid #4a8a4a !important;
+  outline-offset: -1px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.15),
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    0 0 8px rgba(74, 138, 74, 0.6),
+    0 0 2px rgba(74, 138, 74, 0.8) !important;
+}
+
+.gram-frame-selected-row td {
+  color: #aaffaa !important;
+  border-color: #4a8a4a !important;
+  position: relative;
+  z-index: 11;
+}
+
+/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */
+
+/* Selected Doppler marker highlighting */
+.gram-frame-selected-doppler-marker {
+  stroke: #4a8a4a !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;
+}
+
+.gram-frame-selected-doppler-marker[fill] {
+  fill: #4a8a4a !important;
+  stroke: #aaffaa !important;
+}
+

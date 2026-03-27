@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiple GramFrames Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .test-container {
+      margin: 20px 0;
+      padding: 15px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+    }
+    .test-container h3 {
+      margin-top: 0;
+    }
+    .gram-config {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Multiple GramFrames Focus Test</h1>
+  
+  <div class="test-container">
+    <h3>GramFrame 1</h3>
+    <table class="gram-config" id="config1">
+      <tbody>
+        <tr>
+          <td colspan="3">
+            <img src="test-spectrogram.png" width="600" height="400" alt="Test spectrogram 1">
+          </td>
+        </tr>
+        <tr><td>time</td><td>0</td><td>300</td></tr>
+        <tr><td>frequency</td><td>0</td><td>20000</td></tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="test-container">
+    <h3>GramFrame 2</h3>
+    <table class="gram-config" id="config2">
+      <tbody>
+        <tr>
+          <td colspan="3">
+            <img src="test-spectrogram.png" width="600" height="400" alt="Test spectrogram 2">
+          </td>
+        </tr>
+        <tr><td>time</td><td>0</td><td>300</td></tr>
+        <tr><td>frequency</td><td>0</td><td>20000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    // Use the built distribution
+    import { GramFrame } from '/dist/assets/main-BGJjQg6A.js'
+    
+    // Auto-initialize when DOM is ready  
+    document.addEventListener('DOMContentLoaded', () => {
+      const configTables = document.querySelectorAll('table.gram-config')
+      configTables.forEach((table, index) => {
+        const instance = new GramFrame(table)
+        window[`gramFrame${index + 1}`] = instance // For debugging
+      })
+    })
+  </script>
+</body>
+</html>

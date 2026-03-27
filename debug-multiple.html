@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiple GramFrame Debug</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f0f0f0;
+    }
+    .test-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    /* Additional styles for multiple instances */
+    .gram-config {
+      margin-bottom: 20px;
+    }
+  </style>
+  <link rel="stylesheet" href="./src/gramframe.css" />
+  <script type="module" src="./src/main.js"></script>
+</head>
+<body>
+  <h1>Multiple GramFrame Test Page</h1>
+  <h3>Return to <a href="./debug.html">Debug Page</a></h3>
+  <div class="test-section">
+    <h2>GramFrame Instance 1</h2>
+    <table class="gram-config">
+      <tr>
+        <td colspan="2">
+          <img src="./sample/mock-gram.png" alt="Sample Spectrogram 1">
+        </td>
+      </tr>
+      <tr>
+        <td>time-start</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>time-end</td>
+        <td>60</td>
+      </tr>
+      <tr>
+        <td>freq-start</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>freq-end</td>
+        <td>200</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="test-section">
+    <h2>GramFrame Instance 2a</h2>
+    <table class="gram-config">
+      <tr>
+        <td colspan="2">
+          <img src="./sample/mock-gram-3.png" alt="Sample Spectrogram 2">
+        </td>
+      </tr>
+      <tr>
+        <td>time-start</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>time-end</td>
+        <td>60</td>
+      </tr>
+      <tr>
+        <td>freq-start</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>freq-end</td>
+        <td>20000</td>
+      </tr>
+    </table>
+
+      <table class="gram-config">
+      <tr>
+        <td colspan="2">
+          <img src="./sample/mock-gram-large.png" alt="Sample Spectrogram 3">
+        </td>
+      </tr>
+      <tr>
+        <td>time-start</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>time-end</td>
+        <td>60</td>
+      </tr>
+      <tr>
+        <td>freq-start</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>freq-end</td>
+        <td>5000</td>
+      </tr>
+    </table>
+  </div>
+
+  
+</body>
+</html>
