@@ -312,6 +312,72 @@ class GramFramePage {
     // Click on the SVG area (spectrogram is within the SVG)
     await this.svg.click({ position: { x, y } })
   }
+  /**
+   * Clear all GramFrame storage entries from both localStorage and sessionStorage
+   * @returns {Promise<void>}
+   */
+  async clearStorage() {
+    await this.page.evaluate(() => {
+      const stores = [localStorage, sessionStorage]
+      for (const store of stores) {
+        const keysToRemove = []
+        for (let i = 0; i < store.length; i++) {
+          const key = store.key(i)
+          if (key && key.startsWith('gramframe::')) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(k => store.removeItem(k))
+      }
+    })
+  }
+
+  /**
+   * Get a storage entry by its full key
+   * @param {string} key - The storage key to retrieve
+   * @param {'local' | 'session'} [storageType='local'] - Which storage to read from
+   * @returns {Promise<any|null>} Parsed JSON value or null
+   */
+  async getStorageEntry(key, storageType = 'local') {
+    return this.page.evaluate(([k, type]) => {
+      const store = type === 'local' ? localStorage : sessionStorage
+      const raw = store.getItem(k)
+      return raw ? JSON.parse(raw) : null
+    }, [key, storageType])
+  }
+
+  /**
+   * Set a storage entry
+   * @param {string} key - The storage key
+   * @param {any} value - Value to store (will be JSON-stringified)
+   * @param {'local' | 'session'} [storageType='local'] - Which storage to write to
+   * @returns {Promise<void>}
+   */
+  async setStorageEntry(key, value, storageType = 'local') {
+    await this.page.evaluate(([k, v, type]) => {
+      const store = type === 'local' ? localStorage : sessionStorage
+      store.setItem(k, JSON.stringify(v))
+    }, [key, value, storageType])
+  }
+
+  /**
+   * Get all GramFrame storage keys
+   * @param {'local' | 'session'} [storageType='local'] - Which storage to check
+   * @returns {Promise<string[]>} Array of matching storage keys
+   */
+  async getStorageKeys(storageType = 'local') {
+    return this.page.evaluate((type) => {
+      const store = type === 'local' ? localStorage : sessionStorage
+      const keys = []
+      for (let i = 0; i < store.length; i++) {
+        const key = store.key(i)
+        if (key && key.startsWith('gramframe::')) {
+          keys.push(key)
+        }
+      }
+      return keys
+    }, storageType)
+  }
 }
 
 export { GramFramePage }

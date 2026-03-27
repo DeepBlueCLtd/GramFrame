@@ -207,6 +207,55 @@
  */
 
 /**
+ * Stored annotation set persisted in browser storage for a single GramFrame instance
+ * @typedef {Object} StoredAnnotations
+ * @property {number} version - Schema version (currently 1)
+ * @property {string} savedAt - ISO 8601 timestamp of last save
+ * @property {StoredAnalysisData} analysis - Stored analysis mode annotations
+ * @property {StoredHarmonicsData} harmonics - Stored harmonics mode annotations
+ * @property {StoredDopplerData} doppler - Stored doppler mode annotations
+ */
+
+/**
+ * Stored analysis data
+ * @typedef {Object} StoredAnalysisData
+ * @property {Array<StoredMarker>} markers - All analysis markers
+ */
+
+/**
+ * Stored marker (persisted subset of AnalysisMarker)
+ * @typedef {Object} StoredMarker
+ * @property {string} id - Unique marker identifier
+ * @property {string} color - Marker colour (hex)
+ * @property {number} time - Time position in seconds
+ * @property {number} freq - Frequency position in Hz
+ */
+
+/**
+ * Stored harmonics data
+ * @typedef {Object} StoredHarmonicsData
+ * @property {Array<StoredHarmonicSet>} harmonicSets - All harmonic sets
+ */
+
+/**
+ * Stored harmonic set (persisted subset of HarmonicSet)
+ * @typedef {Object} StoredHarmonicSet
+ * @property {string} id - Unique identifier
+ * @property {string} color - Display colour (hex)
+ * @property {number} anchorTime - Y-axis position in seconds
+ * @property {number} spacing - Frequency spacing between harmonics in Hz
+ */
+
+/**
+ * Stored doppler data
+ * @typedef {Object} StoredDopplerData
+ * @property {DataCoordinates|null} fPlus - Upper frequency marker position
+ * @property {DataCoordinates|null} fMinus - Lower frequency marker position
+ * @property {DataCoordinates|null} fZero - Centre frequency marker position
+ * @property {string|null} color - Curve colour (hex)
+ */
+
+/**
  * State listener callback function
  * @typedef {function(GramFrameState): void} StateListener
  */
