@@ -61,6 +61,7 @@ export default defineConfig(({ command }) => {
         minify: false, // Ensure source remains readable for field debugging
         rollupOptions: {
           input: {
+            index: resolve(__dirname, 'index.html'),
             main: resolve(__dirname, 'sample/index.html'),
             debug: resolve(__dirname, 'debug.html'),
             'debug-trainer': resolve(__dirname, 'debug-trainer.html')
