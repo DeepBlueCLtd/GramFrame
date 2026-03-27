@@ -62,7 +62,8 @@ export default defineConfig(({ command }) => {
         rollupOptions: {
           input: {
             main: resolve(__dirname, 'sample/index.html'),
-            debug: resolve(__dirname, 'debug.html')
+            debug: resolve(__dirname, 'debug.html'),
+            'debug-trainer': resolve(__dirname, 'debug-trainer.html')
           }
         }
       }
