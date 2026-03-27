@@ -49,6 +49,13 @@ import {
 } from './core/events.js'
 
 import {
+  saveAnnotations,
+  loadAnnotations,
+  clearAnnotations,
+  detectUserContext
+} from './core/storage.js'
+
+import {
   cleanupKeyboardControl
 } from './core/keyboardControl.js'
 
@@ -114,7 +121,13 @@ export class GramFrame {
   
   // Bound event handlers
   _boundHandleResize;
-  
+
+  // Storage instance index for multi-instance pages
+  _storageInstanceIndex;
+
+  // Whether this instance is a trainer context
+  _isTrainerContext;
+
   /**
    * Creates a new GramFrame instance
    * @param {HTMLTableElement} configTable - Configuration table element to replace
@@ -125,7 +138,13 @@ export class GramFrame {
     this.configTable = configTable
     this.stateListeners = []
     this.instanceId = ''
-    
+
+    // Determine storage instance index (count existing containers)
+    this._storageInstanceIndex = document.querySelectorAll('.gram-frame-container').length
+
+    // Detect trainer vs student context
+    this._isTrainerContext = detectUserContext() === 'trainer'
+
     // Delegate to initialization modules
     initializeDOMProperties(this)
     setupSpectrogramComponents(this)
@@ -137,7 +156,18 @@ export class GramFrame {
     updateModeUIWithCommands(this)
     setupAllEventListeners(this)
     setupStateListeners(this)
-    
+
+    // Add "Clear gram" button for trainer pages
+    if (this._isTrainerContext) {
+      this._addClearGramButton()
+    }
+
+    // Restore saved annotations before first render
+    this._restoreAnnotations()
+
+    // Register storage save listener
+    this._setupStorageSaveListener()
+
     // Final state notification
     notifyStateListeners(this.state, this.stateListeners)
   }
@@ -210,6 +240,117 @@ export class GramFrame {
     handleResize(this)
   }
   
+  /**
+   * Add a "Clear gram" button to the controls area (trainer pages only)
+   */
+  _addClearGramButton() {
+    const btn = document.createElement('button')
+    btn.className = 'gram-frame-clear-btn'
+    btn.textContent = 'Clear gram'
+    btn.title = 'Remove all annotations for this gram'
+    btn.addEventListener('click', (e) => {
+      e.preventDefault()
+      this._clearGram()
+    })
+
+    // Append to the mode column alongside the mode buttons
+    if (this.modeColumn) {
+      this.modeColumn.appendChild(btn)
+    }
+  }
+
+  /**
+   * Clear all annotations from state and storage
+   */
+  _clearGram() {
+    // Reset analysis markers
+    this.state.analysis.markers = []
+    this.state.analysis.isDragging = false
+    this.state.analysis.draggedMarkerId = null
+
+    // Reset harmonic sets
+    this.state.harmonics.harmonicSets = []
+
+    // Reset doppler
+    this.state.doppler.fPlus = null
+    this.state.doppler.fMinus = null
+    this.state.doppler.fZero = null
+    this.state.doppler.speed = null
+    this.state.doppler.color = null
+
+    // Clear selection
+    this.state.selection.selectedType = null
+    this.state.selection.selectedId = null
+    this.state.selection.selectedIndex = null
+
+    // Remove from storage
+    clearAnnotations(this._storageInstanceIndex)
+
+    // Re-render
+    if (this.featureRenderer) {
+      this.featureRenderer.renderAllPersistentFeatures()
+    }
+    if (this.currentMode && typeof this.currentMode.activate === 'function') {
+      this.currentMode.cleanup()
+      this.currentMode.activate()
+    }
+
+    notifyStateListeners(this.state, this.stateListeners)
+  }
+
+  /**
+   * Restore saved annotations from browser storage into state
+   */
+  _restoreAnnotations() {
+    const saved = loadAnnotations(this._storageInstanceIndex)
+    if (!saved) return
+
+    // Merge analysis markers
+    if (saved.analysis && Array.isArray(saved.analysis.markers)) {
+      this.state.analysis.markers = saved.analysis.markers
+    }
+
+    // Merge harmonic sets
+    if (saved.harmonics && Array.isArray(saved.harmonics.harmonicSets)) {
+      this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets
+    }
+
+    // Merge doppler state
+    if (saved.doppler) {
+      this.state.doppler.fPlus = saved.doppler.fPlus || null
+      this.state.doppler.fMinus = saved.doppler.fMinus || null
+      this.state.doppler.fZero = saved.doppler.fZero || null
+      if (saved.doppler.color) {
+        this.state.doppler.color = saved.doppler.color
+      }
+    }
+  }
+
+  /**
+   * Set up a state listener that saves annotations on relevant state changes
+   */
+  _setupStorageSaveListener() {
+    /** @type {string} */
+    let lastSerialised = ''
+
+    this.stateListeners.push((state) => {
+      // Build a minimal representation of annotation-relevant state
+      const annotationSnapshot = JSON.stringify({
+        markers: state.analysis && state.analysis.markers,
+        harmonicSets: state.harmonics && state.harmonics.harmonicSets,
+        fPlus: state.doppler && state.doppler.fPlus,
+        fMinus: state.doppler && state.doppler.fMinus,
+        fZero: state.doppler && state.doppler.fZero,
+        dopplerColor: state.doppler && state.doppler.color
+      })
+
+      if (annotationSnapshot !== lastSerialised) {
+        lastSerialised = annotationSnapshot
+        saveAnnotations(this.state, this._storageInstanceIndex)
+      }
+    })
+  }
+
   /**
    * Destroy the component and clean up resources
    */

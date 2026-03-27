@@ -19,8 +19,8 @@
 
 **Purpose**: No new project initialisation needed — GramFrame is an existing project. This phase creates the shared storage module.
 
-- [ ] T001 Create storage adapter module with context detection, key generation, save/load/clear operations, schema versioning, and graceful degradation (try/catch around all Web Storage calls) in `src/core/storage.js`
-- [ ] T002 Add JSDoc type definitions for StoredAnnotations, AnalysisData, HarmonicsData, DopplerData, and DataCoordinates in `src/types.js`
+- [x] T001 Create storage adapter module with context detection, key generation, save/load/clear operations, schema versioning, and graceful degradation (try/catch around all Web Storage calls) in `src/core/storage.js`
+- [x] T002 Add JSDoc type definitions for StoredAnnotations, AnalysisData, HarmonicsData, DopplerData, and DataCoordinates in `src/types.js`
 
 ---
 
@@ -30,10 +30,10 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add state listener in GramFrame constructor that calls `saveAnnotations()` on every state change (filtering to only save when annotation-relevant state changes) in `src/main.js`
-- [ ] T004 Add restore logic in GramFrame constructor — after mode infrastructure is initialised but before first `notifyStateListeners()` call — to load saved annotations and merge into `this.state` in `src/main.js`
-- [ ] T005 Pass instance index to storage functions to support multiple GramFrame instances on the same page in `src/main.js`
-- [ ] T006 Run `yarn typecheck` to validate all new JSDoc types and storage module signatures
+- [x] T003 Add state listener in GramFrame constructor that calls `saveAnnotations()` on every state change (filtering to only save when annotation-relevant state changes) in `src/main.js`
+- [x] T004 Add restore logic in GramFrame constructor — after mode infrastructure is initialised but before first `notifyStateListeners()` call — to load saved annotations and merge into `this.state` in `src/main.js`
+- [x] T005 Pass instance index to storage functions to support multiple GramFrame instances on the same page in `src/main.js`
+- [x] T006 Run `yarn typecheck` to validate all new JSDoc types and storage module signatures
 
 **Checkpoint**: Foundation ready — storage saves and restores automatically. User story implementation can now begin.
 
@@ -47,17 +47,17 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Write Playwright test: add analysis markers on a trainer page, reload, verify markers are restored with correct positions and colours in `tests/storage.spec.ts`
-- [ ] T008 [P] [US1] Write Playwright test: add harmonic sets on a trainer page, reload, verify harmonic sets are restored with correct spacing and anchor positions in `tests/storage.spec.ts`
-- [ ] T009 [P] [US1] Write Playwright test: add doppler curve on a trainer page, reload, verify fPlus/fMinus/fZero markers and curve are restored in `tests/storage.spec.ts`
-- [ ] T010 [P] [US1] Write Playwright test: verify annotations are silently restored without any prompt or confirmation dialog in `tests/storage.spec.ts`
+- [x] T007 [P] [US1] Write Playwright test: add analysis markers on a trainer page, reload, verify markers are restored with correct positions and colours in `tests/storage.spec.ts`
+- [x] T008 [P] [US1] Write Playwright test: add harmonic sets on a trainer page, reload, verify harmonic sets are restored with correct spacing and anchor positions in `tests/storage.spec.ts`
+- [x] T009 [P] [US1] Write Playwright test: add doppler curve on a trainer page, reload, verify fPlus/fMinus/fZero markers and curve are restored in `tests/storage.spec.ts`
+- [x] T010 [P] [US1] Write Playwright test: verify annotations are silently restored without any prompt or confirmation dialog in `tests/storage.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Create a test HTML page that includes an "ANALYSIS" link to simulate a trainer page for Playwright testing in `tests/fixtures/trainer-page.html`
-- [ ] T012 [US1] Ensure `detectUserContext()` in `src/core/storage.js` correctly returns trainer context when an anchor with exact text "ANALYSIS" is present on the page
-- [ ] T013 [US1] Verify that trainer context uses `localStorage` so annotations survive browser restarts — validate by running T007–T010 tests
-- [ ] T014 [US1] Add GramFramePage helper methods for storage testing (e.g., `clearStorage()`, `getStorageEntry()`, `setStorageEntry()`) in `tests/helpers/gram-frame-page.js`
+- [x] T011 [US1] Create a test HTML page that includes an "ANALYSIS" link to simulate a trainer page for Playwright testing in `tests/fixtures/trainer-page.html`
+- [x] T012 [US1] Ensure `detectUserContext()` in `src/core/storage.js` correctly returns trainer context when an anchor with exact text "ANALYSIS" is present on the page
+- [x] T013 [US1] Verify that trainer context uses `localStorage` so annotations survive browser restarts — validate by running T007–T010 tests
+- [x] T014 [US1] Add GramFramePage helper methods for storage testing (e.g., `clearStorage()`, `getStorageEntry()`, `setStorageEntry()`) in `tests/helpers/gram-frame-page.js`
 
 **Checkpoint**: Trainer persistence is fully functional and independently testable.
 
@@ -71,14 +71,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T015 [P] [US2] Write Playwright test: add annotations on a student page (no "ANALYSIS" link), reload, verify annotations persist within the session in `tests/storage.spec.ts`
-- [ ] T016 [P] [US2] Write Playwright test: add annotations on a student page, close browser context and open a new one, verify annotations are gone (clean slate) in `tests/storage.spec.ts`
+- [x] T015 [P] [US2] Write Playwright test: add annotations on a student page (no "ANALYSIS" link), reload, verify annotations persist within the session in `tests/storage.spec.ts`
+- [x] T016 [P] [US2] Write Playwright test: add annotations on a student page, close browser context and open a new one, verify annotations are gone (clean slate) in `tests/storage.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Create a test HTML page without an "ANALYSIS" link to simulate a student page for Playwright testing in `tests/fixtures/student-page.html`
-- [ ] T018 [US2] Ensure `detectUserContext()` in `src/core/storage.js` correctly returns student context when no "ANALYSIS" link is present, selecting `sessionStorage`
-- [ ] T019 [US2] Verify student context behaviour by running T015–T016 tests
+- [x] T017 [US2] Create a test HTML page without an "ANALYSIS" link to simulate a student page for Playwright testing in `tests/fixtures/student-page.html`
+- [x] T018 [US2] Ensure `detectUserContext()` in `src/core/storage.js` correctly returns student context when no "ANALYSIS" link is present, selecting `sessionStorage`
+- [x] T019 [US2] Verify student context behaviour by running T015–T016 tests
 
 **Checkpoint**: Student session-scoped persistence is fully functional and independently testable.
 
@@ -92,16 +92,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Write Playwright test: on a trainer page with stored annotations, click "Clear gram" button, verify annotations are removed from display and storage in `tests/storage.spec.ts`
-- [ ] T021 [P] [US3] Write Playwright test: after clearing a gram, reload the page and verify no annotations are restored in `tests/storage.spec.ts`
-- [ ] T022 [P] [US3] Write Playwright test: on a student page, verify no "Clear gram" button is visible in `tests/storage.spec.ts`
+- [x] T020 [P] [US3] Write Playwright test: on a trainer page with stored annotations, click "Clear gram" button, verify annotations are removed from display and storage in `tests/storage.spec.ts`
+- [x] T021 [P] [US3] Write Playwright test: after clearing a gram, reload the page and verify no annotations are restored in `tests/storage.spec.ts`
+- [x] T022 [P] [US3] Write Playwright test: on a student page, verify no "Clear gram" button is visible in `tests/storage.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Add "Clear gram" button rendering (trainer pages only) in the existing controls area in `src/components/UIComponents.js`
-- [ ] T024 [US3] Wire "Clear gram" button click handler to call `clearAnnotations()` from storage module and reset component state (analysis markers, harmonic sets, doppler data) in `src/main.js`
-- [ ] T025 [US3] Style "Clear gram" button to match existing UI controls in `src/gramframe.css`
-- [ ] T026 [US3] Verify "Clear gram" behaviour by running T020–T022 tests
+- [x] T023 [US3] Add "Clear gram" button rendering (trainer pages only) in the existing controls area in `src/components/UIComponents.js`
+- [x] T024 [US3] Wire "Clear gram" button click handler to call `clearAnnotations()` from storage module and reset component state (analysis markers, harmonic sets, doppler data) in `src/main.js`
+- [x] T025 [US3] Style "Clear gram" button to match existing UI controls in `src/gramframe.css`
+- [x] T026 [US3] Verify "Clear gram" behaviour by running T020–T022 tests
 
 **Checkpoint**: Clear gram functionality is complete and independently testable.
 
@@ -111,12 +111,12 @@
 
 **Purpose**: Edge cases, degradation, and final validation
 
-- [ ] T027 [P] Write Playwright test: verify graceful degradation when storage is unavailable (annotations work but are not persisted, no errors shown) in `tests/storage.spec.ts`
-- [ ] T028 [P] Write Playwright test: verify stored data with unrecognised schema version is discarded with console warning on page load in `tests/storage.spec.ts`
-- [ ] T029 [P] Write Playwright test: verify no storage entry is created until the user makes their first annotation in `tests/storage.spec.ts`
-- [ ] T030 Run `yarn typecheck` — zero errors
-- [ ] T031 Run `yarn test` — all Playwright tests green (existing + new storage tests)
-- [ ] T032 Run `yarn build` — clean production build
+- [x] T027 [P] Write Playwright test: verify graceful degradation when storage is unavailable (annotations work but are not persisted, no errors shown) in `tests/storage.spec.ts`
+- [x] T028 [P] Write Playwright test: verify stored data with unrecognised schema version is discarded with console warning on page load in `tests/storage.spec.ts`
+- [x] T029 [P] Write Playwright test: verify no storage entry is created until the user makes their first annotation in `tests/storage.spec.ts`
+- [x] T030 Run `yarn typecheck` — zero errors
+- [x] T031 Run `yarn test` — all Playwright tests green (existing + new storage tests)
+- [x] T032 Run `yarn build` — clean production build
 
 ---
 
