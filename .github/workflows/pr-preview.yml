@@ -38,6 +38,7 @@ jobs:
           cp -r sample _site/
           cp index.html _site/
           cp debug.html _site/
+          cp debug-trainer.html _site/
           cp debug-multiple.html _site/
           cp test-release.html _site/
           # Standalone demo pages
