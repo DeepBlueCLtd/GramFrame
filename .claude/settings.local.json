@@ -83,7 +83,12 @@
       "Bash(touch:*)",
       "Bash(kill:*)",
       "Bash(git pull:*)",
-      "Bash(yarn install:*)"
+      "Bash(yarn install:*)",
+      "Bash(bash .specify/scripts/bash/check-prerequisites.sh --json --paths-only)",
+      "Bash(bash .specify/scripts/bash/setup-plan.sh --json)",
+      "Bash(bash .specify/scripts/bash/update-agent-context.sh claude)",
+      "Bash(bash .specify/scripts/bash/check-prerequisites.sh --json)",
+      "Bash(bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks)"
     ]
   }
 }
