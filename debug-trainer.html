@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GramFrame Trainer Page</title>
+  <title>GramFrame Debug Page (Trainer)</title>
   <link rel="stylesheet" href="./src/gramframe.css" />
   <script type="module" src="./src/main.js"></script>
   <style>
@@ -12,99 +12,328 @@
       padding: 20px;
       margin: 0;
     }
-
+    
     h1 {
       color: #333;
       border-bottom: 1px solid #ddd;
       padding-bottom: 10px;
     }
-
-    .page-nav {
-      margin-bottom: 15px;
-      font-size: 14px;
+    
+    .debug-container {
+      margin: 20px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
     }
-
-    .page-nav a {
-      color: #1a73e8;
-    }
-
-    .context-badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: bold;
-      background-color: #1b5e20;
-      color: #fff;
-      margin-left: 10px;
-      vertical-align: middle;
-    }
-
-    .component-container {
+    
+    .component-container,
+    .diagnostics-panel {
       padding: 15px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      background-color: #f9f9f9;
+      flex-basis: calc(60% - 10px);
+      box-sizing: border-box;
+    }
+    
+    .component-container {
+      flex-basis: calc(75% - 10px);
       min-width: 1020px;
     }
-
-    .component-container img,
-    .gram-frame-container {
-      width: 100%;
-      height: auto;
+    
+    .diagnostics-panel {
+      flex-basis: calc(25% - 10px);
     }
-
+    
+    @media (max-width: 768px) {
+      .component-container,
+      .diagnostics-panel {
+        flex-basis: 100%;
+      }
+    }
+    
+    .component-container {
+      background-color: #f9f9f9;
+    }
+    
+    .diagnostics-panel {
+      background-color: #fff;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .diagnostics-panel h2 {
+      margin-top: 0;
+      font-size: 1.2em;
+      color: #555;
+    }
+    
+    .panel-section {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #eaeaea;
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+    
+    .panel-section h3 {
+      margin-top: 0;
+      color: #444;
+      font-size: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+    }
+    
+    pre {
+      white-space: pre;
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 60vh;
+      font-size: 14px;
+      font-family: monospace;
+    }
+    
     table.gram-config {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 20px;
     }
-
+    
     table.gram-config th,
     table.gram-config td {
       border: 1px solid #ddd;
       padding: 8px;
       text-align: left;
     }
+    
+    table.gram-config th {
+      background-color: #f2f2f2;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .component-container img,
+    .gram-frame-container {
+      width: 100%;
+      height: auto;
+    }
+    
+    button {
+      padding: 8px 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    .diagnostics-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    
+    .diagnostics-table td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .diagnostics-table td:first-child {
+      font-weight: bold;
+      width: 40%;
+    }
   </style>
 </head>
 <body>
-  <h1>GramFrame Trainer Page <span class="context-badge">TRAINER — localStorage</span></h1>
-  <div class="page-nav">
-    <a href="debug.html">&larr; Student page (sessionStorage)</a>
-    &nbsp;|&nbsp;
-    <a href="debug-multiple.html">Multi-gram page</a>
-    &nbsp;|&nbsp;
-    <!-- This ANALYSIS link triggers trainer context detection in storage.js -->
-    <a href="#">ANALYSIS</a>
+  <h1>GramFrame Debug Page <span style="display:inline-block;padding:3px 10px;border-radius:4px;font-size:13px;font-weight:bold;background:#1b5e20;color:#fff;margin-left:10px;vertical-align:middle">TRAINER — localStorage</span></h1>
+  <h3><a href="debug.html">Student page (sessionStorage)</a> | <a href="debug-multiple.html">Multi-gram page</a> | <a href="#">ANALYSIS</a></h3>
+  
+  <div class="debug-container">
+    <div class="component-container">
+      <h2>Component Instance</h2>
+      
+      <!-- Sample config table that will be replaced by the component -->
+      <table class="gram-config">
+        <tr>
+          <td colspan="2">
+            <img src="./sample/mock-gram.png" alt="Sample Spectrogram">
+          </td>
+        </tr>
+        <tr>
+          <td>time-start</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>time-end</td>
+          <td>60</td>
+        </tr>
+        <tr>
+          <td>freq-start</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>freq-end</td>
+          <td>100</td>
+        </tr>
+      </table>
+    </div>
+    
+    <div class="diagnostics-panel">
+      <h2>Diagnostics Panel</h2>
+      
+      <div class="panel-section">
+        <h3>Image Details</h3>
+        <table class="diagnostics-table">
+          <tr>
+            <td>URL:</td>
+            <td id="image-url">-</td>
+          </tr>
+          <tr>
+            <td>Size:</td>
+            <td id="image-size">-</td>
+          </tr>
+          <tr>
+            <td>Time Range:</td>
+            <td id="time-range">-</td>
+          </tr>
+          <tr>
+            <td>Frequency Range:</td>
+            <td id="freq-range">-</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div class="panel-section">
+        <h3>Mouse Coordinates</h3>
+        <table class="diagnostics-table">
+          <tr>
+            <td>Canvas Position:</td>
+            <td id="mouse-canvas-pos">-</td>
+          </tr>
+          <tr>
+            <td>Time:</td>
+            <td id="mouse-time">-</td>
+          </tr>
+          <tr>
+            <td>Frequency:</td>
+            <td id="mouse-freq">-</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div class="panel-section">
+        <h3>State Display</h3>
+        <pre id="state-display">Loading...</pre>
+      </div>
+      
+      <div class="controls">
+        <button id="toggle-bounds">Toggle Canvas Bounds</button>
+        <button id="toggle-grid">Toggle Debug Grid</button>
+        <button id="force-update">Force Update</button>
+      </div>
+    </div>
   </div>
 
-  <div class="component-container">
-    <h2>Component Instance</h2>
-
-    <table class="gram-config">
-      <tr>
-        <td colspan="2">
-          <img src="./sample/mock-gram.png" alt="Sample Spectrogram">
-        </td>
-      </tr>
-      <tr>
-        <td>time-start</td>
-        <td>0</td>
-      </tr>
-      <tr>
-        <td>time-end</td>
-        <td>60</td>
-      </tr>
-      <tr>
-        <td>freq-start</td>
-        <td>0</td>
-      </tr>
-      <tr>
-        <td>freq-end</td>
-        <td>100</td>
-      </tr>
-    </table>
-  </div>
+  <script>
+    // This script will be used to connect to the component's state listener
+    document.addEventListener('DOMContentLoaded', () => {
+      // Get state display element
+      const stateDisplay = document.getElementById('state-display')
+      
+      // Get image details elements
+      const imageUrl = document.getElementById('image-url')
+      const imageSize = document.getElementById('image-size')
+      const timeRange = document.getElementById('time-range')
+      const freqRange = document.getElementById('freq-range')
+      
+      // Get mouse coordinates elements
+      const mouseCanvasPos = document.getElementById('mouse-canvas-pos')
+      const mouseTime = document.getElementById('mouse-time')
+      const mouseFreq = document.getElementById('mouse-freq')
+      
+      // Get control buttons
+      const toggleBoundsBtn = document.getElementById('toggle-bounds')
+      const toggleGridBtn = document.getElementById('toggle-grid')
+      const forceUpdateBtn = document.getElementById('force-update')
+      
+      // Display initial state
+      stateDisplay.textContent = 'Loading...'
+      
+      // Wait for GramFrame to be available and set up additional listeners for diagnostics
+      function waitForGramFrame() {
+        if (window.GramFrame) {
+          stateDisplay.textContent = 'GramFrame loaded, waiting for state...'
+          
+          // Add a secondary listener for updating diagnostics (main state display is handled by main.js)
+          window.GramFrame.addStateListener((state) => {
+            // Update image details
+            if (state.imageDetails) {
+              imageUrl.textContent = state.imageDetails.url || '-'
+              
+              if (state.imageDetails.naturalWidth && state.imageDetails.naturalHeight) {
+                imageSize.textContent = `${state.imageDetails.naturalWidth} × ${state.imageDetails.naturalHeight} px`
+              } else {
+                imageSize.textContent = '-'
+              }
+            }
+            
+            // Update time and frequency ranges
+            if (state.config) {
+              timeRange.textContent = `${state.config.timeMin} to ${state.config.timeMax} s`
+              freqRange.textContent = `${state.config.freqMin} to ${state.config.freqMax} Hz`
+            }
+            
+            // Update mouse coordinates
+            if (state.cursorPosition) {
+              mouseCanvasPos.textContent = `(${state.cursorPosition.x}, ${state.cursorPosition.y})`
+              mouseTime.textContent = `${state.cursorPosition.time.toFixed(2)} s`
+              mouseFreq.textContent = `${state.cursorPosition.freq.toFixed(2)} Hz`
+            } else {
+              mouseCanvasPos.textContent = '-'
+              mouseTime.textContent = '-'
+              mouseFreq.textContent = '-'
+            }
+          })
+        } else {
+          // GramFrame not ready yet, try again in 100ms
+          setTimeout(waitForGramFrame, 100)
+        }
+      }
+      waitForGramFrame()
+      
+      // Add event listeners for control buttons (they wait for GramFrame to exist)
+      toggleBoundsBtn.addEventListener('click', () => {
+        if (window.GramFrame) {
+          window.GramFrame.toggleCanvasBoundsOverlay()
+        }
+      })
+      
+      toggleGridBtn.addEventListener('click', () => {
+        if (window.GramFrame) {
+          // Toggle grid state
+          const gridEnabled = toggleGridBtn.classList.toggle('active')
+          window.GramFrame.setDebugGrid(gridEnabled)
+        }
+      })
+      
+      forceUpdateBtn.addEventListener('click', () => {
+        if (window.GramFrame) {
+          window.GramFrame.__test__forceUpdate()
+        }
+      })
+    })
+  </script>
 </body>
 </html>
