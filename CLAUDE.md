@@ -157,6 +157,8 @@ Example configuration:
 
 ## Active Technologies
 - Markdown documentation (no code changes) + N/A (documentation-only feature) (154-enrich-docs)
+- JavaScript (ES2020+, JSDoc-typed, no compilation) + None (zero runtime dependencies, Vite for build) (155-browser-storage)
+- Browser Web Storage API (localStorage / sessionStorage) (155-browser-storage)
 
 ## Recent Changes
 - 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)
