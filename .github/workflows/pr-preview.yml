@@ -1,16 +1,44 @@
-name: PR Preview Deployment
+name: GitHub Pages & PR Preview
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
+  push:
+    branches: [main]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
+  # Deploy main site to gh-pages on push to main
+  deploy-main:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare main site
+        run: |
+          mkdir -p _site
+          cp -r src _site/
+          cp -r sample _site/
+          cp index.html _site/
+          cp debug.html _site/
+          cp debug-multiple.html _site/
+          cp test-release.html _site/
+
+      - name: Deploy main site to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          keep_files: true
+
+  # Deploy PR preview to gh-pages/pr/<number>/
   deploy-preview:
-    if: github.event.action != 'closed'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -91,8 +119,9 @@ jobs:
               });
             }
 
+  # Clean up preview when PR is closed
   cleanup-preview:
-    if: github.event.action == 'closed'
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout gh-pages branch
