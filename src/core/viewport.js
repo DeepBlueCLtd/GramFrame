@@ -10,6 +10,7 @@
 import { applyZoomTransform, updateSVGLayout, renderAxes } from '../components/table.js'
 import { updateCommandButtonStates, updateModeButtonStates } from '../components/ModeButtons.js'
 import { notifyStateListeners } from './state.js'
+import { refreshExpandedLayout } from '../components/ExpandToggle.js'
 
 /**
  * Zoom in by increasing zoom level
@@ -91,8 +92,14 @@ export function updateZoomControlStates(instance) {
  */
 export function handleResize(instance) {
   if (instance.svg) {
+    // When expanded, recompute the available space so the image keeps filling it.
+    refreshExpandedLayout(instance)
     updateSVGLayout(instance)
     renderAxes(instance)
+    // Keep persistent features locked to their data coordinates after relayout.
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures()
+    }
   }
 }
 

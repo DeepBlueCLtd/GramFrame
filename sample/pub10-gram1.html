@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pub-10 — Gram 1 (Expand Image demonstrator)</title>
+  <link rel="stylesheet" href="../src/gramframe.css" />
+  <script type="module" src="../src/main.js"></script>
+  <style>
+    /*
+     * Minimal reproduction of the published Pub-10 oxygen-webhelp shell
+     * (banner / nav / title / content / sidebar) so the expand-image feature
+     * can be exercised in a realistic published-document layout. The real
+     * upstream CSS/JS assets are not bundled here; this is a self-contained
+     * stand-in that preserves the layout conditions FR-004 depends on
+     * (navigation above the gram, content below it, a sidebar beside it).
+     */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #222;
+      background: #fff;
+    }
+    .confidence-banner {
+      background: #b00020;
+      color: #fff;
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 2px;
+      padding: 4px 0;
+      font-size: 13px;
+    }
+    .topnav {
+      background: #1f3a5f;
+      color: #fff;
+      padding: 8px 16px;
+      display: flex;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .topnav a { color: #cfe0f5; text-decoration: none; }
+    .page-title {
+      font-size: 24px;
+      margin: 16px 16px 4px;
+      color: #1f3a5f;
+    }
+    .layout {
+      display: flex;
+      gap: 24px;
+      padding: 8px 16px 40px;
+      align-items: flex-start;
+    }
+    .content { flex: 1 1 auto; min-width: 0; }
+    .sidebar {
+      flex: 0 0 220px;
+      background: #f3f5f8;
+      border: 1px solid #d6dde7;
+      border-radius: 4px;
+      padding: 12px;
+      font-size: 13px;
+    }
+    .sidebar h3 { margin-top: 0; color: #1f3a5f; font-size: 14px; }
+    .sidebar ul { padding-left: 18px; margin: 0; }
+    table.gram-config { border-collapse: collapse; }
+    .qt-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+      font-size: 14px;
+    }
+    .qt-table th, .qt-table td {
+      border: 1px solid #ccc;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .qt-table th { background: #eef2f7; width: 120px; }
+  </style>
+</head>
+<body>
+  <div class="confidence-banner">COMMERCIAL IN CONFIDENCE</div>
+
+  <nav class="topnav">
+    <a href="#">Home</a>
+    <a href="#">Grams</a>
+    <a href="#">Gram 1</a>
+    <a href="#">Index</a>
+  </nav>
+
+  <h1 class="page-title">Gram 1 — Tonal Analysis</h1>
+
+  <div class="layout">
+    <div class="content">
+      <!-- gram-config table replaced by GramFrame at runtime -->
+      <table class="gram-config">
+        <tr>
+          <td colspan="2"><img src="pub10-assets/gram-1.png" alt="Gram 1 spectrogram"></td>
+        </tr>
+        <tr><td>time-start</td><td>0</td></tr>
+        <tr><td>time-end</td><td>40</td></tr>
+        <tr><td>freq-start</td><td>100</td></tr>
+        <tr><td>freq-end</td><td>300</td></tr>
+      </table>
+
+      <table class="qt-table">
+        <tr>
+          <th>Question</th>
+          <td>Identify the fundamental and any harmonics present in the tonal at
+          approximately 180&nbsp;Hz.</td>
+        </tr>
+        <tr>
+          <th>Theory</th>
+          <td>A propeller-driven contact radiates a fundamental tonal with a series
+          of harmonics. Use the harmonics mode to overlay the harmonic series and
+          confirm the spacing.</td>
+        </tr>
+      </table>
+    </div>
+
+    <aside class="sidebar">
+      <h3>Related information</h3>
+      <ul>
+        <li><a href="#">Tonal analysis basics</a></li>
+        <li><a href="#">Harmonic series</a></li>
+        <li><a href="#">Doppler shift</a></li>
+        <li><a href="#">Vernier grams</a></li>
+      </ul>
+    </aside>
+  </div>
+
+  <!-- Hidden state display so Playwright can read component state -->
+  <div class="diagnostics-panel" style="display:none;">
+    <pre id="state-display">Loading...</pre>
+  </div>
+</body>
+</html>

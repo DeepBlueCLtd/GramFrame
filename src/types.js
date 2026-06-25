@@ -38,8 +38,10 @@
  * Image details including source and dimensions
  * @typedef {Object} ImageDetails
  * @property {string} url - Source URL of the spectrogram image
- * @property {number} naturalWidth - Original width of the image in pixels
+ * @property {number} naturalWidth - Original width of the image in pixels (data-mapping reference + landscape test)
  * @property {number} naturalHeight - Original height of the image in pixels
+ * @property {number} [renderWidth] - Base render width the image/axes/overlay are drawn at (before zoom); defaults to naturalWidth
+ * @property {number} [renderHeight] - Base render height the image/axes/overlay are drawn at (before zoom); defaults to naturalHeight
  */
 
 /**
@@ -183,6 +185,7 @@
  * @property {DisplayDimensions} displayDimensions - Current display dimensions
  * @property {AxesMargins} margins - Axes margin configuration
  * @property {ZoomState} zoom - Zoom state configuration
+ * @property {boolean} [imageExpanded] - Whether the image is expanded to fill available space (in-memory only)
  */
 
 /**
@@ -285,6 +288,7 @@
  * @property {HTMLDivElement|null} [container] - Main container element
  * @property {SVGSVGElement|null} [svg] - Main SVG element
  * @property {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @property {HTMLButtonElement|null} [expandToggleButton] - Expand/collapse toggle button (landscape only)
  * @property {SVGGElement|null} [cursorGroup] - SVG group for cursor elements
  * @property {SVGGElement|null} [axesGroup] - SVG group for axes
  * @property {SVGRectElement|null} [imageClipRect] - Clipping rectangle for image
@@ -384,6 +388,7 @@
  * @property {HTMLDivElement} readoutPanel - Readout panel element
  * @property {SVGSVGElement} svg - SVG element
  * @property {SVGImageElement} spectrogramImage - Spectrogram image element
+ * @property {HTMLButtonElement} [expandToggleButton] - Expand/collapse toggle button (landscape only)
  * @property {SVGGElement} cursorGroup - SVG cursor group element
  * @property {SVGGElement} axesGroup - SVG axes group element
  * @property {SVGRectElement} imageClipRect - SVG image clipping rectangle
@@ -433,6 +438,8 @@
  * @property {function(Document|HTMLElement): GramFrame[]} detectAndReplaceConfigTables - Detect and replace config tables
  * @property {function(StateListener): StateListener} addStateListener - Add state listener
  * @property {function(StateListener): boolean} removeStateListener - Remove state listener
+ * @property {function(): boolean} [getExpandState] - Get current expand state (first instance)
+ * @property {function(boolean): void} [setExpandState] - Expand/collapse landscape instances
  * @property {function(HTMLTableElement, string): void} _addErrorIndicator - Add error indicator to table
  * @property {GramFrame[]} [_instances] - Internal instances array
  * @property {function(): void} [__test__forceUpdate] - Test method to force update
