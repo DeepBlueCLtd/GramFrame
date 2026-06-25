@@ -165,6 +165,14 @@ export class GramFrame {
     // Restore saved annotations before first render
     this._restoreAnnotations()
 
+    // Reflect restored annotations in the persistent control panels (markers
+    // and harmonics tables) and in the SVG overlays. Without this, reloaded
+    // annotations render over the spectrogram but leave the panel tables empty.
+    updatePersistentPanels(this)
+    if (this.featureRenderer) {
+      this.featureRenderer.renderAllPersistentFeatures()
+    }
+
     // Register storage save listener
     this._setupStorageSaveListener()
 
