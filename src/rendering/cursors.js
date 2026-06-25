@@ -40,6 +40,10 @@ export function updateCursorIndicators(instance) {
 export function drawDopplerPreview(instance, startPoint, endPoint) {
   const margins = instance.state.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  // Use base render dimensions (default to natural) so the live preview tracks
+  // the image at whatever rendered size is active (expanded or not).
+  const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
+  const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
   
   // For previews, always use the current selectedColor (what the curve will be when created)
@@ -66,8 +70,8 @@ export function drawDopplerPreview(instance, startPoint, endPoint) {
     const timeRatio = (point.time - timeMin) / (timeMax - timeMin)
     const freqRatio = (point.freq - freqMin) / (freqMax - freqMin)
     return {
-      x: margins.left + freqRatio * naturalWidth,
-      y: margins.top + (1 - timeRatio) * naturalHeight
+      x: margins.left + freqRatio * renderWidth,
+      y: margins.top + (1 - timeRatio) * renderHeight
     }
   }
   

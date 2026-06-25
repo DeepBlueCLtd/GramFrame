@@ -721,19 +721,20 @@ export class DopplerMode extends BaseMode {
     // Vertical extensions - clip to intersection of zoomed view and spectrogram data area
     const margins = this.instance.state.margins
     const { naturalHeight } = this.instance.state.imageDetails
-    const zoomLevel = this.instance.state.zoom.level
-    
-    // Original spectrogram data bounds (never changes)
+    // Base render height (defaults to natural; grows when expanded)
+    const renderHeight = this.instance.state.imageDetails.renderHeight || naturalHeight
+
+    // Spectrogram data bounds at the current base render size
     const spectrogramTop = margins.top
-    const spectrogramBottom = margins.top + naturalHeight
-    
-    // Get zoomed/panned view bounds
+    const spectrogramBottom = margins.top + renderHeight
+
+    // Get the actual rendered view bounds (reflecting expand × zoom)
     let zoomedTop = spectrogramTop
     let zoomedBottom = spectrogramBottom
-    
-    if (zoomLevel !== 1.0 && this.instance.spectrogramImage) {
+
+    if (this.instance.spectrogramImage) {
       const zoomedImageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
-      const zoomedImageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+      const zoomedImageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(renderHeight))
       zoomedTop = zoomedImageTop
       zoomedBottom = zoomedImageTop + zoomedImageHeight
     }

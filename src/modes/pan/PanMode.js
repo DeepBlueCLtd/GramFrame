@@ -90,18 +90,21 @@ export class PanMode extends BaseMode {
     const deltaX = event.clientX - this.dragState.lastX
     const deltaY = event.clientY - this.dragState.lastY
     
-    // Convert pixel delta to normalized delta (considering zoom level)
+    // Convert pixel delta to normalized delta (considering expand and zoom level)
     const { naturalWidth, naturalHeight } = this.instance.state.imageDetails
+    // Base render size (defaults to natural; grows when expanded)
+    const renderWidth = this.instance.state.imageDetails.renderWidth || naturalWidth
+    const renderHeight = this.instance.state.imageDetails.renderHeight || naturalHeight
     const margins = this.instance.state.margins
     const svgRect = this.instance.svg.getBoundingClientRect()
-    
-    // Scale factor based on current zoom and SVG size
-    const scaleX = (naturalWidth + margins.left + margins.right) / svgRect.width
-    const scaleY = (naturalHeight + margins.top + margins.bottom) / svgRect.height
-    
+
+    // Scale factor based on the current viewBox (render size) and SVG element size
+    const scaleX = (renderWidth + margins.left + margins.right) / svgRect.width
+    const scaleY = (renderHeight + margins.top + margins.bottom) / svgRect.height
+
     // Convert to normalized coordinates (adjust for zoom level)
-    const normalizedDeltaX = -(deltaX * scaleX / naturalWidth) / this.instance.state.zoom.level
-    const normalizedDeltaY = -(deltaY * scaleY / naturalHeight) / this.instance.state.zoom.level
+    const normalizedDeltaX = -(deltaX * scaleX / renderWidth) / this.instance.state.zoom.level
+    const normalizedDeltaY = -(deltaY * scaleY / renderHeight) / this.instance.state.zoom.level
     
     // Apply pan
     this.panImage(normalizedDeltaX, normalizedDeltaY)

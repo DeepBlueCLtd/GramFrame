@@ -227,11 +227,12 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
   if (movement.dx !== 0) {
     // Convert current spacing to pixel width for one harmonic interval
     const { naturalWidth } = instance.state.imageDetails
+    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
     const { freqMin, freqMax } = instance.state.config
     const freqRange = (freqMax - freqMin) / instance.state.rate
-    
-    // Calculate how much frequency change one pixel represents
-    const pixelToFreqRatio = freqRange / naturalWidth
+
+    // Calculate how much frequency change one (rendered) pixel represents
+    const pixelToFreqRatio = freqRange / renderWidth
     
     // Adjust spacing based on horizontal movement
     // Positive dx increases spacing, negative dx decreases spacing
@@ -243,18 +244,19 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
   if (movement.dy !== 0) {
     // Convert current anchor time to SVG coordinates
     const { naturalHeight } = instance.state.imageDetails
+    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
     const { timeMin, timeMax } = instance.state.config
     const margins = instance.state.margins
-    
-    // Calculate current anchor position in SVG space
+
+    // Calculate current anchor position in SVG space (at the current render size)
     const normalizedTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
-    const currentY = margins.top + normalizedTime * naturalHeight
-    
+    const currentY = margins.top + normalizedTime * renderHeight
+
     // Apply movement
     const newY = currentY + movement.dy
-    
+
     // Convert back to time
-    const newNormalizedTime = (newY - margins.top) / naturalHeight
+    const newNormalizedTime = (newY - margins.top) / renderHeight
     updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin)
     
     // Clamp to valid time range
@@ -301,17 +303,19 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
 function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
-  
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
+
   // Convert frequency back to raw frequency space for positioning
   const rawFreq = freq * rate
-  
+
   // Calculate position within image bounds
   const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin)
   const normalizedY = 1.0 - (time - timeMin) / (timeMax - timeMin) // Invert Y
-  
+
   return {
-    x: margins.left + normalizedX * naturalWidth, 
-    y: margins.top + normalizedY * naturalHeight
+    x: margins.left + normalizedX * renderWidth,
+    y: margins.top + normalizedY * renderHeight
   }
 }
 
@@ -328,18 +332,20 @@ function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
 function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
-  
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
+
   // Convert SVG coordinates to image-relative coordinates
   const imageX = svgX - margins.left
   const imageY = svgY - margins.top
-  
+
   // Ensure coordinates are within image bounds
-  const boundedX = Math.max(0, Math.min(imageX, naturalWidth))
-  const boundedY = Math.max(0, Math.min(imageY, naturalHeight))
-  
+  const boundedX = Math.max(0, Math.min(imageX, renderWidth))
+  const boundedY = Math.max(0, Math.min(imageY, renderHeight))
+
   // Convert to data coordinates
-  const rawFreq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
-  const time = timeMax - (boundedY / naturalHeight) * (timeMax - timeMin)
+  const rawFreq = freqMin + (boundedX / renderWidth) * (freqMax - freqMin)
+  const time = timeMax - (boundedY / renderHeight) * (timeMax - timeMin)
   
   // Apply rate scaling to frequency
   const freq = rawFreq / rate
