@@ -5009,6 +5009,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this._addClearGramButton();
       }
       this._restoreAnnotations();
+      updatePersistentPanels(this);
+      if (this.featureRenderer) {
+        this.featureRenderer.renderAllPersistentFeatures();
+      }
       this._setupStorageSaveListener();
       notifyStateListeners(this.state, this.stateListeners);
     }
