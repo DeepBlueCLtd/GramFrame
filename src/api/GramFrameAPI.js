@@ -11,6 +11,7 @@ import {
   removeGlobalStateListener,
   notifyStateListeners
 } from '../core/state.js'
+import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
 
 /**
  * Creates the GramFrame public API object
@@ -175,8 +176,32 @@ export function createGramFrameAPI(GramFrame) {
       return removed
     },
     
+    /**
+     * Get the current expand state of the first GramFrame instance.
+     * @returns {boolean} True if the image is currently expanded
+     */
+    getExpandState() {
+      const instances = this._instances || []
+      const instance = instances[0]
+      return !!(instance && instance.state && instance.state.imageExpanded)
+    },
+
+    /**
+     * Programmatically expand or collapse all landscape GramFrame instances.
+     * No-op for portrait/square images (mirrors the toggle's landscape gate).
+     * @param {boolean} expanded - Desired expand state
+     */
+    setExpandState(expanded) {
+      const instances = this._instances || []
+      instances.forEach(instance => {
+        if (isLandscape(instance)) {
+          setImageExpanded(instance, expanded)
+        }
+      })
+    },
+
     // Debug and visualization API methods removed - implement when needed
-    
+
     /**
      * Force update of the component state
      * @__test__ This method is only used for testing purposes

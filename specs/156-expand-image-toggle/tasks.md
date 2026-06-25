@@ -31,9 +31,9 @@ Single-project browser component: source in `src/`, tests in `tests/`, demonstra
 
 **Purpose**: Stage the demonstrator assets and test scaffolding shared by all stories.
 
-- [ ] T001 Import mirrored Pub-10 demonstrator assets into the repo under `sample/pub10-assets/` (the oxygen-webhelp CSS/JS shell + `gram-1.png`, 902×237) from the research mirror, keeping relative paths intact
-- [ ] T002 Create demonstrator page `sample/pub10-gram1.html` reproducing the published Pub-10 shell (COMMERCIAL IN CONFIDENCE banner, nav bar, title, `gram-config` table with time 0–40 / freq 100–300, Related-information sidebar, Question/Theory table), loading the locally built GramFrame bundle instead of the published bundle
-- [ ] T003 [P] Add a portrait test fixture image (taller than wide) under `sample/pub10-assets/` for the US3 vernier case, plus a minimal portrait `gram-config` demonstrator `sample/pub10-vernier.html`
+- [X] T001 Import mirrored Pub-10 demonstrator assets into the repo under `sample/pub10-assets/` (the oxygen-webhelp CSS/JS shell + `gram-1.png`, 902×237) from the research mirror, keeping relative paths intact
+- [X] T002 Create demonstrator page `sample/pub10-gram1.html` reproducing the published Pub-10 shell (COMMERCIAL IN CONFIDENCE banner, nav bar, title, `gram-config` table with time 0–40 / freq 100–300, Related-information sidebar, Question/Theory table), loading the locally built GramFrame bundle instead of the published bundle
+- [X] T003 [P] Add a portrait test fixture image (taller than wide) under `sample/pub10-assets/` for the US3 vernier case, plus a minimal portrait `gram-config` demonstrator `sample/pub10-vernier.html`
 
 **Checkpoint**: Demonstrator pages load the local bundle and render the existing gram.
 
@@ -48,15 +48,15 @@ This blocks all user stories.
 **⚠️ CRITICAL**: No user-story work begins until this phase is complete and the existing
 suite is still green.
 
-- [ ] T004 Add `renderWidth` and `renderHeight` to `imageDetails` and add `imageExpanded: false` to instance state in `src/core/state.js` (per contracts/state-shape.md), with JSDoc types updated in `src/types.js`
-- [ ] T005 Initialise `renderWidth`/`renderHeight` to `naturalWidth`/`naturalHeight` on image load in `src/components/table.js` (image `onload`, near lines 148-149)
-- [ ] T006 Refactor `updateSVGLayout` in `src/components/table.js` to compute viewBox, image element, and clip rects from `renderWidth`/`renderHeight` instead of `naturalWidth`/`naturalHeight` (lines ~177-214)
-- [ ] T007 Refactor `renderAxes`/visible-range calc in `src/components/table.js` to span `renderWidth`/`renderHeight` (lines ~292-342), keeping axis-label rendering size independent of image size
-- [ ] T008 Refactor `imageToDataCoordinates` in `src/utils/coordinates.js` to divide by render dims (lines 53-63); update the `ImageDetails` JSDoc to document `renderWidth`/`renderHeight`
-- [ ] T009 Refactor data→pixel placement in `src/rendering/cursors.js` to use render dims (lines 66-69)
-- [ ] T010 Refactor the screen→data zoom normalization in `src/core/events.js` (lines 25-59) so zoom `level` is applied on top of the **base render** size, ensuring expand × zoom composes (research.md Decision 2)
-- [ ] T011 [P] Extend the `GramFramePage` helper in `tests/helpers/` with expand utilities: `getRenderedImageSize()`, `getAxisLabelFontSize()`, `clickExpandToggle()`, `isExpandToggleVisible()`, `readDataAtPixel(x,y)`
-- [ ] T012 Run `yarn typecheck` and `yarn test` to confirm the refactor is a no-op (existing tests green, image renders identically at default size)
+- [X] T004 Add `renderWidth` and `renderHeight` to `imageDetails` and add `imageExpanded: false` to instance state in `src/core/state.js` (per contracts/state-shape.md), with JSDoc types updated in `src/types.js`
+- [X] T005 Initialise `renderWidth`/`renderHeight` to `naturalWidth`/`naturalHeight` on image load in `src/components/table.js` (image `onload`, near lines 148-149)
+- [X] T006 Refactor `updateSVGLayout` in `src/components/table.js` to compute viewBox, image element, and clip rects from `renderWidth`/`renderHeight` instead of `naturalWidth`/`naturalHeight` (lines ~177-214)
+- [X] T007 Refactor `renderAxes`/visible-range calc in `src/components/table.js` to span `renderWidth`/`renderHeight` (lines ~292-342), keeping axis-label rendering size independent of image size
+- [X] T008 Refactor `imageToDataCoordinates` in `src/utils/coordinates.js` to divide by render dims (lines 53-63); update the `ImageDetails` JSDoc to document `renderWidth`/`renderHeight`
+- [X] T009 Refactor data→pixel placement in `src/rendering/cursors.js` to use render dims (lines 66-69)
+- [X] T010 Refactor the screen→data zoom normalization in `src/core/events.js` (lines 25-59) so zoom `level` is applied on top of the **base render** size, ensuring expand × zoom composes (research.md Decision 2)
+- [X] T011 [P] Extend the `GramFramePage` helper in `tests/helpers/` with expand utilities: `getRenderedImageSize()`, `getAxisLabelFontSize()`, `clickExpandToggle()`, `isExpandToggleVisible()`, `readDataAtPixel(x,y)`
+- [X] T012 Run `yarn typecheck` and `yarn test` to confirm the refactor is a no-op (existing tests green, image renders identically at default size)
 
 **Checkpoint**: Render-size decoupling in place and proven inert; transforms are render-aware.
 
@@ -73,18 +73,18 @@ text unchanged; click again to restore exactly.
 
 ### Tests for User Story 1 ⚠️ (write first, must fail before implementation)
 
-- [ ] T013 [P] [US1] Test SC-001/SC-002 in `tests/expand-image.spec.ts`: at a fixed viewport, expanded image width == component inner image-region width ±2px and height == computed available height ±2px
-- [ ] T014 [P] [US1] Test SC-003 in `tests/expand-image.spec.ts`: axis tick-label font size identical before and after expand
-- [ ] T015 [P] [US1] Test SC-006 in `tests/expand-image.spec.ts`: collapse restores exact original natural image dimensions
+- [X] T013 [P] [US1] Test SC-001/SC-002 in `tests/expand-image.spec.ts`: at a fixed viewport, expanded image width == component inner image-region width ±2px and height == computed available height ±2px
+- [X] T014 [P] [US1] Test SC-003 in `tests/expand-image.spec.ts`: axis tick-label font size identical before and after expand
+- [X] T015 [P] [US1] Test SC-006 in `tests/expand-image.spec.ts`: collapse restores exact original natural image dimensions
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Add available-space computation in `src/components/table.js` (or a small helper): `availableWidth` = component inner image-region width; `availableHeight` = `viewportBottom − imageRegionTop − ~16px`, using `getBoundingClientRect()` + `window.innerHeight`
-- [ ] T017 [US1] Create `src/components/ExpandToggle.js`: a landscape-gated (`naturalWidth > naturalHeight`) `<button class="gram-frame-expand-toggle">` appended to `.gram-frame-main-panel`, absolutely positioned top-left clear of the time-axis labels, with `aria-pressed`/`aria-label` and ⤢/⤡ affordance (per contracts/expand-toggle-ui.md)
-- [ ] T018 [US1] Implement the toggle click handler: set `imageExpanded`, compute render dims (expand → available space; collapse → natural), call `updateSVGLayout` + `renderAxes`, and update button state/aria
-- [ ] T019 [US1] Wire the existing `ResizeObserver`/window-resize path in `src/core/events.js` to recompute available space and relayout while `imageExpanded === true` (no new observer)
-- [ ] T020 [P] [US1] Add CSS in `src/gramframe.css` for `.gram-frame-expand-toggle` (semi-transparent, top-left, z-index above SVG) and any expanded main-panel/container rules
-- [ ] T021 [US1] Mount the toggle during instance construction (wherever `ModeButtons`/main UI are wired) so each landscape instance gets one; run T013–T015 to green
+- [X] T016 [US1] Add available-space computation in `src/components/table.js` (or a small helper): `availableWidth` = component inner image-region width; `availableHeight` = `viewportBottom − imageRegionTop − ~16px`, using `getBoundingClientRect()` + `window.innerHeight`
+- [X] T017 [US1] Create `src/components/ExpandToggle.js`: a landscape-gated (`naturalWidth > naturalHeight`) `<button class="gram-frame-expand-toggle">` appended to `.gram-frame-main-panel`, absolutely positioned top-left clear of the time-axis labels, with `aria-pressed`/`aria-label` and ⤢/⤡ affordance (per contracts/expand-toggle-ui.md)
+- [X] T018 [US1] Implement the toggle click handler: set `imageExpanded`, compute render dims (expand → available space; collapse → natural), call `updateSVGLayout` + `renderAxes`, and update button state/aria
+- [X] T019 [US1] Wire the existing `ResizeObserver`/window-resize path in `src/core/events.js` to recompute available space and relayout while `imageExpanded === true` (no new observer)
+- [X] T020 [P] [US1] Add CSS in `src/gramframe.css` for `.gram-frame-expand-toggle` (semi-transparent, top-left, z-index above SVG) and any expanded main-panel/container rules
+- [X] T021 [US1] Mount the toggle during instance construction (wherever `ModeButtons`/main UI are wired) so each landscape instance gets one; run T013–T015 to green
 
 **Checkpoint**: MVP — landscape grams expand/collapse correctly; US1 tests pass.
 
@@ -100,14 +100,14 @@ assert it returns to the same screen position and reports the same data values.
 
 ### Tests for User Story 2 ⚠️ (write first, must fail before implementation)
 
-- [ ] T022 [P] [US2] Test SC-004 in `tests/expand-image.spec.ts`: a known pixel reports the same freq/time before and after expand, and again with a zoom level applied (expand × zoom composition)
-- [ ] T023 [P] [US2] Test SC-007 in `tests/expand-image.spec.ts`: an Analysis marker placed before expanding returns to its original screen position and data coordinates after expand→collapse
+- [X] T022 [P] [US2] Test SC-004 in `tests/expand-image.spec.ts`: a known pixel reports the same freq/time before and after expand, and again with a zoom level applied (expand × zoom composition)
+- [X] T023 [P] [US2] Test SC-007 in `tests/expand-image.spec.ts`: an Analysis marker placed before expanding returns to its original screen position and data coordinates after expand→collapse
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] In the toggle handler (`src/components/ExpandToggle.js`), after relayout call `FeatureRenderer.renderAllPersistentFeatures()` (`src/core/FeatureRenderer.js`) so all persistent features re-resolve through the render-aware transforms
-- [ ] T025 [US2] Validate and, if needed, fix the expand × zoom composition in `src/core/events.js` so coordinate fidelity holds when both are active (the research-flagged risk); make T022 pass
-- [ ] T026 [US2] Run T022–T023 to green; verify harmonics and doppler (not just analysis markers) reposition correctly via a manual quickstart pass
+- [X] T024 [US2] In the toggle handler (`src/components/ExpandToggle.js`), after relayout call `FeatureRenderer.renderAllPersistentFeatures()` (`src/core/FeatureRenderer.js`) so all persistent features re-resolve through the render-aware transforms
+- [X] T025 [US2] Validate and, if needed, fix the expand × zoom composition in `src/core/events.js` so coordinate fidelity holds when both are active (the research-flagged risk); make T022 pass
+- [X] T026 [US2] Run T022–T023 to green; verify harmonics and doppler (not just analysis markers) reposition correctly via a manual quickstart pass
 
 **Checkpoint**: US1 + US2 both work; annotations are trustworthy across expand.
 
@@ -122,11 +122,11 @@ landscape one and assert it does.
 
 ### Tests for User Story 3 ⚠️ (write first, must fail before implementation)
 
-- [ ] T027 [P] [US3] Test SC-005 in `tests/expand-image.spec.ts`: no `.gram-frame-expand-toggle` present on `sample/pub10-vernier.html` (portrait); present on `sample/pub10-gram1.html` (landscape)
+- [X] T027 [P] [US3] Test SC-005 in `tests/expand-image.spec.ts`: no `.gram-frame-expand-toggle` present on `sample/pub10-vernier.html` (portrait); present on `sample/pub10-gram1.html` (landscape)
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Confirm/strengthen the landscape guard in `src/components/ExpandToggle.js` so the toggle is only created when `naturalWidth > naturalHeight` (square treated as non-landscape); make T027 pass
+- [X] T028 [US3] Confirm/strengthen the landscape guard in `src/components/ExpandToggle.js` so the toggle is only created when `naturalWidth > naturalHeight` (square treated as non-landscape); make T027 pass
 
 **Checkpoint**: All three stories independently functional.
 
@@ -136,10 +136,10 @@ landscape one and assert it does.
 
 **Purpose**: Quality gates and optional surface area.
 
-- [ ] T029 [P] [Polish] (Optional) Expose `getExpandState()` / `setExpandState(bool)` on the external API in `src/api/` (landscape-gated), per contracts/state-shape.md
-- [ ] T030 [P] [Polish] Update `debug.html` and docs to mention the expand toggle and the demonstrator
-- [ ] T031 [Polish] Run `yarn typecheck`, `yarn test`, and `yarn build` — all must be clean (Quality Gates)
-- [ ] T032 [Polish] Execute `specs/156-expand-image-toggle/quickstart.md` manual verification end-to-end on both demonstrators
+- [X] T029 [P] [Polish] (Optional) Expose `getExpandState()` / `setExpandState(bool)` on the external API in `src/api/` (landscape-gated), per contracts/state-shape.md
+- [X] T030 [P] [Polish] Update `debug.html` and docs to mention the expand toggle and the demonstrator
+- [X] T031 [Polish] Run `yarn typecheck`, `yarn test`, and `yarn build` — all must be clean (Quality Gates)
+- [X] T032 [Polish] Execute `specs/156-expand-image-toggle/quickstart.md` manual verification end-to-end on both demonstrators
 
 ---
 

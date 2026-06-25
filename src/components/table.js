@@ -9,6 +9,7 @@ const MAX_IMAGE_WIDTH = 1200
 
 import { formatTime } from '../utils/timeFormatter.js'
 import { notifyStateListeners } from '../core/state.js'
+import { createExpandToggle } from './ExpandToggle.js'
 
 /**
  * Get the base render dimensions for an instance, falling back to natural
@@ -170,10 +171,14 @@ export function setupSpectrogramImage(instance, imageUrl) {
 
     // Update SVG layout
     updateSVGLayout(instance)
-    
+
     // Render axes
     renderAxes(instance)
-    
+
+    // Mount the expand toggle now that natural dimensions (and thus the
+    // landscape test) are known. No-op for portrait/square images.
+    createExpandToggle(instance)
+
     // Notify listeners of updated dimensions
     notifyStateListeners(instance.state, instance.stateListeners)
   }

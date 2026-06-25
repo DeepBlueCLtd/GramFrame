@@ -99,6 +99,9 @@ export class GramFrame {
   
   // Spectrogram image
   spectrogramImage;
+
+  // Expand/collapse toggle button (landscape images only)
+  expandToggleButton;
   
   // Mode switching UI
   modesContainer;
