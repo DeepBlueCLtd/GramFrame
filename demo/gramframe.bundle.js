@@ -4820,6 +4820,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   const SCHEMA_VERSION = 1;
   const KEY_PREFIX = "gramframe::";
   function detectUserContext() {
+    if (document.getElementById("gf-persistent")) {
+      return "trainer";
+    }
     const anchors = document.querySelectorAll("a");
     for (let i = 0; i < anchors.length; i++) {
       if (anchors[i].textContent && anchors[i].textContent.trim() === "ANALYSIS") {
