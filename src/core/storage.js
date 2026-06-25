@@ -5,8 +5,9 @@
  * in browser storage. Trainers get localStorage (permanent); students get
  * sessionStorage (cleared on browser close).
  *
- * Context detection: pages with an anchor containing exact text "ANALYSIS"
- * are trainer pages; all others are student pages.
+ * Context detection: a page is treated as a trainer page if EITHER an anchor
+ * with exact text "ANALYSIS" is present, OR an element with id "gf-persistent"
+ * exists anywhere on the page. All other pages are student pages.
  */
 
 /// <reference path="../types.js" />
@@ -19,10 +20,18 @@ const KEY_PREFIX = 'gramframe::'
 
 /**
  * Detect whether the current page is a trainer or student context.
- * Trainer pages contain an anchor element with exact text "ANALYSIS".
+ * A page is treated as trainer context if EITHER condition holds:
+ *   - an anchor element with exact text "ANALYSIS" is present, OR
+ *   - an element with id "gf-persistent" exists anywhere on the page.
+ * All other pages are student context.
  * @returns {'trainer' | 'student'}
  */
 export function detectUserContext() {
+  // Explicit persistence flag: an element with id "gf-persistent"
+  if (document.getElementById('gf-persistent')) {
+    return 'trainer'
+  }
+  // Legacy detection: an anchor whose exact text is "ANALYSIS"
   const anchors = document.querySelectorAll('a')
   for (let i = 0; i < anchors.length; i++) {
     if (anchors[i].textContent && anchors[i].textContent.trim() === 'ANALYSIS') {
