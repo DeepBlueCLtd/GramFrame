@@ -170,6 +170,54 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
     }
   })
 
+  // Regression: restored annotations must repopulate the control-panel tables,
+  // not just the SVG overlays and in-memory state.
+  test('restored markers repopulate the markers table on reload', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+
+    await addAnalysisMarker(gfp, 200, 150)
+
+    // Markers table should have a row before reload
+    const rowsBefore = await page
+      .locator('.gram-frame-markers-persistent-container .gram-frame-table tbody tr')
+      .count()
+    expect(rowsBefore).toBeGreaterThan(0)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    // After reload, the markers table must be repopulated (not just the SVG/state)
+    const rowsAfter = await page
+      .locator('.gram-frame-markers-persistent-container .gram-frame-table tbody tr')
+      .count()
+    expect(rowsAfter).toBe(rowsBefore)
+  })
+
+  // Regression: restored harmonic sets must repopulate the harmonics panel table.
+  test('restored harmonic sets repopulate the harmonics panel on reload', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+
+    await addHarmonicSet(gfp, 200, 150, 300, 100)
+
+    const stateBefore = await getStateFromPage(page)
+    expect(stateBefore.harmonics.harmonicSets.length).toBeGreaterThan(0)
+
+    const rowsBefore = await page
+      .locator('.gram-frame-harmonics-persistent-container .gram-frame-table tbody tr')
+      .count()
+    expect(rowsBefore).toBeGreaterThan(0)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const rowsAfter = await page
+      .locator('.gram-frame-harmonics-persistent-container .gram-frame-table tbody tr')
+      .count()
+    expect(rowsAfter).toBe(rowsBefore)
+  })
+
   // T010
   test('annotations are restored silently without prompt', async ({ page }) => {
     const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
