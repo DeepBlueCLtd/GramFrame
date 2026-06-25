@@ -23,26 +23,28 @@
  * @returns {SVGCoordinates} SVG coordinates with x, y
  */
 export function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
-  const { margins, imageDetails, config, zoom } = viewport
+  const { margins, imageDetails, config } = viewport
   const { naturalWidth, naturalHeight } = imageDetails
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
   const { timeMin, timeMax, freqMin, freqMax } = config
-  const zoomLevel = zoom.level
-  
+
   // Calculate ratios in data space
   const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin)
   const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin)
-  
-  // Get current image position and dimensions (which may be zoomed)
+
+  // Get current image position and dimensions. The element's attributes are the
+  // source of truth (they reflect expand × zoom), so read them whenever present.
   let imageLeft = margins.left
-  let imageTop = margins.top  
-  let imageWidth = naturalWidth
-  let imageHeight = naturalHeight
-  
-  if (zoomLevel !== 1.0 && spectrogramImage) {
+  let imageTop = margins.top
+  let imageWidth = renderWidth
+  let imageHeight = renderHeight
+
+  if (spectrogramImage) {
     imageLeft = parseFloat(spectrogramImage.getAttribute('x') || String(margins.left))
     imageTop = parseFloat(spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(spectrogramImage.getAttribute('width') || String(naturalWidth))
-    imageHeight = parseFloat(spectrogramImage.getAttribute('height') || String(naturalHeight))
+    imageWidth = parseFloat(spectrogramImage.getAttribute('width') || String(renderWidth))
+    imageHeight = parseFloat(spectrogramImage.getAttribute('height') || String(renderHeight))
   }
   
   return {
@@ -61,15 +63,16 @@ export function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
  * @returns {DataCoordinates} Data coordinates
  */
 export function screenToDataCoordinates(screenPoint, viewport, svg, spectrogramImage = null, rate = 1) {
-  const { margins, imageDetails, config, zoom } = viewport
+  const { margins, imageDetails, config } = viewport
   const { naturalWidth, naturalHeight } = imageDetails
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
   const { timeMin, timeMax, freqMin, freqMax } = config
-  const zoomLevel = zoom.level
 
   // Convert screen to SVG coordinates first
   const svgRect = svg.getBoundingClientRect()
   const viewBox = svg.viewBox.baseVal
-  
+
   let svgX, svgY
   if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
     const scaleX = viewBox.width / svgRect.width
@@ -81,17 +84,17 @@ export function screenToDataCoordinates(screenPoint, viewport, svg, spectrogramI
     svgY = screenPoint.y
   }
 
-  // Get current image bounds (which may be zoomed)
+  // Get current image bounds (reflecting expand × zoom via element attributes)
   let imageLeft = margins.left
-  let imageTop = margins.top  
-  let imageWidth = naturalWidth
-  let imageHeight = naturalHeight
-  
-  if (zoomLevel !== 1.0 && spectrogramImage) {
+  let imageTop = margins.top
+  let imageWidth = renderWidth
+  let imageHeight = renderHeight
+
+  if (spectrogramImage) {
     imageLeft = parseFloat(spectrogramImage.getAttribute('x') || String(margins.left))
     imageTop = parseFloat(spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(spectrogramImage.getAttribute('width') || String(naturalWidth))
-    imageHeight = parseFloat(spectrogramImage.getAttribute('height') || String(naturalHeight))
+    imageWidth = parseFloat(spectrogramImage.getAttribute('width') || String(renderWidth))
+    imageHeight = parseFloat(spectrogramImage.getAttribute('height') || String(renderHeight))
   }
 
   // Convert SVG to image coordinates
@@ -121,6 +124,8 @@ export function screenToDataCoordinates(screenPoint, viewport, svg, spectrogramI
 export function calculateZoomAwarePosition(point, viewport, spectrogramImage = null) {
   const { margins, imageDetails, config } = viewport
   const { naturalWidth, naturalHeight } = imageDetails
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
   const { timeMin, timeMax, freqMin, freqMax } = config
 
   // Calculate normalized coordinates
@@ -129,19 +134,19 @@ export function calculateZoomAwarePosition(point, viewport, spectrogramImage = n
 
   let currentX, currentY
 
-  // Check if zoomed and has image element
+  // Use the element's actual bounds when present (reflects expand × zoom)
   if (spectrogramImage) {
     const imageLeft = parseFloat(spectrogramImage.getAttribute('x') || String(margins.left))
     const imageTop = parseFloat(spectrogramImage.getAttribute('y') || String(margins.top))
-    const imageWidth = parseFloat(spectrogramImage.getAttribute('width') || String(naturalWidth))
-    const imageHeight = parseFloat(spectrogramImage.getAttribute('height') || String(naturalHeight))
-    
+    const imageWidth = parseFloat(spectrogramImage.getAttribute('width') || String(renderWidth))
+    const imageHeight = parseFloat(spectrogramImage.getAttribute('height') || String(renderHeight))
+
     currentX = imageLeft + normalizedX * imageWidth
     currentY = imageTop + normalizedY * imageHeight
   } else {
-    // Not zoomed - use natural dimensions
-    currentX = margins.left + normalizedX * naturalWidth
-    currentY = margins.top + normalizedY * naturalHeight
+    // No image element - use base render dimensions
+    currentX = margins.left + normalizedX * renderWidth
+    currentY = margins.top + normalizedY * renderHeight
   }
 
   return { x: currentX, y: currentY }
@@ -167,23 +172,25 @@ export function isPointInImageBounds(point, config) {
  * @returns {Object} Image bounds with left, top, width, height
  */
 export function getImageBounds(viewport, spectrogramImage = null) {
-  const { margins, imageDetails, zoom } = viewport
+  const { margins, imageDetails } = viewport
   const { naturalWidth, naturalHeight } = imageDetails
-  const zoomLevel = zoom.level
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
 
-  if (zoomLevel !== 1.0 && spectrogramImage) {
+  // The element's attributes reflect expand × zoom, so prefer them when present.
+  if (spectrogramImage) {
     return {
       left: parseFloat(spectrogramImage.getAttribute('x') || String(margins.left)),
       top: parseFloat(spectrogramImage.getAttribute('y') || String(margins.top)),
-      width: parseFloat(spectrogramImage.getAttribute('width') || String(naturalWidth)),
-      height: parseFloat(spectrogramImage.getAttribute('height') || String(naturalHeight))
+      width: parseFloat(spectrogramImage.getAttribute('width') || String(renderWidth)),
+      height: parseFloat(spectrogramImage.getAttribute('height') || String(renderHeight))
     }
   }
 
   return {
     left: margins.left,
     top: margins.top,
-    width: naturalWidth,
-    height: naturalHeight
+    width: renderWidth,
+    height: renderHeight
   }
 }

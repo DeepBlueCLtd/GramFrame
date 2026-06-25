@@ -38,8 +38,10 @@
  * Image details including source and dimensions
  * @typedef {Object} ImageDetails
  * @property {string} url - Source URL of the spectrogram image
- * @property {number} naturalWidth - Original width of the image in pixels
+ * @property {number} naturalWidth - Original width of the image in pixels (data-mapping reference + landscape test)
  * @property {number} naturalHeight - Original height of the image in pixels
+ * @property {number} [renderWidth] - Base render width the image/axes/overlay are drawn at (before zoom); defaults to naturalWidth
+ * @property {number} [renderHeight] - Base render height the image/axes/overlay are drawn at (before zoom); defaults to naturalHeight
  */
 
 /**
@@ -183,6 +185,7 @@
  * @property {DisplayDimensions} displayDimensions - Current display dimensions
  * @property {AxesMargins} margins - Axes margin configuration
  * @property {ZoomState} zoom - Zoom state configuration
+ * @property {boolean} [imageExpanded] - Whether the image is expanded to fill available space (in-memory only)
  */
 
 /**

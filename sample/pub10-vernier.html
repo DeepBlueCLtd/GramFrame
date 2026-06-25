@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pub-10 — Vernier (portrait, no expand toggle)</title>
+  <link rel="stylesheet" href="../src/gramframe.css" />
+  <script type="module" src="../src/main.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #222;
+      background: #fff;
+    }
+    .confidence-banner {
+      background: #b00020;
+      color: #fff;
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 2px;
+      padding: 4px 0;
+      font-size: 13px;
+    }
+    .page-title {
+      font-size: 24px;
+      margin: 16px 16px 4px;
+      color: #1f3a5f;
+    }
+    .content { padding: 8px 16px 40px; max-width: 480px; }
+    table.gram-config { border-collapse: collapse; }
+  </style>
+</head>
+<body>
+  <div class="confidence-banner">COMMERCIAL IN CONFIDENCE</div>
+  <h1 class="page-title">Vernier — Portrait Gram</h1>
+
+  <div class="content">
+    <!-- Portrait (taller than wide) gram: vernier, must NOT be expandable -->
+    <table class="gram-config">
+      <tr>
+        <td colspan="2"><img src="pub10-assets/vernier-1.png" alt="Vernier spectrogram"></td>
+      </tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>40</td></tr>
+      <tr><td>freq-start</td><td>100</td></tr>
+      <tr><td>freq-end</td><td>300</td></tr>
+    </table>
+  </div>
+
+  <div class="diagnostics-panel" style="display:none;">
+    <pre id="state-display">Loading...</pre>
+  </div>
+</body>
+</html>

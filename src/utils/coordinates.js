@@ -51,16 +51,20 @@ export function screenToSVGCoordinates(screenX, screenY, svg, _imageDetails) {
 export function imageToDataCoordinates(imageX, imageY, config, imageDetails, rate) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
-  
+  // Use the base render dimensions (default to natural) so coordinate fidelity
+  // is preserved at any rendered size. imageX/imageY are expressed in render-pixel space.
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
+
   // Ensure coordinates are within image bounds
-  const boundedX = Math.max(0, Math.min(imageX, naturalWidth))
-  const boundedY = Math.max(0, Math.min(imageY, naturalHeight))
-  
+  const boundedX = Math.max(0, Math.min(imageX, renderWidth))
+  const boundedY = Math.max(0, Math.min(imageY, renderHeight))
+
   // Convert to data coordinates
   // X-axis = Frequency (horizontal)
-  const rawFreq = freqMin + (boundedX / naturalWidth) * (freqMax - freqMin)
+  const rawFreq = freqMin + (boundedX / renderWidth) * (freqMax - freqMin)
   // Y-axis = Time (vertical, with time increasing upward, Y=0 at top)
-  const time = timeMax - (boundedY / naturalHeight) * (timeMax - timeMin)
+  const time = timeMax - (boundedY / renderHeight) * (timeMax - timeMin)
   
   // Apply rate scaling to frequency - rate acts as a frequency divider
   const freq = rawFreq / rate

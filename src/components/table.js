@@ -11,6 +11,21 @@ import { formatTime } from '../utils/timeFormatter.js'
 import { notifyStateListeners } from '../core/state.js'
 
 /**
+ * Get the base render dimensions for an instance, falling back to natural
+ * dimensions when render dims have not been set (e.g. before image load).
+ * Render dims default to natural, so this is a no-op until the image is expanded.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {{renderWidth: number, renderHeight: number}} Base render dimensions
+ */
+export function getRenderDimensions(instance) {
+  const { naturalWidth, naturalHeight, renderWidth, renderHeight } = instance.state.imageDetails
+  return {
+    renderWidth: renderWidth || naturalWidth,
+    renderHeight: renderHeight || naturalHeight
+  }
+}
+
+/**
  * Create the complete DOM structure for the GramFrame component
  * @param {GramFrame} instance - GramFrame instance to populate with DOM elements
  * @returns {TableElements} Object containing all created DOM elements
@@ -147,7 +162,12 @@ export function setupSpectrogramImage(instance, imageUrl) {
     // Store scaled dimensions as natural dimensions
     instance.state.imageDetails.naturalWidth = imageWidth
     instance.state.imageDetails.naturalHeight = imageHeight
-    
+
+    // Initialise render dimensions to natural dimensions. Expand updates these
+    // to fill available space; collapse restores them to natural exactly.
+    instance.state.imageDetails.renderWidth = imageWidth
+    instance.state.imageDetails.renderHeight = imageHeight
+
     // Update SVG layout
     updateSVGLayout(instance)
     
@@ -167,15 +187,17 @@ export function setupSpectrogramImage(instance, imageUrl) {
 export function updateSVGLayout(instance) {
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const margins = instance.state.margins
-  
+
   if (!naturalWidth || !naturalHeight) {
     return
   }
-  
-  // Use the image's natural dimensions as the axes area
-  // This way each image fills its axes completely
-  const axesWidth = naturalWidth
-  const axesHeight = naturalHeight
+
+  // Use the base render dimensions (which default to natural, but grow when the
+  // image is expanded) as the axes area. This way each image fills its axes
+  // completely at whatever rendered size is currently active.
+  const { renderWidth, renderHeight } = getRenderDimensions(instance)
+  const axesWidth = renderWidth
+  const axesHeight = renderHeight
   
   // Calculate total container dimensions = image + decorations (margins)
   const totalWidth = axesWidth + margins.left + margins.right
@@ -224,19 +246,20 @@ export function updateSVGLayout(instance) {
  */
 export function applyZoomTransform(instance) {
   const { level, centerX, centerY } = instance.state.zoom
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const margins = instance.state.margins
-  
+  // Base render size (defaults to natural); zoom multiplies it so expand × zoom compose.
+  const { renderWidth, renderHeight } = getRenderDimensions(instance)
+
   if (!instance.spectrogramImage) {
     return
   }
-  
+
   if (level === 1.0) {
     // No zoom - reset to axes position and size
     instance.spectrogramImage.setAttribute('x', String(margins.left))
     instance.spectrogramImage.setAttribute('y', String(margins.top))
-    instance.spectrogramImage.setAttribute('width', String(naturalWidth))
-    instance.spectrogramImage.setAttribute('height', String(naturalHeight))
+    instance.spectrogramImage.setAttribute('width', String(renderWidth))
+    instance.spectrogramImage.setAttribute('height', String(renderHeight))
     instance.spectrogramImage.removeAttribute('transform')
     
     // Update axes to show full data range
@@ -250,13 +273,13 @@ export function applyZoomTransform(instance) {
     return
   }
   
-  // Calculate zoom center in image coordinates (0-1 normalized to image pixels)
-  const centerImageX = centerX * naturalWidth
-  const centerImageY = centerY * naturalHeight
-  
-  // Calculate new image dimensions
-  const zoomedWidth = naturalWidth * level
-  const zoomedHeight = naturalHeight * level
+  // Calculate zoom center in image coordinates (0-1 normalized to render pixels)
+  const centerImageX = centerX * renderWidth
+  const centerImageY = centerY * renderHeight
+
+  // Calculate new image dimensions (base render size multiplied by zoom level)
+  const zoomedWidth = renderWidth * level
+  const zoomedHeight = renderHeight * level
   
   // Calculate new position to keep zoom center in the same place
   const newX = margins.left + centerImageX - (centerImageX * level)
@@ -291,19 +314,22 @@ export function renderAxes(instance) {
   
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const margins = instance.state.margins
-  
+
   if (!naturalWidth || !naturalHeight) {
     return
   }
-  
+
+  // Axes span the base render size (defaults to natural; grows when expanded)
+  const { renderWidth, renderHeight } = getRenderDimensions(instance)
+
   // Calculate visible data range based on zoom
   const visibleRange = calculateVisibleDataRange(instance)
-  
+
   // Render frequency axis (bottom/horizontal - x-axis)
-  renderFrequencyAxis(instance, margins, naturalWidth, naturalHeight, visibleRange.freqMin, visibleRange.freqMax)
-  
+  renderFrequencyAxis(instance, margins, renderWidth, renderHeight, visibleRange.freqMin, visibleRange.freqMax)
+
   // Render time axis (left/vertical - y-axis)
-  renderTimeAxis(instance, margins, naturalWidth, naturalHeight, visibleRange.timeMin, visibleRange.timeMax)
+  renderTimeAxis(instance, margins, renderWidth, renderHeight, visibleRange.timeMin, visibleRange.timeMax)
 }
 
 /**
@@ -313,33 +339,34 @@ export function renderAxes(instance) {
  */
 export function calculateVisibleDataRange(instance) {
   const { timeMin, timeMax, freqMin, freqMax } = instance.state.config
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
   const margins = instance.state.margins
   const zoomLevel = instance.state.zoom.level
-  
+  // Base render size (defaults to natural; grows when expanded)
+  const { renderWidth, renderHeight } = getRenderDimensions(instance)
+
   if (zoomLevel === 1.0) {
     // No zoom - return full range
     return { timeMin, timeMax, freqMin, freqMax }
   }
-  
-  // Get current image position and dimensions
+
+  // Get current image position and dimensions (base render size × zoom)
   let imageLeft = margins.left
   let imageTop = margins.top
-  let imageWidth = naturalWidth
-  let imageHeight = naturalHeight
-  
+  let imageWidth = renderWidth
+  let imageHeight = renderHeight
+
   if (instance.spectrogramImage) {
     imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
     imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
-    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(renderWidth))
+    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(renderHeight))
   }
-  
-  // Calculate visible bounds in image coordinates
+
+  // Calculate visible bounds in image coordinates (full image extent = render size)
   const visibleLeft = Math.max(0, margins.left - imageLeft)
-  const visibleRight = Math.min(imageWidth, margins.left + naturalWidth - imageLeft)
+  const visibleRight = Math.min(imageWidth, margins.left + renderWidth - imageLeft)
   const visibleTop = Math.max(0, margins.top - imageTop)
-  const visibleBottom = Math.min(imageHeight, margins.top + naturalHeight - imageTop)
+  const visibleBottom = Math.min(imageHeight, margins.top + renderHeight - imageTop)
   
   // Convert to data coordinates
   const freqRange = freqMax - freqMin

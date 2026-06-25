@@ -24,33 +24,38 @@ function screenToDataWithZoom(instance, event) {
   // Convert to SVG coordinates
   const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
   
-  // Convert to data coordinates (accounting for margins and zoom)
+  // Convert to data coordinates (accounting for margins, expand and zoom)
   const margins = instance.state.margins
-  const zoomLevel = instance.state.zoom.level
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  
-  // Get current image position and dimensions (which may be zoomed)
+  // Base render size (defaults to natural; grows when expanded). Zoom multiplies
+  // it, so the rendered element size is renderWidth/renderHeight × zoom.
+  const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
+  const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
+
+  // Get the actual rendered image position and dimensions. The element's
+  // width/height attribute is the source of truth (it already reflects
+  // expand × zoom), so read it whenever the image element is present.
   let imageLeft = margins.left
   let imageTop = margins.top
-  let imageWidth = naturalWidth
-  let imageHeight = naturalHeight
-  
-  if (zoomLevel !== 1.0 && instance.spectrogramImage) {
+  let imageWidth = renderWidth
+  let imageHeight = renderHeight
+
+  if (instance.spectrogramImage) {
     imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
     imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(naturalWidth))
-    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(naturalHeight))
+    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(renderWidth))
+    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(renderHeight))
   }
-  
-  // Convert SVG coordinates to image-relative coordinates
-  const imageX = (svgCoords.x - imageLeft) * (naturalWidth / imageWidth)
-  const imageY = (svgCoords.y - imageTop) * (naturalHeight / imageHeight)
-  
-  // Check if within zoomed image bounds
+
+  // Convert SVG coordinates to image-relative coordinates in render-pixel space
+  const imageX = (svgCoords.x - imageLeft) * (renderWidth / imageWidth)
+  const imageY = (svgCoords.y - imageTop) * (renderHeight / imageHeight)
+
+  // Check if within the rendered image bounds
   const withinBounds = svgCoords.x >= imageLeft && svgCoords.x <= imageLeft + imageWidth &&
                       svgCoords.y >= imageTop && svgCoords.y <= imageTop + imageHeight &&
-                      imageX >= 0 && imageX <= naturalWidth &&
-                      imageY >= 0 && imageY <= naturalHeight
+                      imageX >= 0 && imageX <= renderWidth &&
+                      imageY >= 0 && imageY <= renderHeight
   
   if (!withinBounds) {
     return null

@@ -361,6 +361,78 @@ class GramFramePage {
   }
 
   /**
+   * Get the rendered spectrogram image element size (width/height attributes)
+   * @returns {Promise<{width: number, height: number}>} Rendered image size in SVG units
+   */
+  async getRenderedImageSize() {
+    return this.page.evaluate(() => {
+      const image = document.querySelector('.gram-frame-spectrogram-image')
+      if (!image) return { width: 0, height: 0 }
+      return {
+        width: parseFloat(image.getAttribute('width') || '0'),
+        height: parseFloat(image.getAttribute('height') || '0')
+      }
+    })
+  }
+
+  /**
+   * Get the computed font-size (in px) of the first frequency axis tick label
+   * @returns {Promise<number>} Font size in pixels
+   */
+  async getAxisLabelFontSize() {
+    return this.page.evaluate(() => {
+      const label = document.querySelector(
+        '.gram-frame-axis-label-major, .gram-frame-axis-label'
+      )
+      if (!label) return 0
+      return parseFloat(window.getComputedStyle(label).fontSize)
+    })
+  }
+
+  /**
+   * Locator for the expand toggle button (may be absent for portrait images)
+   * @returns {import('@playwright/test').Locator}
+   */
+  get expandToggle() {
+    return this.page.locator('.gram-frame-expand-toggle')
+  }
+
+  /**
+   * Whether the expand toggle is present in the DOM
+   * @returns {Promise<boolean>}
+   */
+  async isExpandToggleVisible() {
+    return (await this.expandToggle.count()) > 0
+  }
+
+  /**
+   * Click the expand toggle and wait briefly for relayout
+   * @returns {Promise<void>}
+   */
+  async clickExpandToggle() {
+    await this.expandToggle.first().click()
+    await this.page.waitForTimeout(150)
+  }
+
+  /**
+   * Read the data coordinates (freq/time) reported when hovering a given SVG pixel.
+   * Returns the cursorPosition data values from state.
+   * @param {number} x - X coordinate within the SVG element
+   * @param {number} y - Y coordinate within the SVG element
+   * @returns {Promise<{freq: number, time: number}|null>} Data coordinates or null
+   */
+  async readDataAtPixel(x, y) {
+    await this.svg.hover({ position: { x, y } })
+    await this.page.waitForTimeout(50)
+    const state = await this.getState()
+    const cp = state.cursorPosition
+    if (!cp || typeof cp.freq !== 'number' || typeof cp.time !== 'number') {
+      return null
+    }
+    return { freq: cp.freq, time: cp.time }
+  }
+
+  /**
    * Get all GramFrame storage keys
    * @param {'local' | 'session'} [storageType='local'] - Which storage to check
    * @returns {Promise<string[]>} Array of matching storage keys

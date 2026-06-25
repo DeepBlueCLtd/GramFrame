@@ -45,21 +45,24 @@ export function calculateDataTolerance(viewport, spectrogramImage, customToleran
   
   const { config: dataConfig, imageDetails, zoom } = viewport
   const { naturalWidth, naturalHeight } = imageDetails
-  
-  if (!dataConfig || !naturalWidth || !naturalHeight) {
+  // Base render size (defaults to natural; grows when expanded)
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
+
+  if (!dataConfig || !renderWidth || !renderHeight) {
     return config.minDataTolerance
   }
-  
+
   // Calculate pixel-to-data conversion factors
   const timeRange = dataConfig.timeMax - dataConfig.timeMin
   const freqRange = dataConfig.freqMax - dataConfig.freqMin
-  
+
   // Account for zoom level - higher zoom means smaller pixel tolerance in data space
   const effectiveZoom = zoom?.level || 1.0
-  
-  // Convert pixel tolerance to data space
-  const timeToleranceFromPixels = (config.pixelRadius / naturalHeight) * timeRange / effectiveZoom
-  const freqToleranceFromPixels = (config.pixelRadius / naturalWidth) * freqRange / effectiveZoom
+
+  // Convert pixel tolerance to data space (relative to the rendered image size)
+  const timeToleranceFromPixels = (config.pixelRadius / renderHeight) * timeRange / effectiveZoom
+  const freqToleranceFromPixels = (config.pixelRadius / renderWidth) * freqRange / effectiveZoom
   
   // Apply min/max constraints
   const timeTolerance = Math.max(

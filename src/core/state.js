@@ -46,8 +46,13 @@ export const initialState = {
   imageDetails: {
     url: '',
     naturalWidth: 0,  // Original dimensions of the image
-    naturalHeight: 0
+    naturalHeight: 0,
+    renderWidth: 0,   // Base render width (defaults to naturalWidth on load)
+    renderHeight: 0   // Base render height (defaults to naturalHeight on load)
   },
+  // Whether the image is currently expanded to fill available space.
+  // In-memory only, default false, never persisted (independent of feature 155).
+  imageExpanded: false,
   config: {
     timeMin: 0,
     timeMax: 0,

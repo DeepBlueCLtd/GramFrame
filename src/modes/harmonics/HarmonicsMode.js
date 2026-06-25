@@ -649,30 +649,15 @@ export class HarmonicsMode extends BaseMode {
    * @returns {Object} Line dimensions with height and top position
    */
   calculateHarmonicLineDimensions(harmonicSet) {
-    const { naturalHeight } = this.instance.state.imageDetails
-    const margins = this.instance.state.margins
-    const zoomLevel = this.instance.state.zoom.level
-    const { timeMin, timeMax } = this.instance.state.config
-    
-    // Calculate harmonic line height (20% of spectrogram height)
+    // Calculate harmonic line height (20% of spectrogram height). Derive geometry
+    // from the actual rendered image bounds so it stays correct across expand × zoom.
     const lineHeightRatio = 0.2
-    let lineHeight, lineTop
-    
-    if (zoomLevel === 1.0) {
-      lineHeight = naturalHeight * lineHeightRatio
-      // Center the line on anchor time
-      const normalizedAnchorTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
-      const anchorY = margins.top + normalizedAnchorTime * naturalHeight
-      lineTop = anchorY - lineHeight / 2
-    } else {
-      // Zoomed - calculate position based on current image transform
-      const imageBounds = getImageBounds(this.getViewport(), this.instance.spectrogramImage)
-      lineHeight = imageBounds.height * lineHeightRatio
-      const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime }
-      const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage)
-      lineTop = anchorSVG.y - lineHeight / 2
-    }
-    
+    const imageBounds = getImageBounds(this.getViewport(), this.instance.spectrogramImage)
+    const lineHeight = imageBounds.height * lineHeightRatio
+    const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime }
+    const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage)
+    const lineTop = anchorSVG.y - lineHeight / 2
+
     return { lineHeight, lineTop }
   }
 
