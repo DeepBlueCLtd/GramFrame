@@ -4819,8 +4819,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const SCHEMA_VERSION = 1;
   const KEY_PREFIX = "gramframe::";
+  const TRAINER_FLAG_SELECTOR = "#gf-persistent, .gf-persistent, [data-gf-persistent]";
   function detectUserContext() {
-    if (document.getElementById("gf-persistent")) {
+    if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
       return "trainer";
     }
     const anchors = document.querySelectorAll("a");

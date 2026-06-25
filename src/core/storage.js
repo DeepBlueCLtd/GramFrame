@@ -5,9 +5,22 @@
  * in browser storage. Trainers get localStorage (permanent); students get
  * sessionStorage (cleared on browser close).
  *
- * Context detection: a page is treated as a trainer page if EITHER an anchor
- * with exact text "ANALYSIS" is present, OR an element with id "gf-persistent"
- * exists anywhere on the page. All other pages are student pages.
+ * Context detection: a page is treated as a trainer page if ANY of the
+ * following is present anywhere on the page:
+ *   - an element with id "gf-persistent",
+ *   - an element with class "gf-persistent",
+ *   - an element carrying the data-gf-persistent attribute, OR
+ *   - (legacy) an anchor whose exact text is "ANALYSIS".
+ * All other pages are student pages.
+ *
+ * The class and data-attribute forms exist so the flag can be emitted from a
+ * DITA-OT / Oxygen WebHelp publishing pipeline. DITA-OT topic-scopes and
+ * uniquifies every @id in its HTML output, so an authored id="gf-persistent"
+ * is rewritten to something page-specific and getElementById() never matches.
+ * @outputclass, by contrast, is passed straight through to the HTML @class
+ * verbatim and un-mangled (this is exactly how table.gram-config is already
+ * detected), and classes are not uniquified — so .gf-persistent is reliably
+ * emittable from DITA and stable on every page.
  */
 
 /// <reference path="../types.js" />
@@ -19,16 +32,24 @@ const SCHEMA_VERSION = 1
 const KEY_PREFIX = 'gramframe::'
 
 /**
+ * CSS selector matching the explicit trainer-persistence flag. Accepts the
+ * id, class, or data-attribute form. Exported for unit testing.
+ * @type {string}
+ */
+export const TRAINER_FLAG_SELECTOR = '#gf-persistent, .gf-persistent, [data-gf-persistent]'
+
+/**
  * Detect whether the current page is a trainer or student context.
  * A page is treated as trainer context if EITHER condition holds:
- *   - an anchor element with exact text "ANALYSIS" is present, OR
- *   - an element with id "gf-persistent" exists anywhere on the page.
+ *   - an explicit persistence flag (id, class, or data-attribute) is present
+ *     anywhere on the page (see TRAINER_FLAG_SELECTOR), OR
+ *   - (legacy) an anchor element with exact text "ANALYSIS" is present.
  * All other pages are student context.
  * @returns {'trainer' | 'student'}
  */
 export function detectUserContext() {
-  // Explicit persistence flag: an element with id "gf-persistent"
-  if (document.getElementById('gf-persistent')) {
+  // Explicit persistence flag: id, class, or data-attribute form.
+  if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
     return 'trainer'
   }
   // Legacy detection: an anchor whose exact text is "ANALYSIS"
