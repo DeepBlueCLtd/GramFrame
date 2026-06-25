@@ -337,6 +337,27 @@ test.describe('gf-persistent flag forces trainer persistence', () => {
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
   })
+
+  // The DITA-friendly class flag must drive the full localStorage pipeline,
+  // not just detection — DITA-OT id-mangling makes the class form the one the
+  // AAAC publishing pipeline can actually emit.
+  test('page with class="gf-persistent" uses localStorage (not sessionStorage)', async ({ page }) => {
+    await page.goto('/tests/fixtures/persistent-class-page.html')
+    await page.evaluate(() => {
+      localStorage.clear()
+      sessionStorage.clear()
+    })
+    const gfp = await gotoFixture(page, '/tests/fixtures/persistent-class-page.html')
+
+    await addAnalysisMarker(gfp, 200, 150)
+    await page.waitForTimeout(300)
+
+    const localKeys = await gfp.getStorageKeys('local')
+    expect(localKeys.length).toBeGreaterThan(0)
+
+    const sessionKeys = await gfp.getStorageKeys('session')
+    expect(sessionKeys.length).toBe(0)
+  })
 })
 
 // ──────────────────────────────────────────────────────────────
