@@ -22,6 +22,36 @@ This component provides an interactive overlay for sonar spectrogram images, ena
 - [Rendering Troubleshooting](docs/Rendering-Troubleshooting.md) — Debugging rendering and coordinate issues
 - [Architecture Decision Records](docs/ADRs/) — Design decisions and rationale
 
+## Annotation Persistence
+
+Annotations (analysis markers, harmonic sets, and Doppler curves) are saved to
+browser storage automatically. The storage backend depends on whether the page
+is detected as a **trainer** or **student** context:
+
+| Context   | Storage          | Lifetime                                      |
+|-----------|------------------|-----------------------------------------------|
+| Trainer   | `localStorage`   | Permanent — survives browser restarts         |
+| Student   | `sessionStorage` | Cleared when the browser tab/session closes   |
+
+### How the context is detected
+
+A page is treated as a **trainer** page if **either** of the following is true:
+
+1. The page contains an element with `id="gf-persistent"` (anywhere in the DOM), or
+2. The page contains an anchor (`<a>`) element whose exact trimmed text is `ANALYSIS`.
+
+If neither is present, the page is treated as a **student** page.
+
+To opt a page into permanent (trainer) persistence, add a marker element, e.g.:
+
+```html
+<span id="gf-persistent" hidden></span>
+```
+
+The detection is re-evaluated on every save/load, and the storage key is
+namespaced per page path (`gramframe::<pathname>`) — only the storage backend
+(local vs. session) differs between contexts.
+
 ## Target Audience
 
 Trainees or students using sonar training manuals in HTML format.

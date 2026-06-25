@@ -296,6 +296,50 @@ test.describe('US2: Student annotations persist within session', () => {
 })
 
 // ──────────────────────────────────────────────────────────────
+// gf-persistent flag — opts a page into trainer (localStorage) persistence
+// ──────────────────────────────────────────────────────────────
+
+test.describe('gf-persistent flag forces trainer persistence', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/tests/fixtures/persistent-flag-page.html')
+    await page.evaluate(() => {
+      localStorage.clear()
+      sessionStorage.clear()
+    })
+  })
+
+  test('page with #gf-persistent uses localStorage (not sessionStorage)', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/persistent-flag-page.html')
+
+    await addAnalysisMarker(gfp, 200, 150)
+    await page.waitForTimeout(300)
+
+    // Annotations should be written to localStorage (trainer behaviour)
+    const localKeys = await gfp.getStorageKeys('local')
+    expect(localKeys.length).toBeGreaterThan(0)
+
+    // ...and NOT to sessionStorage (student behaviour)
+    const sessionKeys = await gfp.getStorageKeys('session')
+    expect(sessionKeys.length).toBe(0)
+  })
+
+  test('annotations persist across reload via the gf-persistent flag', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/persistent-flag-page.html')
+
+    await addAnalysisMarker(gfp, 200, 150)
+    const stateBefore = await getStateFromPage(page)
+    expect(stateBefore.analysis.markers.length).toBeGreaterThan(0)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const stateAfter = await getStateFromPage(page)
+    expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
+  })
+})
+
+// ──────────────────────────────────────────────────────────────
 // User Story 3 — Trainer Clears Stored Annotations
 // ──────────────────────────────────────────────────────────────
 
