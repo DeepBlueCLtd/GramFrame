@@ -379,6 +379,10 @@ test.describe('US3: Clear gram button', () => {
     const stateBefore = await getStateFromPage(page)
     expect(stateBefore.analysis.markers.length).toBeGreaterThan(0)
 
+    // The marker should appear as a row in the markers table above the gram
+    const markerRows = page.locator('.gram-frame-table tbody tr')
+    expect(await markerRows.count()).toBeGreaterThan(0)
+
     // Click clear gram button
     const clearBtn = page.locator('.gram-frame-clear-btn')
     await expect(clearBtn).toBeVisible()
@@ -389,6 +393,9 @@ test.describe('US3: Clear gram button', () => {
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.analysis.markers.length).toBe(0)
     expect(stateAfter.harmonics.harmonicSets.length).toBe(0)
+
+    // Verify the markers table above the gram is also cleared (not just the SVG)
+    expect(await markerRows.count()).toBe(0)
 
     // Verify storage is cleared
     const keys = await gfp.getStorageKeys('local')
