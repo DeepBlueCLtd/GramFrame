@@ -306,6 +306,14 @@ export class GramFrame {
       this.currentMode.activate()
     }
 
+    // Refresh the persistent markers and harmonics tables (always visible,
+    // regardless of the active mode) so cleared annotations also disappear
+    // from the tables above the spectrogram, not just the SVG overlay
+    updatePersistentPanels(this)
+
+    // Refresh LED displays (e.g. Doppler readouts) to reflect the cleared state
+    updateLEDDisplays(this, this.state)
+
     notifyStateListeners(this.state, this.stateListeners)
   }
 

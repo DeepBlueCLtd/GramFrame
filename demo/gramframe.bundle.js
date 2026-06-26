@@ -5109,6 +5109,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.currentMode.cleanup();
         this.currentMode.activate();
       }
+      updatePersistentPanels(this);
+      updateLEDDisplays(this, this.state);
       notifyStateListeners(this.state, this.stateListeners);
     }
     /**
