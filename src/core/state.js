@@ -11,6 +11,7 @@ import { AnalysisMode } from '../modes/analysis/AnalysisMode.js'
 import { HarmonicsMode } from '../modes/harmonics/HarmonicsMode.js'
 import { DopplerMode } from '../modes/doppler/DopplerMode.js'
 import { PanMode } from '../modes/pan/PanMode.js'
+import { getVersion } from '../utils/version.js'
 
 /**
  * Build mode-specific initial state by collecting from all mode classes
@@ -34,7 +35,7 @@ function buildModeInitialState() {
  * @type {GramFrameState}
  */
 export const initialState = {
-  version: '0.0.1',
+  version: getVersion(),
   timestamp: new Date().toISOString(),
   instanceId: '',
   mode: 'analysis', // 'analysis', 'harmonics', 'doppler', 'pan'
