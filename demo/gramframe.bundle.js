@@ -2379,7 +2379,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.rateLED.querySelector(".gram-frame-led-value").textContent = `${state.rate}`;
     }
   }
-  const VERSION = "0.1.12";
+  const VERSION = "0.1.13";
   function getVersion() {
     return VERSION;
   }
