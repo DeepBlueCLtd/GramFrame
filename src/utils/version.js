@@ -4,7 +4,7 @@
  */
 
 // Placeholder version for development - updated automatically during release builds
-export const VERSION = 'DEV'
+export const VERSION = '0.1.12'
 
 /**
  * Get the current version of GramFrame
