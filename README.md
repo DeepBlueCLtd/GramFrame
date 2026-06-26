@@ -59,3 +59,18 @@ Trainees or students using sonar training manuals in HTML format.
 ## Usage
 
 Include the JavaScript file via `<script>`, and place a config table with the appropriate class on your HTML page. The component will auto-initialize after page load.
+
+## Checking the version
+
+To identify which version of GramFrame an instance is running — useful when
+reporting or debugging an issue:
+
+- **In the UI:** hover over the **Pan** button. A tooltip shows `GramFrame vX.Y.Z`.
+  (The tooltip is available even before zooming in, while the button is disabled.)
+- **Programmatically:** read `state.version` via the public API:
+  ```js
+  GramFrame.addStateListener(state => console.log(state.version))
+  ```
+
+Released builds show the real version (e.g. `v0.1.12`); local development builds
+show `vDEV` until `yarn generate-version` runs.
