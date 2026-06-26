@@ -2379,7 +2379,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.rateLED.querySelector(".gram-frame-led-value").textContent = `${state.rate}`;
     }
   }
-  const VERSION = "DEV";
+  const VERSION = "0.1.12";
   function getVersion() {
     return VERSION;
   }
@@ -3424,7 +3424,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return Object.assign({}, ...modeStates);
   }
   const initialState = {
-    version: "0.0.1",
+    version: getVersion(),
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     instanceId: "",
     mode: "analysis",
