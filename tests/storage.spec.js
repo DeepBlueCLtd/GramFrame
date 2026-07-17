@@ -525,3 +525,234 @@ test.describe('Edge cases', () => {
     expect(keysAfter.length).toBeGreaterThan(0)
   })
 })
+
+// ──────────────────────────────────────────────────────────────
+// Feature 157: Student Tonal Expiry (24-Hour Persistence Limit)
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * Rewrite the `savedAt` field of the app-written gramframe:: record in the
+ * given storage. Reads the key the app actually wrote (enumerating the store
+ * for the `gramframe::` prefix) rather than reconstructing it, per the contract.
+ * @param {import('@playwright/test').Page} page
+ * @param {'local' | 'session'} storageType
+ * @param {string | null} newSavedAt - New ISO value, or null to delete the field
+ * @returns {Promise<boolean>} True if a record was found and rewritten
+ */
+async function mutateSavedAt(page, storageType, newSavedAt) {
+  return page.evaluate(({ storageType, newSavedAt }) => {
+    const store = storageType === 'local' ? localStorage : sessionStorage
+    for (let i = 0; i < store.length; i++) {
+      const key = store.key(i)
+      if (key && key.startsWith('gramframe::')) {
+        const rec = JSON.parse(/** @type {string} */ (store.getItem(key)))
+        if (newSavedAt === null) {
+          delete rec.savedAt
+        } else {
+          rec.savedAt = newSavedAt
+        }
+        store.setItem(key, JSON.stringify(rec))
+        return true
+      }
+    }
+    return false
+  }, { storageType, newSavedAt })
+}
+
+test.describe('Feature 157: student annotation 24h expiry', () => {
+  // Each test runs in its own isolated browser context (fresh session/local
+  // storage), so no explicit clear is needed. Grant extra headroom for the
+  // extra reload + storage-mutation steps under parallel load.
+  test.beforeEach(() => {
+    test.setTimeout(30000)
+  })
+
+  // ── User Story 1: Old student annotations do not resurface ──
+
+  // T006 — contract T-A, SC-001, FR-003
+  test('US1: student annotations older than 24h are discarded on load', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/student-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    // Confirm the app wrote a student record to sessionStorage
+    const keysBefore = await gfp.getStorageKeys('session')
+    expect(keysBefore.length).toBeGreaterThan(0)
+
+    // Backdate the record's savedAt to 25h ago
+    const mutated = await mutateSavedAt(page, 'session', new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString())
+    expect(mutated).toBe(true)
+
+    // Reload — the expired record must not restore and must be removed
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const state = await getStateFromPage(page)
+    expect(state.analysis.markers.length).toBe(0)
+    expect(state.harmonics.harmonicSets.length).toBe(0)
+    expect(state.doppler.fPlus).toBeNull()
+    expect(state.doppler.fMinus).toBeNull()
+
+    // The stale key must have been removed during the load
+    const keysAfter = await gfp.getStorageKeys('session')
+    expect(keysAfter.length).toBe(0)
+  })
+
+  // T007 — contract T-B, SC-002, FR-004
+  test('US1: student annotations within 24h are restored on load', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/student-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    const stateBefore = await getStateFromPage(page)
+    expect(stateBefore.analysis.markers.length).toBeGreaterThan(0)
+
+    // Set savedAt to ~1h ago — well within the 24h window
+    const mutated = await mutateSavedAt(page, 'session', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+    expect(mutated).toBe(true)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const stateAfter = await getStateFromPage(page)
+    expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
+
+    // Key should still be present (not discarded)
+    const keysAfter = await gfp.getStorageKeys('session')
+    expect(keysAfter.length).toBeGreaterThan(0)
+  })
+
+  // T008 — contract T-D, FR-009
+  test('US1: student record with missing savedAt is discarded on load', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/student-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    // Remove the savedAt field entirely — cannot prove freshness, fail safe
+    const mutated = await mutateSavedAt(page, 'session', null)
+    expect(mutated).toBe(true)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const state = await getStateFromPage(page)
+    expect(state.analysis.markers.length).toBe(0)
+
+    const keysAfter = await gfp.getStorageKeys('session')
+    expect(keysAfter.length).toBe(0)
+  })
+
+  // T008b — garbage (unparseable) savedAt is also discarded (contract T-D, FR-009)
+  test('US1: student record with garbage savedAt is discarded on load', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/student-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    const mutated = await mutateSavedAt(page, 'session', 'not-a-date')
+    expect(mutated).toBe(true)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const state = await getStateFromPage(page)
+    expect(state.analysis.markers.length).toBe(0)
+
+    const keysAfter = await gfp.getStorageKeys('session')
+    expect(keysAfter.length).toBe(0)
+  })
+
+  // T008c — future savedAt (clock skew) is discarded (contract T-D, FR-009)
+  test('US1: student record with a future savedAt is discarded on load', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/student-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    // 2 hours in the future
+    const mutated = await mutateSavedAt(page, 'session', new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString())
+    expect(mutated).toBe(true)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const state = await getStateFromPage(page)
+    expect(state.analysis.markers.length).toBe(0)
+
+    const keysAfter = await gfp.getStorageKeys('session')
+    expect(keysAfter.length).toBe(0)
+  })
+
+  // ── User Story 3: Trainer annotations remain permanent ──
+
+  // T011 — contract T-C, SC-003, FR-006
+  test('US3: trainer annotations survive beyond 24h', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    const stateBefore = await getStateFromPage(page)
+    expect(stateBefore.analysis.markers.length).toBeGreaterThan(0)
+
+    // Backdate savedAt to 10 days ago — far beyond the student window
+    const mutated = await mutateSavedAt(page, 'local', new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString())
+    expect(mutated).toBe(true)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    // Trainer records must still be restored and the key must remain
+    const stateAfter = await getStateFromPage(page)
+    expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
+
+    const keysAfter = await gfp.getStorageKeys('local')
+    expect(keysAfter.length).toBeGreaterThan(0)
+  })
+
+  // T012 — contract behavior matrix, FR-006
+  test('US3: trainer record with missing savedAt is NOT discarded', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    const stateBefore = await getStateFromPage(page)
+    expect(stateBefore.analysis.markers.length).toBeGreaterThan(0)
+
+    // Remove savedAt — for trainer context the expiry gate is skipped entirely
+    const mutated = await mutateSavedAt(page, 'local', null)
+    expect(mutated).toBe(true)
+
+    await page.reload()
+    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+    await page.waitForTimeout(500)
+
+    const stateAfter = await getStateFromPage(page)
+    expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
+
+    const keysAfter = await gfp.getStorageKeys('local')
+    expect(keysAfter.length).toBeGreaterThan(0)
+  })
+
+  // ── User Story 2: Instructors can force an immediate reset ──
+
+  // T014 — contract T-E, US2, FR-008
+  // A fresh browser session (new sessionStorage) restores no student annotations,
+  // regardless of the 24h window. This preserves the instructor override.
+  test('US2: fresh browser session restores no student annotations', async ({ browser }) => {
+    // Session 1 — seed student annotations
+    const context1 = await browser.newContext()
+    const page1 = await context1.newPage()
+    const gfp1 = await gotoFixture(page1, '/tests/fixtures/student-page.html')
+    await addAnalysisMarker(gfp1, 200, 150)
+
+    const state1 = await getStateFromPage(page1)
+    expect(state1.analysis.markers.length).toBeGreaterThan(0)
+    await context1.close()
+
+    // Session 2 — a fresh session starts with empty sessionStorage
+    const context2 = await browser.newContext()
+    const page2 = await context2.newPage()
+    await gotoFixture(page2, '/tests/fixtures/student-page.html')
+
+    const state2 = await getStateFromPage(page2)
+    expect(state2.analysis.markers.length).toBe(0)
+    await context2.close()
+  })
+})
