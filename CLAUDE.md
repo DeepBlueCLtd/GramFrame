@@ -165,6 +165,8 @@ Example configuration:
 - Browser Web Storage API — `sessionStorage` (student), `localStorage` (trainer) (157-student-tonal-expiry)
 - JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (157-harmonic-pin-symbols)
 - Browser Web Storage (localStorage for trainers / sessionStorage for students) (157-harmonic-pin-symbols)
+- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (158-harmonic-pin-sampling)
+- N/A — purely presentational; no persisted data or new state (158-harmonic-pin-sampling)
 
 ## Recent Changes
 - 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)
