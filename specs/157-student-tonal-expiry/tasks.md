@@ -23,8 +23,8 @@ Single-project browser component: source in `src/`, Playwright tests in `tests/`
 
 **Purpose**: Confirm the working environment before touching persistence logic.
 
-- [ ] T001 Confirm baseline is green by running `yarn typecheck` and `yarn test` (record any pre-existing failures — e.g. the `state.version === "DEV"` metadata tests — so they are not mistaken for regressions from this feature)
-- [ ] T002 Re-read `src/core/storage.js` and `src/main.js#_restoreAnnotations` to confirm the single read path and the existing `savedAt` write in `saveAnnotations()` (per research.md Decision 1)
+- [X] T001 Confirm baseline is green by running `yarn typecheck` and `yarn test` (record any pre-existing failures — e.g. the `state.version === "DEV"` metadata tests — so they are not mistaken for regressions from this feature)
+- [X] T002 Re-read `src/core/storage.js` and `src/main.js#_restoreAnnotations` to confirm the single read path and the existing `savedAt` write in `saveAnnotations()` (per research.md Decision 1)
 
 ---
 
@@ -34,9 +34,9 @@ Single-project browser component: source in `src/`, Playwright tests in `tests/`
 
 **⚠️ CRITICAL**: User story work cannot begin until this phase is complete.
 
-- [ ] T003 Add `export const STUDENT_TTL_MS = 24 * 60 * 60 * 1000` constant to `src/core/storage.js` (near `SCHEMA_VERSION`), with a JSDoc comment stating it is the fixed 24-hour student persistence policy
-- [ ] T004 Implement and export the pure predicate `isAnnotationExpired(savedAt, nowMs)` in `src/core/storage.js` returning `true` when `savedAt` is missing/unparseable (`Date.parse` → `NaN`), in the future (`nowMs - t < 0`), or older than `STUDENT_TTL_MS`; otherwise `false` — matching the table in `contracts/storage-expiry.md`
-- [ ] T005 Add a JSDoc `@param`/`@returns` signature for `isAnnotationExpired` so `yarn typecheck` covers it, then run `yarn typecheck` to confirm zero errors
+- [X] T003 Add `export const STUDENT_TTL_MS = 24 * 60 * 60 * 1000` constant to `src/core/storage.js` (near `SCHEMA_VERSION`), with a JSDoc comment stating it is the fixed 24-hour student persistence policy
+- [X] T004 Implement and export the pure predicate `isAnnotationExpired(savedAt, nowMs)` in `src/core/storage.js` returning `true` when `savedAt` is missing/unparseable (`Date.parse` → `NaN`), in the future (`nowMs - t < 0`), or older than `STUDENT_TTL_MS`; otherwise `false` — matching the table in `contracts/storage-expiry.md`
+- [X] T005 Add a JSDoc `@param`/`@returns` signature for `isAnnotationExpired` so `yarn typecheck` covers it, then run `yarn typecheck` to confirm zero errors
 
 **Checkpoint**: Shared expiry predicate + constant exist and typecheck; ready to wire into the load path.
 
@@ -50,14 +50,14 @@ Single-project browser component: source in `src/`, Playwright tests in `tests/`
 
 ### Tests for User Story 1 (write first, expect FAIL before T009)
 
-- [ ] T006 [P] [US1] Add e2e test "student annotations older than 24h are discarded on load" to `tests/storage.spec.js`: seed annotations on a student sample page, read back the app-written `gramframe::` key from `sessionStorage`, rewrite its `savedAt` to 25h ago, reload, assert no markers/harmonics/doppler restored AND the key was removed (contract T-A, SC-001, FR-003)
-- [ ] T007 [P] [US1] Add e2e test "student annotations within 24h are restored on load" to `tests/storage.spec.js`: seed annotations, reload without altering `savedAt` (and with a `savedAt` set to ~1h ago), assert they are restored (contract T-B, SC-002, FR-004)
-- [ ] T008 [P] [US1] Add e2e test "student record with missing/garbage savedAt is discarded" to `tests/storage.spec.js`: delete or corrupt `savedAt`, reload, assert discarded and key removed (contract T-D, FR-009)
+- [X] T006 [P] [US1] Add e2e test "student annotations older than 24h are discarded on load" to `tests/storage.spec.js`: seed annotations on a student sample page, read back the app-written `gramframe::` key from `sessionStorage`, rewrite its `savedAt` to 25h ago, reload, assert no markers/harmonics/doppler restored AND the key was removed (contract T-A, SC-001, FR-003)
+- [X] T007 [P] [US1] Add e2e test "student annotations within 24h are restored on load" to `tests/storage.spec.js`: seed annotations, reload without altering `savedAt` (and with a `savedAt` set to ~1h ago), assert they are restored (contract T-B, SC-002, FR-004)
+- [X] T008 [P] [US1] Add e2e test "student record with missing/garbage savedAt is discarded" to `tests/storage.spec.js`: delete or corrupt `savedAt`, reload, assert discarded and key removed (contract T-D, FR-009)
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] In `loadAnnotations()` (`src/core/storage.js`), after the existing `version` check, add the student gate: if `detectUserContext() === 'student'` (reuse the `context` already computed in the function) and `isAnnotationExpired(data.savedAt, Date.now())`, then `storage.removeItem(key)`, emit a `console.warn`/info discard message, and `return null` (research Decision 1; contract behavior matrix)
-- [ ] T010 [US1] Run T006–T008; confirm they now pass. Run `yarn typecheck` and the full `yarn test` to check for regressions
+- [X] T009 [US1] In `loadAnnotations()` (`src/core/storage.js`), after the existing `version` check, add the student gate: if `detectUserContext() === 'student'` (reuse the `context` already computed in the function) and `isAnnotationExpired(data.savedAt, Date.now())`, then `storage.removeItem(key)`, emit a `console.warn`/info discard message, and `return null` (research Decision 1; contract behavior matrix)
+- [X] T010 [US1] Run T006–T008; confirm they now pass. Run `yarn typecheck` and the full `yarn test` to check for regressions
 
 **Checkpoint**: Student expiry works end-to-end and is independently testable.
 
@@ -73,12 +73,12 @@ Single-project browser component: source in `src/`, Playwright tests in `tests/`
 
 ### Tests for User Story 3
 
-- [ ] T011 [P] [US3] Add e2e test "trainer annotations survive beyond 24h" to `tests/storage.spec.js`: on a trainer sample page (with a `.gf-persistent` flag or `ANALYSIS` anchor, using `localStorage`), seed annotations, backdate `savedAt` to 10 days ago, reload, assert annotations are STILL restored and the key remains (contract T-C, SC-003, FR-006)
-- [ ] T012 [P] [US3] Add e2e test "trainer record with missing savedAt is NOT discarded" to `tests/storage.spec.js`: on a trainer page, remove `savedAt`, reload, assert annotations still restored (contract behavior matrix, FR-006)
+- [X] T011 [P] [US3] Add e2e test "trainer annotations survive beyond 24h" to `tests/storage.spec.js`: on a trainer sample page (with a `.gf-persistent` flag or `ANALYSIS` anchor, using `localStorage`), seed annotations, backdate `savedAt` to 10 days ago, reload, assert annotations are STILL restored and the key remains (contract T-C, SC-003, FR-006)
+- [X] T012 [P] [US3] Add e2e test "trainer record with missing savedAt is NOT discarded" to `tests/storage.spec.js`: on a trainer page, remove `savedAt`, reload, assert annotations still restored (contract behavior matrix, FR-006)
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Verify the `context === 'student'` guard in `loadAnnotations()` (T009) correctly bypasses expiry for trainer context; adjust only if T011/T012 reveal a gap. Run `yarn test` to confirm both trainer tests pass
+- [X] T013 [US3] Verify the `context === 'student'` guard in `loadAnnotations()` (T009) correctly bypasses expiry for trainer context; adjust only if T011/T012 reveal a gap. Run `yarn test` to confirm both trainer tests pass
 
 **Checkpoint**: Trainer permanence proven; no regression to the trainer workflow.
 
@@ -94,11 +94,11 @@ Single-project browser component: source in `src/`, Playwright tests in `tests/`
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Add (or confirm existing in `tests/storage.spec.js`) an e2e test "fresh browser session restores no student annotations": seed student annotations, simulate a fresh session (new browser context / cleared `sessionStorage`) per the Playwright pattern already used in `tests/storage.spec.js`, reload, assert nothing restored (contract T-E, US2, FR-008). If already covered by a feature-155 test, reference it here instead of duplicating
+- [X] T014 [P] [US2] Add (or confirm existing in `tests/storage.spec.js`) an e2e test "fresh browser session restores no student annotations": seed student annotations, simulate a fresh session (new browser context / cleared `sessionStorage`) per the Playwright pattern already used in `tests/storage.spec.js`, reload, assert nothing restored (contract T-E, US2, FR-008). If already covered by a feature-155 test, reference it here instead of duplicating
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] No production code change expected. Run `yarn test` to confirm the fresh-session test passes with the new expiry gate in place (the gate must not break the existing session-scope behavior)
+- [X] T015 [US2] No production code change expected. Run `yarn test` to confirm the fresh-session test passes with the new expiry gate in place (the gate must not break the existing session-scope behavior)
 
 **Checkpoint**: Instructor fresh-session override verified alongside the 24h cap.
 
@@ -108,10 +108,10 @@ Single-project browser component: source in `src/`, Playwright tests in `tests/`
 
 **Purpose**: Documentation, type safety, and final quality-gate verification.
 
-- [ ] T016 [P] Update the JSDoc header block at the top of `src/core/storage.js` to document the 24-hour student expiry (mention trainer permanence and the fail-safe on malformed `savedAt`)
-- [ ] T017 [P] If any student sample page lacks annotations tooling for the tests, add/verify a suitable student and trainer sample under `sample/` (only if T006/T011 need a dedicated fixture; otherwise skip)
-- [ ] T018 Run the full quality-gate trio required by the Constitution: `yarn typecheck`, `yarn test`, `yarn build` — all must be green (excluding any pre-existing failures recorded in T001)
-- [ ] T019 Walk through `quickstart.md` steps 1–5 manually against `yarn dev` to confirm the observable behavior matches the spec's success criteria
+- [X] T016 [P] Update the JSDoc header block at the top of `src/core/storage.js` to document the 24-hour student expiry (mention trainer permanence and the fail-safe on malformed `savedAt`)
+- [X] T017 [P] If any student sample page lacks annotations tooling for the tests, add/verify a suitable student and trainer sample under `sample/` (only if T006/T011 need a dedicated fixture; otherwise skip)
+- [X] T018 Run the full quality-gate trio required by the Constitution: `yarn typecheck`, `yarn test`, `yarn build` — all must be green (excluding any pre-existing failures recorded in T001)
+- [X] T019 Walk through `quickstart.md` steps 1–5 manually against `yarn dev` to confirm the observable behavior matches the spec's success criteria
 
 ---
 
