@@ -4821,8 +4821,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     };
   }
   const SCHEMA_VERSION = 1;
+  const STUDENT_TTL_MS = 24 * 60 * 60 * 1e3;
   const KEY_PREFIX = "gramframe::";
   const TRAINER_FLAG_SELECTOR = "#gf-persistent, .gf-persistent, [data-gf-persistent]";
+  function isAnnotationExpired(savedAt, nowMs) {
+    const t = Date.parse(
+      /** @type {string} */
+      savedAt
+    );
+    if (Number.isNaN(t)) {
+      return true;
+    }
+    const age = nowMs - t;
+    if (age < 0) {
+      return true;
+    }
+    return age > STUDENT_TTL_MS;
+  }
   function detectUserContext() {
     if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
       return "trainer";
@@ -4910,6 +4925,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const data = JSON.parse(raw);
       if (!data || data.version !== SCHEMA_VERSION) {
         console.warn("GramFrame: Discarding stored annotations — unrecognised schema version:", data && data.version);
+        storage.removeItem(key);
+        return null;
+      }
+      if (context === "student" && isAnnotationExpired(data.savedAt, Date.now())) {
+        console.info("GramFrame: Discarding student annotations — older than the 24-hour persistence limit");
         storage.removeItem(key);
         return null;
       }
