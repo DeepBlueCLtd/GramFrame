@@ -176,10 +176,17 @@ All 19 tasks complete. Summary of the delivered change:
   `isAnnotationExpired(savedAt, nowMs)` predicate, and the student-context
   expiry gate in `loadAnnotations()` (after the version check). Trainer context
   bypasses the gate. Module JSDoc header updated to document the policy.
-- **`tests/storage.spec.js`**: added the "Feature 157: student annotation 24h
-  expiry" describe block covering T-A…T-E — older-than-24h discard, within-24h
-  restore, missing/garbage/future `savedAt` discard, trainer permanence beyond
-  24h, trainer-with-missing-`savedAt` retained, and fresh-session override.
+- **`tests/storage.spec.js`**: Playwright coverage for T-A…T-E — older-than-24h
+  discard, within-24h restore, missing/garbage/future `savedAt` discard, trainer
+  permanence beyond 24h, trainer-with-missing-`savedAt` retained, and
+  fresh-session override.
+
+**Merge note**: an equivalent implementation of this feature landed on `main`
+independently (PR #190). This branch was rebased/merged onto that result: the
+production code is identical, and the duplicate test block was collapsed into
+`main`'s canonical Feature-157 describe blocks. The one edge case `main` did not
+cover explicitly — a **future `savedAt`** (clock skew) being discarded — is
+added here as a dedicated student test.
 
 **Baseline note (T001)**: `yarn typecheck` has one pre-existing error unrelated
 to this feature — `src/index.js(11): TS2882` for the side-effect CSS import
