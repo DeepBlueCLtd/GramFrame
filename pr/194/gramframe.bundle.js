@@ -1643,7 +1643,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     });
     spacingInput.focus();
   }
-  const MAX_VISIBLE_PINS = 50;
+  const MAX_VISIBLE_PINS = 25;
   const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1e3, 2500, 5e3];
   function countMultiples(minHarmonic, maxHarmonic, step) {
     return Math.floor(maxHarmonic / step) - Math.floor((minHarmonic - 1) / step);
