@@ -7,11 +7,12 @@
 
 /// <reference path="../types.js" />
 
-import { 
-  createLEDDisplay, 
-  createColorPicker, 
-  createFullFlexLayout, 
-  createFlexColumn 
+import {
+  createLEDDisplay,
+  createColorPicker,
+  createSymbolPicker,
+  createFullFlexLayout,
+  createFlexColumn
 } from './UIComponents.js'
 import { formatTime } from '../utils/timeFormatter.js'
 
@@ -67,7 +68,11 @@ export function createUnifiedLayout(instance) {
   const colorPicker = createColorPicker(instance.state)
   colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Color'
   controlsColumn.appendChild(colorPicker)
-  
+
+  // Create symbol picker immediately after the colour picker
+  const symbolPicker = createSymbolPicker(instance.state)
+  controlsColumn.appendChild(symbolPicker)
+
   // Add columns to left panel
   leftColumn.appendChild(modeColumn)
   leftColumn.appendChild(guidanceColumn)
@@ -111,7 +116,8 @@ export function createUnifiedLayout(instance) {
   instance.freqLED = freqLED
   instance.speedLED = speedLED
   instance.colorPicker = colorPicker
-  
+  instance.symbolPicker = symbolPicker
+
   return unifiedLayoutContainer
 }
 

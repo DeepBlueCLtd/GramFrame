@@ -7,6 +7,7 @@ import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordina
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
+import { createSymbolMark } from '../../rendering/symbols.js'
 import { calculateVisibleDataRange } from '../../components/table.js'
 
 /**
@@ -336,12 +337,16 @@ export class HarmonicsMode extends BaseMode {
       color = HarmonicsMode.harmonicColors[colorIndex]
     }
     
+    // Use selected symbol from global state, defaulting to circle
+    const symbol = this.instance.state.selectedSymbol || 'circle'
+
     /** @type {HarmonicSet} */
     const harmonicSet = {
       id,
       color,
       anchorTime,
-      spacing
+      spacing,
+      symbol
     }
     
     this.instance.state.harmonics.harmonicSets.push(harmonicSet)
@@ -617,9 +622,11 @@ export class HarmonicsMode extends BaseMode {
       return
     }
     
-    // Clear existing harmonic lines
+    // Clear existing harmonic lines and their symbol marks
     const existingHarmonics = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-line')
     existingHarmonics.forEach(line => line.remove())
+    const existingSymbols = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol')
+    existingSymbols.forEach(symbol => symbol.remove())
     
     // Render all harmonic sets
     this.instance.state.harmonics.harmonicSets.forEach(harmonicSet => {
@@ -712,6 +719,34 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Create the filled symbol mark drawn at the top of a pin.
+   *
+   * Centred horizontally on the pin line and placed just above the line's top
+   * endpoint so it caps the pin without obscuring the number label (which is
+   * drawn to the right of, and below, the line top). Nudged downward if it would
+   * otherwise clip the top edge of the spectrogram image.
+   *
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {number} lineX - X position of the pin line
+   * @param {number} lineTop - Top Y position of the pin line
+   * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
+   * @returns {SVGElement} SVG symbol element
+   */
+  createHarmonicSymbol(harmonicSet, lineX, lineTop, imageTop) {
+    const size = 10
+    const r = size / 2
+    // Cap the pin: sit the symbol just above the line's top endpoint.
+    let cy = lineTop - r
+    // Nudge downward if the symbol would clip the top edge of the image.
+    if (cy - r < imageTop) {
+      cy = imageTop + r
+    }
+    const symbol = createSymbolMark(harmonicSet.symbol, lineX, cy, size, harmonicSet.color)
+    symbol.setAttribute('data-harmonic-set-id', harmonicSet.id)
+    return symbol
+  }
+
+  /**
    * Render a single harmonic set as vertical lines
    * @param {HarmonicSet} harmonicSet - Harmonic set to render
    */
@@ -719,26 +754,29 @@ export class HarmonicsMode extends BaseMode {
     if (!this.instance.cursorGroup) {
       return
     }
-    
+
     // Get visible harmonics and line dimensions
     const visibleHarmonics = this.getVisibleHarmonics(harmonicSet)
     const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
-    
+    const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top
+
     // Render each harmonic line in this set
     visibleHarmonics.forEach(harmonicNumber => {
       const harmonicFreq = harmonicNumber * harmonicSet.spacing
-      
+
       // Calculate X position using coordinate transformation utility
       const harmonicPoint = { freq: harmonicFreq, time: harmonicSet.anchorTime }
       const harmonicSVG = calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage)
       const lineX = harmonicSVG.x
-      
-      // Create and append line and label elements
+
+      // Create and append line, label, and symbol elements
       const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
       const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop)
-      
+      const symbol = this.createHarmonicSymbol(harmonicSet, lineX, lineTop, imageTop)
+
       this.instance.cursorGroup.appendChild(line)
       this.instance.cursorGroup.appendChild(label)
+      this.instance.cursorGroup.appendChild(symbol)
     })
   }
 

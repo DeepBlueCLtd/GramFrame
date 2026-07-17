@@ -4,6 +4,26 @@
 
 /// <reference path="../types.js" />
 
+import { createSymbolMark } from '../rendering/symbols.js'
+
+/**
+ * Build a small inline SVG swatch showing a harmonic set's symbol in its colour.
+ * Used in the harmonics-table colour cell as a colour-blind-friendly affordance.
+ * @param {HarmonicSet} harmonicSet - The harmonic set data
+ * @returns {SVGSVGElement} The swatch SVG element
+ */
+function createSymbolSwatch(harmonicSet) {
+  const swSize = 16
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('class', 'gram-frame-harmonic-symbol-swatch')
+  svg.setAttribute('width', String(swSize))
+  svg.setAttribute('height', String(swSize))
+  svg.setAttribute('viewBox', `0 0 ${swSize} ${swSize}`)
+  const mark = createSymbolMark(harmonicSet.symbol, swSize / 2, swSize / 2, 12, harmonicSet.color)
+  svg.appendChild(mark)
+  return svg
+}
+
 /**
  * Create harmonic management panel
  * @param {HTMLElement} container - Container element to append the panel to
@@ -76,6 +96,14 @@ export function updateHarmonicPanelContent(panel, instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 function updateHarmonicRow(row, harmonicSet, instance) {
+  // Update the colour/symbol swatch in case colour or symbol changed
+  const colorCell = row.cells[0]
+  const colorDiv = colorCell && /** @type {HTMLElement} */ (colorCell.querySelector('.gram-frame-harmonic-color'))
+  if (colorDiv) {
+    colorDiv.style.color = harmonicSet.color
+    colorDiv.replaceChildren(createSymbolSwatch(harmonicSet))
+  }
+
   // Update spacing cell if changed
   const spacingCell = row.cells[1]
   if (spacingCell) {
@@ -138,11 +166,12 @@ function createHarmonicRow(harmonicSet, instance, index) {
   row.setAttribute('data-harmonic-id', harmonicSet.id)
   row.className = 'gram-frame-harmonic-row'
   
-  // Color cell
+  // Color/symbol cell — the set's symbol rendered in the set's colour
   const colorCell = document.createElement('td')
   const colorDiv = document.createElement('div')
   colorDiv.className = 'gram-frame-harmonic-color'
-  colorDiv.style.backgroundColor = harmonicSet.color
+  colorDiv.style.color = harmonicSet.color
+  colorDiv.appendChild(createSymbolSwatch(harmonicSet))
   colorCell.appendChild(colorDiv)
   row.appendChild(colorCell)
   
