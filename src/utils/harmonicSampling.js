@@ -16,9 +16,11 @@
 
 /**
  * Maximum number of harmonic pins drawn per set within the visible span.
+ * Lower values force a coarser sampling step (wider pin separation), which keeps
+ * dense sets legible; raise it to show more pins.
  * @type {number}
  */
-export const MAX_VISIBLE_PINS = 50
+export const MAX_VISIBLE_PINS = 25
 
 /**
  * Ascending "nice" step series (1-2-5 progression with the 25/250/2500 members

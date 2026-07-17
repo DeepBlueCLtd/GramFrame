@@ -119,14 +119,22 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
-      await gramFramePage.setZoom(8.0, 0.5, 0.5)
-      await gramFramePage.page.waitForTimeout(100)
-
-      const nums = await gramFramePage.getHarmonicNumbers(setId)
+      // Zoom in progressively until the visible span is small enough that every
+      // pin is shown (step 1). Robust to the configured cap value.
+      /** @type {number|null} */
+      let step = null
+      /** @type {number[]} */
+      let nums = []
+      for (const level of [4.0, 8.0, 16.0, 32.0]) {
+        await gramFramePage.setZoom(level, 0.5, 0.5)
+        await gramFramePage.page.waitForTimeout(100)
+        nums = await gramFramePage.getHarmonicNumbers(setId)
+        expect(nums.length).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
+        step = arithmeticStep(nums)
+        if (step === 1) break
+      }
       expect(nums.length).toBeGreaterThan(0)
-      expect(nums.length).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
       // Every consecutive harmonic present -> nothing thinned out
-      const step = arithmeticStep(nums)
       expect(step).toBe(1)
     })
 
@@ -135,10 +143,15 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
-      // Zoom in to reveal every pin (step 1)
-      await gramFramePage.setZoom(8.0, 0.5, 0.5)
-      await gramFramePage.page.waitForTimeout(100)
-      expect(arithmeticStep(await gramFramePage.getHarmonicNumbers(setId))).toBe(1)
+      // Zoom in far enough to reveal every pin (step 1)
+      let zoomedStep = null
+      for (const level of [4.0, 8.0, 16.0, 32.0]) {
+        await gramFramePage.setZoom(level, 0.5, 0.5)
+        await gramFramePage.page.waitForTimeout(100)
+        zoomedStep = arithmeticStep(await gramFramePage.getHarmonicNumbers(setId))
+        if (zoomedStep === 1) break
+      }
+      expect(zoomedStep).toBe(1)
 
       // Reset -> thinned again, within cap, coarser step
       await gramFramePage.setZoom(1.0, 0.5, 0.5)

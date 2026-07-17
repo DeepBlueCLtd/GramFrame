@@ -47,12 +47,12 @@ the pure sampling helper is additionally unit-testable in isolation
 **Target Platform**: Modern evergreen browsers (SVG-based overlay component)
 **Project Type**: Single-project front-end library/component (Option 1)
 **Performance Goals**: No perceptible lag on zoom/pan re-render; per-set SVG node
-count bounded to ≤ 2 × cap (one line + one label per drawn pin, ≤ 50 pins), down
+count bounded to ≤ 2 × cap (one line + one label per drawn pin, ≤ 25 pins), down
 from potentially thousands today
 **Constraints**: SVG-only overlays; `yarn typecheck` + `yarn test` + `yarn build`
 must all pass; state deep-copied before listener notification; HMR preserves
 listeners; no change to the `gram-config` HTML contract
-**Scale/Scope**: Default cap 50 pins/set; nice-step series covering steps up to
+**Scale/Scope**: Default cap 25 pins/set; nice-step series covering steps up to
 several thousand; edits to ~2 existing files + 1 new pure helper + tests
 
 ## Constitution Check
@@ -69,7 +69,7 @@ existing `data-harmonic-set-id` / `data-harmonic-number` attributes for
 Playwright queryability.
 
 **II. Test-First (NON-NEGOTIABLE)** — PASS (with obligation). New Playwright
-coverage will assert: a dense set (0.5 Hz over a wide range) draws ≤ 50 pins;
+coverage will assert: a dense set (0.5 Hz over a wide range) draws ≤ 25 pins;
 drawn pins are regularly spaced (step from the nice series); a sparse set draws
 all pins unchanged; zooming in increases the number of drawn pins (never
 decreases); zooming out thins again; every drawn label corresponds to a drawn

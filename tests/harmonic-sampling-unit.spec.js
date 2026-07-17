@@ -16,7 +16,7 @@ import {
 
 test.describe('harmonicSampling pure helper', () => {
   test('exposes the documented constants', () => {
-    expect(MAX_VISIBLE_PINS).toBe(50)
+    expect(MAX_VISIBLE_PINS).toBe(25)
     expect(NICE_STEPS).toEqual([1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000])
   })
 

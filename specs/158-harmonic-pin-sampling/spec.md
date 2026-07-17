@@ -138,7 +138,7 @@ adjust the harmonic set as before.
 - **FR-001**: The system MUST limit the number of pins drawn for a single
   harmonic set within the visible frequency span to at most a defined
   maximum-pins limit.
-- **FR-002**: The default maximum-pins limit MUST be 50.
+- **FR-002**: The default maximum-pins limit MUST be 25.
 - **FR-003**: When the number of pins a harmonic set would place across the
   visible frequency span exceeds the limit, the system MUST draw a thinned
   subset by keeping every Nth pin (sampling by a regular step) rather than
@@ -179,14 +179,14 @@ adjust the harmonic set as before.
   the set's spacing drives how many pins would appear and therefore the sampling
   step.
 - **Maximum-pins limit**: The upper bound on how many pins one harmonic set may
-  draw within the visible span (default 50).
+  draw within the visible span (default 25).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
 - **SC-001**: For any harmonic set at any zoom/pan, no more than the
-  maximum-pins limit (default 50) pins are drawn for that set within the visible
+  maximum-pins limit (default 25) pins are drawn for that set within the visible
   frequency span.
 - **SC-002**: For the reported case (a 0.5 Hz harmonic set over a wide span), the
   overlay renders as distinct, readable pins with non-overlapping labels rather
@@ -205,8 +205,9 @@ adjust the harmonic set as before.
 
 ## Assumptions
 
-- The default maximum-pins limit is 50, as suggested in the issue. It is a single
-  tunable value; changing it later does not change the feature's scope.
+- The default maximum-pins limit is 25 (lowered from the initial 50 after review
+  to widen pin separation for legibility). It is a single tunable value; changing
+  it later does not change the feature's scope.
 - "Skipping insignificant pins" means dropping whole pins (line and its label)
   by sampling, not merely hiding labels while keeping the lines. A solid block of
   unlabelled lines would be no more legible.

@@ -100,14 +100,14 @@ work to the cap.
 
 ## 5. Cap value and configurability
 
-**Decision**: `MAX_VISIBLE_PINS = 50` as a named constant in the new helper
-module (single source of truth), matching the issue's suggested starting value.
-Not exposed via the `gram-config` table.
+**Decision**: `MAX_VISIBLE_PINS = 25` as a named constant in the new helper
+module (single source of truth). Not exposed via the `gram-config` table.
 
-**Rationale**: The issue says "start with 50". Keeping it a constant respects
-Constitution Principle IV (no new authored-config surface) and keeps scope tight;
-it can be promoted to configuration later without rework because it is already a
-single named value.
+**Rationale**: The issue suggested starting at 50; after review the default was
+lowered to 25 to widen pin separation and improve legibility. Keeping it a
+constant respects Constitution Principle IV (no new authored-config surface) and
+keeps scope tight; it can be promoted to configuration later without rework
+because it is already a single named value.
 
 ## 6. Hit-testing / selection consistency
 
@@ -132,7 +132,7 @@ out of scope here to keep the change focused and behaviour-preserving.
 - **Unit**: exercise `chooseSamplingStep()` / `sampledHarmonics()` directly (pure
   functions) for boundary counts (exactly cap, cap+1), step progression, and
   anchor-on-multiples stability under a shifted range.
-- **E2E (Playwright)**: dense-set cap ≤ 50, regular spacing of drawn
+- **E2E (Playwright)**: dense-set cap ≤ 25, regular spacing of drawn
   `data-harmonic-number`s, sparse-set pass-through (all pins), zoom-in reveals
   more pins, zoom-out thins, and label↔line correspondence. Add
   `GramFramePage` helpers to count `.gram-frame-harmonic-line` and read their
