@@ -305,8 +305,7 @@
  * @property {HTMLDivElement|null} [readoutPanel] - Container for readouts
  * @property {HTMLDivElement|null} [modeCell] - Mode selection cell
  * @property {HTMLDivElement|null} [mainCell] - Main display cell
- * @property {HTMLElement|null} [colorPicker] - Color picker component
- * @property {HTMLElement|null} [symbolPicker] - Symbol picker component
+ * @property {HTMLElement|null} [colorPicker] - Combined colour/symbol picker component
  * @property {HTMLElement|null} [timeLED] - Time display LED
  * @property {HTMLElement|null} [freqLED] - Frequency display LED
  * @property {HTMLElement|null} [speedLED] - Speed display LED
