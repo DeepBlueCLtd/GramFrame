@@ -91,12 +91,19 @@
  */
 
 /**
+ * Named filled shape used as a colour-blind-friendly visual code for a
+ * harmonic set. Any unknown/absent value resolves to `circle`.
+ * @typedef {'circle'|'square'|'diamond'|'triangle'|'triangle-down'|'star'} SymbolType
+ */
+
+/**
  * Harmonic set definition for interactive overlays
  * @typedef {Object} HarmonicSet
  * @property {string} id - Unique identifier for the harmonic set
  * @property {string} color - Display color for harmonic lines
  * @property {number} anchorTime - Time position (Y-axis) in seconds
  * @property {number} spacing - Frequency spacing between harmonics in Hz
+ * @property {SymbolType} symbol - Filled shape drawn at the top of each pin and shown in the harmonics table
  */
 
 /**
@@ -173,6 +180,7 @@
  * @property {ModeType|null} previousMode - Previous analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {string} selectedColor - Currently selected color for new features across all modes
+ * @property {SymbolType} selectedSymbol - Currently selected symbol applied to the next created harmonic set
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {HarmonicsState} harmonics - Harmonics mode state
@@ -247,6 +255,7 @@
  * @property {string} color - Display colour (hex)
  * @property {number} anchorTime - Y-axis position in seconds
  * @property {number} spacing - Frequency spacing between harmonics in Hz
+ * @property {SymbolType} [symbol] - Persisted symbol; ABSENT in legacy (pre-feature) records
  */
 
 /**
@@ -297,6 +306,7 @@
  * @property {HTMLDivElement|null} [modeCell] - Mode selection cell
  * @property {HTMLDivElement|null} [mainCell] - Main display cell
  * @property {HTMLElement|null} [colorPicker] - Color picker component
+ * @property {HTMLElement|null} [symbolPicker] - Symbol picker component
  * @property {HTMLElement|null} [timeLED] - Time display LED
  * @property {HTMLElement|null} [freqLED] - Frequency display LED
  * @property {HTMLElement|null} [speedLED] - Speed display LED

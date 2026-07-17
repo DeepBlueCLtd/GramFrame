@@ -8,6 +8,7 @@
 /// <reference path="../types.js" />
 
 import { createColorPicker } from './ColorPicker.js'
+import { createSymbolPicker } from './SymbolPicker.js'
 import { createLEDDisplay, updateLEDDisplays } from './LEDDisplay.js'
 import { createModeSwitchingUI } from './ModeButtons.js'
 
@@ -25,6 +26,9 @@ export { createModeSwitchingUI }
 
 // Re-export color picker function from ColorPicker module
 export { createColorPicker }
+
+// Re-export symbol picker function from SymbolPicker module
+export { createSymbolPicker }
 
 
 /**

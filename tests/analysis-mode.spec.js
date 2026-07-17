@@ -642,16 +642,20 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       
       // Place a marker
       await gramFramePage.clickSpectrogram(400, 200)
-      
+
       // Verify marker was created
       let state = await gramFramePage.getState()
       expect(state.analysis.markers).toHaveLength(1)
-      
+
       // Test that marker can be dragged from 12px away (within 16px tolerance)
-      // This would fail with the old 8px tolerance
-      await gramFramePage.page.mouse.move(400 + 12, 200 + 12) // 12px diagonal offset
+      // This would fail with the old 8px tolerance. Coordinates are resolved
+      // relative to the SVG's on-screen position so the test is independent of
+      // where the SVG sits in the viewport (which shifts as controls are added).
+      const svgBox = await gramFramePage.svg.boundingBox()
+      if (!svgBox) throw new Error('SVG not found')
+      await gramFramePage.page.mouse.move(svgBox.x + 400 + 12, svgBox.y + 200) // 12px offset (within 16px tolerance)
       await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(450, 250) // Drag to new location
+      await gramFramePage.page.mouse.move(svgBox.x + 450, svgBox.y + 250) // Drag to new location
       await gramFramePage.page.mouse.up()
       
       // Verify marker moved (proving the larger tolerance worked)

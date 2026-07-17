@@ -334,6 +334,41 @@
   position: relative;
 }
 
+.gram-frame-symbol-picker {
+  margin-top: 6px;
+  padding: 8px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
+  border: 2px solid #333;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,0.8),
+    inset 0 -1px 2px rgba(255,255,255,0.05),
+    0 2px 4px rgba(0,0,0,0.5);
+  max-width: 200px;
+  flex-shrink: 0;
+}
+
+.gram-frame-symbol-picker-label {
+  font-size: 10px;
+  color: #00ff00;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.gram-frame-symbol-select {
+  width: 100%;
+  padding: 4px;
+  background: #0a0a0a;
+  color: #00ff00;
+  border: 1px solid #555;
+  border-radius: 2px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .gram-frame-color-canvas {
   width: 140px;
   max-width: 140px;
@@ -810,11 +845,15 @@
 }
 
 .gram-frame-harmonic-color {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 20px;
-  height: 12px;
-  border: 1px solid #555;
-  border-radius: 2px;
-  display: inline-block;
+  height: 16px;
+}
+
+.gram-frame-harmonic-symbol-swatch {
+  display: block;
 }
 
 .gram-frame-harmonic-delete {

@@ -181,7 +181,12 @@ export function saveAnnotations(state, instanceIndex) {
           id: hs.id,
           color: hs.color,
           anchorTime: hs.anchorTime,
-          spacing: hs.spacing
+          spacing: hs.spacing,
+          // `symbol` is an ADDITIVE field (feature 157-harmonic-pin-symbols). It
+          // MUST NOT trigger a SCHEMA_VERSION bump: the strict version guard in
+          // loadAnnotations would otherwise discard all pre-existing v1 records.
+          // Legacy records simply lack this key and default to 'circle' on restore.
+          symbol: hs.symbol || 'circle'
         }))
       },
       doppler: {

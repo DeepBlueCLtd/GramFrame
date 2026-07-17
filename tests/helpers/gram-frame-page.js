@@ -525,6 +525,49 @@ class GramFramePage {
       instances[0]._setZoom(lvl, cx, cy)
     }, [level, centerX, centerY])
   }
+
+  /**
+   * Select a symbol from the control-panel symbol drop-down.
+   * @param {string} symbolId - One of 'circle','square','diamond','triangle','triangle-down','star'
+   * @returns {Promise<void>}
+   */
+  async selectSymbol(symbolId) {
+    await this.page.locator('.gram-frame-symbol-select').selectOption(symbolId)
+  }
+
+  /**
+   * Read the pin symbol marks rendered on the spectrogram overlay.
+   * @param {string} [harmonicSetId] - Optional filter to a single set's marks
+   * @returns {Promise<Array<{symbol: string, fill: string, tag: string}>>}
+   */
+  async getPinSymbols(harmonicSetId) {
+    return this.page.evaluate((setId) => {
+      const selector = setId
+        ? `.gram-frame-harmonic-symbol[data-harmonic-set-id="${setId}"]`
+        : '.gram-frame-harmonic-symbol'
+      return Array.from(document.querySelectorAll(selector)).map((el) => ({
+        symbol: el.getAttribute('data-symbol') || '',
+        fill: el.getAttribute('fill') || '',
+        tag: el.tagName.toLowerCase()
+      }))
+    }, harmonicSetId)
+  }
+
+  /**
+   * Read the symbol swatches shown in the harmonics table rows.
+   * @returns {Promise<Array<{symbol: string, fill: string}>>}
+   */
+  async getTableSymbolSwatches() {
+    return this.page.evaluate(() => {
+      const marks = Array.from(document.querySelectorAll(
+        '.gram-frame-harmonic-row .gram-frame-harmonic-symbol'
+      ))
+      return marks.map((el) => ({
+        symbol: el.getAttribute('data-symbol') || '',
+        fill: el.getAttribute('fill') || ''
+      }))
+    })
+  }
 }
 
 export { GramFramePage }
