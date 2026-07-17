@@ -12,7 +12,7 @@ This is the internal contract for the new pure helper module
 ### Constants
 
 ```js
-export const MAX_VISIBLE_PINS = 50
+export const MAX_VISIBLE_PINS = 25
 export const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
 ```
 
@@ -89,8 +89,8 @@ getVisibleHarmonics(harmonicSet) {
 
 | Scenario | Expected | Spec |
 |----------|----------|------|
-| Visible harmonics ≤ 50 | All drawn, `step = 1` | FR-005, SC-007 |
-| Visible harmonics > 50 | ≤ 50 drawn, `step` from `NICE_STEPS` | FR-001..FR-004, SC-001 |
+| Visible harmonics ≤ 25 | All drawn, `step = 1` | FR-005, SC-007 |
+| Visible harmonics > 25 | ≤ 25 drawn, `step` from `NICE_STEPS` | FR-001..FR-004, SC-001 |
 | Zoom in (span narrows) | Same-or-more pins, same-or-smaller step | FR-007, SC-003 |
 | Zoom out / pan wider | Same-or-fewer pins, same-or-larger step | FR-007, SC-004 |
 | Pan without zoom | Same step; drawn pins are the multiples now in view | Edge cases |

@@ -54,7 +54,7 @@ Derived from a `HarmonicSet.spacing` and a visible `{freqMin, freqMax}`:
 | `harmonics` | number[]  | The harmonic numbers to draw, in ascending order, length ≤ cap  |
 
 **Invariants**:
-- `harmonics.length ≤ MAX_VISIBLE_PINS` (default 50) — FR-001, SC-001
+- `harmonics.length ≤ MAX_VISIBLE_PINS` (default 25) — FR-001, SC-001
 - If `count ≤ MAX_VISIBLE_PINS` then `step === 1` and `harmonics` is every
   harmonic in `[minHarmonic, maxHarmonic]` — FR-005, SC-007
 - Every value in `harmonics` is a multiple of `step` and lies in
@@ -69,7 +69,7 @@ Derived from a `HarmonicSet.spacing` and a visible `{freqMin, freqMax}`:
 
 | Name               | Value | Meaning                                                    |
 |--------------------|-------|------------------------------------------------------------|
-| `MAX_VISIBLE_PINS` | `50`  | Max pins drawn per harmonic set within the visible span    |
+| `MAX_VISIBLE_PINS` | `25`  | Max pins drawn per harmonic set within the visible span    |
 | `NICE_STEPS`       | `[1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]` | Ascending nice-number step series; extend by ×10 if a set ever exceeds the largest member |
 
 ## Relationships

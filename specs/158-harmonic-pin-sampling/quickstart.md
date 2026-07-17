@@ -7,7 +7,7 @@ A short guide to implementing, running, and manually verifying this feature.
 ## What changes
 
 - **New**: `src/utils/harmonicSampling.js` — pure `chooseSamplingStep()` and
-  `sampledHarmonics()` plus `MAX_VISIBLE_PINS` (50) and `NICE_STEPS`.
+  `sampledHarmonics()` plus `MAX_VISIBLE_PINS` (25) and `NICE_STEPS`.
 - **Edit**: `src/modes/harmonics/HarmonicsMode.js` — `getVisibleHarmonics()` now
   reads the **visible** frequency range (`calculateVisibleDataRange`) and returns
   a sampled, capped list of harmonic numbers.
@@ -41,13 +41,13 @@ yarn build        # clean production build (Constitution Gate)
 2. Add a harmonic set and set its **spacing to 0.5 Hz** over a wide-frequency
    spectrogram.
    - **Before**: a solid block of overlapping lines and unreadable labels.
-   - **After**: at most 50 pins, evenly spaced (e.g. every 5th/10th/25th
+   - **After**: at most 25 pins, evenly spaced (e.g. every 5th/10th/25th
      harmonic), with legible, non-overlapping labels.
 3. **Zoom in** on a region of interest.
    - More pins appear (a finer step) as the visible span narrows; keep zooming
      and eventually every pin in view is shown.
 4. **Zoom out** / **pan** to a wider view.
-   - The overlay thins again and stays ≤ 50 pins; panning keeps the same step,
+   - The overlay thins again and stays ≤ 25 pins; panning keeps the same step,
      with the visible multiples updating for the new position.
 5. Add a **second** harmonic set with a large spacing (few pins).
    - It shows all of its pins unchanged; the cap is applied per set.
@@ -59,13 +59,13 @@ yarn build        # clean production build (Constitution Gate)
 Assert against `.gram-frame-harmonic-line` elements and their
 `data-harmonic-number` attributes:
 
-- Dense 0.5 Hz set → line count ≤ 50.
+- Dense 0.5 Hz set → line count ≤ 25.
 - Drawn `data-harmonic-number`s form a regular arithmetic series (constant step
   from `NICE_STEPS`).
 - Sparse set → all harmonics drawn (no thinning).
 - After a zoom-in step → line count is ≥ the pre-zoom count (never fewer) and
-  still ≤ 50.
-- After zoom-out/reset → line count returns to the thinned (≤ 50) state.
+  still ≤ 25.
+- After zoom-out/reset → line count returns to the thinned (≤ 25) state.
 - Every `.gram-frame-harmonic-number` label matches a rendered line's number.
 
 ## Rollback

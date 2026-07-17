@@ -450,6 +450,81 @@ class GramFramePage {
       return keys
     }, storageType)
   }
+
+  /**
+   * Build a CSS selector for harmonic lines, optionally scoped to one set.
+   * @param {string} [setId] - Restrict to a single harmonic set's lines
+   * @returns {string} Selector string
+   */
+  harmonicLineSelector(setId) {
+    return setId
+      ? `.gram-frame-harmonic-line[data-harmonic-set-id="${setId}"]`
+      : '.gram-frame-harmonic-line'
+  }
+
+  /**
+   * Count the rendered harmonic pin lines, optionally for a single set.
+   * @param {string} [setId] - Restrict the count to one harmonic set
+   * @returns {Promise<number>} Number of `.gram-frame-harmonic-line` elements
+   */
+  async getHarmonicLineCount(setId) {
+    return this.page.locator(this.harmonicLineSelector(setId)).count()
+  }
+
+  /**
+   * Read the `data-harmonic-number` of each rendered harmonic line, in document
+   * order, optionally for a single set.
+   * @param {string} [setId] - Restrict to one harmonic set
+   * @returns {Promise<number[]>} Harmonic numbers in order
+   */
+  async getHarmonicNumbers(setId) {
+    return this.page.evaluate((selector) => {
+      const lines = Array.from(document.querySelectorAll(selector))
+      return lines.map((line) => Number(line.getAttribute('data-harmonic-number')))
+    }, this.harmonicLineSelector(setId))
+  }
+
+  /**
+   * Read the numeric text of every harmonic number label currently rendered.
+   * @returns {Promise<number[]>} Label numbers in document order
+   */
+  async getHarmonicLabelNumbers() {
+    return this.page.evaluate(() => {
+      const labels = Array.from(document.querySelectorAll('.gram-frame-harmonic-number'))
+      return labels.map((label) => Number(label.textContent))
+    })
+  }
+
+  /**
+   * Programmatically add a harmonic set via the test instance API.
+   * @param {number} anchorTime - Time position in seconds
+   * @param {number} spacing - Frequency spacing in Hz
+   * @returns {Promise<string>} The created harmonic set's id
+   */
+  async addHarmonicSet(anchorTime, spacing) {
+    return this.page.evaluate(([time, space]) => {
+      // @ts-ignore - test-only global
+      const instances = window.GramFrame.__test__getInstances()
+      const instance = instances[0]
+      const set = instance.modes['harmonics'].addHarmonicSet(time, space)
+      return set.id
+    }, [anchorTime, spacing])
+  }
+
+  /**
+   * Programmatically set the zoom level/centre via the test instance API.
+   * @param {number} level - Zoom level (1.0 = no zoom)
+   * @param {number} [centerX=0.5] - Normalised horizontal centre (0-1)
+   * @param {number} [centerY=0.5] - Normalised vertical centre (0-1)
+   * @returns {Promise<void>}
+   */
+  async setZoom(level, centerX = 0.5, centerY = 0.5) {
+    await this.page.evaluate(([lvl, cx, cy]) => {
+      // @ts-ignore - test-only global
+      const instances = window.GramFrame.__test__getInstances()
+      instances[0]._setZoom(lvl, cx, cy)
+    }, [level, centerX, centerY])
+  }
 }
 
 export { GramFramePage }
