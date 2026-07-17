@@ -1643,6 +1643,31 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     });
     spacingInput.focus();
   }
+  const MAX_VISIBLE_PINS = 25;
+  const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1e3, 2500, 5e3];
+  function countMultiples(minHarmonic, maxHarmonic, step) {
+    return Math.floor(maxHarmonic / step) - Math.floor((minHarmonic - 1) / step);
+  }
+  function chooseSamplingStep(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
+    for (const step of NICE_STEPS) {
+      if (countMultiples(minHarmonic, maxHarmonic, step) <= max) {
+        return step;
+      }
+    }
+    return NICE_STEPS[NICE_STEPS.length - 1];
+  }
+  function sampledHarmonics(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
+    if (maxHarmonic < minHarmonic) {
+      return { step: 1, harmonics: [] };
+    }
+    const step = chooseSamplingStep(minHarmonic, maxHarmonic, max);
+    const first = Math.ceil(minHarmonic / step) * step;
+    const harmonics = [];
+    for (let h = first; h <= maxHarmonic && harmonics.length < max; h += step) {
+      harmonics.push(h);
+    }
+    return { step, harmonics };
+  }
   const _HarmonicsMode = class _HarmonicsMode extends BaseMode {
     /**
      * Initialize HarmonicsMode with drag handler
@@ -2088,20 +2113,22 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       });
     }
     /**
-     * Get visible harmonics within frequency range
+     * Get the harmonic numbers to draw for a set within the currently visible
+     * frequency span, capped and regularly sampled so a dense set stays legible.
+     *
+     * The visible range comes from `calculateVisibleDataRange(instance)` (the same
+     * source the frequency axis uses), so pin density is viewport-aware: zooming
+     * in narrows the span and reveals more pins, zooming out / panning thins them.
+     * At zoom 1.0 the visible range equals the full data range.
+     *
      * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {Config} config - Configuration object
-     * @returns {number[]} Array of harmonic numbers to render
+     * @returns {number[]} Array of harmonic numbers to render (length <= cap)
      */
-    getVisibleHarmonics(harmonicSet, config) {
-      const { freqMin, freqMax } = config;
+    getVisibleHarmonics(harmonicSet) {
+      const { freqMin, freqMax } = calculateVisibleDataRange(this.instance);
       const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
       const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
-      const harmonics = [];
-      for (let h = minHarmonic; h <= maxHarmonic; h++) {
-        harmonics.push(h);
-      }
-      return harmonics;
+      return sampledHarmonics(minHarmonic, maxHarmonic).harmonics;
     }
     /**
      * Calculate harmonic line dimensions and positions
@@ -2169,7 +2196,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (!this.instance.cursorGroup) {
         return;
       }
-      const visibleHarmonics = this.getVisibleHarmonics(harmonicSet, this.instance.state.config);
+      const visibleHarmonics = this.getVisibleHarmonics(harmonicSet);
       const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
       visibleHarmonics.forEach((harmonicNumber) => {
         const harmonicFreq = harmonicNumber * harmonicSet.spacing;
