@@ -329,9 +329,13 @@ export class GramFrame {
       this.state.analysis.markers = saved.analysis.markers
     }
 
-    // Merge harmonic sets
+    // Merge harmonic sets. Legacy records (persisted before feature
+    // 157-harmonic-pin-symbols) have no `symbol`; default those to 'circle'.
     if (saved.harmonics && Array.isArray(saved.harmonics.harmonicSets)) {
-      this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets
+      this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets.map(hs => ({
+        ...hs,
+        symbol: hs.symbol || 'circle'
+      }))
     }
 
     // Merge doppler state
