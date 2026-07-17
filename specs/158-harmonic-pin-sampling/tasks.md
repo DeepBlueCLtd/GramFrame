@@ -39,7 +39,7 @@ Single-project front-end component: `src/` and `tests/` at repository root
 
 **⚠️ CRITICAL**: No user story can be completed until Phase 2 is done.
 
-- [X] T003 Create the pure sampling module `src/utils/harmonicSampling.js` exporting `MAX_VISIBLE_PINS = 50` and `NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]`, per contracts/sampling-algorithm.md
+- [X] T003 Create the pure sampling module `src/utils/harmonicSampling.js` exporting `MAX_VISIBLE_PINS = 25` and `NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]`, per contracts/sampling-algorithm.md
 - [X] T004 In `src/utils/harmonicSampling.js` implement `chooseSamplingStep(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS)` returning the smallest `NICE_STEPS` member whose multiple-count `floor(maxHarmonic/S) − floor((minHarmonic−1)/S)` is ≤ `max` (returns 1 when the range already fits; returns the largest member if none fits)
 - [X] T005 In `src/utils/harmonicSampling.js` implement `sampledHarmonics(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS)` returning `{ step, harmonics }`, generating only the in-range multiples of `step` (start at `ceil(minHarmonic/step)×step`), never allocating the full range, with a defensive length cap of `max` and `[]` when `maxHarmonic < minHarmonic`
 - [X] T006 [P] Add JSDoc typedefs for the helper's inputs/output (e.g. `SamplingResult`) in `src/utils/harmonicSampling.js` (and `src/types.js` if a shared type is warranted) so `yarn typecheck` stays clean
@@ -55,7 +55,7 @@ Single-project front-end component: `src/` and `tests/` at repository root
 **Goal**: A dense harmonic set (e.g. 0.5 Hz spacing) renders as a bounded,
 readable subset of pins instead of a solid block.
 
-**Independent Test**: Add a 0.5 Hz harmonic set over a wide span; assert ≤ 50
+**Independent Test**: Add a 0.5 Hz harmonic set over a wide span; assert ≤ 25
 pins are drawn, the drawn `data-harmonic-number`s are a regular series, and a
 sparse set still draws every pin.
 
@@ -67,9 +67,9 @@ sparse set still draws every pin.
 
 ### Tests
 
-- [X] T012 [P] [US1] In `tests/harmonic-pin-sampling.spec.js`, add a test: dense 0.5 Hz set over a wide span draws ≤ 50 `.gram-frame-harmonic-line` elements
+- [X] T012 [P] [US1] In `tests/harmonic-pin-sampling.spec.js`, add a test: dense 0.5 Hz set over a wide span draws ≤ 25 `.gram-frame-harmonic-line` elements
 - [X] T013 [P] [US1] In `tests/harmonic-pin-sampling.spec.js`, add a test: the drawn `data-harmonic-number`s form a constant-step arithmetic series whose step is a member of `NICE_STEPS`
-- [X] T014 [P] [US1] In `tests/harmonic-pin-sampling.spec.js`, add a test: a sparse set (large spacing, ≤ 50 harmonics in view) draws every pin (no thinning; step 1)
+- [X] T014 [P] [US1] In `tests/harmonic-pin-sampling.spec.js`, add a test: a sparse set (large spacing, ≤ 25 harmonics in view) draws every pin (no thinning; step 1)
 
 **Checkpoint**: US1 fully functional and independently testable — this is the MVP.
 
@@ -81,7 +81,7 @@ sparse set still draws every pin.
 / panning thins again, recomputed on every view change.
 
 **Independent Test**: With a dense set displayed, zoom in and assert the pin
-count increases (never decreases) and stays ≤ 50; zoom out/reset and assert it
+count increases (never decreases) and stays ≤ 25; zoom out/reset and assert it
 thins back.
 
 **Note**: The production behaviour is delivered by the US1 change (visible-range
@@ -95,9 +95,9 @@ is found in T015.
 
 ### Tests
 
-- [X] T016 [P] [US2] In `tests/harmonic-pin-sampling.spec.js`, add a test: zooming in on a dense set increases the drawn pin count (≥ pre-zoom count) while staying ≤ 50
-- [X] T017 [P] [US2] In `tests/harmonic-pin-sampling.spec.js`, add a test: zooming in far enough that ≤ 50 harmonics remain in view shows every pin (step 1)
-- [X] T018 [P] [US2] In `tests/harmonic-pin-sampling.spec.js`, add a test: zoom out / reset returns the overlay to the thinned (≤ 50) state; a pan at fixed zoom keeps the same step
+- [X] T016 [P] [US2] In `tests/harmonic-pin-sampling.spec.js`, add a test: zooming in on a dense set increases the drawn pin count (≥ pre-zoom count) while staying ≤ 25
+- [X] T017 [P] [US2] In `tests/harmonic-pin-sampling.spec.js`, add a test: zooming in far enough that ≤ 25 harmonics remain in view shows every pin (step 1)
+- [X] T018 [P] [US2] In `tests/harmonic-pin-sampling.spec.js`, add a test: zoom out / reset returns the overlay to the thinned (≤ 25) state; a pan at fixed zoom keeps the same step
 
 **Checkpoint**: US2 independently testable; progressive disclosure verified.
 
@@ -171,7 +171,7 @@ chiefly guard-rail coverage; add code only if T019 reveals a mismatch.
 
 ```bash
 # After the production change (T009–T011) lands, launch US1 tests together:
-Task: "Dense set draws <= 50 lines in tests/harmonic-pin-sampling.spec.js"          # T012
+Task: "Dense set draws <= 25 lines in tests/harmonic-pin-sampling.spec.js"          # T012
 Task: "Drawn harmonic numbers form a NICE_STEPS series in ...spec.js"               # T013
 Task: "Sparse set draws every pin (step 1) in ...spec.js"                           # T014
 ```
@@ -185,7 +185,7 @@ Task: "Sparse set draws every pin (step 1) in ...spec.js"                       
 1. Phase 1: Setup (baseline green)
 2. Phase 2: Foundational (pure helper + unit test + test helpers) — CRITICAL
 3. Phase 3: US1 — wire helper into `getVisibleHarmonics` via the visible range
-4. **STOP and VALIDATE**: dense 0.5 Hz set renders ≤ 50 evenly-spaced, legible pins
+4. **STOP and VALIDATE**: dense 0.5 Hz set renders ≤ 25 evenly-spaced, legible pins
 5. Demo the fix for issue #183
 
 ### Incremental Delivery

@@ -6,7 +6,7 @@ import { MAX_VISIBLE_PINS, NICE_STEPS } from '../src/utils/harmonicSampling.js'
  *
  * The debug page config spans freq 0-100 Hz over time 0-60 s. A harmonic set
  * with 0.5 Hz spacing would place 200 pins across that span; sampling caps the
- * drawn pins at MAX_VISIBLE_PINS (50) and thins to a regular "nice" step. A
+ * drawn pins at MAX_VISIBLE_PINS (25) and thins to a regular "nice" step. A
  * sparse set (large spacing) is drawn in full.
  *
  * @see specs/158-harmonic-pin-sampling/spec.md
