@@ -5,6 +5,12 @@
  * in browser storage. Trainers get localStorage (permanent); students get
  * sessionStorage (cleared on browser close).
  *
+ * Student persistence is additionally capped at 24 hours (feature 157): on
+ * load, a student-context record whose `savedAt` is older than
+ * STUDENT_TTL_MS — or missing, unparseable, or in the future — is discarded
+ * and its key removed (fail-safe toward clearing). Trainer-context records are
+ * exempt and remain permanent regardless of age. See isAnnotationExpired().
+ *
  * Context detection: a page is treated as a trainer page if ANY of the
  * following is present anywhere on the page:
  *   - an element with id "gf-persistent",
@@ -28,6 +34,15 @@
 /** @type {number} */
 const SCHEMA_VERSION = 1
 
+/**
+ * Fixed 24-hour student persistence policy. Student-context annotations older
+ * than this (measured from their last-save `savedAt`) are discarded on load.
+ * This is a fixed policy — not HTML-configurable — so it lives as a named
+ * constant. Trainer-context records are never subject to it.
+ * @type {number}
+ */
+export const STUDENT_TTL_MS = 24 * 60 * 60 * 1000
+
 /** @type {string} */
 const KEY_PREFIX = 'gramframe::'
 
@@ -37,6 +52,37 @@ const KEY_PREFIX = 'gramframe::'
  * @type {string}
  */
 export const TRAINER_FLAG_SELECTOR = '#gf-persistent, .gf-persistent, [data-gf-persistent]'
+
+/**
+ * Determine whether a student-context annotation record has expired.
+ *
+ * A record is treated as expired (and therefore discarded on load) when its
+ * `savedAt` timestamp cannot be proven fresh. This is deliberately fail-safe
+ * toward clearing student data:
+ *   - missing / unparseable `savedAt` (`Date.parse` → `NaN`) → expired,
+ *   - a `savedAt` in the future (`nowMs - t < 0`) → expired (guards clock skew
+ *     and hand-edited records),
+ *   - a `savedAt` older than {@link STUDENT_TTL_MS} → expired.
+ * Otherwise the record is within the 24-hour window and is NOT expired.
+ *
+ * Pure and side-effect-free: identical inputs always yield identical output.
+ * Applies to student context only — trainer records never call this.
+ *
+ * @param {string | undefined | null} savedAt - ISO-8601 timestamp of the last save
+ * @param {number} nowMs - Current wall-clock time in ms (e.g. `Date.now()`)
+ * @returns {boolean} True when the record should be discarded as expired
+ */
+export function isAnnotationExpired(savedAt, nowMs) {
+  const t = Date.parse(/** @type {string} */ (savedAt))
+  if (Number.isNaN(t)) {
+    return true
+  }
+  const age = nowMs - t
+  if (age < 0) {
+    return true
+  }
+  return age > STUDENT_TTL_MS
+}
 
 /**
  * Detect whether the current page is a trainer or student context.
@@ -174,6 +220,15 @@ export function loadAnnotations(instanceIndex) {
 
     if (!data || data.version !== SCHEMA_VERSION) {
       console.warn('GramFrame: Discarding stored annotations — unrecognised schema version:', data && data.version)
+      storage.removeItem(key)
+      return null
+    }
+
+    // Student 24-hour expiry gate (feature 157). Trainer context is permanent
+    // and bypasses this entirely. A student record that cannot be proven fresh
+    // (missing/unparseable/future/older-than-24h savedAt) is discarded.
+    if (context === 'student' && isAnnotationExpired(data.savedAt, Date.now())) {
+      console.info('GramFrame: Discarding student annotations — older than the 24-hour persistence limit')
       storage.removeItem(key)
       return null
     }
