@@ -6,6 +6,8 @@ import { notifyStateListeners } from '../../core/state.js'
 import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
+import { sampledHarmonics } from '../../utils/harmonicSampling.js'
+import { calculateVisibleDataRange } from '../../components/table.js'
 
 /**
  * Harmonics mode implementation
@@ -626,21 +628,23 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Get visible harmonics within frequency range
+   * Get the harmonic numbers to draw for a set within the currently visible
+   * frequency span, capped and regularly sampled so a dense set stays legible.
+   *
+   * The visible range comes from `calculateVisibleDataRange(instance)` (the same
+   * source the frequency axis uses), so pin density is viewport-aware: zooming
+   * in narrows the span and reveals more pins, zooming out / panning thins them.
+   * At zoom 1.0 the visible range equals the full data range.
+   *
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-   * @param {Config} config - Configuration object
-   * @returns {number[]} Array of harmonic numbers to render
+   * @returns {number[]} Array of harmonic numbers to render (length <= cap)
    */
-  getVisibleHarmonics(harmonicSet, config) {
-    const { freqMin, freqMax } = config
+  getVisibleHarmonics(harmonicSet) {
+    const { freqMin, freqMax } = calculateVisibleDataRange(this.instance)
     const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
     const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
-    
-    const harmonics = []
-    for (let h = minHarmonic; h <= maxHarmonic; h++) {
-      harmonics.push(h)
-    }
-    return harmonics
+
+    return sampledHarmonics(minHarmonic, maxHarmonic).harmonics
   }
 
   /**
@@ -717,7 +721,7 @@ export class HarmonicsMode extends BaseMode {
     }
     
     // Get visible harmonics and line dimensions
-    const visibleHarmonics = this.getVisibleHarmonics(harmonicSet, this.instance.state.config)
+    const visibleHarmonics = this.getVisibleHarmonics(harmonicSet)
     const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
     
     // Render each harmonic line in this set
