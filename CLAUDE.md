@@ -161,6 +161,8 @@ Example configuration:
 - Browser Web Storage API (localStorage / sessionStorage) (155-browser-storage)
 - JavaScript (ES2020+), JSDoc-typed, no compilation + None at runtime (zero runtime deps); Vite for build (156-expand-image-toggle)
 - N/A — expand state is in-memory only (explicitly NOT browser storage) (156-expand-image-toggle)
+- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (157-harmonic-pin-symbols)
+- Browser Web Storage (localStorage for trainers / sessionStorage for (157-harmonic-pin-symbols)
 
 ## Recent Changes
 - 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)
