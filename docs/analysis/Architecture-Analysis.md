@@ -8,18 +8,20 @@
 
 GramFrame is in better shape than most codebases of its history: the once-monolithic 2,100-line `main.js` has genuinely been refactored down to 562 lines, all 147 Playwright tests pass on a clean checkout, `tsc` typechecking is clean, TODO/FIXME debt is essentially zero, and several modules (`rendering/symbols.js`, `utils/harmonicSampling.js`, `core/storage.js`'s schema/TTL design, the release pipeline) are exemplary. The mode system's *concept* — four modes behind a `BaseMode` contract, instantiated by a factory, with `FeatureRenderer` as the cross-mode rendering seam — is sound.
 
-The audit's critical verdict is that **the boundaries drawn on the whiteboard do not exist in the code**. Every mode, component, and core module reaches freely through the `GramFrame` instance (347 accesses to `instance.state` across 19 files), state mutation and broadcast are scattered across 12 files, and `core/state.js` imports every mode class while every mode imports state back — 8 circular dependencies. The most dangerous concrete consequence is the coordinate pipeline: the screen→SVG→image→data transform exists in **four divergent implementations**, and the keyboard path uses different math than the mouse path under zoom/expand (GF-01). Meanwhile the verification layer has quietly eroded: null-safety typechecks are disabled, there is no linting, no unit-test lane, the multi-instance keyboard/focus specs are disabled without explanation, and a production failure mode exists where a broken mode silently degrades to a no-op (GF-04).
+The audit's critical verdict is that **the boundaries drawn on the whiteboard do not exist in the code**. Every mode, component, and core module reaches freely through the `GramFrame` instance (347 accesses to `instance.state` across 19 files), state mutation and broadcast are scattered across 12 files, and `core/state.js` imports every mode class while every mode imports state back — 8 circular dependencies. The starkest expression is the coordinate pipeline: the screen→SVG→image→data transform exists in **four separate implementations**. Adversarial verification showed they are *currently* mutually consistent — the keyboard path correctly compensates for zoom, refuting this audit's own initial "Critical" rating (GF-01ᴿ, see register §5) — but that consistency is an unpinned, untested equivalence spread across four files, exactly where the next regression hides. Meanwhile the verification layer has quietly eroded: null-safety typechecks are disabled in the project's only type gate (GF-32, the sole finding to retain High severity after review), there is no linting, no unit-test lane, the arrow-key movement specs are disabled without explanation, and a production failure mode exists where a broken mode silently degrades to a no-op (GF-04).
+
+An honest headline from the independent review: no finding survived verification at Critical severity, and only one at High. The codebase *works* — what the register documents is not active breakage but accumulated rot that raises the cost and risk of every future change.
 
 Documentation splits into two tiers: `Tech-Architecture.md` and `Data-and-State-Guide.md` are accurate and current, but CLAUDE.md, README, `Gram-Modes.md`, and several accepted ADRs describe a three-mode (or two-mode) system from an earlier era — and ADR-015 describes a zoom design that is the opposite of what the code does (GF-39).
 
-### Top five risks
+### Top five risks (post-verification)
 
 | # | Risk | Findings |
 |---|------|----------|
-| 1 | Four divergent coordinate-transform implementations; keyboard vs mouse math disagrees under zoom/expand | GF-01, GF-02, GF-21 |
-| 2 | Silent production degradation: mode-construction failure yields a no-op spectrogram; storage failures swallow annotation loss | GF-04, GF-16 |
-| 3 | No enforced boundaries: god-object instance + state⇄modes import cycles + diffuse mutation/broadcast make every change a whole-system change | GF-03, GF-05, GF-06, GF-08 |
-| 4 | Verification erosion: null checks off, no lint, no unit lane, keyboard/focus coverage disabled, 142 fixed sleeps masked by CI retries | GF-25–GF-27, GF-31, GF-32 |
+| 1 | Verification erosion: null checks off in the only type gate, no lint, no unit lane, arrow-key coverage disabled, 142 fixed sleeps masked by CI retries | GF-32 (High), GF-25–GF-27, GF-31 |
+| 2 | Four coordinate-transform implementations whose consistency is unpinned by any test — currently correct, one edit from divergence | GF-01ᴿ, GF-02 |
+| 3 | No enforced boundaries: god-object instance + state⇄modes import cycles + diffuse mutation/broadcast make every change a whole-system change | GF-03, GF-05, GF-08, GF-09 |
+| 4 | Silent-failure policy: mode-construction failure degrades to a no-op spectrogram; storage save failures are invisible | GF-04, GF-16 |
 | 5 | Doc drift misleading humans and AI agents alike: CLAUDE.md points at phantom files; two ADRs describe fictional designs | GF-38–GF-43 |
 
 ---
@@ -113,7 +115,7 @@ flowchart TD
     table -.-> expand
     table -.-> state
 
-    linkStyle 30,31,32,33,34,35,36,37,38,39,40 stroke:#d33,stroke-width:2px,stroke-dasharray:5
+    linkStyle 31,32,33,34,35,36,37,38,39,40,41 stroke:#d33,stroke-width:2px,stroke-dasharray:5
 ```
 
 The cycles decompose into two knots (GF-03, GF-09):
@@ -206,7 +208,7 @@ flowchart TD
     B1 -->|"doppler committed curve"| E2
 ```
 
-Path 2 (`coordinateTransformations.js`) is the well-designed one — it derives geometry from the live image element, which is exactly why markers stay locked to data coordinates across zoom+expand. Paths 1, 3, and 4 each re-derive the math differently; path 3 diverges from path 2 precisely when zoomed or expanded, and path 4 makes the Doppler live preview disagree with the committed curve under zoom (GF-01, GF-02, GF-21). **Consolidating on path 2 and deleting the others is the single highest-value refactor in this audit.**
+Path 2 (`coordinateTransformations.js`) is the well-designed one — it derives geometry from the live image element, which is exactly why markers stay locked to data coordinates across zoom+expand. Paths 1, 3, and 4 each re-derive the math independently. Independent verification established that path 3 *does* currently agree with path 2 — the keyboard handler divides its increment by the zoom level and its round-trip transform cancels the position offset, so arrow-key movement matches the mouse pipeline at any zoom/expand (this refuted the audit's initial claim of an active divergence bug; see register §5). Path 4's non-zoom-aware branch turned out to be dead code (GF-21ᴿ). The verified problem is therefore fragility, not breakage: four independent derivations of the same math, whose mutual consistency depends on undocumented compensations in each and is pinned by no test. The `imageX/imageY` fields published in state are still genuinely wrong per their documented contract (GF-02). **Consolidating on path 2, deleting the others, and locking the transform behavior with unit tests remains the highest-value refactor in this audit — as insurance, not as a bug fix.**
 
 ---
 
@@ -241,7 +243,7 @@ None of this is fatal today — the tests pass and the component works. The cost
 **What is wrong.**
 
 - **Everything rides the browser** (GF-25). `playwright test` is the only runner; the pure math (doppler, tolerance, sampling, coordinates) has no fast lane. The 9 pure-JS sampling assertions boot Vite + Chromium. Adding unit tests is structurally discouraged — and §3 explains why: modes can't be constructed without faking the entire instance.
-- **The most fragile code is the least covered** (GF-26, GF-30). The two disabled `keyboard-focus` specs were the only behavioral coverage of arrow-key marker movement and multi-instance focus isolation — disabled without a comment, replaced by smoke tests. That is precisely where the divergent keyboard coordinate math (GF-01) hides. PanMode is the only mode with no dedicated spec; zoom clamping is untested.
+- **The most fragile code is the least covered** (GF-26ᴺ, GF-30). The two disabled `keyboard-focus` specs carried the only behavioral assertions that arrow keys actually move a marker — disabled without a comment, replaced by smoke tests. (Verification narrowed the original claim: focus *isolation* is still covered by active specs; the movement assertions are what was lost.) That lost coverage sits exactly on the keyboard coordinate path whose consistency with the mouse pipeline is unpinned (GF-01ᴿ). PanMode is the only mode with no dedicated spec; zoom clamping is untested.
 - **Flakiness is being managed, not fixed** (GF-27, GF-28). 142 `waitForTimeout` calls — some baked into the page object — with CI `retries: 2` absorbing the fallout. The good POM is used by 3 of 19 specs; the rest hand-roll selectors.
 - **Claimed coverage that doesn't exist** (GF-29). "Screenshot comparisons for UI consistency" appear in CLAUDE.md; the suite contains zero `toHaveScreenshot`/`toMatchSnapshot` calls.
 
@@ -285,9 +287,9 @@ Sequenced so each step unblocks the next. Effort: S ≤ half day, M ≤ 3 days, 
 6. Un-track generated/foreign files: `playwright-report/`, `.obsidian/`, version churn (GF-36, GF-37).
 
 **Stage 2 — One coordinate pipeline (M).**
-7. Consolidate on `coordinateTransformations.js`; delete the keyboardControl privates, the events.js inline transform, and the cursors.js `convertToSVG`; port callers (GF-01, GF-21).
+7. Consolidate on `coordinateTransformations.js`; delete the keyboardControl privates, the events.js inline transform, and the dead cursors.js preview path; port callers (GF-01ᴿ, GF-21ᴿ). Verified consistent today — this stage pins that consistency before it breaks.
 8. Add Vitest as a dev-only unit lane (zero-runtime-dep stance unaffected) and land transform unit tests *with* the consolidation; move the sampling unit spec there (GF-25).
-9. Re-enable the keyboard-focus specs against the unified pipeline (GF-26).
+9. Restore arrow-key movement assertions against the unified pipeline (GF-26ᴺ).
 
 **Stage 3 — State discipline (M each).**
 10. Break the state⇄modes cycle: modes register initial-state slices via ModeFactory; single notification dispatcher with microtask batching; throttle mousemove broadcasts (GF-03, GF-07, GF-08).
@@ -319,4 +321,4 @@ Evidence was gathered by running the toolchain on a clean checkout (`tsc --noEmi
 
 Every finding in the [register](Findings-Register.md) was then adversarially verified by **independent reviewer agents running on a different Claude model (Opus) than the author**, each given only the bare claim and repository access — no access to the author's reasoning — and instructed to attempt refutation. Critical/High findings received three verifiers with distinct lenses (factual correctness; independent reproducibility; severity calibration) and required a 2-of-3 confirmation majority; Medium/Low findings received one verifier each. Verdicts, including refutations and severity adjustments, are recorded per-row in the register's **Verified** column; refuted findings are disclosed there rather than silently dropped.
 
-<!-- REVIEW-STATS: to be filled after verification -->
+**Review statistics.** 62 verifier agents ran (57 lens-verifiers over 19 Critical/High findings; 5 batch verifiers over 25 Medium/Low findings). Outcomes: 1 Critical/High finding refuted outright (GF-01 — the claimed keyboard-vs-mouse divergence does not occur), 1 narrowed (GF-26), 17 factually confirmed; the severity lens upheld the author's rating on 1 of them (GF-32) and downgraded 16, mostly High→Medium under the rubric's "materially slows or endangers feature work" bar. Of the Medium/Low findings, 23 were confirmed (2 with evidence corrections applied) and 2 were refuted as stated and reframed to Low (GF-21, GF-28). Post-review distribution: **0 Critical, 1 High, 35 Medium, 8 Low.** The author's original ratings over-weighted severity in 20 of 44 findings — a bias the independent pass existed to catch, and did.

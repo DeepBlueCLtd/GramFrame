@@ -1,0 +1,108 @@
+# Findings Register — GramFrame Architecture & Implementation Audit
+
+**Date:** 2026-07-23 · **Companion:** [Architecture-Analysis.md](Architecture-Analysis.md)
+
+Every row was adversarially verified by independent reviewer agents running on a different Claude model (Opus) than the author, given only the claim and repo access and instructed to refute it. Critical/High claims: three verifiers (correctness / reproducibility / severity lenses), 2-of-3 majority required. Medium/Low claims: one verifier. The **Verified** column records the outcome; severities below are the *post-review* severities (the severity lens's corrections were applied). Refuted findings are retained in §5 with their refutations — not silently dropped.
+
+**Severity rubric:** Critical = active correctness/data-loss risk · High = materially slows or endangers feature work · Medium = friction/rot · Low = polish.
+**Effort:** S ≤ half day · M ≤ 3 days · L > 3 days.
+
+Review outcome in brief: of 19 findings originally rated Critical/High, 17 were factually confirmed but 16 of those had their severity downgraded (mostly to Medium) under the rubric, one was refuted outright (GF-01), and one was narrowed (GF-26). Of 25 Medium/Low findings, 23 were confirmed (two with minor evidence corrections) and two were refuted as stated (GF-21, GF-28). **Post-review distribution: 0 Critical, 1 High, 35 Medium, 8 Low.**
+
+---
+
+## 1. High
+
+| ID | Dim | Finding | Evidence | Recommendation | Effort | Verified |
+|----|-----|---------|----------|----------------|--------|----------|
+| GF-32 | Process | Type gate gutted: `strict: true` but `strictNullChecks`, `noImplicitAny`, and `strictPropertyInitialization` disabled — in DOM-heavy code full of nullable `querySelector`/`boundingBox` returns, and JSDoc+tsc is the project's only type defense (ADR-007) | `tsconfig.json:6-11` | Re-enable per-flag with a staged burn-down of resulting errors | M | CONFIRMED 2/3 (severity: PLAUSIBLE) |
+
+## 2. Medium
+
+### Architecture & module boundaries
+
+| ID | Finding | Evidence | Recommendation | Effort | Verified |
+|----|---------|----------|----------------|--------|----------|
+| GF-01ᴿ | Coordinate pipeline implemented 4× (`utils/coordinates.js`; `utils/coordinateTransformations.js`; private funcs in `keyboardControl.js`; inline in `events.js`) — *reframed after refutation:* the implementations are currently mutually consistent (keyboard compensates zoom via `increment/zoomLevel` + offset-cancelling round-trip), so this is duplication/fragility, not an active bug; any future change to one path can silently break the equivalence | `keyboardControl.js:104,303-354`, `events.js:19-72`, `coordinateTransformations.js` | Consolidate on `coordinateTransformations.js`; delete the other paths; pin the equivalence with unit tests | M | Original Critical claim REFUTED 0/3; duplication itself verified — reframed at reviewer-assigned severity |
+| GF-02 | `events.js:164-165` writes SVG coords into `cursorPosition.imageX/imageY` (comment admits it); `types.js:61-62` documents them as image-relative — published state contradicts its own contract, though no in-repo consumer reads the fields | `events.js:51-52,71,156,164-165`, `types.js:61-62,516-517` | One-line fix: the correct values are already computed and discarded | S | CONFIRMED 2/3, severity High→Medium |
+| GF-03 | Hard import cycle `state.js` ⇄ all four modes (state imports mode classes for initial state; modes import `notifyStateListeners` back, 13 self-broadcast sites); 8 madge cycles, 7 involving this boundary. Benign at runtime today (hoisted function + static methods) but load-order-fragile coupling | `state.js:10-13,20-31`, mode files | Modes register state slices via ModeFactory; single notification dispatcher in core | M | CONFIRMED 2/3, severity High→Medium |
+| GF-04 | `ModeFactory` throws on `localhost` but in production console.warns and returns a no-op `BaseMode` — a mode-construction failure silently kills interaction. Low-probability (dev-caught bug class), but the swallowed error hinders field diagnosis | `ModeFactory.js:47-54`, `BaseMode.js:36-87` | Fail loud via the `.gramframe-error-indicator` pattern (`GramFrameAPI.js:249-290`); drop the hostname check | S | CONFIRMED 2/3, severity Critical→Medium |
+| GF-05 | God-object: ~50 public fields on the instance (`main.js:65-133`); `instance.state` accessed 347× across 19 files; class methods are forwarders to free functions taking the instance back — no encapsulation boundary | `main.js:65-133,203-252` | Carve seams incrementally (stages 2–4 of the roadmap shrink the surface); no big-bang store | L | CONFIRMED 2/3, severity High→Medium |
+| GF-07 | Full-state `JSON.parse(JSON.stringify)` clone per listener notification, fired on every mousemove and drag frame; cost scales with annotation count (imperceptible at realistic counts, hence Medium) | `state.js:112`, `events.js:186`, `AnalysisMode.js:77`, `DopplerMode.js:244` | Throttle mousemove broadcasts; clone only for external listeners | M | CONFIRMED 2/3, severity High→Medium |
+| GF-08 | Broadcast diffusion: ~29 `notifyStateListeners` sites across 12 files, unbatched — one gesture fires several clones; some mutations never notify | `main.js:492`, `viewport.js:65,83-85`, `main.js:323-350` | Single choke-point dispatch with microtask batching | M | CONFIRMED 1/1 |
+| GF-09 | `table.js` (703 lines) is a misnamed hub owning scaffold, image loading, layout, zoom math, visible-range computation, and the axis engine; imported by modes/viewport for non-table exports; in 4 of 8 cycles incl. mutual `ExpandToggle` cycle | `table.js:12,252-306,345-391,465-665`, `ExpandToggle.js:11` | Split into layout/axes/imageSetup; the cycle dissolves with the split | M | CONFIRMED 2/3, severity High→Medium |
+| GF-10 | `BaseMode` interface too wide: ~20 hooks; `renderCursor`/`getStateSnapshot` overridden by no subclass; several subclass overrides are empty no-ops | `BaseMode.js`, `FeatureRenderer.js:82-90`, `AnalysisMode.js:388-391,687-688,704-705` | Prune to the hooks modes actually implement | S | CONFIRMED 1/1 |
+| GF-11 | Modes are not islands: `MainUI` calls named mode methods; `FeatureRenderer` reaches into named modes; PanMode calls `instance._zoomIn/_zoomOut` | `MainUI.js:204-222`, `FeatureRenderer.js:32-44`, `PanMode.js:234,240` | Capability interfaces instead of named-mode reach-ins | M | CONFIRMED 1/1 |
+| GF-12 | `_clearGram` hand-resets ~13 nested fields instead of rebuilding from `createInitialState` — init/clear drift is inevitable | `main.js:278-296` | Rebuild from `createInitialState()`, preserving config/imageDetails | S | CONFIRMED 1/1 |
+| GF-13 | Initialization is a fixed 10-call order-sensitive sequence with implicit dependencies and double-nulling between setup modules | `main.js:152-161`, `DOMSetup.js:88-93` | Make dependencies explicit (return values over instance mutation) | M | CONFIRMED 1/1 |
+| GF-15 | Dynamic `import()` in the arrow-key hot path with empty `.catch(() => {})` | `keyboardControl.js:275-279` | Static import; surface errors | S | CONFIRMED 1/1 |
+
+### Code quality & maintainability
+
+| ID | Finding | Evidence | Recommendation | Effort | Verified |
+|----|---------|----------|----------------|--------|----------|
+| GF-16 | Storage layer swallows all errors with bare `catch {}` returning booleans callers ignore — save failures (quota, corruption) are silent. Impact bounded: persistence is best-effort and current-session work survives | `storage.js:125-127,203-205,242-245,262-264`, `main.js:372` | Surface a UI signal on save failure | S | CONFIRMED 2/3, severity High→Medium |
+| GF-17 | Drag state double-bookkept: `BaseDragHandler` authoritative fields mirrored into `state.analysis.*` ("for backward compatibility") and `state.dragState.*` | `BaseDragHandler.js:51-57`, `AnalysisMode.js:37-39,401-406`, `HarmonicsMode.js:72-77` | Single owner; read-only projection for listeners | S | CONFIRMED 1/1 |
+| GF-18 | Drag fragmentation: PanMode hand-rolls drag; Harmonics creation and Doppler placement each run a second manual drag machine beside their `BaseDragHandler` | `PanMode.js:17-21,57-134`, `HarmonicsMode.js:154,187-213`, `DopplerMode.js:257-311` | Extend `BaseDragHandler` for creation/placement; port PanMode | M | CONFIRMED 1/1 |
+| GF-19 | Copy-paste hit-testing ×3 in Doppler while `tolerance.js` helpers go unused | `DopplerMode.js:62-99,162-193`, `tolerance.js:91-144` | Use the tolerance helpers | S | CONFIRMED 1/1 |
+| GF-20 | Same row-diffing table engine maintained twice (markers table vs harmonics panel), incl. duplicated click-to-select logic | `AnalysisMode.js:536-674,611-624`, `HarmonicPanel.js:59-155,207-220` | Extract one diffing-table component | M | CONFIRMED 1/1 |
+| GF-22 | Dead code: 3 never-called DopplerMode methods; deprecated `zoom.panMode` in state + public type; vestigial `markersPlaced`; `visual-helpers.js` unused; 15 modules with unused exports | `DopplerMode.js:158-196,504-528,609-612,478,413`, `state.js:79`, `types.js:153` | Delete; ratchet with `ts-unused-exports` in CI | S | CONFIRMED 1/1 |
+| GF-24 | API keeps two disagreeing instance registries (DOM scan vs `_instances`) — methods can operate on different instance sets | `GramFrameAPI.js:108-111,164-167,184,196,211-214,228` | Single registry | S | CONFIRMED 1/1 |
+
+### Testing strategy
+
+| ID | Finding | Evidence | Recommendation | Effort | Verified |
+|----|---------|----------|----------------|--------|----------|
+| GF-25 | No unit-test lane: Playwright is the only runner; pure math validated only through browser E2E; the 9 pure-JS sampling assertions boot Vite+Chromium | `package.json`, `tests/harmonic-sampling-unit.spec.js:1` | Add Vitest (dev-only; zero-runtime-dep stance unaffected) | M | CONFIRMED 2/3, severity High→Medium |
+| GF-26ᴺ | *Narrowed:* arrow-key marker-movement behavioral coverage was lost when the two `keyboard-focus` specs were disabled without explanation; FocusManager itself retains active coverage (`focus-simple.spec.js`, `tab-navigation.spec.js`), so the gap is `keyboardControl.js`'s movement path — where the transform duplication (GF-01ᴿ) lives | `tests/keyboard-focus*.spec.js.disabled`, `tests/keyboard-simple.spec.js:11-83` | Restore an arrow-key movement assertion spec | M | Correctness REFUTED as stated / repro CONFIRMED — narrowed, High→Medium |
+| GF-27 | 142 `waitForTimeout` occurrences incl. in the page object; CI `retries: 2` masks flakiness | `gram-frame-page.js:270,413,426`, `playwright.config.ts:11` | State-based waits; drop retries once stable | M | CONFIRMED 2/3, severity High→Medium |
+| GF-29 | Visual regression testing claimed (CLAUDE.md:126) but nonexistent: zero snapshot assertions; `visual-helpers.js` reachable only transitively via `fixtures.js` and never used by any spec | suite grep; `playwright.config.ts:20` | Adopt `toHaveScreenshot` for key renders or delete claim + helper | S | CONFIRMED 1/1 (evidence corrected) |
+| GF-30 | PanMode is the only mode with no dedicated spec; no zoom/viewport spec (clamping untested); API tested mainly via `__test__` hooks | `tests/` inventory, `viewport.js:21,31` | Add pan + zoom specs; test the public API surface | M | CONFIRMED 1/1 |
+
+### Implementation strategy & process
+
+| ID | Finding | Evidence | Recommendation | Effort | Verified |
+|----|---------|----------|----------------|--------|----------|
+| GF-31 | No linting anywhere: no ESLint config, script, or CI step (`.gitignore` even lists `.eslintcache`) | `package.json:5-14`, `.github/workflows/` | ESLint flat config + CI step | S | CONFIRMED 2/3, severity High→Medium |
+| GF-33 | `madge`, `ts-unused-exports`, `unimported` installed but never wired to any script or CI — the 8 cycles and 15 dead-export modules went unreported | `package.json:19-22` | `yarn hygiene` script + CI ratchet on new cycles/dead exports | S | CONFIRMED 1/1 |
+| GF-34 | CI never builds the standalone bundle (the shipped artifact) on the test path; chromium-only; Node 18 (EOL) vs `@types/node ^24` | `.github/workflows/test.yml`, `package.json:17` | Add `build:standalone` to test.yml; bump Node; webkit smoke job | S | CONFIRMED 1/1 |
+| GF-36 | Repo hygiene: tracked `playwright-report/index.html` (contradicting `.gitignore`), `.obsidian/` vault, `Memory/` + 61 KB `Memory_Bank.md` + `Implementation_Plan.md`, 404 KB `prompts/`, 276 KB unreferenced `zoom-demonstrator/` shadowing real module names | `git ls-files`, `.gitignore` | Untrack/archive; fix force-adds | S | CONFIRMED 1/1 |
+
+### Documentation drift
+
+| ID | Finding | Evidence | Recommendation | Effort | Verified |
+|----|---------|----------|----------------|--------|----------|
+| GF-38 | CLAUDE.md materially stale: three modes claimed (four exist); phantom `src/rendering/axes.js`; ~15 real modules missing from File Structure; nonexistent test files cited; nonexistent visual testing claimed | `CLAUDE.md:26,31,52,89,126,139` vs `src/` tree | Regenerate structure + mode sections; audit remaining claims | S | CONFIRMED 2/3, severity High→Medium |
+| GF-39 | ADR-015 (accepted) mandates viewBox-based zoom, "No Image Transforms"; implementation keeps viewBox fixed and resizes the image element — the rejected approach is what shipped | `ADR-015:33-45` vs `table.js:219,252-306` | Rewrite or supersede ADR-015 | S | CONFIRMED 2/3, severity High→Medium |
+| GF-40 | ADR-011 documents a fictional FeatureRenderer API — every listed method name is nonexistent | `ADR-011:37-52` vs `FeatureRenderer.js:10-92` | Correct the ADR | S | CONFIRMED 1/1 |
+| GF-41 | `Gram-Modes.md` describes *two* modes (Analysis, Doppler) — omits Harmonics and Pan | `docs/Gram-Modes.md:3` | Rewrite or fold into Tech-Architecture.md | S | CONFIRMED 2/3, severity High→Medium |
+| GF-42 | `Testing-Strategy.md` prescribes Jest + 80% coverage + "all functions must have unit tests" — none of it exists or ever ran | `docs/Testing-Strategy.md:97-117`, `package.json` | Rewrite to describe the real (and labeled-target) strategy | S | CONFIRMED 2/3, severity High→Medium |
+| GF-43 | Mode-count drift replicated: README (line 7), ADR-008, test-helper mode maps omit pan; ADR numbering skips 014; ADR-004 example code contradicts implementation | `README.md:7`, `ADR-008:7,58-61`, `state-assertions.js:130,150`, `ADR-004:42-51` | One sweep fixing the mode list everywhere; note the ADR-014 gap | S | CONFIRMED 1/1 (line ref corrected) |
+
+## 3. Low
+
+| ID | Dim | Finding | Evidence | Recommendation | Effort | Verified |
+|----|-----|---------|----------|----------------|--------|----------|
+| GF-06 | Arch | Module-level `globalStateListeners` auto-copied into every instance; removal must scrub two registries. Reviewer: working, documented global-broadcast design — maintenance surface, not hazard | `state.js:95`, `EventBindings.js:42-46`, `GramFrameAPI.js:150-176` | Explicit pub/sub with per-instance filtering | M | CONFIRMED 2/3, severity High→Low |
+| GF-14 | Lifecycle | Global keydown handler deliberately never removed; anonymous SVG/mode-button listeners unremovable — but destroy() detaches the container, so instances remain garbage-collectable; one document-level handler genuinely persists | `keyboardControl.js:37-56`, `events.js:82-105,115-122,270-284` | Bound refs + uninstall keydown at zero instances | S | CONFIRMED 1/3 + PLAUSIBLE, severity High→Low |
+| GF-21ᴿ | Quality | *Reframed after refutation:* the Doppler preview path (`cursors.js` `drawDopplerPreview` + `DopplerMode.renderPreviewCurve`) is duplicated/dead code overlapping GF-22 — not a live preview-divergence bug | `cursors.js:69-98`, `DopplerMode.js:609-612,706-712` | Delete the dead path with the GF-22 sweep | S | REFUTED as stated — reframed to Low |
+| GF-23 | Quality | `__test__*` methods always on the production API — expose only re-notify + instance refs (no sensitive data), hence polish | `GramFrameAPI.js:209-240` | Strip or gate behind a debug flag | S | CONFIRMED 1/1, severity → Low |
+| GF-28ᴿ | Testing | *Reframed after refutation:* minor selector duplication in ~6–8 small specs; the "only 3 of 19 specs use the POM" quantification was wrong | `tests/` imports | POM-ify the small specs opportunistically | S | REFUTED as stated — reframed to Low |
+| GF-35 | Process | Pre-push runs the full Playwright suite — workflow-ergonomics concern (bypass risk inferred, not observed) | `.husky/pre-push` | Pre-push = typecheck + unit lane once GF-25 lands | S | CONFIRMED 1/1, severity → Low |
+| GF-37 | Process | `generate-version` mutates tracked `src/utils/version.js` on every test/build, dirtying the tree (observed twice during this audit) | `scripts/generate-version.js`, `package.json:8,11` | Generate to an untracked file or inject at build | S | CONFIRMED 1/1 |
+| GF-44 | Docs | Completed-refactor planning doc presented as current (describes 2,100-line main.js; actual 562) | `docs/refactoring/main-js-dependency-analysis.md:5,8` | Add a "historical — completed" banner | S | CONFIRMED 1/1 |
+
+## 4. Strengths (verified in passing, no action needed)
+
+Credit where due: `rendering/symbols.js` (pure, documented, single source of truth), `utils/harmonicSampling.js` (+ its genuinely good boundary tests), `core/storage.js` schema-versioning/TTL design, `FeatureRenderer` as a clean rendering seam, per-listener error isolation in `notifyStateListeners`, the fail-loud config-table error indicator, `ExpandToggle`'s two-pass scrollbar-aware layout, the release/PR-preview pipelines, `Tech-Architecture.md` and `Data-and-State-Guide.md` as accurate canonical docs, and zero TODO/FIXME debt.
+
+## 5. Refutation disclosures
+
+The adversarial review refuted or materially narrowed four findings; per the audit's methodology they are disclosed here rather than silently dropped:
+
+- **GF-01 (was Critical, 0/3):** the claimed keyboard-vs-mouse divergence under zoom/expand does not occur — `keyboardControl.js:104` divides the increment by zoom level, and the data→SVG→data round trip cancels the position offset, yielding exactly `baseIncrement` rendered pixels per keypress at any zoom/expand, consistent with the mouse pipeline. The 4-way duplication stands as a Medium maintainability finding (GF-01ᴿ).
+- **GF-26 (correctness lens refuted):** FocusManager focus-isolation coverage exists in active specs; only the arrow-key movement assertions were lost. Narrowed accordingly (GF-26ᴺ).
+- **GF-21:** the "preview diverges under zoom" mechanism is dead code, not a live bug path. Reframed to Low (GF-21ᴿ).
+- **GF-28:** the POM-adoption count was wrong; actual duplication is limited to ~6–8 small specs. Reframed to Low (GF-28ᴿ).
+
+Two additional evidence corrections from reviewers were applied in place: GF-29 (`visual-helpers.js` is transitively imported but unused) and GF-43 (README mode list is line 7, not 9).
