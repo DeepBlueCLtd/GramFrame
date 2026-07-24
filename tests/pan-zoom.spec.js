@@ -163,6 +163,18 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
     })
   })
 
+  test.describe('Mode switching', () => {
+    test('can switch to Pan mode when fully zoomed out', async () => {
+      // Leave Pan (the default), then come back with no zoom applied.
+      await gfp.clickMode('Cross Cursor')
+      expect((await gfp.getState()).mode).toBe('analysis')
+      expect((await gfp.getState()).zoom.level).toBe(1.0)
+
+      await gfp.clickMode('Pan')
+      expect((await gfp.getState()).mode).toBe('pan')
+    })
+  })
+
   test.describe('Regression — existing zoom/pan still works', () => {
     test('the + command button still zooms in', async () => {
       await gfp.setZoom(2.0, 0.5, 0.5)
