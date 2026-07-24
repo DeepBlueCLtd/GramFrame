@@ -485,14 +485,19 @@ class GramFramePage {
   }
 
   /**
-   * Read the numeric text of every harmonic number label currently rendered.
+   * Read the harmonic number of every rendered number label, optionally scoped to
+   * a single set. Reads the label's `data-harmonic-number` attribute.
+   * @param {string} [setId] - Restrict to one harmonic set
    * @returns {Promise<number[]>} Label numbers in document order
    */
-  async getHarmonicLabelNumbers() {
-    return this.page.evaluate(() => {
-      const labels = Array.from(document.querySelectorAll('.gram-frame-harmonic-number'))
-      return labels.map((label) => Number(label.textContent))
-    })
+  async getHarmonicLabelNumbers(setId) {
+    const selector = setId
+      ? `.gram-frame-harmonic-number[data-harmonic-set-id="${setId}"]`
+      : '.gram-frame-harmonic-number'
+    return this.page.evaluate((sel) => {
+      const labels = Array.from(document.querySelectorAll(sel))
+      return labels.map((label) => Number(label.getAttribute('data-harmonic-number')))
+    }, selector)
   }
 
   /**

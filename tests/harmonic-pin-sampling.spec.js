@@ -2,14 +2,19 @@ import { test, expect } from './helpers/fixtures.js'
 import { MAX_VISIBLE_PINS, NICE_STEPS } from '../src/utils/harmonicSampling.js'
 
 /**
- * @fileoverview E2E tests for harmonic pin sampling (feature 158).
+ * @fileoverview E2E tests for harmonic pin sampling (feature 158), updated for
+ * feature 159 which supersedes 158's pin-dropping.
  *
  * The debug page config spans freq 0-100 Hz over time 0-60 s. A harmonic set
- * with 0.5 Hz spacing would place 200 pins across that span; sampling caps the
- * drawn pins at MAX_VISIBLE_PINS (25) and thins to a regular "nice" step. A
- * sparse set (large spacing) is drawn in full.
+ * with 0.5 Hz spacing would place 200 pins across that span. Feature 159 draws a
+ * pin LINE for every one of them; the spec-158 sampling maths (cap
+ * MAX_VISIBLE_PINS = 25, regular "nice" step) now governs which pins carry a
+ * number LABEL/symbol. So these tests assert the sampling invariants on the
+ * drawn labels, not on the drawn lines. A sparse set (large spacing) is drawn
+ * and labelled in full.
  *
  * @see specs/158-harmonic-pin-sampling/spec.md
+ * @see specs/159-harmonic-pin-labels/spec.md
  */
 
 /**
@@ -39,21 +44,26 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
   // ────────────────────────────────────────────────────────────────
   test.describe('US1: dense sets stay legible', () => {
     // T012
-    test('a dense 0.5 Hz set over a wide span draws no more than the cap', async ({ gramFramePage }) => {
+    test('a dense 0.5 Hz set labels no more than the cap while drawing all pins', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
-      const count = await gramFramePage.getHarmonicLineCount(setId)
-      expect(count).toBeGreaterThan(0)
-      expect(count).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
+      // Every pin line is drawn (200 across 0-100 Hz) -> well over the label cap
+      const lineCount = await gramFramePage.getHarmonicLineCount(setId)
+      expect(lineCount).toBeGreaterThan(MAX_VISIBLE_PINS)
+
+      // Only the thinned major subset carries a label
+      const labelCount = (await gramFramePage.getHarmonicLabelNumbers(setId)).length
+      expect(labelCount).toBeGreaterThan(0)
+      expect(labelCount).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
     })
 
     // T013
-    test('drawn harmonic numbers form a constant-step series from NICE_STEPS', async ({ gramFramePage }) => {
+    test('labelled harmonic numbers form a constant-step series from NICE_STEPS', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
-      const nums = await gramFramePage.getHarmonicNumbers(setId)
+      const nums = await gramFramePage.getHarmonicLabelNumbers(setId)
       // Ascending order
       for (let i = 1; i < nums.length; i++) {
         expect(nums[i]).toBeGreaterThan(nums[i - 1])
@@ -63,21 +73,23 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
       // Dense set is thinned, so the step is a NICE_STEPS member greater than 1
       expect(NICE_STEPS).toContain(step)
       expect(step).toBeGreaterThan(1)
-      // Every drawn number is a multiple of the step (anchored on multiples)
+      // Every labelled number is a multiple of the step (anchored on multiples)
       for (const n of nums) {
         expect(n % (/** @type {number} */ (step))).toBe(0)
       }
     })
 
     // T014
-    test('a sparse set draws every pin (no thinning, step 1)', async ({ gramFramePage }) => {
+    test('a sparse set draws and labels every pin (no thinning, step 1)', async ({ gramFramePage }) => {
       // spacing 20 Hz over 0-100 Hz -> harmonics 1..5, well under the cap
       const setId = await gramFramePage.addHarmonicSet(30, 20)
       await gramFramePage.page.waitForTimeout(100)
 
-      const nums = await gramFramePage.getHarmonicNumbers(setId)
-      expect(nums).toEqual([1, 2, 3, 4, 5])
-      expect(nums.length).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
+      const lineNums = await gramFramePage.getHarmonicNumbers(setId)
+      expect(lineNums).toEqual([1, 2, 3, 4, 5])
+      // Under the cap -> every drawn pin is labelled
+      const labelNums = await gramFramePage.getHarmonicLabelNumbers(setId)
+      expect(labelNums).toEqual([1, 2, 3, 4, 5])
     })
   })
 
@@ -93,7 +105,7 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
   // the invariant the spec guarantees, so that is what we assert.
   test.describe('US2: progressive disclosure on zoom/pan', () => {
     // T016
-    test('zooming in yields the same or a finer step and stays within the cap', async ({ gramFramePage }) => {
+    test('zooming in yields the same or a finer label step and stays within the cap', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
@@ -103,11 +115,11 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
         await gramFramePage.setZoom(level, 0.5, 0.5)
         await gramFramePage.page.waitForTimeout(100)
 
-        const nums = await gramFramePage.getHarmonicNumbers(setId)
+        const nums = await gramFramePage.getHarmonicLabelNumbers(setId)
         expect(nums.length).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
         const step = arithmeticStep(nums) ?? 1
         if (prevStep !== null) {
-          // density never decreases when zooming in -> step never coarsens
+          // density never decreases when zooming in -> label step never coarsens
           expect(step).toBeLessThanOrEqual(prevStep)
         }
         prevStep = step
@@ -115,12 +127,12 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
     })
 
     // T017
-    test('zooming in far enough shows every pin in view (step 1)', async ({ gramFramePage }) => {
+    test('zooming in far enough labels every pin in view (step 1)', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
       // Zoom in progressively until the visible span is small enough that every
-      // pin is shown (step 1). Robust to the configured cap value.
+      // pin is labelled (step 1). Robust to the configured cap value.
       /** @type {number|null} */
       let step = null
       /** @type {number[]} */
@@ -128,27 +140,27 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
       for (const level of [4.0, 8.0, 16.0, 32.0]) {
         await gramFramePage.setZoom(level, 0.5, 0.5)
         await gramFramePage.page.waitForTimeout(100)
-        nums = await gramFramePage.getHarmonicNumbers(setId)
+        nums = await gramFramePage.getHarmonicLabelNumbers(setId)
         expect(nums.length).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
         step = arithmeticStep(nums)
         if (step === 1) break
       }
       expect(nums.length).toBeGreaterThan(0)
-      // Every consecutive harmonic present -> nothing thinned out
+      // Every consecutive harmonic labelled -> nothing thinned out
       expect(step).toBe(1)
     })
 
     // T018
-    test('zoom out/reset returns to a thinned state; a pan keeps the same step', async ({ gramFramePage }) => {
+    test('zoom out/reset returns to a thinned state; a pan keeps the same label step', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
-      // Zoom in far enough to reveal every pin (step 1)
+      // Zoom in far enough to label every pin (step 1)
       let zoomedStep = null
       for (const level of [4.0, 8.0, 16.0, 32.0]) {
         await gramFramePage.setZoom(level, 0.5, 0.5)
         await gramFramePage.page.waitForTimeout(100)
-        zoomedStep = arithmeticStep(await gramFramePage.getHarmonicNumbers(setId))
+        zoomedStep = arithmeticStep(await gramFramePage.getHarmonicLabelNumbers(setId))
         if (zoomedStep === 1) break
       }
       expect(zoomedStep).toBe(1)
@@ -156,25 +168,25 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
       // Reset -> thinned again, within cap, coarser step
       await gramFramePage.setZoom(1.0, 0.5, 0.5)
       await gramFramePage.page.waitForTimeout(100)
-      const resetNums = await gramFramePage.getHarmonicNumbers(setId)
+      const resetNums = await gramFramePage.getHarmonicLabelNumbers(setId)
       expect(resetNums.length).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
       const resetStep = arithmeticStep(resetNums)
       expect(resetStep).toBeGreaterThan(1)
 
       // Pan at a fixed zoom (with comfortable margin from the cap threshold):
-      // the step is unchanged, only which multiples are in view shifts.
+      // the label step is unchanged, only which multiples are labelled shifts.
       await gramFramePage.setZoom(3.0, 0.5, 0.5)
       await gramFramePage.page.waitForTimeout(100)
-      const before = await gramFramePage.getHarmonicNumbers(setId)
+      const before = await gramFramePage.getHarmonicLabelNumbers(setId)
       const stepBefore = arithmeticStep(before)
 
       await gramFramePage.setZoom(3.0, 0.6, 0.5)
       await gramFramePage.page.waitForTimeout(100)
-      const after = await gramFramePage.getHarmonicNumbers(setId)
+      const after = await gramFramePage.getHarmonicLabelNumbers(setId)
       const stepAfter = arithmeticStep(after)
 
       expect(stepAfter).toBe(stepBefore)
-      // Panning shifted the window -> the specific pins in view changed
+      // Panning shifted the window -> the specific pins labelled changed
       expect(after[0]).not.toBe(before[0])
     })
   })
@@ -185,34 +197,37 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
   test.describe('US3: label and interaction consistency', () => {
     // T020
     test('every label corresponds to a drawn line (no orphan labels)', async ({ gramFramePage }) => {
-      await gramFramePage.addHarmonicSet(30, 0.5)
+      const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
-      const lineNums = await gramFramePage.getHarmonicNumbers()
-      const labelNums = await gramFramePage.getHarmonicLabelNumbers()
+      const lineNums = await gramFramePage.getHarmonicNumbers(setId)
+      const labelNums = await gramFramePage.getHarmonicLabelNumbers(setId)
 
-      // One label per drawn line, and each label's number is a drawn line number
-      expect(labelNums.length).toBe(lineNums.length)
+      // Labels are a thinned subset of the (all-drawn) lines: fewer labels than
+      // lines, and every label's number is a drawn line number.
+      expect(labelNums.length).toBeGreaterThan(0)
+      expect(labelNums.length).toBeLessThanOrEqual(lineNums.length)
       const lineSet = new Set(lineNums)
       for (const label of labelNums) {
         expect(lineSet.has(label)).toBe(true)
       }
-      expect([...labelNums].sort((a, b) => a - b)).toEqual([...lineNums].sort((a, b) => a - b))
     })
 
     // T021
-    test('a thinned set stays selectable in a sampling gap and adjustable', async ({ gramFramePage }) => {
+    test('a thinned set stays selectable in a label gap and adjustable', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
       await gramFramePage.page.waitForTimeout(100)
 
-      // Confirm the overlay is genuinely thinned (a real sampling gap exists)
-      const nums = await gramFramePage.getHarmonicNumbers(setId)
-      const step = arithmeticStep(nums)
+      // Confirm the labels are genuinely thinned (a real label gap exists)
+      const labelNums = await gramFramePage.getHarmonicLabelNumbers(setId)
+      const step = arithmeticStep(labelNums)
       expect(step).toBeGreaterThan(1)
+      // Harmonic 7 is drawn as a line but is NOT labelled (labels anchored on
+      // multiples of the step > 1)
+      expect(labelNums).not.toContain(7)
 
-      // Harmonic 7 (freq 3.5 Hz) is a real harmonic that is NOT drawn (step is a
-      // multiple > 1 anchored on multiples of the step). Hit-testing runs over
-      // the FULL series, so the set is still selectable in that gap.
+      // Harmonic 7 (freq 3.5 Hz). Hit-testing runs over the FULL series of drawn
+      // pins, so the set is still selectable at an unlabelled pin.
       const gapFreq = 7 * 0.5
       const result = await gramFramePage.page.evaluate(([id, freq]) => {
         // @ts-ignore - test-only global
@@ -250,12 +265,13 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
       // Adjustment took effect
       expect(result.spacingChanged).toBe(true)
 
-      // After adjustment the overlay is still bounded and consistent
+      // After adjustment the labels are still bounded and a subset of the lines
       await gramFramePage.page.waitForTimeout(100)
       const afterNums = await gramFramePage.getHarmonicNumbers(setId)
-      expect(afterNums.length).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
-      const afterLabels = await gramFramePage.getHarmonicLabelNumbers()
-      expect(afterLabels.length).toBe(afterNums.length)
+      const afterLabels = await gramFramePage.getHarmonicLabelNumbers(setId)
+      expect(afterLabels.length).toBeGreaterThan(0)
+      expect(afterLabels.length).toBeLessThanOrEqual(MAX_VISIBLE_PINS)
+      expect(afterLabels.length).toBeLessThanOrEqual(afterNums.length)
     })
   })
 })
