@@ -57,7 +57,10 @@ test.describe('US1: Symbols on harmonic pins', () => {
   test('click/drag with a selected symbol renders that filled symbol at the top of each pin, label readable', async ({ gramFramePage }) => {
     await gramFramePage.selectSymbol('square')
 
-    // Create a harmonic set by click/drag on the spectrogram
+    // Create a harmonic set by click/drag on the spectrogram. Scroll it into
+    // view first so the raw-mouse coordinates below stay within the viewport
+    // regardless of how tall the guidance panel above the component is.
+    await gramFramePage.svg.scrollIntoViewIfNeeded()
     const svgBox = await gramFramePage.svg.boundingBox()
     if (!svgBox) throw new Error('SVG not found')
     await gramFramePage.page.mouse.move(svgBox.x + 200, svgBox.y + 150)

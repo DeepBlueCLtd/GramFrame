@@ -295,6 +295,7 @@
  * @property {HTMLDivElement|null} [mainRow] - Main display row
  * 
  * @property {HTMLDivElement|null} [container] - Main container element
+ * @property {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null} [_wheelPan] - Transient wheel-button drag-pan state
  * @property {SVGSVGElement|null} [svg] - Main SVG element
  * @property {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
  * @property {HTMLButtonElement|null} [expandToggleButton] - Expand/collapse toggle button (landscape only)

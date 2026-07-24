@@ -125,6 +125,13 @@ export class GramFrame {
   // Bound event handlers
   _boundHandleResize;
 
+  /**
+   * Transient state for a wheel-button (middle) drag pan; null when not dragging.
+   * Not part of the broadcast state.
+   * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
+   */
+  _wheelPan = null;
+
   // Storage instance index for multi-instance pages
   _storageInstanceIndex;
 

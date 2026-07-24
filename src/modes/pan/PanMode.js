@@ -1,7 +1,7 @@
 import { BaseMode } from '../BaseMode.js'
 import { getVersion } from '../../utils/version.js'
-import { notifyStateListeners } from '../../core/state.js'
-import { applyZoomTransform } from '../../components/table.js'
+import { pixelDeltaToNormalizedPan, panByNormalized } from '../../core/viewport.js'
+import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
 
 /**
  * Pan mode - allows users to pan around the spectrogram when zoomed in
@@ -89,26 +89,11 @@ export class PanMode extends BaseMode {
     // Calculate pixel delta
     const deltaX = event.clientX - this.dragState.lastX
     const deltaY = event.clientY - this.dragState.lastY
-    
-    // Convert pixel delta to normalized delta (considering expand and zoom level)
-    const { naturalWidth, naturalHeight } = this.instance.state.imageDetails
-    // Base render size (defaults to natural; grows when expanded)
-    const renderWidth = this.instance.state.imageDetails.renderWidth || naturalWidth
-    const renderHeight = this.instance.state.imageDetails.renderHeight || naturalHeight
-    const margins = this.instance.state.margins
-    const svgRect = this.instance.svg.getBoundingClientRect()
 
-    // Scale factor based on the current viewBox (render size) and SVG element size
-    const scaleX = (renderWidth + margins.left + margins.right) / svgRect.width
-    const scaleY = (renderHeight + margins.top + margins.bottom) / svgRect.height
+    // Convert pixel delta to normalized delta (shared with wheel-pan) and apply
+    const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(this.instance, deltaX, deltaY)
+    panByNormalized(this.instance, normalizedDeltaX, normalizedDeltaY)
 
-    // Convert to normalized coordinates (adjust for zoom level)
-    const normalizedDeltaX = -(deltaX * scaleX / renderWidth) / this.instance.state.zoom.level
-    const normalizedDeltaY = -(deltaY * scaleY / renderHeight) / this.instance.state.zoom.level
-    
-    // Apply pan
-    this.panImage(normalizedDeltaX, normalizedDeltaY)
-    
     // Update drag state
     this.dragState.lastX = event.clientX
     this.dragState.lastY = event.clientY
@@ -149,47 +134,6 @@ export class PanMode extends BaseMode {
   }
 
   /**
-   * Pan the image by adjusting the center point
-   * @param {number} deltaX - Change in X position (normalized -1 to 1)
-   * @param {number} deltaY - Change in Y position (normalized -1 to 1)
-   */
-  panImage(deltaX, deltaY) {
-    if (this.instance.state.zoom.level <= 1.0) {
-      return // No panning when not zoomed
-    }
-    
-    // Calculate new center point, constrained to valid range
-    const newCenterX = Math.max(0, Math.min(1, this.instance.state.zoom.centerX + deltaX))
-    const newCenterY = Math.max(0, Math.min(1, this.instance.state.zoom.centerY + deltaY))
-    
-    // Update zoom with new center point
-    this.setZoom(this.instance.state.zoom.level, newCenterX, newCenterY)
-  }
-
-  /**
-   * Set zoom level and center point
-   * @param {number} level - Zoom level (1.0 = no zoom)
-   * @param {number} centerX - Center X (0-1 normalized)
-   * @param {number} centerY - Center Y (0-1 normalized)
-   */
-  setZoom(level, centerX, centerY) {
-    // Update state
-    this.instance.state.zoom.level = level
-    this.instance.state.zoom.centerX = centerX
-    this.instance.state.zoom.centerY = centerY
-    
-    // Apply zoom transform
-    if (this.instance.svg) {
-      applyZoomTransform(this.instance)
-    }
-    
-    // Note: zoom button states will be updated by the main zoom change handler
-    
-    // Notify listeners
-    notifyStateListeners(this.instance.state, this.instance.stateListeners)
-  }
-
-  /**
    * Get guidance content for pan mode
    * @returns {Object} Structured guidance content
    */
@@ -200,6 +144,7 @@ export class PanMode extends BaseMode {
         'Pan is only available when image is zoomed in',
         'Click and drag to pan the view when zoomed in',
         'Use the zoom controls to zoom in before panning',
+        ...WHEEL_NAV_GUIDANCE,
         `GramFrame v${getVersion()}`
       ]
     }
