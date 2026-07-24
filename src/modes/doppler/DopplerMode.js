@@ -7,7 +7,7 @@ import {
   isNearMarker
 } from '../../utils/doppler.js'
 import { calculateMidpoint } from '../../utils/doppler.js'
-import { 
+import {
   drawDopplerPreview
 } from '../../rendering/cursors.js'
 import { dataToSVG } from '../../utils/coordinateTransformations.js'

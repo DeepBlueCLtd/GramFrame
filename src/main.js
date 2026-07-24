@@ -133,6 +133,13 @@ export class GramFrame {
   // Bound event handlers
   _boundHandleResize;
 
+  /**
+   * Transient state for a wheel-button (middle) drag pan; null when not dragging.
+   * Not part of the broadcast state.
+   * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
+   */
+  _wheelPan = null;
+
   // Storage instance index for multi-instance pages
   _storageInstanceIndex;
 
@@ -414,12 +421,10 @@ export class GramFrame {
    * @param {ModeType} mode - Target mode
    */
   _switchMode(mode) {
-    // Prevent switching to pan mode when not zoomed
-    if (mode === 'pan' && this.state.zoom.level <= 1.0) {
-      console.warn('Cannot switch to pan mode when zoom level is 1:1 or less')
-      return
-    }
-    
+    // Pan mode is always selectable, even when fully zoomed out — panning itself
+    // is gated on being zoomed in, but the user must be able to enter pan mode
+    // first (it is also the default mode). No zoom-level guard here.
+
     // Track previous mode
     this.state.previousMode = this.state.mode
     

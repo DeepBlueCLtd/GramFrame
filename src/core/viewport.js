@@ -66,6 +66,81 @@ export function setZoom(instance, level, centerX, centerY) {
 }
 
 /**
+ * Convert a screen-pixel delta into a normalized centre delta, accounting for the
+ * render size, the SVG element's on-screen scale, and the current zoom level. The
+ * result is negated so the image content follows the drag direction. This is the
+ * exact conversion the Pan-mode drag uses; it is shared so wheel-pan and drag-pan
+ * can never diverge.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {number} dxPx - Horizontal delta in screen pixels
+ * @param {number} dyPx - Vertical delta in screen pixels
+ * @returns {{ normalizedDeltaX: number, normalizedDeltaY: number }} Normalized centre delta
+ */
+export function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  // Base render size (defaults to natural; grows when expanded)
+  const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
+  const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
+  const margins = instance.state.margins
+  const svgRect = instance.svg.getBoundingClientRect()
+
+  // Scale factor based on the current viewBox (render size) and SVG element size
+  const scaleX = (renderWidth + margins.left + margins.right) / svgRect.width
+  const scaleY = (renderHeight + margins.top + margins.bottom) / svgRect.height
+
+  // Convert to normalized coordinates (adjust for zoom level); negate so content
+  // follows the drag.
+  return {
+    normalizedDeltaX: -(dxPx * scaleX / renderWidth) / instance.state.zoom.level,
+    normalizedDeltaY: -(dyPx * scaleY / renderHeight) / instance.state.zoom.level
+  }
+}
+
+/**
+ * Pan the view by a normalized centre delta, clamped to the data edges. No-op when
+ * not zoomed in (there is nothing off-screen to reveal).
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {number} deltaX - Change in centre X (normalized)
+ * @param {number} deltaY - Change in centre Y (normalized)
+ */
+export function panByNormalized(instance, deltaX, deltaY) {
+  if (instance.state.zoom.level <= 1.0) {
+    return // No panning when not zoomed
+  }
+  const newCenterX = Math.max(0, Math.min(1, instance.state.zoom.centerX + deltaX))
+  const newCenterY = Math.max(0, Math.min(1, instance.state.zoom.centerY + deltaY))
+  setZoom(instance, instance.state.zoom.level, newCenterX, newCenterY)
+}
+
+/**
+ * Zoom by a multiplicative factor, centred on a point given in image render-pixel
+ * space (e.g. the `imageX`/`imageY` returned by the events coordinate helper). The
+ * point under the cursor becomes the zoom anchor. Clamped to the 1.0-10.0 range;
+ * a no-op at the limit. Returning to level 1 recentres the view.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {number} factor - Multiplicative zoom factor (>1 zooms in, <1 zooms out)
+ * @param {number} imageX - Pointer X in render-pixel space (0..renderWidth)
+ * @param {number} imageY - Pointer Y in render-pixel space (0..renderHeight)
+ */
+export function zoomAtImagePoint(instance, factor, imageX, imageY) {
+  const currentLevel = instance.state.zoom.level
+  const newLevel = Math.max(1.0, Math.min(currentLevel * factor, 10.0))
+  if (newLevel === currentLevel) {
+    return // Already at the min/max limit
+  }
+  if (newLevel <= 1.0) {
+    zoomReset(instance)
+    return
+  }
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
+  const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
+  const centerX = Math.max(0, Math.min(1, imageX / renderWidth))
+  const centerY = Math.max(0, Math.min(1, imageY / renderHeight))
+  setZoom(instance, newLevel, centerX, centerY)
+}
+
+/**
  * Update zoom control button states based on current zoom level
  * @param {GramFrame} instance - GramFrame instance
  */

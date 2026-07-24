@@ -178,6 +178,7 @@
 
 .gram-frame-readout {
   flex: 0 1 auto;
+  width: 100%; /* Definite width so the unified layout's flex sizing applies */
   padding: 0;
   background: transparent;
 }

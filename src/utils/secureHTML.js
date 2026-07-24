@@ -7,39 +7,57 @@
  */
 
 /**
- * Guidance content structure for type safety
+ * A single titled block of guidance bullet points.
+ * @typedef {Object} GuidanceSection
+ * @property {string} title - The section heading text
+ * @property {string[]} items - Array of guidance items (rendered as bullet points)
+ */
+
+/**
+ * Guidance content structure for type safety. Either a single title + items, or
+ * multiple titled sections (used by Pan mode to show the global Mouse-Wheel help
+ * alongside the pan-specific help).
  * @typedef {Object} GuidanceContent
- * @property {string} title - The main heading text
- * @property {string[]} items - Array of guidance items (will be rendered as bullet points)
+ * @property {string} [title] - The main heading text (single-section form)
+ * @property {string[]} [items] - Guidance items (single-section form)
+ * @property {GuidanceSection[]} [sections] - Multiple titled sections (multi-section form)
  */
 
 /**
  * Securely render guidance content to a DOM element
  * Creates DOM elements programmatically to prevent XSS attacks
- * 
+ *
  * @param {HTMLElement} container - Target container element
  * @param {GuidanceContent} content - Structured guidance content
  */
 export function renderSecureGuidance(container, content) {
   // Clear existing content safely
   container.replaceChildren()
-  
-  // Create and append title
-  if (content.title) {
-    const title = document.createElement('h4')
-    title.textContent = content.title
-    container.appendChild(title)
-  }
-  
-  // Create and append guidance items as paragraphs with bullet points
-  if (content.items && Array.isArray(content.items)) {
-    content.items.forEach(item => {
-      const paragraph = document.createElement('p')
-      // Use textContent to prevent XSS - bullet point is safe literal
-      paragraph.textContent = `• ${item}`
-      container.appendChild(paragraph)
-    })
-  }
+
+  // Normalise to a list of sections so single- and multi-section content share
+  // one render path.
+  const sections = Array.isArray(content.sections)
+    ? content.sections
+    : [{ title: content.title, items: content.items }]
+
+  sections.forEach(section => {
+    // Create and append the section title
+    if (section.title) {
+      const title = document.createElement('h4')
+      title.textContent = section.title
+      container.appendChild(title)
+    }
+
+    // Create and append guidance items as paragraphs with bullet points
+    if (section.items && Array.isArray(section.items)) {
+      section.items.forEach(item => {
+        const paragraph = document.createElement('p')
+        // Use textContent to prevent XSS - bullet point is safe literal
+        paragraph.textContent = `• ${item}`
+        container.appendChild(paragraph)
+      })
+    }
+  })
 }
 
 /**

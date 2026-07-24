@@ -168,6 +168,73 @@ class GramFramePage {
   }
 
   /**
+   * Dispatch a mouse-wheel event over the SVG at SVG-relative coordinates.
+   * Uses a synthetic WheelEvent so `deltaY` and `ctrlKey` are fully controlled.
+   * @param {number} x - X coordinate relative to the SVG
+   * @param {number} y - Y coordinate relative to the SVG
+   * @param {number} deltaY - Wheel delta (negative = scroll up/zoom in)
+   * @param {boolean} [ctrl=false] - Whether Ctrl is held (zoom vs pan)
+   * @returns {Promise<void>}
+   */
+  async wheelAtSVG(x, y, deltaY, ctrl = false) {
+    await this.page.evaluate(({ x, y, deltaY, ctrl }) => {
+      const svg = document.querySelector('.gram-frame-svg')
+      if (!svg) {
+        return
+      }
+      const rect = svg.getBoundingClientRect()
+      const ev = new WheelEvent('wheel', {
+        clientX: rect.left + x,
+        clientY: rect.top + y,
+        deltaY,
+        ctrlKey: ctrl,
+        bubbles: true,
+        cancelable: true
+      })
+      svg.dispatchEvent(ev)
+    }, { x, y, deltaY, ctrl })
+  }
+
+  /**
+   * Get an SVG-relative pixel point at a fraction across/down the rendered
+   * spectrogram image (accounts for the current zoom/pan and axis margins).
+   * @param {number} fracX - Horizontal fraction of the image (0-1)
+   * @param {number} fracY - Vertical fraction of the image (0-1)
+   * @returns {Promise<{x: number, y: number}>} SVG-relative coordinates
+   */
+  async imageSVGPoint(fracX, fracY) {
+    return await this.page.evaluate(({ fracX, fracY }) => {
+      const svg = document.querySelector('.gram-frame-svg')
+      const img = document.querySelector('.gram-frame-svg image')
+      const svgRect = svg.getBoundingClientRect()
+      const imgRect = img.getBoundingClientRect()
+      return {
+        x: (imgRect.left - svgRect.left) + fracX * imgRect.width,
+        y: (imgRect.top - svgRect.top) + fracY * imgRect.height
+      }
+    }, { fracX, fracY })
+  }
+
+  /**
+   * Perform a wheel-button (middle) drag on the SVG, in SVG-relative coordinates.
+   * @param {number} startX - Starting X coordinate relative to the SVG
+   * @param {number} startY - Starting Y coordinate relative to the SVG
+   * @param {number} endX - Ending X coordinate relative to the SVG
+   * @param {number} endY - Ending Y coordinate relative to the SVG
+   * @returns {Promise<void>}
+   */
+  async middleDragSVG(startX, startY, endX, endY) {
+    const svgBox = await this.svg.boundingBox()
+    if (!svgBox) {
+      return
+    }
+    await this.page.mouse.move(svgBox.x + startX, svgBox.y + startY)
+    await this.page.mouse.down({ button: 'middle' })
+    await this.page.mouse.move(svgBox.x + endX, svgBox.y + endY, { steps: 5 })
+    await this.page.mouse.up({ button: 'middle' })
+  }
+
+  /**
    * Verify the value of an LED display
    * @param {string} label - The label of the LED display (e.g., "Frequency", "Time", "Mode")
    * @param {RegExp} expectedValueRegex - Regular expression to match the expected value
