@@ -9,6 +9,7 @@
 
 import { notifyStateListeners } from './state.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
+import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
 import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance } from './FocusManager.js'
 
 /**
@@ -363,14 +364,20 @@ function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
 export function setSelection(instance, type, id, index) {
   // When selecting an item, also focus the instance
   setFocusedInstance(instance)
-  
+
   instance.state.selection.selectedType = type
   instance.state.selection.selectedId = id
   instance.state.selection.selectedIndex = index
-  
+
   // Update visual feedback
   updateSelectionVisuals(instance)
-  
+
+  // Reflect the selected feature's colour/symbol in the style controls so the
+  // analyst can restyle it in place (feature 161, FR-004).
+  if (instance.syncStyleControls) {
+    instance.syncStyleControls()
+  }
+
   notifyStateListeners(instance.state, instance.stateListeners)
 }
 
@@ -382,11 +389,119 @@ export function clearSelection(instance) {
   instance.state.selection.selectedType = null
   instance.state.selection.selectedId = null
   instance.state.selection.selectedIndex = null
-  
+
   // Update visual feedback
   updateSelectionVisuals(instance)
-  
+
+  // With nothing selected, the style controls revert to targeting the NEXT
+  // created feature (feature 161, FR-013).
+  if (instance.syncStyleControls) {
+    instance.syncStyleControls()
+  }
+
   notifyStateListeners(instance.state, instance.stateListeners)
+}
+
+/**
+ * Resolve the currently selected feature (marker or harmonic set).
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {{type: 'marker'|'harmonicSet', feature: AnalysisMarker|HarmonicSet}|null} Selected feature or null
+ */
+export function getSelectedFeature(instance) {
+  const sel = instance.state.selection
+  if (!sel || !sel.selectedType || !sel.selectedId) {
+    return null
+  }
+  if (sel.selectedType === 'marker') {
+    const feature = instance.state.analysis && instance.state.analysis.markers
+      ? instance.state.analysis.markers.find(m => m.id === sel.selectedId)
+      : null
+    return feature ? { type: 'marker', feature } : null
+  }
+  if (sel.selectedType === 'harmonicSet') {
+    const feature = instance.state.harmonics && instance.state.harmonics.harmonicSets
+      ? instance.state.harmonics.harmonicSets.find(h => h.id === sel.selectedId)
+      : null
+    return feature ? { type: 'harmonicSet', feature } : null
+  }
+  return null
+}
+
+/**
+ * Get the colour/symbol the style controls should currently show: the selected
+ * feature's when one is selected, otherwise the next-feature defaults.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {{color: string, symbol: SymbolType}} Active style
+ */
+export function getActiveStyle(instance) {
+  const selected = getSelectedFeature(instance)
+  if (selected) {
+    return {
+      color: selected.feature.color,
+      symbol: /** @type {SymbolType} */ (selected.feature.symbol || DEFAULT_SYMBOL)
+    }
+  }
+  return {
+    color: instance.state.selectedColor,
+    symbol: instance.state.selectedSymbol
+  }
+}
+
+/**
+ * Re-render the overlay and the affected feature's table after a restyle, then
+ * notify listeners (which also triggers persistence).
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {'marker'|'harmonicSet'} type - Which feature type changed
+ */
+function refreshFeatureVisuals(instance, type) {
+  if (instance.featureRenderer) {
+    instance.featureRenderer.renderAllPersistentFeatures()
+  }
+  if (type === 'marker') {
+    const analysisMode = instance.modes && instance.modes['analysis']
+    if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
+      analysisMode.updateMarkersTable()
+    }
+  } else if (type === 'harmonicSet') {
+    if (instance.harmonicPanel) {
+      updateHarmonicPanelContent(instance.harmonicPanel, instance)
+    }
+  }
+  notifyStateListeners(instance.state, instance.stateListeners)
+}
+
+/**
+ * Apply a colour to the currently selected feature, updating the overlay and
+ * table instantly (feature 161, FR-005/FR-007). No-op when nothing is selected.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {string} color - Hex colour to apply
+ * @returns {boolean} True if a feature was restyled
+ */
+export function applyColorToSelectedFeature(instance, color) {
+  const selected = getSelectedFeature(instance)
+  if (!selected) {
+    return false
+  }
+  selected.feature.color = color
+  refreshFeatureVisuals(instance, selected.type)
+  return true
+}
+
+/**
+ * Apply a symbol to the currently selected feature, updating the overlay and
+ * table instantly (feature 161, FR-006/FR-007). No-op when nothing is selected.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {SymbolType} symbol - Symbol style to apply
+ * @returns {boolean} True if a feature was restyled
+ */
+export function applySymbolToSelectedFeature(instance, symbol) {
+  const selected = getSelectedFeature(instance)
+  if (!selected) {
+    return false
+  }
+  selected.feature.symbol = symbol
+  refreshFeatureVisuals(instance, selected.type)
+  return true
 }
 
 /**

@@ -433,7 +433,120 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function getUniformTolerance(viewport, spectrogramImage) {
     return calculateDataTolerance(viewport, spectrogramImage, DEFAULT_TOLERANCE);
   }
-  class AnalysisMode extends BaseMode {
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const DEFAULT_SYMBOL = "cross";
+  const SYMBOL_CATALOG = ["cross", "circle", "square", "diamond", "triangle", "triangle-down", "star"];
+  const SYMBOL_DISPLAY_NAMES = {
+    "cross": "Cross (no symbol)",
+    "circle": "Circle",
+    "square": "Square",
+    "diamond": "Diamond",
+    "triangle": "Triangle",
+    "triangle-down": "Triangle (down)",
+    "star": "Star"
+  };
+  function toPoints(pts) {
+    return pts.map(([x, y]) => `${x},${y}`).join(" ");
+  }
+  function starPoints(cx, cy, outerR, innerR) {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const angle = -Math.PI / 2 + i * Math.PI / 5;
+      pts.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+    }
+    return pts;
+  }
+  function createSymbolMark(symbolType, cx, cy, size, color) {
+    const r = size / 2;
+    const resolved = SYMBOL_CATALOG.includes(
+      /** @type {SymbolType} */
+      symbolType
+    ) ? (
+      /** @type {SymbolType} */
+      symbolType
+    ) : DEFAULT_SYMBOL;
+    if (resolved === "cross") {
+      return null;
+    }
+    let el;
+    switch (resolved) {
+      case "square": {
+        el = document.createElementNS(SVG_NS, "rect");
+        el.setAttribute("x", String(cx - r));
+        el.setAttribute("y", String(cy - r));
+        el.setAttribute("width", String(2 * r));
+        el.setAttribute("height", String(2 * r));
+        break;
+      }
+      case "diamond": {
+        el = document.createElementNS(SVG_NS, "polygon");
+        el.setAttribute("points", toPoints([
+          [cx, cy - r],
+          [cx + r, cy],
+          [cx, cy + r],
+          [cx - r, cy]
+        ]));
+        break;
+      }
+      case "triangle": {
+        el = document.createElementNS(SVG_NS, "polygon");
+        el.setAttribute("points", toPoints([
+          [cx, cy - r],
+          [cx + r, cy + r],
+          [cx - r, cy + r]
+        ]));
+        break;
+      }
+      case "triangle-down": {
+        el = document.createElementNS(SVG_NS, "polygon");
+        el.setAttribute("points", toPoints([
+          [cx, cy + r],
+          [cx + r, cy - r],
+          [cx - r, cy - r]
+        ]));
+        break;
+      }
+      case "star": {
+        el = document.createElementNS(SVG_NS, "polygon");
+        el.setAttribute("points", toPoints(starPoints(cx, cy, r, r * 0.5)));
+        break;
+      }
+      case "circle":
+      default: {
+        el = document.createElementNS(SVG_NS, "circle");
+        el.setAttribute("cx", String(cx));
+        el.setAttribute("cy", String(cy));
+        el.setAttribute("r", String(r));
+        break;
+      }
+    }
+    el.setAttribute("class", "gram-frame-harmonic-symbol");
+    el.setAttribute("data-symbol", resolved);
+    el.setAttribute("fill", color);
+    return el;
+  }
+  function createColorIndicator(symbol, color, size = 16) {
+    const mark = createSymbolMark(symbol, size / 2, size / 2, size * 0.75, color);
+    if (mark) {
+      const svg = document.createElementNS(SVG_NS, "svg");
+      svg.setAttribute("class", "gram-frame-symbol-swatch");
+      svg.setAttribute("width", String(size));
+      svg.setAttribute("height", String(size));
+      svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+      svg.appendChild(mark);
+      return svg;
+    }
+    const div = document.createElement("div");
+    div.className = "gram-frame-color-swatch";
+    div.style.backgroundColor = color;
+    div.style.width = `${size}px`;
+    div.style.height = `${size}px`;
+    div.style.borderRadius = "3px";
+    div.style.border = "1px solid #ccc";
+    return div;
+  }
+  const _AnalysisMode = class _AnalysisMode extends BaseMode {
     /**
      * Initialize AnalysisMode with drag handler
      * @param {Object} instance - GramFrame instance
@@ -580,11 +693,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     createMarkerAtPosition(dataCoords) {
       const color = this.instance.state.selectedColor || "#ff6b6b";
+      const symbol = this.instance.state.selectedSymbol || "cross";
       const marker = {
         id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         color,
         time: dataCoords.time,
-        freq: dataCoords.freq
+        freq: dataCoords.freq,
+        symbol
       };
       this.addMarker(marker);
     }
@@ -617,33 +732,40 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
       markerGroup.setAttribute("class", "gram-frame-analysis-marker");
       markerGroup.setAttribute("data-marker-id", marker.id);
-      const crosshairSize = 15;
-      const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      hLine.setAttribute("x1", String(currentX - crosshairSize));
-      hLine.setAttribute("y1", String(currentY));
-      hLine.setAttribute("x2", String(currentX + crosshairSize));
-      hLine.setAttribute("y2", String(currentY));
-      hLine.setAttribute("stroke", marker.color);
-      hLine.setAttribute("stroke-width", "2");
-      hLine.setAttribute("stroke-linecap", "round");
-      const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      vLine.setAttribute("x1", String(currentX));
-      vLine.setAttribute("y1", String(currentY - crosshairSize));
-      vLine.setAttribute("x2", String(currentX));
-      vLine.setAttribute("y2", String(currentY + crosshairSize));
-      vLine.setAttribute("stroke", marker.color);
-      vLine.setAttribute("stroke-width", "2");
-      vLine.setAttribute("stroke-linecap", "round");
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      circle.setAttribute("cx", String(currentX));
-      circle.setAttribute("cy", String(currentY));
-      circle.setAttribute("r", "3");
-      circle.setAttribute("fill", marker.color);
-      circle.setAttribute("stroke", "#fff");
-      circle.setAttribute("stroke-width", "1");
-      markerGroup.appendChild(hLine);
-      markerGroup.appendChild(vLine);
-      markerGroup.appendChild(circle);
+      const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, _AnalysisMode.MARKER_SYMBOL_SIZE, marker.color);
+      if (symbolMark) {
+        symbolMark.setAttribute("class", "gram-frame-marker-symbol");
+        symbolMark.setAttribute("data-marker-id", marker.id);
+        markerGroup.appendChild(symbolMark);
+      } else {
+        const crosshairSize = 15;
+        const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        hLine.setAttribute("x1", String(currentX - crosshairSize));
+        hLine.setAttribute("y1", String(currentY));
+        hLine.setAttribute("x2", String(currentX + crosshairSize));
+        hLine.setAttribute("y2", String(currentY));
+        hLine.setAttribute("stroke", marker.color);
+        hLine.setAttribute("stroke-width", "2");
+        hLine.setAttribute("stroke-linecap", "round");
+        const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        vLine.setAttribute("x1", String(currentX));
+        vLine.setAttribute("y1", String(currentY - crosshairSize));
+        vLine.setAttribute("x2", String(currentX));
+        vLine.setAttribute("y2", String(currentY + crosshairSize));
+        vLine.setAttribute("stroke", marker.color);
+        vLine.setAttribute("stroke-width", "2");
+        vLine.setAttribute("stroke-linecap", "round");
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", String(currentX));
+        circle.setAttribute("cy", String(currentY));
+        circle.setAttribute("r", "3");
+        circle.setAttribute("fill", marker.color);
+        circle.setAttribute("stroke", "#fff");
+        circle.setAttribute("stroke-width", "1");
+        markerGroup.appendChild(hLine);
+        markerGroup.appendChild(vLine);
+        markerGroup.appendChild(circle);
+      }
       this.instance.cursorGroup.appendChild(markerGroup);
     }
     /**
@@ -826,6 +948,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {AnalysisMarker} marker - The marker data
      */
     updateMarkerRow(row, marker) {
+      const colorCell = row.cells[0];
+      if (colorCell) {
+        colorCell.replaceChildren(createColorIndicator(marker.symbol, marker.color, 20));
+      }
       const timeCell = row.cells[1];
       if (timeCell) {
         const newTime = formatTime(marker.time);
@@ -868,14 +994,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           }
         });
         const colorCell = document.createElement("td");
-        const colorSwatch = document.createElement("div");
-        colorSwatch.className = "gram-frame-color-swatch";
-        colorSwatch.style.backgroundColor = marker.color;
-        colorSwatch.style.width = "20px";
-        colorSwatch.style.height = "20px";
-        colorSwatch.style.borderRadius = "3px";
-        colorSwatch.style.border = "1px solid #ccc";
-        colorCell.appendChild(colorSwatch);
+        colorCell.className = "gram-frame-marker-color";
+        colorCell.appendChild(createColorIndicator(marker.symbol, marker.color, 20));
         row.appendChild(colorCell);
         const timeCell = document.createElement("td");
         timeCell.textContent = formatTime(marker.time);
@@ -925,105 +1045,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     resetState() {
     }
-  }
-  const SVG_NS = "http://www.w3.org/2000/svg";
-  const SYMBOL_CATALOG = ["circle", "square", "diamond", "triangle", "triangle-down", "star"];
-  const SYMBOL_DISPLAY_NAMES = {
-    "circle": "Circle",
-    "square": "Square",
-    "diamond": "Diamond",
-    "triangle": "Triangle",
-    "triangle-down": "Triangle (down)",
-    "star": "Star"
   };
-  function toPoints(pts) {
-    return pts.map(([x, y]) => `${x},${y}`).join(" ");
-  }
-  function starPoints(cx, cy, outerR, innerR) {
-    const pts = [];
-    for (let i = 0; i < 10; i++) {
-      const r = i % 2 === 0 ? outerR : innerR;
-      const angle = -Math.PI / 2 + i * Math.PI / 5;
-      pts.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
-    }
-    return pts;
-  }
-  function createSymbolMark(symbolType, cx, cy, size, color) {
-    const r = size / 2;
-    const resolved = SYMBOL_CATALOG.includes(
-      /** @type {SymbolType} */
-      symbolType
-    ) ? (
-      /** @type {SymbolType} */
-      symbolType
-    ) : "circle";
-    let el;
-    switch (resolved) {
-      case "square": {
-        el = document.createElementNS(SVG_NS, "rect");
-        el.setAttribute("x", String(cx - r));
-        el.setAttribute("y", String(cy - r));
-        el.setAttribute("width", String(2 * r));
-        el.setAttribute("height", String(2 * r));
-        break;
-      }
-      case "diamond": {
-        el = document.createElementNS(SVG_NS, "polygon");
-        el.setAttribute("points", toPoints([
-          [cx, cy - r],
-          [cx + r, cy],
-          [cx, cy + r],
-          [cx - r, cy]
-        ]));
-        break;
-      }
-      case "triangle": {
-        el = document.createElementNS(SVG_NS, "polygon");
-        el.setAttribute("points", toPoints([
-          [cx, cy - r],
-          [cx + r, cy + r],
-          [cx - r, cy + r]
-        ]));
-        break;
-      }
-      case "triangle-down": {
-        el = document.createElementNS(SVG_NS, "polygon");
-        el.setAttribute("points", toPoints([
-          [cx, cy + r],
-          [cx + r, cy - r],
-          [cx - r, cy - r]
-        ]));
-        break;
-      }
-      case "star": {
-        el = document.createElementNS(SVG_NS, "polygon");
-        el.setAttribute("points", toPoints(starPoints(cx, cy, r, r * 0.5)));
-        break;
-      }
-      case "circle":
-      default: {
-        el = document.createElementNS(SVG_NS, "circle");
-        el.setAttribute("cx", String(cx));
-        el.setAttribute("cy", String(cy));
-        el.setAttribute("r", String(r));
-        break;
-      }
-    }
-    el.setAttribute("class", "gram-frame-harmonic-symbol");
-    el.setAttribute("data-symbol", resolved);
-    el.setAttribute("fill", color);
-    return el;
-  }
+  /**
+   * Pixel size (width/height) of a marker's symbol mark when it carries a
+   * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
+   * @type {number}
+   */
+  __publicField(_AnalysisMode, "MARKER_SYMBOL_SIZE", 14);
+  let AnalysisMode = _AnalysisMode;
   function createSymbolSwatch(harmonicSet) {
-    const swSize = 16;
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "gram-frame-harmonic-symbol-swatch");
-    svg.setAttribute("width", String(swSize));
-    svg.setAttribute("height", String(swSize));
-    svg.setAttribute("viewBox", `0 0 ${swSize} ${swSize}`);
-    const mark = createSymbolMark(harmonicSet.symbol, swSize / 2, swSize / 2, 12, harmonicSet.color);
-    svg.appendChild(mark);
-    return svg;
+    return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
   }
   function createHarmonicPanel(container) {
     const panel = document.createElement("div");
@@ -2014,7 +2045,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const colorIndex = this.instance.state.harmonics.harmonicSets.length % _HarmonicsMode.harmonicColors.length;
         color = _HarmonicsMode.harmonicColors[colorIndex];
       }
-      const symbol = this.instance.state.selectedSymbol || "circle";
+      const symbol = this.instance.state.selectedSymbol || "cross";
       const harmonicSet = {
         id,
         color,
@@ -2217,7 +2248,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       const existingHarmonics = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-line");
       existingHarmonics.forEach((line) => line.remove());
-      const existingSymbols = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol");
+      const existingSymbols = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol[data-harmonic-set-id]");
       existingSymbols.forEach((symbol) => symbol.remove());
       this.instance.state.harmonics.harmonicSets.forEach((harmonicSet) => {
         this.renderHarmonicSet(harmonicSet);
@@ -2338,7 +2369,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {HarmonicSet} harmonicSet - Harmonic set configuration
      * @param {number} lineX - X position of the pin line (symbol is centred on it)
      * @param {number} symbolCy - Centre Y position for the symbol
-     * @returns {SVGElement} SVG symbol element
+     * @returns {SVGElement|null} SVG symbol element, or null for the `cross` (symbol-less) style
      */
     createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
       const symbol = createSymbolMark(
@@ -2348,6 +2379,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         _HarmonicsMode.SYMBOL_SIZE,
         harmonicSet.color
       );
+      if (!symbol) {
+        return null;
+      }
       symbol.setAttribute("data-harmonic-set-id", harmonicSet.id);
       return symbol;
     }
@@ -2420,7 +2454,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
         const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy);
         const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY);
-        this.instance.cursorGroup.appendChild(symbol);
+        if (symbol) {
+          this.instance.cursorGroup.appendChild(symbol);
+        }
         this.instance.cursorGroup.appendChild(label);
       });
     }
@@ -2476,6 +2512,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   __publicField(_HarmonicsMode, "STACK_TOP_PAD", 1);
   let HarmonicsMode = _HarmonicsMode;
   const SYMBOL_GLYPHS = {
+    "cross": "✕",
     "circle": "●",
     "square": "■",
     "diamond": "◆",
@@ -2483,9 +2520,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     "triangle-down": "▼",
     "star": "★"
   };
-  function createSymbolSelect(state) {
+  function createSymbolSelect(instance) {
+    const state = instance.state;
     if (!state.selectedSymbol) {
-      state.selectedSymbol = "circle";
+      state.selectedSymbol = DEFAULT_SYMBOL;
     }
     const select = document.createElement("select");
     select.className = "gram-frame-symbol-select";
@@ -2503,10 +2541,453 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       select.appendChild(option);
     });
     select.addEventListener("change", () => {
-      state.selectedSymbol = /** @type {SymbolType} */
-      select.value;
+      const symbol = (
+        /** @type {SymbolType} */
+        select.value
+      );
+      if (!instance.applySymbolToSelectedFeature || !instance.applySymbolToSelectedFeature(symbol)) {
+        state.selectedSymbol = symbol;
+      }
     });
+    instance._symbolControl = {
+      /** @param {SymbolType} symbol */
+      setValue(symbol) {
+        select.value = symbol;
+      },
+      /** @param {string} color */
+      setTint(color) {
+        select.style.color = color;
+      }
+    };
     return select;
+  }
+  const scriptRel = "modulepreload";
+  const assetsURL = function(dep) {
+    return "/" + dep;
+  };
+  const seen = {};
+  const __vitePreload = function preload(baseModule, deps, importerUrl) {
+    let promise = Promise.resolve();
+    if (false) {
+      document.getElementsByTagName("link");
+      const cspNonceMeta = document.querySelector(
+        "meta[property=csp-nonce]"
+      );
+      const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
+      promise = Promise.allSettled(
+        deps.map((dep) => {
+          dep = assetsURL(dep);
+          if (dep in seen) return;
+          seen[dep] = true;
+          const isCss = dep.endsWith(".css");
+          const cssSelector = isCss ? '[rel="stylesheet"]' : "";
+          if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
+            return;
+          }
+          const link = document.createElement("link");
+          link.rel = isCss ? "stylesheet" : scriptRel;
+          if (!isCss) {
+            link.as = "script";
+          }
+          link.crossOrigin = "";
+          link.href = dep;
+          if (cspNonce) {
+            link.setAttribute("nonce", cspNonce);
+          }
+          document.head.appendChild(link);
+          if (isCss) {
+            return new Promise((res, rej) => {
+              link.addEventListener("load", res);
+              link.addEventListener(
+                "error",
+                () => rej(new Error(`Unable to preload CSS for ${dep}`))
+              );
+            });
+          }
+        })
+      );
+    }
+    function handlePreloadError(err) {
+      const e = new Event("vite:preloadError", {
+        cancelable: true
+      });
+      e.payload = err;
+      window.dispatchEvent(e);
+      if (!e.defaultPrevented) {
+        throw err;
+      }
+    }
+    return promise.then((res) => {
+      for (const item of res || []) {
+        if (item.status !== "rejected") continue;
+        handlePreloadError(item.reason);
+      }
+      return baseModule().catch(handlePreloadError);
+    });
+  };
+  let currentFocusedInstance = null;
+  let registeredInstances = /* @__PURE__ */ new Set();
+  function registerInstance(instance) {
+    registeredInstances.add(instance);
+  }
+  function unregisterInstance(instance) {
+    registeredInstances.delete(instance);
+    if (currentFocusedInstance === instance) {
+      if (registeredInstances.size > 0) {
+        const firstInstance = registeredInstances.values().next().value;
+        setFocusedInstance(firstInstance);
+      } else {
+        currentFocusedInstance = null;
+      }
+    }
+  }
+  function setFocusedInstance(instance) {
+    if (currentFocusedInstance && currentFocusedInstance !== instance) {
+      removeFocusIndicator(currentFocusedInstance);
+    }
+    currentFocusedInstance = instance;
+    if (instance) {
+      addFocusIndicator(instance);
+    }
+  }
+  function getFocusedInstance() {
+    return currentFocusedInstance;
+  }
+  function addFocusIndicator(instance) {
+    if (instance.container) {
+      instance.container.classList.add("gram-frame-focused");
+    }
+  }
+  function removeFocusIndicator(instance) {
+    if (instance.container) {
+      instance.container.classList.remove("gram-frame-focused");
+    }
+  }
+  function focusNextInstance() {
+    if (registeredInstances.size <= 1) return;
+    const instancesArray = Array.from(registeredInstances);
+    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
+    const nextIndex = (currentIndex + 1) % instancesArray.length;
+    setFocusedInstance(instancesArray[nextIndex]);
+  }
+  function focusPreviousInstance() {
+    if (registeredInstances.size <= 1) return;
+    const instancesArray = Array.from(registeredInstances);
+    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
+    const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1;
+    setFocusedInstance(instancesArray[prevIndex]);
+  }
+  const MOVEMENT_INCREMENTS = {
+    normal: 1,
+    // Arrow keys alone: 1-pixel increments
+    fast: 5
+    // Shift + Arrow keys: 5-pixel increments
+  };
+  let globalKeyboardHandler = null;
+  let keyboardHandlerInitialized = false;
+  function initializeKeyboardControl(instance) {
+    registerInstance(instance);
+    if (!keyboardHandlerInitialized) {
+      globalKeyboardHandler = (event) => handleGlobalKeyboardEvent(event);
+      document.addEventListener("keydown", globalKeyboardHandler);
+      keyboardHandlerInitialized = true;
+    }
+  }
+  function cleanupKeyboardControl(instance) {
+    unregisterInstance(instance);
+  }
+  function handleGlobalKeyboardEvent(event) {
+    const focusedInstance = getFocusedInstance();
+    if (event.key === "Tab") {
+      if (!focusedInstance) return;
+      if (event.shiftKey) {
+        focusPreviousInstance();
+      } else {
+        focusNextInstance();
+      }
+      event.preventDefault();
+      return;
+    }
+    if (!focusedInstance) {
+      return;
+    }
+    if (!isArrowKey(event.key)) {
+      return;
+    }
+    const selection = focusedInstance.state.selection;
+    if (!selection || !selection.selectedType || !selection.selectedId) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const baseIncrement = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal;
+    const zoomLevel = focusedInstance.state.zoom.level || 1;
+    const increment = baseIncrement / zoomLevel;
+    const movement = calculateMovementFromKey(event.key, increment);
+    if (selection.selectedType === "marker") {
+      moveSelectedMarker(focusedInstance, selection.selectedId, movement);
+    } else if (selection.selectedType === "harmonicSet") {
+      moveSelectedHarmonicSet(focusedInstance, selection.selectedId, movement);
+    }
+  }
+  function isArrowKey(key) {
+    return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key);
+  }
+  function calculateMovementFromKey(key, increment) {
+    switch (key) {
+      case "ArrowLeft":
+        return { dx: -increment, dy: 0 };
+      case "ArrowRight":
+        return { dx: increment, dy: 0 };
+      case "ArrowUp":
+        return { dx: 0, dy: -increment };
+      case "ArrowDown":
+        return { dx: 0, dy: increment };
+      default:
+        return { dx: 0, dy: 0 };
+    }
+  }
+  function moveSelectedMarker(instance, markerId, movement) {
+    if (!instance.state.analysis || !instance.state.analysis.markers) {
+      return;
+    }
+    const marker = instance.state.analysis.markers.find((m) => m.id === markerId);
+    if (!marker) {
+      return;
+    }
+    const currentSVG = dataToSVGCoordinates(
+      marker.freq,
+      marker.time,
+      instance.state.config,
+      instance.state.imageDetails,
+      instance.state.rate,
+      instance.state.margins
+    );
+    const newSVG = {
+      x: currentSVG.x + movement.dx,
+      y: currentSVG.y + movement.dy
+    };
+    const newData = svgToDataCoordinates(
+      newSVG.x,
+      newSVG.y,
+      instance.state.config,
+      instance.state.imageDetails,
+      instance.state.rate,
+      instance.state.margins
+    );
+    marker.freq = newData.freq;
+    marker.time = newData.time;
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+    if (instance.currentMode && instance.currentMode.updateMarkersTable) {
+      instance.currentMode.updateMarkersTable();
+    }
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
+    if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
+      return;
+    }
+    const harmonicSet = instance.state.harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
+    if (!harmonicSet) {
+      return;
+    }
+    const updates = {};
+    if (movement.dx !== 0) {
+      const { naturalWidth } = instance.state.imageDetails;
+      const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
+      const { freqMin, freqMax } = instance.state.config;
+      const freqRange = (freqMax - freqMin) / instance.state.rate;
+      const pixelToFreqRatio = freqRange / renderWidth;
+      const spacingChange = movement.dx * pixelToFreqRatio;
+      updates.spacing = Math.max(1, harmonicSet.spacing + spacingChange);
+    }
+    if (movement.dy !== 0) {
+      const { naturalHeight } = instance.state.imageDetails;
+      const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
+      const { timeMin, timeMax } = instance.state.config;
+      const margins = instance.state.margins;
+      const normalizedTime = 1 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin);
+      const currentY = margins.top + normalizedTime * renderHeight;
+      const newY = currentY + movement.dy;
+      const newNormalizedTime = (newY - margins.top) / renderHeight;
+      updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin);
+      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime));
+    }
+    if (Object.keys(updates).length > 0) {
+      const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
+      if (setIndex !== -1) {
+        Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates);
+        if (instance.harmonicPanel) {
+          __vitePreload(async () => {
+            const { updateHarmonicPanelContent: updateHarmonicPanelContent2 } = await Promise.resolve().then(() => HarmonicPanel);
+            return { updateHarmonicPanelContent: updateHarmonicPanelContent2 };
+          }, false ? __VITE_PRELOAD__ : void 0).then(({ updateHarmonicPanelContent: updateHarmonicPanelContent2 }) => {
+            updateHarmonicPanelContent2(instance.harmonicPanel, instance);
+          }).catch(() => {
+          });
+        }
+        if (instance.featureRenderer) {
+          instance.featureRenderer.renderAllPersistentFeatures();
+        }
+        notifyStateListeners(instance.state, instance.stateListeners);
+      }
+    }
+  }
+  function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
+    const { freqMin, freqMax, timeMin, timeMax } = config;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const rawFreq = freq * rate;
+    const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin);
+    const normalizedY = 1 - (time - timeMin) / (timeMax - timeMin);
+    return {
+      x: margins.left + normalizedX * renderWidth,
+      y: margins.top + normalizedY * renderHeight
+    };
+  }
+  function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
+    const { freqMin, freqMax, timeMin, timeMax } = config;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const imageX = svgX - margins.left;
+    const imageY = svgY - margins.top;
+    const boundedX = Math.max(0, Math.min(imageX, renderWidth));
+    const boundedY = Math.max(0, Math.min(imageY, renderHeight));
+    const rawFreq = freqMin + boundedX / renderWidth * (freqMax - freqMin);
+    const time = timeMax - boundedY / renderHeight * (timeMax - timeMin);
+    const freq = rawFreq / rate;
+    return { freq, time };
+  }
+  function setSelection(instance, type, id, index) {
+    setFocusedInstance(instance);
+    instance.state.selection.selectedType = type;
+    instance.state.selection.selectedId = id;
+    instance.state.selection.selectedIndex = index;
+    updateSelectionVisuals(instance);
+    if (instance.syncStyleControls) {
+      instance.syncStyleControls();
+    }
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function clearSelection(instance) {
+    instance.state.selection.selectedType = null;
+    instance.state.selection.selectedId = null;
+    instance.state.selection.selectedIndex = null;
+    updateSelectionVisuals(instance);
+    if (instance.syncStyleControls) {
+      instance.syncStyleControls();
+    }
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function getSelectedFeature(instance) {
+    const sel = instance.state.selection;
+    if (!sel || !sel.selectedType || !sel.selectedId) {
+      return null;
+    }
+    if (sel.selectedType === "marker") {
+      const feature = instance.state.analysis && instance.state.analysis.markers ? instance.state.analysis.markers.find((m) => m.id === sel.selectedId) : null;
+      return feature ? { type: "marker", feature } : null;
+    }
+    if (sel.selectedType === "harmonicSet") {
+      const feature = instance.state.harmonics && instance.state.harmonics.harmonicSets ? instance.state.harmonics.harmonicSets.find((h) => h.id === sel.selectedId) : null;
+      return feature ? { type: "harmonicSet", feature } : null;
+    }
+    return null;
+  }
+  function getActiveStyle(instance) {
+    const selected = getSelectedFeature(instance);
+    if (selected) {
+      return {
+        color: selected.feature.color,
+        symbol: (
+          /** @type {SymbolType} */
+          selected.feature.symbol || DEFAULT_SYMBOL
+        )
+      };
+    }
+    return {
+      color: instance.state.selectedColor,
+      symbol: instance.state.selectedSymbol
+    };
+  }
+  function refreshFeatureVisuals(instance, type) {
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+    if (type === "marker") {
+      const analysisMode = instance.modes && instance.modes["analysis"];
+      if (analysisMode && typeof analysisMode.updateMarkersTable === "function") {
+        analysisMode.updateMarkersTable();
+      }
+    } else if (type === "harmonicSet") {
+      if (instance.harmonicPanel) {
+        updateHarmonicPanelContent(instance.harmonicPanel, instance);
+      }
+    }
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function applyColorToSelectedFeature(instance, color) {
+    const selected = getSelectedFeature(instance);
+    if (!selected) {
+      return false;
+    }
+    selected.feature.color = color;
+    refreshFeatureVisuals(instance, selected.type);
+    return true;
+  }
+  function applySymbolToSelectedFeature(instance, symbol) {
+    const selected = getSelectedFeature(instance);
+    if (!selected) {
+      return false;
+    }
+    selected.feature.symbol = symbol;
+    refreshFeatureVisuals(instance, selected.type);
+    return true;
+  }
+  function removeHarmonicSet(instance, id) {
+    const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
+    if (setIndex !== -1) {
+      if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === id) {
+        clearSelection(instance);
+      }
+      instance.state.harmonics.harmonicSets.splice(setIndex, 1);
+      if (instance.harmonicPanel) {
+        updateHarmonicPanelContent(instance.harmonicPanel, instance);
+      }
+      if (instance.featureRenderer) {
+        instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      notifyStateListeners(instance.state, instance.stateListeners);
+    }
+  }
+  function updateSelectionVisuals(instance) {
+    if (instance.container) {
+      const existingHighlights = instance.container.querySelectorAll(".gram-frame-selected-row");
+      existingHighlights.forEach((el) => {
+        el.classList.remove("gram-frame-selected-row");
+      });
+    }
+    const selection = instance.state.selection;
+    if (selection.selectedType && selection.selectedId) {
+      const container = instance.container || document;
+      if (selection.selectedType === "marker") {
+        const selector = `tr[data-marker-id="${selection.selectedId}"]`;
+        const row = container.querySelector(selector);
+        if (row) {
+          row.classList.add("gram-frame-selected-row");
+        }
+      } else if (selection.selectedType === "harmonicSet") {
+        const selector = `tr[data-harmonic-id="${selection.selectedId}"]`;
+        const row = container.querySelector(selector);
+        if (row) {
+          row.classList.add("gram-frame-selected-row");
+        }
+      }
+    }
   }
   const COLOR_PALETTE = [
     "#ff0000",
@@ -2534,7 +3015,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     "#ff0080"
     // Purple-red
   ];
-  function createColorPicker(state) {
+  function createColorPicker(instance) {
+    const state = instance.state;
     const container = document.createElement("div");
     container.className = "gram-frame-color-picker";
     container.style.display = "block";
@@ -2565,7 +3047,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const indicator = document.createElement("div");
     indicator.className = "gram-frame-color-indicator";
     sliderContainer.appendChild(indicator);
-    const symbolSelect = createSymbolSelect(state);
+    const symbolSelect = createSymbolSelect(instance);
     paletteContainer.appendChild(symbolSelect);
     canvas.addEventListener("click", (event) => {
       const rect = canvas.getBoundingClientRect();
@@ -2573,10 +3055,25 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const scaleX = canvas.width / rect.width;
       const canvasX = x * scaleX;
       const color = getColorFromPosition(canvasX, canvas.width);
-      state.selectedColor = color;
+      if (!instance.applyColorToSelectedFeature || !instance.applyColorToSelectedFeature(color)) {
+        state.selectedColor = color;
+      }
       symbolSelect.style.color = color;
       updateIndicatorPosition(indicator, canvasX, canvas.width);
     });
+    const showColor = (color) => {
+      const position = getPositionFromColor(color, canvas.width);
+      updateIndicatorPosition(indicator, position, canvas.width);
+      symbolSelect.style.color = color;
+    };
+    instance.syncStyleControls = () => {
+      const { color, symbol } = getActiveStyle(instance);
+      showColor(color);
+      if (instance._symbolControl) {
+        instance._symbolControl.setValue(symbol);
+        instance._symbolControl.setTint(color);
+      }
+    };
     const initialPosition = getPositionFromColor(state.selectedColor, canvas.width);
     updateIndicatorPosition(indicator, initialPosition, canvas.width);
     return container;
@@ -3722,8 +4219,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     rate: 1,
     selectedColor: "#ff6b6b",
     // Currently selected color for new features across all modes
-    selectedSymbol: "circle",
-    // Currently selected symbol applied to the next created harmonic set (mirrors selectedColor)
+    selectedSymbol: "cross",
+    // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
     cursorPosition: null,
     cursors: [],
     imageDetails: {
@@ -3857,7 +4354,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     speedLED.style.gridColumn = "1 / -1";
     cursorContainer.appendChild(speedLED);
     controlsColumn.appendChild(cursorContainer);
-    const colorPicker = createColorPicker(instance.state);
+    const colorPicker = createColorPicker(instance);
     controlsColumn.appendChild(colorPicker);
     leftColumn.appendChild(modeColumn);
     leftColumn.appendChild(guidanceColumn);
@@ -4170,58 +4667,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const freq = rawFreq / rate;
     return { freq, time };
   }
-  let currentFocusedInstance = null;
-  let registeredInstances = /* @__PURE__ */ new Set();
-  function registerInstance(instance) {
-    registeredInstances.add(instance);
-  }
-  function unregisterInstance(instance) {
-    registeredInstances.delete(instance);
-    if (currentFocusedInstance === instance) {
-      if (registeredInstances.size > 0) {
-        const firstInstance = registeredInstances.values().next().value;
-        setFocusedInstance(firstInstance);
-      } else {
-        currentFocusedInstance = null;
-      }
-    }
-  }
-  function setFocusedInstance(instance) {
-    if (currentFocusedInstance && currentFocusedInstance !== instance) {
-      removeFocusIndicator(currentFocusedInstance);
-    }
-    currentFocusedInstance = instance;
-    if (instance) {
-      addFocusIndicator(instance);
-    }
-  }
-  function getFocusedInstance() {
-    return currentFocusedInstance;
-  }
-  function addFocusIndicator(instance) {
-    if (instance.container) {
-      instance.container.classList.add("gram-frame-focused");
-    }
-  }
-  function removeFocusIndicator(instance) {
-    if (instance.container) {
-      instance.container.classList.remove("gram-frame-focused");
-    }
-  }
-  function focusNextInstance() {
-    if (registeredInstances.size <= 1) return;
-    const instancesArray = Array.from(registeredInstances);
-    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
-    const nextIndex = (currentIndex + 1) % instancesArray.length;
-    setFocusedInstance(instancesArray[nextIndex]);
-  }
-  function focusPreviousInstance() {
-    if (registeredInstances.size <= 1) return;
-    const instancesArray = Array.from(registeredInstances);
-    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
-    const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1;
-    setFocusedInstance(instancesArray[prevIndex]);
-  }
   function screenToDataWithZoom(instance, event) {
     const svgRect = instance.svg.getBoundingClientRect();
     const screenX = event.clientX - svgRect.left;
@@ -4374,311 +4819,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.resizeObserver = null;
     }
   }
-  const scriptRel = "modulepreload";
-  const assetsURL = function(dep) {
-    return "/" + dep;
-  };
-  const seen = {};
-  const __vitePreload = function preload(baseModule, deps, importerUrl) {
-    let promise = Promise.resolve();
-    if (false) {
-      document.getElementsByTagName("link");
-      const cspNonceMeta = document.querySelector(
-        "meta[property=csp-nonce]"
-      );
-      const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
-      promise = Promise.allSettled(
-        deps.map((dep) => {
-          dep = assetsURL(dep);
-          if (dep in seen) return;
-          seen[dep] = true;
-          const isCss = dep.endsWith(".css");
-          const cssSelector = isCss ? '[rel="stylesheet"]' : "";
-          if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
-            return;
-          }
-          const link = document.createElement("link");
-          link.rel = isCss ? "stylesheet" : scriptRel;
-          if (!isCss) {
-            link.as = "script";
-          }
-          link.crossOrigin = "";
-          link.href = dep;
-          if (cspNonce) {
-            link.setAttribute("nonce", cspNonce);
-          }
-          document.head.appendChild(link);
-          if (isCss) {
-            return new Promise((res, rej) => {
-              link.addEventListener("load", res);
-              link.addEventListener(
-                "error",
-                () => rej(new Error(`Unable to preload CSS for ${dep}`))
-              );
-            });
-          }
-        })
-      );
-    }
-    function handlePreloadError(err) {
-      const e = new Event("vite:preloadError", {
-        cancelable: true
-      });
-      e.payload = err;
-      window.dispatchEvent(e);
-      if (!e.defaultPrevented) {
-        throw err;
-      }
-    }
-    return promise.then((res) => {
-      for (const item of res || []) {
-        if (item.status !== "rejected") continue;
-        handlePreloadError(item.reason);
-      }
-      return baseModule().catch(handlePreloadError);
-    });
-  };
-  const MOVEMENT_INCREMENTS = {
-    normal: 1,
-    // Arrow keys alone: 1-pixel increments
-    fast: 5
-    // Shift + Arrow keys: 5-pixel increments
-  };
-  let globalKeyboardHandler = null;
-  let keyboardHandlerInitialized = false;
-  function initializeKeyboardControl(instance) {
-    registerInstance(instance);
-    if (!keyboardHandlerInitialized) {
-      globalKeyboardHandler = (event) => handleGlobalKeyboardEvent(event);
-      document.addEventListener("keydown", globalKeyboardHandler);
-      keyboardHandlerInitialized = true;
-    }
-  }
-  function cleanupKeyboardControl(instance) {
-    unregisterInstance(instance);
-  }
-  function handleGlobalKeyboardEvent(event) {
-    const focusedInstance = getFocusedInstance();
-    if (event.key === "Tab") {
-      if (!focusedInstance) return;
-      if (event.shiftKey) {
-        focusPreviousInstance();
-      } else {
-        focusNextInstance();
-      }
-      event.preventDefault();
-      return;
-    }
-    if (!focusedInstance) {
-      return;
-    }
-    if (!isArrowKey(event.key)) {
-      return;
-    }
-    const selection = focusedInstance.state.selection;
-    if (!selection || !selection.selectedType || !selection.selectedId) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    const baseIncrement = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal;
-    const zoomLevel = focusedInstance.state.zoom.level || 1;
-    const increment = baseIncrement / zoomLevel;
-    const movement = calculateMovementFromKey(event.key, increment);
-    if (selection.selectedType === "marker") {
-      moveSelectedMarker(focusedInstance, selection.selectedId, movement);
-    } else if (selection.selectedType === "harmonicSet") {
-      moveSelectedHarmonicSet(focusedInstance, selection.selectedId, movement);
-    }
-  }
-  function isArrowKey(key) {
-    return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key);
-  }
-  function calculateMovementFromKey(key, increment) {
-    switch (key) {
-      case "ArrowLeft":
-        return { dx: -increment, dy: 0 };
-      case "ArrowRight":
-        return { dx: increment, dy: 0 };
-      case "ArrowUp":
-        return { dx: 0, dy: -increment };
-      case "ArrowDown":
-        return { dx: 0, dy: increment };
-      default:
-        return { dx: 0, dy: 0 };
-    }
-  }
-  function moveSelectedMarker(instance, markerId, movement) {
-    if (!instance.state.analysis || !instance.state.analysis.markers) {
-      return;
-    }
-    const marker = instance.state.analysis.markers.find((m) => m.id === markerId);
-    if (!marker) {
-      return;
-    }
-    const currentSVG = dataToSVGCoordinates(
-      marker.freq,
-      marker.time,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate,
-      instance.state.margins
-    );
-    const newSVG = {
-      x: currentSVG.x + movement.dx,
-      y: currentSVG.y + movement.dy
-    };
-    const newData = svgToDataCoordinates(
-      newSVG.x,
-      newSVG.y,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate,
-      instance.state.margins
-    );
-    marker.freq = newData.freq;
-    marker.time = newData.time;
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
-    if (instance.currentMode && instance.currentMode.updateMarkersTable) {
-      instance.currentMode.updateMarkersTable();
-    }
-    notifyStateListeners(instance.state, instance.stateListeners);
-  }
-  function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
-    if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
-      return;
-    }
-    const harmonicSet = instance.state.harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
-    if (!harmonicSet) {
-      return;
-    }
-    const updates = {};
-    if (movement.dx !== 0) {
-      const { naturalWidth } = instance.state.imageDetails;
-      const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-      const { freqMin, freqMax } = instance.state.config;
-      const freqRange = (freqMax - freqMin) / instance.state.rate;
-      const pixelToFreqRatio = freqRange / renderWidth;
-      const spacingChange = movement.dx * pixelToFreqRatio;
-      updates.spacing = Math.max(1, harmonicSet.spacing + spacingChange);
-    }
-    if (movement.dy !== 0) {
-      const { naturalHeight } = instance.state.imageDetails;
-      const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-      const { timeMin, timeMax } = instance.state.config;
-      const margins = instance.state.margins;
-      const normalizedTime = 1 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin);
-      const currentY = margins.top + normalizedTime * renderHeight;
-      const newY = currentY + movement.dy;
-      const newNormalizedTime = (newY - margins.top) / renderHeight;
-      updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin);
-      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime));
-    }
-    if (Object.keys(updates).length > 0) {
-      const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
-      if (setIndex !== -1) {
-        Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates);
-        if (instance.harmonicPanel) {
-          __vitePreload(async () => {
-            const { updateHarmonicPanelContent: updateHarmonicPanelContent2 } = await Promise.resolve().then(() => HarmonicPanel);
-            return { updateHarmonicPanelContent: updateHarmonicPanelContent2 };
-          }, false ? __VITE_PRELOAD__ : void 0).then(({ updateHarmonicPanelContent: updateHarmonicPanelContent2 }) => {
-            updateHarmonicPanelContent2(instance.harmonicPanel, instance);
-          }).catch(() => {
-          });
-        }
-        if (instance.featureRenderer) {
-          instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        notifyStateListeners(instance.state, instance.stateListeners);
-      }
-    }
-  }
-  function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const rawFreq = freq * rate;
-    const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin);
-    const normalizedY = 1 - (time - timeMin) / (timeMax - timeMin);
-    return {
-      x: margins.left + normalizedX * renderWidth,
-      y: margins.top + normalizedY * renderHeight
-    };
-  }
-  function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const imageX = svgX - margins.left;
-    const imageY = svgY - margins.top;
-    const boundedX = Math.max(0, Math.min(imageX, renderWidth));
-    const boundedY = Math.max(0, Math.min(imageY, renderHeight));
-    const rawFreq = freqMin + boundedX / renderWidth * (freqMax - freqMin);
-    const time = timeMax - boundedY / renderHeight * (timeMax - timeMin);
-    const freq = rawFreq / rate;
-    return { freq, time };
-  }
-  function setSelection(instance, type, id, index) {
-    setFocusedInstance(instance);
-    instance.state.selection.selectedType = type;
-    instance.state.selection.selectedId = id;
-    instance.state.selection.selectedIndex = index;
-    updateSelectionVisuals(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
-  }
-  function clearSelection(instance) {
-    instance.state.selection.selectedType = null;
-    instance.state.selection.selectedId = null;
-    instance.state.selection.selectedIndex = null;
-    updateSelectionVisuals(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
-  }
-  function removeHarmonicSet(instance, id) {
-    const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
-    if (setIndex !== -1) {
-      if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === id) {
-        clearSelection(instance);
-      }
-      instance.state.harmonics.harmonicSets.splice(setIndex, 1);
-      if (instance.harmonicPanel) {
-        updateHarmonicPanelContent(instance.harmonicPanel, instance);
-      }
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      notifyStateListeners(instance.state, instance.stateListeners);
-    }
-  }
-  function updateSelectionVisuals(instance) {
-    if (instance.container) {
-      const existingHighlights = instance.container.querySelectorAll(".gram-frame-selected-row");
-      existingHighlights.forEach((el) => {
-        el.classList.remove("gram-frame-selected-row");
-      });
-    }
-    const selection = instance.state.selection;
-    if (selection.selectedType && selection.selectedId) {
-      const container = instance.container || document;
-      if (selection.selectedType === "marker") {
-        const selector = `tr[data-marker-id="${selection.selectedId}"]`;
-        const row = container.querySelector(selector);
-        if (row) {
-          row.classList.add("gram-frame-selected-row");
-        }
-      } else if (selection.selectedType === "harmonicSet") {
-        const selector = `tr[data-harmonic-id="${selection.selectedId}"]`;
-        const row = container.querySelector(selector);
-        if (row) {
-          row.classList.add("gram-frame-selected-row");
-        }
-      }
-    }
-  }
   function setupAllEventListeners(instance) {
     setupEventListeners(instance);
     setupResizeObserver(instance);
@@ -4687,6 +4827,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     instance.clearSelection = () => clearSelection(instance);
     instance.updateSelectionVisuals = () => updateSelectionVisuals(instance);
     instance.removeHarmonicSet = (id) => removeHarmonicSet(instance, id);
+    instance.applyColorToSelectedFeature = (color) => applyColorToSelectedFeature(instance, color);
+    instance.applySymbolToSelectedFeature = (symbol) => applySymbolToSelectedFeature(instance, symbol);
   }
   function setupStateListeners(instance) {
     getGlobalStateListeners().forEach((listener) => {
@@ -5178,7 +5320,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             id: m.id,
             color: m.color,
             time: m.time,
-            freq: m.freq
+            freq: m.freq,
+            // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
+            // SCHEMA_VERSION bump: legacy records simply lack it and default to
+            // 'cross' (no drawn symbol) on restore.
+            symbol: m.symbol || "cross"
           }))
         },
         harmonics: {
@@ -5190,8 +5336,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             // `symbol` is an ADDITIVE field (feature 157-harmonic-pin-symbols). It
             // MUST NOT trigger a SCHEMA_VERSION bump: the strict version guard in
             // loadAnnotations would otherwise discard all pre-existing v1 records.
-            // Legacy records simply lack this key and default to 'circle' on restore.
-            symbol: hs.symbol || "circle"
+            // Legacy records simply lack this key and default to 'cross' (the
+            // symbol-less default, feature 161) on restore.
+            symbol: hs.symbol || "cross"
           }))
         },
         doppler: {
@@ -5302,6 +5449,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "setSelection");
       __publicField(this, "clearSelection");
       __publicField(this, "updateSelectionVisuals");
+      // Reformatting (feature 161): restyle the selected feature in place
+      __publicField(this, "applyColorToSelectedFeature");
+      __publicField(this, "applySymbolToSelectedFeature");
+      // Sync the colour/symbol controls to the current selection
+      __publicField(this, "syncStyleControls");
+      // Symbol drop-down control handle (registered by the symbol picker)
+      __publicField(this, "_symbolControl");
       // ResizeObserver
       __publicField(this, "resizeObserver");
       // Bound event handlers
@@ -5437,12 +5591,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const saved = loadAnnotations(this._storageInstanceIndex);
       if (!saved) return;
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
-        this.state.analysis.markers = saved.analysis.markers;
+        this.state.analysis.markers = saved.analysis.markers.map((m) => ({
+          ...m,
+          symbol: m.symbol || "cross"
+        }));
       }
       if (saved.harmonics && Array.isArray(saved.harmonics.harmonicSets)) {
         this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets.map((hs) => ({
           ...hs,
-          symbol: hs.symbol || "circle"
+          symbol: hs.symbol || "cross"
         }));
       }
       if (saved.doppler) {
@@ -5504,6 +5661,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.state.dragState.originalSpacing = null;
       this.state.dragState.originalAnchorTime = null;
       this.state.dragState.clickedHarmonicNumber = null;
+      const modeChanged = this.state.previousMode !== mode;
+      if (modeChanged && this.state.selection && this.state.selection.selectedType && this.clearSelection) {
+        this.clearSelection();
+      }
       if (this.modeButtons) {
         Object.keys(this.modeButtons).forEach((m) => {
           const button = this.modeButtons[m];

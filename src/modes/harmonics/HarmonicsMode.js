@@ -363,8 +363,8 @@ export class HarmonicsMode extends BaseMode {
       color = HarmonicsMode.harmonicColors[colorIndex]
     }
     
-    // Use selected symbol from global state, defaulting to circle
-    const symbol = this.instance.state.selectedSymbol || 'circle'
+    // Use selected symbol from global state, defaulting to the symbol-less cross
+    const symbol = this.instance.state.selectedSymbol || 'cross'
 
     /** @type {HarmonicSet} */
     const harmonicSet = {
@@ -648,10 +648,12 @@ export class HarmonicsMode extends BaseMode {
       return
     }
     
-    // Clear existing harmonic lines and their symbol marks
+    // Clear existing harmonic lines and their symbol marks. Scope the symbol
+    // cleanup to harmonic pin symbols (which carry data-harmonic-set-id) so it
+    // never removes analysis-marker symbols that share the base symbol class.
     const existingHarmonics = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-line')
     existingHarmonics.forEach(line => line.remove())
-    const existingSymbols = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol')
+    const existingSymbols = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol[data-harmonic-set-id]')
     existingSymbols.forEach(symbol => symbol.remove())
     
     // Render all harmonic sets
@@ -783,12 +785,16 @@ export class HarmonicsMode extends BaseMode {
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration
    * @param {number} lineX - X position of the pin line (symbol is centred on it)
    * @param {number} symbolCy - Centre Y position for the symbol
-   * @returns {SVGElement} SVG symbol element
+   * @returns {SVGElement|null} SVG symbol element, or null for the `cross` (symbol-less) style
    */
   createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
     const symbol = createSymbolMark(
       harmonicSet.symbol, lineX, symbolCy, HarmonicsMode.SYMBOL_SIZE, harmonicSet.color
     )
+    // `cross` sets draw no symbol shape (the pin keeps its line and label).
+    if (!symbol) {
+      return null
+    }
     symbol.setAttribute('data-harmonic-set-id', harmonicSet.id)
     return symbol
   }
@@ -877,7 +883,10 @@ export class HarmonicsMode extends BaseMode {
       const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
       const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy)
       const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY)
-      this.instance.cursorGroup.appendChild(symbol)
+      // `cross` sets have no symbol mark; the number label is still drawn.
+      if (symbol) {
+        this.instance.cursorGroup.appendChild(symbol)
+      }
       this.instance.cursorGroup.appendChild(label)
     })
   }
