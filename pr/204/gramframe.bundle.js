@@ -5738,10 +5738,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {ModeType} mode - Target mode
      */
     _switchMode(mode) {
-      if (mode === "pan" && this.state.zoom.level <= 1) {
-        console.warn("Cannot switch to pan mode when zoom level is 1:1 or less");
-        return;
-      }
       this.state.previousMode = this.state.mode;
       this.state.mode = mode;
       this.state.dragState.isDragging = false;
