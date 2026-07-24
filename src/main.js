@@ -118,6 +118,14 @@ export class GramFrame {
   setSelection;
   clearSelection;
   updateSelectionVisuals;
+
+  // Reformatting (feature 161): restyle the selected feature in place
+  applyColorToSelectedFeature;
+  applySymbolToSelectedFeature;
+  // Sync the colour/symbol controls to the current selection
+  syncStyleControls;
+  // Symbol drop-down control handle (registered by the symbol picker)
+  _symbolControl;
   
   // ResizeObserver
   resizeObserver;
@@ -324,17 +332,22 @@ export class GramFrame {
     const saved = loadAnnotations(this._storageInstanceIndex)
     if (!saved) return
 
-    // Merge analysis markers
+    // Merge analysis markers. Legacy records (persisted before feature 161)
+    // have no `symbol`; default those to 'cross' (the symbol-less crosshair).
     if (saved.analysis && Array.isArray(saved.analysis.markers)) {
-      this.state.analysis.markers = saved.analysis.markers
+      this.state.analysis.markers = saved.analysis.markers.map(m => ({
+        ...m,
+        symbol: m.symbol || 'cross'
+      }))
     }
 
     // Merge harmonic sets. Legacy records (persisted before feature
-    // 157-harmonic-pin-symbols) have no `symbol`; default those to 'circle'.
+    // 157-harmonic-pin-symbols) have no `symbol`; default those to 'cross'
+    // (the symbol-less default, feature 161).
     if (saved.harmonics && Array.isArray(saved.harmonics.harmonicSets)) {
       this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets.map(hs => ({
         ...hs,
-        symbol: hs.symbol || 'circle'
+        symbol: hs.symbol || 'cross'
       }))
     }
 

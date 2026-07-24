@@ -8,6 +8,7 @@
 /// <reference path="../types.js" />
 
 import { createSymbolSelect } from './SymbolPicker.js'
+import { getActiveStyle } from '../core/keyboardControl.js'
 
 /**
  * Standard color palette used for color picker gradient and calculations
@@ -30,12 +31,17 @@ const COLOR_PALETTE = [
 
 /**
  * Create the combined "Symbol" control: a colour slider on the left and a
- * symbol drop-down (tinted with the selected colour) on the right. Both the
- * colour and symbol for the next harmonic set are chosen from this one panel.
- * @param {GramFrameState} state - Current state object
+ * symbol drop-down (tinted with the selected colour) on the right.
+ *
+ * When a marker or harmonic set is selected, this panel restyles that feature
+ * in place; otherwise it sets the colour/symbol for the next created feature
+ * (feature 161). The panel also syncs its displayed colour/symbol to whichever
+ * feature is selected via `instance.syncStyleControls`.
+ * @param {GramFrame} instance - GramFrame instance
  * @returns {HTMLDivElement} The combined colour/symbol picker element
  */
-export function createColorPicker(state) {
+export function createColorPicker(instance) {
+  const state = instance.state
   const container = document.createElement('div')
   container.className = 'gram-frame-color-picker'
   container.style.display = 'block'
@@ -84,7 +90,7 @@ export function createColorPicker(state) {
   // Symbol drop-down on the right (where the colour swatch used to be); its
   // glyphs are tinted with the currently selected colour, so it doubles as the
   // colour readout.
-  const symbolSelect = createSymbolSelect(state)
+  const symbolSelect = createSymbolSelect(instance)
   paletteContainer.appendChild(symbolSelect)
 
   // Add click handler for color selection
@@ -98,8 +104,11 @@ export function createColorPicker(state) {
 
     const color = getColorFromPosition(canvasX, canvas.width)
 
-    // Update state
-    state.selectedColor = color
+    // Route to the selected feature when one is selected (restyle in place),
+    // otherwise set the colour for the next created feature (feature 161).
+    if (!instance.applyColorToSelectedFeature || !instance.applyColorToSelectedFeature(color)) {
+      state.selectedColor = color
+    }
 
     // Tint the symbol drop-down with the newly selected colour
     symbolSelect.style.color = color
@@ -107,6 +116,29 @@ export function createColorPicker(state) {
     // Update indicator position using the same canvasX coordinate for consistency
     updateIndicatorPosition(indicator, canvasX, canvas.width)
   })
+
+  /**
+   * Move the colour indicator/tint to reflect a given colour (without mutating
+   * state) — used when selection changes to show the selected feature's colour.
+   * @param {string} color - Hex colour to display
+   */
+  const showColor = (color) => {
+    const position = getPositionFromColor(color, canvas.width)
+    updateIndicatorPosition(indicator, position, canvas.width)
+    symbolSelect.style.color = color
+  }
+
+  // Sync both controls (colour indicator + symbol drop-down) to whatever is
+  // currently selected, or to the next-feature defaults when nothing is
+  // selected (feature 161, FR-004/FR-013).
+  instance.syncStyleControls = () => {
+    const { color, symbol } = getActiveStyle(instance)
+    showColor(color)
+    if (instance._symbolControl) {
+      instance._symbolControl.setValue(symbol)
+      instance._symbolControl.setTint(color)
+    }
+  }
 
   // Initialize indicator position (use canvas coordinates directly)
   const initialPosition = getPositionFromColor(state.selectedColor, canvas.width)
