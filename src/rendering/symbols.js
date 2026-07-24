@@ -17,16 +17,27 @@
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
 /**
- * Canonical list of available symbol ids, in selector display order.
+ * Default symbol style. `cross` means "no drawn symbol shape" (feature 161):
+ * a feature with this style renders without a filled mark. It is the default so
+ * a newly created harmonic set or marker carries no symbol unless the analyst
+ * deliberately picks one.
+ * @type {SymbolType}
+ */
+export const DEFAULT_SYMBOL = 'cross'
+
+/**
+ * Canonical list of available symbol ids, in selector display order. `cross`
+ * (the symbol-less default) leads the list so it is the first/default option.
  * @type {SymbolType[]}
  */
-export const SYMBOL_CATALOG = ['circle', 'square', 'diamond', 'triangle', 'triangle-down', 'star']
+export const SYMBOL_CATALOG = ['cross', 'circle', 'square', 'diamond', 'triangle', 'triangle-down', 'star']
 
 /**
  * Human-readable display names for each symbol id (used by the selector).
  * @type {Record<SymbolType, string>}
  */
 export const SYMBOL_DISPLAY_NAMES = {
+  'cross': 'Cross (no symbol)',
   'circle': 'Circle',
   'square': 'Square',
   'diamond': 'Diamond',
@@ -69,14 +80,18 @@ function starPoints(cx, cy, outerR, innerR) {
  *
  * Pure: performs no DOM insertion and reads no state. Returns a detached SVG
  * element the caller appends. Any unknown/null/undefined `symbolType` falls
- * back to `circle`.
+ * back to the default (`cross`).
  *
- * @param {SymbolType|string|null|undefined} symbolType - Symbol id (falls back to `circle`)
+ * The `cross` style is symbol-less: it returns `null` so the caller draws no
+ * shape (the pin still keeps its line and label; a table cell falls back to a
+ * plain colour swatch). Callers MUST handle a `null` return.
+ *
+ * @param {SymbolType|string|null|undefined} symbolType - Symbol id (falls back to `cross`)
  * @param {number} cx - Centre X coordinate in the SVG overlay space
  * @param {number} cy - Centre Y coordinate in the SVG overlay space
  * @param {number} size - Nominal diameter in px (radius = size / 2)
- * @param {string} color - Fill colour (the harmonic set's hex colour)
- * @returns {SVGElement} A detached, filled SVG element
+ * @param {string} color - Fill colour (the feature's hex colour)
+ * @returns {SVGElement|null} A detached, filled SVG element, or `null` for `cross`
  */
 export function createSymbolMark(symbolType, cx, cy, size, color) {
   const r = size / 2
@@ -85,7 +100,12 @@ export function createSymbolMark(symbolType, cx, cy, size, color) {
   // recorded `data-symbol` reflect the actual fallback.
   const resolved = SYMBOL_CATALOG.includes(/** @type {SymbolType} */ (symbolType))
     ? /** @type {SymbolType} */ (symbolType)
-    : 'circle'
+    : DEFAULT_SYMBOL
+
+  // The symbol-less `cross` style draws nothing.
+  if (resolved === 'cross') {
+    return null
+  }
 
   /** @type {SVGElement} */
   let el
@@ -140,4 +160,44 @@ export function createSymbolMark(symbolType, cx, cy, size, color) {
   el.setAttribute('data-symbol', resolved)
   el.setAttribute('fill', color)
   return el
+}
+
+/**
+ * Build a colour indicator for a feature's table row (markers or harmonic sets).
+ *
+ * The indicator is symbol-dependent (feature 161, FR-010):
+ *   - a feature with a shaped symbol → the symbol drawn in the feature's colour,
+ *     inside a small inline SVG swatch;
+ *   - a feature with the `cross` (symbol-less) style → a plain filled rectangle
+ *     of the feature's colour, so the colour stays visible when no shape is drawn.
+ *
+ * Pure: builds and returns a detached element; performs no DOM insertion.
+ *
+ * @param {SymbolType|string|null|undefined} symbol - The feature's symbol style
+ * @param {string} color - The feature's hex colour
+ * @param {number} [size=16] - Indicator box size in px
+ * @returns {SVGSVGElement|HTMLDivElement} The detached indicator element
+ */
+export function createColorIndicator(symbol, color, size = 16) {
+  const mark = createSymbolMark(symbol, size / 2, size / 2, size * 0.75, color)
+
+  if (mark) {
+    const svg = document.createElementNS(SVG_NS, 'svg')
+    svg.setAttribute('class', 'gram-frame-symbol-swatch')
+    svg.setAttribute('width', String(size))
+    svg.setAttribute('height', String(size))
+    svg.setAttribute('viewBox', `0 0 ${size} ${size}`)
+    svg.appendChild(mark)
+    return svg
+  }
+
+  // Cross (symbol-less): a plain filled colour rectangle.
+  const div = document.createElement('div')
+  div.className = 'gram-frame-color-swatch'
+  div.style.backgroundColor = color
+  div.style.width = `${size}px`
+  div.style.height = `${size}px`
+  div.style.borderRadius = '3px'
+  div.style.border = '1px solid #ccc'
+  return div
 }

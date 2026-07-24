@@ -210,8 +210,8 @@ test.describe('US2: Symbols persist across reload', () => {
 // User Story 3 — Gracefully display legacy harmonics that predate symbols
 // ──────────────────────────────────────────────────────────────
 
-test.describe('US3: Legacy harmonic sets default to circle', () => {
-  test('a legacy v1 blob without symbol reloads with circles and no console error', async ({ page }) => {
+test.describe('US3: Legacy harmonic sets default to cross (symbol-less)', () => {
+  test('a legacy v1 blob without symbol reloads as cross with no symbol shape and no console error', async ({ page }) => {
     /** @type {string[]} */
     const consoleErrors = []
     page.on('console', (msg) => {
@@ -237,7 +237,8 @@ test.describe('US3: Legacy harmonic sets default to circle', () => {
       }))
     })
 
-    // Reload — legacy data must load (SCHEMA_VERSION unchanged) and default to circle
+    // Reload — legacy data must load (SCHEMA_VERSION unchanged) and default to
+    // the symbol-less 'cross' style (feature 161 changed the default from circle)
     await page.reload()
     await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
     await page.waitForTimeout(500)
@@ -246,19 +247,15 @@ test.describe('US3: Legacy harmonic sets default to circle', () => {
     const state = await getStateFromPage(page)
     const legacySet = state.harmonics.harmonicSets.find((s) => s.id === 'legacy-1')
     expect(legacySet).toBeTruthy()
-    expect(legacySet.symbol).toBe('circle')
+    expect(legacySet.symbol).toBe('cross')
 
-    // Every rendered pin symbol is a circle
+    // Pin lines are still drawn, but no symbol shape is rendered for a cross set
     const pins = await gfp.getPinSymbols('legacy-1')
-    expect(pins.length).toBeGreaterThan(0)
-    for (const p of pins) {
-      expect(p.symbol).toBe('circle')
-    }
+    expect(pins.length).toBe(0)
 
-    // Table swatch is a circle
+    // The harmonics-table row shows a filled colour rectangle (no symbol mark)
     const swatches = await gfp.getTableSymbolSwatches()
-    expect(swatches.length).toBeGreaterThan(0)
-    expect(swatches.every((s) => s.symbol === 'circle')).toBe(true)
+    expect(swatches.length).toBe(0)
 
     // No console errors during the legacy load
     expect(consoleErrors).toEqual([])

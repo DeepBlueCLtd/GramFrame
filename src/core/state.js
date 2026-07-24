@@ -42,7 +42,7 @@ export const initialState = {
   previousMode: null, // Previous mode for switching back
   rate: 1,
   selectedColor: '#ff6b6b', // Currently selected color for new features across all modes
-  selectedSymbol: 'circle', // Currently selected symbol applied to the next created harmonic set (mirrors selectedColor)
+  selectedSymbol: 'cross', // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
   cursorPosition: null,
   cursors: [],
   imageDetails: {

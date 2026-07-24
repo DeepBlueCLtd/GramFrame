@@ -69,7 +69,7 @@ export function createUnifiedLayout(instance) {
   controlsColumn.appendChild(cursorContainer)
   
   // Combined colour + symbol control (labelled "Symbol") in controls column
-  const colorPicker = createColorPicker(instance.state)
+  const colorPicker = createColorPicker(instance)
   controlsColumn.appendChild(colorPicker)
 
   // Add columns to left panel
