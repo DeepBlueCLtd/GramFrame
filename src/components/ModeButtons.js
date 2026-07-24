@@ -7,7 +7,6 @@
 /// <reference path="../types.js" />
 
 import { getModeDisplayName } from '../utils/calculations.js'
-import { getVersion } from '../utils/version.js'
 
 /**
  * Create mode switching UI with buttons and guidance panel
@@ -57,13 +56,6 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
     button.textContent = getModeDisplayName(modeType)
     button.dataset.mode = modeType
 
-    // Subtle version surface for debugging: hovering the Pan button reveals the
-    // GramFrame version. The tooltip shows even while the button is disabled
-    // (before the user has zoomed in), so it is always available on request.
-    if (modeType === 'pan') {
-      button.title = `GramFrame v${getVersion()}`
-    }
-    
     // Set active state for current mode
     if (modeType === state.mode) {
       button.classList.add('active')
