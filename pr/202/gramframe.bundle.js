@@ -734,6 +734,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       markerGroup.setAttribute("data-marker-id", marker.id);
       const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, _AnalysisMode.MARKER_SYMBOL_SIZE, marker.color);
       if (symbolMark) {
+        symbolMark.setAttribute("class", "gram-frame-marker-symbol");
         symbolMark.setAttribute("data-marker-id", marker.id);
         markerGroup.appendChild(symbolMark);
       } else {
@@ -2247,7 +2248,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       const existingHarmonics = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-line");
       existingHarmonics.forEach((line) => line.remove());
-      const existingSymbols = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol");
+      const existingSymbols = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol[data-harmonic-set-id]");
       existingSymbols.forEach((symbol) => symbol.remove());
       this.instance.state.harmonics.harmonicSets.forEach((harmonicSet) => {
         this.renderHarmonicSet(harmonicSet);
@@ -5660,6 +5661,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.state.dragState.originalSpacing = null;
       this.state.dragState.originalAnchorTime = null;
       this.state.dragState.clickedHarmonicNumber = null;
+      const modeChanged = this.state.previousMode !== mode;
+      if (modeChanged && this.state.selection && this.state.selection.selectedType && this.clearSelection) {
+        this.clearSelection();
+      }
       if (this.modeButtons) {
         Object.keys(this.modeButtons).forEach((m) => {
           const button = this.modeButtons[m];
