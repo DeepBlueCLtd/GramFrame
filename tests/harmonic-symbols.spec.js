@@ -79,19 +79,42 @@ test.describe('US1: Symbols on harmonic pins', () => {
       expect(s.fill.toLowerCase()).toBe(String(set.color).toLowerCase())
     }
 
-    // The pin-number label is present and not obscured — the symbol sits above
-    // the label rather than overlapping it (FR-006).
-    const overlap = await gramFramePage.page.evaluate(() => {
-      const symbol = document.querySelector('.gram-frame-harmonic-symbol')
-      const label = document.querySelector('.gram-frame-harmonic-number')
-      if (!symbol || !label) return null
-      const s = symbol.getBoundingClientRect()
+    // The pin-number label is present and not obscured — spec 159 stacks the
+    // label ABOVE the symbol (order: label, symbol, line), and centres the label
+    // horizontally on the pin. Scope to the pin overlay (symbols with a set id;
+    // the harmonics-table swatches share the class but carry no set id) and pair
+    // a label with the symbol on the same pin (nearest centre-x).
+    const overlap = await gramFramePage.page.evaluate((setId) => {
+      const centreX = (r) => (r.left + r.right) / 2
+      const label = document.querySelector(
+        `.gram-frame-harmonic-number[data-harmonic-set-id="${setId}"]`
+      )
+      const symbols = Array.from(document.querySelectorAll(
+        `.gram-frame-harmonic-symbol[data-harmonic-set-id="${setId}"]`
+      ))
+      if (!label || symbols.length === 0) return null
       const l = label.getBoundingClientRect()
-      return { symbolBottom: s.bottom, labelTop: l.top }
-    })
+      const lCx = centreX(l)
+      // Pick the symbol on the same pin as this label
+      let symbol = symbols[0]
+      let best = Infinity
+      for (const s of symbols) {
+        const d = Math.abs(centreX(s.getBoundingClientRect()) - lCx)
+        if (d < best) { best = d; symbol = s }
+      }
+      const s = symbol.getBoundingClientRect()
+      return {
+        symbolTop: s.top,
+        labelBottom: l.bottom,
+        symbolCenterX: centreX(s),
+        labelCenterX: lCx
+      }
+    }, set.id)
     expect(overlap).not.toBeNull()
-    // Symbol's bottom is at or above the label's top (with a couple px tolerance)
-    expect(overlap.symbolBottom).toBeLessThanOrEqual(overlap.labelTop + 3)
+    // Label's bottom is at or above the symbol's top (with a couple px tolerance)
+    expect(overlap.labelBottom).toBeLessThanOrEqual(overlap.symbolTop + 3)
+    // Label is horizontally centred on the symbol/pin (within a few px)
+    expect(Math.abs(overlap.labelCenterX - overlap.symbolCenterX)).toBeLessThanOrEqual(3)
   })
 
   // T006
