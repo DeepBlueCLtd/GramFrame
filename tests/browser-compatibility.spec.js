@@ -105,6 +105,29 @@ test.describe('browserCompatibility module (unit)', () => {
     })
     expect(returnedNull).toBe(true)
   })
+
+  test('looksLikeMissingApiError() recognises missing-method errors but not others', async ({ page }) => {
+    const result = await page.evaluate(async () => {
+      const mod = await import('/src/core/browserCompatibility.js')
+      const f = mod.looksLikeMissingApiError
+      return {
+        notAFunction: f(new TypeError("x.replaceChildren is not a function")),
+        notAConstructor: f(new TypeError("ResizeObserver is not a constructor")),
+        legacyIeStyle: f(new TypeError("Object doesn't support property or method 'foo'")),
+        // Genuine logic bug — must NOT be treated as a browser issue.
+        nullDeref: f(new TypeError("Cannot read properties of undefined (reading 'x')")),
+        // Config/validation error — must NOT be treated as a browser issue.
+        configError: f(new Error("Invalid config: missing time-start")),
+        nullish: f(null)
+      }
+    })
+    expect(result.notAFunction).toBe(true)
+    expect(result.notAConstructor).toBe(true)
+    expect(result.legacyIeStyle).toBe(true)
+    expect(result.nullDeref).toBe(false)
+    expect(result.configError).toBe(false)
+    expect(result.nullish).toBe(false)
+  })
 })
 
 test.describe('Legacy-browser compatibility warning (integration)', () => {
@@ -137,5 +160,24 @@ test.describe('Legacy-browser compatibility warning (integration)', () => {
 
     // And it is visible (not clipped to nothing).
     await expect(firstWarning).toBeVisible()
+  })
+
+  test('unanticipated missing API is still caught by the reactive net (class of error)', async ({ page }) => {
+    await page.goto('/tests/fixtures/legacy-browser-unknown-api-page.html')
+
+    // replaceChildren is present (proactive check passes), but a different
+    // required method is missing, so construction throws. The reactive net
+    // should show the compatibility warning rather than a blank/broken area...
+    await expect(page.locator('.gram-frame-compat-warning')).toHaveCount(1)
+
+    // ...and it should NOT fall back to the technical error indicator, since the
+    // failure is a missing-method (browser) error, not a config error.
+    await expect(page.locator('.gramframe-error-indicator')).toHaveCount(0)
+    await expect(page.locator('.gram-frame-container')).toHaveCount(0)
+
+    const warning = page.locator('.gram-frame-compat-warning').first()
+    await expect(warning).toBeVisible()
+    const text = (await warning.textContent()) || ''
+    expect(text.toLowerCase()).toContain('update')
   })
 })

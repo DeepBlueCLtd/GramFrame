@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Legacy Browser (Unanticipated Missing API) - Compatibility Warning Test</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+
+  <!--
+    Simulate an even-older browser that is missing a required method the
+    explicit feature-detection list does NOT check for. Element.replaceChildren
+    is left intact (so the proactive check passes), but document.createElementNS
+    (used to build the SVG during construction) is removed. Construction then
+    throws a "not a function" TypeError, which the reactive safety net should
+    recognise as a missing-API failure and handle by showing the compatibility
+    warning — proving the whole *class* of missing-method errors is caught, not
+    just the APIs we enumerated.
+  -->
+  <script>
+    // Shadow the prototype method with an own property so calls throw
+    // "document.createElementNS is not a function".
+    document.createElementNS = undefined
+  </script>
+
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Legacy Browser Page (unanticipated missing API)</h1>
+
+  <div class="component-container">
+    <table class="gram-config" id="config1">
+      <tr>
+        <td colspan="2">
+          <img src="../../sample/mock-gram.png" alt="Sample Spectrogram">
+        </td>
+      </tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>60</td></tr>
+      <tr><td>freq-start</td><td>0</td></tr>
+      <tr><td>freq-end</td><td>100</td></tr>
+    </table>
+  </div>
+</body>
+</html>

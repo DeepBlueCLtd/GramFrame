@@ -91,6 +91,41 @@ export function isBrowserSupported() {
 }
 
 /**
+ * Error-message signatures a JS engine produces when code calls a method or
+ * constructor the browser does not provide. Explicit feature detection can only
+ * catch APIs we thought to list; this lets us also recognise the *class* of
+ * "a required method is missing" at the point an even-older browser actually
+ * throws it, so we can still show the compatibility warning rather than a blank
+ * or broken area. Deliberately narrow: it matches missing-callable signatures
+ * only, so a genuine logic bug (e.g. "cannot read properties of undefined")
+ * does NOT get mislabelled as a browser problem.
+ * @type {RegExp}
+ */
+var MISSING_CALLABLE_MESSAGE = /is not a function|is not a constructor|doesn't support|does not support|undefined is not a function/i
+
+/**
+ * Heuristic: does this error look like it was caused by the browser lacking a
+ * required method/constructor (as opposed to a config-parsing or logic error)?
+ * Used as a reactive safety net around component construction so that older
+ * browsers missing an API we did not explicitly feature-detect still get the
+ * "please update your browser" warning instead of failing silently.
+ * @param {unknown} error - The thrown value to classify
+ * @returns {boolean} True when the error resembles a missing-API failure
+ */
+export function looksLikeMissingApiError(error) {
+  if (!error) {
+    return false
+  }
+  // Treat the thrown value loosely; error shapes vary across engines.
+  var err = /** @type {any} */ (error)
+  // A missing method/constructor is reported as a TypeError across engines.
+  var isTypeError = (typeof TypeError !== 'undefined' && err instanceof TypeError) ||
+    err.name === 'TypeError'
+  var message = err.message ? String(err.message) : String(err)
+  return !!isTypeError && MISSING_CALLABLE_MESSAGE.test(message)
+}
+
+/**
  * The user-facing compatibility message. Names the minimum supported version
  * and asks the user to update. The wording refers to Chrome/Edge because those
  * are the supported/target browsers for the training material, even though the

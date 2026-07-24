@@ -12,7 +12,7 @@ import {
   notifyStateListeners
 } from '../core/state.js'
 import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
-import { isBrowserSupported, showCompatibilityWarning } from '../core/browserCompatibility.js'
+import { isBrowserSupported, showCompatibilityWarning, looksLikeMissingApiError } from '../core/browserCompatibility.js'
 
 /**
  * Creates the GramFrame public API object
@@ -72,9 +72,20 @@ export function createGramFrameAPI(GramFrame) {
           const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error instanceof Error ? error.message : String(error)}`
           console.error('GramFrame Error:', errorMsg, error)
           errors.push({ table, error: errorMsg, index })
-          
-          // Add error indicator to the table (don't replace it)
-          this._addErrorIndicator(/** @type {HTMLTableElement} */ (table), errorMsg)
+
+          // Reactive legacy-browser safety net. Explicit feature detection only
+          // catches APIs we listed; an even-older browser might be missing a
+          // different required method we did not anticipate. When the failure
+          // looks like a missing method/constructor (rather than a config or
+          // logic error), show the same "please update your browser" warning in
+          // place of the component instead of the technical error indicator, so
+          // the analyst gets an actionable message and never a silent failure.
+          if (looksLikeMissingApiError(error)) {
+            showCompatibilityWarning(/** @type {HTMLElement} */ (table))
+          } else {
+            // Add error indicator to the table (don't replace it)
+            this._addErrorIndicator(/** @type {HTMLTableElement} */ (table), errorMsg)
+          }
         }
       })
       
