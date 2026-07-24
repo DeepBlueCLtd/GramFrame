@@ -266,6 +266,11 @@ export class AnalysisMode extends BaseMode {
     const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, AnalysisMode.MARKER_SYMBOL_SIZE, marker.color)
 
     if (symbolMark) {
+      // Use a marker-specific class so the harmonics renderer's symbol cleanup
+      // (which clears `.gram-frame-harmonic-symbol` from the overlay) never
+      // removes a marker's symbol. `data-symbol`/fill from createSymbolMark are
+      // preserved. (Fixes symbols vanishing when a harmonic set is present.)
+      symbolMark.setAttribute('class', 'gram-frame-marker-symbol')
       symbolMark.setAttribute('data-marker-id', marker.id)
       markerGroup.appendChild(symbolMark)
     } else {

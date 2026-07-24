@@ -433,7 +433,16 @@ export class GramFrame {
     this.state.dragState.originalSpacing = null
     this.state.dragState.originalAnchorTime = null
     this.state.dragState.clickedHarmonicNumber = null
-    
+
+    // Changing mode signals the analyst is about to add something new, so drop
+    // any selected marker/harmonic. This returns the colour/symbol controls to
+    // targeting the NEXT created feature instead of restyling the previously
+    // selected one (feature 161).
+    const modeChanged = this.state.previousMode !== mode
+    if (modeChanged && this.state.selection && this.state.selection.selectedType && this.clearSelection) {
+      this.clearSelection()
+    }
+
     // Cursor styling removed - no display element
     
     // Update UI

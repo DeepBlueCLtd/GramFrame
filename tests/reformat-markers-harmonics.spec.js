@@ -28,7 +28,7 @@ async function markerOverlay(page, markerId) {
   return page.evaluate((id) => {
     const g = document.querySelector(`.gram-frame-analysis-marker[data-marker-id="${id}"]`)
     if (!g) return { lines: 0, symbols: 0, symbol: null }
-    const symbol = g.querySelector('.gram-frame-harmonic-symbol')
+    const symbol = g.querySelector('.gram-frame-marker-symbol')
     return {
       lines: g.querySelectorAll('line').length,
       symbols: symbol ? 1 : 0,
@@ -236,6 +236,90 @@ test.describe('US1: reformat an existing harmonic set', () => {
     await page.waitForTimeout(100)
     state = await gramFramePage.getState()
     expect(state.harmonics.harmonicSets.find((s) => s.id === set2).symbol).toBe('triangle')
+  })
+})
+
+// ──────────────────────────────────────────────────────────────
+// Switching mode clears the selection (about to add something new)
+// ──────────────────────────────────────────────────────────────
+
+test.describe('Switching mode clears the current selection', () => {
+  test('a selected harmonic is deselected on mode switch, so the controls target the next feature', async ({ gramFramePage }) => {
+    const page = gramFramePage.page
+
+    await gramFramePage.clickMode('Harmonics')
+    await page.waitForTimeout(100)
+    await gramFramePage.selectSymbol('star')
+    const setId = await gramFramePage.addHarmonicSet(30, 20)
+    await page.waitForTimeout(100)
+
+    // The new set is selected
+    let state = await gramFramePage.getState()
+    expect(state.selection.selectedType).toBe('harmonicSet')
+    expect(state.selection.selectedId).toBe(setId)
+    const colorBefore = state.harmonics.harmonicSets.find((s) => s.id === setId).color
+
+    // Switching to Cross Cursor clears the selection
+    await gramFramePage.clickMode('Cross Cursor')
+    await page.waitForTimeout(150)
+    state = await gramFramePage.getState()
+    expect(state.selection.selectedType).toBeNull()
+
+    // Picking a colour now arms the next feature and must NOT restyle the set
+    await page.locator(COLOR_CANVAS).click({ position: { x: 4, y: 10 } })
+    await page.waitForTimeout(100)
+    state = await gramFramePage.getState()
+    expect(state.harmonics.harmonicSets.find((s) => s.id === setId).color).toBe(colorBefore)
+  })
+})
+
+// ──────────────────────────────────────────────────────────────
+// Marker symbols coexist with harmonic sets (regression)
+// ──────────────────────────────────────────────────────────────
+
+test.describe('Marker symbols coexist with harmonic sets', () => {
+  test('a marker symbol survives adding a harmonic set and switching modes', async ({ gramFramePage }) => {
+    const page = gramFramePage.page
+
+    // Cross Cursor: create a marker and give it a square symbol
+    await gramFramePage.clickMode('Cross Cursor')
+    await page.waitForTimeout(150)
+    await gramFramePage.clickSpectrogram(200, 150)
+    await page.waitForTimeout(120)
+    let state = await gramFramePage.getState()
+    const markerId = state.analysis.markers[0].id
+    await gramFramePage.selectSymbol('square') // marker is auto-selected -> restyle it
+    await page.waitForTimeout(120)
+
+    let ov = await markerOverlay(page, markerId)
+    expect(ov.symbol).toBe('square')
+
+    // Add a harmonic set — its renderer must not wipe the marker's symbol
+    await gramFramePage.clickMode('Harmonics')
+    await page.waitForTimeout(120)
+    await gramFramePage.addHarmonicSet(30, 20)
+    await page.waitForTimeout(150)
+
+    ov = await markerOverlay(page, markerId)
+    expect(ov.symbols).toBe(1)
+    expect(ov.symbol).toBe('square')
+
+    // Back to Cross Cursor: the symbol is still on the overlay
+    await gramFramePage.clickMode('Cross Cursor')
+    await page.waitForTimeout(150)
+    ov = await markerOverlay(page, markerId)
+    expect(ov.symbol).toBe('square')
+
+    // Adding a new marker re-renders everything; both markers keep their symbol
+    await gramFramePage.selectSymbol('square')
+    await gramFramePage.clickSpectrogram(320, 220)
+    await page.waitForTimeout(150)
+    state = await gramFramePage.getState()
+    const secondId = state.analysis.markers.find((m) => m.id !== markerId).id
+    const ov1 = await markerOverlay(page, markerId)
+    const ov2 = await markerOverlay(page, secondId)
+    expect(ov1.symbol).toBe('square')
+    expect(ov2.symbol).toBe('square')
   })
 })
 

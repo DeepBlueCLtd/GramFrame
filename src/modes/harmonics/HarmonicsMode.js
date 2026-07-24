@@ -648,10 +648,12 @@ export class HarmonicsMode extends BaseMode {
       return
     }
     
-    // Clear existing harmonic lines and their symbol marks
+    // Clear existing harmonic lines and their symbol marks. Scope the symbol
+    // cleanup to harmonic pin symbols (which carry data-harmonic-set-id) so it
+    // never removes analysis-marker symbols that share the base symbol class.
     const existingHarmonics = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-line')
     existingHarmonics.forEach(line => line.remove())
-    const existingSymbols = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol')
+    const existingSymbols = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol[data-harmonic-set-id]')
     existingSymbols.forEach(symbol => symbol.remove())
     
     // Render all harmonic sets
