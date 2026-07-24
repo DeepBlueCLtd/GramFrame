@@ -12,6 +12,7 @@ import {
   notifyStateListeners
 } from '../core/state.js'
 import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
+import { isBrowserSupported, showCompatibilityWarning, looksLikeMissingApiError } from '../core/browserCompatibility.js'
 
 /**
  * Creates the GramFrame public API object
@@ -38,7 +39,21 @@ export function createGramFrameAPI(GramFrame) {
       /** @type {GramFrame[]} */
       const instances = []
       const errors = []
-      
+
+      // Legacy-browser guard: check the required JS/DOM APIs are present before
+      // any GramFrame is constructed. On an unsupported browser, show a clear
+      // "please update your browser" warning in place of each config table
+      // instead of letting the component fail silently mid-render. The check is
+      // feature-detection based, so it runs without throwing on the very
+      // browsers it is meant to catch.
+      if (!isBrowserSupported()) {
+        configTables.forEach(table => {
+          showCompatibilityWarning(/** @type {HTMLElement} */ (table))
+        })
+        this._instances = instances
+        return instances
+      }
+
       configTables.forEach((table, index) => {
         try {
           // Generate unique ID for each component instance
@@ -57,9 +72,20 @@ export function createGramFrameAPI(GramFrame) {
           const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error instanceof Error ? error.message : String(error)}`
           console.error('GramFrame Error:', errorMsg, error)
           errors.push({ table, error: errorMsg, index })
-          
-          // Add error indicator to the table (don't replace it)
-          this._addErrorIndicator(/** @type {HTMLTableElement} */ (table), errorMsg)
+
+          // Reactive legacy-browser safety net. Explicit feature detection only
+          // catches APIs we listed; an even-older browser might be missing a
+          // different required method we did not anticipate. When the failure
+          // looks like a missing method/constructor (rather than a config or
+          // logic error), show the same "please update your browser" warning in
+          // place of the component instead of the technical error indicator, so
+          // the analyst gets an actionable message and never a silent failure.
+          if (looksLikeMissingApiError(error)) {
+            showCompatibilityWarning(/** @type {HTMLElement} */ (table))
+          } else {
+            // Add error indicator to the table (don't replace it)
+            this._addErrorIndicator(/** @type {HTMLTableElement} */ (table), errorMsg)
+          }
         }
       })
       
