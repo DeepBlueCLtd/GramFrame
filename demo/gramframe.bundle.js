@@ -2670,10 +2670,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.rateLED.querySelector(".gram-frame-led-value").textContent = `${state.rate}`;
     }
   }
-  const VERSION = "0.1.13";
-  function getVersion() {
-    return VERSION;
-  }
   function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes = {}) {
     const modesContainer = document.createElement("div");
     modesContainer.className = "gram-frame-modes";
@@ -2696,9 +2692,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       button.className = "gram-frame-mode-btn";
       button.textContent = getModeDisplayName(modeType);
       button.dataset.mode = modeType;
-      if (modeType === "pan") {
-        button.title = `GramFrame v${getVersion()}`;
-      }
       if (modeType === state.mode) {
         button.classList.add("active");
       }
@@ -3514,6 +3507,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     renderPersistentFeatures() {
       this.renderDopplerFeatures();
     }
+  }
+  const VERSION = "0.1.13";
+  function getVersion() {
+    return VERSION;
   }
   class PanMode extends BaseMode {
     /**
