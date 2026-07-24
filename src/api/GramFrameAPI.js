@@ -12,6 +12,7 @@ import {
   notifyStateListeners
 } from '../core/state.js'
 import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
+import { isBrowserSupported, showCompatibilityWarning } from '../core/browserCompatibility.js'
 
 /**
  * Creates the GramFrame public API object
@@ -38,7 +39,21 @@ export function createGramFrameAPI(GramFrame) {
       /** @type {GramFrame[]} */
       const instances = []
       const errors = []
-      
+
+      // Legacy-browser guard: check the required JS/DOM APIs are present before
+      // any GramFrame is constructed. On an unsupported browser, show a clear
+      // "please update your browser" warning in place of each config table
+      // instead of letting the component fail silently mid-render. The check is
+      // feature-detection based, so it runs without throwing on the very
+      // browsers it is meant to catch.
+      if (!isBrowserSupported()) {
+        configTables.forEach(table => {
+          showCompatibilityWarning(/** @type {HTMLElement} */ (table))
+        })
+        this._instances = instances
+        return instances
+      }
+
       configTables.forEach((table, index) => {
         try {
           // Generate unique ID for each component instance

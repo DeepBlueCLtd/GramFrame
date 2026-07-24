@@ -59,6 +59,11 @@ import {
   cleanupKeyboardControl
 } from './core/keyboardControl.js'
 
+import {
+  isBrowserSupported,
+  showCompatibilityWarning
+} from './core/browserCompatibility.js'
+
 /**
  * GramFrame class - Main component implementation
  */
@@ -131,14 +136,32 @@ export class GramFrame {
   // Whether this instance is a trainer context
   _isTrainerContext;
 
+  // Set when the browser lacks a required API; construction is skipped and a
+  // compatibility warning is shown in place of the component.
+  _unsupportedBrowser;
+
   /**
    * Creates a new GramFrame instance
    * @param {HTMLTableElement} configTable - Configuration table element to replace
    */
   constructor(configTable) {
+    this.configTable = configTable
+
+    // Legacy-browser guard. Run before any rendering so an unsupported browser
+    // never reaches the modern DOM calls (e.g. Element.replaceChildren) that
+    // would throw and fail silently. When the required APIs are missing, show a
+    // clear "please update your browser" warning in place of the component and
+    // stop constructing — the rest of the setup (which relies on those APIs) is
+    // skipped. Callers going through GramFrameAPI.init() are already short-
+    // circuited before this point; this covers direct `new GramFrame(table)` use.
+    if (!isBrowserSupported()) {
+      this._unsupportedBrowser = true
+      showCompatibilityWarning(configTable)
+      return
+    }
+
     // Core state initialization
     this.state = createInitialState()
-    this.configTable = configTable
     this.stateListeners = []
     this.instanceId = ''
 
