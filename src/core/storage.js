@@ -173,7 +173,11 @@ export function saveAnnotations(state, instanceIndex) {
           id: m.id,
           color: m.color,
           time: m.time,
-          freq: m.freq
+          freq: m.freq,
+          // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
+          // SCHEMA_VERSION bump: legacy records simply lack it and default to
+          // 'cross' (no drawn symbol) on restore.
+          symbol: m.symbol || 'cross'
         }))
       },
       harmonics: {
@@ -185,8 +189,9 @@ export function saveAnnotations(state, instanceIndex) {
           // `symbol` is an ADDITIVE field (feature 157-harmonic-pin-symbols). It
           // MUST NOT trigger a SCHEMA_VERSION bump: the strict version guard in
           // loadAnnotations would otherwise discard all pre-existing v1 records.
-          // Legacy records simply lack this key and default to 'circle' on restore.
-          symbol: hs.symbol || 'circle'
+          // Legacy records simply lack this key and default to 'cross' (the
+          // symbol-less default, feature 161) on restore.
+          symbol: hs.symbol || 'cross'
         }))
       },
       doppler: {

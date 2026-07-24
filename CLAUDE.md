@@ -167,6 +167,9 @@ Example configuration:
 - Browser Web Storage (localStorage for trainers / sessionStorage for students) (157-harmonic-pin-symbols)
 - JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (158-harmonic-pin-sampling)
 - N/A — purely presentational; no persisted data or new state (158-harmonic-pin-sampling)
+- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (161-reformat-markers-harmonics)
+- Browser Web Storage — additive `symbol` field on markers; `cross` (symbol-less) default; no schema bump (161-reformat-markers-harmonics)
 
 ## Recent Changes
+- 161-reformat-markers-harmonics: Added a `cross` (symbol-less) default style and in-place restyling of selected markers/harmonic sets (colour + symbol)
 - 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)

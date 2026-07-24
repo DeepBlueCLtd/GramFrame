@@ -71,6 +71,7 @@
  * @property {string} color - Marker color
  * @property {number} time - Time coordinate
  * @property {number} freq - Frequency coordinate
+ * @property {SymbolType} [symbol] - Marker symbol; `cross` (default) draws a crosshair, a shaped symbol draws that mark
  */
 
 /**
@@ -91,9 +92,10 @@
  */
 
 /**
- * Named filled shape used as a colour-blind-friendly visual code for a
- * harmonic set. Any unknown/absent value resolves to `circle`.
- * @typedef {'circle'|'square'|'diamond'|'triangle'|'triangle-down'|'star'} SymbolType
+ * Symbol style used as a colour-blind-friendly visual code for a feature.
+ * `cross` is the symbol-less default (no drawn shape); the remaining values are
+ * filled shapes. Any unknown/absent value resolves to `cross`.
+ * @typedef {'cross'|'circle'|'square'|'diamond'|'triangle'|'triangle-down'|'star'} SymbolType
  */
 
 /**
@@ -179,8 +181,8 @@
  * @property {ModeType} mode - Current analysis mode
  * @property {ModeType|null} previousMode - Previous analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
- * @property {string} selectedColor - Currently selected color for new features across all modes
- * @property {SymbolType} selectedSymbol - Currently selected symbol applied to the next created harmonic set
+ * @property {string} selectedColor - Colour for the NEXT created feature (when nothing is selected); when a feature is selected the picker restyles it instead
+ * @property {SymbolType} selectedSymbol - Symbol for the NEXT created harmonic set or marker (when nothing is selected); when a feature is selected the picker restyles it instead
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {HarmonicsState} harmonics - Harmonics mode state
@@ -240,6 +242,7 @@
  * @property {string} color - Marker colour (hex)
  * @property {number} time - Time position in seconds
  * @property {number} freq - Frequency position in Hz
+ * @property {SymbolType} [symbol] - Persisted symbol; ABSENT in legacy records (default `cross` on restore)
  */
 
 /**
@@ -349,6 +352,10 @@
  * @property {function(): void} [clearSelection] - Clear selection  
  * @property {function(): void} [updateSelectionVisuals] - Update selection visuals
  * @property {function(string): void} [removeHarmonicSet] - Remove harmonic set by ID
+ * @property {function(string): boolean} [applyColorToSelectedFeature] - Restyle the selected feature's colour in place (feature 161)
+ * @property {function(SymbolType): boolean} [applySymbolToSelectedFeature] - Restyle the selected feature's symbol in place (feature 161)
+ * @property {function(): void} [syncStyleControls] - Sync the colour/symbol controls to the current selection (feature 161)
+ * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} [_symbolControl] - Symbol drop-down control handle
  * @property {function(): void} [createUnifiedLayout] - Create unified layout
  */
 

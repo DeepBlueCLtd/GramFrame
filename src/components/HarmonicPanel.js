@@ -4,24 +4,17 @@
 
 /// <reference path="../types.js" />
 
-import { createSymbolMark } from '../rendering/symbols.js'
+import { createColorIndicator } from '../rendering/symbols.js'
 
 /**
- * Build a small inline SVG swatch showing a harmonic set's symbol in its colour.
- * Used in the harmonics-table colour cell as a colour-blind-friendly affordance.
+ * Build the colour/symbol indicator for a harmonic set's table row: the set's
+ * symbol drawn in its colour, or — for the symbol-less `cross` style — a plain
+ * filled colour rectangle (feature 161). Colour-blind-friendly affordance.
  * @param {HarmonicSet} harmonicSet - The harmonic set data
- * @returns {SVGSVGElement} The swatch SVG element
+ * @returns {SVGSVGElement|HTMLDivElement} The indicator element
  */
 function createSymbolSwatch(harmonicSet) {
-  const swSize = 16
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute('class', 'gram-frame-harmonic-symbol-swatch')
-  svg.setAttribute('width', String(swSize))
-  svg.setAttribute('height', String(swSize))
-  svg.setAttribute('viewBox', `0 0 ${swSize} ${swSize}`)
-  const mark = createSymbolMark(harmonicSet.symbol, swSize / 2, swSize / 2, 12, harmonicSet.color)
-  svg.appendChild(mark)
-  return svg
+  return createColorIndicator(harmonicSet.symbol, harmonicSet.color)
 }
 
 /**

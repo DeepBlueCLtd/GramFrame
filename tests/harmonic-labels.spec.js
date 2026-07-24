@@ -74,6 +74,9 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
     await gramFramePage.page.waitForTimeout(100)
     await gramFramePage.clickMode('Harmonics')
     await gramFramePage.waitForImageDimensions()
+    // The default symbol is now 'cross' (no drawn shape, feature 161); these
+    // tests assert symbol geometry, so pick a shaped symbol first.
+    await gramFramePage.selectSymbol('circle')
   })
 
   // ────────────────────────────────────────────────────────────────
