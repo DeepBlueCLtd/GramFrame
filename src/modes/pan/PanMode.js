@@ -134,18 +134,28 @@ export class PanMode extends BaseMode {
   }
 
   /**
-   * Get guidance content for pan mode
-   * @returns {Object} Structured guidance content
+   * Get guidance content for pan mode.
+   *
+   * Pan is the initial mode, so its guidance carries the global mouse-wheel
+   * instructions (which apply in every mode) as their own titled section, plus a
+   * section for the pan-specific interactions.
+   * @returns {Object} Structured guidance content (multi-section)
    */
   getGuidanceText() {
     return {
-      title: 'Pan Mode',
-      items: [
-        'Pan is only available when image is zoomed in',
-        'Click and drag to pan the view when zoomed in',
-        'Use the zoom controls to zoom in before panning',
-        ...WHEEL_NAV_GUIDANCE,
-        `GramFrame v${getVersion()}`
+      sections: [
+        {
+          title: 'Mouse-Wheel',
+          items: WHEEL_NAV_GUIDANCE
+        },
+        {
+          title: 'Pan Mode',
+          items: [
+            'Click and drag to pan the view (when zoomed in)',
+            'Use + / − to zoom in and out',
+            `GramFrame v${getVersion()}`
+          ]
+        }
       ]
     }
   }
@@ -159,12 +169,16 @@ export class PanMode extends BaseMode {
   }
 
   /**
-   * Check if pan mode is enabled
-   * Pan mode is only enabled when zoomed in (zoom level > 1.0)
-   * @returns {boolean} True if enabled, false if disabled
+   * Check if pan mode is enabled.
+   *
+   * Pan mode is always selectable — it is the initial mode, and staying in it at
+   * zoom level 1 is the intended way to avoid accidentally placing markers on a
+   * click. Panning itself is still gated on being zoomed in (see handleMouseDown
+   * / panByNormalized); at zoom 1 a click simply does nothing.
+   * @returns {boolean} Always true
    */
   isEnabled() {
-    return this.instance.state.zoom.level > 1.0
+    return true
   }
 
   /**

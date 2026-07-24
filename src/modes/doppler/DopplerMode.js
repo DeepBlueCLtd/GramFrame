@@ -10,7 +10,6 @@ import { calculateMidpoint } from '../../utils/doppler.js'
 import {
   drawDopplerPreview
 } from '../../rendering/cursors.js'
-import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
 import { dataToSVG } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
@@ -145,8 +144,7 @@ export class DopplerMode extends BaseMode {
         'Click & drag to place markers for f+ and f-',
         'Drag markers to adjust positions',
         'f₀ marker shows automatically at the midpoint',
-        'Right-click to reset all markers',
-        ...WHEEL_NAV_GUIDANCE
+        'Right-click to reset all markers'
       ]
     }
   }

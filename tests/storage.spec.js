@@ -683,7 +683,7 @@ test.describe('Edge cases', () => {
     // Verify no errors in console that break the component
     const state = await getStateFromPage(page)
     expect(state).not.toBeNull()
-    expect(state.mode).toBe('analysis')
+    expect(state.mode).toBe('pan')
 
     // Verify annotations still work (just not persisted)
     const gfp = new GramFramePage(page)

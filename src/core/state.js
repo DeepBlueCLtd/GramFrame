@@ -38,7 +38,7 @@ export const initialState = {
   version: getVersion(),
   timestamp: new Date().toISOString(),
   instanceId: '',
-  mode: 'analysis', // 'analysis', 'harmonics', 'doppler', 'pan'
+  mode: 'pan', // 'analysis', 'harmonics', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
   previousMode: null, // Previous mode for switching back
   rate: 1,
   selectedColor: '#ff6b6b', // Currently selected color for new features across all modes

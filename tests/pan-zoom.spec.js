@@ -125,7 +125,8 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
     })
 
     test('middle-drag places no marker but a normal click does', async () => {
-      // Default mode is Cross Cursor (analysis)
+      // Switch to Cross Cursor mode, where a left click places a marker.
+      await gfp.clickMode('Cross Cursor')
       await gfp.setZoom(2.0, 0.5, 0.5)
       const start = await gfp.imageSVGPoint(0.5, 0.5)
       await gfp.middleDragSVG(start.x, start.y, start.x - 80, start.y - 40)
@@ -143,21 +144,22 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
   test.describe('US4 — Guidance', () => {
     const guidance = () => gfp.page.locator('.gram-frame-guidance')
 
-    test('Cross Cursor mode guidance names the wheel interactions', async () => {
+    test('Pan mode (the initial mode) shows Mouse-Wheel and Pan Mode sections', async () => {
+      // Default mode is Pan, so its guidance is shown on load.
       const text = await guidance().textContent()
+      expect(text).toContain('Mouse-Wheel')
+      expect(text).toContain('Pan Mode')
       expect(text).toContain('Ctrl')
-      expect(text?.toLowerCase()).toContain('zoom')
+      expect(text?.toLowerCase()).toContain('available in all modes')
       expect(text?.toLowerCase()).toContain('scroll to pan')
       expect(text?.toLowerCase()).toContain('wheel-button drag')
     })
 
-    test('Pan mode guidance names the wheel interactions', async () => {
-      await gfp.setZoom(2.0, 0.5, 0.5) // Pan mode is only enabled when zoomed
-      await gfp.clickMode('Pan')
+    test('other modes do not repeat the wheel guidance', async () => {
+      await gfp.clickMode('Cross Cursor')
       const text = await guidance().textContent()
-      expect(text).toContain('Ctrl')
-      expect(text?.toLowerCase()).toContain('scroll to pan')
-      expect(text?.toLowerCase()).toContain('wheel-button drag')
+      expect(text).not.toContain('Mouse-Wheel')
+      expect(text?.toLowerCase()).not.toContain('wheel-button drag')
     })
   })
 

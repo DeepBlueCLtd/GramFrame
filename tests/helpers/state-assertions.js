@@ -147,7 +147,7 @@ function expectValidMode(state, expectedMode) {
     const internalMode = mapDisplayModeToInternalMode(expectedMode)
     expect(state.mode).toBe(internalMode)
   } else {
-    expect(['analysis', 'harmonics', 'doppler']).toContain(state.mode)
+    expect(['pan', 'analysis', 'harmonics', 'doppler']).toContain(state.mode)
   }
 }
 

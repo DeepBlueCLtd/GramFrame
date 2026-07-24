@@ -4,7 +4,6 @@ import { formatTime } from '../../utils/timeFormatter.js'
 import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
-import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
 
 /**
  * Analysis mode implementation
@@ -112,8 +111,7 @@ export class AnalysisMode extends BaseMode {
         'Click to place persistent markers',
         'Drag existing markers to reposition them',
         'Right-click markers to delete them',
-        'Click table row + arrow keys (Shift for larger steps)',
-        ...WHEEL_NAV_GUIDANCE
+        'Click table row + arrow keys (Shift for larger steps)'
       ]
     }
   }

@@ -26,10 +26,15 @@ export function createUnifiedLayout(instance) {
   unifiedLayoutContainer.style.flexDirection = 'row'
   unifiedLayoutContainer.style.flexWrap = 'nowrap'
   
-  // Left Panel (600px) - Multi-column horizontal layout
+  // Left Panel - Multi-column horizontal layout. Grows to fill whatever width the
+  // host gives the component (grow:1) but never shrinks below its original 600px
+  // basis (shrink:0), so the guidance column (flex:1 between the fixed mode +
+  // controls columns) gets far more horizontal room on a wide host — keeping
+  // multi-line instructions (e.g. the Pan-mode mouse-wheel help) short
+  // vertically — without clipping the markers/harmonics tables on a narrow host.
   const leftColumn = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-left-column', '4px'))
-  leftColumn.style.flex = '0 0 600px'
-  leftColumn.style.width = '600px'
+  leftColumn.style.flex = '1 0 600px'
+  leftColumn.style.minWidth = '600px'
   leftColumn.style.flexDirection = 'row'
   
   // Column 1: Mode buttons 

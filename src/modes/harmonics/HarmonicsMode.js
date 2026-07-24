@@ -9,7 +9,6 @@ import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
 import { createSymbolMark } from '../../rendering/symbols.js'
 import { calculateVisibleDataRange } from '../../components/table.js'
-import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
 
 /**
  * Harmonics mode implementation
@@ -164,8 +163,7 @@ export class HarmonicsMode extends BaseMode {
         'Click & drag to generate harmonic lines',
         'Drag existing harmonic lines to adjust spacing intervals',
         'Manually add harmonic lines using [+ Manual] button',
-        'Click table row + arrow keys (Shift for larger steps)',
-        ...WHEEL_NAV_GUIDANCE
+        'Click table row + arrow keys (Shift for larger steps)'
       ]
     }
   }

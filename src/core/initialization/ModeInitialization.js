@@ -46,10 +46,10 @@ export function setupModeUI(instance) {
   // Harmonics sets in right column (always visible)  
   instance.modes['harmonics'].createUI(instance.harmonicsContainer)
   
-  // Set initial mode (analysis by default)
-  instance.currentMode = instance.modes['analysis']
-  
-  // Initialize guidance panel with analysis mode guidance
+  // Set initial mode from state (pan by default)
+  instance.currentMode = instance.modes[instance.state.mode] || instance.modes['pan']
+
+  // Initialize guidance panel with the initial mode's guidance
   if (instance.guidancePanel) {
     const guidanceContent = instance.currentMode.getGuidanceText()
     updateGuidancePanel(instance.guidancePanel, guidanceContent)
