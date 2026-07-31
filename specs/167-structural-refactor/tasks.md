@@ -130,7 +130,7 @@ without importing `state.js`.
 
 ### Pin before changing
 
-- [ ] T016 [US2] Write `tests/unit/mode-registration.test.js` **before** any source change: freeze the composed initial state produced by today's `createInitialState()` as a snapshot, so T017's rewiring is provably shape-preserving (plan Risks)
+- [x] T016 [US2] Write `tests/unit/mode-registration.test.js` **before** any source change: freeze the composed initial state produced by today's `createInitialState()` as a snapshot, so T017's rewiring is provably shape-preserving (plan Risks)
 
 ### The registration seam
 
