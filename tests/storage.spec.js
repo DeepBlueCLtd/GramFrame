@@ -2,61 +2,6 @@ import { test, expect } from '@playwright/test'
 import { GramFramePage } from './helpers/gram-frame-page.js'
 
 /**
- * Helper: navigate to a fixture page, wait for GramFrame to initialise
- * @param {import('@playwright/test').Page} page
- * @param {string} fixturePath - relative to base URL, e.g. '/tests/fixtures/trainer-page.html'
- * @returns {Promise<GramFramePage>}
- */
-async function gotoFixture(page, fixturePath) {
-  const gfp = new GramFramePage(page)
-  await page.goto(fixturePath)
-  // Wait for GramFrame container to appear
-  await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-  // Brief pause for state init
-  await page.waitForTimeout(300)
-  return gfp
-}
-
-/**
- * Helper: add an analysis marker by clicking on the SVG
- * @param {GramFramePage} gfp
- * @param {number} x
- * @param {number} y
- */
-async function addAnalysisMarker(gfp, x, y) {
-  // Ensure we're in analysis mode
-  const modeBtn = gfp.page.locator('.gram-frame-mode-btn:text("Cross Cursor")')
-  await modeBtn.click()
-  await gfp.page.waitForTimeout(200)
-
-  // Click on the SVG to add a marker
-  await gfp.svg.click({ position: { x, y } })
-  await gfp.page.waitForTimeout(300)
-}
-
-/**
- * Helper: add a harmonic set by dragging on the SVG in harmonics mode
- * @param {GramFramePage} gfp
- * @param {number} startX
- * @param {number} startY
- * @param {number} endX
- * @param {number} endY
- */
-async function addHarmonicSet(gfp, startX, startY, endX, endY) {
-  const modeBtn = gfp.page.locator('.gram-frame-mode-btn:text("Harmonics")')
-  await modeBtn.click()
-  await gfp.page.waitForTimeout(200)
-
-  const svgBox = await gfp.svg.boundingBox()
-  if (!svgBox) throw new Error('SVG not found')
-  await gfp.page.mouse.move(svgBox.x + startX, svgBox.y + startY)
-  await gfp.page.mouse.down()
-  await gfp.page.mouse.move(svgBox.x + endX, svgBox.y + endY, { steps: 5 })
-  await gfp.page.mouse.up()
-  await gfp.page.waitForTimeout(300)
-}
-
-/**
  * Helper: get current state from the page via evaluate
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<any>}
@@ -70,6 +15,112 @@ async function getStateFromPage(page) {
     }
     return null
   })
+}
+
+/**
+ * Helper: wait for a condition on the instance's live state.
+ * @param {import('@playwright/test').Page} page
+ * @param {(state: any) => boolean} predicate
+ * @param {string} message - What is being waited for, for the failure message
+ * @returns {Promise<void>}
+ */
+async function waitForPageState(page, predicate, message) {
+  await expect
+    .poll(async () => {
+      const state = await getStateFromPage(page)
+      return state ? predicate(state) : false
+    }, { message: `Timed out waiting for ${message}` })
+    .toBe(true)
+}
+
+/**
+ * Helper: wait until GramFrame has finished initialising on the current page.
+ *
+ * The instance is only pushed onto the registry after its constructor returns,
+ * and the constructor restores saved annotations before returning — so an
+ * instance being visible here means the restore has already run. That makes
+ * this the exact signal to wait on after a load or reload, including in the
+ * tests that assert nothing was restored.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<void>}
+ */
+async function waitForInitialised(page) {
+  await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+  await waitForPageState(page, () => true, 'GramFrame to finish initialising')
+}
+
+/**
+ * Helper: navigate to a fixture page, wait for GramFrame to initialise
+ * @param {import('@playwright/test').Page} page
+ * @param {string} fixturePath - relative to base URL, e.g. '/tests/fixtures/trainer-page.html'
+ * @returns {Promise<GramFramePage>}
+ */
+async function gotoFixture(page, fixturePath) {
+  const gfp = new GramFramePage(page)
+  await page.goto(fixturePath)
+  await waitForInitialised(page)
+  return gfp
+}
+
+/**
+ * Helper: reload the page and wait for the restored component to be ready.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<void>}
+ */
+async function reloadAndWait(page) {
+  await page.reload()
+  await waitForInitialised(page)
+}
+
+/**
+ * Helper: add an analysis marker by clicking on the SVG
+ * @param {GramFramePage} gfp
+ * @param {number} x
+ * @param {number} y
+ */
+async function addAnalysisMarker(gfp, x, y) {
+  const page = gfp.page
+  const before = (await getStateFromPage(page)).analysis.markers.length
+
+  // Ensure we're in analysis mode
+  await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').click()
+  await waitForPageState(page, (s) => s.mode === 'analysis', 'analysis mode')
+
+  // Click on the SVG to add a marker
+  await gfp.svg.click({ position: { x, y } })
+  await waitForPageState(
+    page,
+    (s) => s.analysis.markers.length > before,
+    `the marker count to rise above ${before}`
+  )
+}
+
+/**
+ * Helper: add a harmonic set by dragging on the SVG in harmonics mode
+ * @param {GramFramePage} gfp
+ * @param {number} startX
+ * @param {number} startY
+ * @param {number} endX
+ * @param {number} endY
+ */
+async function addHarmonicSet(gfp, startX, startY, endX, endY) {
+  const page = gfp.page
+  const before = (await getStateFromPage(page)).harmonics.harmonicSets.length
+
+  await page.locator('.gram-frame-mode-btn:text("Harmonics")').click()
+  await waitForPageState(page, (s) => s.mode === 'harmonics', 'harmonics mode')
+
+  const svgBox = await gfp.svg.boundingBox()
+  if (!svgBox) throw new Error('SVG not found')
+  await page.mouse.move(svgBox.x + startX, svgBox.y + startY)
+  await page.mouse.down()
+  await page.mouse.move(svgBox.x + endX, svgBox.y + endY, { steps: 5 })
+  await page.mouse.up()
+  await waitForPageState(
+    page,
+    (s) => s.harmonics.harmonicSets.length > before,
+    `the harmonic set count to rise above ${before}`
+  )
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -96,9 +147,7 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
     const markerBefore = stateBefore.analysis.markers[0]
 
     // Reload page
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     // Verify marker was restored
     const stateAfter = await getStateFromPage(page)
@@ -122,9 +171,7 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
     const hsBefore = stateBefore.harmonics.harmonicSets[0]
 
     // Reload
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.harmonics.harmonicSets.length).toBe(stateBefore.harmonics.harmonicSets.length)
@@ -139,24 +186,24 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
     const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
 
     // Switch to doppler mode and add markers
-    const modeBtn = gfp.page.locator('.gram-frame-mode-btn:text("Doppler")')
-    await modeBtn.click()
-    await page.waitForTimeout(200)
+    await gfp.page.locator('.gram-frame-mode-btn:text("Doppler")').click()
+    await waitForPageState(page, (s) => s.mode === 'doppler', 'doppler mode')
 
     // Place two points for doppler curve
     await gfp.svg.click({ position: { x: 200, y: 100 } })
-    await page.waitForTimeout(200)
     await gfp.svg.click({ position: { x: 200, y: 200 } })
-    await page.waitForTimeout(300)
+    await waitForPageState(
+      page,
+      (s) => s.doppler.fPlus !== null || s.doppler.fMinus !== null,
+      'a doppler marker to be placed'
+    )
 
     const stateBefore = await getStateFromPage(page)
     const hasDopplerData = stateBefore.doppler.fPlus !== null || stateBefore.doppler.fMinus !== null
 
     if (hasDopplerData) {
       // Reload
-      await page.reload()
-      await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-      await page.waitForTimeout(500)
+      await reloadAndWait(page)
 
       const stateAfter = await getStateFromPage(page)
       if (stateBefore.doppler.fPlus) {
@@ -183,9 +230,7 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
       .count()
     expect(rowsBefore).toBeGreaterThan(0)
 
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     // After reload, the markers table must be repopulated (not just the SVG/state)
     const rowsAfter = await page
@@ -208,9 +253,7 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
       .count()
     expect(rowsBefore).toBeGreaterThan(0)
 
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const rowsAfter = await page
       .locator('.gram-frame-harmonics-persistent-container .gram-frame-table tbody tr')
@@ -226,9 +269,7 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
     await addAnalysisMarker(gfp, 200, 150)
 
     // Reload
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     // Verify no dialogs were shown
     const dialogShown = await page.evaluate(() => {
@@ -264,9 +305,7 @@ test.describe('US2: Student annotations persist within session', () => {
     expect(stateBefore.analysis.markers.length).toBeGreaterThan(0)
 
     // Reload within same session
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
@@ -312,11 +351,9 @@ test.describe('gf-persistent flag forces trainer persistence', () => {
     const gfp = await gotoFixture(page, '/tests/fixtures/persistent-flag-page.html')
 
     await addAnalysisMarker(gfp, 200, 150)
-    await page.waitForTimeout(300)
 
     // Annotations should be written to localStorage (trainer behaviour)
-    const localKeys = await gfp.getStorageKeys('local')
-    expect(localKeys.length).toBeGreaterThan(0)
+    await expect.poll(async () => (await gfp.getStorageKeys('local')).length).toBeGreaterThan(0)
 
     // ...and NOT to sessionStorage (student behaviour)
     const sessionKeys = await gfp.getStorageKeys('session')
@@ -330,9 +367,7 @@ test.describe('gf-persistent flag forces trainer persistence', () => {
     const stateBefore = await getStateFromPage(page)
     expect(stateBefore.analysis.markers.length).toBeGreaterThan(0)
 
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
@@ -350,10 +385,8 @@ test.describe('gf-persistent flag forces trainer persistence', () => {
     const gfp = await gotoFixture(page, '/tests/fixtures/persistent-class-page.html')
 
     await addAnalysisMarker(gfp, 200, 150)
-    await page.waitForTimeout(300)
 
-    const localKeys = await gfp.getStorageKeys('local')
-    expect(localKeys.length).toBeGreaterThan(0)
+    await expect.poll(async () => (await gfp.getStorageKeys('local')).length).toBeGreaterThan(0)
 
     const sessionKeys = await gfp.getStorageKeys('session')
     expect(sessionKeys.length).toBe(0)
@@ -387,7 +420,11 @@ test.describe('US3: Clear gram button', () => {
     const clearBtn = page.locator('.gram-frame-clear-btn')
     await expect(clearBtn).toBeVisible()
     await clearBtn.click()
-    await page.waitForTimeout(300)
+    await waitForPageState(
+      page,
+      (s) => s.analysis.markers.length === 0 && s.harmonics.harmonicSets.length === 0,
+      'the annotations to be cleared'
+    )
 
     // Verify annotations removed from state
     const stateAfter = await getStateFromPage(page)
@@ -410,12 +447,10 @@ test.describe('US3: Clear gram button', () => {
     await addAnalysisMarker(gfp, 200, 150)
     const clearBtn = page.locator('.gram-frame-clear-btn')
     await clearBtn.click()
-    await page.waitForTimeout(300)
+    await waitForPageState(page, (s) => s.analysis.markers.length === 0, 'the annotations to be cleared')
 
     // Reload
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const state = await getStateFromPage(page)
     expect(state.analysis.markers.length).toBe(0)
@@ -487,9 +522,7 @@ test.describe('Feature 157: student 24-hour expiry', () => {
     expect(mutated).toBeGreaterThan(0)
 
     // Reload → expired record must be discarded
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.analysis.markers.length).toBe(0)
@@ -516,9 +549,7 @@ test.describe('Feature 157: student 24-hour expiry', () => {
     })
     expect(mutated).toBeGreaterThan(0)
 
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
@@ -542,9 +573,7 @@ test.describe('Feature 157: student 24-hour expiry', () => {
     })
     expect(mutated).toBeGreaterThan(0)
 
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.analysis.markers.length).toBe(0)
@@ -585,9 +614,7 @@ test.describe('Feature 157: trainer permanence beyond 24h', () => {
     })
     expect(mutated).toBeGreaterThan(0)
 
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     // Trainer permanence: still restored, key intact
     const stateAfter = await getStateFromPage(page)
@@ -611,9 +638,7 @@ test.describe('Feature 157: trainer permanence beyond 24h', () => {
     })
     expect(mutated).toBeGreaterThan(0)
 
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const stateAfter = await getStateFromPage(page)
     expect(stateAfter.analysis.markers.length).toBe(stateBefore.analysis.markers.length)
@@ -676,9 +701,7 @@ test.describe('Edge cases', () => {
     })
 
     // Reload with blocked storage
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(300)
+    await reloadAndWait(page)
 
     // Verify no errors in console that break the component
     const state = await getStateFromPage(page)
@@ -710,9 +733,7 @@ test.describe('Edge cases', () => {
     })
 
     // Reload — should discard bad data
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     const state = await getStateFromPage(page)
     expect(state.analysis.markers.length).toBe(0)
@@ -730,9 +751,7 @@ test.describe('Edge cases', () => {
     await page.goto('/tests/fixtures/trainer-page.html')
     await page.evaluate(() => localStorage.clear())
 
-    await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await reloadAndWait(page)
 
     // Verify no storage entries yet
     const gfp = new GramFramePage(page)
@@ -741,9 +760,7 @@ test.describe('Edge cases', () => {
 
     // Add a marker — should now create a storage entry
     await addAnalysisMarker(gfp, 200, 150)
-    await page.waitForTimeout(300)
 
-    const keysAfter = await gfp.getStorageKeys('local')
-    expect(keysAfter.length).toBeGreaterThan(0)
+    await expect.poll(async () => (await gfp.getStorageKeys('local')).length).toBeGreaterThan(0)
   })
 })

@@ -264,7 +264,13 @@ class GramFramePage {
     // Wait for button to be available and interactable
     const modeButton = this.page.locator(`.gram-frame-mode-btn:text("${mode}")`)
     await modeButton.waitFor({ state: 'visible' })
+    const modeType = await modeButton.getAttribute('data-mode')
     await modeButton.click()
+    // The switch is only complete once state reports the new mode — waiting here
+    // means no caller has to guess how long the switch takes.
+    if (modeType) {
+      await this.waitForMode(modeType)
+    }
   }
 
   /**
@@ -727,7 +733,7 @@ class GramFramePage {
    * @returns {Promise<string>} The created marker's id
    */
   async addMarker(time, freq) {
-    return this.page.evaluate(([t, f]) => {
+    const id = await this.page.evaluate(([t, f]) => {
       // @ts-ignore - test-only global
       const instances = window.GramFrame.__test__getInstances()
       const instance = instances[0]
@@ -735,6 +741,13 @@ class GramFramePage {
       const markers = instance.state.analysis.markers
       return markers[markers.length - 1].id
     }, [time, freq])
+    // Return only once the new marker is visible in broadcast state, so callers
+    // can read it back immediately.
+    await this.waitForState(
+      (state) => (state.analysis?.markers ?? []).some((m) => m.id === id),
+      { message: `marker ${id} to appear in state` }
+    )
+    return id
   }
 
   /**
@@ -744,13 +757,20 @@ class GramFramePage {
    * @returns {Promise<string>} The created harmonic set's id
    */
   async addHarmonicSet(anchorTime, spacing) {
-    return this.page.evaluate(([time, space]) => {
+    const id = await this.page.evaluate(([time, space]) => {
       // @ts-ignore - test-only global
       const instances = window.GramFrame.__test__getInstances()
       const instance = instances[0]
       const set = instance.modes['harmonics'].addHarmonicSet(time, space)
       return set.id
     }, [anchorTime, spacing])
+    // Return only once the new set is visible in broadcast state, so callers can
+    // read it back immediately.
+    await this.waitForState(
+      (state) => (state.harmonics?.harmonicSets ?? []).some((s) => s.id === id),
+      { message: `harmonic set ${id} to appear in state` }
+    )
+    return id
   }
 
   /**
@@ -766,6 +786,26 @@ class GramFramePage {
       const instances = window.GramFrame.__test__getInstances()
       instances[0]._setZoom(lvl, cx, cy)
     }, [level, centerX, centerY])
+    await this.waitForZoomLevel(level)
+  }
+
+  /**
+   * Click a feature table row and wait for the selection it toggles to settle.
+   * Clicking a row selects it, or clears the selection when it was already
+   * selected — either way `selection.selectedId` changes, which is the signal
+   * this waits on.
+   * @param {'markers'|'harmonics'} table - Which table the row belongs to
+   * @param {string} id - Feature id held in the row's identity attribute
+   * @returns {Promise<void>}
+   */
+  async clickTableRow(table, id) {
+    const attribute = table === 'harmonics' ? 'data-harmonic-id' : 'data-marker-id'
+    const before = (await this.getState()).selection?.selectedId ?? null
+    await this.page.locator(`tr[${attribute}="${id}"]`).click()
+    await this.waitForState(
+      (state) => (state.selection?.selectedId ?? null) !== before,
+      { message: `selection to change away from ${before}` }
+    )
   }
 
   /**
