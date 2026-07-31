@@ -8,16 +8,15 @@
  *   1. Circular dependencies in src/ (madge)
  *   2. Modules with unused exports (ts-unused-exports)
  *   3. `waitForTimeout` occurrences in tests/ (containment until Phase 2)
- *   4. Strict-flag type errors under tsconfig.strict.json (spec 167 Story 1)
- *   5. `instance.state` reach-ins under src/ (spec 167 Story 5)
- *   6. Class-field declarations on GramFrame (spec 167 Story 5)
+ *   4. `instance.state` reach-ins under src/ (spec 167 Story 5)
+ *   5. Class-field declarations on GramFrame (spec 167 Story 5)
  *
  * A count below its baseline passes with a reminder to lower the baseline in
  * the same PR, so improvements get locked in as ordinary reviewed diffs.
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -108,8 +107,6 @@ results.push({
   detail: timeoutCounts,
 })
 
-// --- 4. Strict-flag type errors (spec 167 Story 1) --------------------------
-
 /**
  * Recursively collect every `.js` file under `src/`.
  * @param {string} dir
@@ -128,112 +125,7 @@ function collectSourceFiles(dir) {
   return files
 }
 
-/**
- * Type-check the project under an overlay tsconfig and return the raw output.
- *
- * `tsc --noEmit` exits non-zero whenever it reports an error, so the report
- * arrives on stdout of a thrown error in the normal (non-empty) case.
- * @param {string} project - Path to the tsconfig, relative to the repo root
- * @returns {string} Combined compiler output
- */
-function runTsc(project) {
-  const tscBin = join(repoRoot, 'node_modules', '.bin', 'tsc')
-  try {
-    return execFileSync(tscBin, ['--noEmit', '-p', project], { cwd: repoRoot, encoding: 'utf8' })
-  } catch (err) {
-    if (typeof err.stdout !== 'string') throw err
-    return err.stdout
-  }
-}
-
-/**
- * Count `error TS` lines in compiler output.
- * @param {string} output
- * @returns {string[]} The matching lines
- */
-function errorLines(output) {
-  return output.split('\n').filter(line => line.includes('error TS'))
-}
-
-/**
- * The compiler-output lines matching a pattern.
- * @param {string} output
- * @param {RegExp} pattern
- * @returns {string[]} The matching lines
- */
-function errorLinesMatching(output, pattern) {
-  return output.split('\n').filter(line => pattern.test(line))
-}
-
-// Temporary: this whole block disappears with tsconfig.strict.json once the
-// three flags move into tsconfig.json itself (spec 167 T014). Absence of the
-// overlay is the intended end state, not a misconfiguration, so skip silently.
-const strictProject = 'tsconfig.strict.json'
-if (existsSync(join(repoRoot, strictProject))) {
-  const output = runTsc(strictProject)
-
-  // A malformed overlay makes tsc report a *config* error and check nothing,
-  // which would read as the burn-down finishing overnight. Mirror the madge
-  // moduleCount guard and fail loudly instead.
-  const configError = ['TS5052', 'TS6046', 'TS5023'].find(code => output.includes(code))
-  if (configError) {
-    console.error(`✖ ${strictProject} is malformed — tsc reported ${configError} and checked nothing.`)
-    console.error(output.trim())
-    console.error('  The strict error count is meaningless until the overlay parses. Fix the config, not the baseline.')
-    process.exit(1)
-  }
-
-  // A syntax error stops tsc before it type-checks, so the count collapses to a
-  // handful and reads as the burn-down finishing overnight. Observed for real:
-  // one stray brace took the count from 455 to 1 and the ratchet said
-  // "improved". Syntax errors are TS1xxx.
-  if (/error TS1\d{3}:/.test(output)) {
-    console.error(`✖ tsc reported a syntax error under ${strictProject} and stopped before type-checking.`)
-    for (const line of errorLinesMatching(output, /error TS1\d{3}:/)) console.error(`    ${line}`)
-    console.error('  The strict error count is meaningless until the source parses.')
-    process.exit(1)
-  }
-
-  const errors = errorLines(output)
-  const detail = []
-
-  // The per-flag split costs two extra tsc runs, so it is only computed when
-  // the count has moved — which is exactly when someone needs to see the shape.
-  if (errors.length !== baseline.strictTypeErrors) {
-    for (const flag of ['noImplicitAny', 'strictNullChecks']) {
-      const probe = join(repoRoot, `tsconfig.hygiene-${flag}.json`)
-      writeFileSync(probe, JSON.stringify({
-        extends: './tsconfig.json',
-        // strictPropertyInitialization is deliberately absent: it cannot be set
-        // without strictNullChecks (TS5052) and adds no errors once it is.
-        compilerOptions: { [flag]: true },
-      }, null, 2))
-      try {
-        detail.push(`${flag}: ${errorLines(runTsc(relative(repoRoot, probe))).length}`)
-      } finally {
-        rmSync(probe, { force: true })
-      }
-    }
-  }
-
-  /** @type {Map<string, number>} */
-  const byFile = new Map()
-  for (const line of errors) {
-    const file = line.split('(')[0]
-    byFile.set(file, (byFile.get(file) ?? 0) + 1)
-  }
-  const topFiles = [...byFile.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
-  detail.push(...topFiles.map(([file, count]) => `${file}: ${count}`))
-
-  results.push({
-    name: `Strict type errors (${strictProject})`,
-    baseline: baseline.strictTypeErrors,
-    current: errors.length,
-    detail,
-  })
-}
-
-// --- 5 & 6. Instance surface (spec 167 Story 5) -----------------------------
+// --- 4 & 5. Instance surface (spec 167 Story 5) -----------------------------
 
 const sourceFiles = collectSourceFiles(join(repoRoot, 'src'))
 

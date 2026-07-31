@@ -35,6 +35,23 @@ export function createLEDDisplay(label, value) {
 }
 
 /**
+ * Write the value into an LED display.
+ *
+ * The value span is created with the LED and never removed, so a missing one is
+ * a bug rather than a state to render around — but reading it out is still a
+ * `querySelector`, and four call sites were each dereferencing the result
+ * unguarded. One place to do it, one place to be wrong.
+ * @param {HTMLElement} led - LED element created by `createLEDDisplay`
+ * @param {string} value - Text to display
+ */
+export function setLEDValue(led, value) {
+  const valueDiv = led.querySelector('.gram-frame-led-value')
+  if (valueDiv) {
+    valueDiv.textContent = value
+  }
+}
+
+/**
  * Update global LED displays (mode and rate only)
  * Mode-specific LEDs are now managed by individual modes
  * @param {GramFrame} instance - GramFrame instance with global LEDs
@@ -43,12 +60,12 @@ export function createLEDDisplay(label, value) {
 export function updateLEDDisplays(instance, state) {
   // Update global mode LED display
   if (instance.modeLED) {
-    instance.modeLED.querySelector('.gram-frame-led-value').textContent = getModeDisplayName(state.mode)
+    setLEDValue(instance.modeLED, getModeDisplayName(state.mode))
   }
   
   // Update global rate LED display
   if (instance.rateLED) {
-    instance.rateLED.querySelector('.gram-frame-led-value').textContent = `${state.rate}`
+    setLEDValue(instance.rateLED, `${state.rate}`)
   }
   
   // Color picker visibility is now managed by individual modes

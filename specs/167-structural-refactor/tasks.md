@@ -106,14 +106,14 @@ in the same commit** (AS-1.2).
 
 ### strictNullChecks burn-down (401 errors, tranched by directory)
 
-- [ ] T011 [US1] Tranche A — `src/core/`: `state.js` (21), `viewport.js` (28), `events.js` (15), `FeatureRenderer.js` (16), `initialization/UISetup.js` (20), `FocusManager.js` (6), `configuration.js` (5), and the ≤2-error files. Fix the 20 `TS2783` errors at `src/core/state.js:38-39` properly — `version`/`timestamp` are set and then spread over by `buildModeInitialState()`, so a mode returning either key silently wins. This is a latent bug, not a cast site; it is fixed for real in T017
-- [ ] T012 [US1] Tranche B — `src/components/` and the post-split `table.js` family (65 errors, re-attributed across T021–T023): `ExpandToggle.js` (21), `HarmonicPanel.js` (11), `SymbolPicker.js` (7), `ColorPicker.js` (7), `ModeButtons.js` (6), `MainUI.js`, `PinToggle.js`, `LEDDisplay.js`
-- [ ] T013 [US1] Tranche C — `src/modes/` and `src/core/keyboardControl.js`: `HarmonicsMode.js` (51), `DopplerMode.js` (47), `keyboardControl.js` (46), `AnalysisMode.js` (45), `PanMode.js` (8), `BaseMode.js` (5), `shared/BaseDragHandler.js` (3), plus `src/utils/tolerance.js` (15) and `src/main.js`'s remaining null errors
+- [x] T011 [US1] Tranche A — `src/core/`: `state.js` (21), `viewport.js` (28), `events.js` (15), `FeatureRenderer.js` (16), `initialization/UISetup.js` (20), `FocusManager.js` (6), `configuration.js` (5), and the ≤2-error files. Fix the 20 `TS2783` errors at `src/core/state.js:38-39` properly — `version`/`timestamp` are set and then spread over by `buildModeInitialState()`, so a mode returning either key silently wins. This is a latent bug, not a cast site; it is fixed for real in T017
+- [x] T012 [US1] Tranche B — `src/components/` and the post-split `table.js` family (65 errors, re-attributed across T021–T023): `ExpandToggle.js` (21), `HarmonicPanel.js` (11), `SymbolPicker.js` (7), `ColorPicker.js` (7), `ModeButtons.js` (6), `MainUI.js`, `PinToggle.js`, `LEDDisplay.js`
+- [x] T013 [US1] Tranche C — `src/modes/` and `src/core/keyboardControl.js`: `HarmonicsMode.js` (51), `DopplerMode.js` (47), `keyboardControl.js` (46), `AnalysisMode.js` (45), `PanMode.js` (8), `BaseMode.js` (5), `shared/BaseDragHandler.js` (3), plus `src/utils/tolerance.js` (15) and `src/main.js`'s remaining null errors
 
 ### Close the gate
 
-- [ ] T014 [US1] With the count at zero, enable `strictNullChecks` and `strictPropertyInitialization` in `tsconfig.json`; delete `tsconfig.strict.json`, the `strictTypeErrors` entry from `hygiene-baseline.json`, and the ratchet block from `scripts/hygiene.js`; verify `tsconfig.json` contains no strict-family disable (AS-1.3, SC-001). Sequence this **after** T030 so US3/US4's moved code is written strict-clean once
-- [ ] T015 [P] [US1] Annotate `docs/ADRs/ADR-007-JSDoc-TypeScript-Integration.md` recording that the strict gate is now fully in force, with the burn-down's start and end numbers (AS-1.4)
+- [x] T014 [US1] With the count at zero, enable `strictNullChecks` and `strictPropertyInitialization` in `tsconfig.json`; delete `tsconfig.strict.json`, the `strictTypeErrors` entry from `hygiene-baseline.json`, and the ratchet block from `scripts/hygiene.js`; verify `tsconfig.json` contains no strict-family disable (AS-1.3, SC-001). Sequence this **after** T030 so US3/US4's moved code is written strict-clean once
+- [x] T015 [P] [US1] Annotate `docs/ADRs/ADR-007-JSDoc-TypeScript-Integration.md` recording that the strict gate is now fully in force, with the burn-down's start and end numbers (AS-1.4)
 
 **Checkpoint**: `yarn typecheck` gates real strictness. SC-001 met.
 

@@ -92,6 +92,15 @@ export class BaseMode {
   }
 
   /**
+   * Handle a right-click within the image.
+   * @param {MouseEvent} _event - Context-menu event (unused in base implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+   */
+  handleContextMenu(_event, _dataCoords) {
+    // Default implementation - override in subclasses
+  }
+
+  /**
    * Render persistent features for this mode
    * Override in subclasses to render mode-specific persistent features
    */
@@ -101,7 +110,8 @@ export class BaseMode {
 
   /**
    * Update LED displays with mode-specific values
-   * @param {CursorPosition} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
+   * @param {CursorPosition|null} _coords - Current cursor coordinates, or null
+   *   when the pointer is not over the image
    */
   updateLEDs(_coords) {
     // Default implementation - override in subclasses

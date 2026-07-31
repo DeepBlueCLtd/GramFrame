@@ -28,9 +28,11 @@ export class HarmonicsMode extends BaseMode {
     // is resolved — a create mints its set on mousedown — and share every
     // subsequent step (spec 166, FR-004).
     this.dragHandler = new BaseDragHandler(instance, {
-      resolveTarget: (position) => this.resolveHarmonicDrag(position),
-      onDragStart: (target, position) => this.onHarmonicSetDragStart(target, position),
-      onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
+      // A feature drag always carries a data position. Only the pan drag passes
+      // null, and it runs on its own handler in `core/events.js`.
+      resolveTarget: (position) => this.resolveHarmonicDrag(/** @type {DataCoordinates} */ (position)),
+      onDragStart: (target, position) => this.onHarmonicSetDragStart(target, /** @type {DataCoordinates} */ (position)),
+      onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, /** @type {DataCoordinates} */ (currentPos), /** @type {DataCoordinates} */ (startPos)),
       onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
       onDragCancel: (target) => this.onHarmonicSetDragEnd(target, null),
       updateCursor: (style) => this.updateCursorStyle(style)
@@ -114,7 +116,7 @@ export class HarmonicsMode extends BaseMode {
   /**
    * End dragging a harmonic set
    * @param {Object} _target - Drag target with id and type (unused)
-   * @param {DataCoordinates} _position - End position (unused)
+   * @param {DataCoordinates|null} _position - End position (unused)
    */
   onHarmonicSetDragEnd(_target, _position) {
     // Nothing to unwind: the engine clears the drag record itself.

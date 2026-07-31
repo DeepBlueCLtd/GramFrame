@@ -48,9 +48,11 @@ export class AnalysisMode extends BaseMode {
     
     // Initialize drag handler with analysis-specific callbacks
     this.dragHandler = new BaseDragHandler(instance, {
-      resolveTarget: (position) => this.findMarkerAtPosition(position),
-      onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+      // A feature drag always carries a data position. Only the pan drag passes
+      // null, and it runs on its own handler in `core/events.js`.
+      resolveTarget: (position) => this.findMarkerAtPosition(/** @type {DataCoordinates} */ (position)),
+      onDragStart: (target, position) => this.onMarkerDragStart(target, /** @type {DataCoordinates} */ (position)),
+      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, /** @type {DataCoordinates} */ (currentPos), /** @type {DataCoordinates} */ (startPos)),
       onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
       updateCursor: (style) => this.updateCursorStyle(style)
     }, 'analysis')
@@ -70,7 +72,8 @@ export class AnalysisMode extends BaseMode {
     const marker = this.instance.state.analysis.markers.find(m => m.id === target.id)
     if (marker) {
       const index = this.instance.state.analysis.markers.findIndex(m => m.id === target.id)
-      this.instance.setSelection('marker', target.id, index)
+      // Non-null: a marker was found by matching this id, so it is a real one.
+      this.instance.setSelection('marker', /** @type {string} */ (target.id), index)
     }
   }
 
@@ -110,7 +113,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * End dragging a marker
    * @param {Object} _target - Drag target with id and type (unused)
-   * @param {DataCoordinates} _position - End position (unused)
+   * @param {DataCoordinates|null} _position - End position (unused)
    */
   onMarkerDragEnd(_target, _position) {
     // Nothing to unwind: the engine clears the drag record itself.
@@ -209,8 +212,9 @@ export class AnalysisMode extends BaseMode {
     // Find marker at right-click position
     const target = this.findMarkerAtPosition(dataCoords)
     if (target) {
-      // Delete the marker
-      this.removeMarker(target.id)
+      // `findMarkerAtPosition` only ever returns a move-kind target, which
+      // always carries the id of the marker it found.
+      this.removeMarker(/** @type {string} */ (target.id))
     }
   }
 

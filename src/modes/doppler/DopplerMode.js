@@ -1,4 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
+import { setLEDValue } from '../../components/LEDDisplay.js'
 import { updateLEDDisplays } from '../../components/UIComponents.js'
 import { dispatch, markAnnotationsChanged } from '../../core/state.js'
 // Rendering imports removed - no display element
@@ -34,9 +35,11 @@ export class DopplerMode extends BaseMode {
     // laying down f+/f- by dragging (`place`). They differ only in how the
     // target is resolved (spec 166, FR-004).
     this.dragHandler = new BaseDragHandler(instance, {
-      resolveTarget: (position) => this.resolveDopplerDrag(position),
-      onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+      // A feature drag always carries a data position. Only the pan drag passes
+      // null, and it runs on its own handler in `core/events.js`.
+      resolveTarget: (position) => this.resolveDopplerDrag(/** @type {DataCoordinates} */ (position)),
+      onDragStart: (target, position) => this.onMarkerDragStart(target, /** @type {DataCoordinates} */ (position)),
+      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, /** @type {DataCoordinates} */ (currentPos), /** @type {DataCoordinates} */ (startPos)),
       onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
       onDragCancel: (target) => this.onMarkerDragEnd(target, null),
       updateCursor: (style) => this.updateCursorStyle(style)
@@ -59,22 +62,27 @@ export class DopplerMode extends BaseMode {
     // inside it (they overlap when the curve is short) take the closest, falling
     // back to the first match for a position inside the box but outside the
     // tolerance circle — so the region an analyst can grab is unchanged.
-    const targets = [
+    /** @type {Array<DragTarget & {position: DataCoordinates, id: string}>} */
+    const targets = []
+    for (const markerType of [
       DopplerDraggedMarker.fPlus,
       DopplerDraggedMarker.fMinus,
       DopplerDraggedMarker.fZero
-    ]
-      .filter(markerType => doppler[markerType])
-      .map(markerType => ({
-        // Inside a `.map` there is no contextual type to keep the literal
-        // narrow, so 'move' would widen to `string` and stop being a `DragKind`.
-        kind: /** @type {DragKind} */ ('move'),
+    ]) {
+      // A loop rather than filter-then-map: `.filter` does not narrow the
+      // element type, so the mapped `position` stayed nullable and the list
+      // stopped being a list of `DragTarget`s.
+      const markerPosition = doppler[markerType]
+      if (!markerPosition) continue
+      if (!isWithinDataTolerance(position, markerPosition, tolerance)) continue
+      targets.push({
+        kind: 'move',
         id: markerType,
         type: 'dopplerMarker',
-        position: doppler[markerType],
+        position: markerPosition,
         data: { markerType }
-      }))
-      .filter(target => isWithinDataTolerance(position, target.position, tolerance))
+      })
+    }
 
     return findClosestTarget(position, targets, tolerance) || targets[0] || null
   }
@@ -111,7 +119,7 @@ export class DopplerMode extends BaseMode {
   /**
    * End dragging a doppler marker
    * @param {DragTarget} target - Drag target
-   * @param {DataCoordinates} _position - End position (unused)
+   * @param {DataCoordinates|null} _position - End position (unused)
    */
   onMarkerDragEnd(target, _position) {
     if (target && target.kind === 'place') {
@@ -233,8 +241,12 @@ export class DopplerMode extends BaseMode {
       freq: dataCoords.freq
     }
     
-    // Calculate f₀ as midpoint for preview
-    doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus)
+    // Calculate f₀ as midpoint for preview. f+ is placed before any preview
+    // drag can start, and f- was assigned two lines above.
+    doppler.fZero = this.calculateMidpoint(
+      /** @type {DataCoordinates} */ (doppler.fPlus),
+      doppler.fMinus
+    )
 
     // Published for listeners watching an in-progress placement
     doppler.previewEnd = doppler.fMinus
@@ -436,9 +448,9 @@ export class DopplerMode extends BaseMode {
     if (this.instance.speedLED && this.instance.state.doppler.speed !== null) {
       // Convert m/s to knots: 1 m/s = 1.94384 knots
       const speedInKnots = this.instance.state.doppler.speed * MS_TO_KNOTS_CONVERSION
-      this.instance.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
+      setLEDValue(this.instance.speedLED, speedInKnots.toFixed(1))
     } else if (this.instance.speedLED) {
-      this.instance.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
+      setLEDValue(this.instance.speedLED, '0.0')
     }
   }
 

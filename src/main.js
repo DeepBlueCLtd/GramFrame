@@ -19,6 +19,7 @@ import {
 import {
   updateLEDDisplays
 } from './components/UIComponents.js'
+import { setLEDValue } from './components/LEDDisplay.js'
 import { 
   updatePersistentPanels 
 } from './components/MainUI.js'
@@ -93,6 +94,12 @@ export class GramFrame {
   /** @type {HTMLDivElement} */
   container;
   /** @type {HTMLDivElement} */
+  table;
+  /** @type {HTMLDivElement} */
+  modeRow;
+  /** @type {HTMLDivElement} */
+  mainRow;
+  /** @type {HTMLDivElement} */
   readoutPanel;
   /** @type {HTMLDivElement} */
   modeCell;
@@ -115,21 +122,13 @@ export class GramFrame {
   /** @type {SVGRectElement} */
   cursorClipRect;
   
-  // Unified layout containers
-  /** @type {HTMLDivElement} */
-  leftColumn;
-  /** @type {HTMLDivElement} */
-  middleColumn;
-  /** @type {HTMLDivElement} */
-  rightColumn;
+  // The one layout column read back off the instance: the trainer-only
+  // "Clear gram" button is appended to it after construction. The other six
+  // columns were copied here and never read again — `createUnifiedLayout`
+  // assembles them itself and hands the panel-mounting ones straight to the
+  // steps that need them — so they are no longer kept (spec 167, US5).
   /** @type {HTMLDivElement} */
   modeColumn;
-  /** @type {HTMLDivElement} */
-  guidanceColumn;
-  /** @type {HTMLDivElement} */
-  controlsColumn;
-  /** @type {HTMLDivElement} */
-  unifiedLayoutContainer;
   /** @type {HTMLElement} */
   timeLED;
   /** @type {HTMLElement} */
@@ -141,6 +140,10 @@ export class GramFrame {
   /** @type {HTMLDivElement} */
   harmonicsContainer;
   
+  // The harmonics panel, mounted by HarmonicsMode when its UI is created
+  /** @type {HTMLElement|null} */
+  harmonicPanel = null;
+
   // Spectrogram image
   /** @type {SVGImageElement} */
   spectrogramImage;
@@ -186,6 +189,8 @@ export class GramFrame {
   // EXPERIMENT (temporary): resize the selected feature's symbols
   /** @type {function(boolean): boolean} */
   applyLargeSymbolsToSelectedFeature;
+  /** @type {function(string): void} */
+  removeHarmonicSet;
   // Sync the colour/symbol/pin controls to the current selection. Replaced by
   // the colour picker when it mounts; a no-op until then, so a caller that runs
   // before the controls exist does nothing rather than throwing.
@@ -217,9 +222,9 @@ export class GramFrame {
   _registeredListeners = [];
 
   /**
-   * Transient state for a wheel-button (middle) drag pan; null when not dragging.
-   * Not part of the broadcast state.
-   * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
+   * The drag engine driving a wheel-button (middle) pan, created lazily on the
+   * first such drag. Not part of the broadcast state.
+   * @type {import('./modes/shared/BaseDragHandler.js').BaseDragHandler|null}
    */
   _wheelPanHandler = null;
 
@@ -281,6 +286,9 @@ export class GramFrame {
     // (spec 167, FR-009, AS-5.2).
     const dom = setupSpectrogramComponents(this, configTable)
     this.container = dom.container
+    this.table = dom.table
+    this.modeRow = dom.modeRow
+    this.mainRow = dom.mainRow
     this.modeCell = dom.modeCell
     this.mainCell = dom.mainCell
     this.readoutPanel = dom.readoutPanel
@@ -292,13 +300,7 @@ export class GramFrame {
     this.cursorClipRect = dom.cursorClipRect
 
     const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell)
-    this.unifiedLayoutContainer = layout.unifiedLayoutContainer
-    this.leftColumn = layout.leftColumn
-    this.middleColumn = layout.middleColumn
-    this.rightColumn = layout.rightColumn
     this.modeColumn = layout.modeColumn
-    this.guidanceColumn = layout.guidanceColumn
-    this.controlsColumn = layout.controlsColumn
     this.markersContainer = layout.markersContainer
     this.harmonicsContainer = layout.harmonicsContainer
     this.timeLED = layout.timeLED
@@ -323,6 +325,7 @@ export class GramFrame {
     this.guidancePanel = modeUI.guidancePanel
 
     const controls = setupAllEventListeners(this)
+    this.removeHarmonicSet = controls.removeHarmonicSet
     this.setSelection = controls.setSelection
     this.clearSelection = controls.clearSelection
     this.updateSelectionVisuals = controls.updateSelectionVisuals
@@ -678,7 +681,7 @@ export class GramFrame {
     
     // Update global status LEDs
     if (this.modeLED) {
-      this.modeLED.querySelector('.gram-frame-led-value').textContent = getModeDisplayName(mode)
+      setLEDValue(this.modeLED, getModeDisplayName(mode))
     }
     
     // Update persistent panels regardless of active mode

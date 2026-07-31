@@ -201,11 +201,8 @@ function moveSelectedMarker(instance, markerId, movement) {
     instance.featureRenderer.renderAllPersistentFeatures()
   }
   
-  // Update markers table
-  if (instance.currentMode && instance.currentMode.updateMarkersTable) {
-    instance.currentMode.updateMarkersTable()
-  }
-  
+  refreshPanels(instance)
+
   dispatch(instance)
 }
 

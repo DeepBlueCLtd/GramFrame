@@ -165,7 +165,7 @@ export function createExpandToggle(instance) {
   const button = document.createElement('button')
   button.className = 'gram-frame-expand-toggle'
   button.type = 'button'
-  updateToggleButton(button, instance.state.imageExpanded)
+  updateToggleButton(button, instance.state.imageExpanded === true)
 
   button.addEventListener('click', (e) => {
     e.preventDefault()

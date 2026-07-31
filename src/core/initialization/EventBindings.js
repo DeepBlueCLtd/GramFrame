@@ -26,14 +26,10 @@ export function setupAllEventListeners(instance) {
   // Initialize keyboard control for fine positioning
   initializeKeyboardControl(instance)
   
-  // `removeHarmonicSet` is not a declared field — the harmonics panel looks it
-  // up dynamically — so it is still written directly.
-  instance.removeHarmonicSet = (/** @type {string} */ id) => removeHarmonicSet(instance, id)
-
-  // The rest are returned for the constructor to adopt, so they are definitely
-  // assigned rather than appearing on the instance from inside a helper
-  // (spec 167, FR-009).
+  // Returned for the constructor to adopt, so they are definitely assigned
+  // rather than appearing on the instance from inside a helper (FR-009).
   return {
+    removeHarmonicSet: (/** @type {string} */ id) => removeHarmonicSet(instance, id),
     setSelection: (/** @type {string} */ type, /** @type {string} */ id, /** @type {number} */ index) =>
       setSelection(instance, type, id, index),
     clearSelection: () => clearSelection(instance),

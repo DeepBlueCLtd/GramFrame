@@ -39,19 +39,26 @@
 
 /**
  * Whether a mode provides persistent features.
- * @param {any} mode - Mode instance
- * @returns {boolean} True if the mode implements PersistentFeatureProvider
+ *
+ * A type guard, not a boolean check: the point of a capability is that the
+ * caller may then use the members, and only a guard makes that checkable.
+ * @template T
+ * @param {T} mode - Mode instance
+ * @returns {mode is T & PersistentFeatureProvider} True if the mode implements PersistentFeatureProvider
  */
 export function isPersistentFeatureProvider(mode) {
-  return typeof mode?.hasPersistentFeatures === 'function'
-      && typeof mode?.renderPersistentFeatures === 'function'
+  const candidate = /** @type {Partial<PersistentFeatureProvider>} */ (mode)
+  return typeof candidate?.hasPersistentFeatures === 'function'
+      && typeof candidate?.renderPersistentFeatures === 'function'
 }
 
 /**
  * Whether a mode owns a persistent panel.
- * @param {any} mode - Mode instance
- * @returns {boolean} True if the mode implements PanelOwner
+ * @template T
+ * @param {T} mode - Mode instance
+ * @returns {mode is T & PanelOwner} True if the mode implements PanelOwner
  */
 export function isPanelOwner(mode) {
-  return typeof mode?.refreshPanel === 'function'
+  const candidate = /** @type {Partial<PanelOwner>} */ (mode)
+  return typeof candidate?.refreshPanel === 'function'
 }

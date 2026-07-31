@@ -171,6 +171,12 @@ export function createColorPicker(instance) {
  */
 function drawColorPalette(canvas) {
   const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    // A refused 2d context means no palette to draw into. The swatch row above
+    // it is the primary control, so leaving the strip blank degrades rather
+    // than throwing during construction.
+    return
+  }
   const width = canvas.width
   const height = canvas.height
   
