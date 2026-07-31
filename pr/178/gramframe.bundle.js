@@ -4,7 +4,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
 (function() {
   // Inject CSS styles
   const style = document.createElement('style');
-  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #1a1a1a;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* Military-style table layout for proper resizing */\n.gram-frame-table {\n  display: table;\n  width: 100%;\n  height: 100%;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* Main panel with military frame */\n.gram-frame-main-panel {\n  padding: 15px;\n  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border: 3px solid #555;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 3px 6px rgba(0,0,0,0.5),\n    inset 0 -2px 4px rgba(255,255,255,0.1),\n    0 0 10px rgba(0,0,0,0.7);\n  position: relative;\n}\n\n.gram-frame-main-panel:before {\n  content: '';\n  position: absolute;\n  top: 5px;\n  left: 5px;\n  right: 5px;\n  bottom: 5px;\n  border: 1px solid #666;\n  border-radius: 4px;\n  pointer-events: none;\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n.gram-frame-display-panel {\n  padding: 10px;\n  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border-top: 2px solid #555;\n}\n\n.gram-frame-readout {\n  flex: 0 1 auto;\n  padding: 0;\n  background: transparent;\n}\n\n/* Harmonics mode CSS removed - now using unified layout */\n\n/* Harmonics layout container - two columns */\n\n/* Left column for controls - 40% width */\n.gram-frame-harmonics-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  flex: 0 0 40%;\n  max-width: 40%;\n}\n\n/* Top row in left column */\n.gram-frame-harmonics-top-row {\n  display: flex;\n  gap: 10px;\n  align-items: stretch;\n}\n\n/* Right column for table - 60% width */\n.gram-frame-harmonics-table-column {\n  flex: 0 0 60%;\n  max-width: 60%;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n}\n\n/* Make color picker more compact in harmonics mode */\n.gram-frame-harmonics-mode .gram-frame-color-picker {\n  margin: 0;\n}\n\n/* Harmonic panel layout - always visible in unified layout */\n\n/* Military-style display windows */\n.gram-frame-led {\n  font-family: 'Courier New', monospace;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  color: #00ff00; /* LED green */\n  padding: 6px 0px;\n  border: 0px solid #333;\n  border-radius: 4px;\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 auto;\n  min-width: 100px;\n  text-align: center;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  position: relative;\n  font-size: 11px;\n  height: fit-content;\n}\n\n.gram-frame-led:before {\n  content: '';\n  position: absolute;\n  top: 2px;\n  left: 2px;\n  right: 2px;\n  bottom: 2px;\n  border: 1px solid #444;\n  border-radius: 2px;\n  pointer-events: none;\n}\n\n/* LED label */\n.gram-frame-led-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 4px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* LED value */\n.gram-frame-led-value {\n  font-size: 14px;\n  font-weight: bold;\n  text-shadow: 0 0 4px #00ff00;\n}\n\n/* Manual harmonic button */\n.gram-frame-manual-button {\n  padding: 6px 12px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-manual-button:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-manual-button:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Color picker for harmonics */\n.gram-frame-color-picker {\n  margin-top: 0;\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  max-width: 200px;\n  flex-shrink: 0;\n}\n\n.gram-frame-color-picker-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 6px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-color-palette {\n  position: relative;\n}\n\n.gram-frame-color-canvas {\n  width: 140px;\n  max-width: 140px;\n  height: 20px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  cursor: pointer;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n.gram-frame-color-indicator {\n  position: absolute;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 3px;\n  height: 26px;\n  background: #fff;\n  border: 1px solid #000;\n  border-radius: 1px;\n  pointer-events: none;\n  box-shadow: 0 0 2px rgba(0,0,0,0.8);\n}\n\n/* Analysis mode layout styles */\n.gram-frame-analysis-layout {\n  height: 100%;\n}\n\n.gram-frame-analysis-controls {\n  align-self: flex-start;\n}\n\n.gram-frame-analysis-leds {\n  /* Side-by-side LEDs container */\n}\n\n.gram-frame-analysis-leds .gram-frame-led {\n  /* Ensure LEDs in the horizontal container are sized properly */\n  font-size: 9px; /* Slightly smaller to fit side-by-side */\n}\n\n.gram-frame-analysis-leds .gram-frame-led-label {\n  font-size: 8px; /* Smaller label text */\n  color: #00ff00;\n}\n\n.gram-frame-analysis-markers {\n  height: 100%;\n}\n\n/* Unified table styles for both markers and harmonics */\n.gram-frame-table-container {\n  padding: 0;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  min-height: 0;\n}\n\n.gram-frame-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n  transition: all 0.2s ease;\n  position: relative;\n}\n\n.gram-frame-table tbody tr:hover {\n  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.05),\n    inset 0 -1px 2px rgba(0,0,0,0.2),\n    0 0 4px rgba(255,255,255,0.1);\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: transparent;\n}\n\n/* Legacy markers styles - kept for compatibility */\n.gram-frame-markers-container {\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-markers-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin: 0 0 8px 0;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-markers-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-markers-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-markers-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-color-swatch {\n  margin: 0 auto;\n  display: block;\n}\n\n.gram-frame-marker-delete-btn {\n  padding: 2px 6px;\n  border-radius: 2px;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-delete-btn:hover {\n  background-color: #ff4444 !important;\n  color: #fff !important;\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n.gram-frame-current-color {\n  border: 1px solid #555;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n/* Military-style mode selection header */\n.gram-frame-mode-header {\n  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border-bottom: 2px solid #555;\n  display: flex;\n  align-items: flex-start;\n  justify-content: flex-start;\n}\n\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  justify-content: center;\n  align-items: stretch;\n  flex: 0 0 auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-mode-group {\n  display: flex;\n  align-items: center;\n  gap: 2px;\n  width: 100%;\n  flex-wrap: nowrap;\n}\n\n/* Simplified left panel - no sub-columns needed */\n\n/* Guidance panel */\n.gram-frame-guidance {\n  flex: 1;\n  padding: 8px 12px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  color: #ccc;\n  font-size: 12px;\n  line-height: 1.4;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-guidance h4 {\n  margin: 0 0 6px 0;\n  font-size: 11px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-guidance p {\n  margin: 0 0 4px 0;\n}\n\n/* Military-style metal buttons */\n.gram-frame-mode-btn {\n  padding: 8px 6px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  flex: 1;\n  min-width: 0;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-command-btn {\n  padding: 8px 10px;\n  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #444;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 14px;\n  line-height: 1;\n  flex: 0 0 auto;\n  min-width: 32px;\n  height: 36px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-mode-btn:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-mode-btn.active {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n  border-color: #4a8a4a;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    inset 0 -1px 2px rgba(255,255,255,0.1),\n    0 0 4px rgba(74, 138, 74, 0.3);\n}\n\n.gram-frame-mode-btn:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  opacity: 0.6;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n.gram-frame-mode-btn:disabled:hover,\n.gram-frame-mode-btn.disabled:hover {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n  transform: none;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-command-btn:active:not(:disabled) {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-command-btn:disabled {\n  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n/* Clear gram button — trainer pages only */\n.gram-frame-clear-btn {\n  margin-top: 8px;\n  padding: 6px 10px;\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #6a3a3a;\n  border-radius: 4px;\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.5px;\n  cursor: pointer;\n  text-transform: uppercase;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.15),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  width: 100%;\n}\n\n.gram-frame-clear-btn:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.25),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-clear-btn:active {\n  transform: translateY(1px);\n  box-shadow:\n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Rate input UI styles removed - backend functionality preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /* Add text shadow for readability */\n  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* Legacy harmonic panel styles - now using unified table structure */\n\n.gram-frame-harmonic-spacing,\n.gram-frame-harmonic-rate {\n  font-size: 14px;\n  font-weight: bold;\n}\n\n.gram-frame-harmonic-color {\n  width: 20px;\n  height: 12px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  display: inline-block;\n}\n\n.gram-frame-harmonic-delete {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ff6666;\n  border: 1px solid #555;\n  border-radius: 2px;\n  width: 20px;\n  height: 20px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  line-height: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.1s ease;\n}\n\n.gram-frame-harmonic-delete:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  border-color: #777;\n}\n\n.gram-frame-harmonic-delete:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-harmonic-empty {\n  color: #666;\n  font-style: italic;\n  text-align: center;\n  padding: 20px;\n  font-size: 12px;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Cursor position readout styles */\n.gram-frame-cursor-readout {\n  display: flex;\n  gap: 15px;\n  margin-bottom: 10px;\n  padding: 8px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 1px solid #444;\n  border-radius: 4px;\n}\n\n.gram-frame-readout-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  min-width: 80px;\n}\n\n.gram-frame-readout-label {\n  font-size: 10px;\n  color: #aaa;\n  text-transform: uppercase;\n  margin-bottom: 2px;\n  font-weight: bold;\n}\n\n.gram-frame-readout-value {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: bold;\n  color: #00ff00;\n  background: #000;\n  padding: 4px 8px;\n  border: 1px solid #333;\n  border-radius: 2px;\n  text-align: center;\n  min-width: 60px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/* Unified Layout Styles */\n.gram-frame-unified-layout {\n  display: flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  gap: 2px; /* Match JavaScript gap */\n  width: 100%;\n  height: 100%;\n  overflow: hidden; /* Prevent columns from overflowing container */\n}\n\n.gram-frame-left-column {\n  position: relative; /* Enable absolute positioning for child elements */\n  display: flex;\n  flex-direction: row;\n  gap: 4px;\n  flex: 0 0 600px;\n  width: 600px;\n  overflow: hidden;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Left column sub-columns */\n.gram-frame-mode-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 130px;\n  width: 130px;\n  padding: 8px;\n  border: none;\n}\n\n.gram-frame-guidance-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 1;\n  min-width: 150px;\n  border: none;\n}\n\n.gram-frame-controls-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 210px;\n  width: 210px;\n  padding: 0px;\n  border: none;\n}\n\n.gram-frame-middle-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 160px;\n  width: 160px;\n  min-width: 160px;\n  max-width: 160px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-right-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 200px;\n  min-width: 200px;\n  width: 200px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-cursor-leds {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 6px;\n  align-items: flex-start;\n  flex: 0 0 auto;\n  height: fit-content;\n}\n\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n.gram-frame-markers-persistent-container h4,\n.gram-frame-harmonics-persistent-container h4 {\n  margin: 0 0 8px 0;\n  flex-shrink: 0;\n  color: #ddd;\n  font-size: 14px;\n  text-align: center;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  border-bottom: 1px solid #444;\n  padding-bottom: 4px;\n}\n\n.gram-frame-harmonics-button-container {\n  margin-bottom: 8px;\n  display: flex;\n  justify-content: center;\n}\n\n/* Responsive behavior for smaller screens */\n@media (max-width: 1200px) {\n  .gram-frame-unified-layout {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .gram-frame-left-column,\n  .gram-frame-middle-column,\n  .gram-frame-right-column {\n    flex: 0 0 auto;\n    min-height: 200px;\n  }\n}\n\n/* Selection highlighting for keyboard control */\n.gram-frame-selected-row {\n  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;\n  color: #aaffaa !important;\n  outline: 2px solid #4a8a4a !important;\n  outline-offset: -1px;\n  position: relative;\n  z-index: 10;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.15),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 0 8px rgba(74, 138, 74, 0.6),\n    0 0 2px rgba(74, 138, 74, 0.8) !important;\n}\n\n.gram-frame-selected-row td {\n  color: #aaffaa !important;\n  border-color: #4a8a4a !important;\n  position: relative;\n  z-index: 11;\n}\n\n/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n";
+  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #1a1a1a;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* Military-style table layout for proper resizing */\n.gram-frame-table {\n  display: table;\n  width: 100%;\n  height: 100%;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* Main panel with military frame */\n.gram-frame-main-panel {\n  padding: 15px;\n  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border: 3px solid #555;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 3px 6px rgba(0,0,0,0.5),\n    inset 0 -2px 4px rgba(255,255,255,0.1),\n    0 0 10px rgba(0,0,0,0.7);\n  position: relative;\n}\n\n.gram-frame-main-panel:before {\n  content: '';\n  position: absolute;\n  top: 5px;\n  left: 5px;\n  right: 5px;\n  bottom: 5px;\n  border: 1px solid #666;\n  border-radius: 4px;\n  pointer-events: none;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n.gram-frame-display-panel {\n  padding: 10px;\n  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border-top: 2px solid #555;\n}\n\n.gram-frame-readout {\n  flex: 0 1 auto;\n  width: 100%; /* Definite width so the unified layout's flex sizing applies */\n  padding: 0;\n  background: transparent;\n}\n\n/* Harmonics mode CSS removed - now using unified layout */\n\n/* Harmonics layout container - two columns */\n\n/* Left column for controls - 40% width */\n.gram-frame-harmonics-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  flex: 0 0 40%;\n  max-width: 40%;\n}\n\n/* Top row in left column */\n.gram-frame-harmonics-top-row {\n  display: flex;\n  gap: 10px;\n  align-items: stretch;\n}\n\n/* Right column for table - 60% width */\n.gram-frame-harmonics-table-column {\n  flex: 0 0 60%;\n  max-width: 60%;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n}\n\n/* Make color picker more compact in harmonics mode */\n.gram-frame-harmonics-mode .gram-frame-color-picker {\n  margin: 0;\n}\n\n/* Harmonic panel layout - always visible in unified layout */\n\n/* Military-style display windows */\n.gram-frame-led {\n  font-family: 'Courier New', monospace;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  color: #00ff00; /* LED green */\n  padding: 6px 0px;\n  border: 0px solid #333;\n  border-radius: 4px;\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 auto;\n  min-width: 100px;\n  text-align: center;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  position: relative;\n  font-size: 11px;\n  height: fit-content;\n}\n\n.gram-frame-led:before {\n  content: '';\n  position: absolute;\n  top: 2px;\n  left: 2px;\n  right: 2px;\n  bottom: 2px;\n  border: 1px solid #444;\n  border-radius: 2px;\n  pointer-events: none;\n}\n\n/* LED label */\n.gram-frame-led-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 4px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* LED value */\n.gram-frame-led-value {\n  font-size: 14px;\n  font-weight: bold;\n  text-shadow: 0 0 4px #00ff00;\n}\n\n/* Manual harmonic button */\n.gram-frame-manual-button {\n  padding: 6px 12px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-manual-button:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-manual-button:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Color picker for harmonics */\n.gram-frame-color-picker {\n  margin-top: 0;\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  max-width: 200px;\n  flex-shrink: 0;\n}\n\n.gram-frame-color-picker-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 6px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-color-palette {\n  position: relative;\n}\n\n/* Symbol drop-down embedded to the right of the colour slider. Its `color` is\n   set inline to the selected colour so the glyphs render in that colour. */\n.gram-frame-symbol-select {\n  flex-shrink: 0;\n  padding: 2px 4px;\n  background: #0a0a0a;\n  border: 1px solid #555;\n  border-radius: 2px;\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n/* Harmonic-pin visibility toggle, below the colour slider / symbol row.\n   TEMPORARY (symbol-size experiment): the \"Large symbols\" toggle sits under the\n   pin toggle and shares its styling. Remove that selector, and the block below,\n   together with the control once a symbol size is agreed. */\n.gram-frame-pin-toggle,\n.gram-frame-large-symbols-toggle {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n  margin-top: 6px;\n  cursor: pointer;\n  user-select: none;\n}\n\n.gram-frame-pin-toggle-input,\n.gram-frame-large-symbols-checkbox {\n  margin: 0;\n  cursor: pointer;\n  accent-color: #00ff00;\n}\n\n.gram-frame-pin-toggle-label,\n.gram-frame-large-symbols-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-pin-toggle-disabled {\n  cursor: default;\n  opacity: 0.45;\n}\n\n.gram-frame-pin-toggle-disabled .gram-frame-pin-toggle-input {\n  cursor: default;\n}\n\n.gram-frame-color-canvas {\n  width: 140px;\n  max-width: 140px;\n  height: 20px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  cursor: pointer;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n.gram-frame-color-indicator {\n  position: absolute;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 3px;\n  height: 26px;\n  background: #fff;\n  border: 1px solid #000;\n  border-radius: 1px;\n  pointer-events: none;\n  box-shadow: 0 0 2px rgba(0,0,0,0.8);\n}\n\n/* Analysis mode layout styles */\n.gram-frame-analysis-layout {\n  height: 100%;\n}\n\n.gram-frame-analysis-controls {\n  align-self: flex-start;\n}\n\n.gram-frame-analysis-leds {\n  /* Side-by-side LEDs container */\n}\n\n.gram-frame-analysis-leds .gram-frame-led {\n  /* Ensure LEDs in the horizontal container are sized properly */\n  font-size: 9px; /* Slightly smaller to fit side-by-side */\n}\n\n.gram-frame-analysis-leds .gram-frame-led-label {\n  font-size: 8px; /* Smaller label text */\n  color: #00ff00;\n}\n\n.gram-frame-analysis-markers {\n  height: 100%;\n}\n\n/* Unified table styles for both markers and harmonics */\n\n/*\n * Fixed-height home for a markers/harmonics table.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the readout row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n.gram-frame-table-container {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  box-sizing: border-box;\n  padding: 0;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow:\n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows\n     are added or removed (no reflow of the table columns). */\n  overflow-y: scroll;\n  overflow-x: hidden;\n  /* Dark-theme scrollbar (Firefox) */\n  scrollbar-width: thin;\n  scrollbar-color: #555 #111;\n}\n\n/* Dark-theme scrollbar (WebKit/Blink) */\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 10px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: #555;\n  border-radius: 5px;\n  border: 2px solid #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: #6a6a6a;\n}\n\n/*\n * Separate (not collapsed) borders: sticky header cells are unreliable with\n * border-collapse, so each cell draws its own right/bottom edge and the first\n * column/header row close the outer edges. Visually identical to the collapsed\n * 1px grid, because border-spacing is zero.\n *\n * Element-qualified because the `gram-frame-table` class is also carried by the\n * component's outer frame <div> (display: table), which must keep its own\n * border. Zeroing the border here matters for the sticky header too — a border\n * on the table box offsets the header cells from the scrollport, which makes\n * them jump when the body first scrolls.\n */\ntable.gram-frame-table {\n  width: 100%;\n  border: 0;\n  border-collapse: separate;\n  border-spacing: 0;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-table th,\n.gram-frame-table td {\n  border: 0;\n  border-right: 1px solid #444;\n  border-bottom: 1px solid #444;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  border-left: 1px solid #444;\n}\n\n.gram-frame-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border-top: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n  /* Header row stays pinned while the body scrolls beneath it. The z-index sits\n     above the positioned body rows, including a selected row's cells (11). */\n  position: sticky;\n  top: 0;\n  z-index: 20;\n}\n\n.gram-frame-table td {\n  padding: 4px;\n  text-align: center;\n  background: #1a1a1a;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n  transition: all 0.2s ease;\n  position: relative;\n}\n\n.gram-frame-table tbody tr:hover {\n  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.05),\n    inset 0 -1px 2px rgba(0,0,0,0.2),\n    0 0 4px rgba(255,255,255,0.1);\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: transparent;\n}\n\n/* Legacy markers styles - kept for compatibility */\n.gram-frame-markers-container {\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-markers-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin: 0 0 8px 0;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-markers-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-markers-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-markers-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-color-swatch {\n  margin: 0 auto;\n  display: block;\n}\n\n.gram-frame-marker-delete-btn {\n  padding: 2px 6px;\n  border-radius: 2px;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-delete-btn:hover {\n  background-color: #ff4444 !important;\n  color: #fff !important;\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/* Military-style mode selection header */\n.gram-frame-mode-header {\n  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border-bottom: 2px solid #555;\n  display: flex;\n  align-items: flex-start;\n  justify-content: flex-start;\n}\n\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  justify-content: center;\n  align-items: stretch;\n  flex: 0 0 auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-mode-group {\n  display: flex;\n  align-items: center;\n  gap: 2px;\n  width: 100%;\n  flex-wrap: nowrap;\n}\n\n/* Simplified left panel - no sub-columns needed */\n\n/* Guidance panel */\n.gram-frame-guidance {\n  flex: 1;\n  padding: 8px 12px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  color: #ccc;\n  font-size: 12px;\n  line-height: 1.4;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-guidance h4 {\n  margin: 0 0 6px 0;\n  font-size: 11px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-guidance p {\n  margin: 0 0 4px 0;\n}\n\n/* Military-style metal buttons */\n.gram-frame-mode-btn {\n  padding: 8px 6px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  flex: 1;\n  min-width: 0;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-command-btn {\n  padding: 8px 10px;\n  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #444;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 14px;\n  line-height: 1;\n  flex: 0 0 auto;\n  min-width: 32px;\n  height: 36px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-mode-btn:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-mode-btn.active {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n  border-color: #4a8a4a;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    inset 0 -1px 2px rgba(255,255,255,0.1),\n    0 0 4px rgba(74, 138, 74, 0.3);\n}\n\n.gram-frame-mode-btn:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  opacity: 0.6;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n.gram-frame-mode-btn:disabled:hover,\n.gram-frame-mode-btn.disabled:hover {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n  transform: none;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-command-btn:active:not(:disabled) {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-command-btn:disabled {\n  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n/* Clear gram button — trainer pages only */\n.gram-frame-clear-btn {\n  margin-top: 8px;\n  padding: 6px 10px;\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #6a3a3a;\n  border-radius: 4px;\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.5px;\n  cursor: pointer;\n  text-transform: uppercase;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.15),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  width: 100%;\n}\n\n.gram-frame-clear-btn:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.25),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-clear-btn:active {\n  transform: translateY(1px);\n  box-shadow:\n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Rate input UI styles removed - backend functionality preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the halo (black glyphs inside a white outline) set as\n   * presentation attributes by applyTextHalo() in src/utils/svg.js — see the\n   * fill/stroke/paint-order there. No drop-shadow: it only blurred the outline.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* Legacy harmonic panel styles - now using unified table structure */\n\n.gram-frame-harmonic-spacing,\n.gram-frame-harmonic-rate {\n  font-size: 14px;\n  font-weight: bold;\n}\n\n.gram-frame-harmonic-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n.gram-frame-harmonic-delete {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ff6666;\n  border: 1px solid #555;\n  border-radius: 2px;\n  width: 20px;\n  height: 20px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  line-height: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.1s ease;\n}\n\n.gram-frame-harmonic-delete:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  border-color: #777;\n}\n\n.gram-frame-harmonic-delete:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-harmonic-empty {\n  color: #666;\n  font-style: italic;\n  text-align: center;\n  padding: 20px;\n  font-size: 12px;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Cursor position readout styles */\n.gram-frame-cursor-readout {\n  display: flex;\n  gap: 15px;\n  margin-bottom: 10px;\n  padding: 8px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 1px solid #444;\n  border-radius: 4px;\n}\n\n.gram-frame-readout-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  min-width: 80px;\n}\n\n.gram-frame-readout-label {\n  font-size: 10px;\n  color: #aaa;\n  text-transform: uppercase;\n  margin-bottom: 2px;\n  font-weight: bold;\n}\n\n.gram-frame-readout-value {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: bold;\n  color: #00ff00;\n  background: #000;\n  padding: 4px 8px;\n  border: 1px solid #333;\n  border-radius: 2px;\n  text-align: center;\n  min-width: 60px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/* Unified Layout Styles */\n.gram-frame-unified-layout {\n  display: flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  gap: 2px; /* Match JavaScript gap */\n  width: 100%;\n  height: 100%;\n  overflow: hidden; /* Prevent columns from overflowing container */\n}\n\n.gram-frame-left-column {\n  position: relative; /* Enable absolute positioning for child elements */\n  display: flex;\n  flex-direction: row;\n  gap: 4px;\n  flex: 0 0 600px;\n  width: 600px;\n  overflow: hidden;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Left column sub-columns */\n.gram-frame-mode-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 130px;\n  width: 130px;\n  padding: 8px;\n  border: none;\n}\n\n.gram-frame-guidance-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 1;\n  min-width: 150px;\n  border: none;\n}\n\n.gram-frame-controls-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 210px;\n  width: 210px;\n  padding: 0px;\n  border: none;\n}\n\n.gram-frame-middle-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 160px;\n  width: 160px;\n  min-width: 160px;\n  max-width: 160px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-right-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 200px;\n  min-width: 200px;\n  width: 200px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-cursor-leds {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 6px;\n  align-items: flex-start;\n  flex: 0 0 auto;\n  height: fit-content;\n}\n\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n.gram-frame-markers-persistent-container h4,\n.gram-frame-harmonics-persistent-container h4 {\n  margin: 0 0 8px 0;\n  flex-shrink: 0;\n  color: #ddd;\n  font-size: 14px;\n  text-align: center;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  border-bottom: 1px solid #444;\n  padding-bottom: 4px;\n}\n\n.gram-frame-harmonics-button-container {\n  margin-bottom: 8px;\n  display: flex;\n  justify-content: center;\n}\n\n/* Responsive behavior for smaller screens */\n@media (max-width: 1200px) {\n  .gram-frame-unified-layout {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .gram-frame-left-column,\n  .gram-frame-middle-column,\n  .gram-frame-right-column {\n    flex: 0 0 auto;\n    min-height: 200px;\n  }\n}\n\n/* Selection highlighting for keyboard control */\n.gram-frame-selected-row {\n  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;\n  color: #aaffaa !important;\n  outline: 2px solid #4a8a4a !important;\n  outline-offset: -1px;\n  position: relative;\n  z-index: 10;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.15),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 0 8px rgba(74, 138, 74, 0.6),\n    0 0 2px rgba(74, 138, 74, 0.8) !important;\n}\n\n.gram-frame-selected-row td {\n  color: #aaffaa !important;\n  border-color: #4a8a4a !important;\n  position: relative;\n  z-index: 11;\n}\n\n/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n";
   document.head.appendChild(style);
 
   "use strict";
@@ -433,7 +433,124 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function getUniformTolerance(viewport, spectrogramImage) {
     return calculateDataTolerance(viewport, spectrogramImage, DEFAULT_TOLERANCE);
   }
-  class AnalysisMode extends BaseMode {
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const DEFAULT_SYMBOL = "cross";
+  const SYMBOL_CATALOG = ["cross", "circle", "square", "diamond", "triangle", "triangle-down", "star"];
+  const SYMBOL_DISPLAY_NAMES = {
+    "cross": "Cross (no symbol)",
+    "circle": "Circle",
+    "square": "Square",
+    "diamond": "Diamond",
+    "triangle": "Triangle",
+    "triangle-down": "Triangle (down)",
+    "star": "Star"
+  };
+  const LARGE_SYMBOL_SCALE = 2;
+  function resolveSymbolScale(source) {
+    return source && source.largeSymbols ? LARGE_SYMBOL_SCALE : 1;
+  }
+  function toPoints(pts) {
+    return pts.map(([x, y]) => `${x},${y}`).join(" ");
+  }
+  function starPoints(cx, cy, outerR, innerR) {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const angle = -Math.PI / 2 + i * Math.PI / 5;
+      pts.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+    }
+    return pts;
+  }
+  function createSymbolMark(symbolType, cx, cy, size, color) {
+    const r = size / 2;
+    const resolved = SYMBOL_CATALOG.includes(
+      /** @type {SymbolType} */
+      symbolType
+    ) ? (
+      /** @type {SymbolType} */
+      symbolType
+    ) : DEFAULT_SYMBOL;
+    if (resolved === "cross") {
+      return null;
+    }
+    let el;
+    switch (resolved) {
+      case "square": {
+        el = document.createElementNS(SVG_NS, "rect");
+        el.setAttribute("x", String(cx - r));
+        el.setAttribute("y", String(cy - r));
+        el.setAttribute("width", String(2 * r));
+        el.setAttribute("height", String(2 * r));
+        break;
+      }
+      case "diamond": {
+        el = document.createElementNS(SVG_NS, "polygon");
+        el.setAttribute("points", toPoints([
+          [cx, cy - r],
+          [cx + r, cy],
+          [cx, cy + r],
+          [cx - r, cy]
+        ]));
+        break;
+      }
+      case "triangle": {
+        el = document.createElementNS(SVG_NS, "polygon");
+        el.setAttribute("points", toPoints([
+          [cx, cy - r],
+          [cx + r, cy + r],
+          [cx - r, cy + r]
+        ]));
+        break;
+      }
+      case "triangle-down": {
+        el = document.createElementNS(SVG_NS, "polygon");
+        el.setAttribute("points", toPoints([
+          [cx, cy + r],
+          [cx + r, cy - r],
+          [cx - r, cy - r]
+        ]));
+        break;
+      }
+      case "star": {
+        el = document.createElementNS(SVG_NS, "polygon");
+        el.setAttribute("points", toPoints(starPoints(cx, cy, r, r * 0.5)));
+        break;
+      }
+      case "circle":
+      default: {
+        el = document.createElementNS(SVG_NS, "circle");
+        el.setAttribute("cx", String(cx));
+        el.setAttribute("cy", String(cy));
+        el.setAttribute("r", String(r));
+        break;
+      }
+    }
+    el.setAttribute("class", "gram-frame-harmonic-symbol");
+    el.setAttribute("data-symbol", resolved);
+    el.setAttribute("fill", color);
+    return el;
+  }
+  function createColorIndicator(symbol, color, size = 16) {
+    const mark = createSymbolMark(symbol, size / 2, size / 2, size * 0.75, color);
+    if (mark) {
+      const svg = document.createElementNS(SVG_NS, "svg");
+      svg.setAttribute("class", "gram-frame-symbol-swatch");
+      svg.setAttribute("width", String(size));
+      svg.setAttribute("height", String(size));
+      svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+      svg.appendChild(mark);
+      return svg;
+    }
+    const div = document.createElement("div");
+    div.className = "gram-frame-color-swatch";
+    div.style.backgroundColor = color;
+    div.style.width = `${size}px`;
+    div.style.height = `${size}px`;
+    div.style.borderRadius = "3px";
+    div.style.border = "1px solid #ccc";
+    return div;
+  }
+  const _AnalysisMode = class _AnalysisMode extends BaseMode {
     /**
      * Initialize AnalysisMode with drag handler
      * @param {Object} instance - GramFrame instance
@@ -580,11 +697,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     createMarkerAtPosition(dataCoords) {
       const color = this.instance.state.selectedColor || "#ff6b6b";
+      const symbol = this.instance.state.selectedSymbol || "cross";
       const marker = {
         id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         color,
         time: dataCoords.time,
-        freq: dataCoords.freq
+        freq: dataCoords.freq,
+        symbol,
+        // EXPERIMENT (temporary): symbol size is carried per marker, seeded from
+        // the toggle's next-feature default, so both sizes can coexist.
+        largeSymbols: !!this.instance.state.largeSymbols
       };
       this.addMarker(marker);
     }
@@ -617,33 +739,41 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
       markerGroup.setAttribute("class", "gram-frame-analysis-marker");
       markerGroup.setAttribute("data-marker-id", marker.id);
-      const crosshairSize = 15;
-      const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      hLine.setAttribute("x1", String(currentX - crosshairSize));
-      hLine.setAttribute("y1", String(currentY));
-      hLine.setAttribute("x2", String(currentX + crosshairSize));
-      hLine.setAttribute("y2", String(currentY));
-      hLine.setAttribute("stroke", marker.color);
-      hLine.setAttribute("stroke-width", "2");
-      hLine.setAttribute("stroke-linecap", "round");
-      const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      vLine.setAttribute("x1", String(currentX));
-      vLine.setAttribute("y1", String(currentY - crosshairSize));
-      vLine.setAttribute("x2", String(currentX));
-      vLine.setAttribute("y2", String(currentY + crosshairSize));
-      vLine.setAttribute("stroke", marker.color);
-      vLine.setAttribute("stroke-width", "2");
-      vLine.setAttribute("stroke-linecap", "round");
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      circle.setAttribute("cx", String(currentX));
-      circle.setAttribute("cy", String(currentY));
-      circle.setAttribute("r", "3");
-      circle.setAttribute("fill", marker.color);
-      circle.setAttribute("stroke", "#fff");
-      circle.setAttribute("stroke-width", "1");
-      markerGroup.appendChild(hLine);
-      markerGroup.appendChild(vLine);
-      markerGroup.appendChild(circle);
+      const symbolSize = _AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker);
+      const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color);
+      if (symbolMark) {
+        symbolMark.setAttribute("class", "gram-frame-marker-symbol");
+        symbolMark.setAttribute("data-marker-id", marker.id);
+        markerGroup.appendChild(symbolMark);
+      } else {
+        const crosshairSize = 15;
+        const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        hLine.setAttribute("x1", String(currentX - crosshairSize));
+        hLine.setAttribute("y1", String(currentY));
+        hLine.setAttribute("x2", String(currentX + crosshairSize));
+        hLine.setAttribute("y2", String(currentY));
+        hLine.setAttribute("stroke", marker.color);
+        hLine.setAttribute("stroke-width", "2");
+        hLine.setAttribute("stroke-linecap", "round");
+        const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        vLine.setAttribute("x1", String(currentX));
+        vLine.setAttribute("y1", String(currentY - crosshairSize));
+        vLine.setAttribute("x2", String(currentX));
+        vLine.setAttribute("y2", String(currentY + crosshairSize));
+        vLine.setAttribute("stroke", marker.color);
+        vLine.setAttribute("stroke-width", "2");
+        vLine.setAttribute("stroke-linecap", "round");
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", String(currentX));
+        circle.setAttribute("cy", String(currentY));
+        circle.setAttribute("r", "3");
+        circle.setAttribute("fill", marker.color);
+        circle.setAttribute("stroke", "#fff");
+        circle.setAttribute("stroke-width", "1");
+        markerGroup.appendChild(hLine);
+        markerGroup.appendChild(vLine);
+        markerGroup.appendChild(circle);
+      }
       this.instance.cursorGroup.appendChild(markerGroup);
     }
     /**
@@ -662,12 +792,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /**
      * Create markers table for displaying active markers
+     *
+     * The table wrapper sits inside a `gram-frame-table-area` element that claims
+     * the column's remaining height; the wrapper fills it absolutely and scrolls,
+     * so adding markers never grows the surrounding layout (the header row stays
+     * pinned via sticky `th`).
+     *
      * @param {HTMLElement} markersContainer - Persistent container for markers (already has label)
      */
     createMarkersTable(markersContainer) {
       if (markersContainer.querySelector(".gram-frame-table")) {
         return;
       }
+      const tableArea = document.createElement("div");
+      tableArea.className = "gram-frame-table-area";
       const tableWrapper = document.createElement("div");
       tableWrapper.className = "gram-frame-table-container";
       const table = document.createElement("table");
@@ -695,7 +833,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const tbody = document.createElement("tbody");
       table.appendChild(tbody);
       tableWrapper.appendChild(table);
-      markersContainer.appendChild(tableWrapper);
+      tableArea.appendChild(tableWrapper);
+      markersContainer.appendChild(tableArea);
       this.uiElements.markersTable = table;
       this.uiElements.markersTableBody = tbody;
       this.updateMarkersTable();
@@ -826,6 +965,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {AnalysisMarker} marker - The marker data
      */
     updateMarkerRow(row, marker) {
+      const colorCell = row.cells[0];
+      if (colorCell) {
+        colorCell.replaceChildren(createColorIndicator(marker.symbol, marker.color, 20));
+      }
       const timeCell = row.cells[1];
       if (timeCell) {
         const newTime = formatTime(marker.time);
@@ -868,14 +1011,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           }
         });
         const colorCell = document.createElement("td");
-        const colorSwatch = document.createElement("div");
-        colorSwatch.className = "gram-frame-color-swatch";
-        colorSwatch.style.backgroundColor = marker.color;
-        colorSwatch.style.width = "20px";
-        colorSwatch.style.height = "20px";
-        colorSwatch.style.borderRadius = "3px";
-        colorSwatch.style.border = "1px solid #ccc";
-        colorCell.appendChild(colorSwatch);
+        colorCell.className = "gram-frame-marker-color";
+        colorCell.appendChild(createColorIndicator(marker.symbol, marker.color, 20));
         row.appendChild(colorCell);
         const timeCell = document.createElement("td");
         timeCell.textContent = formatTime(marker.time);
@@ -925,8 +1062,22 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     resetState() {
     }
+  };
+  /**
+   * Base pixel size (width/height) of a marker's symbol mark when it carries a
+   * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
+   * The drawn size is this scaled by the temporary "Large symbols" toggle, so a
+   * marker's symbol tracks the harmonic pins' symbols.
+   * @type {number}
+   */
+  __publicField(_AnalysisMode, "MARKER_SYMBOL_SIZE", 14);
+  let AnalysisMode = _AnalysisMode;
+  function createSymbolSwatch(harmonicSet) {
+    return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
   }
   function createHarmonicPanel(container) {
+    const area = document.createElement("div");
+    area.className = "gram-frame-table-area";
     const panel = document.createElement("div");
     panel.className = "gram-frame-table-container";
     panel.innerHTML = `
@@ -943,7 +1094,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       </tbody>
     </table>
   `;
-    container.appendChild(panel);
+    area.appendChild(panel);
+    container.appendChild(area);
     return panel;
   }
   function updateHarmonicPanelContent(panel, instance) {
@@ -973,6 +1125,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function updateHarmonicRow(row, harmonicSet, instance) {
+    const colorCell = row.cells[0];
+    const colorDiv = colorCell && /** @type {HTMLElement} */
+    colorCell.querySelector(".gram-frame-harmonic-color");
+    if (colorDiv) {
+      colorDiv.style.color = harmonicSet.color;
+      colorDiv.replaceChildren(createSymbolSwatch(harmonicSet));
+    }
     const spacingCell = row.cells[1];
     if (spacingCell) {
       const newSpacing = harmonicSet.spacing.toFixed(2);
@@ -1012,7 +1171,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const colorCell = document.createElement("td");
     const colorDiv = document.createElement("div");
     colorDiv.className = "gram-frame-harmonic-color";
-    colorDiv.style.backgroundColor = harmonicSet.color;
+    colorDiv.style.color = harmonicSet.color;
+    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
     colorCell.appendChild(colorDiv);
     row.appendChild(colorCell);
     const spacingCell = document.createElement("td");
@@ -1160,7 +1320,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function createComponentStructure(instance) {
     instance.container = document.createElement("div");
-    instance.container.className = "gram-frame-container";
+    instance.container.className = "gram-frame-container gram-frame-loading";
     instance.table = document.createElement("div");
     instance.table.className = "gram-frame-table";
     instance.container.appendChild(instance.table);
@@ -1235,6 +1395,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     instance.state.imageDetails.url = imageUrl;
     const tempImg = new Image();
     tempImg.onload = function() {
+      instance.container.classList.remove("gram-frame-loading");
       let imageWidth = tempImg.naturalWidth;
       let imageHeight = tempImg.naturalHeight;
       if (imageWidth > MAX_IMAGE_WIDTH) {
@@ -1251,6 +1412,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       renderAxes(instance);
       createExpandToggle(instance);
       notifyStateListeners(instance.state, instance.stateListeners);
+    };
+    tempImg.onerror = function() {
+      console.error(`GramFrame: Failed to load spectrogram image: ${imageUrl}`);
+      instance.container.classList.remove("gram-frame-loading");
+      instance.container.classList.add("gram-frame-image-error");
     };
     tempImg.src = imageUrl;
   }
@@ -1643,6 +1809,62 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     });
     spacingInput.focus();
   }
+  const MAX_VISIBLE_PINS = 25;
+  const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1e3, 2500, 5e3];
+  function countMultiples(minHarmonic, maxHarmonic, step) {
+    return Math.floor(maxHarmonic / step) - Math.floor((minHarmonic - 1) / step);
+  }
+  function chooseSamplingStep(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
+    for (const step of NICE_STEPS) {
+      if (countMultiples(minHarmonic, maxHarmonic, step) <= max) {
+        return step;
+      }
+    }
+    return NICE_STEPS[NICE_STEPS.length - 1];
+  }
+  function sampledHarmonics(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
+    if (maxHarmonic < minHarmonic) {
+      return { step: 1, harmonics: [] };
+    }
+    const step = chooseSamplingStep(minHarmonic, maxHarmonic, max);
+    const first = Math.ceil(minHarmonic / step) * step;
+    const harmonics = [];
+    for (let h = first; h <= maxHarmonic && harmonics.length < max; h += step) {
+      harmonics.push(h);
+    }
+    return { step, harmonics };
+  }
+  function createSVGLine(x1, y1, x2, y2, className) {
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", String(x1));
+    line.setAttribute("y1", String(y1));
+    line.setAttribute("x2", String(x2));
+    line.setAttribute("y2", String(y2));
+    line.setAttribute("class", className);
+    return line;
+  }
+  const TEXT_HALO = {
+    fill: "#000",
+    haloColor: "#fff",
+    width: 3
+  };
+  function applyTextHalo(text, options = {}) {
+    const { fill = TEXT_HALO.fill, haloColor = TEXT_HALO.haloColor, width = TEXT_HALO.width } = options;
+    text.setAttribute("fill", fill);
+    text.setAttribute("stroke", haloColor);
+    text.setAttribute("stroke-width", String(width));
+    text.setAttribute("stroke-linejoin", "round");
+    text.setAttribute("paint-order", "stroke fill");
+    return text;
+  }
+  function createSVGCircle(cx, cy, r, className) {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", String(cx));
+    circle.setAttribute("cy", String(cy));
+    circle.setAttribute("r", String(r));
+    circle.setAttribute("class", className);
+    return circle;
+  }
   const _HarmonicsMode = class _HarmonicsMode extends BaseMode {
     /**
      * Initialize HarmonicsMode with drag handler
@@ -1882,11 +2104,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const colorIndex = this.instance.state.harmonics.harmonicSets.length % _HarmonicsMode.harmonicColors.length;
         color = _HarmonicsMode.harmonicColors[colorIndex];
       }
+      const symbol = this.instance.state.selectedSymbol || "cross";
+      const showPin = this.instance.state.showHarmonicPin !== false;
       const harmonicSet = {
         id,
         color,
         anchorTime,
-        spacing
+        spacing,
+        symbol,
+        showPin,
+        // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
+        // toggle's next-feature default, so sets at both sizes can coexist.
+        largeSymbols: !!this.instance.state.largeSymbols
       };
       this.instance.state.harmonics.harmonicSets.push(harmonicSet);
       const index = this.instance.state.harmonics.harmonicSets.length - 1;
@@ -1939,7 +2168,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     /**
-     * Find harmonic set containing given frequency coordinate
+     * Find harmonic set containing given frequency coordinate.
+     *
+     * Hit-testing follows exactly what is drawn — nothing more, nothing less.
+     * Every visible part of a pin grabs it: the pin line's fixed-pixel span AND
+     * the number label + symbol stacked above it. A set with its pin hidden is
+     * grabbable by its label/symbol stack alone; the span where its line would
+     * have been is empty on screen, so it is empty to the mouse too.
+     *
      * @param {number} freq - Frequency in Hz to check
      * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
      */
@@ -1952,19 +2188,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const freqMax = this.instance.state.config.freqMax;
           const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
           const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
+          const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
+          const stack = this.calculateLabelStackBounds(lineTop, harmonicSet);
+          const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic));
+          const pinDrawn = harmonicSet.showPin !== false;
+          const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
+          const cursorSVG = calculateZoomAwarePosition(
+            { freq, time: cursorTime },
+            this.getViewport(),
+            this.instance.spectrogramImage
+          );
           for (let h = minHarmonic; h <= maxHarmonic; h++) {
             const expectedFreq = h * harmonicSet.spacing;
-            const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
-            if (Math.abs(freq - expectedFreq) < tolerance.freq) {
-              const { naturalHeight } = this.instance.state.imageDetails;
-              const lineHeight = naturalHeight * 0.2;
-              const timeRange = this.instance.state.config.timeMax - this.instance.state.config.timeMin;
-              const lineHeightInTime = lineHeight / naturalHeight * timeRange;
-              const lineStartTime = harmonicSet.anchorTime - lineHeightInTime / 2;
-              const lineEndTime = harmonicSet.anchorTime + lineHeightInTime / 2;
-              if (cursorTime >= lineStartTime && cursorTime <= lineEndTime) {
-                return harmonicSet;
-              }
+            if (pinDrawn && Math.abs(freq - expectedFreq) < tolerance.freq && cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
+              return harmonicSet;
+            }
+            if (labelled.has(h) && cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom && Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
+              return harmonicSet;
             }
           }
         }
@@ -2083,35 +2323,66 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       const existingHarmonics = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-line");
       existingHarmonics.forEach((line) => line.remove());
+      const existingSymbols = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol[data-harmonic-set-id]");
+      existingSymbols.forEach((symbol) => symbol.remove());
       this.instance.state.harmonics.harmonicSets.forEach((harmonicSet) => {
         this.renderHarmonicSet(harmonicSet);
       });
     }
     /**
-     * Get visible harmonics within frequency range
+     * Get the inclusive harmonic-number range of a set that falls within the
+     * currently visible frequency span.
+     *
+     * The visible range comes from `calculateVisibleDataRange(instance)` (the same
+     * source the frequency axis uses), so it is viewport-aware: zooming in narrows
+     * the span (fewer harmonics), zooming out / panning widens it. At zoom 1.0 the
+     * visible range equals the full data range.
+     *
+     * Every harmonic in this range is drawn as a pin line (spec 159, FR-001); the
+     * label/symbol subset is a regularly-sampled slice of it (see
+     * {@link getLabelledHarmonics}).
+     *
      * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {Config} config - Configuration object
-     * @returns {number[]} Array of harmonic numbers to render
+     * @returns {{minHarmonic: number, maxHarmonic: number}} Inclusive harmonic range
      */
-    getVisibleHarmonics(harmonicSet, config) {
-      const { freqMin, freqMax } = config;
+    getVisibleHarmonicRange(harmonicSet) {
+      const { freqMin, freqMax } = calculateVisibleDataRange(this.instance);
       const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
       const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
-      const harmonics = [];
-      for (let h = minHarmonic; h <= maxHarmonic; h++) {
-        harmonics.push(h);
-      }
-      return harmonics;
+      return { minHarmonic, maxHarmonic };
     }
     /**
-     * Calculate harmonic line dimensions and positions
+     * Get the "major" subset of harmonic numbers that receive a number label and
+     * symbol, thinned to at most the label limit (default 25) by regular sampling.
+     *
+     * Reuses the spec-158 sampling maths, but that limit now governs
+     * labels/symbols only — every pin line is still drawn (spec 159). When the
+     * visible range already fits under the limit the subset is the whole range, so
+     * every drawn pin is labelled (FR-005).
+     *
+     * @param {number} minHarmonic - Lowest visible harmonic number (>= 1)
+     * @param {number} maxHarmonic - Highest visible harmonic number
+     * @returns {number[]} Ascending harmonic numbers to label/symbol (length <= cap)
+     */
+    getLabelledHarmonics(minHarmonic, maxHarmonic) {
+      return sampledHarmonics(minHarmonic, maxHarmonic).harmonics;
+    }
+    /**
+     * Calculate harmonic line dimensions and positions.
+     *
+     * The height is a fixed pixel length taken from the *base* (unzoomed) render
+     * height, so a pin covers the same number of screen pixels no matter how far
+     * the user has zoomed in — it is not a span of time that stretches with the
+     * image. Only the centre is zoom-aware: the pin stays centred on the set's
+     * anchor time (the original click location), so it tracks the feature while
+     * keeping a constant height.
+     *
      * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {Object} Line dimensions with height and top position
+     * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
      */
     calculateHarmonicLineDimensions(harmonicSet) {
-      const lineHeightRatio = 0.2;
-      const imageBounds = getImageBounds(this.getViewport(), this.instance.spectrogramImage);
-      const lineHeight = imageBounds.height * lineHeightRatio;
+      const { renderHeight } = getRenderDimensions(this.instance);
+      const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
       const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
       const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
       const lineTop = anchorSVG.y - lineHeight / 2;
@@ -2142,43 +2413,200 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return line;
     }
     /**
-     * Create SVG text label for a harmonic number
+     * Create SVG text label for a harmonic number.
+     *
+     * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
+     * positioned above the pin's symbol (baseline at `labelY`), so the vertical
+     * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
+     *
+     * The digits are drawn black inside a white halo rather than in the set's
+     * colour: a single colour is only legible over part of a gram, whereas the
+     * halo reads over both dark and light backgrounds. Set identity is still
+     * carried by the pin's line and symbol colour.
+     *
      * @param {number} harmonicNumber - Harmonic number
      * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} lineX - X position for the label
-     * @param {number} lineTop - Top Y position for the label
+     * @param {number} lineX - X position of the pin line (label is centred on it)
+     * @param {number} labelY - Baseline Y position for the label text
      * @returns {SVGTextElement} SVG text element
      */
-    createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop) {
+    createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY) {
       const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
       label.setAttribute("class", "gram-frame-harmonic-number");
-      label.setAttribute("x", String(lineX + 3));
-      label.setAttribute("y", String(lineTop + 12));
-      label.setAttribute("fill", harmonicSet.color);
-      label.setAttribute("font-size", "12");
+      label.setAttribute("data-harmonic-set-id", harmonicSet.id);
+      label.setAttribute("data-harmonic-number", String(harmonicNumber));
+      label.setAttribute("x", String(lineX));
+      label.setAttribute("y", String(labelY));
+      label.setAttribute("text-anchor", "middle");
+      applyTextHalo(
+        /** @type {SVGTextElement} */
+        label
+      );
+      label.setAttribute("font-size", String(_HarmonicsMode.LABEL_FONT_SIZE));
       label.setAttribute("font-weight", "bold");
       label.setAttribute("font-family", "Arial, sans-serif");
       label.textContent = String(harmonicNumber);
       return label;
     }
     /**
-     * Render a single harmonic set as vertical lines
+     * Effective pixel size of a set's symbol marks: the base size scaled by that
+     * set's own "Large symbols" flag, so sets at both sizes can share a gram. The
+     * whole label/symbol stack layout derives from this, so the label spacing and
+     * top-edge clamping follow the set's chosen size.
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @returns {number} Symbol diameter in px
+     */
+    symbolSize(harmonicSet) {
+      return _HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(harmonicSet);
+    }
+    /**
+     * Create the filled symbol mark drawn between a pin's number label and the top
+     * of its line.
+     *
+     * The vertical position (`symbolCy`) is computed once per set by
+     * {@link calculateLabelStackPositions} so the whole label/symbol stack shares a
+     * consistent, on-screen layout.
+     *
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @param {number} lineX - X position of the pin line (symbol is centred on it)
+     * @param {number} symbolCy - Centre Y position for the symbol
+     * @returns {SVGElement|null} SVG symbol element, or null for the `cross` (symbol-less) style
+     */
+    createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
+      const symbol = createSymbolMark(
+        harmonicSet.symbol,
+        lineX,
+        symbolCy,
+        this.symbolSize(harmonicSet),
+        harmonicSet.color
+      );
+      if (!symbol) {
+        return null;
+      }
+      symbol.setAttribute("data-harmonic-set-id", harmonicSet.id);
+      return symbol;
+    }
+    /**
+     * Compute the shared vertical layout of a pin's label/symbol stack.
+     *
+     * Ideal (top-to-bottom): label baseline, then symbol, then the pin line top,
+     * so the symbol caps the line and the label sits above the symbol. When the
+     * stack's top would clip above the spectrogram's top edge, the whole stack
+     * (label + symbol) is nudged down by the overflow so it stays legible
+     * (spec 159, FR-011).
+     *
+     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+     * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
+     * @param {HarmonicSet} harmonicSet - Harmonic set being laid out (its symbol size drives the stack)
+     * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
+     */
+    calculateLabelStackPositions(lineTop, imageTop, harmonicSet) {
+      const r = this.symbolSize(harmonicSet) / 2;
+      const gap = _HarmonicsMode.LABEL_GAP;
+      const fontSize = _HarmonicsMode.LABEL_FONT_SIZE;
+      let symbolCy = lineTop - r;
+      let labelY = symbolCy - r - gap;
+      const labelTop = labelY - fontSize;
+      const minTop = imageTop + _HarmonicsMode.STACK_TOP_PAD;
+      if (labelTop < minTop) {
+        const shift = minTop - labelTop;
+        symbolCy += shift;
+        labelY += shift;
+      }
+      return { symbolCy, labelY };
+    }
+    /**
+     * Vertical extent (SVG coords) of a pin's label/symbol stack, for hit-testing.
+     *
+     * Derived from the same {@link calculateLabelStackPositions} layout the
+     * renderer uses, so the grab region tracks the drawn stack — including the
+     * downward nudge applied near the image's top edge. The bottom is clamped to
+     * the pin line's top so the stack region and the line region always meet with
+     * no dead gap between them.
+     *
+     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+     * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
+     * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
+     */
+    calculateLabelStackBounds(lineTop, harmonicSet) {
+      const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top;
+      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
+      const r = this.symbolSize(harmonicSet) / 2;
+      return {
+        // One ascent above the label's baseline is the top of the digits.
+        top: labelY - _HarmonicsMode.LABEL_FONT_SIZE,
+        bottom: Math.max(lineTop, symbolCy + r)
+      };
+    }
+    /**
+     * Half-width (SVG px) of a pin's label/symbol stack, for hit-testing.
+     *
+     * The wider of the symbol mark and the number label, so both are grabbable:
+     * a `cross` set has no symbol but still shows its digits, and a "Large
+     * symbols" set's mark is wider than its digits. Label width is estimated from
+     * the digit count rather than measured, which is ample for a grab region.
+     *
+     * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
+     * @param {number} harmonicNumber - Harmonic number whose label is drawn
+     * @returns {number} Half-width in SVG pixels
+     */
+    labelStackHalfWidth(harmonicSet, harmonicNumber) {
+      const digits = String(harmonicNumber).length;
+      const labelHalfWidth = digits * _HarmonicsMode.LABEL_FONT_SIZE * _HarmonicsMode.LABEL_CHAR_WIDTH_RATIO / 2;
+      return Math.max(this.symbolSize(harmonicSet) / 2, labelHalfWidth);
+    }
+    /**
+     * Compute the SVG x-coordinate of a harmonic's vertical pin line.
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @param {number} harmonicNumber - Harmonic number
+     * @returns {number} SVG x-coordinate of the pin line
+     */
+    harmonicLineX(harmonicSet, harmonicNumber) {
+      const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime };
+      return calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x;
+    }
+    /**
+     * Render a single harmonic set as vertical pin lines.
+     *
+     * Spec 159: draw a pin line for EVERY harmonic in the visible span (no pins are
+     * dropped, even if they merge into a solid block), then draw a number label and
+     * symbol only for the thinned "major" subset so the overlay stays readable.
+     * Lines are appended first so the labels/symbols paint on top of them.
+     *
+     * A set with `showPin === false` skips the lines entirely and renders as its
+     * symbols and numbers alone — the low-clutter style for stacking many sets over
+     * dense data. The label/symbol geometry is unchanged, so toggling the pin adds
+     * or removes the lines without moving anything else; the set is then grabbed
+     * by its label/symbol stack, since hit-testing only covers what is drawn.
+     *
      * @param {HarmonicSet} harmonicSet - Harmonic set to render
      */
     renderHarmonicSet(harmonicSet) {
       if (!this.instance.cursorGroup) {
         return;
       }
-      const visibleHarmonics = this.getVisibleHarmonics(harmonicSet, this.instance.state.config);
+      const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet);
+      if (maxHarmonic < minHarmonic) {
+        return;
+      }
       const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
-      visibleHarmonics.forEach((harmonicNumber) => {
-        const harmonicFreq = harmonicNumber * harmonicSet.spacing;
-        const harmonicPoint = { freq: harmonicFreq, time: harmonicSet.anchorTime };
-        const harmonicSVG = calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage);
-        const lineX = harmonicSVG.x;
-        const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight);
-        const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop);
-        this.instance.cursorGroup.appendChild(line);
+      const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top;
+      if (harmonicSet.showPin !== false) {
+        for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
+          const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
+          const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight);
+          this.instance.cursorGroup.appendChild(line);
+        }
+      }
+      const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic);
+      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
+      labelledHarmonics.forEach((harmonicNumber) => {
+        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
+        const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy);
+        const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY);
+        if (symbol) {
+          this.instance.cursorGroup.appendChild(symbol);
+        }
         this.instance.cursorGroup.appendChild(label);
       });
     }
@@ -2210,7 +2638,784 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
    * @type {string[]}
    */
   __publicField(_HarmonicsMode, "harmonicColors", ["#ff6b6b", "#2ecc71", "#f39c12", "#9b59b6", "#ffc93c", "#ff9ff3", "#45b7d1", "#e67e22"]);
+  /**
+   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
+   * this scaled by the "Large symbols" experiment toggle — use
+   * {@link HarmonicsMode#symbolSize} rather than reading this directly.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "SYMBOL_SIZE", 10);
+  /**
+   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
+   *
+   * The resulting height is a fixed pixel length, not a span of time: it is
+   * derived from the viewport's base render size (which tracks expand, not zoom)
+   * rather than from the zoomed image element. Pins therefore keep the same
+   * on-screen height at every zoom level, growing/shrinking only when the
+   * component itself is resized.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "PIN_HEIGHT_RATIO", 0.2);
+  /**
+   * Font size (px) of a pin's number label; also used as its approximate ascent
+   * when clamping the label/symbol stack to the image's top edge.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "LABEL_FONT_SIZE", 12);
+  /**
+   * Approximate width of one label digit as a fraction of the label font size,
+   * used to size the label's grab region (bold Arial digits are ~0.6 em wide).
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "LABEL_CHAR_WIDTH_RATIO", 0.6);
+  /**
+   * Vertical gap (px) between the pin's number label and its symbol.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "LABEL_GAP", 3);
+  /**
+   * Minimum padding (px) kept between the top of a pin's label and the top edge
+   * of the spectrogram image.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "STACK_TOP_PAD", 1);
   let HarmonicsMode = _HarmonicsMode;
+  const SYMBOL_GLYPHS = {
+    "cross": "✕",
+    "circle": "●",
+    "square": "■",
+    "diamond": "◆",
+    "triangle": "▲",
+    "triangle-down": "▼",
+    "star": "★"
+  };
+  function createSymbolSelect(instance) {
+    const state = instance.state;
+    if (!state.selectedSymbol) {
+      state.selectedSymbol = DEFAULT_SYMBOL;
+    }
+    const select = document.createElement("select");
+    select.className = "gram-frame-symbol-select";
+    select.title = "Symbol";
+    select.setAttribute("aria-label", "Symbol");
+    select.style.color = state.selectedColor;
+    SYMBOL_CATALOG.forEach((symbolId) => {
+      const option = document.createElement("option");
+      option.value = symbolId;
+      option.textContent = SYMBOL_GLYPHS[symbolId];
+      option.title = SYMBOL_DISPLAY_NAMES[symbolId];
+      if (symbolId === state.selectedSymbol) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+    select.addEventListener("change", () => {
+      const symbol = (
+        /** @type {SymbolType} */
+        select.value
+      );
+      if (!instance.applySymbolToSelectedFeature || !instance.applySymbolToSelectedFeature(symbol)) {
+        state.selectedSymbol = symbol;
+      }
+    });
+    instance._symbolControl = {
+      /** @param {SymbolType} symbol */
+      setValue(symbol) {
+        select.value = symbol;
+      },
+      /** @param {string} color */
+      setTint(color) {
+        select.style.color = color;
+      }
+    };
+    return select;
+  }
+  function createLargeSymbolToggle(instance) {
+    const label = document.createElement("label");
+    label.className = "gram-frame-large-symbols-toggle";
+    label.title = `Trial: draw the selected feature's symbols at ${LARGE_SYMBOL_SCALE}× their normal size`;
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "gram-frame-large-symbols-checkbox";
+    checkbox.checked = !!instance.state.largeSymbols;
+    checkbox.addEventListener("change", () => {
+      if (!instance.applyLargeSymbolsToSelectedFeature || !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
+        instance.state.largeSymbols = checkbox.checked;
+        notifyStateListeners(instance.state, instance.stateListeners);
+      }
+    });
+    instance._largeSymbolsControl = {
+      /** @param {boolean} large */
+      setValue(large) {
+        checkbox.checked = large;
+      }
+    };
+    const text = document.createElement("span");
+    text.className = "gram-frame-large-symbols-label";
+    text.textContent = "Large symbols";
+    label.appendChild(checkbox);
+    label.appendChild(text);
+    return label;
+  }
+  const SCHEMA_VERSION = 1;
+  const STUDENT_TTL_MS = 24 * 60 * 60 * 1e3;
+  const KEY_PREFIX = "gramframe::";
+  const PIN_PREF_KEY = `${KEY_PREFIX}pref::harmonicPin`;
+  const TRAINER_FLAG_SELECTOR = "#gf-persistent, .gf-persistent, [data-gf-persistent]";
+  function isAnnotationExpired(savedAt, nowMs) {
+    const t = Date.parse(
+      /** @type {string} */
+      savedAt
+    );
+    if (Number.isNaN(t)) {
+      return true;
+    }
+    const age = nowMs - t;
+    if (age < 0) {
+      return true;
+    }
+    return age > STUDENT_TTL_MS;
+  }
+  function detectUserContext() {
+    if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
+      return "trainer";
+    }
+    const anchors = document.querySelectorAll("a");
+    for (let i = 0; i < anchors.length; i++) {
+      if (anchors[i].textContent && anchors[i].textContent.trim() === "ANALYSIS") {
+        return "trainer";
+      }
+    }
+    return "student";
+  }
+  function getStorage(context) {
+    try {
+      const storage = context === "trainer" ? localStorage : sessionStorage;
+      const testKey = "__gramframe_test__";
+      storage.setItem(testKey, "1");
+      storage.removeItem(testKey);
+      return storage;
+    } catch {
+      return null;
+    }
+  }
+  function buildStorageKey(instanceIndex) {
+    const pathname = window.location.pathname;
+    if (instanceIndex != null && instanceIndex > 0) {
+      return `${KEY_PREFIX}${pathname}::${instanceIndex}`;
+    }
+    return `${KEY_PREFIX}${pathname}`;
+  }
+  function loadPinPreference() {
+    try {
+      const raw = sessionStorage.getItem(PIN_PREF_KEY);
+      if (raw === "false") return false;
+      return true;
+    } catch {
+      return true;
+    }
+  }
+  function savePinPreference(showPin) {
+    try {
+      sessionStorage.setItem(PIN_PREF_KEY, showPin ? "true" : "false");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function saveAnnotations(state, instanceIndex) {
+    try {
+      const context = detectUserContext();
+      const storage = getStorage(context);
+      if (!storage) return false;
+      const hasMarkers = state.analysis && state.analysis.markers && state.analysis.markers.length > 0;
+      const hasHarmonics = state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0;
+      const hasDoppler = state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null);
+      if (!hasMarkers && !hasHarmonics && !hasDoppler) {
+        const key2 = buildStorageKey(instanceIndex);
+        storage.removeItem(key2);
+        return true;
+      }
+      const data = {
+        version: SCHEMA_VERSION,
+        savedAt: (/* @__PURE__ */ new Date()).toISOString(),
+        analysis: {
+          markers: (state.analysis && state.analysis.markers || []).map((m) => ({
+            id: m.id,
+            color: m.color,
+            time: m.time,
+            freq: m.freq,
+            // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
+            // SCHEMA_VERSION bump: legacy records simply lack it and default to
+            // 'cross' (no drawn symbol) on restore.
+            symbol: m.symbol || "cross"
+          }))
+        },
+        harmonics: {
+          harmonicSets: (state.harmonics && state.harmonics.harmonicSets || []).map((hs) => ({
+            id: hs.id,
+            color: hs.color,
+            anchorTime: hs.anchorTime,
+            spacing: hs.spacing,
+            // `symbol` is an ADDITIVE field (feature 157-harmonic-pin-symbols). It
+            // MUST NOT trigger a SCHEMA_VERSION bump: the strict version guard in
+            // loadAnnotations would otherwise discard all pre-existing v1 records.
+            // Legacy records simply lack this key and default to 'cross' (the
+            // symbol-less default, feature 161) on restore.
+            symbol: hs.symbol || "cross",
+            // `showPin` is likewise ADDITIVE (harmonic-pin toggle) and MUST NOT
+            // bump SCHEMA_VERSION. Records written before it simply lack the key
+            // and restore as `true` (pin shown), matching their original look.
+            showPin: hs.showPin !== false
+          }))
+        },
+        doppler: {
+          fPlus: state.doppler && state.doppler.fPlus ? { time: state.doppler.fPlus.time, freq: state.doppler.fPlus.freq } : null,
+          fMinus: state.doppler && state.doppler.fMinus ? { time: state.doppler.fMinus.time, freq: state.doppler.fMinus.freq } : null,
+          fZero: state.doppler && state.doppler.fZero ? { time: state.doppler.fZero.time, freq: state.doppler.fZero.freq } : null,
+          color: state.doppler && state.doppler.color || null
+        }
+      };
+      const key = buildStorageKey(instanceIndex);
+      storage.setItem(key, JSON.stringify(data));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function loadAnnotations(instanceIndex) {
+    try {
+      const context = detectUserContext();
+      const storage = getStorage(context);
+      if (!storage) return null;
+      const key = buildStorageKey(instanceIndex);
+      const raw = storage.getItem(key);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || data.version !== SCHEMA_VERSION) {
+        console.warn("GramFrame: Discarding stored annotations — unrecognised schema version:", data && data.version);
+        storage.removeItem(key);
+        return null;
+      }
+      if (context === "student" && isAnnotationExpired(data.savedAt, Date.now())) {
+        console.info("GramFrame: Discarding student annotations — older than the 24-hour persistence limit");
+        storage.removeItem(key);
+        return null;
+      }
+      return (
+        /** @type {StoredAnnotations} */
+        data
+      );
+    } catch {
+      console.warn("GramFrame: Failed to load stored annotations — data discarded");
+      return null;
+    }
+  }
+  function clearAnnotations(instanceIndex) {
+    try {
+      const context = detectUserContext();
+      const storage = getStorage(context);
+      if (!storage) return false;
+      const key = buildStorageKey(instanceIndex);
+      storage.removeItem(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function createPinToggle(instance) {
+    const state = instance.state;
+    const row = document.createElement("label");
+    row.className = "gram-frame-pin-toggle";
+    row.title = "Show the vertical pin lines of harmonic sets";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "gram-frame-pin-toggle-input";
+    checkbox.checked = state.showHarmonicPin !== false;
+    checkbox.setAttribute("aria-label", "Show harmonic pin");
+    const text = document.createElement("span");
+    text.className = "gram-frame-pin-toggle-label";
+    text.textContent = "Pin";
+    row.appendChild(checkbox);
+    row.appendChild(text);
+    checkbox.addEventListener("change", () => {
+      const showPin = checkbox.checked;
+      if (!instance.applyPinToSelectedFeature || !instance.applyPinToSelectedFeature(showPin)) {
+        state.showHarmonicPin = showPin;
+        savePinPreference(showPin);
+      }
+    });
+    instance._pinControl = {
+      /** @param {boolean} showPin */
+      setValue(showPin) {
+        checkbox.checked = showPin;
+      },
+      /** @param {boolean} enabled */
+      setEnabled(enabled) {
+        checkbox.disabled = !enabled;
+        row.classList.toggle("gram-frame-pin-toggle-disabled", !enabled);
+        row.title = enabled ? "Show the vertical pin lines of harmonic sets" : "Pins apply to harmonic sets only";
+      }
+    };
+    return row;
+  }
+  const scriptRel = "modulepreload";
+  const assetsURL = function(dep) {
+    return "/" + dep;
+  };
+  const seen = {};
+  const __vitePreload = function preload(baseModule, deps, importerUrl) {
+    let promise = Promise.resolve();
+    if (false) {
+      document.getElementsByTagName("link");
+      const cspNonceMeta = document.querySelector(
+        "meta[property=csp-nonce]"
+      );
+      const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
+      promise = Promise.allSettled(
+        deps.map((dep) => {
+          dep = assetsURL(dep);
+          if (dep in seen) return;
+          seen[dep] = true;
+          const isCss = dep.endsWith(".css");
+          const cssSelector = isCss ? '[rel="stylesheet"]' : "";
+          if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
+            return;
+          }
+          const link = document.createElement("link");
+          link.rel = isCss ? "stylesheet" : scriptRel;
+          if (!isCss) {
+            link.as = "script";
+          }
+          link.crossOrigin = "";
+          link.href = dep;
+          if (cspNonce) {
+            link.setAttribute("nonce", cspNonce);
+          }
+          document.head.appendChild(link);
+          if (isCss) {
+            return new Promise((res, rej) => {
+              link.addEventListener("load", res);
+              link.addEventListener(
+                "error",
+                () => rej(new Error(`Unable to preload CSS for ${dep}`))
+              );
+            });
+          }
+        })
+      );
+    }
+    function handlePreloadError(err) {
+      const e = new Event("vite:preloadError", {
+        cancelable: true
+      });
+      e.payload = err;
+      window.dispatchEvent(e);
+      if (!e.defaultPrevented) {
+        throw err;
+      }
+    }
+    return promise.then((res) => {
+      for (const item of res || []) {
+        if (item.status !== "rejected") continue;
+        handlePreloadError(item.reason);
+      }
+      return baseModule().catch(handlePreloadError);
+    });
+  };
+  let currentFocusedInstance = null;
+  let registeredInstances = /* @__PURE__ */ new Set();
+  function registerInstance(instance) {
+    registeredInstances.add(instance);
+  }
+  function unregisterInstance(instance) {
+    registeredInstances.delete(instance);
+    if (currentFocusedInstance === instance) {
+      if (registeredInstances.size > 0) {
+        const firstInstance = registeredInstances.values().next().value;
+        setFocusedInstance(firstInstance);
+      } else {
+        currentFocusedInstance = null;
+      }
+    }
+  }
+  function setFocusedInstance(instance) {
+    if (currentFocusedInstance && currentFocusedInstance !== instance) {
+      removeFocusIndicator(currentFocusedInstance);
+    }
+    currentFocusedInstance = instance;
+    if (instance) {
+      addFocusIndicator(instance);
+    }
+  }
+  function getFocusedInstance() {
+    return currentFocusedInstance;
+  }
+  function addFocusIndicator(instance) {
+    if (instance.container) {
+      instance.container.classList.add("gram-frame-focused");
+    }
+  }
+  function removeFocusIndicator(instance) {
+    if (instance.container) {
+      instance.container.classList.remove("gram-frame-focused");
+    }
+  }
+  function focusNextInstance() {
+    if (registeredInstances.size <= 1) return;
+    const instancesArray = Array.from(registeredInstances);
+    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
+    const nextIndex = (currentIndex + 1) % instancesArray.length;
+    setFocusedInstance(instancesArray[nextIndex]);
+  }
+  function focusPreviousInstance() {
+    if (registeredInstances.size <= 1) return;
+    const instancesArray = Array.from(registeredInstances);
+    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
+    const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1;
+    setFocusedInstance(instancesArray[prevIndex]);
+  }
+  const MOVEMENT_INCREMENTS = {
+    normal: 1,
+    // Arrow keys alone: 1-pixel increments
+    fast: 5
+    // Shift + Arrow keys: 5-pixel increments
+  };
+  let globalKeyboardHandler = null;
+  let keyboardHandlerInitialized = false;
+  function initializeKeyboardControl(instance) {
+    registerInstance(instance);
+    if (!keyboardHandlerInitialized) {
+      globalKeyboardHandler = (event) => handleGlobalKeyboardEvent(event);
+      document.addEventListener("keydown", globalKeyboardHandler);
+      keyboardHandlerInitialized = true;
+    }
+  }
+  function cleanupKeyboardControl(instance) {
+    unregisterInstance(instance);
+  }
+  function handleGlobalKeyboardEvent(event) {
+    const focusedInstance = getFocusedInstance();
+    if (event.key === "Tab") {
+      if (!focusedInstance) return;
+      if (event.shiftKey) {
+        focusPreviousInstance();
+      } else {
+        focusNextInstance();
+      }
+      event.preventDefault();
+      return;
+    }
+    if (!focusedInstance) {
+      return;
+    }
+    if (!isArrowKey(event.key)) {
+      return;
+    }
+    const selection = focusedInstance.state.selection;
+    if (!selection || !selection.selectedType || !selection.selectedId) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const baseIncrement = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal;
+    const zoomLevel = focusedInstance.state.zoom.level || 1;
+    const increment = baseIncrement / zoomLevel;
+    const movement = calculateMovementFromKey(event.key, increment);
+    if (selection.selectedType === "marker") {
+      moveSelectedMarker(focusedInstance, selection.selectedId, movement);
+    } else if (selection.selectedType === "harmonicSet") {
+      moveSelectedHarmonicSet(focusedInstance, selection.selectedId, movement);
+    }
+  }
+  function isArrowKey(key) {
+    return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key);
+  }
+  function calculateMovementFromKey(key, increment) {
+    switch (key) {
+      case "ArrowLeft":
+        return { dx: -increment, dy: 0 };
+      case "ArrowRight":
+        return { dx: increment, dy: 0 };
+      case "ArrowUp":
+        return { dx: 0, dy: -increment };
+      case "ArrowDown":
+        return { dx: 0, dy: increment };
+      default:
+        return { dx: 0, dy: 0 };
+    }
+  }
+  function moveSelectedMarker(instance, markerId, movement) {
+    if (!instance.state.analysis || !instance.state.analysis.markers) {
+      return;
+    }
+    const marker = instance.state.analysis.markers.find((m) => m.id === markerId);
+    if (!marker) {
+      return;
+    }
+    const currentSVG = dataToSVGCoordinates(
+      marker.freq,
+      marker.time,
+      instance.state.config,
+      instance.state.imageDetails,
+      instance.state.rate,
+      instance.state.margins
+    );
+    const newSVG = {
+      x: currentSVG.x + movement.dx,
+      y: currentSVG.y + movement.dy
+    };
+    const newData = svgToDataCoordinates(
+      newSVG.x,
+      newSVG.y,
+      instance.state.config,
+      instance.state.imageDetails,
+      instance.state.rate,
+      instance.state.margins
+    );
+    marker.freq = newData.freq;
+    marker.time = newData.time;
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+    if (instance.currentMode && instance.currentMode.updateMarkersTable) {
+      instance.currentMode.updateMarkersTable();
+    }
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
+    if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
+      return;
+    }
+    const harmonicSet = instance.state.harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
+    if (!harmonicSet) {
+      return;
+    }
+    const updates = {};
+    if (movement.dx !== 0) {
+      const { naturalWidth } = instance.state.imageDetails;
+      const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
+      const { freqMin, freqMax } = instance.state.config;
+      const freqRange = (freqMax - freqMin) / instance.state.rate;
+      const pixelToFreqRatio = freqRange / renderWidth;
+      const spacingChange = movement.dx * pixelToFreqRatio;
+      updates.spacing = Math.max(1, harmonicSet.spacing + spacingChange);
+    }
+    if (movement.dy !== 0) {
+      const { naturalHeight } = instance.state.imageDetails;
+      const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
+      const { timeMin, timeMax } = instance.state.config;
+      const margins = instance.state.margins;
+      const normalizedTime = 1 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin);
+      const currentY = margins.top + normalizedTime * renderHeight;
+      const newY = currentY + movement.dy;
+      const newNormalizedTime = (newY - margins.top) / renderHeight;
+      updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin);
+      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime));
+    }
+    if (Object.keys(updates).length > 0) {
+      const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
+      if (setIndex !== -1) {
+        Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates);
+        if (instance.harmonicPanel) {
+          __vitePreload(async () => {
+            const { updateHarmonicPanelContent: updateHarmonicPanelContent2 } = await Promise.resolve().then(() => HarmonicPanel);
+            return { updateHarmonicPanelContent: updateHarmonicPanelContent2 };
+          }, false ? __VITE_PRELOAD__ : void 0).then(({ updateHarmonicPanelContent: updateHarmonicPanelContent2 }) => {
+            updateHarmonicPanelContent2(instance.harmonicPanel, instance);
+          }).catch(() => {
+          });
+        }
+        if (instance.featureRenderer) {
+          instance.featureRenderer.renderAllPersistentFeatures();
+        }
+        notifyStateListeners(instance.state, instance.stateListeners);
+      }
+    }
+  }
+  function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
+    const { freqMin, freqMax, timeMin, timeMax } = config;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const rawFreq = freq * rate;
+    const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin);
+    const normalizedY = 1 - (time - timeMin) / (timeMax - timeMin);
+    return {
+      x: margins.left + normalizedX * renderWidth,
+      y: margins.top + normalizedY * renderHeight
+    };
+  }
+  function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
+    const { freqMin, freqMax, timeMin, timeMax } = config;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const imageX = svgX - margins.left;
+    const imageY = svgY - margins.top;
+    const boundedX = Math.max(0, Math.min(imageX, renderWidth));
+    const boundedY = Math.max(0, Math.min(imageY, renderHeight));
+    const rawFreq = freqMin + boundedX / renderWidth * (freqMax - freqMin);
+    const time = timeMax - boundedY / renderHeight * (timeMax - timeMin);
+    const freq = rawFreq / rate;
+    return { freq, time };
+  }
+  function setSelection(instance, type, id, index) {
+    setFocusedInstance(instance);
+    instance.state.selection.selectedType = type;
+    instance.state.selection.selectedId = id;
+    instance.state.selection.selectedIndex = index;
+    updateSelectionVisuals(instance);
+    if (instance.syncStyleControls) {
+      instance.syncStyleControls();
+    }
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function clearSelection(instance) {
+    instance.state.selection.selectedType = null;
+    instance.state.selection.selectedId = null;
+    instance.state.selection.selectedIndex = null;
+    updateSelectionVisuals(instance);
+    if (instance.syncStyleControls) {
+      instance.syncStyleControls();
+    }
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function getSelectedFeature(instance) {
+    const sel = instance.state.selection;
+    if (!sel || !sel.selectedType || !sel.selectedId) {
+      return null;
+    }
+    if (sel.selectedType === "marker") {
+      const feature = instance.state.analysis && instance.state.analysis.markers ? instance.state.analysis.markers.find((m) => m.id === sel.selectedId) : null;
+      return feature ? { type: "marker", feature } : null;
+    }
+    if (sel.selectedType === "harmonicSet") {
+      const feature = instance.state.harmonics && instance.state.harmonics.harmonicSets ? instance.state.harmonics.harmonicSets.find((h) => h.id === sel.selectedId) : null;
+      return feature ? { type: "harmonicSet", feature } : null;
+    }
+    return null;
+  }
+  function getActiveStyle(instance) {
+    const selected = getSelectedFeature(instance);
+    if (selected) {
+      const isHarmonicSet = selected.type === "harmonicSet";
+      return {
+        color: selected.feature.color,
+        symbol: (
+          /** @type {SymbolType} */
+          selected.feature.symbol || DEFAULT_SYMBOL
+        ),
+        // A harmonic set without an explicit `showPin` (legacy/restored) is pinned.
+        showPin: isHarmonicSet ? (
+          /** @type {HarmonicSet} */
+          selected.feature.showPin !== false
+        ) : instance.state.showHarmonicPin !== false,
+        pinApplies: isHarmonicSet,
+        largeSymbols: !!selected.feature.largeSymbols
+      };
+    }
+    return {
+      color: instance.state.selectedColor,
+      symbol: instance.state.selectedSymbol,
+      showPin: instance.state.showHarmonicPin !== false,
+      pinApplies: true,
+      largeSymbols: !!instance.state.largeSymbols
+    };
+  }
+  function refreshFeatureVisuals(instance, type) {
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+    if (type === "marker") {
+      const analysisMode = instance.modes && instance.modes["analysis"];
+      if (analysisMode && typeof analysisMode.updateMarkersTable === "function") {
+        analysisMode.updateMarkersTable();
+      }
+    } else if (type === "harmonicSet") {
+      if (instance.harmonicPanel) {
+        updateHarmonicPanelContent(instance.harmonicPanel, instance);
+      }
+    }
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function applyColorToSelectedFeature(instance, color) {
+    const selected = getSelectedFeature(instance);
+    if (!selected) {
+      return false;
+    }
+    selected.feature.color = color;
+    refreshFeatureVisuals(instance, selected.type);
+    return true;
+  }
+  function applySymbolToSelectedFeature(instance, symbol) {
+    const selected = getSelectedFeature(instance);
+    if (!selected) {
+      return false;
+    }
+    selected.feature.symbol = symbol;
+    refreshFeatureVisuals(instance, selected.type);
+    return true;
+  }
+  function applyPinToSelectedFeature(instance, showPin) {
+    const selected = getSelectedFeature(instance);
+    if (!selected || selected.type !== "harmonicSet") {
+      return false;
+    }
+    selected.feature.showPin = !!showPin;
+    refreshFeatureVisuals(instance, selected.type);
+    return true;
+  }
+  function applyLargeSymbolsToSelectedFeature(instance, large) {
+    const selected = getSelectedFeature(instance);
+    if (!selected) {
+      return false;
+    }
+    selected.feature.largeSymbols = large;
+    refreshFeatureVisuals(instance, selected.type);
+    return true;
+  }
+  function removeHarmonicSet(instance, id) {
+    const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
+    if (setIndex !== -1) {
+      if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === id) {
+        clearSelection(instance);
+      }
+      instance.state.harmonics.harmonicSets.splice(setIndex, 1);
+      if (instance.harmonicPanel) {
+        updateHarmonicPanelContent(instance.harmonicPanel, instance);
+      }
+      if (instance.featureRenderer) {
+        instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      notifyStateListeners(instance.state, instance.stateListeners);
+    }
+  }
+  function updateSelectionVisuals(instance) {
+    if (instance.container) {
+      const existingHighlights = instance.container.querySelectorAll(".gram-frame-selected-row");
+      existingHighlights.forEach((el) => {
+        el.classList.remove("gram-frame-selected-row");
+      });
+    }
+    const selection = instance.state.selection;
+    if (selection.selectedType && selection.selectedId) {
+      const container = instance.container || document;
+      if (selection.selectedType === "marker") {
+        const selector = `tr[data-marker-id="${selection.selectedId}"]`;
+        const row = container.querySelector(selector);
+        if (row) {
+          row.classList.add("gram-frame-selected-row");
+        }
+      } else if (selection.selectedType === "harmonicSet") {
+        const selector = `tr[data-harmonic-id="${selection.selectedId}"]`;
+        const row = container.querySelector(selector);
+        if (row) {
+          row.classList.add("gram-frame-selected-row");
+        }
+      }
+    }
+  }
   const COLOR_PALETTE = [
     "#ff0000",
     // Red
@@ -2237,13 +3442,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     "#ff0080"
     // Purple-red
   ];
-  function createColorPicker(state) {
+  function createColorPicker(instance) {
+    const state = instance.state;
     const container = document.createElement("div");
     container.className = "gram-frame-color-picker";
     container.style.display = "block";
     const label = document.createElement("div");
     label.className = "gram-frame-color-picker-label";
-    label.textContent = "Harmonic Color";
+    label.textContent = "Symbol";
     container.appendChild(label);
     const paletteContainer = document.createElement("div");
     paletteContainer.className = "gram-frame-color-palette";
@@ -2268,24 +3474,42 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const indicator = document.createElement("div");
     indicator.className = "gram-frame-color-indicator";
     sliderContainer.appendChild(indicator);
-    const currentColor = document.createElement("div");
-    currentColor.className = "gram-frame-current-color";
-    currentColor.style.backgroundColor = state.selectedColor;
-    currentColor.style.width = "30px";
-    currentColor.style.height = "20px";
-    currentColor.style.borderRadius = "10px";
-    currentColor.style.flexShrink = "0";
-    paletteContainer.appendChild(currentColor);
+    const symbolSelect = createSymbolSelect(instance);
+    paletteContainer.appendChild(symbolSelect);
+    container.appendChild(createPinToggle(instance));
+    container.appendChild(createLargeSymbolToggle(instance));
     canvas.addEventListener("click", (event) => {
       const rect = canvas.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const scaleX = canvas.width / rect.width;
       const canvasX = x * scaleX;
       const color = getColorFromPosition(canvasX, canvas.width);
-      state.selectedColor = color;
-      currentColor.style.backgroundColor = color;
+      if (!instance.applyColorToSelectedFeature || !instance.applyColorToSelectedFeature(color)) {
+        state.selectedColor = color;
+      }
+      symbolSelect.style.color = color;
       updateIndicatorPosition(indicator, canvasX, canvas.width);
     });
+    const showColor = (color) => {
+      const position = getPositionFromColor(color, canvas.width);
+      updateIndicatorPosition(indicator, position, canvas.width);
+      symbolSelect.style.color = color;
+    };
+    instance.syncStyleControls = () => {
+      const { color, symbol, showPin, pinApplies, largeSymbols } = getActiveStyle(instance);
+      showColor(color);
+      if (instance._symbolControl) {
+        instance._symbolControl.setValue(symbol);
+        instance._symbolControl.setTint(color);
+      }
+      if (instance._pinControl) {
+        instance._pinControl.setValue(showPin);
+        instance._pinControl.setEnabled(pinApplies);
+      }
+      if (instance._largeSymbolsControl) {
+        instance._largeSymbolsControl.setValue(largeSymbols);
+      }
+    };
     const initialPosition = getPositionFromColor(state.selectedColor, canvas.width);
     updateIndicatorPosition(indicator, initialPosition, canvas.width);
     return container;
@@ -2517,23 +3741,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const dy = mousePos.y - markerSVG.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     return distance <= threshold;
-  }
-  function createSVGLine(x1, y1, x2, y2, className) {
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", String(x1));
-    line.setAttribute("y1", String(y1));
-    line.setAttribute("x2", String(x2));
-    line.setAttribute("y2", String(y2));
-    line.setAttribute("class", className);
-    return line;
-  }
-  function createSVGCircle(cx, cy, r, className) {
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("cx", String(cx));
-    circle.setAttribute("cy", String(cy));
-    circle.setAttribute("r", String(r));
-    circle.setAttribute("class", className);
-    return circle;
   }
   function updateCursorIndicators(instance) {
     if (instance.cursorGroup) {
@@ -3217,10 +4424,103 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.renderDopplerFeatures();
     }
   }
-  const VERSION = "DEV";
+  const VERSION = "0.1.13";
   function getVersion() {
     return VERSION;
   }
+  function zoomIn(instance) {
+    const currentLevel = instance.state.zoom.level;
+    const newLevel = Math.min(currentLevel * 1.5, 10);
+    setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY);
+  }
+  function zoomOut(instance) {
+    const currentLevel = instance.state.zoom.level;
+    const newLevel = Math.max(currentLevel / 1.5, 1);
+    setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY);
+  }
+  function zoomReset(instance) {
+    setZoom(instance, 1, 0.5, 0.5);
+  }
+  function setZoom(instance, level, centerX, centerY) {
+    instance.state.zoom.level = level;
+    instance.state.zoom.centerX = centerX;
+    instance.state.zoom.centerY = centerY;
+    if (instance.svg) {
+      applyZoomTransform(instance);
+    }
+    updateZoomControlStates(instance);
+    notifyStateListeners(instance.state, instance.stateListeners);
+  }
+  function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
+    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
+    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
+    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
+    const margins = instance.state.margins;
+    const svgRect = instance.svg.getBoundingClientRect();
+    const scaleX = (renderWidth + margins.left + margins.right) / svgRect.width;
+    const scaleY = (renderHeight + margins.top + margins.bottom) / svgRect.height;
+    return {
+      normalizedDeltaX: -(dxPx * scaleX / renderWidth) / instance.state.zoom.level,
+      normalizedDeltaY: -(dyPx * scaleY / renderHeight) / instance.state.zoom.level
+    };
+  }
+  function panByNormalized(instance, deltaX, deltaY) {
+    if (instance.state.zoom.level <= 1) {
+      return;
+    }
+    const newCenterX = Math.max(0, Math.min(1, instance.state.zoom.centerX + deltaX));
+    const newCenterY = Math.max(0, Math.min(1, instance.state.zoom.centerY + deltaY));
+    setZoom(instance, instance.state.zoom.level, newCenterX, newCenterY);
+  }
+  function zoomAtImagePoint(instance, factor, imageX, imageY) {
+    const currentLevel = instance.state.zoom.level;
+    const newLevel = Math.max(1, Math.min(currentLevel * factor, 10));
+    if (newLevel === currentLevel) {
+      return;
+    }
+    if (newLevel <= 1) {
+      zoomReset(instance);
+      return;
+    }
+    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
+    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
+    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
+    const centerX = Math.max(0, Math.min(1, imageX / renderWidth));
+    const centerY = Math.max(0, Math.min(1, imageY / renderHeight));
+    setZoom(instance, newLevel, centerX, centerY);
+  }
+  function updateZoomControlStates(instance) {
+    if (instance.commandButtons && instance.modes) {
+      updateCommandButtonStates(instance.commandButtons, instance.modes);
+    }
+    if (instance.modeButtons && instance.modes) {
+      updateModeButtonStates(instance.modeButtons, instance.modes);
+      if (instance.state.mode === "pan" && instance.modes.pan && !instance.modes.pan.isEnabled() && instance.state.previousMode) {
+        instance._switchMode(instance.state.previousMode);
+      }
+    }
+  }
+  function handleResize(instance) {
+    if (instance.svg) {
+      refreshExpandedLayout(instance);
+      updateSVGLayout(instance);
+      renderAxes(instance);
+      if (instance.featureRenderer) {
+        instance.featureRenderer.renderAllPersistentFeatures();
+      }
+    }
+  }
+  function updateAxes(instance) {
+    if (instance.axesGroup) {
+      renderAxes(instance);
+    }
+  }
+  const WHEEL_NAV_GUIDANCE = [
+    "Available in all modes",
+    "Ctrl + scroll to zoom around the pointer",
+    "Scroll to pan when zoomed in",
+    "Wheel-button drag to pan when zoomed in"
+  ];
   class PanMode extends BaseMode {
     /**
      * Constructor for pan mode
@@ -3284,16 +4584,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       const deltaX = event.clientX - this.dragState.lastX;
       const deltaY = event.clientY - this.dragState.lastY;
-      const { naturalWidth, naturalHeight } = this.instance.state.imageDetails;
-      const renderWidth = this.instance.state.imageDetails.renderWidth || naturalWidth;
-      const renderHeight = this.instance.state.imageDetails.renderHeight || naturalHeight;
-      const margins = this.instance.state.margins;
-      const svgRect = this.instance.svg.getBoundingClientRect();
-      const scaleX = (renderWidth + margins.left + margins.right) / svgRect.width;
-      const scaleY = (renderHeight + margins.top + margins.bottom) / svgRect.height;
-      const normalizedDeltaX = -(deltaX * scaleX / renderWidth) / this.instance.state.zoom.level;
-      const normalizedDeltaY = -(deltaY * scaleY / renderHeight) / this.instance.state.zoom.level;
-      this.panImage(normalizedDeltaX, normalizedDeltaY);
+      const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(this.instance, deltaX, deltaY);
+      panByNormalized(this.instance, normalizedDeltaX, normalizedDeltaY);
       this.dragState.lastX = event.clientX;
       this.dragState.lastY = event.clientY;
     }
@@ -3323,45 +4615,28 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     /**
-     * Pan the image by adjusting the center point
-     * @param {number} deltaX - Change in X position (normalized -1 to 1)
-     * @param {number} deltaY - Change in Y position (normalized -1 to 1)
-     */
-    panImage(deltaX, deltaY) {
-      if (this.instance.state.zoom.level <= 1) {
-        return;
-      }
-      const newCenterX = Math.max(0, Math.min(1, this.instance.state.zoom.centerX + deltaX));
-      const newCenterY = Math.max(0, Math.min(1, this.instance.state.zoom.centerY + deltaY));
-      this.setZoom(this.instance.state.zoom.level, newCenterX, newCenterY);
-    }
-    /**
-     * Set zoom level and center point
-     * @param {number} level - Zoom level (1.0 = no zoom)
-     * @param {number} centerX - Center X (0-1 normalized)
-     * @param {number} centerY - Center Y (0-1 normalized)
-     */
-    setZoom(level, centerX, centerY) {
-      this.instance.state.zoom.level = level;
-      this.instance.state.zoom.centerX = centerX;
-      this.instance.state.zoom.centerY = centerY;
-      if (this.instance.svg) {
-        applyZoomTransform(this.instance);
-      }
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
-    }
-    /**
-     * Get guidance content for pan mode
-     * @returns {Object} Structured guidance content
+     * Get guidance content for pan mode.
+     *
+     * Pan is the initial mode, so its guidance carries the global mouse-wheel
+     * instructions (which apply in every mode) as their own titled section, plus a
+     * section for the pan-specific interactions.
+     * @returns {Object} Structured guidance content (multi-section)
      */
     getGuidanceText() {
       return {
-        title: "Pan Mode",
-        items: [
-          "Pan is only available when image is zoomed in",
-          "Click and drag to pan the view when zoomed in",
-          "Use the zoom controls to zoom in before panning",
-          `GramFrame v${getVersion()}`
+        sections: [
+          {
+            title: "Mouse-Wheel",
+            items: WHEEL_NAV_GUIDANCE
+          },
+          {
+            title: "Pan Mode",
+            items: [
+              "Click and drag to pan the view (when zoomed in)",
+              "Use + / − to zoom in and out",
+              `GramFrame v${getVersion()}`
+            ]
+          }
         ]
       };
     }
@@ -3373,12 +4648,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.dragState = { lastX: 0, lastY: 0 };
     }
     /**
-     * Check if pan mode is enabled
-     * Pan mode is only enabled when zoomed in (zoom level > 1.0)
-     * @returns {boolean} True if enabled, false if disabled
+     * Check if pan mode is enabled.
+     *
+     * Pan mode is always selectable — it is the initial mode, and staying in it at
+     * zoom level 1 is the intended way to avoid accidentally placing markers on a
+     * click. Panning itself is still gated on being zoomed in (see handleMouseDown
+     * / panByNormalized); at zoom 1 a click simply does nothing.
+     * @returns {boolean} Always true
      */
     isEnabled() {
-      return this.instance.state.zoom.level > 1;
+      return true;
     }
     /**
      * Get command buttons for pan mode
@@ -3421,16 +4700,27 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return Object.assign({}, ...modeStates);
   }
   const initialState = {
-    version: "0.0.1",
+    version: getVersion(),
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     instanceId: "",
-    mode: "analysis",
-    // 'analysis', 'harmonics', 'doppler', 'pan'
+    mode: "pan",
+    // 'analysis', 'harmonics', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
     previousMode: null,
     // Previous mode for switching back
     rate: 1,
     selectedColor: "#ff6b6b",
     // Currently selected color for new features across all modes
+    selectedSymbol: "cross",
+    // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
+    // Whether the NEXT created harmonic set draws its vertical pin lines. Shown
+    // as a toggle in the Symbol panel; on by default at the start of a browser
+    // session and remembered (sessionStorage) for the rest of it.
+    showHarmonicPin: true,
+    // EXPERIMENT (temporary): large-symbol size for the NEXT created feature, set
+    // from the Symbol panel's toggle when nothing is selected (with a feature
+    // selected, the toggle resizes that feature instead). In-memory only, default
+    // off, never persisted — it exists to gather feedback on the preferred size.
+    largeSymbols: false,
     cursorPosition: null,
     cursors: [],
     imageDetails: {
@@ -3533,8 +4823,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       /** @type {HTMLDivElement} */
       createFullFlexLayout("gram-frame-left-column", "4px")
     );
-    leftColumn.style.flex = "0 0 600px";
-    leftColumn.style.width = "600px";
+    leftColumn.style.flex = "0 1 750px";
+    leftColumn.style.width = "auto";
+    leftColumn.style.minWidth = "0";
     leftColumn.style.flexDirection = "row";
     const modeColumn = (
       /** @type {HTMLDivElement} */
@@ -3564,8 +4855,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     speedLED.style.gridColumn = "1 / -1";
     cursorContainer.appendChild(speedLED);
     controlsColumn.appendChild(cursorContainer);
-    const colorPicker = createColorPicker(instance.state);
-    colorPicker.querySelector(".gram-frame-color-picker-label").textContent = "Color";
+    const colorPicker = createColorPicker(instance);
     controlsColumn.appendChild(colorPicker);
     leftColumn.appendChild(modeColumn);
     leftColumn.appendChild(guidanceColumn);
@@ -3878,58 +5168,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const freq = rawFreq / rate;
     return { freq, time };
   }
-  let currentFocusedInstance = null;
-  let registeredInstances = /* @__PURE__ */ new Set();
-  function registerInstance(instance) {
-    registeredInstances.add(instance);
-  }
-  function unregisterInstance(instance) {
-    registeredInstances.delete(instance);
-    if (currentFocusedInstance === instance) {
-      if (registeredInstances.size > 0) {
-        const firstInstance = registeredInstances.values().next().value;
-        setFocusedInstance(firstInstance);
-      } else {
-        currentFocusedInstance = null;
-      }
-    }
-  }
-  function setFocusedInstance(instance) {
-    if (currentFocusedInstance && currentFocusedInstance !== instance) {
-      removeFocusIndicator(currentFocusedInstance);
-    }
-    currentFocusedInstance = instance;
-    if (instance) {
-      addFocusIndicator(instance);
-    }
-  }
-  function getFocusedInstance() {
-    return currentFocusedInstance;
-  }
-  function addFocusIndicator(instance) {
-    if (instance.container) {
-      instance.container.classList.add("gram-frame-focused");
-    }
-  }
-  function removeFocusIndicator(instance) {
-    if (instance.container) {
-      instance.container.classList.remove("gram-frame-focused");
-    }
-  }
-  function focusNextInstance() {
-    if (registeredInstances.size <= 1) return;
-    const instancesArray = Array.from(registeredInstances);
-    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
-    const nextIndex = (currentIndex + 1) % instancesArray.length;
-    setFocusedInstance(instancesArray[nextIndex]);
-  }
-  function focusPreviousInstance() {
-    if (registeredInstances.size <= 1) return;
-    const instancesArray = Array.from(registeredInstances);
-    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
-    const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1;
-    setFocusedInstance(instancesArray[prevIndex]);
-  }
+  const WHEEL_ZOOM_STEP = 1.2;
   function screenToDataWithZoom(instance, event) {
     const svgRect = instance.svg.getBoundingClientRect();
     const screenX = event.clientX - svgRect.left;
@@ -3964,6 +5203,27 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     );
     return { svgCoords, imageX, imageY, dataCoords };
   }
+  function handleWheel(instance, event) {
+    const result = screenToDataWithZoom(instance, event);
+    if (!result) {
+      return;
+    }
+    if (event.ctrlKey) {
+      const factor = event.deltaY < 0 ? WHEEL_ZOOM_STEP : 1 / WHEEL_ZOOM_STEP;
+      zoomAtImagePoint(instance, factor, result.imageX, result.imageY);
+      event.preventDefault();
+    } else if (instance.state.zoom.level > 1) {
+      const { normalizedDeltaX } = pixelDeltaToNormalizedPan(instance, -event.deltaY, 0);
+      panByNormalized(instance, normalizedDeltaX, 0);
+      event.preventDefault();
+    }
+  }
+  function endWheelPan(instance) {
+    if (instance.svg && instance._wheelPan) {
+      instance.svg.style.cursor = instance._wheelPan.prevCursor || "crosshair";
+    }
+    instance._wheelPan = null;
+  }
   function setupEventListeners(instance) {
     if (instance.svg) {
       instance.svg.addEventListener("mousemove", (event) => {
@@ -3981,6 +5241,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.svg.addEventListener("contextmenu", (event) => {
         handleContextMenu(instance, event);
       });
+      instance.svg.addEventListener("wheel", (event) => {
+        handleWheel(instance, event);
+      }, { passive: false });
     }
     instance._boundHandleResize = () => {
       if (instance._handleResize) {
@@ -4011,6 +5274,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseMove(instance, event) {
+    if (instance._wheelPan && instance._wheelPan.active) {
+      const dx = event.clientX - instance._wheelPan.lastX;
+      const dy = event.clientY - instance._wheelPan.lastY;
+      const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy);
+      panByNormalized(instance, normalizedDeltaX, normalizedDeltaY);
+      instance._wheelPan.lastX = event.clientX;
+      instance._wheelPan.lastY = event.clientY;
+      return;
+    }
     const result = screenToDataWithZoom(instance, event);
     if (result) {
       const { svgCoords, dataCoords } = result;
@@ -4038,6 +5310,21 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function handleMouseDown(instance, event) {
     setFocusedInstance(instance);
+    if (event.button === 1) {
+      event.preventDefault();
+      if (instance.state.zoom.level > 1) {
+        instance._wheelPan = {
+          active: true,
+          lastX: event.clientX,
+          lastY: event.clientY,
+          prevCursor: instance.svg ? instance.svg.style.cursor : ""
+        };
+        if (instance.svg) {
+          instance.svg.style.cursor = "grabbing";
+        }
+      }
+      return;
+    }
     const result = screenToDataWithZoom(instance, event);
     if (result) {
       const { dataCoords } = result;
@@ -4047,6 +5334,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseUp(instance, event) {
+    if (instance._wheelPan && instance._wheelPan.active) {
+      endWheelPan(instance);
+      return;
+    }
     const result = screenToDataWithZoom(instance, event);
     if (result) {
       const { dataCoords } = result;
@@ -4056,6 +5347,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseLeave(instance) {
+    if (instance._wheelPan && instance._wheelPan.active) {
+      endWheelPan(instance);
+    }
     instance.state.cursorPosition = null;
     updateCursorIndicators(instance);
     if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === "function") {
@@ -4082,311 +5376,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.resizeObserver = null;
     }
   }
-  const scriptRel = "modulepreload";
-  const assetsURL = function(dep) {
-    return "/" + dep;
-  };
-  const seen = {};
-  const __vitePreload = function preload(baseModule, deps, importerUrl) {
-    let promise = Promise.resolve();
-    if (false) {
-      document.getElementsByTagName("link");
-      const cspNonceMeta = document.querySelector(
-        "meta[property=csp-nonce]"
-      );
-      const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
-      promise = Promise.allSettled(
-        deps.map((dep) => {
-          dep = assetsURL(dep);
-          if (dep in seen) return;
-          seen[dep] = true;
-          const isCss = dep.endsWith(".css");
-          const cssSelector = isCss ? '[rel="stylesheet"]' : "";
-          if (document.querySelector(`link[href="${dep}"]${cssSelector}`)) {
-            return;
-          }
-          const link = document.createElement("link");
-          link.rel = isCss ? "stylesheet" : scriptRel;
-          if (!isCss) {
-            link.as = "script";
-          }
-          link.crossOrigin = "";
-          link.href = dep;
-          if (cspNonce) {
-            link.setAttribute("nonce", cspNonce);
-          }
-          document.head.appendChild(link);
-          if (isCss) {
-            return new Promise((res, rej) => {
-              link.addEventListener("load", res);
-              link.addEventListener(
-                "error",
-                () => rej(new Error(`Unable to preload CSS for ${dep}`))
-              );
-            });
-          }
-        })
-      );
-    }
-    function handlePreloadError(err) {
-      const e = new Event("vite:preloadError", {
-        cancelable: true
-      });
-      e.payload = err;
-      window.dispatchEvent(e);
-      if (!e.defaultPrevented) {
-        throw err;
-      }
-    }
-    return promise.then((res) => {
-      for (const item of res || []) {
-        if (item.status !== "rejected") continue;
-        handlePreloadError(item.reason);
-      }
-      return baseModule().catch(handlePreloadError);
-    });
-  };
-  const MOVEMENT_INCREMENTS = {
-    normal: 1,
-    // Arrow keys alone: 1-pixel increments
-    fast: 5
-    // Shift + Arrow keys: 5-pixel increments
-  };
-  let globalKeyboardHandler = null;
-  let keyboardHandlerInitialized = false;
-  function initializeKeyboardControl(instance) {
-    registerInstance(instance);
-    if (!keyboardHandlerInitialized) {
-      globalKeyboardHandler = (event) => handleGlobalKeyboardEvent(event);
-      document.addEventListener("keydown", globalKeyboardHandler);
-      keyboardHandlerInitialized = true;
-    }
-  }
-  function cleanupKeyboardControl(instance) {
-    unregisterInstance(instance);
-  }
-  function handleGlobalKeyboardEvent(event) {
-    const focusedInstance = getFocusedInstance();
-    if (event.key === "Tab") {
-      if (!focusedInstance) return;
-      if (event.shiftKey) {
-        focusPreviousInstance();
-      } else {
-        focusNextInstance();
-      }
-      event.preventDefault();
-      return;
-    }
-    if (!focusedInstance) {
-      return;
-    }
-    if (!isArrowKey(event.key)) {
-      return;
-    }
-    const selection = focusedInstance.state.selection;
-    if (!selection || !selection.selectedType || !selection.selectedId) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    const baseIncrement = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal;
-    const zoomLevel = focusedInstance.state.zoom.level || 1;
-    const increment = baseIncrement / zoomLevel;
-    const movement = calculateMovementFromKey(event.key, increment);
-    if (selection.selectedType === "marker") {
-      moveSelectedMarker(focusedInstance, selection.selectedId, movement);
-    } else if (selection.selectedType === "harmonicSet") {
-      moveSelectedHarmonicSet(focusedInstance, selection.selectedId, movement);
-    }
-  }
-  function isArrowKey(key) {
-    return ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key);
-  }
-  function calculateMovementFromKey(key, increment) {
-    switch (key) {
-      case "ArrowLeft":
-        return { dx: -increment, dy: 0 };
-      case "ArrowRight":
-        return { dx: increment, dy: 0 };
-      case "ArrowUp":
-        return { dx: 0, dy: -increment };
-      case "ArrowDown":
-        return { dx: 0, dy: increment };
-      default:
-        return { dx: 0, dy: 0 };
-    }
-  }
-  function moveSelectedMarker(instance, markerId, movement) {
-    if (!instance.state.analysis || !instance.state.analysis.markers) {
-      return;
-    }
-    const marker = instance.state.analysis.markers.find((m) => m.id === markerId);
-    if (!marker) {
-      return;
-    }
-    const currentSVG = dataToSVGCoordinates(
-      marker.freq,
-      marker.time,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate,
-      instance.state.margins
-    );
-    const newSVG = {
-      x: currentSVG.x + movement.dx,
-      y: currentSVG.y + movement.dy
-    };
-    const newData = svgToDataCoordinates(
-      newSVG.x,
-      newSVG.y,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate,
-      instance.state.margins
-    );
-    marker.freq = newData.freq;
-    marker.time = newData.time;
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
-    if (instance.currentMode && instance.currentMode.updateMarkersTable) {
-      instance.currentMode.updateMarkersTable();
-    }
-    notifyStateListeners(instance.state, instance.stateListeners);
-  }
-  function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
-    if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
-      return;
-    }
-    const harmonicSet = instance.state.harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
-    if (!harmonicSet) {
-      return;
-    }
-    const updates = {};
-    if (movement.dx !== 0) {
-      const { naturalWidth } = instance.state.imageDetails;
-      const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-      const { freqMin, freqMax } = instance.state.config;
-      const freqRange = (freqMax - freqMin) / instance.state.rate;
-      const pixelToFreqRatio = freqRange / renderWidth;
-      const spacingChange = movement.dx * pixelToFreqRatio;
-      updates.spacing = Math.max(1, harmonicSet.spacing + spacingChange);
-    }
-    if (movement.dy !== 0) {
-      const { naturalHeight } = instance.state.imageDetails;
-      const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-      const { timeMin, timeMax } = instance.state.config;
-      const margins = instance.state.margins;
-      const normalizedTime = 1 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin);
-      const currentY = margins.top + normalizedTime * renderHeight;
-      const newY = currentY + movement.dy;
-      const newNormalizedTime = (newY - margins.top) / renderHeight;
-      updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin);
-      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime));
-    }
-    if (Object.keys(updates).length > 0) {
-      const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
-      if (setIndex !== -1) {
-        Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates);
-        if (instance.harmonicPanel) {
-          __vitePreload(async () => {
-            const { updateHarmonicPanelContent: updateHarmonicPanelContent2 } = await Promise.resolve().then(() => HarmonicPanel);
-            return { updateHarmonicPanelContent: updateHarmonicPanelContent2 };
-          }, false ? __VITE_PRELOAD__ : void 0).then(({ updateHarmonicPanelContent: updateHarmonicPanelContent2 }) => {
-            updateHarmonicPanelContent2(instance.harmonicPanel, instance);
-          }).catch(() => {
-          });
-        }
-        if (instance.featureRenderer) {
-          instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        notifyStateListeners(instance.state, instance.stateListeners);
-      }
-    }
-  }
-  function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const rawFreq = freq * rate;
-    const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin);
-    const normalizedY = 1 - (time - timeMin) / (timeMax - timeMin);
-    return {
-      x: margins.left + normalizedX * renderWidth,
-      y: margins.top + normalizedY * renderHeight
-    };
-  }
-  function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const imageX = svgX - margins.left;
-    const imageY = svgY - margins.top;
-    const boundedX = Math.max(0, Math.min(imageX, renderWidth));
-    const boundedY = Math.max(0, Math.min(imageY, renderHeight));
-    const rawFreq = freqMin + boundedX / renderWidth * (freqMax - freqMin);
-    const time = timeMax - boundedY / renderHeight * (timeMax - timeMin);
-    const freq = rawFreq / rate;
-    return { freq, time };
-  }
-  function setSelection(instance, type, id, index) {
-    setFocusedInstance(instance);
-    instance.state.selection.selectedType = type;
-    instance.state.selection.selectedId = id;
-    instance.state.selection.selectedIndex = index;
-    updateSelectionVisuals(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
-  }
-  function clearSelection(instance) {
-    instance.state.selection.selectedType = null;
-    instance.state.selection.selectedId = null;
-    instance.state.selection.selectedIndex = null;
-    updateSelectionVisuals(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
-  }
-  function removeHarmonicSet(instance, id) {
-    const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
-    if (setIndex !== -1) {
-      if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === id) {
-        clearSelection(instance);
-      }
-      instance.state.harmonics.harmonicSets.splice(setIndex, 1);
-      if (instance.harmonicPanel) {
-        updateHarmonicPanelContent(instance.harmonicPanel, instance);
-      }
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      notifyStateListeners(instance.state, instance.stateListeners);
-    }
-  }
-  function updateSelectionVisuals(instance) {
-    if (instance.container) {
-      const existingHighlights = instance.container.querySelectorAll(".gram-frame-selected-row");
-      existingHighlights.forEach((el) => {
-        el.classList.remove("gram-frame-selected-row");
-      });
-    }
-    const selection = instance.state.selection;
-    if (selection.selectedType && selection.selectedId) {
-      const container = instance.container || document;
-      if (selection.selectedType === "marker") {
-        const selector = `tr[data-marker-id="${selection.selectedId}"]`;
-        const row = container.querySelector(selector);
-        if (row) {
-          row.classList.add("gram-frame-selected-row");
-        }
-      } else if (selection.selectedType === "harmonicSet") {
-        const selector = `tr[data-harmonic-id="${selection.selectedId}"]`;
-        const row = container.querySelector(selector);
-        if (row) {
-          row.classList.add("gram-frame-selected-row");
-        }
-      }
-    }
-  }
   function setupAllEventListeners(instance) {
     setupEventListeners(instance);
     setupResizeObserver(instance);
@@ -4395,6 +5384,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     instance.clearSelection = () => clearSelection(instance);
     instance.updateSelectionVisuals = () => updateSelectionVisuals(instance);
     instance.removeHarmonicSet = (id) => removeHarmonicSet(instance, id);
+    instance.applyColorToSelectedFeature = (color) => applyColorToSelectedFeature(instance, color);
+    instance.applySymbolToSelectedFeature = (symbol) => applySymbolToSelectedFeature(instance, symbol);
+    instance.applyPinToSelectedFeature = (showPin) => applyPinToSelectedFeature(instance, showPin);
+    instance.applyLargeSymbolsToSelectedFeature = (large) => applyLargeSymbolsToSelectedFeature(instance, large);
   }
   function setupStateListeners(instance) {
     getGlobalStateListeners().forEach((listener) => {
@@ -4460,18 +5453,21 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function renderSecureGuidance(container, content) {
     container.replaceChildren();
-    if (content.title) {
-      const title = document.createElement("h4");
-      title.textContent = content.title;
-      container.appendChild(title);
-    }
-    if (content.items && Array.isArray(content.items)) {
-      content.items.forEach((item) => {
-        const paragraph = document.createElement("p");
-        paragraph.textContent = `• ${item}`;
-        container.appendChild(paragraph);
-      });
-    }
+    const sections = Array.isArray(content.sections) ? content.sections : [{ title: content.title, items: content.items }];
+    sections.forEach((section) => {
+      if (section.title) {
+        const title = document.createElement("h4");
+        title.textContent = section.title;
+        container.appendChild(title);
+      }
+      if (section.items && Array.isArray(section.items)) {
+        section.items.forEach((item) => {
+          const paragraph = document.createElement("p");
+          paragraph.textContent = `• ${item}`;
+          container.appendChild(paragraph);
+        });
+      }
+    });
   }
   function updateGuidancePanel(guidancePanel, content) {
     if (!guidancePanel) {
@@ -4504,7 +5500,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function setupModeUI(instance) {
     instance.modes["analysis"].createUI(instance.markersContainer);
     instance.modes["harmonics"].createUI(instance.harmonicsContainer);
-    instance.currentMode = instance.modes["analysis"];
+    instance.currentMode = instance.modes[instance.state.mode] || instance.modes["pan"];
     if (instance.guidancePanel) {
       const guidanceContent = instance.currentMode.getGuidanceText();
       updateGuidancePanel(instance.guidancePanel, guidanceContent);
@@ -4546,54 +5542,77 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       setupSpectrogramImage(instance, instance.state.imageDetails.url);
     }
   }
-  function zoomIn(instance) {
-    const currentLevel = instance.state.zoom.level;
-    const newLevel = Math.min(currentLevel * 1.5, 10);
-    setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY);
-  }
-  function zoomOut(instance) {
-    const currentLevel = instance.state.zoom.level;
-    const newLevel = Math.max(currentLevel / 1.5, 1);
-    setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY);
-  }
-  function zoomReset(instance) {
-    setZoom(instance, 1, 0.5, 0.5);
-  }
-  function setZoom(instance, level, centerX, centerY) {
-    instance.state.zoom.level = level;
-    instance.state.zoom.centerX = centerX;
-    instance.state.zoom.centerY = centerY;
-    if (instance.svg) {
-      applyZoomTransform(instance);
-    }
-    updateZoomControlStates(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
-  }
-  function updateZoomControlStates(instance) {
-    if (instance.commandButtons && instance.modes) {
-      updateCommandButtonStates(instance.commandButtons, instance.modes);
-    }
-    if (instance.modeButtons && instance.modes) {
-      updateModeButtonStates(instance.modeButtons, instance.modes);
-      if (instance.state.mode === "pan" && instance.modes.pan && !instance.modes.pan.isEnabled() && instance.state.previousMode) {
-        instance._switchMode(instance.state.previousMode);
+  const REQUIRED_APIS = [
+    {
+      // Element.replaceChildren() shipped in Chrome/Edge 86. Its absence on
+      // Chrome 84 is the original silent failure this feature guards against
+      // (used by src/utils/secureHTML.js and src/components/HarmonicPanel.js).
+      name: "Element.prototype.replaceChildren",
+      minVersion: 86,
+      test: function() {
+        return typeof Element !== "undefined" && !!Element.prototype && typeof Element.prototype.replaceChildren === "function";
       }
     }
-  }
-  function handleResize(instance) {
-    if (instance.svg) {
-      refreshExpandedLayout(instance);
-      updateSVGLayout(instance);
-      renderAxes(instance);
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures();
+  ];
+  const MIN_BROWSER_VERSION = REQUIRED_APIS.reduce(function(max, api) {
+    return api.minVersion > max ? api.minVersion : max;
+  }, 0);
+  function getMissingApis() {
+    var missing = [];
+    for (var i = 0; i < REQUIRED_APIS.length; i++) {
+      var api = REQUIRED_APIS[i];
+      var present = false;
+      try {
+        present = !!api.test();
+      } catch (e) {
+        present = false;
+      }
+      if (!present) {
+        missing.push(api.name);
       }
     }
+    return missing;
   }
-  function updateAxes(instance) {
-    if (instance.axesGroup) {
-      renderAxes(instance);
+  function isBrowserSupported() {
+    return getMissingApis().length === 0;
+  }
+  var MISSING_CALLABLE_MESSAGE = /is not a function|is not a constructor|doesn't support|does not support|undefined is not a function/i;
+  function looksLikeMissingApiError(error) {
+    if (!error) {
+      return false;
     }
+    var err = (
+      /** @type {any} */
+      error
+    );
+    var isTypeError = typeof TypeError !== "undefined" && err instanceof TypeError || err.name === "TypeError";
+    var message = err.message ? String(err.message) : String(err);
+    return !!isTypeError && MISSING_CALLABLE_MESSAGE.test(message);
+  }
+  function getCompatibilityMessage() {
+    return "To view this interactive analysis component, at least version " + MIN_BROWSER_VERSION + " of Chrome or Edge is required. Please update your browser.";
+  }
+  function createCompatibilityWarningElement() {
+    var warning = document.createElement("div");
+    warning.className = "gram-frame-compat-warning";
+    warning.setAttribute("role", "alert");
+    var heading = document.createElement("strong");
+    heading.className = "gram-frame-compat-warning-heading";
+    heading.textContent = "This interactive component needs a newer browser";
+    var message = document.createElement("p");
+    message.className = "gram-frame-compat-warning-message";
+    message.textContent = getCompatibilityMessage();
+    warning.appendChild(heading);
+    warning.appendChild(message);
+    return warning;
+  }
+  function showCompatibilityWarning(configTable) {
+    if (!configTable || !configTable.parentNode) {
+      return null;
+    }
+    var warning = createCompatibilityWarningElement();
+    configTable.parentNode.replaceChild(warning, configTable);
+    return warning;
   }
   function createGramFrameAPI(GramFrame2) {
     return {
@@ -4612,6 +5631,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       detectAndReplaceConfigTables(container = document) {
         const configTables = container.querySelectorAll("table.gram-config");
         const instances = [];
+        if (!isBrowserSupported()) {
+          configTables.forEach((table) => {
+            showCompatibilityWarning(
+              /** @type {HTMLElement} */
+              table
+            );
+          });
+          this._instances = instances;
+          return instances;
+        }
         configTables.forEach((table, index) => {
           try {
             const instanceId = `gramframe-${Date.now()}-${index}`;
@@ -4625,11 +5654,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           } catch (error) {
             const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error instanceof Error ? error.message : String(error)}`;
             console.error("GramFrame Error:", errorMsg, error);
-            this._addErrorIndicator(
-              /** @type {HTMLTableElement} */
-              table,
-              errorMsg
-            );
+            if (looksLikeMissingApiError(error)) {
+              showCompatibilityWarning(
+                /** @type {HTMLElement} */
+                table
+              );
+            } else {
+              this._addErrorIndicator(
+                /** @type {HTMLTableElement} */
+                table,
+                errorMsg
+              );
+            }
           }
         });
         this._instances = instances;
@@ -4784,6 +5820,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
        */
       _addErrorIndicator(table, errorMsg) {
         try {
+          table.classList.add("gram-frame-config-error");
           const errorDiv = document.createElement("div");
           errorDiv.className = "gramframe-error-indicator";
           errorDiv.style.cssText = `
@@ -4816,120 +5853,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         }
       }
     };
-  }
-  const SCHEMA_VERSION = 1;
-  const KEY_PREFIX = "gramframe::";
-  const TRAINER_FLAG_SELECTOR = "#gf-persistent, .gf-persistent, [data-gf-persistent]";
-  function detectUserContext() {
-    if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
-      return "trainer";
-    }
-    const anchors = document.querySelectorAll("a");
-    for (let i = 0; i < anchors.length; i++) {
-      if (anchors[i].textContent && anchors[i].textContent.trim() === "ANALYSIS") {
-        return "trainer";
-      }
-    }
-    return "student";
-  }
-  function getStorage(context) {
-    try {
-      const storage = context === "trainer" ? localStorage : sessionStorage;
-      const testKey = "__gramframe_test__";
-      storage.setItem(testKey, "1");
-      storage.removeItem(testKey);
-      return storage;
-    } catch {
-      return null;
-    }
-  }
-  function buildStorageKey(instanceIndex) {
-    const pathname = window.location.pathname;
-    if (instanceIndex != null && instanceIndex > 0) {
-      return `${KEY_PREFIX}${pathname}::${instanceIndex}`;
-    }
-    return `${KEY_PREFIX}${pathname}`;
-  }
-  function saveAnnotations(state, instanceIndex) {
-    try {
-      const context = detectUserContext();
-      const storage = getStorage(context);
-      if (!storage) return false;
-      const hasMarkers = state.analysis && state.analysis.markers && state.analysis.markers.length > 0;
-      const hasHarmonics = state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0;
-      const hasDoppler = state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null);
-      if (!hasMarkers && !hasHarmonics && !hasDoppler) {
-        const key2 = buildStorageKey(instanceIndex);
-        storage.removeItem(key2);
-        return true;
-      }
-      const data = {
-        version: SCHEMA_VERSION,
-        savedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        analysis: {
-          markers: (state.analysis && state.analysis.markers || []).map((m) => ({
-            id: m.id,
-            color: m.color,
-            time: m.time,
-            freq: m.freq
-          }))
-        },
-        harmonics: {
-          harmonicSets: (state.harmonics && state.harmonics.harmonicSets || []).map((hs) => ({
-            id: hs.id,
-            color: hs.color,
-            anchorTime: hs.anchorTime,
-            spacing: hs.spacing
-          }))
-        },
-        doppler: {
-          fPlus: state.doppler && state.doppler.fPlus ? { time: state.doppler.fPlus.time, freq: state.doppler.fPlus.freq } : null,
-          fMinus: state.doppler && state.doppler.fMinus ? { time: state.doppler.fMinus.time, freq: state.doppler.fMinus.freq } : null,
-          fZero: state.doppler && state.doppler.fZero ? { time: state.doppler.fZero.time, freq: state.doppler.fZero.freq } : null,
-          color: state.doppler && state.doppler.color || null
-        }
-      };
-      const key = buildStorageKey(instanceIndex);
-      storage.setItem(key, JSON.stringify(data));
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  function loadAnnotations(instanceIndex) {
-    try {
-      const context = detectUserContext();
-      const storage = getStorage(context);
-      if (!storage) return null;
-      const key = buildStorageKey(instanceIndex);
-      const raw = storage.getItem(key);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (!data || data.version !== SCHEMA_VERSION) {
-        console.warn("GramFrame: Discarding stored annotations — unrecognised schema version:", data && data.version);
-        storage.removeItem(key);
-        return null;
-      }
-      return (
-        /** @type {StoredAnnotations} */
-        data
-      );
-    } catch {
-      console.warn("GramFrame: Failed to load stored annotations — data discarded");
-      return null;
-    }
-  }
-  function clearAnnotations(instanceIndex) {
-    try {
-      const context = detectUserContext();
-      const storage = getStorage(context);
-      if (!storage) return false;
-      const key = buildStorageKey(instanceIndex);
-      storage.removeItem(key);
-      return true;
-    } catch {
-      return false;
-    }
   }
   class GramFrame {
     /**
@@ -4985,16 +5908,46 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "setSelection");
       __publicField(this, "clearSelection");
       __publicField(this, "updateSelectionVisuals");
+      // Reformatting (feature 161): restyle the selected feature in place
+      __publicField(this, "applyColorToSelectedFeature");
+      __publicField(this, "applySymbolToSelectedFeature");
+      // Show/hide the selected harmonic set's pin lines
+      __publicField(this, "applyPinToSelectedFeature");
+      // EXPERIMENT (temporary): resize the selected feature's symbols
+      __publicField(this, "applyLargeSymbolsToSelectedFeature");
+      // Sync the colour/symbol/pin controls to the current selection
+      __publicField(this, "syncStyleControls");
+      // Symbol drop-down control handle (registered by the symbol picker)
+      __publicField(this, "_symbolControl");
+      // Pin toggle control handle (registered by the pin toggle)
+      __publicField(this, "_pinControl");
+      // EXPERIMENT (temporary): "Large symbols" checkbox handle
+      __publicField(this, "_largeSymbolsControl");
       // ResizeObserver
       __publicField(this, "resizeObserver");
       // Bound event handlers
       __publicField(this, "_boundHandleResize");
+      /**
+       * Transient state for a wheel-button (middle) drag pan; null when not dragging.
+       * Not part of the broadcast state.
+       * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
+       */
+      __publicField(this, "_wheelPan", null);
       // Storage instance index for multi-instance pages
       __publicField(this, "_storageInstanceIndex");
       // Whether this instance is a trainer context
       __publicField(this, "_isTrainerContext");
-      this.state = createInitialState();
+      // Set when the browser lacks a required API; construction is skipped and a
+      // compatibility warning is shown in place of the component.
+      __publicField(this, "_unsupportedBrowser");
       this.configTable = configTable;
+      if (!isBrowserSupported()) {
+        this._unsupportedBrowser = true;
+        showCompatibilityWarning(configTable);
+        return;
+      }
+      this.state = createInitialState();
+      this.state.showHarmonicPin = loadPinPreference();
       this.stateListeners = [];
       this.instanceId = "";
       this._storageInstanceIndex = document.querySelectorAll(".gram-frame-container").length;
@@ -5109,6 +6062,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.currentMode.cleanup();
         this.currentMode.activate();
       }
+      updatePersistentPanels(this);
+      updateLEDDisplays(this, this.state);
       notifyStateListeners(this.state, this.stateListeners);
     }
     /**
@@ -5118,10 +6073,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const saved = loadAnnotations(this._storageInstanceIndex);
       if (!saved) return;
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
-        this.state.analysis.markers = saved.analysis.markers;
+        this.state.analysis.markers = saved.analysis.markers.map((m) => ({
+          ...m,
+          symbol: m.symbol || "cross"
+        }));
       }
       if (saved.harmonics && Array.isArray(saved.harmonics.harmonicSets)) {
-        this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets;
+        this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets.map((hs) => ({
+          ...hs,
+          symbol: hs.symbol || "cross",
+          // Records saved before the pin toggle have no `showPin`; those sets were
+          // drawn with pins, so they restore as pinned.
+          showPin: hs.showPin !== false
+        }));
       }
       if (saved.doppler) {
         this.state.doppler.fPlus = saved.doppler.fPlus || null;
@@ -5170,10 +6134,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {ModeType} mode - Target mode
      */
     _switchMode(mode) {
-      if (mode === "pan" && this.state.zoom.level <= 1) {
-        console.warn("Cannot switch to pan mode when zoom level is 1:1 or less");
-        return;
-      }
       this.state.previousMode = this.state.mode;
       this.state.mode = mode;
       this.state.dragState.isDragging = false;
@@ -5182,6 +6142,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.state.dragState.originalSpacing = null;
       this.state.dragState.originalAnchorTime = null;
       this.state.dragState.clickedHarmonicNumber = null;
+      if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
+        this.clearSelection();
+      }
       if (this.modeButtons) {
         Object.keys(this.modeButtons).forEach((m) => {
           const button = this.modeButtons[m];
