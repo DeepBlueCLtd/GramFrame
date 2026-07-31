@@ -8,6 +8,7 @@ import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
 import { createSymbolMark, resolveSymbolScale } from '../../rendering/symbols.js'
+import { applyTextHalo } from '../../utils/svg.js'
 import { calculateVisibleDataRange, getRenderDimensions } from '../../components/table.js'
 
 /**
@@ -380,6 +381,10 @@ export class HarmonicsMode extends BaseMode {
     // Use selected symbol from global state, defaulting to the symbol-less cross
     const symbol = this.instance.state.selectedSymbol || 'cross'
 
+    // Use the session's pin-visibility preference (on unless the analyst turned
+    // it off via the Symbol panel toggle)
+    const showPin = this.instance.state.showHarmonicPin !== false
+
     /** @type {HarmonicSet} */
     const harmonicSet = {
       id,
@@ -387,6 +392,7 @@ export class HarmonicsMode extends BaseMode {
       anchorTime,
       spacing,
       symbol,
+      showPin,
       // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
       // toggle's next-feature default, so sets at both sizes can coexist.
       largeSymbols: !!this.instance.state.largeSymbols
@@ -774,6 +780,11 @@ export class HarmonicsMode extends BaseMode {
    * positioned above the pin's symbol (baseline at `labelY`), so the vertical
    * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
    *
+   * The digits are drawn black inside a white halo rather than in the set's
+   * colour: a single colour is only legible over part of a gram, whereas the
+   * halo reads over both dark and light backgrounds. Set identity is still
+   * carried by the pin's line and symbol colour.
+   *
    * @param {number} harmonicNumber - Harmonic number
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration
    * @param {number} lineX - X position of the pin line (label is centred on it)
@@ -788,8 +799,8 @@ export class HarmonicsMode extends BaseMode {
     label.setAttribute('x', String(lineX)) // centred on the pin line
     label.setAttribute('y', String(labelY)) // above the symbol
     label.setAttribute('text-anchor', 'middle')
-    label.setAttribute('fill', harmonicSet.color)
-    label.setAttribute('font-size', '12')
+    applyTextHalo(/** @type {SVGTextElement} */ (label))
+    label.setAttribute('font-size', String(HarmonicsMode.LABEL_FONT_SIZE))
     label.setAttribute('font-weight', 'bold')
     label.setAttribute('font-family', 'Arial, sans-serif')
     label.textContent = String(harmonicNumber)
@@ -887,6 +898,12 @@ export class HarmonicsMode extends BaseMode {
    * symbol only for the thinned "major" subset so the overlay stays readable.
    * Lines are appended first so the labels/symbols paint on top of them.
    *
+   * A set with `showPin === false` skips the lines entirely and renders as its
+   * symbols and numbers alone — the low-clutter style for stacking many sets over
+   * dense data. The label/symbol geometry is unchanged, so toggling the pin adds
+   * or removes the lines without moving anything else, and the set stays
+   * draggable over the same region.
+   *
    * @param {HarmonicSet} harmonicSet - Harmonic set to render
    */
   renderHarmonicSet(harmonicSet) {
@@ -902,11 +919,14 @@ export class HarmonicsMode extends BaseMode {
     const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
     const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top
 
-    // Draw every pin line in the visible span (FR-001).
-    for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
-      const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
-      const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
-      this.instance.cursorGroup.appendChild(line)
+    // Draw every pin line in the visible span (FR-001) — unless this set is set
+    // to hide its pin. Sets restored from storage without the flag are pinned.
+    if (harmonicSet.showPin !== false) {
+      for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
+        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
+        const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
+        this.instance.cursorGroup.appendChild(line)
+      }
     }
 
     // Draw labels + symbols only on the thinned major subset (FR-002), stacked

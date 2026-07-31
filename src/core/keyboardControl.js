@@ -428,26 +428,39 @@ export function getSelectedFeature(instance) {
 }
 
 /**
- * Get the colour/symbol the style controls should currently show: the selected
- * feature's when one is selected, otherwise the next-feature defaults.
+ * Get the colour/symbol/pin state the style controls should currently show: the
+ * selected feature's when one is selected, otherwise the next-feature defaults.
+ *
+ * `showPin` only means anything for harmonic sets (markers have no pin), so
+ * `pinApplies` tells the panel whether to offer the pin toggle at all: false
+ * while a marker is selected, true otherwise.
  *
  * `largeSymbols` is part of the temporary symbol-size experiment and follows the
- * same rule, so the toggle always reflects whatever the controls would restyle.
+ * same rule as colour/symbol, so the toggle always reflects whatever the
+ * controls would restyle.
  * @param {GramFrame} instance - GramFrame instance
- * @returns {{color: string, symbol: SymbolType, largeSymbols: boolean}} Active style
+ * @returns {{color: string, symbol: SymbolType, showPin: boolean, pinApplies: boolean, largeSymbols: boolean}} Active style
  */
 export function getActiveStyle(instance) {
   const selected = getSelectedFeature(instance)
   if (selected) {
+    const isHarmonicSet = selected.type === 'harmonicSet'
     return {
       color: selected.feature.color,
       symbol: /** @type {SymbolType} */ (selected.feature.symbol || DEFAULT_SYMBOL),
+      // A harmonic set without an explicit `showPin` (legacy/restored) is pinned.
+      showPin: isHarmonicSet
+        ? /** @type {HarmonicSet} */ (selected.feature).showPin !== false
+        : instance.state.showHarmonicPin !== false,
+      pinApplies: isHarmonicSet,
       largeSymbols: !!selected.feature.largeSymbols
     }
   }
   return {
     color: instance.state.selectedColor,
     symbol: instance.state.selectedSymbol,
+    showPin: instance.state.showHarmonicPin !== false,
+    pinApplies: true,
     largeSymbols: !!instance.state.largeSymbols
   }
 }
@@ -505,6 +518,25 @@ export function applySymbolToSelectedFeature(instance, symbol) {
     return false
   }
   selected.feature.symbol = symbol
+  refreshFeatureVisuals(instance, selected.type)
+  return true
+}
+
+/**
+ * Show or hide the vertical pin lines of the currently selected harmonic set,
+ * updating the overlay and table instantly. No-op (returns false) when nothing
+ * is selected or when the selection is a marker, which has no pin — the caller
+ * then treats the change as setting the session default instead.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {boolean} showPin - Whether the set should draw its pin lines
+ * @returns {boolean} True if a harmonic set was restyled
+ */
+export function applyPinToSelectedFeature(instance, showPin) {
+  const selected = getSelectedFeature(instance)
+  if (!selected || selected.type !== 'harmonicSet') {
+    return false
+  }
+  /** @type {HarmonicSet} */ (selected.feature).showPin = !!showPin
   refreshFeatureVisuals(instance, selected.type)
   return true
 }

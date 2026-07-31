@@ -136,8 +136,12 @@ export function createLargeSymbolToggle(instance) {
     }
   }
 
+  const text = document.createElement('span')
+  text.className = 'gram-frame-large-symbols-label'
+  text.textContent = 'Large symbols'
+
   label.appendChild(checkbox)
-  label.appendChild(document.createTextNode('Large symbols'))
+  label.appendChild(text)
 
   return label
 }

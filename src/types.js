@@ -107,6 +107,7 @@
  * @property {number} anchorTime - Time position (Y-axis) in seconds
  * @property {number} spacing - Frequency spacing between harmonics in Hz
  * @property {SymbolType} symbol - Filled shape drawn at the top of each pin and shown in the harmonics table
+ * @property {boolean} [showPin] - Whether the vertical pin lines are drawn; absent (legacy/restored) means shown
  * @property {boolean} [largeSymbols] - EXPERIMENT (temporary): draw this set's pin symbols at the large size; not persisted
  */
 
@@ -185,6 +186,7 @@
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {string} selectedColor - Colour for the NEXT created feature (when nothing is selected); when a feature is selected the picker restyles it instead
  * @property {SymbolType} selectedSymbol - Symbol for the NEXT created harmonic set or marker (when nothing is selected); when a feature is selected the picker restyles it instead
+ * @property {boolean} showHarmonicPin - Pin visibility for the NEXT created harmonic set; session preference, on by default
  * @property {boolean} largeSymbols - EXPERIMENT (temporary): large-symbol size for the NEXT created feature (when nothing is selected); in-memory only, never persisted
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
@@ -262,6 +264,7 @@
  * @property {number} anchorTime - Y-axis position in seconds
  * @property {number} spacing - Frequency spacing between harmonics in Hz
  * @property {SymbolType} [symbol] - Persisted symbol; ABSENT in legacy (pre-feature) records
+ * @property {boolean} [showPin] - Persisted pin visibility; ABSENT in records saved before the pin toggle (restores as shown)
  */
 
 /**
@@ -358,9 +361,11 @@
  * @property {function(string): void} [removeHarmonicSet] - Remove harmonic set by ID
  * @property {function(string): boolean} [applyColorToSelectedFeature] - Restyle the selected feature's colour in place (feature 161)
  * @property {function(SymbolType): boolean} [applySymbolToSelectedFeature] - Restyle the selected feature's symbol in place (feature 161)
- * @property {function(): void} [syncStyleControls] - Sync the colour/symbol controls to the current selection (feature 161)
+ * @property {function(boolean): boolean} [applyPinToSelectedFeature] - Show/hide the selected harmonic set's pin lines in place
  * @property {function(boolean): boolean} [applyLargeSymbolsToSelectedFeature] - EXPERIMENT (temporary): resize the selected feature's symbols in place
+ * @property {function(): void} [syncStyleControls] - Sync the colour/symbol/pin controls to the current selection (feature 161)
  * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} [_symbolControl] - Symbol drop-down control handle
+ * @property {{setValue: function(boolean): void, setEnabled: function(boolean): void}|null} [_pinControl] - Pin toggle control handle
  * @property {{setValue: function(boolean): void}|null} [_largeSymbolsControl] - EXPERIMENT (temporary): "Large symbols" checkbox handle
  * @property {function(): void} [createUnifiedLayout] - Create unified layout
  */

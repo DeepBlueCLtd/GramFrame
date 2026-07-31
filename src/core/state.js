@@ -43,6 +43,10 @@ export const initialState = {
   rate: 1,
   selectedColor: '#ff6b6b', // Currently selected color for new features across all modes
   selectedSymbol: 'cross', // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
+  // Whether the NEXT created harmonic set draws its vertical pin lines. Shown
+  // as a toggle in the Symbol panel; on by default at the start of a browser
+  // session and remembered (sessionStorage) for the rest of it.
+  showHarmonicPin: true,
   // EXPERIMENT (temporary): large-symbol size for the NEXT created feature, set
   // from the Symbol panel's toggle when nothing is selected (with a feature
   // selected, the toggle resizes that feature instead). In-memory only, default

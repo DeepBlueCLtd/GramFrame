@@ -52,7 +52,8 @@ import {
   saveAnnotations,
   loadAnnotations,
   clearAnnotations,
-  detectUserContext
+  detectUserContext,
+  loadPinPreference
 } from './core/storage.js'
 
 import {
@@ -127,12 +128,16 @@ export class GramFrame {
   // Reformatting (feature 161): restyle the selected feature in place
   applyColorToSelectedFeature;
   applySymbolToSelectedFeature;
+  // Show/hide the selected harmonic set's pin lines
+  applyPinToSelectedFeature;
   // EXPERIMENT (temporary): resize the selected feature's symbols
   applyLargeSymbolsToSelectedFeature;
-  // Sync the colour/symbol controls to the current selection
+  // Sync the colour/symbol/pin controls to the current selection
   syncStyleControls;
   // Symbol drop-down control handle (registered by the symbol picker)
   _symbolControl;
+  // Pin toggle control handle (registered by the pin toggle)
+  _pinControl;
   // EXPERIMENT (temporary): "Large symbols" checkbox handle
   _largeSymbolsControl;
   
@@ -181,6 +186,10 @@ export class GramFrame {
 
     // Core state initialization
     this.state = createInitialState()
+    // Harmonic-pin visibility is a per-session preference: on at the start of
+    // each browser session, then remembered across page loads within it. Read
+    // before any UI is built so the toggle renders in the right position.
+    this.state.showHarmonicPin = loadPinPreference()
     this.stateListeners = []
     this.instanceId = ''
 
@@ -381,7 +390,10 @@ export class GramFrame {
     if (saved.harmonics && Array.isArray(saved.harmonics.harmonicSets)) {
       this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets.map(hs => ({
         ...hs,
-        symbol: hs.symbol || 'cross'
+        symbol: hs.symbol || 'cross',
+        // Records saved before the pin toggle have no `showPin`; those sets were
+        // drawn with pins, so they restore as pinned.
+        showPin: hs.showPin !== false
       }))
     }
 
