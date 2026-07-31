@@ -9,7 +9,7 @@
 /// <reference path="../types.js" />
 
 import { updateSVGLayout, renderAxes } from './table.js'
-import { notifyStateListeners } from '../core/state.js'
+import { dispatch } from '../core/state.js'
 
 // Small gap left between the expanded image and the viewport bottom (px).
 const BOTTOM_GAP = 16
@@ -104,7 +104,7 @@ function applyExpandLayout(instance) {
     instance.featureRenderer.renderAllPersistentFeatures()
   }
 
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**

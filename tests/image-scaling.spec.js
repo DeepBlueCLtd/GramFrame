@@ -5,12 +5,29 @@
 
 import { test, expect } from '@playwright/test'
 
+/**
+ * Wait until every instance on the multi-instance debug page has measured its
+ * image. Image loads are asynchronous, and naturalWidth only becomes non-zero
+ * once the load handler has run — so this is the condition the old fixed wait
+ * was standing in for.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<void>}
+ */
+async function waitForAllImagesSized(page) {
+  await expect
+    .poll(async () => page.evaluate(() => {
+      const instances = window.GramFrame && window.GramFrame.__test__getInstances()
+      if (!instances || instances.length < 3) return false
+      return instances.every((i) => i.state.imageDetails.naturalWidth > 0)
+    }), { message: 'Timed out waiting for every instance image to be measured' })
+    .toBe(true)
+}
+
 test.describe('Image Scaling Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:5173/debug-multiple.html')
     await page.waitForSelector('.gram-frame-container', { timeout: 10000 })
-    // Wait for all images to load
-    await page.waitForTimeout(2000)
+    await waitForAllImagesSized(page)
   })
 
   test('should have exactly 3 GramFrame instances', async ({ page }) => {
@@ -58,7 +75,7 @@ test.describe('Image Scaling Tests', () => {
     // Reload to capture console logs
     await page.reload()
     await page.waitForSelector('.gram-frame-container', { timeout: 10000 })
-    await page.waitForTimeout(2000)
+    await waitForAllImagesSized(page)
     
     // Should have scaling log
     const scalingLog = consoleLogs.find(log => 
@@ -92,7 +109,13 @@ test.describe('Image Scaling Tests', () => {
     // Hover over the center of the image (accounting for margins)
     // Margins: left=60, top=15
     await svg.hover({ position: { x: 60 + (1200 / 2), y: 15 + (315 / 2) } })
-    await page.waitForTimeout(500) // Allow coordinate update
+    // The hover has landed once the third instance reports a readout for it
+    await expect
+      .poll(async () => page.evaluate(() => {
+        const instances = window.GramFrame.__test__getInstances()
+        return instances.length >= 3 && instances[2].state.cursorPosition !== null
+      }), { message: 'Timed out waiting for the scaled image readout' })
+      .toBe(true)
     
     // Get the coordinates from the state
     const coordinates = await page.evaluate(() => {

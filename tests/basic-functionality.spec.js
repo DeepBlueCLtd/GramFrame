@@ -27,10 +27,8 @@ test.describe('Basic Functionality Tests', () => {
     
     // Click on each container
     await container1.click()
-    await page.waitForTimeout(100)
     
     await container2.click()  
-    await page.waitForTimeout(100)
     
     // Both should still be visible and functional
     await expect(container1).toBeVisible()
@@ -47,7 +45,6 @@ test.describe('Basic Functionality Tests', () => {
     if (buttonCount > 0) {
       // Click first available enabled button
       await enabledButtons.first().click()
-      await page.waitForTimeout(100)
       
       // Should still be functional
       await expect(container1).toBeVisible()
@@ -67,11 +64,9 @@ test.describe('Basic Functionality Tests', () => {
         if (box) {
           // Click center
           await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
-          await page.waitForTimeout(50)
           
           // Hover around
           await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3)
-          await page.waitForTimeout(50)
         }
       }
     }
@@ -93,7 +88,6 @@ test.describe('Basic Functionality Tests', () => {
     
     const container = page.locator('.gram-frame-container').first()
     await container.click()
-    await page.waitForTimeout(200)
     
     // Should have no major errors
     const criticalErrors = errorLogs.filter(log => 

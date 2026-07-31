@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './helpers/fixtures.js'
 
 /**
  * @fileoverview Mechanical consistency fixes (spec 165, User Story 4).
@@ -60,7 +60,7 @@ test.describe('Clear gram rebuilds state from the initial-state builders (GF-12)
       // Slices the clear is responsible for, compared against a fresh state.
       const cleared = {}
       const expected = {}
-      for (const key of ['analysis', 'harmonics', 'doppler', 'selection', 'dragState', 'cursors']) {
+      for (const key of ['analysis', 'harmonics', 'doppler', 'selection', 'drag', 'cursors']) {
         cleared[key] = state[key]
         expected[key] = fresh[key]
       }
@@ -133,5 +133,96 @@ test.describe('The API has a single instance registry (GF-24)', () => {
     expect(after.registryCount).toBe(after.containerCount)
     expect(after.lookupOfDestroyed).toBeNull()
     expect(after.listenerCalls).toBe(after.registryCount * 2)
+  })
+})
+
+test.describe('Drag state has one owner and one projection (GF-17, spec 166)', () => {
+  test('at most one drag is active across all modes, and it is always projected', async ({ gramFramePage }) => {
+    const page = gramFramePage.page
+
+    // Idle: the projection is present and empty, never absent
+    let state = await gramFramePage.getState()
+    expect(state.drag).toEqual({
+      active: false,
+      kind: null,
+      mode: null,
+      targetId: null,
+      targetType: null,
+      startPosition: null
+    })
+
+    // A drag in one mode: exactly one handler owns it, and the projection
+    // names that mode. Every other mode's handler must be idle.
+    await gramFramePage.clickMode('Harmonics')
+    const svgBox = await gramFramePage.svg.boundingBox()
+    await page.mouse.move(svgBox.x + 220, svgBox.y + 150)
+    await page.mouse.down()
+
+    // Sampled immediately after mousedown: a later move can pan or re-render
+    // enough to pull the pointer off the SVG, which legitimately cancels the
+    // drag — so mid-gesture is not a stable point to observe ownership at.
+    const during = await page.evaluate(() => {
+      const instance = window.GramFrame.__test__getInstances()[0]
+      const dragging = Object.entries(instance.modes)
+        .filter(([, mode]) => mode.dragHandler && mode.dragHandler.isDragging())
+        .map(([name]) => name)
+      const wheelPanActive = !!(instance._wheelPanHandler && instance._wheelPanHandler.isDragging())
+      return { dragging, wheelPanActive, drag: instance.state.drag }
+    })
+
+    expect(during.dragging).toEqual(['harmonics'])
+    expect(during.wheelPanActive).toBe(false)
+    expect(during.drag.active).toBe(true)
+    expect(during.drag.mode).toBe('harmonics')
+    expect(during.drag.targetType).toBe('harmonicSet')
+    expect(during.drag.startPosition).not.toBeNull()
+
+    // Landing on empty space creates a set and drags it out
+    expect(['move', 'create']).toContain(during.drag.kind)
+
+    await page.mouse.move(svgBox.x + 300, svgBox.y + 170, { steps: 3 })
+    await page.mouse.up()
+
+    // Back to idle, with every field cleared
+    await gramFramePage.waitForState((s) => s.drag.active === false, {
+      message: 'the drag projection to return to idle'
+    })
+    state = await gramFramePage.getState()
+    expect(state.drag.kind).toBeNull()
+    expect(state.drag.mode).toBeNull()
+    expect(state.drag.targetId).toBeNull()
+    expect(state.drag.startPosition).toBeNull()
+  })
+
+  test('a middle-button pan is a pan-kind drag with no feature target', async ({ gramFramePage }) => {
+    const page = gramFramePage.page
+
+    // Panning only engages when zoomed in
+    await gramFramePage.setZoom(2.0, 0.5, 0.5)
+    const svgBox = await gramFramePage.svg.boundingBox()
+
+    await page.mouse.move(svgBox.x + 250, svgBox.y + 150)
+    await page.mouse.down({ button: 'middle' })
+
+    const during = await page.evaluate(() => {
+      const instance = window.GramFrame.__test__getInstances()[0]
+      const modesDragging = Object.entries(instance.modes)
+        .filter(([, mode]) => mode.dragHandler && mode.dragHandler.isDragging())
+        .map(([name]) => name)
+      return { modesDragging, drag: instance.state.drag }
+    })
+
+    // The pan is resolved centrally, so no mode's handler is involved
+    expect(during.modesDragging).toEqual([])
+    expect(during.drag.active).toBe(true)
+    expect(during.drag.kind).toBe('pan')
+    expect(during.drag.targetId).toBeNull()
+    expect(during.drag.targetType).toBeNull()
+
+    await page.mouse.move(svgBox.x + 300, svgBox.y + 170, { steps: 3 })
+    await page.mouse.up({ button: 'middle' })
+    await gramFramePage.waitForState((s) => s.drag.active === false, {
+      message: 'the pan projection to return to idle'
+    })
   })
 })

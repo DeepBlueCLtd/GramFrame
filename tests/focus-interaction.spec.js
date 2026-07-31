@@ -14,10 +14,8 @@ test.describe('Simple Interaction Tests', () => {
     
     // Basic click test
     await container1.click()
-    await page.waitForTimeout(100)
     
     await container2.click()
-    await page.waitForTimeout(100)
     
     // Both containers should still be visible
     await expect(container1).toBeVisible()
@@ -36,7 +34,6 @@ test.describe('Simple Interaction Tests', () => {
       const button = enabledButtons.nth(i)
       if (await button.isVisible()) {
         await button.click()
-        await page.waitForTimeout(100)
       }
     }
     
@@ -51,9 +48,7 @@ test.describe('Simple Interaction Tests', () => {
     // Multiple clicks on each
     for (let i = 0; i < 3; i++) {
       await container1.click()
-      await page.waitForTimeout(50)
       await container2.click()
-      await page.waitForTimeout(50)
     }
     
     // Both should still be functional
@@ -68,7 +63,6 @@ test.describe('Simple Interaction Tests', () => {
     const box = await container1.boundingBox()
     if (box) {
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-      await page.waitForTimeout(100)
     }
     
     // Container should still be visible

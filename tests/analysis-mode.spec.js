@@ -27,9 +27,6 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     // Switch to Cross Cursor mode and verify
     await gramFramePage.clickMode('Cross Cursor')
     
-    // Wait a moment for mode switch to complete
-    await gramFramePage.page.waitForTimeout(200)
-    
     // Verify we're in analysis mode
     /** @type {import('../src/types.js').GramFrameState} */
     const state = await gramFramePage.getState()
@@ -88,12 +85,15 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         { x: 250, y: 250 }
       ]
       
+      // Intermediate positions may fall outside the image (where the readout is
+      // legitimately null), so only the final, in-bounds position is waited on.
       for (const pos of positions) {
         await gramFramePage.moveMouseToSpectrogram(pos.x, pos.y)
-        // Small delay to simulate realistic mouse movement
-        await gramFramePage.page.waitForTimeout(50)
       }
-      
+      await gramFramePage.waitForState((s) => s.cursorPosition !== null, {
+        message: 'the readout for the final hover position'
+      })
+
       // Verify final state has valid cursor position
       /** @type {import('../src/types.js').GramFrameState} */
       const state = await gramFramePage.getState()
@@ -117,10 +117,12 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       
       // Move mouse outside the spectrogram area
       await gramFramePage.page.mouse.move(50, 50) // Outside the SVG area
-      
-      // Small delay for mouse leave event to process
-      await gramFramePage.page.waitForTimeout(100)
-      
+
+      // The leave handler clears the readout — that is the condition to wait on
+      await gramFramePage.waitForState((s) => s.cursorPosition === null, {
+        message: 'the cursor readout to clear on mouse leave'
+      })
+
       // Verify cursor position is cleared
       state = await gramFramePage.getState()
       expect(state.cursorPosition).toBeNull()
@@ -177,9 +179,9 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       ]
       
       // Create markers at different positions
-      for (const pos of positions) {
+      for (const [index, pos] of positions.entries()) {
         await gramFramePage.clickSpectrogram(pos.x, pos.y)
-        await gramFramePage.page.waitForTimeout(100) // Small delay between clicks
+        await gramFramePage.waitForMarkerCount(index + 1)
       }
       
       // Verify all markers were created
@@ -307,9 +309,9 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         position: { x: 200, y: 150 } 
       })
       
-      // Small delay for right-click handling
-      await gramFramePage.page.waitForTimeout(200)
-      
+      // The deletion is complete when the marker leaves state
+      await gramFramePage.waitForMarkerCount(0)
+
       // Verify marker was deleted
       state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(0)
@@ -337,9 +339,9 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         position: { x: 200, y: 150 } 
       })
       
-      // Small delay for right-click handling
-      await gramFramePage.page.waitForTimeout(200)
-      
+      // The deletion is complete when one of the two markers leaves state
+      await gramFramePage.waitForMarkerCount(1)
+
       // Verify only one marker was deleted
       state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(1)
@@ -372,9 +374,8 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         position: { x: 400, y: 300 } 
       })
       
-      // Small delay for right-click handling
-      await gramFramePage.page.waitForTimeout(200)
-      
+      // The context-menu handler is synchronous, so the click resolving is
+      // itself the signal that the "no deletion" outcome is final.
       // Verify marker still exists
       state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(1)
@@ -466,10 +467,9 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         { x: 180, y: 130 }
       ]
       
-      for (const pos of rapidClicks) {
+      for (const [index, pos] of rapidClicks.entries()) {
         await gramFramePage.clickSpectrogram(pos.x, pos.y)
-        // Minimal delay to simulate rapid clicking
-        await gramFramePage.page.waitForTimeout(50)
+        await gramFramePage.waitForMarkerCount(index + 1)
       }
       
       // Verify all markers were created
@@ -561,6 +561,11 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         
         // Attempt to zoom (if zoom controls exist)
         await gramFramePage.page.keyboard.press('Control+=') // Zoom in
+        // JUSTIFIED FIXED WAIT: Control+= is a browser-level shortcut the
+        // component does not handle, so there is no state or DOM condition that
+        // marks "the zoom that may or may not have happened is finished". The
+        // assertion below is that the marker's data coordinates are unchanged;
+        // this delay is what gives any such change a chance to appear.
         await gramFramePage.page.waitForTimeout(500)
         
         // Verify marker position remains accurate

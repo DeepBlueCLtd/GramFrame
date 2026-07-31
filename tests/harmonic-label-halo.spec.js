@@ -33,14 +33,12 @@ async function setSelectedColor(gfp, color) {
 
 test.describe('Harmonic pin label halo', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    await gramFramePage.page.waitForTimeout(100)
     await gramFramePage.clickMode('Harmonics')
     await gramFramePage.waitForImageDimensions()
   })
 
   test('every pin number label is black digits inside a white halo', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(30, 20)
-    await gramFramePage.page.waitForTimeout(100)
 
     const styles = await gramFramePage.getHarmonicLabelStyles(setId)
     expect(styles.length).toBeGreaterThan(0)
@@ -64,7 +62,6 @@ test.describe('Harmonic pin label halo', () => {
     const firstId = await gramFramePage.addHarmonicSet(20, 20)
     await setSelectedColor(gramFramePage, '#45b7d1')
     const secondId = await gramFramePage.addHarmonicSet(40, 25)
-    await gramFramePage.page.waitForTimeout(100)
 
     const state = await gramFramePage.getState()
     const sets = state.harmonics.harmonicSets
@@ -95,10 +92,8 @@ test.describe('Harmonic pin label halo', () => {
 
   test('labels stay haloed after a zoom re-render', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(30, 20)
-    await gramFramePage.page.waitForTimeout(100)
 
     await gramFramePage.setZoom(2.0, 0.5, 0.5)
-    await gramFramePage.page.waitForTimeout(100)
 
     const styles = await gramFramePage.getHarmonicLabelStyles(setId)
     expect(styles.length).toBeGreaterThan(0)

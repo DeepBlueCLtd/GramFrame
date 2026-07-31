@@ -46,6 +46,16 @@ All runtime data for a GramFrame instance lives in a single `state` object. See 
   // Selection (keyboard navigation)
   selection: { selectedType, selectedId, selectedIndex },
 
+  // Active drag — a read-only projection, never written by a mode
+  drag: {
+    active: false,            // true while a drag is in progress
+    kind: null,               // 'move' | 'create' | 'place' | 'pan'
+    mode: null,               // Mode that owns the drag; null for the central pan
+    targetId: null,           // Dragged feature's id; null for a pan
+    targetType: null,         // 'marker' | 'harmonicSet' | 'dopplerMarker' | null
+    startPosition: null       // Where the drag began, in data coordinates
+  },
+
   // Mode-specific state (merged from each mode's getInitialState())
   analysis: { markers: [...], ... },
   harmonics: { harmonicSets: [...], ... },
@@ -53,6 +63,41 @@ All runtime data for a GramFrame instance lives in a single `state` object. See 
   // ...
 }
 ```
+
+### Drag State Has One Owner
+
+Every pointer drag — moving a feature, creating a harmonic set, placing the
+Doppler markers, panning the viewport, and the middle-button pan available in
+every mode — runs through the shared engine in
+`src/modes/shared/BaseDragHandler.js`.
+
+That engine's internal `dragState` is the single authority. `state.drag` above
+is its **read-only projection**: rebuilt on every drag transition, broadcast to
+listeners, and never written by a mode. It is always present, so a listener can
+read `state.drag.active` without null-checking the container.
+
+At most one drag is active per component instance at any time; the engine
+refuses a second one rather than trusting callers to behave.
+
+The mirrored drag fields that preceded it are gone. If you are updating code or
+notes written against the old shape:
+
+| Removed | Read instead |
+|---|---|
+| `state.analysis.isDragging` | `state.drag.active && state.drag.mode === 'analysis'` |
+| `state.analysis.draggedMarkerId` | `state.drag.targetId` (when `targetType === 'marker'`) |
+| `state.analysis.dragStartPosition` | `state.drag.startPosition` |
+| `state.dragState.isDragging` | `state.drag.active && state.drag.kind === 'move'` |
+| `state.dragState.isCreatingNewHarmonicSet` | `state.drag.active && state.drag.kind === 'create'` |
+| `state.dragState.draggedHarmonicSetId` | `state.drag.targetId` |
+| `state.dragState.dragStartPosition` | `state.drag.startPosition` |
+| `state.dragState.originalSpacing` / `.originalAnchorTime` / `.clickedHarmonicNumber` | Handler-internal; not broadcast |
+| `state.doppler.isDragging` | `state.drag.active && state.drag.mode === 'doppler'` |
+| `state.doppler.draggedMarker` | `state.drag.targetId` |
+| `state.doppler.isPlacingMarkers` / `.isPreviewDrag` | `state.drag.kind === 'place'` |
+
+`state.doppler.tempFirst` and `.previewEnd` stay where they are: they are
+placement geometry the renderer needs, not drag bookkeeping.
 
 ### Listener Registration
 

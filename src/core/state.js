@@ -54,6 +54,10 @@ const initialState = {
   largeSymbols: false,
   cursorPosition: null,
   cursors: [],
+  // Bumped by every path that mutates an annotation, so the storage listener
+  // can tell an annotation change from a cursor move without re-serialising
+  // the annotations on each notification (spec 166, AS-4.3).
+  annotationRevision: 0,
   imageDetails: {
     url: '',
     naturalWidth: 0,  // Original dimensions of the image
@@ -86,6 +90,17 @@ const initialState = {
     centerX: 0.5, // Center point X (0-1 normalized)
     centerY: 0.5  // Center point Y (0-1 normalized)
   },
+  // Read-only projection of the active drag, rebuilt by the drag engine on each
+  // transition. Modes never write it; it is always present, reading
+  // `active: false` when idle (spec 166, FR-004 / data-model.md §2).
+  drag: {
+    active: false,
+    kind: null,
+    mode: null,
+    targetId: null,
+    targetType: null,
+    startPosition: null
+  },
   // Selection state for keyboard fine control
   selection: {
     selectedType: null,  // 'marker' | 'harmonicSet' | null
@@ -111,14 +126,27 @@ export function createInitialState() {
 }
 
 /**
- * Notify state listeners of state changes
+ * Deliver the state to its listeners, once.
+ *
+ * The single place the constitution's deep-copy contract is honoured: one copy
+ * per delivery, and none at all when nobody is listening — the copy exists to
+ * protect listeners from mutating live state, so with no listeners there is
+ * nothing to protect (spec 166, N2).
+ *
+ * Not exported to modes. Everything in `src/` reaches this through
+ * {@link dispatch}, which coalesces; see the ESLint `no-restricted-imports`
+ * rule that enforces it (N1, FR-005).
  * @param {GramFrameState} state - Current state object
  * @param {StateListener[]} listeners - Array of listener functions
  */
-export function notifyStateListeners(state, listeners) {
+function deliverToListeners(state, listeners) {
+  if (!listeners || listeners.length === 0) {
+    return
+  }
+
   // Create a deep copy of the state to prevent direct modification
   const stateCopy = JSON.parse(JSON.stringify(state))
-  
+
   // Notify all registered state listeners for this instance
   listeners.forEach(listener => {
     try {
@@ -127,6 +155,107 @@ export function notifyStateListeners(state, listeners) {
       console.error('Error in state listener:', error)
     }
   })
+}
+
+/**
+ * Record that an annotation changed.
+ *
+ * The storage listener saves on a change to this counter (plus a few cheap
+ * identity fields) rather than by re-serialising every annotation on every
+ * notification. Call it from any path that adds, removes, moves or restyles a
+ * marker, harmonic set or doppler marker.
+ * @param {GramFrame} instance - GramFrame instance
+ */
+export function markAnnotationsChanged(instance) {
+  if (instance && instance.state) {
+    instance.state.annotationRevision = (instance.state.annotationRevision || 0) + 1
+  }
+}
+
+/**
+ * Pending dispatch bookkeeping, per instance.
+ * @type {WeakMap<object, {tier: 'microtask'|'frame', frameHandle: number|null}>}
+ */
+const pendingDispatches = new WeakMap()
+
+/**
+ * Request a notification. Safe to call from anywhere in `src/`.
+ *
+ * Repeated calls within one task coalesce into a single delivery carrying the
+ * settled state (N3). Two tiers:
+ *
+ * - **default** — delivered on the next microtask. Mode switches, marker
+ *   add/delete, colour and symbol changes, config parse, storage load. This is
+ *   what turns a mode switch's two notifications into one.
+ * - **frame** (`{frame: true}`) — delivered on the next animation frame. The
+ *   high-frequency paths: mousemove readouts, wheel zoom and pan, drag moves.
+ *   Under continuous input these are bounded by frame cadence rather than by
+ *   event count (N4, FR-006).
+ *
+ * A pending frame-tier dispatch is *upgraded* to the default tier by any
+ * subsequent default-tier dispatch, never downgraded — so a mode switch during
+ * a drag is never held back to the next frame.
+ *
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {DispatchOptions} [options] - Coalescing options
+ */
+export function dispatch(instance, options = {}) {
+  if (!instance) {
+    return
+  }
+
+  const wantsFrame = options.frame === true
+  const pending = pendingDispatches.get(instance)
+
+  if (pending) {
+    // Already scheduled. A default-tier request promotes a frame-tier one;
+    // a frame-tier request never delays an already-scheduled default.
+    if (!wantsFrame && pending.tier === 'frame') {
+      if (pending.frameHandle !== null && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(pending.frameHandle)
+      }
+      pending.tier = 'microtask'
+      pending.frameHandle = null
+      queueMicrotask(() => flushDispatch(instance))
+    }
+    return
+  }
+
+  /** @type {{tier: 'microtask'|'frame', frameHandle: number|null}} */
+  const record = { tier: wantsFrame ? 'frame' : 'microtask', frameHandle: null }
+  pendingDispatches.set(instance, record)
+
+  if (wantsFrame && typeof requestAnimationFrame === 'function') {
+    record.frameHandle = requestAnimationFrame(() => flushDispatch(instance))
+  } else {
+    record.tier = 'microtask'
+    queueMicrotask(() => flushDispatch(instance))
+  }
+}
+
+/**
+ * Deliver any pending notification synchronously.
+ *
+ * Used by the scheduled callbacks above, and on teardown so no notification is
+ * lost when an instance is destroyed (N6).
+ * @param {GramFrame} instance - GramFrame instance
+ */
+export function flushDispatch(instance) {
+  if (!instance) {
+    return
+  }
+
+  const pending = pendingDispatches.get(instance)
+  if (!pending) {
+    return
+  }
+
+  if (pending.frameHandle !== null && typeof cancelAnimationFrame === 'function') {
+    cancelAnimationFrame(pending.frameHandle)
+  }
+  pendingDispatches.delete(instance)
+
+  deliverToListeners(instance.state, instance.stateListeners)
 }
 
 /**

@@ -74,7 +74,10 @@ async function fillBothPanels(gfp, count) {
     await gfp.addMarker(i * 2, 100 + i * 10)
     await gfp.addHarmonicSet(i * 2, 50 + i * 5)
   }
-  await gfp.page.waitForTimeout(150)
+  // Both tables have rendered a row per feature — the condition the rows were
+  // added for, rather than a guess at how long rendering takes.
+  await gfp.waitForTableRowCount('markers', count)
+  await gfp.waitForTableRowCount('harmonics', count)
 }
 
 test.describe('Markers/harmonics tables: fixed height with a scrolling body', () => {
@@ -162,7 +165,6 @@ test.describe('Markers/harmonics tables: fixed height with a scrolling body', ()
     const gfp = await gotoDemo(page)
 
     await gfp.clickExpandToggle()
-    await page.waitForTimeout(200)
 
     const expanded = await gfp.getState()
     expect(expanded.imageExpanded).toBe(true)

@@ -172,3 +172,31 @@ All 44 findings were re-verified against HEAD `edfc549` (25 non-merge commits af
 | GF-44 | VALID (drifted) | Doc still claims ~2100-line main.js; actual now **628** lines (grew from 562) |
 
 **Implication for sequencing:** the worsenings are concentrated where new feature work touched audited seams (drag machines, notification fan-out, waitForTimeout, coordinate pipelines). Consolidation findings GF-01ᴿ/GF-18/GF-07/GF-27 are accruing interest fastest and are the strongest candidates to fix before further feature work lands on top of them.
+
+---
+
+## 7. Resolutions — Phase 2 consolidation (spec 166)
+
+Closed by [PR #223](https://github.com/DeepBlueCLtd/GramFrame/pull/223), which
+implements [specs/166-consolidation](../../specs/166-consolidation/spec.md).
+Every resolution below is covered by a test that fails if the finding returns.
+
+| ID | Status | How it was closed | Guarded by |
+|----|--------|-------------------|------------|
+| GF-01ᴿ | **RESOLVED** | Four coordinate pipelines collapsed into `src/utils/coordinates.js`. `coordinateTransformations.js` deleted, the private pair in `keyboardControl.js` deleted, the inline `screenToDataWithZoom` in `events.js` deleted. The canonical module reads the image element's live attributes, so the external `increment / zoomLevel` compensation went with them | `tests/unit/coordinate-equivalence.test.js` (144-cell grid against the four deleted implementations, kept as frozen references); `tests/coordinate-agreement.spec.js`; `tests/keyboard-movement.spec.js` |
+| GF-07 | **RESOLVED** | The deep clone moved inside the dispatcher: one per delivery, none when no listener is registered. The storage listener no longer re-serialises annotations per notification — it compares a cheap signature plus a revision counter bumped by the paths that actually mutate an annotation | `tests/unit/notification-batching.test.js` (clone counting via a `toJSON` hook); `tests/state-listener.spec.js` AS-4.3 (20 cursor moves ⇒ 0 storage writes) |
+| GF-08 | **RESOLVED** | All 44 direct `notifyStateListeners` sites now route through one `dispatch()` choke-point with microtask batching and a frame-cadence tier for pointer/wheel/drag paths. A mode switch fires once, not ≥2 | `tests/state-listener.spec.js` AS-4.1/AS-4.2; ESLint `no-restricted-imports` blocks a mode bypassing the dispatcher |
+| GF-17 | **RESOLVED** | Three broadcast drag mirrors (`state.analysis.*`, `state.dragState`, `state.doppler.*`) replaced by one read-only projection, `state.drag`, written only by the owning handler | `tests/state-hygiene.spec.js` — one owner across all modes, idle projection always present |
+| GF-18 | **RESOLVED** | All five drag machines ported onto `BaseDragHandler` with `move`/`create`/`place`/`pan` kinds. PanMode's hand-rolled drag, the Harmonics creation machine, the Doppler placement machine and the middle-button `_wheelPan` are gone; the middle-button pan is resolved centrally so no mode ever sees a button-1 event | `tests/pan-zoom.spec.js`, `tests/harmonics-mode.spec.js`, `tests/doppler-mode.spec.js` (all unchanged); `tests/state-hygiene.spec.js` |
+| GF-20 | **RESOLVED** | One `src/components/DiffingTable.js` serves both tables. Selected-row styling — which was the same logic a *third* time, in `updateSelectionVisuals` — moved into the component and now reaches both tables from one line | `tests/analysis-mode.spec.js`, `tests/harmonics-mode.spec.js`, `tests/table-scroll.spec.js`, `tests/reformat-markers-harmonics.spec.js` (all unchanged) |
+| GF-26ᴺ | **RESOLVED** | `tests/keyboard-movement.spec.js` asserts arrow-key movement in *data coordinates* — the increment each direction produces, Shift's 5× step, and the rendered-pixels-per-keypress invariant across zoom levels — for markers and harmonic sets. The two `.disabled` specs were deleted; their FocusManager coverage was already live elsewhere | the new spec itself |
+| GF-27 | **RESOLVED** | `waitForTimeout` in `tests/`: **244 → 1**, the survivor carrying the inline justification FR-007 requires. `retries` is now `0` unconditionally | `yarn hygiene` ratchet (baseline 1); five consecutive full-suite runs at `--retries=0` |
+| GF-28ᴿ | **RESOLVED** | Addressed by deletion rather than adoption: `interaction-helpers.js`, `mode-helpers.js` and `coordinate-helpers.js` were unreachable — only `fixtures.js` imported them and no spec destructured those fixtures. The remaining specs use `GramFramePage`, whose action methods now wait for their own effects | full suite green after removal |
+
+### Not addressed by this phase
+
+`GF-03` (madge cycles) is unchanged at 11 — the phase's brief was not to raise
+it, and it did not. The drag engine notifies through an instance method rather
+than importing `core/state.js` precisely to avoid closing a twelfth cycle.
+`GF-02`, `GF-04`–`GF-06`, `GF-09`–`GF-16` and the process/documentation
+findings from `GF-29` onward are outside spec 166's scope and remain open.

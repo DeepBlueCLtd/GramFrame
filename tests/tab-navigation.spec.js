@@ -71,12 +71,10 @@ test.describe('Tab Navigation Tests', () => {
 
     // Click first GramFrame to focus it
     await container1.click()
-    await page.waitForTimeout(100)
     await expect(container1).toHaveClass(/gram-frame-focused/)
 
     // Tab should move focus to next GramFrame
     await page.keyboard.press('Tab')
-    await page.waitForTimeout(100)
 
     // Second container should now have focus
     await expect(container2).toHaveClass(/gram-frame-focused/)

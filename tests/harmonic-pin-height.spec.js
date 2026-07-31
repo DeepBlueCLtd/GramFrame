@@ -43,21 +43,18 @@ async function readPinGeometry(gfp, setId, harmonicNumber) {
 
 test.describe('Harmonic pin height', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    await gramFramePage.page.waitForTimeout(100)
     await gramFramePage.clickMode('Harmonics')
     await gramFramePage.waitForImageDimensions()
   })
 
   test('pin height in pixels is unchanged by zooming', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
-    await gramFramePage.page.waitForTimeout(100)
 
     const base = await readPinGeometry(gramFramePage, setId, CENTRE_HARMONIC)
     expect(base.lineHeight).toBeGreaterThan(0)
 
     for (const level of [2.0, 4.0, 8.0]) {
       await gramFramePage.setZoom(level, 0.5, 0.5)
-      await gramFramePage.page.waitForTimeout(100)
 
       const zoomed = await readPinGeometry(gramFramePage, setId, CENTRE_HARMONIC)
       // The image really did grow — otherwise this test proves nothing.
@@ -69,11 +66,9 @@ test.describe('Harmonic pin height', () => {
 
   test('pin stays centred on its anchor time while zooming', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
-    await gramFramePage.page.waitForTimeout(100)
 
     for (const level of [1.0, 2.0, 4.0]) {
       await gramFramePage.setZoom(level, 0.5, 0.5)
-      await gramFramePage.page.waitForTimeout(100)
 
       const { lineCy, image } = await readPinGeometry(gramFramePage, setId, CENTRE_HARMONIC)
       // Where the anchor time falls on the (zoomed) image; time axis runs bottom-up.
@@ -85,7 +80,6 @@ test.describe('Harmonic pin height', () => {
   test('a pin can still be grabbed at its anchor time when zoomed in', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
     await gramFramePage.setZoom(4.0, 0.5, 0.5)
-    await gramFramePage.page.waitForTimeout(100)
 
     // Hit-testing works in the same pixel space as rendering: the anchor time is
     // inside the pin, a point well below it (in the now-stretched time axis) is not.

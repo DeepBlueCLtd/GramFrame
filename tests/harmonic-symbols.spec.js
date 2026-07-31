@@ -28,13 +28,28 @@ async function getStateFromPage(page) {
   })
 }
 
+/**
+ * Wait until GramFrame has initialised on a fixture page. The instance only
+ * reaches the registry once its constructor (including annotation restore) has
+ * returned, so this is the exact ready signal.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<void>}
+ */
+async function waitForFixtureReady(page) {
+  await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+  await expect
+    .poll(async () => (await getStateFromPage(page)) !== null, {
+      message: 'Timed out waiting for GramFrame to initialise'
+    })
+    .toBe(true)
+}
+
 // ──────────────────────────────────────────────────────────────
 // User Story 1 — Distinguish harmonic sets by symbol as well as colour
 // ──────────────────────────────────────────────────────────────
 
 test.describe('US1: Symbols on harmonic pins', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    await gramFramePage.page.waitForTimeout(100)
     await gramFramePage.clickMode('Harmonics')
   })
 
@@ -67,10 +82,9 @@ test.describe('US1: Symbols on harmonic pins', () => {
     await gramFramePage.page.mouse.down()
     await gramFramePage.page.mouse.move(svgBox.x + 320, svgBox.y + 120, { steps: 5 })
     await gramFramePage.page.mouse.up()
-    await gramFramePage.page.waitForTimeout(200)
+    await gramFramePage.waitForHarmonicSetCount(1)
 
     const state = await gramFramePage.getState()
-    expect(state.harmonics.harmonicSets.length).toBeGreaterThan(0)
     const set = state.harmonics.harmonicSets[0]
     expect(set.symbol).toBe('square')
 
@@ -127,10 +141,9 @@ test.describe('US1: Symbols on harmonic pins', () => {
     await gramFramePage.page.locator('.gram-frame-manual-button').click()
     await gramFramePage.page.locator('#harmonic-spacing-input').fill('25')
     await gramFramePage.page.locator('#add-button').click()
-    await gramFramePage.page.waitForTimeout(200)
+    await gramFramePage.waitForHarmonicSetCount(1)
 
     const state = await gramFramePage.getState()
-    expect(state.harmonics.harmonicSets.length).toBeGreaterThan(0)
     const set = state.harmonics.harmonicSets[state.harmonics.harmonicSets.length - 1]
     expect(set.symbol).toBe('diamond')
 
@@ -145,7 +158,6 @@ test.describe('US1: Symbols on harmonic pins', () => {
   test('each harmonics-table row shows the set symbol in the set colour', async ({ gramFramePage }) => {
     await gramFramePage.selectSymbol('star')
     const setId = await gramFramePage.addHarmonicSet(5, 100)
-    await gramFramePage.page.waitForTimeout(200)
 
     const state = await gramFramePage.getState()
     const set = state.harmonics.harmonicSets.find((s) => s.id === setId)
@@ -169,14 +181,12 @@ test.describe('US2: Symbols persist across reload', () => {
     const gfp = new GramFramePage(page)
     await page.goto('/tests/fixtures/trainer-page.html')
     await page.evaluate(() => localStorage.clear())
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(300)
+    await waitForFixtureReady(page)
 
     // Select a distinctive symbol and create a harmonic set
     await page.locator('.gram-frame-mode-btn:text("Harmonics")').click()
     await page.locator('.gram-frame-symbol-select').selectOption('triangle')
     const setId = await gfp.addHarmonicSet(5, 100)
-    await page.waitForTimeout(300)
 
     const before = await getStateFromPage(page)
     const setBefore = before.harmonics.harmonicSets.find((s) => s.id === setId)
@@ -184,8 +194,7 @@ test.describe('US2: Symbols persist across reload', () => {
 
     // Reload
     await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await waitForFixtureReady(page)
 
     const after = await getStateFromPage(page)
     const setAfter = after.harmonics.harmonicSets.find((s) => s.id === setId)
@@ -240,8 +249,7 @@ test.describe('US3: Legacy harmonic sets default to cross (symbol-less)', () => 
     // Reload — legacy data must load (SCHEMA_VERSION unchanged) and default to
     // the symbol-less 'cross' style (feature 161 changed the default from circle)
     await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await waitForFixtureReady(page)
 
     const gfp = new GramFramePage(page)
     const state = await getStateFromPage(page)

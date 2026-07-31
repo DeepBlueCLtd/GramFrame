@@ -96,12 +96,13 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog
   - `doppler/DopplerMode.js` - Doppler speed calculation mode
   - `pan/PanMode.js` - Pan mode (the default mode)
-  - `shared/BaseDragHandler.js` - Shared drag lifecycle
+  - `shared/BaseDragHandler.js` - The shared drag engine: every pointer drag (move, create, place, pan) and the single `state.drag` projection
 - `src/components/` - UI component modules:
   - `UIComponents.js` - LED displays, colour picker and layout helpers
   - `MainUI.js` - Unified layout and persistent panels
   - `ModeButtons.js` - Mode switching interface
   - `HarmonicPanel.js` - Harmonics display panel
+  - `DiffingTable.js` - Shared row-diffing table behind the markers table and harmonics panel
   - `ColorPicker.js` - Colour selection component
   - `SymbolPicker.js` - Symbol selection component
   - `PinToggle.js` - Harmonic-pin visibility toggle
@@ -113,8 +114,7 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `cursors.js` - Cursor indicator refresh
   - `symbols.js` - Marker/harmonic symbol shapes
 - `src/utils/` - Utility modules:
-  - `coordinates.js` - Screen/SVG/image coordinate transformations
-  - `coordinateTransformations.js` - Zoom-aware data/SVG transformations
+  - `coordinates.js` - The canonical coordinate module: every screen/SVG/image/data conversion, zoom-, expand-, render-size- and margin-aware
   - `calculations.js` - Mathematical calculations
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
@@ -182,13 +182,20 @@ There is no visual/screenshot regression testing — see
 - Rate affects frequency calculations (acts as frequency divider)
 - Axes have configurable margins (left: 60px, bottom: 50px)
 - Harmonics are calculated dynamically during drag interactions
-- State is deep-copied before passing to listeners to prevent mutations
+- Every notification goes through `dispatch()` in `src/core/state.js`, which
+  coalesces on a microtask by default and at animation-frame cadence for
+  pointer/wheel/drag paths; `notifyStateListeners` is not exported to modes and
+  an ESLint rule enforces that
+- State is deep-copied before passing to listeners to prevent mutations — once
+  per delivery, and not at all when no listener is registered
 - HMR preserves state listeners across hot reloads
 - Build output is unminified for field debugging (`minify: false` in vite.config.js)
 - TypeScript checking with JSDoc annotations (no TypeScript compilation)
 - The version is injected from package.json by a Vite define; no build or test
   run writes to a tracked file
 - Zoom resizes the image element (viewBox stays fixed) — see ADR-015
+- Drag state has one owner (`BaseDragHandler`) and one read-only projection
+  (`state.drag`); modes never write drag fields into state
 
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything

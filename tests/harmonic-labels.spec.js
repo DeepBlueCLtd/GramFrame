@@ -71,7 +71,6 @@ async function readStackGeometry(gfp, setId) {
 
 test.describe('Harmonic Pin Labels (feature 159)', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    await gramFramePage.page.waitForTimeout(100)
     await gramFramePage.clickMode('Harmonics')
     await gramFramePage.waitForImageDimensions()
     // The default symbol is now 'cross' (no drawn shape, feature 161); these
@@ -85,7 +84,6 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
   test.describe('US1: every pin line drawn, only labels thinned', () => {
     test('a dense set draws a line for every harmonic in the span (no gaps)', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
-      await gramFramePage.page.waitForTimeout(100)
 
       const lineNums = await gramFramePage.getHarmonicNumbers(setId)
       // Far more than the label cap are drawn
@@ -101,7 +99,6 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
 
     test('labels are a bounded, evenly-spaced subset of the drawn lines', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
-      await gramFramePage.page.waitForTimeout(100)
 
       const lineNums = new Set(await gramFramePage.getHarmonicNumbers(setId))
       const labelNums = await gramFramePage.getHarmonicLabelNumbers(setId)
@@ -122,7 +119,6 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
 
     test('one symbol per labelled pin, capped with the labels', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
-      await gramFramePage.page.waitForTimeout(100)
 
       const labelCount = (await gramFramePage.getHarmonicLabelNumbers(setId)).length
       const symbols = await gramFramePage.getPinSymbols(setId)
@@ -133,7 +129,6 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
     test('a set within the limit labels every drawn pin', async ({ gramFramePage }) => {
       // spacing 20 Hz over 0-100 Hz -> harmonics 1..5, under the cap
       const setId = await gramFramePage.addHarmonicSet(30, 20)
-      await gramFramePage.page.waitForTimeout(100)
 
       const lineNums = await gramFramePage.getHarmonicNumbers(setId)
       const labelNums = await gramFramePage.getHarmonicLabelNumbers(setId)
@@ -143,13 +138,11 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
 
     test('zooming in on a dense set never coarsens the label step', async ({ gramFramePage }) => {
       const setId = await gramFramePage.addHarmonicSet(30, 0.5)
-      await gramFramePage.page.waitForTimeout(100)
 
       /** @type {number|null} */
       let prevStep = null
       for (const level of [1.0, 2.0, 4.0, 8.0]) {
         await gramFramePage.setZoom(level, 0.5, 0.5)
-        await gramFramePage.page.waitForTimeout(100)
 
         // Every visible pin still has a line (contiguous) at each zoom level
         const lineNums = await gramFramePage.getHarmonicNumbers(setId)
@@ -175,7 +168,6 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
     test('each label is centred on its pin and stacked above symbol above line', async ({ gramFramePage }) => {
       // Sparse set -> every pin labelled, clear 1:1 label/symbol/line matching
       const setId = await gramFramePage.addHarmonicSet(30, 20)
-      await gramFramePage.page.waitForTimeout(100)
 
       // Label element attributes: centred on the pin line, anchored middle
       const attrs = await gramFramePage.page.evaluate((id) => {
@@ -213,7 +205,6 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
       // must still keep the label within the image's top edge (FR-011).
       for (const anchorTime of [0, 60]) {
         const setId = await gramFramePage.addHarmonicSet(anchorTime, 20)
-        await gramFramePage.page.waitForTimeout(100)
 
         const { image, byNum } = await readStackGeometry(gramFramePage, setId)
         const entries = Object.values(byNum)

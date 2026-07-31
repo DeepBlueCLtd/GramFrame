@@ -24,8 +24,6 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
    * @returns {Promise<void>}
    */
   test.beforeEach(async ({ gramFramePage }) => {
-    // Wait for component to fully load
-    await gramFramePage.page.waitForTimeout(100)
   })
 
   /**
@@ -316,9 +314,10 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
       expectValidMode(state, 'doppler')
       expectValidMetadata(state)
       
-      // Should not be in inconsistent drag state
-      expect(state.harmonics?.dragState?.isDragging).toBeFalsy()
-      expect(state.doppler?.isDragging).toBeFalsy()
+      // Should not be in inconsistent drag state. One projection covers every
+      // mode now (spec 166, FR-004).
+      expect(state.drag.active).toBeFalsy()
+      expect(state.drag.mode).toBeNull()
     })
     
     /**

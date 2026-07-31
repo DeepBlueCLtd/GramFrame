@@ -1,7 +1,26 @@
 import { BaseMode } from '../BaseMode.js'
-import { notifyStateListeners } from '../../core/state.js'
+import { dispatch, markAnnotationsChanged } from '../../core/state.js'
+import { createDiffingTable } from '../../components/DiffingTable.js'
+
+/**
+ * Build a marker row's delete button. Markup unchanged from before the table
+ * engines were shared, so existing selectors and styling keep working (T2).
+ * @returns {HTMLButtonElement} The delete button
+ */
+function createMarkerDeleteButton() {
+  const button = document.createElement('button')
+  button.textContent = '×'
+  button.className = 'gram-frame-marker-delete-btn'
+  button.style.background = 'none'
+  button.style.border = 'none'
+  button.style.color = '#ff4444'
+  button.style.cursor = 'pointer'
+  button.style.fontSize = '16px'
+  button.style.fontWeight = 'bold'
+  return button
+}
 import { formatTime } from '../../utils/timeFormatter.js'
-import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
+import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
 import { createSymbolMark, createColorIndicator, resolveSymbolScale } from '../../rendering/symbols.js'
@@ -29,12 +48,12 @@ export class AnalysisMode extends BaseMode {
     
     // Initialize drag handler with analysis-specific callbacks
     this.dragHandler = new BaseDragHandler(instance, {
-      findTargetAt: (position) => this.findMarkerAtPosition(position),
+      resolveTarget: (position) => this.findMarkerAtPosition(position),
       onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-      onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
       onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
       updateCursor: (style) => this.updateCursorStyle(style)
-    })
+    }, 'analysis')
   }
 
   /**
@@ -43,11 +62,10 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} position - Start position
    */
   onMarkerDragStart(target, position) {
-    // Store drag state in analysis state
-    this.instance.state.analysis.isDragging = true
-    this.instance.state.analysis.draggedMarkerId = target.id
-    this.instance.state.analysis.dragStartPosition = { ...position }
-    
+    // Drag bookkeeping belongs to the engine (state.drag); this callback only
+    // does the mode-specific part.
+    void position
+
     // Auto-select the marker being dragged
     const marker = this.instance.state.analysis.markers.find(m => m.id === target.id)
     if (marker) {
@@ -68,6 +86,7 @@ export class AnalysisMode extends BaseMode {
       // Update marker position
       marker.freq = currentPos.freq
       marker.time = currentPos.time
+      markAnnotationsChanged(this.instance)
       
       // Re-render persistent features
       if (this.instance.featureRenderer) {
@@ -84,7 +103,7 @@ export class AnalysisMode extends BaseMode {
       }
       
       // Notify listeners
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -94,10 +113,7 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} _position - End position (unused)
    */
   onMarkerDragEnd(_target, _position) {
-    // Clear analysis drag state
-    this.instance.state.analysis.isDragging = false
-    this.instance.state.analysis.draggedMarkerId = null
-    this.instance.state.analysis.dragStartPosition = null
+    // Nothing to unwind: the engine clears the drag record itself.
   }
 
   /**
@@ -256,7 +272,7 @@ export class AnalysisMode extends BaseMode {
     
     // Calculate current position based on time/freq values and current zoom/pan state using utility
     const markerPoint = { freq: marker.freq, time: marker.time }
-    const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+    const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage)
     const currentX = markerSVG.x
     const currentY = markerSVG.y
     
@@ -344,7 +360,6 @@ export class AnalysisMode extends BaseMode {
     
     // Store references to existing table elements if they exist
     this.uiElements.markersTable = markersContainer.querySelector('.gram-frame-table')
-    this.uiElements.markersTableBody = markersContainer.querySelector('.gram-frame-table tbody')
     
     // Store references for central color picker and LEDs (managed by unified layout)
     this.instance.colorPicker = this.instance.colorPicker || null
@@ -368,58 +383,59 @@ export class AnalysisMode extends BaseMode {
       return
     }
 
-    // The container already has a label, so we just add the table wrapper
+    // The container already has a label, so we just add the table wrapper.
+    // Mechanism (scroll wrapper, header, row diffing, click-to-select, delete
+    // propagation) comes from the shared component; everything below is what
+    // makes this the *markers* table (spec 166, FR-009).
+    this.markersTable = createDiffingTable(markersContainer, {
+      columns: [
+        { label: '', width: '15%', cellClassName: 'gram-frame-marker-color' },
+        { label: 'Time (mm:ss)', width: '35%' },
+        { label: 'Freq (Hz)', width: '35%' },
+        { label: '', width: '15%' }
+      ],
+      rowAttribute: 'data-marker-id',
+      rowKey: (marker) => marker.id,
+      cells: (marker) => [
+        // Colour/symbol cell — a shaped symbol shows the colour-coded symbol;
+        // the cross (symbol-less) style shows a filled colour rectangle (FR-010).
+        createColorIndicator(marker.symbol, marker.color, 20),
+        formatTime(marker.time),
+        marker.freq.toFixed(2),
+        createMarkerDeleteButton()
+      ],
+      deleteSelector: '.gram-frame-marker-delete-btn',
+      onSelect: (markerId, _marker, index) => {
+        // Toggle selection
+        if (this.instance.state.selection.selectedType === 'marker' &&
+            this.instance.state.selection.selectedId === markerId) {
+          this.instance.clearSelection()
+        } else {
+          this.instance.setSelection('marker', markerId, index)
+        }
+      },
+      onDelete: (markerId) => this.removeMarker(markerId),
+      isSelected: (markerId) => (
+        this.instance.state.selection.selectedType === 'marker' &&
+        this.instance.state.selection.selectedId === markerId
+      )
+    })
 
-    const tableArea = document.createElement('div')
-    tableArea.className = 'gram-frame-table-area'
-
-    const tableWrapper = document.createElement('div')
-    tableWrapper.className = 'gram-frame-table-container'
-
-    const table = document.createElement('table')
-    table.className = 'gram-frame-table'
-    
-    // Create table header
-    const thead = document.createElement('thead')
-    const headerRow = document.createElement('tr')
-    
-    const colorHeader = document.createElement('th')
-    colorHeader.textContent = ''
-    colorHeader.style.width = '15%'
-    headerRow.appendChild(colorHeader)
-    
-    const timeHeader = document.createElement('th')
-    timeHeader.textContent = 'Time (mm:ss)'
-    timeHeader.style.width = '35%'
-    headerRow.appendChild(timeHeader)
-    
-    const freqHeader = document.createElement('th')
-    freqHeader.textContent = 'Freq (Hz)'
-    freqHeader.style.width = '35%'
-    headerRow.appendChild(freqHeader)
-    
-    const deleteHeader = document.createElement('th')
-    deleteHeader.textContent = ''
-    deleteHeader.style.width = '15%'
-    headerRow.appendChild(deleteHeader)
-    
-    thead.appendChild(headerRow)
-    table.appendChild(thead)
-    
-    // Create table body
-    const tbody = document.createElement('tbody')
-    table.appendChild(tbody)
-    
-    tableWrapper.appendChild(table)
-    tableArea.appendChild(tableWrapper)
-    markersContainer.appendChild(tableArea)
-    
     // Store all UI elements for proper cleanup
-    this.uiElements.markersTable = table
-    this.uiElements.markersTableBody = tbody
-    
+    this.uiElements.markersTable = this.markersTable.element
+
     // Populate table with existing markers when UI is created
     this.updateMarkersTable()
+  }
+
+  /**
+   * Update markers table with current markers
+   */
+  updateMarkersTable() {
+    if (!this.markersTable) return
+    if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return
+
+    this.markersTable.update(this.instance.state.analysis.markers)
   }
 
   /**
@@ -438,12 +454,7 @@ export class AnalysisMode extends BaseMode {
   static getInitialState() {
     return {
       analysis: {
-        markers: [],
-        // Note: isDragging, draggedMarkerId, dragStartPosition are now managed by BaseDragHandler
-        // but kept here for backward compatibility with existing code
-        isDragging: false,
-        draggedMarkerId: null,
-        dragStartPosition: null
+        markers: []
       }
     }
   }
@@ -454,15 +465,11 @@ export class AnalysisMode extends BaseMode {
    */
   addMarker(marker) {
     if (!this.instance.state.analysis) {
-      this.instance.state.analysis = { 
-        markers: [],
-        isDragging: false,
-        draggedMarkerId: null,
-        dragStartPosition: null
-      }
+      this.instance.state.analysis = { markers: [] }
     }
     
     this.instance.state.analysis.markers.push(marker)
+    markAnnotationsChanged(this.instance)
     
     // Auto-select the newly created marker
     const index = this.instance.state.analysis.markers.length - 1
@@ -477,7 +484,7 @@ export class AnalysisMode extends BaseMode {
     }
     
     // Notify listeners
-    notifyStateListeners(this.instance.state, this.instance.stateListeners)
+    dispatch(this.instance, { frame: true })
   }
 
   /**
@@ -496,7 +503,8 @@ export class AnalysisMode extends BaseMode {
       }
       
       this.instance.state.analysis.markers.splice(index, 1)
-      
+      markAnnotationsChanged(this.instance)
+
       // Update markers table
       this.updateMarkersTable()
       
@@ -506,7 +514,7 @@ export class AnalysisMode extends BaseMode {
       }
       
       // Notify listeners
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -538,10 +546,10 @@ export class AnalysisMode extends BaseMode {
       
       // Convert marker position to SVG coordinates
       const markerPoint = { freq: marker.freq, time: marker.time }
-      const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage)
       
       // Convert click position to SVG coordinates
-      const clickSVG = calculateZoomAwarePosition(position, this.getViewport(), this.instance.spectrogramImage)
+      const clickSVG = dataToSVG(position, this.getViewport(), this.instance.spectrogramImage)
       
       const crosshairSize = 15 // pixels in SVG space
       const lineThickness = 3 // effective hit area around the line (half of stroke-width + tolerance)
@@ -561,6 +569,7 @@ export class AnalysisMode extends BaseMode {
     
     if (marker) {
       return {
+        kind: 'move',
         id: marker.id,
         type: 'marker',
         position: { freq: marker.freq, time: marker.time },
@@ -569,151 +578,6 @@ export class AnalysisMode extends BaseMode {
     }
     
     return null
-  }
-
-  /**
-   * Update markers table with current markers
-   */
-  updateMarkersTable() {
-    if (!this.uiElements.markersTableBody) return
-    
-    if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return
-    
-    const existingRows = this.uiElements.markersTableBody.querySelectorAll('tr')
-    const markers = this.instance.state.analysis.markers
-    
-    // Update existing rows or create new ones
-    markers.forEach((marker, index) => {
-      let row = existingRows[index]
-      
-      if (row && row.getAttribute('data-marker-id') === marker.id) {
-        // Update existing row - only update the cells that change
-        this.updateMarkerRow(row, marker)
-      } else {
-        // Need to rebuild from this point (marker added/removed/reordered)
-        this.rebuildMarkersTableFrom(index)
-        return
-      }
-    })
-    
-    // Remove extra rows if markers were deleted
-    for (let i = markers.length; i < existingRows.length; i++) {
-      existingRows[i].remove()
-    }
-  }
-  
-  /**
-   * Update only the changing cells in an existing marker row
-   * @param {HTMLTableRowElement} row - The table row to update
-   * @param {AnalysisMarker} marker - The marker data
-   */
-  updateMarkerRow(row, marker) {
-    // Refresh the colour/symbol indicator in case the marker was reformatted
-    // in place (feature 161). Rebuild the cell's indicator to match its style.
-    const colorCell = row.cells[0]
-    if (colorCell) {
-      colorCell.replaceChildren(createColorIndicator(marker.symbol, marker.color, 20))
-    }
-
-    // Update time cell (second cell)
-    const timeCell = row.cells[1]
-    if (timeCell) {
-      const newTime = formatTime(marker.time)
-      if (timeCell.textContent !== newTime) {
-        timeCell.textContent = newTime
-      }
-    }
-    
-    // Update frequency cell (third cell)
-    const freqCell = row.cells[2]
-    if (freqCell) {
-      const newFreq = marker.freq.toFixed(2)
-      if (freqCell.textContent !== newFreq) {
-        freqCell.textContent = newFreq
-      }
-    }
-  }
-  
-  /**
-   * Rebuild the markers table from a specific index
-   * @param {number} startIndex - Index to start rebuilding from
-   */
-  rebuildMarkersTableFrom(startIndex) {
-    if (!this.uiElements.markersTableBody) return
-    
-    const markers = this.instance.state.analysis.markers
-    const existingRows = this.uiElements.markersTableBody.querySelectorAll('tr')
-    
-    // Remove rows from startIndex onward
-    for (let i = startIndex; i < existingRows.length; i++) {
-      existingRows[i].remove()
-    }
-    
-    // Add new rows from startIndex
-    for (let index = startIndex; index < markers.length; index++) {
-      const marker = markers[index]
-      const row = document.createElement('tr')
-      row.setAttribute('data-marker-id', marker.id)
-      
-      // Add click handler for selection
-      row.addEventListener('click', (event) => {
-        // Don't trigger selection if clicking delete button
-        if (event.target && /** @type {Element} */ (event.target).closest('.gram-frame-marker-delete-btn')) {
-          return
-        }
-        
-        // Toggle selection
-        if (this.instance.state.selection.selectedType === 'marker' && 
-            this.instance.state.selection.selectedId === marker.id) {
-          this.instance.clearSelection()
-        } else {
-          this.instance.setSelection('marker', marker.id, index)
-        }
-      })
-      
-      // Colour/symbol cell — a shaped symbol shows the colour-coded symbol; the
-      // cross (symbol-less) style shows a filled colour rectangle (FR-010).
-      const colorCell = document.createElement('td')
-      colorCell.className = 'gram-frame-marker-color'
-      colorCell.appendChild(createColorIndicator(marker.symbol, marker.color, 20))
-      row.appendChild(colorCell)
-      
-      // Time cell
-      const timeCell = document.createElement('td')
-      timeCell.textContent = formatTime(marker.time)
-      row.appendChild(timeCell)
-      
-      // Frequency cell
-      const freqCell = document.createElement('td')
-      freqCell.textContent = marker.freq.toFixed(2)
-      row.appendChild(freqCell)
-      
-      // Delete button cell
-      const deleteCell = document.createElement('td')
-      const deleteButton = document.createElement('button')
-      deleteButton.textContent = '×'
-      deleteButton.className = 'gram-frame-marker-delete-btn'
-      deleteButton.style.background = 'none'
-      deleteButton.style.border = 'none'
-      deleteButton.style.color = '#ff4444'
-      deleteButton.style.cursor = 'pointer'
-      deleteButton.style.fontSize = '16px'
-      deleteButton.style.fontWeight = 'bold'
-      // Capture the marker ID in a closure to avoid scope issues
-      const markerId = marker.id
-      deleteButton.addEventListener('click', (event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        this.removeMarker(markerId)
-      })
-      deleteCell.appendChild(deleteButton)
-      row.appendChild(deleteCell)
-      
-      this.uiElements.markersTableBody.appendChild(row)
-    }
-    
-    // Restore selection highlighting if needed
-    this.instance.updateSelectionVisuals()
   }
 
   /**

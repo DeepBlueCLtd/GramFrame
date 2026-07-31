@@ -25,13 +25,42 @@ async function getStateFromPage(page) {
   })
 }
 
+/**
+ * Wait until GramFrame has initialised on a fixture page. The instance only
+ * reaches the registry once its constructor (including annotation restore) has
+ * returned, so this is the exact ready signal.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<void>}
+ */
+async function waitForFixtureReady(page) {
+  await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
+  await expect
+    .poll(async () => (await getStateFromPage(page)) !== null, {
+      message: 'Timed out waiting for GramFrame to initialise'
+    })
+    .toBe(true)
+}
+
+/**
+ * Wait until a harmonic set's `showPin` reaches the expected value.
+ * @param {import('./helpers/gram-frame-page.js').GramFramePage} gramFramePage
+ * @param {string} setId
+ * @param {boolean} showPin
+ * @returns {Promise<void>}
+ */
+async function waitForSetPin(gramFramePage, setId, showPin) {
+  await gramFramePage.waitForState(
+    (state) => state.harmonics.harmonicSets.find((s) => s.id === setId)?.showPin === showPin,
+    { message: `harmonic set ${setId} to have showPin=${showPin}` }
+  )
+}
+
 // ──────────────────────────────────────────────────────────────
 // User Story 1 — Create harmonic sets without the vertical pin
 // ──────────────────────────────────────────────────────────────
 
 test.describe('US1: Pin toggle governs newly created harmonic sets', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    await gramFramePage.page.waitForTimeout(100)
     await gramFramePage.clickMode('Harmonics')
   })
 
@@ -49,7 +78,6 @@ test.describe('US1: Pin toggle governs newly created harmonic sets', () => {
 
   test('with the toggle on, a new set draws its pin lines', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(5, 100)
-    await gramFramePage.page.waitForTimeout(200)
 
     const state = await gramFramePage.getState()
     const set = state.harmonics.harmonicSets.find((s) => s.id === setId)
@@ -62,7 +90,6 @@ test.describe('US1: Pin toggle governs newly created harmonic sets', () => {
     await gramFramePage.setPinToggle(false)
 
     const setId = await gramFramePage.addHarmonicSet(5, 100)
-    await gramFramePage.page.waitForTimeout(200)
 
     const state = await gramFramePage.getState()
     expect(state.showHarmonicPin).toBe(false)
@@ -90,7 +117,6 @@ test.describe('US1: Pin toggle governs newly created harmonic sets', () => {
     })
     await gramFramePage.setPinToggle(false)
     const pinlessId = await gramFramePage.addHarmonicSet(5, 150)
-    await gramFramePage.page.waitForTimeout(200)
 
     expect(await gramFramePage.getHarmonicLineCount(pinnedId)).toBeGreaterThan(0)
     expect(await gramFramePage.getHarmonicLineCount(pinlessId)).toBe(0)
@@ -103,32 +129,27 @@ test.describe('US1: Pin toggle governs newly created harmonic sets', () => {
 
 test.describe('US2: Toggling restyles the selected harmonic set in place', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    await gramFramePage.page.waitForTimeout(100)
     await gramFramePage.clickMode('Harmonics')
   })
 
   test('turning the pin off and on again updates the selected set only', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(5, 100)
-    await gramFramePage.page.waitForTimeout(200)
     const pinnedCount = await gramFramePage.getHarmonicLineCount(setId)
     expect(pinnedCount).toBeGreaterThan(0)
 
     // The set is auto-selected on creation, so the toggle targets it
     await gramFramePage.setPinToggle(false)
-    await gramFramePage.page.waitForTimeout(150)
+    await waitForSetPin(gramFramePage, setId, false)
 
     let state = await gramFramePage.getState()
-    expect(state.harmonics.harmonicSets.find((s) => s.id === setId).showPin).toBe(false)
     expect(await gramFramePage.getHarmonicLineCount(setId)).toBe(0)
     // Restyling a selected set must not change the session default
     expect(state.showHarmonicPin).toBe(true)
 
     // Turn it back on
     await gramFramePage.setPinToggle(true)
-    await gramFramePage.page.waitForTimeout(150)
+    await waitForSetPin(gramFramePage, setId, true)
 
-    state = await gramFramePage.getState()
-    expect(state.harmonics.harmonicSets.find((s) => s.id === setId).showPin).toBe(true)
     expect(await gramFramePage.getHarmonicLineCount(setId)).toBe(pinnedCount)
   })
 
@@ -142,19 +163,16 @@ test.describe('US2: Toggling restyles the selected harmonic set in place', () =>
     })
     await gramFramePage.setPinToggle(true)
     const pinnedId = await gramFramePage.addHarmonicSet(5, 150)
-    await gramFramePage.page.waitForTimeout(200)
 
     // The pinned set is selected (created last)
     expect((await gramFramePage.getPinToggleState()).checked).toBe(true)
 
     // Select the pin-less set via its table row
-    await gramFramePage.page.locator(`tr[data-harmonic-id="${pinlessId}"]`).click()
-    await gramFramePage.page.waitForTimeout(150)
+    await gramFramePage.clickTableRow('harmonics', pinlessId)
     expect((await gramFramePage.getPinToggleState()).checked).toBe(false)
 
     // Back to the pinned set
-    await gramFramePage.page.locator(`tr[data-harmonic-id="${pinnedId}"]`).click()
-    await gramFramePage.page.waitForTimeout(150)
+    await gramFramePage.clickTableRow('harmonics', pinnedId)
     expect((await gramFramePage.getPinToggleState()).checked).toBe(true)
   })
 
@@ -164,10 +182,8 @@ test.describe('US2: Toggling restyles the selected harmonic set in place', () =>
     const svgBox = await gramFramePage.svg.boundingBox()
     if (!svgBox) throw new Error('SVG not found')
     await gramFramePage.page.mouse.click(svgBox.x + 200, svgBox.y + 150)
-    await gramFramePage.page.waitForTimeout(200)
+    await gramFramePage.waitForMarkerCount(1)
 
-    const state = await gramFramePage.getState()
-    expect(state.analysis.markers.length).toBeGreaterThan(0)
     expect((await gramFramePage.getPinToggleState()).disabled).toBe(true)
   })
 })
@@ -180,20 +196,18 @@ test.describe('US3: Pin preference persists within the session', () => {
   test('the choice survives a reload and applies to sets created afterwards', async ({ gramFramePage }) => {
     await gramFramePage.clickMode('Harmonics')
     await gramFramePage.setPinToggle(false)
-    await gramFramePage.page.waitForTimeout(100)
 
     await gramFramePage.page.reload()
     await gramFramePage.waitForComponentLoad()
-    await gramFramePage.page.waitForTimeout(300)
 
     // The toggle comes back off, and so does the state it drives
+    await gramFramePage.waitForState((state) => state.showHarmonicPin === false, {
+      message: 'the restored pin preference to be off'
+    })
     expect((await gramFramePage.getPinToggleState()).checked).toBe(false)
-    const state = await gramFramePage.getState()
-    expect(state.showHarmonicPin).toBe(false)
 
     await gramFramePage.clickMode('Harmonics')
     const setId = await gramFramePage.addHarmonicSet(5, 100)
-    await gramFramePage.page.waitForTimeout(200)
     expect(await gramFramePage.getHarmonicLineCount(setId)).toBe(0)
   })
 
@@ -201,18 +215,15 @@ test.describe('US3: Pin preference persists within the session', () => {
     const gfp = new GramFramePage(page)
     await page.goto('/tests/fixtures/trainer-page.html')
     await page.evaluate(() => localStorage.clear())
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(300)
+    await waitForFixtureReady(page)
 
     await page.locator('.gram-frame-mode-btn:text("Harmonics")').click()
     await page.locator('.gram-frame-symbol-select').selectOption('star')
     await page.locator('.gram-frame-pin-toggle-input').uncheck()
     const setId = await gfp.addHarmonicSet(5, 100)
-    await page.waitForTimeout(300)
 
     await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await waitForFixtureReady(page)
 
     const after = await getStateFromPage(page)
     const set = after.harmonics.harmonicSets.find((s) => s.id === setId)
@@ -256,8 +267,7 @@ test.describe('US4: Legacy harmonic sets restore with pins shown', () => {
     })
 
     await page.reload()
-    await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
-    await page.waitForTimeout(500)
+    await waitForFixtureReady(page)
 
     const gfp = new GramFramePage(page)
     const state = await getStateFromPage(page)

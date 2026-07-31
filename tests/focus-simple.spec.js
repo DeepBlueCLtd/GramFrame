@@ -4,49 +4,40 @@ test.describe('Simple Focus Test', () => {
   test('should demonstrate multiple GramFrame focus works', async ({ page }) => {
     // Navigate to the debug page with multiple instances
     await page.goto('http://localhost:5173/debug-multiple.html')
-    
+
     // Wait for both GramFrames to initialize
     await page.waitForSelector('.gram-frame-container', { timeout: 15000 })
-    const containers = await page.locator('.gram-frame-container').count()
-    expect(containers).toBe(3)
-    
-    const gramFrame1 = page.locator('.gram-frame-container').first()
-    const gramFrame2 = page.locator('.gram-frame-container').nth(1)
-    
+    const containers = page.locator('.gram-frame-container')
+    await expect(containers).toHaveCount(3)
+
+    const gramFrame1 = containers.first()
+    const gramFrame2 = containers.nth(1)
+
     // Get the SVG elements within each container (where focus events are handled)
     const svg1 = gramFrame1.locator('svg').first()
     const svg2 = gramFrame2.locator('svg').first()
-    
-    // Initially, no instance should be focused until user interaction
-    await page.waitForTimeout(500) // Let focus system initialize
-    
-    const initialFocus1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
-    const initialFocus2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
-    
-    // Neither should be focused initially
-    expect(initialFocus1).toBe(false)
-    expect(initialFocus2).toBe(false)
-    
+
+    // Every instance has finished building its SVG — the point at which the
+    // focus system is live, so "nothing is focused yet" is a real result rather
+    // than a not-yet-initialised one.
+    await expect(containers.locator('svg')).toHaveCount(3)
+
+    // Neither should be focused until the user interacts
+    await expect(gramFrame1).not.toHaveClass(/gram-frame-focused/)
+    await expect(gramFrame2).not.toHaveClass(/gram-frame-focused/)
+
     // Click on the second GramFrame's SVG to switch focus
     await svg2.click()
-    await page.waitForTimeout(200)
-    
+
     // Check focus has switched
-    const afterClick1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
-    const afterClick2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
-    
-    expect(afterClick1).toBe(false)
-    expect(afterClick2).toBe(true)
-    
+    await expect(gramFrame2).toHaveClass(/gram-frame-focused/)
+    await expect(gramFrame1).not.toHaveClass(/gram-frame-focused/)
+
     // Click on the first GramFrame's SVG to switch back
     await svg1.click()
-    await page.waitForTimeout(200)
-    
+
     // Check focus has switched back
-    const afterSecondClick1 = await gramFrame1.evaluate(el => el.classList.contains('gram-frame-focused'))
-    const afterSecondClick2 = await gramFrame2.evaluate(el => el.classList.contains('gram-frame-focused'))
-    
-    expect(afterSecondClick1).toBe(true)
-    expect(afterSecondClick2).toBe(false)
+    await expect(gramFrame1).toHaveClass(/gram-frame-focused/)
+    await expect(gramFrame2).not.toHaveClass(/gram-frame-focused/)
   })
 })

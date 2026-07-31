@@ -8,7 +8,8 @@
 const MAX_IMAGE_WIDTH = 1200
 
 import { formatTime } from '../utils/timeFormatter.js'
-import { notifyStateListeners } from '../core/state.js'
+import { getImageBounds } from '../utils/coordinates.js'
+import { dispatch } from '../core/state.js'
 import { createExpandToggle } from './ExpandToggle.js'
 
 /**
@@ -186,7 +187,7 @@ export function setupSpectrogramImage(instance, imageUrl) {
     createExpandToggle(instance)
 
     // Notify listeners of updated dimensions
-    notifyStateListeners(instance.state, instance.stateListeners)
+    dispatch(instance)
   }
   tempImg.onerror = function() {
     // Without dimensions nothing can be rendered, so replace the loading
@@ -367,18 +368,14 @@ export function calculateVisibleDataRange(instance) {
     return { timeMin, timeMax, freqMin, freqMax }
   }
 
-  // Get current image position and dimensions (base render size × zoom)
-  let imageLeft = margins.left
-  let imageTop = margins.top
-  let imageWidth = renderWidth
-  let imageHeight = renderHeight
-
-  if (instance.spectrogramImage) {
-    imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
-    imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(renderWidth))
-    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(renderHeight))
-  }
+  // Current image position and dimensions (base render size × zoom), from the
+  // canonical coordinate module rather than re-read from the element here.
+  const {
+    left: imageLeft,
+    top: imageTop,
+    width: imageWidth,
+    height: imageHeight
+  } = getImageBounds(instance.state, instance.spectrogramImage)
 
   // Calculate visible bounds in image coordinates (full image extent = render size)
   const visibleLeft = Math.max(0, margins.left - imageLeft)
