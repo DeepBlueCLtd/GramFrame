@@ -366,13 +366,18 @@ export class HarmonicsMode extends BaseMode {
     // Use selected symbol from global state, defaulting to the symbol-less cross
     const symbol = this.instance.state.selectedSymbol || 'cross'
 
+    // Use the session's pin-visibility preference (on unless the analyst turned
+    // it off via the Symbol panel toggle)
+    const showPin = this.instance.state.showHarmonicPin !== false
+
     /** @type {HarmonicSet} */
     const harmonicSet = {
       id,
       color,
       anchorTime,
       spacing,
-      symbol
+      symbol,
+      showPin
     }
     
     this.instance.state.harmonics.harmonicSets.push(harmonicSet)
@@ -852,6 +857,12 @@ export class HarmonicsMode extends BaseMode {
    * symbol only for the thinned "major" subset so the overlay stays readable.
    * Lines are appended first so the labels/symbols paint on top of them.
    *
+   * A set with `showPin === false` skips the lines entirely and renders as its
+   * symbols and numbers alone — the low-clutter style for stacking many sets over
+   * dense data. The label/symbol geometry is unchanged, so toggling the pin adds
+   * or removes the lines without moving anything else, and the set stays
+   * draggable over the same region.
+   *
    * @param {HarmonicSet} harmonicSet - Harmonic set to render
    */
   renderHarmonicSet(harmonicSet) {
@@ -867,11 +878,14 @@ export class HarmonicsMode extends BaseMode {
     const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
     const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top
 
-    // Draw every pin line in the visible span (FR-001).
-    for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
-      const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
-      const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
-      this.instance.cursorGroup.appendChild(line)
+    // Draw every pin line in the visible span (FR-001) — unless this set is set
+    // to hide its pin. Sets restored from storage without the flag are pinned.
+    if (harmonicSet.showPin !== false) {
+      for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
+        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
+        const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
+        this.instance.cursorGroup.appendChild(line)
+      }
     }
 
     // Draw labels + symbols only on the thinned major subset (FR-002), stacked

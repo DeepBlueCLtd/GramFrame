@@ -608,6 +608,34 @@ class GramFramePage {
   }
 
   /**
+   * Set the harmonic-pin toggle in the Symbol panel.
+   * @param {boolean} checked - Desired checkbox state
+   * @returns {Promise<void>}
+   */
+  async setPinToggle(checked) {
+    const toggle = this.page.locator('.gram-frame-pin-toggle-input')
+    if (checked) {
+      await toggle.check()
+    } else {
+      await toggle.uncheck()
+    }
+  }
+
+  /**
+   * Read the harmonic-pin toggle's current state.
+   * @returns {Promise<{checked: boolean, disabled: boolean}>}
+   */
+  async getPinToggleState() {
+    return this.page.evaluate(() => {
+      const el = /** @type {HTMLInputElement|null} */ (
+        document.querySelector('.gram-frame-pin-toggle-input')
+      )
+      if (!el) return { checked: false, disabled: false }
+      return { checked: el.checked, disabled: el.disabled }
+    })
+  }
+
+  /**
    * Read the pin symbol marks rendered on the spectrogram overlay.
    * @param {string} [harmonicSetId] - Optional filter to a single set's marks
    * @returns {Promise<Array<{symbol: string, fill: string, tag: string}>>}

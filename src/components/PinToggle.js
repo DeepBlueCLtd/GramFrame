@@ -1,0 +1,76 @@
+/**
+ * Harmonic-pin visibility toggle for GramFrame overlays.
+ *
+ * A checkbox in the combined "Symbol" panel (see ColorPicker.js) that controls
+ * whether a harmonic set draws its vertical pin lines. With the pin off, a set
+ * renders as its symbols and numbers alone — the style experienced analysts use
+ * to stack many harmonic sets over dense data without the lines swamping it.
+ *
+ * When a harmonic set is selected, toggling restyles that set in place;
+ * otherwise the choice is written to `state.showHarmonicPin` and applied to the
+ * next created set. The preference is on at the start of each browser session
+ * and remembered (sessionStorage) for the rest of it.
+ *
+ * The toggle has no meaning for analysis markers (they have no pin), so it is
+ * disabled while a marker is selected.
+ */
+
+/// <reference path="../types.js" />
+
+import { savePinPreference } from '../core/storage.js'
+
+/**
+ * Create the harmonic-pin toggle row.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {HTMLLabelElement} The toggle row element
+ */
+export function createPinToggle(instance) {
+  const state = instance.state
+
+  const row = document.createElement('label')
+  row.className = 'gram-frame-pin-toggle'
+  row.title = 'Show the vertical pin lines of harmonic sets'
+
+  const checkbox = document.createElement('input')
+  checkbox.type = 'checkbox'
+  checkbox.className = 'gram-frame-pin-toggle-input'
+  checkbox.checked = state.showHarmonicPin !== false
+  checkbox.setAttribute('aria-label', 'Show harmonic pin')
+
+  const text = document.createElement('span')
+  text.className = 'gram-frame-pin-toggle-label'
+  text.textContent = 'Pin'
+
+  row.appendChild(checkbox)
+  row.appendChild(text)
+
+  checkbox.addEventListener('change', () => {
+    const showPin = checkbox.checked
+    // Route to the selected harmonic set when one is selected (restyle in
+    // place), otherwise set the style for the next created set and remember it
+    // for the rest of the session.
+    if (!instance.applyPinToSelectedFeature || !instance.applyPinToSelectedFeature(showPin)) {
+      state.showHarmonicPin = showPin
+      savePinPreference(showPin)
+    }
+  })
+
+  // Expose a control handle so selection changes can reflect the selected
+  // set's pin state back into the checkbox.
+  instance._pinControl = {
+    /** @param {boolean} showPin */
+    setValue(showPin) {
+      checkbox.checked = showPin
+    },
+    /** @param {boolean} enabled */
+    setEnabled(enabled) {
+      checkbox.disabled = !enabled
+      row.classList.toggle('gram-frame-pin-toggle-disabled', !enabled)
+      row.title = enabled
+        ? 'Show the vertical pin lines of harmonic sets'
+        : 'Pins apply to harmonic sets only'
+    }
+  }
+
+  return row
+}
