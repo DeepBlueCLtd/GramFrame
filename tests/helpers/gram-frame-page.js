@@ -568,6 +568,23 @@ class GramFramePage {
   }
 
   /**
+   * Programmatically add an analysis marker via the test instance API.
+   * @param {number} time - Time position in seconds
+   * @param {number} freq - Frequency in Hz
+   * @returns {Promise<string>} The created marker's id
+   */
+  async addMarker(time, freq) {
+    return this.page.evaluate(([t, f]) => {
+      // @ts-ignore - test-only global
+      const instances = window.GramFrame.__test__getInstances()
+      const instance = instances[0]
+      instance.modes['analysis'].createMarkerAtPosition({ time: t, freq: f })
+      const markers = instance.state.analysis.markers
+      return markers[markers.length - 1].id
+    }, [time, freq])
+  }
+
+  /**
    * Programmatically add a harmonic set via the test instance API.
    * @param {number} anchorTime - Time position in seconds
    * @param {number} spacing - Frequency spacing in Hz

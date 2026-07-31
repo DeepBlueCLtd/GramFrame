@@ -348,6 +348,12 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Create markers table for displaying active markers
+   *
+   * The table wrapper sits inside a `gram-frame-table-area` element that claims
+   * the column's remaining height; the wrapper fills it absolutely and scrolls,
+   * so adding markers never grows the surrounding layout (the header row stays
+   * pinned via sticky `th`).
+   *
    * @param {HTMLElement} markersContainer - Persistent container for markers (already has label)
    */
   createMarkersTable(markersContainer) {
@@ -355,12 +361,15 @@ export class AnalysisMode extends BaseMode {
     if (markersContainer.querySelector('.gram-frame-table')) {
       return
     }
-    
+
     // The container already has a label, so we just add the table wrapper
-    
+
+    const tableArea = document.createElement('div')
+    tableArea.className = 'gram-frame-table-area'
+
     const tableWrapper = document.createElement('div')
     tableWrapper.className = 'gram-frame-table-container'
-    
+
     const table = document.createElement('table')
     table.className = 'gram-frame-table'
     
@@ -396,7 +405,8 @@ export class AnalysisMode extends BaseMode {
     table.appendChild(tbody)
     
     tableWrapper.appendChild(table)
-    markersContainer.appendChild(tableWrapper)
+    tableArea.appendChild(tableWrapper)
+    markersContainer.appendChild(tableArea)
     
     // Store all UI elements for proper cleanup
     this.uiElements.markersTable = table
