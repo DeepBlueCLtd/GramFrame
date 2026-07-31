@@ -271,6 +271,34 @@ test.describe('Switching mode clears the current selection', () => {
     state = await gramFramePage.getState()
     expect(state.harmonics.harmonicSets.find((s) => s.id === setId).color).toBe(colorBefore)
   })
+
+  test('re-clicking the already-active mode also clears the selection', async ({ gramFramePage }) => {
+    const page = gramFramePage.page
+
+    await gramFramePage.clickMode('Harmonics')
+    await page.waitForTimeout(100)
+    const setId = await gramFramePage.addHarmonicSet(30, 20)
+    await page.waitForTimeout(100)
+
+    let state = await gramFramePage.getState()
+    expect(state.selection.selectedType).toBe('harmonicSet')
+    expect(state.selection.selectedId).toBe(setId)
+    const colorBefore = state.harmonics.harmonicSets.find((s) => s.id === setId).color
+
+    // Clicking Harmonics again - the mode does not change, but the selection drops
+    await gramFramePage.clickMode('Harmonics')
+    await page.waitForTimeout(150)
+    state = await gramFramePage.getState()
+    expect(state.mode).toBe('harmonics')
+    expect(state.selection.selectedType).toBeNull()
+    expect(state.selection.selectedId).toBeNull()
+
+    // The colour picker now arms the next set rather than restyling the placed one
+    await page.locator(COLOR_CANVAS).click({ position: { x: 4, y: 10 } })
+    await page.waitForTimeout(100)
+    state = await gramFramePage.getState()
+    expect(state.harmonics.harmonicSets.find((s) => s.id === setId).color).toBe(colorBefore)
+  })
 })
 
 // ──────────────────────────────────────────────────────────────
