@@ -348,6 +348,26 @@
   cursor: pointer;
 }
 
+/* TEMPORARY (symbol-size experiment): "Large symbols" toggle under the colour
+   slider. Remove together with the control once a symbol size is agreed. */
+.gram-frame-large-symbols-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gram-frame-large-symbols-checkbox {
+  margin: 0;
+  cursor: pointer;
+}
+
 .gram-frame-color-canvas {
   width: 140px;
   max-width: 140px;

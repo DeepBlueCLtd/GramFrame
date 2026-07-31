@@ -47,6 +47,29 @@ export const SYMBOL_DISPLAY_NAMES = {
 }
 
 /**
+ * EXPERIMENT (temporary — feature-feedback trial): multiplier applied to the
+ * on-image symbol marks when the "Large symbols" toggle in the Symbol panel is
+ * on. It exists only so analysts can compare the two sizes and tell us which to
+ * keep; once a size is chosen, fold the winner into the base sizes and delete
+ * both this constant and the toggle.
+ * @type {number}
+ */
+export const LARGE_SYMBOL_SCALE = 2
+
+/**
+ * Resolve the symbol size multiplier for an instance's current state.
+ *
+ * Applies to the overlay marks only (harmonic pins and analysis markers) — the
+ * table swatches keep their fixed box size so row heights do not jump.
+ *
+ * @param {GramFrameState|null|undefined} state - GramFrame state
+ * @returns {number} `LARGE_SYMBOL_SCALE` when large symbols are on, else 1
+ */
+export function resolveSymbolScale(state) {
+  return state && state.largeSymbols ? LARGE_SYMBOL_SCALE : 1
+}
+
+/**
  * Build a `points` attribute string from an array of [x, y] pairs.
  * @param {Array<[number, number]>} pts - Point pairs
  * @returns {string} Space-separated "x,y" points

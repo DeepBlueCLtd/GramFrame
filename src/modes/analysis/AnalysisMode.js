@@ -4,7 +4,7 @@ import { formatTime } from '../../utils/timeFormatter.js'
 import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
-import { createSymbolMark, createColorIndicator } from '../../rendering/symbols.js'
+import { createSymbolMark, createColorIndicator, resolveSymbolScale } from '../../rendering/symbols.js'
 
 /**
  * Analysis mode implementation
@@ -12,8 +12,10 @@ import { createSymbolMark, createColorIndicator } from '../../rendering/symbols.
  */
 export class AnalysisMode extends BaseMode {
   /**
-   * Pixel size (width/height) of a marker's symbol mark when it carries a
+   * Base pixel size (width/height) of a marker's symbol mark when it carries a
    * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
+   * The drawn size is this scaled by the temporary "Large symbols" toggle, so a
+   * marker's symbol tracks the harmonic pins' symbols.
    * @type {number}
    */
   static MARKER_SYMBOL_SIZE = 14
@@ -263,7 +265,8 @@ export class AnalysisMode extends BaseMode {
     // A marker carrying a shaped symbol is drawn as that colour-coded symbol
     // (feature 161, FR-009); a marker with the `cross` (symbol-less) style
     // continues to render as the crosshair.
-    const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, AnalysisMode.MARKER_SYMBOL_SIZE, marker.color)
+    const symbolSize = AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(this.instance.state)
+    const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color)
 
     if (symbolMark) {
       // Use a marker-specific class so the harmonics renderer's symbol cleanup

@@ -183,6 +183,7 @@
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
  * @property {string} selectedColor - Colour for the NEXT created feature (when nothing is selected); when a feature is selected the picker restyles it instead
  * @property {SymbolType} selectedSymbol - Symbol for the NEXT created harmonic set or marker (when nothing is selected); when a feature is selected the picker restyles it instead
+ * @property {boolean} largeSymbols - EXPERIMENT (temporary): draw overlay symbols at double size; in-memory only, never persisted
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {HarmonicsState} harmonics - Harmonics mode state

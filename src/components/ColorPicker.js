@@ -7,7 +7,7 @@
 
 /// <reference path="../types.js" />
 
-import { createSymbolSelect } from './SymbolPicker.js'
+import { createSymbolSelect, createLargeSymbolToggle } from './SymbolPicker.js'
 import { getActiveStyle } from '../core/keyboardControl.js'
 
 /**
@@ -92,6 +92,10 @@ export function createColorPicker(instance) {
   // colour readout.
   const symbolSelect = createSymbolSelect(instance)
   paletteContainer.appendChild(symbolSelect)
+
+  // TEMPORARY (size experiment): size toggle beneath the slider/drop-down row,
+  // for feedback on whether the larger symbols read better on a real gram.
+  container.appendChild(createLargeSymbolToggle(instance))
 
   // Add click handler for color selection
   canvas.addEventListener('click', (event) => {

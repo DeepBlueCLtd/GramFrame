@@ -7,7 +7,7 @@ import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordina
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
-import { createSymbolMark } from '../../rendering/symbols.js'
+import { createSymbolMark, resolveSymbolScale } from '../../rendering/symbols.js'
 import { calculateVisibleDataRange } from '../../components/table.js'
 
 /**
@@ -127,7 +127,9 @@ export class HarmonicsMode extends BaseMode {
   static harmonicColors = ['#ff6b6b', '#2ecc71', '#f39c12', '#9b59b6', '#ffc93c', '#ff9ff3', '#45b7d1', '#e67e22']
 
   /**
-   * Pixel size (width/height) of a pin's symbol mark.
+   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
+   * this scaled by the "Large symbols" experiment toggle — use
+   * {@link HarmonicsMode#symbolSize} rather than reading this directly.
    * @type {number}
    */
   static SYMBOL_SIZE = 10
@@ -775,6 +777,16 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Effective pixel size of a pin's symbol mark, i.e. the base size scaled by the
+   * temporary "Large symbols" toggle. The whole label/symbol stack layout derives
+   * from this, so the label spacing and top-edge clamping follow the chosen size.
+   * @returns {number} Symbol diameter in px
+   */
+  symbolSize() {
+    return HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(this.instance.state)
+  }
+
+  /**
    * Create the filled symbol mark drawn between a pin's number label and the top
    * of its line.
    *
@@ -789,7 +801,7 @@ export class HarmonicsMode extends BaseMode {
    */
   createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
     const symbol = createSymbolMark(
-      harmonicSet.symbol, lineX, symbolCy, HarmonicsMode.SYMBOL_SIZE, harmonicSet.color
+      harmonicSet.symbol, lineX, symbolCy, this.symbolSize(), harmonicSet.color
     )
     // `cross` sets draw no symbol shape (the pin keeps its line and label).
     if (!symbol) {
@@ -813,7 +825,7 @@ export class HarmonicsMode extends BaseMode {
    * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
    */
   calculateLabelStackPositions(lineTop, imageTop) {
-    const r = HarmonicsMode.SYMBOL_SIZE / 2
+    const r = this.symbolSize() / 2
     const gap = HarmonicsMode.LABEL_GAP
     const fontSize = HarmonicsMode.LABEL_FONT_SIZE
 

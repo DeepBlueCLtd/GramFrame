@@ -13,7 +13,8 @@
 
 /// <reference path="../types.js" />
 
-import { SYMBOL_CATALOG, SYMBOL_DISPLAY_NAMES, DEFAULT_SYMBOL } from '../rendering/symbols.js'
+import { SYMBOL_CATALOG, SYMBOL_DISPLAY_NAMES, DEFAULT_SYMBOL, LARGE_SYMBOL_SCALE } from '../rendering/symbols.js'
+import { notifyStateListeners } from '../core/state.js'
 
 /**
  * Unicode glyph shown for each symbol id in the drop-down. The list is a
@@ -86,4 +87,44 @@ export function createSymbolSelect(instance) {
   }
 
   return select
+}
+
+/**
+ * Create the temporary "Large symbols" toggle for the Symbol panel.
+ *
+ * EXPERIMENT: an on/off switch between the current symbol size and
+ * {@link LARGE_SYMBOL_SCALE}× that size, so analysts can compare the two on a
+ * real gram and tell us which to adopt. Toggling redraws every overlay symbol
+ * (harmonic pins and analysis markers) immediately; the table swatches are
+ * unaffected. The state is in-memory only and is never persisted.
+ *
+ * Once a size is agreed, delete this control along with `state.largeSymbols`
+ * and fold the winning size into the base constants.
+ *
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {HTMLLabelElement} The toggle (a label wrapping its checkbox)
+ */
+export function createLargeSymbolToggle(instance) {
+  const label = document.createElement('label')
+  label.className = 'gram-frame-large-symbols-toggle'
+  label.title = `Trial: draw symbols at ${LARGE_SYMBOL_SCALE}× their normal size`
+
+  const checkbox = document.createElement('input')
+  checkbox.type = 'checkbox'
+  checkbox.className = 'gram-frame-large-symbols-checkbox'
+  checkbox.checked = !!instance.state.largeSymbols
+
+  checkbox.addEventListener('change', () => {
+    instance.state.largeSymbols = checkbox.checked
+    // Redraw the overlay so the new size applies to every existing feature.
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures()
+    }
+    notifyStateListeners(instance.state, instance.stateListeners)
+  })
+
+  label.appendChild(checkbox)
+  label.appendChild(document.createTextNode('Large symbols'))
+
+  return label
 }
