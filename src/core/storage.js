@@ -47,6 +47,18 @@ export const STUDENT_TTL_MS = 24 * 60 * 60 * 1000
 const KEY_PREFIX = 'gramframe::'
 
 /**
+ * Storage key for the harmonic-pin visibility preference.
+ *
+ * Deliberately NOT page-scoped: the preference follows the analyst across the
+ * topics of a training package. It is also deliberately kept in sessionStorage
+ * for BOTH contexts (trainer and student) — unlike annotations — so it starts
+ * every browser session at its default (pins shown) while staying put for the
+ * rest of that session.
+ * @type {string}
+ */
+const PIN_PREF_KEY = `${KEY_PREFIX}pref::harmonicPin`
+
+/**
  * CSS selector matching the explicit trainer-persistence flag. Accepts the
  * id, class, or data-attribute form. Exported for unit testing.
  * @type {string}
@@ -141,6 +153,40 @@ export function buildStorageKey(instanceIndex) {
 }
 
 /**
+ * Read the harmonic-pin visibility preference for this browser session.
+ *
+ * Defaults to `true` (pins shown) whenever nothing has been stored yet, storage
+ * is unavailable, or the stored value is not one of the two recognised strings —
+ * so a fresh session always starts with pins visible.
+ * @returns {boolean} True when new/edited harmonic sets should show their pin
+ */
+export function loadPinPreference() {
+  try {
+    const raw = sessionStorage.getItem(PIN_PREF_KEY)
+    if (raw === 'false') return false
+    return true
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Store the harmonic-pin visibility preference for the rest of this browser
+ * session. Failures (private mode, quota) are swallowed — the in-memory state
+ * still holds for the current page.
+ * @param {boolean} showPin - Whether pins should be shown
+ * @returns {boolean} True if the preference was written
+ */
+export function savePinPreference(showPin) {
+  try {
+    sessionStorage.setItem(PIN_PREF_KEY, showPin ? 'true' : 'false')
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Extract annotation data from GramFrame state and save to storage.
  * Only writes when there is at least one annotation present.
  * @param {GramFrameState} state - Current component state
@@ -191,7 +237,11 @@ export function saveAnnotations(state, instanceIndex) {
           // loadAnnotations would otherwise discard all pre-existing v1 records.
           // Legacy records simply lack this key and default to 'cross' (the
           // symbol-less default, feature 161) on restore.
-          symbol: hs.symbol || 'cross'
+          symbol: hs.symbol || 'cross',
+          // `showPin` is likewise ADDITIVE (harmonic-pin toggle) and MUST NOT
+          // bump SCHEMA_VERSION. Records written before it simply lack the key
+          // and restore as `true` (pin shown), matching their original look.
+          showPin: hs.showPin !== false
         }))
       },
       doppler: {

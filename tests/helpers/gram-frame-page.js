@@ -568,6 +568,31 @@ class GramFramePage {
   }
 
   /**
+   * Read the resolved paint of every rendered harmonic number label, optionally
+   * scoped to a single set. Uses computed style (not attributes) so a CSS rule
+   * overriding the halo would be caught.
+   * @param {string} [setId] - Restrict to one harmonic set
+   * @returns {Promise<Array<{fill: string, stroke: string, strokeWidth: string, strokeLinejoin: string, paintOrder: string}>>}
+   */
+  async getHarmonicLabelStyles(setId) {
+    const selector = setId
+      ? `.gram-frame-harmonic-number[data-harmonic-set-id="${setId}"]`
+      : '.gram-frame-harmonic-number'
+    return this.page.evaluate((sel) => {
+      return Array.from(document.querySelectorAll(sel)).map((el) => {
+        const style = window.getComputedStyle(el)
+        return {
+          fill: style.fill,
+          stroke: style.stroke,
+          strokeWidth: style.strokeWidth,
+          strokeLinejoin: style.strokeLinejoin,
+          paintOrder: style.paintOrder
+        }
+      })
+    }, selector)
+  }
+
+  /**
    * Programmatically add an analysis marker via the test instance API.
    * @param {number} time - Time position in seconds
    * @param {number} freq - Frequency in Hz
@@ -622,6 +647,34 @@ class GramFramePage {
    */
   async selectSymbol(symbolId) {
     await this.page.locator('.gram-frame-symbol-select').selectOption(symbolId)
+  }
+
+  /**
+   * Set the harmonic-pin toggle in the Symbol panel.
+   * @param {boolean} checked - Desired checkbox state
+   * @returns {Promise<void>}
+   */
+  async setPinToggle(checked) {
+    const toggle = this.page.locator('.gram-frame-pin-toggle-input')
+    if (checked) {
+      await toggle.check()
+    } else {
+      await toggle.uncheck()
+    }
+  }
+
+  /**
+   * Read the harmonic-pin toggle's current state.
+   * @returns {Promise<{checked: boolean, disabled: boolean}>}
+   */
+  async getPinToggleState() {
+    return this.page.evaluate(() => {
+      const el = /** @type {HTMLInputElement|null} */ (
+        document.querySelector('.gram-frame-pin-toggle-input')
+      )
+      if (!el) return { checked: false, disabled: false }
+      return { checked: el.checked, disabled: el.disabled }
+    })
   }
 
   /**
