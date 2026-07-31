@@ -9,7 +9,7 @@ import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
 import { createSymbolMark, resolveSymbolScale } from '../../rendering/symbols.js'
 import { applyTextHalo } from '../../utils/svg.js'
-import { calculateVisibleDataRange, getRenderDimensions } from '../../components/table.js'
+import { calculateVisibleDataRange, getRenderDimensions } from '../../utils/coordinates.js'
 
 /**
  * Harmonics mode implementation
@@ -699,7 +699,7 @@ export class HarmonicsMode extends BaseMode {
    * Get the inclusive harmonic-number range of a set that falls within the
    * currently visible frequency span.
    *
-   * The visible range comes from `calculateVisibleDataRange(instance)` (the same
+   * The visible range comes from `calculateVisibleDataRange` (the same
    * source the frequency axis uses), so it is viewport-aware: zooming in narrows
    * the span (fewer harmonics), zooming out / panning widens it. At zoom 1.0 the
    * visible range equals the full data range.
@@ -712,7 +712,7 @@ export class HarmonicsMode extends BaseMode {
    * @returns {{minHarmonic: number, maxHarmonic: number}} Inclusive harmonic range
    */
   getVisibleHarmonicRange(harmonicSet) {
-    const { freqMin, freqMax } = calculateVisibleDataRange(this.instance)
+    const { freqMin, freqMax } = calculateVisibleDataRange(this.instance.state, this.instance.spectrogramImage)
     const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
     const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
     return { minHarmonic, maxHarmonic }
@@ -749,7 +749,7 @@ export class HarmonicsMode extends BaseMode {
    * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
    */
   calculateHarmonicLineDimensions(harmonicSet) {
-    const { renderHeight } = getRenderDimensions(this.instance)
+    const { renderHeight } = getRenderDimensions(this.instance.state)
     const lineHeight = renderHeight * HarmonicsMode.PIN_HEIGHT_RATIO
     const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime }
     const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.spectrogramImage)

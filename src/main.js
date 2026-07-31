@@ -80,6 +80,7 @@ import {
  */
 export class GramFrame {
   // Core properties
+  /** @type {GramFrameState} */
   state;
   configTable;
   stateListeners;

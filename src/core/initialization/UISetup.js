@@ -10,7 +10,7 @@
 
 import { createUnifiedLayout } from '../../components/MainUI.js'
 import { createModeSwitchingUI } from '../../components/ModeButtons.js'
-import { setupSpectrogramImage } from '../../components/table.js'
+import { setupSpectrogramImage } from '../../components/spectrogramImage.js'
 import { updateGuidancePanel } from '../../utils/secureHTML.js'
 
 /**

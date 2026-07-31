@@ -8,7 +8,8 @@
 
 /// <reference path="../types.js" />
 
-import { updateSVGLayout, renderAxes } from './table.js'
+import { updateSVGLayout } from './svgLayout.js'
+import { renderAxes } from '../rendering/axes.js'
 import { dispatch } from '../core/state.js'
 
 // Small gap left between the expanded image and the viewport bottom (px).

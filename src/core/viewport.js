@@ -7,7 +7,8 @@
 
 /// <reference path="../types.js" />
 
-import { applyZoomTransform, updateSVGLayout, renderAxes } from '../components/table.js'
+import { applyZoomTransform, updateSVGLayout } from '../components/svgLayout.js'
+import { renderAxes } from '../rendering/axes.js'
 import { updateCommandButtonStates, updateModeButtonStates } from '../components/ModeButtons.js'
 import { dispatch } from './state.js'
 import { screenToSVG } from '../utils/coordinates.js'

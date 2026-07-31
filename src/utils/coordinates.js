@@ -40,6 +40,7 @@
  * @property {ImageDetails} imageDetails - Image dimensions
  * @property {Config} config - Time/frequency configuration
  * @property {number} rate - Frequency divider
+ * @property {ZoomState} zoom - Current zoom state
  */
 
 /**
@@ -79,6 +80,78 @@ export function getImageBounds(viewport, spectrogramImage = null) {
   }
 
   return { left: margins.left, top: margins.top, width, height }
+}
+
+/**
+ * Base render dimensions for a viewport, falling back to the image's natural
+ * size when render dimensions have not been set (e.g. before image load).
+ *
+ * Render dims default to natural, so this is a no-op until the image is
+ * expanded. Moved here from `components/table.js` in the Story 3 split: it is
+ * render-size awareness, which this module already owns privately as
+ * `renderSize`, and keeping it in a component would have forced `rendering/`,
+ * `core/viewport.js` and `components/svgLayout.js` to import a component to get
+ * it — the cycle that made the split impossible (spec 167, US3).
+ * @param {Viewport} viewport - Current viewport
+ * @returns {{renderWidth: number, renderHeight: number}} Base render dimensions
+ */
+export function getRenderDimensions(viewport) {
+  const { width, height } = renderSize(viewport.imageDetails)
+  return { renderWidth: width, renderHeight: height }
+}
+
+/**
+ * The data range currently visible, given the zoom level and pan position.
+ *
+ * At 1× the full configured range is visible and returned unchanged. Zoomed in,
+ * the image is larger than its axes area and clipped to it, so the visible
+ * range is the portion of the image the axes window still covers.
+ * @param {Viewport} viewport - Current viewport
+ * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @returns {DataRange} Visible data range
+ */
+export function calculateVisibleDataRange(viewport, spectrogramImage = null) {
+  const { timeMin, timeMax, freqMin, freqMax } = viewport.config
+  const margins = viewport.margins
+  const zoomLevel = viewport.zoom.level
+  // Base render size (defaults to natural; grows when expanded)
+  const { renderWidth, renderHeight } = getRenderDimensions(viewport)
+
+  if (zoomLevel === 1.0) {
+    // No zoom - return full range
+    return { timeMin, timeMax, freqMin, freqMax }
+  }
+
+  // Current image position and dimensions (base render size × zoom), from the
+  // canonical bounds helper rather than re-read from the element here.
+  const {
+    left: imageLeft,
+    top: imageTop,
+    width: imageWidth,
+    height: imageHeight
+  } = getImageBounds(viewport, spectrogramImage)
+
+  // Calculate visible bounds in image coordinates (full image extent = render size)
+  const visibleLeft = Math.max(0, margins.left - imageLeft)
+  const visibleRight = Math.min(imageWidth, margins.left + renderWidth - imageLeft)
+  const visibleTop = Math.max(0, margins.top - imageTop)
+  const visibleBottom = Math.min(imageHeight, margins.top + renderHeight - imageTop)
+
+  // Convert to data coordinates
+  const freqRange = freqMax - freqMin
+  const timeRange = timeMax - timeMin
+
+  const visibleFreqMin = freqMin + (visibleLeft / imageWidth) * freqRange
+  const visibleFreqMax = freqMin + (visibleRight / imageWidth) * freqRange
+  const visibleTimeMax = timeMax - (visibleTop / imageHeight) * timeRange
+  const visibleTimeMin = timeMax - (visibleBottom / imageHeight) * timeRange
+
+  return {
+    freqMin: visibleFreqMin,
+    freqMax: visibleFreqMax,
+    timeMin: visibleTimeMin,
+    timeMax: visibleTimeMax
+  }
 }
 
 /**
