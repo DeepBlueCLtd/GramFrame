@@ -1,5 +1,11 @@
 # Main.js Dependency Analysis for Refactoring
 
+> **Historical — completed.** This is the planning document for a refactor that
+> has since been carried out. The main.js it analyses is ~2100 lines; the
+> current one is around 650. Read it as a record of how the split was planned,
+> not as a description of the code today — for that see
+> [CLAUDE.md](../../CLAUDE.md) and [Tech-Architecture.md](../Tech-Architecture.md).
+
 **Date:** 2025-07-21  
 **Purpose:** Phase 0 analysis for refactoring main.js (~2100 lines) into modular architecture  
 **Branch:** refactor-main-js  

@@ -50,13 +50,16 @@ The `sample/` directory contains HTML pages with pre-configured GramFrame instan
 | `yarn dev` | Start Vite dev server with hot reload |
 | `yarn build` | Build for production (output in `dist/`) |
 | `yarn test` | Run all Playwright end-to-end tests |
+| `yarn test:unit` | Run the Vitest unit lane (`tests/unit/`, no browser) |
 | `yarn typecheck` | Run TypeScript type checking via JSDoc annotations |
+| `yarn lint` | Run ESLint |
+| `yarn hygiene` | Check the debt ratchets (cycles, unused exports, fixed sleeps) |
 
 ### Running Individual Tests
 
 ```bash
 # Run a specific test file
-npx playwright test tests/phase1.spec.ts
+npx playwright test tests/analysis-mode.spec.js
 
 # Run tests matching a pattern
 npx playwright test -g "mode switching"
@@ -65,7 +68,7 @@ npx playwright test -g "mode switching"
 npx playwright test --ui
 
 # Debug a specific test (step through in browser)
-npx playwright test tests/mode-switching.spec.ts --debug
+npx playwright test tests/mode-integration.spec.js --debug
 ```
 
 ## Tooling Overview
@@ -76,7 +79,9 @@ npx playwright test tests/mode-switching.spec.ts --debug
 | **Playwright** | End-to-end browser testing | `playwright.config.ts` |
 | **TypeScript** | Type checking (via JSDoc, no compilation) | `tsconfig.json` |
 | **JSDoc** | Type annotations in JavaScript source | `src/types.js` |
-| **Husky** | Git hooks (pre-commit checks) | `.husky/` |
+| **Vitest** | Unit lane for pure-JS modules | `vitest.config.js` |
+| **ESLint** | Linting | `eslint.config.js` |
+| **Husky** | Git hooks (pre-push: typecheck, lint, unit lane) | `.husky/` |
 
 GramFrame uses JSDoc annotations with TypeScript checking rather than compiling TypeScript. See [ADR-007](ADRs/ADR-007-JSDoc-TypeScript-Integration.md). Type definitions live in `src/types.js`.
 
@@ -110,9 +115,13 @@ GramFrame/
 Tests use Playwright for end-to-end browser testing. See [Testing-Strategy.md](Testing-Strategy.md) for the full testing approach.
 
 The test suite includes:
+- **End-to-end specs** — Real mouse/keyboard interaction against debug pages and
+  fixtures, asserting on published state and the rendered DOM
 - **State assertions** — Validate GramFrame state after interactions
-- **Visual tests** — Screenshot comparisons for UI consistency
 - **Helper utilities** — `GramFramePage` class provides reusable test helpers
+- **A unit lane** — Pure-JS tests in `tests/unit/`, run by Vitest
+
+There is no screenshot/visual regression testing.
 
 Before committing, always run:
 

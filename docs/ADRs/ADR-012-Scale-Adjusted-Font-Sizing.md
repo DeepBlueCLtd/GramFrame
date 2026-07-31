@@ -31,7 +31,14 @@ Implement scale-adjusted font sizing that maintains consistent visual text size 
 - Need to handle edge cases with invalid dimensions
 
 ## Implementation
-Scale calculation function in src/rendering/axes.js:
+
+> **No longer implemented.** The dynamic calculation below was removed when the
+> axis engine moved into `src/components/table.js`; axis label sizes are now
+> fixed in CSS (`.gram-frame-axis-label`, `.gram-frame-axis-label-major` in
+> `src/gramframe.css`). The SVG scales with its container, so labels scale with
+> it. Retained as the record of the original decision (spec 165, GF-38).
+
+The calculation as originally written:
 ```javascript
 function calculateScaleAdjustedFontSize(instance) {
   const baseFontSize = 10

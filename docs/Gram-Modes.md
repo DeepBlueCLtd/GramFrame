@@ -1,118 +1,104 @@
 # Gram Component Interaction Modes
 
-This document describes the two interaction modes of the spectrogram-based analysis tool: **Analysis** and **Doppler**. Each section includes a business overview, UI behaviour, and a detailed interaction walkthrough.
+GramFrame has **four** interaction modes: **Pan**, **Cross Cursor** (the
+analysis mode), **Harmonics** and **Doppler**. This document describes what each
+one does for an analyst; for how they are built see
+[Tech-Architecture.md](Tech-Architecture.md).
+
+Behaviour common to every mode:
+
+- The time/frequency readouts follow the cursor regardless of the active mode.
+- Markers, harmonic sets and doppler curves stay visible in all modes once
+  placed — only the mode that *creates* them changes.
+- Ctrl+wheel zooms about the pointer, wheel scrolls along frequency when zoomed
+  in, and a middle-button drag pans — in every mode.
+- Switching mode clears the current selection, so the colour/symbol controls
+  target the next feature you create rather than restyling the last one.
 
 ---
 
-## 🔍 Analysis Mode
+## 🖐️ Pan Mode
 
 ### Purpose
-Measure precise frequency (X) and time (Y) positions by hovering over the spectrogram image, and reveal harmonic relationships by dragging to set a base frequency.
 
-### Business Context
-Used by analysts or trainees to identify and examine features such as tonal events, broadband pulses, or ambient shifts in sonar data. Also used to determine if high-frequency tonals share a common origin, such as a propeller shaft or mechanical source, by testing for integer multiple relationships.
+Move around a zoomed-in gram without placing anything. This is the **default**
+mode, so a first stray click never leaves an annotation behind.
 
-### Features
-- **Cross-hairs**: A pair of vertical and horizontal lines follow the mouse during hover.
-- **X = Frequency**, **Y = Time**
-- **Hover interaction**: Shows cross-hairs with precise frequency and time values.
-- **Drag interaction**: Reveals harmonic relationships based on the dragged frequency.
-- **LED-style panel**: Displays live frequency and time values.
-- **Harmonic lines**: Vertical lines at integer multiples of base frequency (during drag).
+### Behaviour
 
-### Interaction Walkthrough - Hover (Basic Analysis)
+- Click and drag to pan the view (only meaningful when zoomed in).
+- `+` / `−` command buttons zoom in and out; panning clamps at the image edges.
+- Selectable at any zoom level, including fully zoomed out.
 
-**1. Initial State**
-- Mode set to **Analysis**
-- Spectrogram visible
-- No overlays shown initially
+---
 
-**2. User Interaction**
-- Mouse moves over a tonal feature
+## 🎯 Cross Cursor Mode (analysis)
 
-**3. Expected UI Response**
-- Cross-hairs follow cursor
-- Panel displays:
-  - `Freq: 734.2 Hz`
-  - `Time: 5.84 s`
+### Purpose
 
-**4. Visible Screen Elements**
-- Cross-hairs (vertical and horizontal lines)
-- LED-style panel with real-time readout
-- Mode label: "Analysis"
+Measure precise frequency (X) and time (Y) positions, and keep a record of the
+points measured.
 
-### Interaction Walkthrough - Drag (Harmonics Analysis)
+### Business context
 
-**1. Initial State**
-- Mode set to **Analysis**
-- Spectrogram visible
+Used by analysts and trainees to identify and examine features such as tonal
+events, broadband pulses or ambient shifts in sonar data.
 
-**2. User Interaction**
-- User presses mouse button and drags across spectrogram
+### Behaviour
 
-**3. Expected UI Response**
-- Harmonic lines appear dynamically based on mouse X-position (frequency)
-- Vertical lines shown at 1×, 2×, 3×... of base frequency
-- Labels displayed:
-  - Left of line: Harmonic number (e.g., "2×")
-  - Right of line: Frequency (e.g., "440 Hz")
-- Main line (1×) drawn with distinct styling (dark + light shadow)
+- Click to place a persistent marker at the cursor position.
+- Drag an existing marker to reposition it.
+- Right-click a marker to delete it.
+- Markers are listed in the markers table above the gram; clicking a row selects
+  that marker, after which the arrow keys nudge it (Shift for larger steps).
+- A marker's colour and symbol come from the style controls; with a marker
+  selected, those controls restyle it in place.
 
-**4. Visible Screen Elements**
-- Vertical harmonic lines at integer multiples
-- LED-style panel showing base frequency
-- Mode label: "Analysis"
+---
+
+## 🎼 Harmonics Mode
+
+### Purpose
+
+Reveal harmonic relationships — whether several tonals share a common origin,
+such as a propeller shaft or another mechanical source, by testing for integer
+multiples of a spacing.
+
+### Behaviour
+
+- Click and drag to create a harmonic set; the drag sets the spacing.
+- Drag an existing set to adjust its spacing and anchor time.
+- **+ Manual** opens a dialog for entering a spacing numerically.
+- Each set draws a symbol and harmonic number per harmonic, optionally with
+  vertical pin lines (the **Pin** toggle; on by default for each browser
+  session).
+- Dense sets are sampled: at most a fixed number of pins are drawn within the
+  visible span, at a regular "nice" interval, so a small spacing over a wide span
+  stays legible.
+- Sets are listed in the harmonics panel; selecting a row enables arrow-key
+  adjustment and in-place restyling, as for markers.
 
 ---
 
 ## 🛰️ Doppler Mode
 
 ### Purpose
-Estimate emitter/receiver speed by defining frequency shift over time.
 
-### Business Context
-Used during tactical or post-mission analysis to derive platform speeds from tonal slopes on a spectrogram.
+Estimate platform speed from the frequency shift of a tonal as it passes.
 
-### Features
-- **Click 1**: Set start point (time + frequency)
-- **Click 2**: Set end point
-- **Sloped line** drawn between the two
-- **Calculation**:
-  - ΔTime
-  - ΔFrequency
-  - Derived speed (e.g., knots or m/s)
-- **State**: Persistent until replaced by a new click
+### Business context
 
-### Interaction Walkthrough
+Used during tactical or post-mission analysis to derive speeds from tonal slopes
+on a spectrogram.
 
-**1. Initial State**
-- Mode set to **Doppler**
-- Spectrogram visible
+### Behaviour
 
-**2. User Interaction**
-- Click at `3.00s`, `820 Hz`
-- Click at `6.00s`, `580 Hz`
-
-**3. Expected UI Response**
-- Line appears between points
-- Readouts:
-  - `ΔT: 3.00 s`
-  - `ΔF: -240 Hz`
-  - `Speed: 14.2 knots`
-
-**4. Visible Screen Elements**
-- Sloped line connecting two points
-- LED-style panel with deltas and speed
-- Markers at each end (optional)
-- “Reset” or “Clear” button (optional)
-- Mode label: “Doppler”
-
----
-
-## 🧩 Shared UI Tasks
-
-- [ ] Implement visual mode switcher with active mode indicator
-- [ ] Ensure consistent styling for overlays and readouts
-- [ ] Mode-specific overlays should not interfere with others
-- [ ] Measurement panel format: LED-style, persistent across modes
-- [ ] Implement hover vs. drag detection for Analysis mode to switch between basic analysis and harmonics analysis
+- Click and drag to place the f+ and f− markers in one gesture; the curve
+  previews during the drag. On release, f+ is the later of the two in time.
+- f₀ is placed automatically at the midpoint and can then be dragged
+  independently — dragging f+ or f− leaves it where it is.
+- An S-curve is drawn between f+ and f−, with vertical extensions clipped to the
+  visible gram area.
+- Speed is calculated from f+, f− and f₀ and shown in knots on the Speed
+  readout.
+- Right-click resets all doppler markers.

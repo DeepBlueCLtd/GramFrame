@@ -29,34 +29,39 @@ Implement centralized state management with a listener pattern for state change 
 - Potential performance impact with many listeners
 
 ## Implementation
-Core state management implemented in src/core/state.js:
-```javascript
-const stateListeners = []
+Core state management implemented in src/core/state.js — free functions over an
+explicit listener array, not methods on a store object:
 
-// State listener registration
-addStateListener(listener) {
-  stateListeners.push(listener)
+```javascript
+// src/core/state.js (abridged)
+export function createInitialState() {
+  return JSON.parse(JSON.stringify(initialState))
 }
 
-// State change notification
-_notifyStateListeners() {
-  const stateSnapshot = { ...this.state }
-  stateListeners.forEach(listener => {
+export function notifyStateListeners(state, listeners) {
+  // Deep copy so a listener cannot mutate component state
+  const stateCopy = JSON.parse(JSON.stringify(state))
+  listeners.forEach(listener => {
     try {
-      listener(stateSnapshot)
+      listener(stateCopy)
     } catch (error) {
-      console.error('State listener error:', error)
+      console.error('Error in state listener:', error)
     }
   })
 }
 ```
 
+Each instance owns a `stateListeners` array. Listeners added through the public
+API (`GramFrame.addStateListener`) are also held in a module-level global
+registry so they attach to instances created later.
+
 State structure includes:
-- Component metadata (version, timestamp)
-- Current mode and rate settings
-- Cursor position and interaction state
-- Image details and display dimensions
-- Mode-specific state (harmonics, drag state)
+- Component metadata (version, timestamp, instance id)
+- Current mode, previous mode and rate
+- Cursor position, selection and drag state
+- Image details, display dimensions, margins, zoom and expand state
+- Mode-specific slices contributed by each mode's `getInitialState()`
+  (analysis, harmonics, doppler, pan)
 
 ## Related Decisions
 - ADR-006: Hot Module Reload Support
