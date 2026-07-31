@@ -10,7 +10,9 @@
  */
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'test-results/**', 'playwright-report/**'],
+    // docs/archive/ holds development-history artefacts that are not part of the
+    // component (spec 165, GF-36); linting them reports debt nobody will pay.
+    ignores: ['dist/**', 'node_modules/**', 'test-results/**', 'playwright-report/**', 'docs/archive/**'],
   },
   {
     files: ['**/*.js'],
