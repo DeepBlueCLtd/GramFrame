@@ -2117,17 +2117,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const freqMax = this.instance.state.config.freqMax;
           const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
           const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
+          const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
           for (let h = minHarmonic; h <= maxHarmonic; h++) {
             const expectedFreq = h * harmonicSet.spacing;
             const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
             if (Math.abs(freq - expectedFreq) < tolerance.freq) {
-              const { naturalHeight } = this.instance.state.imageDetails;
-              const lineHeight = naturalHeight * 0.2;
-              const timeRange = this.instance.state.config.timeMax - this.instance.state.config.timeMin;
-              const lineHeightInTime = lineHeight / naturalHeight * timeRange;
-              const lineStartTime = harmonicSet.anchorTime - lineHeightInTime / 2;
-              const lineEndTime = harmonicSet.anchorTime + lineHeightInTime / 2;
-              if (cursorTime >= lineStartTime && cursorTime <= lineEndTime) {
+              const cursorSVGY = calculateZoomAwarePosition(
+                { freq: expectedFreq, time: cursorTime },
+                this.getViewport(),
+                this.instance.spectrogramImage
+              ).y;
+              if (cursorSVGY >= lineTop && cursorSVGY <= lineTop + lineHeight) {
                 return harmonicSet;
               }
             }
@@ -2293,14 +2293,21 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return sampledHarmonics(minHarmonic, maxHarmonic).harmonics;
     }
     /**
-     * Calculate harmonic line dimensions and positions
+     * Calculate harmonic line dimensions and positions.
+     *
+     * The height is a fixed pixel length taken from the *base* (unzoomed) render
+     * height, so a pin covers the same number of screen pixels no matter how far
+     * the user has zoomed in — it is not a span of time that stretches with the
+     * image. Only the centre is zoom-aware: the pin stays centred on the set's
+     * anchor time (the original click location), so it tracks the feature while
+     * keeping a constant height.
+     *
      * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {Object} Line dimensions with height and top position
+     * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
      */
     calculateHarmonicLineDimensions(harmonicSet) {
-      const lineHeightRatio = 0.2;
-      const imageBounds = getImageBounds(this.getViewport(), this.instance.spectrogramImage);
-      const lineHeight = imageBounds.height * lineHeightRatio;
+      const { renderHeight } = getRenderDimensions(this.instance);
+      const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
       const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
       const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
       const lineTop = anchorSVG.y - lineHeight / 2;
@@ -2493,6 +2500,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
    * @type {number}
    */
   __publicField(_HarmonicsMode, "SYMBOL_SIZE", 10);
+  /**
+   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
+   *
+   * The resulting height is a fixed pixel length, not a span of time: it is
+   * derived from the viewport's base render size (which tracks expand, not zoom)
+   * rather than from the zoomed image element. Pins therefore keep the same
+   * on-screen height at every zoom level, growing/shrinking only when the
+   * component itself is resized.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "PIN_HEIGHT_RATIO", 0.2);
   /**
    * Font size (px) of a pin's number label; also used as its approximate ascent
    * when clamping the label/symbol stack to the image's top edge.
