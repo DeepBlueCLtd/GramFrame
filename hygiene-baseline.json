@@ -1,11 +1,11 @@
 {
   "_comment": "Debt ratchet baselines (specs/164-quality-ratchets). `yarn hygiene` fails any change that raises a count above its baseline. When your change lowers a count, lower the baseline here in the same PR so the improvement is locked in.",
-  "circularDependencies": 11,
+  "circularDependencies": 1,
   "unusedExportModules": 5,
   "waitForTimeoutOccurrences": 1,
   "_comment_strictTypeErrors": "Temporary (specs/167-structural-refactor Story 1). Errors reported by tsc under tsconfig.strict.json, the overlay enabling noImplicitAny, strictNullChecks and strictPropertyInitialization. Burned to zero, at which point the flags move into tsconfig.json and both the overlay and this entry are deleted.",
-  "strictTypeErrors": 517,
+  "strictTypeErrors": 491,
   "_comment_instanceSurface": "specs/167-structural-refactor Story 5. instanceStateReachIns counts lines containing `instance.state` under src/; instanceFields counts class-field declarations between `export class GramFrame` and its constructor in src/main.js.",
-  "instanceStateReachIns": 243,
+  "instanceStateReachIns": 237,
   "instanceFields": 56
 }

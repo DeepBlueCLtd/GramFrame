@@ -134,15 +134,15 @@ without importing `state.js`.
 
 ### The registration seam
 
-- [ ] T017 [US2] Add `ModeFactory.getModeInitialStates()` to `src/modes/ModeFactory.js` merging the four `static getInitialState()` slices in fixed order (analysis, harmonics, doppler, pan); change `createInitialState(modeStates = {})` in `src/core/state.js` to receive them; delete the four `import … from '../modes/…'` lines from `state.js`; update the call site in `src/main.js` to `createInitialState(ModeFactory.getModeInitialStates())`. Spread mode slices **first** and write core keys after, fixing the `TS2783` collision — see [contracts/mode-registration.md](./contracts/mode-registration.md)
-- [ ] T018 [US2] Add a development-time collision assertion in `src/modes/ModeFactory.js` that lists any mode slice key colliding with a core state key rather than silently resolving it
-- [ ] T019 [US2] Extend `tests/unit/mode-registration.test.js`: `createInitialState()` with no argument returns a valid core state, and the module imports no mode (AS-2.2)
-- [ ] T020 [US2] Lower `circularDependencies` in `hygiene-baseline.json` from 11 to the measured residue (expected 1 — only `ExpandToggle ⇄ table`, which T022 removes) and verify no cycle contains both `core/state.js` and a `modes/` file (AS-2.1)
+- [x] T017 [US2] Add `ModeFactory.getModeInitialStates()` to `src/modes/ModeFactory.js` merging the four `static getInitialState()` slices in fixed order (analysis, harmonics, doppler, pan); change `createInitialState(modeStates = {})` in `src/core/state.js` to receive them; delete the four `import … from '../modes/…'` lines from `state.js`; update the call site in `src/main.js` to `createInitialState(ModeFactory.getModeInitialStates())`. Spread mode slices **first** and write core keys after, fixing the `TS2783` collision — see [contracts/mode-registration.md](./contracts/mode-registration.md)
+- [x] T018 [US2] Add a development-time collision assertion in `src/modes/ModeFactory.js` that lists any mode slice key colliding with a core state key rather than silently resolving it
+- [x] T019 [US2] Extend `tests/unit/mode-registration.test.js`: `createInitialState()` with no argument returns a valid core state, and the module imports no mode (AS-2.2)
+- [x] T020 [US2] Lower `circularDependencies` in `hygiene-baseline.json` from 11 to the measured residue (expected 1 — only `ExpandToggle ⇄ table`, which T022 removes) and verify no cycle contains both `core/state.js` and a `modes/` file (AS-2.1)
 
 ### One listener registry
 
-- [ ] T021 [US2] Remove the global-listener copy loop from `setupStateListeners` in `src/core/initialization/EventBindings.js` and the per-instance splice loop from `removeStateListener` in `src/api/GramFrameAPI.js`; change `deliverToListeners` in `src/core/state.js` to walk the de-duplicated union of `instance.stateListeners` and `globalStateListeners`, preserving `addStateListener`'s immediate call-with-current-state — see [data-model.md](./data-model.md) §2
-- [ ] T022 [US2] Add assertions to `tests/state-listener.spec.js`: add-then-remove via the public API touches one registry with no duplicate delivery and no leak, and global listeners survive the HMR re-registration path at `src/main.js:663-666` (AS-2.3)
+- [x] T021 [US2] Remove the global-listener copy loop from `setupStateListeners` in `src/core/initialization/EventBindings.js` and the per-instance splice loop from `removeStateListener` in `src/api/GramFrameAPI.js`; change `deliverToListeners` in `src/core/state.js` to walk the de-duplicated union of `instance.stateListeners` and `globalStateListeners`, preserving `addStateListener`'s immediate call-with-current-state — see [data-model.md](./data-model.md) §2
+- [x] T022 [US2] Add assertions to `tests/state-listener.spec.js`: add-then-remove via the public API touches one registry with no duplicate delivery and no leak, and global listeners survive the HMR re-registration path at `src/main.js:663-666` (AS-2.3)
 
 **Checkpoint**: 10 of 11 cycles gone. A mode can be loaded without `state.js`.
 

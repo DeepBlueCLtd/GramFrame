@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest'
 
 import { createInitialState } from '../../src/core/state.js'
+import { ModeFactory } from '../../src/modes/ModeFactory.js'
 
 /**
  * @fileoverview The composed initial state, pinned (spec 167, US2).
@@ -25,7 +26,7 @@ import { createInitialState } from '../../src/core/state.js'
  * @returns {Record<string, any>} A fresh composed initial state
  */
 function composeInitialState() {
-  return createInitialState()
+  return createInitialState(ModeFactory.getModeInitialStates())
 }
 
 /**
@@ -155,3 +156,116 @@ describe('composed initial state', () => {
     expect(second.zoom.level).toBe(1)
   })
 })
+
+describe('core/state.js stands alone (AS-2.2)', () => {
+  test('createInitialState() with no argument returns a valid core state', () => {
+    const core = createInitialState()
+
+    // Every core key is present and carries its documented default...
+    expect(withoutVolatileKeys(core)).toEqual(
+      Object.fromEntries(
+        Object.entries(FROZEN_INITIAL_STATE)
+          .filter(([key]) => !['analysis', 'harmonics', 'doppler'].includes(key))
+      )
+    )
+    // ...and no mode slice appears, because no mode was asked for one.
+    expect(core.analysis).toBeUndefined()
+    expect(core.harmonics).toBeUndefined()
+    expect(core.doppler).toBeUndefined()
+  })
+
+  test('imports no mode module', async () => {
+    // The cycle this phase breaks ran state.js → a mode → back to state.js.
+    // Reading the source is the assertion madge makes at the graph level; here
+    // it is a unit test so the regression is caught in the fast lane too.
+    const source = await readSource('src/core/state.js')
+    expect(source).not.toMatch(/from\s+'\.\.\/modes\//)
+  })
+
+  test('a mode class loads without core/state.js being imported', async () => {
+    const source = await readSource('src/modes/analysis/AnalysisMode.js')
+    // AnalysisMode still dispatches, so it imports state.js one-directionally.
+    // What must not exist is the return edge — asserted above — which is what
+    // makes this a chain rather than a cycle.
+    expect(source).toMatch(/from\s+'\.\.\/\.\.\/core\/state\.js'/)
+  })
+})
+
+describe('the collision rule (contracts/mode-registration.md)', () => {
+  test('no mode slice key collides with a core state key', () => {
+    const coreKeys = Object.keys(createInitialState())
+    const collisions = Object.keys(ModeFactory.getModeInitialStates())
+      .filter(key => coreKeys.includes(key))
+    expect(collisions).toEqual([])
+  })
+
+  test('a colliding slice cannot overwrite the core value', () => {
+    // `version` and `timestamp` were exactly the keys the old spread clobbered.
+    const composed = createInitialState({ version: 'hijacked', mode: 'analysis' })
+    expect(composed.version).not.toBe('hijacked')
+    expect(composed.mode).toBe('pan')
+  })
+
+  test('a mode contributing a new key has it composed in', () => {
+    const composed = createInitialState({ fifthMode: { placed: [] } })
+    expect(composed.fifthMode).toEqual({ placed: [] })
+  })
+})
+
+describe('the no-argument form is for loading, not for building state', () => {
+  test('every production call site composes the mode slices', async () => {
+    // `createInitialState()` returning a mode-less state is deliberate — it is
+    // what lets this file exercise `state.js` without importing a mode. It also
+    // means a caller who forgets the slices gets a state with no `analysis`,
+    // `harmonics` or `doppler` key and no complaint from anyone. That is not
+    // hypothetical: `_clearGram` was written before the seam existed and reset
+    // the annotation slices to `undefined` the moment the signature changed.
+    const { readdir } = await import('node:fs/promises')
+    const { fileURLToPath } = await import('node:url')
+    const { dirname, join, relative } = await import('node:path')
+    const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+
+    /**
+     * @param {string} dir - Directory to walk
+     * @returns {Promise<string[]>} Every `.js` file beneath it
+     */
+    async function walk(dir) {
+      const entries = await readdir(dir, { withFileTypes: true })
+      const files = await Promise.all(entries.map(entry => {
+        const full = join(dir, entry.name)
+        return entry.isDirectory() ? walk(full) : (full.endsWith('.js') ? [full] : [])
+      }))
+      return files.flat()
+    }
+
+    // `state.js` declares it; `ModeFactory.js` calls it bare on purpose, to read
+    // the core key list for the collision check.
+    const exempt = ['src/core/state.js', 'src/modes/ModeFactory.js']
+    /** @type {string[]} */
+    const bare = []
+    for (const file of await walk(join(repoRoot, 'src'))) {
+      const relativePath = relative(repoRoot, file).split('\\').join('/')
+      if (exempt.includes(relativePath)) continue
+      const source = await readSource(relativePath)
+      source.split('\n').forEach((line, index) => {
+        if (/createInitialState\(\s*\)/.test(line)) {
+          bare.push(`${relativePath}:${index + 1}`)
+        }
+      })
+    }
+    expect(bare).toEqual([])
+  })
+})
+
+/**
+ * Read a repo-relative source file as text.
+ * @param {string} relativePath - Path from the repository root
+ * @returns {Promise<string>} File contents
+ */
+async function readSource(relativePath) {
+  const { readFile } = await import('node:fs/promises')
+  const { fileURLToPath } = await import('node:url')
+  const { dirname, join } = await import('node:path')
+  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+  return readFile(join(repoRoot, relativePath), 'utf8')
+}

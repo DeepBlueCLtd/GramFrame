@@ -225,15 +225,15 @@ export function createGramFrameAPI(GramFrame) {
         throw new Error('State listener must be a function')
       }
       
-      // Add to global registry for future instances
-      addGlobalStateListener(callback)
-      
-      // Add the listener to all existing instances
-      this._getInstances().forEach(instance => {
-        if (!instance.stateListeners.includes(callback)) {
-          instance.stateListeners.push(callback)
-          
-          // Immediately call the listener with the current state
+      // The single registry. Existing instances need no copy — delivery unions
+      // the global listeners in — and neither do future ones (spec 167, FR-003).
+      const isNew = addGlobalStateListener(callback)
+
+      // Call the listener straight away with each live instance's current
+      // state. Part of the documented API contract, so it is preserved exactly;
+      // a re-registration of an already-known callback stays silent, as before.
+      if (isNew) {
+        this._getInstances().forEach(instance => {
           if (instance.state) {
             try {
               // Create a deep copy of the state
@@ -244,9 +244,9 @@ export function createGramFrameAPI(GramFrame) {
               console.error('Error calling state listener with initial state:', error)
             }
           }
-        }
-      })
-      
+        })
+      }
+
       return callback
     },
     
@@ -273,23 +273,9 @@ export function createGramFrameAPI(GramFrame) {
         throw new Error('Callback must be a function')
       }
       
-      let removed = false
-      
-      // Remove from global registry
-      const wasRemoved = removeGlobalStateListener(callback)
-      if (wasRemoved) {
-        removed = true
-      }
-      
-      // Remove the listener from all instances
-      this._getInstances().forEach(instance => {
-        const index = instance.stateListeners.indexOf(callback)
-        if (index !== -1) {
-          instance.stateListeners.splice(index, 1)
-          removed = true
-        }
-      })
-      return removed
+      // One registry to scrub. Instances never held a copy, so there is nothing
+      // left behind to leak (spec 167, AS-2.3).
+      return removeGlobalStateListener(callback)
     },
     
     /**

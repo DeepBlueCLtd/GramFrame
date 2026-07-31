@@ -55,7 +55,10 @@ test.describe('Clear gram rebuilds state from the initial-state builders (GF-12)
 
     const result = await page.evaluate(async () => {
       const { createInitialState } = await import('/src/core/state.js')
-      const fresh = createInitialState()
+      // Composed the way an instance composes it: `state.js` no longer knows
+      // the mode roster, so the slices come from the factory (spec 167, US2).
+      const { ModeFactory } = await import('/src/modes/ModeFactory.js')
+      const fresh = createInitialState(ModeFactory.getModeInitialStates())
       const state = window.GramFrame.__test__getInstances()[0].state
       // Slices the clear is responsible for, compared against a fresh state.
       const cleared = {}

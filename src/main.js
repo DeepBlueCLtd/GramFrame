@@ -42,6 +42,8 @@ import {
 import { getModeDisplayName } from './utils/calculations.js'
 import { updateGuidancePanel } from './utils/secureHTML.js'
 
+import { ModeFactory } from './modes/ModeFactory.js'
+
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
 // Cursor indicators removed - using CSS cursor only
@@ -203,7 +205,7 @@ export class GramFrame {
     }
 
     // Core state initialization
-    this.state = createInitialState()
+    this.state = createInitialState(ModeFactory.getModeInitialStates())
     // Harmonic-pin visibility is a per-session preference: on at the start of
     // each browser session, then remembered across page loads within it. Read
     // before any UI is built so the toggle renders in the right position.
@@ -348,7 +350,7 @@ export class GramFrame {
     // later cannot survive a "Clear gram" by being forgotten here (GF-12).
     // Everything describing *this* gram — its config, image, viewport, current
     // mode and session-level style choices — is preserved.
-    const fresh = createInitialState()
+    const fresh = createInitialState(ModeFactory.getModeInitialStates())
     this.state.analysis = fresh.analysis
     this.state.harmonics = fresh.harmonics
     this.state.doppler = fresh.doppler

@@ -10,7 +10,6 @@
 
 import { setupEventListeners, setupResizeObserver } from '../events.js'
 import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../keyboardControl.js'
-import { getGlobalStateListeners } from '../state.js'
 
 /**
  * Set up all event listeners for the GramFrame instance
@@ -38,14 +37,13 @@ export function setupAllEventListeners(instance) {
 }
 
 /**
- * Set up state listeners for the GramFrame instance
- * @param {GramFrame} instance - GramFrame instance
+ * Set up state listeners for the GramFrame instance.
+ *
+ * Nothing to copy: global listeners are unioned in at delivery time by
+ * `deliverToListeners`, so a new instance is already reachable by every
+ * listener registered before it existed. This step remains as the named
+ * initialization point for per-instance listeners (spec 167, FR-003).
+ * @param {GramFrame} _instance - GramFrame instance
  */
-export function setupStateListeners(instance) {
-  // Apply any globally registered listeners to this new instance
-  getGlobalStateListeners().forEach(listener => {
-    if (!instance.stateListeners.includes(listener)) {
-      instance.stateListeners.push(listener)
-    }
-  })
+export function setupStateListeners(_instance) {
 }
