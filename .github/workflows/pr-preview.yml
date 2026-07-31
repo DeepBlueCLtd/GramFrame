@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Embed version from package.json
+        run: yarn generate-version
+
       - name: Build standalone bundle
         run: yarn build:standalone
 
@@ -108,6 +111,9 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
+      - name: Embed version from package.json
+        run: yarn generate-version
 
       - name: Build standalone bundle
         run: |

@@ -4,12 +4,34 @@
 
 /// <reference path="../types.js" />
 
+import { createColorIndicator } from '../rendering/symbols.js'
+
+/**
+ * Build the colour/symbol indicator for a harmonic set's table row: the set's
+ * symbol drawn in its colour, or — for the symbol-less `cross` style — a plain
+ * filled colour rectangle (feature 161). Colour-blind-friendly affordance.
+ * @param {HarmonicSet} harmonicSet - The harmonic set data
+ * @returns {SVGSVGElement|HTMLDivElement} The indicator element
+ */
+function createSymbolSwatch(harmonicSet) {
+  return createColorIndicator(harmonicSet.symbol, harmonicSet.color)
+}
+
 /**
  * Create harmonic management panel
+ *
+ * The panel is mounted inside a `gram-frame-table-area` wrapper: the wrapper
+ * takes whatever vertical space the column has, and the panel fills it
+ * absolutely, so however many harmonic sets exist the panel scrolls instead of
+ * growing the page layout (the header row stays pinned via sticky `th`).
+ *
  * @param {HTMLElement} container - Container element to append the panel to
  * @returns {HTMLElement} The created panel element
  */
 export function createHarmonicPanel(container) {
+  const area = document.createElement('div')
+  area.className = 'gram-frame-table-area'
+
   const panel = document.createElement('div')
   panel.className = 'gram-frame-table-container'
   panel.innerHTML = `
@@ -27,7 +49,8 @@ export function createHarmonicPanel(container) {
     </table>
   `
   
-  container.appendChild(panel)
+  area.appendChild(panel)
+  container.appendChild(area)
   return panel
 }
 
@@ -76,6 +99,14 @@ export function updateHarmonicPanelContent(panel, instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 function updateHarmonicRow(row, harmonicSet, instance) {
+  // Update the colour/symbol swatch in case colour or symbol changed
+  const colorCell = row.cells[0]
+  const colorDiv = colorCell && /** @type {HTMLElement} */ (colorCell.querySelector('.gram-frame-harmonic-color'))
+  if (colorDiv) {
+    colorDiv.style.color = harmonicSet.color
+    colorDiv.replaceChildren(createSymbolSwatch(harmonicSet))
+  }
+
   // Update spacing cell if changed
   const spacingCell = row.cells[1]
   if (spacingCell) {
@@ -138,11 +169,12 @@ function createHarmonicRow(harmonicSet, instance, index) {
   row.setAttribute('data-harmonic-id', harmonicSet.id)
   row.className = 'gram-frame-harmonic-row'
   
-  // Color cell
+  // Color/symbol cell — the set's symbol rendered in the set's colour
   const colorCell = document.createElement('td')
   const colorDiv = document.createElement('div')
   colorDiv.className = 'gram-frame-harmonic-color'
-  colorDiv.style.backgroundColor = harmonicSet.color
+  colorDiv.style.color = harmonicSet.color
+  colorDiv.appendChild(createSymbolSwatch(harmonicSet))
   colorCell.appendChild(colorDiv)
   row.appendChild(colorCell)
   

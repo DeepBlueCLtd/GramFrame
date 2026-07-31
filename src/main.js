@@ -52,12 +52,18 @@ import {
   saveAnnotations,
   loadAnnotations,
   clearAnnotations,
-  detectUserContext
+  detectUserContext,
+  loadPinPreference
 } from './core/storage.js'
 
 import {
   cleanupKeyboardControl
 } from './core/keyboardControl.js'
+
+import {
+  isBrowserSupported,
+  showCompatibilityWarning
+} from './core/browserCompatibility.js'
 
 /**
  * GramFrame class - Main component implementation
@@ -118,6 +124,22 @@ export class GramFrame {
   setSelection;
   clearSelection;
   updateSelectionVisuals;
+
+  // Reformatting (feature 161): restyle the selected feature in place
+  applyColorToSelectedFeature;
+  applySymbolToSelectedFeature;
+  // Show/hide the selected harmonic set's pin lines
+  applyPinToSelectedFeature;
+  // EXPERIMENT (temporary): resize the selected feature's symbols
+  applyLargeSymbolsToSelectedFeature;
+  // Sync the colour/symbol/pin controls to the current selection
+  syncStyleControls;
+  // Symbol drop-down control handle (registered by the symbol picker)
+  _symbolControl;
+  // Pin toggle control handle (registered by the pin toggle)
+  _pinControl;
+  // EXPERIMENT (temporary): "Large symbols" checkbox handle
+  _largeSymbolsControl;
   
   // ResizeObserver
   resizeObserver;
@@ -125,20 +147,49 @@ export class GramFrame {
   // Bound event handlers
   _boundHandleResize;
 
+  /**
+   * Transient state for a wheel-button (middle) drag pan; null when not dragging.
+   * Not part of the broadcast state.
+   * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
+   */
+  _wheelPan = null;
+
   // Storage instance index for multi-instance pages
   _storageInstanceIndex;
 
   // Whether this instance is a trainer context
   _isTrainerContext;
 
+  // Set when the browser lacks a required API; construction is skipped and a
+  // compatibility warning is shown in place of the component.
+  _unsupportedBrowser;
+
   /**
    * Creates a new GramFrame instance
    * @param {HTMLTableElement} configTable - Configuration table element to replace
    */
   constructor(configTable) {
+    this.configTable = configTable
+
+    // Legacy-browser guard. Run before any rendering so an unsupported browser
+    // never reaches the modern DOM calls (e.g. Element.replaceChildren) that
+    // would throw and fail silently. When the required APIs are missing, show a
+    // clear "please update your browser" warning in place of the component and
+    // stop constructing — the rest of the setup (which relies on those APIs) is
+    // skipped. Callers going through GramFrameAPI.init() are already short-
+    // circuited before this point; this covers direct `new GramFrame(table)` use.
+    if (!isBrowserSupported()) {
+      this._unsupportedBrowser = true
+      showCompatibilityWarning(configTable)
+      return
+    }
+
     // Core state initialization
     this.state = createInitialState()
-    this.configTable = configTable
+    // Harmonic-pin visibility is a per-session preference: on at the start of
+    // each browser session, then remembered across page loads within it. Read
+    // before any UI is built so the toggle renders in the right position.
+    this.state.showHarmonicPin = loadPinPreference()
     this.stateListeners = []
     this.instanceId = ''
 
@@ -306,6 +357,14 @@ export class GramFrame {
       this.currentMode.activate()
     }
 
+    // Refresh the persistent markers and harmonics tables (always visible,
+    // regardless of the active mode) so cleared annotations also disappear
+    // from the tables above the spectrogram, not just the SVG overlay
+    updatePersistentPanels(this)
+
+    // Refresh LED displays (e.g. Doppler readouts) to reflect the cleared state
+    updateLEDDisplays(this, this.state)
+
     notifyStateListeners(this.state, this.stateListeners)
   }
 
@@ -316,14 +375,26 @@ export class GramFrame {
     const saved = loadAnnotations(this._storageInstanceIndex)
     if (!saved) return
 
-    // Merge analysis markers
+    // Merge analysis markers. Legacy records (persisted before feature 161)
+    // have no `symbol`; default those to 'cross' (the symbol-less crosshair).
     if (saved.analysis && Array.isArray(saved.analysis.markers)) {
-      this.state.analysis.markers = saved.analysis.markers
+      this.state.analysis.markers = saved.analysis.markers.map(m => ({
+        ...m,
+        symbol: m.symbol || 'cross'
+      }))
     }
 
-    // Merge harmonic sets
+    // Merge harmonic sets. Legacy records (persisted before feature
+    // 157-harmonic-pin-symbols) have no `symbol`; default those to 'cross'
+    // (the symbol-less default, feature 161).
     if (saved.harmonics && Array.isArray(saved.harmonics.harmonicSets)) {
-      this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets
+      this.state.harmonics.harmonicSets = saved.harmonics.harmonicSets.map(hs => ({
+        ...hs,
+        symbol: hs.symbol || 'cross',
+        // Records saved before the pin toggle have no `showPin`; those sets were
+        // drawn with pins, so they restore as pinned.
+        showPin: hs.showPin !== false
+      }))
     }
 
     // Merge doppler state
@@ -389,12 +460,10 @@ export class GramFrame {
    * @param {ModeType} mode - Target mode
    */
   _switchMode(mode) {
-    // Prevent switching to pan mode when not zoomed
-    if (mode === 'pan' && this.state.zoom.level <= 1.0) {
-      console.warn('Cannot switch to pan mode when zoom level is 1:1 or less')
-      return
-    }
-    
+    // Pan mode is always selectable, even when fully zoomed out — panning itself
+    // is gated on being zoomed in, but the user must be able to enter pan mode
+    // first (it is also the default mode). No zoom-level guard here.
+
     // Track previous mode
     this.state.previousMode = this.state.mode
     
@@ -408,7 +477,16 @@ export class GramFrame {
     this.state.dragState.originalSpacing = null
     this.state.dragState.originalAnchorTime = null
     this.state.dragState.clickedHarmonicNumber = null
-    
+
+    // Choosing a mode signals the analyst is about to add something new, so drop
+    // any selected marker/harmonic. This returns the colour/symbol controls to
+    // targeting the NEXT created feature instead of restyling the previously
+    // selected one (feature 161). Re-clicking the already-active mode counts too:
+    // it is the natural gesture for "deselect and start fresh".
+    if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
+      this.clearSelection()
+    }
+
     // Cursor styling removed - no display element
     
     // Update UI

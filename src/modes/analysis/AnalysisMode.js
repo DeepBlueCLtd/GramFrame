@@ -4,12 +4,22 @@ import { formatTime } from '../../utils/timeFormatter.js'
 import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
+import { createSymbolMark, createColorIndicator, resolveSymbolScale } from '../../rendering/symbols.js'
 
 /**
  * Analysis mode implementation
  * Provides crosshair rendering, basic time/frequency display, and persistent markers
  */
 export class AnalysisMode extends BaseMode {
+  /**
+   * Base pixel size (width/height) of a marker's symbol mark when it carries a
+   * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
+   * The drawn size is this scaled by the temporary "Large symbols" toggle, so a
+   * marker's symbol tracks the harmonic pins' symbols.
+   * @type {number}
+   */
+  static MARKER_SYMBOL_SIZE = 14
+
   /**
    * Initialize AnalysisMode with drag handler
    * @param {Object} instance - GramFrame instance
@@ -196,16 +206,21 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   createMarkerAtPosition(dataCoords) {
-    // Get the current marker color from global state
+    // Get the current marker color and symbol from global state
     const color = this.instance.state.selectedColor || '#ff6b6b'
-    
+    const symbol = this.instance.state.selectedSymbol || 'cross'
+
     // Create marker object (we only need time/freq for positioning)
     /** @type {AnalysisMarker} */
     const marker = {
       id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       color,
       time: dataCoords.time,
-      freq: dataCoords.freq
+      freq: dataCoords.freq,
+      symbol,
+      // EXPERIMENT (temporary): symbol size is carried per marker, seeded from
+      // the toggle's next-feature default, so both sizes can coexist.
+      largeSymbols: !!this.instance.state.largeSymbols
     }
     
     // Add marker to state
@@ -249,43 +264,59 @@ export class AnalysisMode extends BaseMode {
     const markerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
     markerGroup.setAttribute('class', 'gram-frame-analysis-marker')
     markerGroup.setAttribute('data-marker-id', marker.id)
-    
-    // Create crosshair lines
-    const crosshairSize = 15
-    
-    // Horizontal line
-    const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    hLine.setAttribute('x1', String(currentX - crosshairSize))
-    hLine.setAttribute('y1', String(currentY))
-    hLine.setAttribute('x2', String(currentX + crosshairSize))
-    hLine.setAttribute('y2', String(currentY))
-    hLine.setAttribute('stroke', marker.color)
-    hLine.setAttribute('stroke-width', '2')
-    hLine.setAttribute('stroke-linecap', 'round')
-    
-    // Vertical line
-    const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    vLine.setAttribute('x1', String(currentX))
-    vLine.setAttribute('y1', String(currentY - crosshairSize))
-    vLine.setAttribute('x2', String(currentX))
-    vLine.setAttribute('y2', String(currentY + crosshairSize))
-    vLine.setAttribute('stroke', marker.color)
-    vLine.setAttribute('stroke-width', '2')
-    vLine.setAttribute('stroke-linecap', 'round')
-    
-    // Center circle
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-    circle.setAttribute('cx', String(currentX))
-    circle.setAttribute('cy', String(currentY))
-    circle.setAttribute('r', '3')
-    circle.setAttribute('fill', marker.color)
-    circle.setAttribute('stroke', '#fff')
-    circle.setAttribute('stroke-width', '1')
-    
-    markerGroup.appendChild(hLine)
-    markerGroup.appendChild(vLine)
-    markerGroup.appendChild(circle)
-    
+
+    // A marker carrying a shaped symbol is drawn as that colour-coded symbol
+    // (feature 161, FR-009); a marker with the `cross` (symbol-less) style
+    // continues to render as the crosshair.
+    const symbolSize = AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker)
+    const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color)
+
+    if (symbolMark) {
+      // Use a marker-specific class so the harmonics renderer's symbol cleanup
+      // (which clears `.gram-frame-harmonic-symbol` from the overlay) never
+      // removes a marker's symbol. `data-symbol`/fill from createSymbolMark are
+      // preserved. (Fixes symbols vanishing when a harmonic set is present.)
+      symbolMark.setAttribute('class', 'gram-frame-marker-symbol')
+      symbolMark.setAttribute('data-marker-id', marker.id)
+      markerGroup.appendChild(symbolMark)
+    } else {
+      // Crosshair rendering (cross style / default)
+      const crosshairSize = 15
+
+      // Horizontal line
+      const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      hLine.setAttribute('x1', String(currentX - crosshairSize))
+      hLine.setAttribute('y1', String(currentY))
+      hLine.setAttribute('x2', String(currentX + crosshairSize))
+      hLine.setAttribute('y2', String(currentY))
+      hLine.setAttribute('stroke', marker.color)
+      hLine.setAttribute('stroke-width', '2')
+      hLine.setAttribute('stroke-linecap', 'round')
+
+      // Vertical line
+      const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      vLine.setAttribute('x1', String(currentX))
+      vLine.setAttribute('y1', String(currentY - crosshairSize))
+      vLine.setAttribute('x2', String(currentX))
+      vLine.setAttribute('y2', String(currentY + crosshairSize))
+      vLine.setAttribute('stroke', marker.color)
+      vLine.setAttribute('stroke-width', '2')
+      vLine.setAttribute('stroke-linecap', 'round')
+
+      // Center circle
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+      circle.setAttribute('cx', String(currentX))
+      circle.setAttribute('cy', String(currentY))
+      circle.setAttribute('r', '3')
+      circle.setAttribute('fill', marker.color)
+      circle.setAttribute('stroke', '#fff')
+      circle.setAttribute('stroke-width', '1')
+
+      markerGroup.appendChild(hLine)
+      markerGroup.appendChild(vLine)
+      markerGroup.appendChild(circle)
+    }
+
     this.instance.cursorGroup.appendChild(markerGroup)
   }
 
@@ -323,6 +354,12 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Create markers table for displaying active markers
+   *
+   * The table wrapper sits inside a `gram-frame-table-area` element that claims
+   * the column's remaining height; the wrapper fills it absolutely and scrolls,
+   * so adding markers never grows the surrounding layout (the header row stays
+   * pinned via sticky `th`).
+   *
    * @param {HTMLElement} markersContainer - Persistent container for markers (already has label)
    */
   createMarkersTable(markersContainer) {
@@ -330,12 +367,15 @@ export class AnalysisMode extends BaseMode {
     if (markersContainer.querySelector('.gram-frame-table')) {
       return
     }
-    
+
     // The container already has a label, so we just add the table wrapper
-    
+
+    const tableArea = document.createElement('div')
+    tableArea.className = 'gram-frame-table-area'
+
     const tableWrapper = document.createElement('div')
     tableWrapper.className = 'gram-frame-table-container'
-    
+
     const table = document.createElement('table')
     table.className = 'gram-frame-table'
     
@@ -371,7 +411,8 @@ export class AnalysisMode extends BaseMode {
     table.appendChild(tbody)
     
     tableWrapper.appendChild(table)
-    markersContainer.appendChild(tableWrapper)
+    tableArea.appendChild(tableWrapper)
+    markersContainer.appendChild(tableArea)
     
     // Store all UI elements for proper cleanup
     this.uiElements.markersTable = table
@@ -567,6 +608,13 @@ export class AnalysisMode extends BaseMode {
    * @param {AnalysisMarker} marker - The marker data
    */
   updateMarkerRow(row, marker) {
+    // Refresh the colour/symbol indicator in case the marker was reformatted
+    // in place (feature 161). Rebuild the cell's indicator to match its style.
+    const colorCell = row.cells[0]
+    if (colorCell) {
+      colorCell.replaceChildren(createColorIndicator(marker.symbol, marker.color, 20))
+    }
+
     // Update time cell (second cell)
     const timeCell = row.cells[1]
     if (timeCell) {
@@ -623,16 +671,11 @@ export class AnalysisMode extends BaseMode {
         }
       })
       
-      // Color swatch cell
+      // Colour/symbol cell — a shaped symbol shows the colour-coded symbol; the
+      // cross (symbol-less) style shows a filled colour rectangle (FR-010).
       const colorCell = document.createElement('td')
-      const colorSwatch = document.createElement('div')
-      colorSwatch.className = 'gram-frame-color-swatch'
-      colorSwatch.style.backgroundColor = marker.color
-      colorSwatch.style.width = '20px'
-      colorSwatch.style.height = '20px'
-      colorSwatch.style.borderRadius = '3px'
-      colorSwatch.style.border = '1px solid #ccc'
-      colorCell.appendChild(colorSwatch)
+      colorCell.className = 'gram-frame-marker-color'
+      colorCell.appendChild(createColorIndicator(marker.symbol, marker.color, 20))
       row.appendChild(colorCell)
       
       // Time cell

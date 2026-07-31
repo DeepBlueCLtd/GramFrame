@@ -55,7 +55,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
     button.className = 'gram-frame-mode-btn'
     button.textContent = getModeDisplayName(modeType)
     button.dataset.mode = modeType
-    
+
     // Set active state for current mode
     if (modeType === state.mode) {
       button.classList.add('active')

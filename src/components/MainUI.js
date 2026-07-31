@@ -7,11 +7,11 @@
 
 /// <reference path="../types.js" />
 
-import { 
-  createLEDDisplay, 
-  createColorPicker, 
-  createFullFlexLayout, 
-  createFlexColumn 
+import {
+  createLEDDisplay,
+  createColorPicker,
+  createFullFlexLayout,
+  createFlexColumn
 } from './UIComponents.js'
 import { formatTime } from '../utils/timeFormatter.js'
 
@@ -26,10 +26,17 @@ export function createUnifiedLayout(instance) {
   unifiedLayoutContainer.style.flexDirection = 'row'
   unifiedLayoutContainer.style.flexWrap = 'nowrap'
   
-  // Left Panel (600px) - Multi-column horizontal layout
+  // Left Panel - Multi-column horizontal layout. Basis widened by 150px
+  // (600 → 750) so the guidance column (flex:1 between the fixed mode + controls
+  // columns) gets ~150px more room for the Pan-mode mouse-wheel guidance. It does
+  // NOT grow beyond that, so the markers/harmonics tables stay grouped right
+  // alongside rather than being pushed to the far edge; but it MAY shrink
+  // (shrink:1, min-width:0) so a narrow host stays clip-free instead of cutting
+  // off the tables.
   const leftColumn = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-left-column', '4px'))
-  leftColumn.style.flex = '0 0 600px'
-  leftColumn.style.width = '600px'
+  leftColumn.style.flex = '0 1 750px'
+  leftColumn.style.width = 'auto'
+  leftColumn.style.minWidth = '0'
   leftColumn.style.flexDirection = 'row'
   
   // Column 1: Mode buttons 
@@ -63,11 +70,10 @@ export function createUnifiedLayout(instance) {
   
   controlsColumn.appendChild(cursorContainer)
   
-  // Create color picker in controls column
-  const colorPicker = createColorPicker(instance.state)
-  colorPicker.querySelector('.gram-frame-color-picker-label').textContent = 'Color'
+  // Combined colour + symbol control (labelled "Symbol") in controls column
+  const colorPicker = createColorPicker(instance)
   controlsColumn.appendChild(colorPicker)
-  
+
   // Add columns to left panel
   leftColumn.appendChild(modeColumn)
   leftColumn.appendChild(guidanceColumn)
@@ -111,7 +117,7 @@ export function createUnifiedLayout(instance) {
   instance.freqLED = freqLED
   instance.speedLED = speedLED
   instance.colorPicker = colorPicker
-  
+
   return unifiedLayoutContainer
 }
 

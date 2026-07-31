@@ -6,6 +6,10 @@ import { notifyStateListeners } from '../../core/state.js'
 import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordinateTransformations.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
+import { sampledHarmonics } from '../../utils/harmonicSampling.js'
+import { createSymbolMark, resolveSymbolScale } from '../../rendering/symbols.js'
+import { applyTextHalo } from '../../utils/svg.js'
+import { calculateVisibleDataRange, getRenderDimensions } from '../../components/table.js'
 
 /**
  * Harmonics mode implementation
@@ -122,6 +126,53 @@ export class HarmonicsMode extends BaseMode {
    * @type {string[]}
    */
   static harmonicColors = ['#ff6b6b', '#2ecc71', '#f39c12', '#9b59b6', '#ffc93c', '#ff9ff3', '#45b7d1', '#e67e22']
+
+  /**
+   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
+   * this scaled by the "Large symbols" experiment toggle — use
+   * {@link HarmonicsMode#symbolSize} rather than reading this directly.
+   * @type {number}
+   */
+  static SYMBOL_SIZE = 10
+
+  /**
+   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
+   *
+   * The resulting height is a fixed pixel length, not a span of time: it is
+   * derived from the viewport's base render size (which tracks expand, not zoom)
+   * rather than from the zoomed image element. Pins therefore keep the same
+   * on-screen height at every zoom level, growing/shrinking only when the
+   * component itself is resized.
+   * @type {number}
+   */
+  static PIN_HEIGHT_RATIO = 0.2
+
+  /**
+   * Font size (px) of a pin's number label; also used as its approximate ascent
+   * when clamping the label/symbol stack to the image's top edge.
+   * @type {number}
+   */
+  static LABEL_FONT_SIZE = 12
+
+  /**
+   * Approximate width of one label digit as a fraction of the label font size,
+   * used to size the label's grab region (bold Arial digits are ~0.6 em wide).
+   * @type {number}
+   */
+  static LABEL_CHAR_WIDTH_RATIO = 0.6
+
+  /**
+   * Vertical gap (px) between the pin's number label and its symbol.
+   * @type {number}
+   */
+  static LABEL_GAP = 3
+
+  /**
+   * Minimum padding (px) kept between the top of a pin's label and the top edge
+   * of the spectrogram image.
+   * @type {number}
+   */
+  static STACK_TOP_PAD = 1
 
   /**
    * Get guidance content for harmonics mode
@@ -334,12 +385,24 @@ export class HarmonicsMode extends BaseMode {
       color = HarmonicsMode.harmonicColors[colorIndex]
     }
     
+    // Use selected symbol from global state, defaulting to the symbol-less cross
+    const symbol = this.instance.state.selectedSymbol || 'cross'
+
+    // Use the session's pin-visibility preference (on unless the analyst turned
+    // it off via the Symbol panel toggle)
+    const showPin = this.instance.state.showHarmonicPin !== false
+
     /** @type {HarmonicSet} */
     const harmonicSet = {
       id,
       color,
       anchorTime,
-      spacing
+      spacing,
+      symbol,
+      showPin,
+      // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
+      // toggle's next-feature default, so sets at both sizes can coexist.
+      largeSymbols: !!this.instance.state.largeSymbols
     }
     
     this.instance.state.harmonics.harmonicSets.push(harmonicSet)
@@ -417,44 +480,63 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Find harmonic set containing given frequency coordinate
+   * Find harmonic set containing given frequency coordinate.
+   *
+   * Hit-testing follows exactly what is drawn — nothing more, nothing less.
+   * Every visible part of a pin grabs it: the pin line's fixed-pixel span AND
+   * the number label + symbol stacked above it. A set with its pin hidden is
+   * grabbable by its label/symbol stack alone; the span where its line would
+   * have been is empty on screen, so it is empty to the mouse too.
+   *
    * @param {number} freq - Frequency in Hz to check
    * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
    */
   findHarmonicSetAtFrequency(freq) {
     if (!this.instance.state.cursorPosition) return null
-    
+
     const cursorTime = this.instance.state.cursorPosition.time
-    
+
     for (const harmonicSet of this.instance.state.harmonics.harmonicSets) {
       // Check if frequency is close to any harmonic line in this set
       if (harmonicSet.spacing > 0) {
         // Only consider harmonics within the visible frequency range
         const freqMin = this.instance.state.config.freqMin
         const freqMax = this.instance.state.config.freqMax
-        
+
         const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
         const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
-        
+
+        // Pins are a fixed pixel height, so hit-test vertically in SVG pixels
+        // against the same geometry the renderer draws.
+        const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
+        const stack = this.calculateLabelStackBounds(lineTop, harmonicSet)
+        // Only the thinned subset is labelled, so only those pins carry a stack.
+        const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic))
+        // A hidden pin draws no lines, so its line span is not a grab region.
+        const pinDrawn = harmonicSet.showPin !== false
+
+        const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
+        const cursorSVG = calculateZoomAwarePosition(
+          { freq, time: cursorTime },
+          this.getViewport(),
+          this.instance.spectrogramImage
+        )
+
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
-          
-          if (Math.abs(freq - expectedFreq) < tolerance.freq) {
-            // Also check if cursor is within the vertical range of the harmonic line
-            // Harmonic lines have 20% of SVG height, centered on anchor time
-            const { naturalHeight } = this.instance.state.imageDetails
-            const lineHeight = naturalHeight * 0.2
-            const timeRange = this.instance.state.config.timeMax - this.instance.state.config.timeMin
-            const lineHeightInTime = (lineHeight / naturalHeight) * timeRange
-            
-            const lineStartTime = harmonicSet.anchorTime - lineHeightInTime / 2
-            const lineEndTime = harmonicSet.anchorTime + lineHeightInTime / 2
-            
-            // Check if cursor is within the vertical range of the harmonic line
-            if (cursorTime >= lineStartTime && cursorTime <= lineEndTime) {
-              return harmonicSet
-            }
+
+          // The pin line: frequency tolerance horizontally, the line span vertically.
+          if (pinDrawn && Math.abs(freq - expectedFreq) < tolerance.freq &&
+              cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
+            return harmonicSet
+          }
+
+          // The label/symbol stack above the line: measured in SVG pixels, since
+          // the digits and symbol are a fixed pixel size regardless of zoom.
+          if (labelled.has(h) &&
+              cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom &&
+              Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
+            return harmonicSet
           }
         }
       }
@@ -615,9 +697,13 @@ export class HarmonicsMode extends BaseMode {
       return
     }
     
-    // Clear existing harmonic lines
+    // Clear existing harmonic lines and their symbol marks. Scope the symbol
+    // cleanup to harmonic pin symbols (which carry data-harmonic-set-id) so it
+    // never removes analysis-marker symbols that share the base symbol class.
     const existingHarmonics = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-line')
     existingHarmonics.forEach(line => line.remove())
+    const existingSymbols = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol[data-harmonic-set-id]')
+    existingSymbols.forEach(symbol => symbol.remove())
     
     // Render all harmonic sets
     this.instance.state.harmonics.harmonicSets.forEach(harmonicSet => {
@@ -626,34 +712,61 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Get visible harmonics within frequency range
+   * Get the inclusive harmonic-number range of a set that falls within the
+   * currently visible frequency span.
+   *
+   * The visible range comes from `calculateVisibleDataRange(instance)` (the same
+   * source the frequency axis uses), so it is viewport-aware: zooming in narrows
+   * the span (fewer harmonics), zooming out / panning widens it. At zoom 1.0 the
+   * visible range equals the full data range.
+   *
+   * Every harmonic in this range is drawn as a pin line (spec 159, FR-001); the
+   * label/symbol subset is a regularly-sampled slice of it (see
+   * {@link getLabelledHarmonics}).
+   *
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-   * @param {Config} config - Configuration object
-   * @returns {number[]} Array of harmonic numbers to render
+   * @returns {{minHarmonic: number, maxHarmonic: number}} Inclusive harmonic range
    */
-  getVisibleHarmonics(harmonicSet, config) {
-    const { freqMin, freqMax } = config
+  getVisibleHarmonicRange(harmonicSet) {
+    const { freqMin, freqMax } = calculateVisibleDataRange(this.instance)
     const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
     const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
-    
-    const harmonics = []
-    for (let h = minHarmonic; h <= maxHarmonic; h++) {
-      harmonics.push(h)
-    }
-    return harmonics
+    return { minHarmonic, maxHarmonic }
   }
 
   /**
-   * Calculate harmonic line dimensions and positions
+   * Get the "major" subset of harmonic numbers that receive a number label and
+   * symbol, thinned to at most the label limit (default 25) by regular sampling.
+   *
+   * Reuses the spec-158 sampling maths, but that limit now governs
+   * labels/symbols only — every pin line is still drawn (spec 159). When the
+   * visible range already fits under the limit the subset is the whole range, so
+   * every drawn pin is labelled (FR-005).
+   *
+   * @param {number} minHarmonic - Lowest visible harmonic number (>= 1)
+   * @param {number} maxHarmonic - Highest visible harmonic number
+   * @returns {number[]} Ascending harmonic numbers to label/symbol (length <= cap)
+   */
+  getLabelledHarmonics(minHarmonic, maxHarmonic) {
+    return sampledHarmonics(minHarmonic, maxHarmonic).harmonics
+  }
+
+  /**
+   * Calculate harmonic line dimensions and positions.
+   *
+   * The height is a fixed pixel length taken from the *base* (unzoomed) render
+   * height, so a pin covers the same number of screen pixels no matter how far
+   * the user has zoomed in — it is not a span of time that stretches with the
+   * image. Only the centre is zoom-aware: the pin stays centred on the set's
+   * anchor time (the original click location), so it tracks the feature while
+   * keeping a constant height.
+   *
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-   * @returns {Object} Line dimensions with height and top position
+   * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
    */
   calculateHarmonicLineDimensions(harmonicSet) {
-    // Calculate harmonic line height (20% of spectrogram height). Derive geometry
-    // from the actual rendered image bounds so it stays correct across expand × zoom.
-    const lineHeightRatio = 0.2
-    const imageBounds = getImageBounds(this.getViewport(), this.instance.spectrogramImage)
-    const lineHeight = imageBounds.height * lineHeightRatio
+    const { renderHeight } = getRenderDimensions(this.instance)
+    const lineHeight = renderHeight * HarmonicsMode.PIN_HEIGHT_RATIO
     const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime }
     const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage)
     const lineTop = anchorSVG.y - lineHeight / 2
@@ -687,20 +800,33 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Create SVG text label for a harmonic number
+   * Create SVG text label for a harmonic number.
+   *
+   * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
+   * positioned above the pin's symbol (baseline at `labelY`), so the vertical
+   * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
+   *
+   * The digits are drawn black inside a white halo rather than in the set's
+   * colour: a single colour is only legible over part of a gram, whereas the
+   * halo reads over both dark and light backgrounds. Set identity is still
+   * carried by the pin's line and symbol colour.
+   *
    * @param {number} harmonicNumber - Harmonic number
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-   * @param {number} lineX - X position for the label
-   * @param {number} lineTop - Top Y position for the label
+   * @param {number} lineX - X position of the pin line (label is centred on it)
+   * @param {number} labelY - Baseline Y position for the label text
    * @returns {SVGTextElement} SVG text element
    */
-  createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop) {
+  createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY) {
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
     label.setAttribute('class', 'gram-frame-harmonic-number')
-    label.setAttribute('x', String(lineX + 3)) // 3 pixels to the right of line
-    label.setAttribute('y', String(lineTop + 12)) // 12 pixels down from top
-    label.setAttribute('fill', harmonicSet.color)
-    label.setAttribute('font-size', '12')
+    label.setAttribute('data-harmonic-set-id', harmonicSet.id)
+    label.setAttribute('data-harmonic-number', String(harmonicNumber))
+    label.setAttribute('x', String(lineX)) // centred on the pin line
+    label.setAttribute('y', String(labelY)) // above the symbol
+    label.setAttribute('text-anchor', 'middle')
+    applyTextHalo(/** @type {SVGTextElement} */ (label))
+    label.setAttribute('font-size', String(HarmonicsMode.LABEL_FONT_SIZE))
     label.setAttribute('font-weight', 'bold')
     label.setAttribute('font-family', 'Arial, sans-serif')
     label.textContent = String(harmonicNumber)
@@ -708,32 +834,184 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Render a single harmonic set as vertical lines
+   * Effective pixel size of a set's symbol marks: the base size scaled by that
+   * set's own "Large symbols" flag, so sets at both sizes can share a gram. The
+   * whole label/symbol stack layout derives from this, so the label spacing and
+   * top-edge clamping follow the set's chosen size.
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @returns {number} Symbol diameter in px
+   */
+  symbolSize(harmonicSet) {
+    return HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(harmonicSet)
+  }
+
+  /**
+   * Create the filled symbol mark drawn between a pin's number label and the top
+   * of its line.
+   *
+   * The vertical position (`symbolCy`) is computed once per set by
+   * {@link calculateLabelStackPositions} so the whole label/symbol stack shares a
+   * consistent, on-screen layout.
+   *
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {number} lineX - X position of the pin line (symbol is centred on it)
+   * @param {number} symbolCy - Centre Y position for the symbol
+   * @returns {SVGElement|null} SVG symbol element, or null for the `cross` (symbol-less) style
+   */
+  createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
+    const symbol = createSymbolMark(
+      harmonicSet.symbol, lineX, symbolCy, this.symbolSize(harmonicSet), harmonicSet.color
+    )
+    // `cross` sets draw no symbol shape (the pin keeps its line and label).
+    if (!symbol) {
+      return null
+    }
+    symbol.setAttribute('data-harmonic-set-id', harmonicSet.id)
+    return symbol
+  }
+
+  /**
+   * Compute the shared vertical layout of a pin's label/symbol stack.
+   *
+   * Ideal (top-to-bottom): label baseline, then symbol, then the pin line top,
+   * so the symbol caps the line and the label sits above the symbol. When the
+   * stack's top would clip above the spectrogram's top edge, the whole stack
+   * (label + symbol) is nudged down by the overflow so it stays legible
+   * (spec 159, FR-011).
+   *
+   * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+   * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
+   * @param {HarmonicSet} harmonicSet - Harmonic set being laid out (its symbol size drives the stack)
+   * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
+   */
+  calculateLabelStackPositions(lineTop, imageTop, harmonicSet) {
+    const r = this.symbolSize(harmonicSet) / 2
+    const gap = HarmonicsMode.LABEL_GAP
+    const fontSize = HarmonicsMode.LABEL_FONT_SIZE
+
+    // Symbol caps the line; label baseline sits just above the symbol.
+    let symbolCy = lineTop - r
+    let labelY = symbolCy - r - gap
+
+    // Keep the top of the label (approx one ascent above its baseline) on-screen.
+    const labelTop = labelY - fontSize
+    const minTop = imageTop + HarmonicsMode.STACK_TOP_PAD
+    if (labelTop < minTop) {
+      const shift = minTop - labelTop
+      symbolCy += shift
+      labelY += shift
+    }
+
+    return { symbolCy, labelY }
+  }
+
+  /**
+   * Vertical extent (SVG coords) of a pin's label/symbol stack, for hit-testing.
+   *
+   * Derived from the same {@link calculateLabelStackPositions} layout the
+   * renderer uses, so the grab region tracks the drawn stack — including the
+   * downward nudge applied near the image's top edge. The bottom is clamped to
+   * the pin line's top so the stack region and the line region always meet with
+   * no dead gap between them.
+   *
+   * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+   * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
+   * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
+   */
+  calculateLabelStackBounds(lineTop, harmonicSet) {
+    const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top
+    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet)
+    const r = this.symbolSize(harmonicSet) / 2
+
+    return {
+      // One ascent above the label's baseline is the top of the digits.
+      top: labelY - HarmonicsMode.LABEL_FONT_SIZE,
+      bottom: Math.max(lineTop, symbolCy + r)
+    }
+  }
+
+  /**
+   * Half-width (SVG px) of a pin's label/symbol stack, for hit-testing.
+   *
+   * The wider of the symbol mark and the number label, so both are grabbable:
+   * a `cross` set has no symbol but still shows its digits, and a "Large
+   * symbols" set's mark is wider than its digits. Label width is estimated from
+   * the digit count rather than measured, which is ample for a grab region.
+   *
+   * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
+   * @param {number} harmonicNumber - Harmonic number whose label is drawn
+   * @returns {number} Half-width in SVG pixels
+   */
+  labelStackHalfWidth(harmonicSet, harmonicNumber) {
+    const digits = String(harmonicNumber).length
+    const labelHalfWidth = digits * HarmonicsMode.LABEL_FONT_SIZE * HarmonicsMode.LABEL_CHAR_WIDTH_RATIO / 2
+
+    return Math.max(this.symbolSize(harmonicSet) / 2, labelHalfWidth)
+  }
+
+  /**
+   * Compute the SVG x-coordinate of a harmonic's vertical pin line.
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {number} harmonicNumber - Harmonic number
+   * @returns {number} SVG x-coordinate of the pin line
+   */
+  harmonicLineX(harmonicSet, harmonicNumber) {
+    const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime }
+    return calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x
+  }
+
+  /**
+   * Render a single harmonic set as vertical pin lines.
+   *
+   * Spec 159: draw a pin line for EVERY harmonic in the visible span (no pins are
+   * dropped, even if they merge into a solid block), then draw a number label and
+   * symbol only for the thinned "major" subset so the overlay stays readable.
+   * Lines are appended first so the labels/symbols paint on top of them.
+   *
+   * A set with `showPin === false` skips the lines entirely and renders as its
+   * symbols and numbers alone — the low-clutter style for stacking many sets over
+   * dense data. The label/symbol geometry is unchanged, so toggling the pin adds
+   * or removes the lines without moving anything else; the set is then grabbed
+   * by its label/symbol stack, since hit-testing only covers what is drawn.
+   *
    * @param {HarmonicSet} harmonicSet - Harmonic set to render
    */
   renderHarmonicSet(harmonicSet) {
     if (!this.instance.cursorGroup) {
       return
     }
-    
-    // Get visible harmonics and line dimensions
-    const visibleHarmonics = this.getVisibleHarmonics(harmonicSet, this.instance.state.config)
+
+    const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet)
+    if (maxHarmonic < minHarmonic) {
+      return
+    }
+
     const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
-    
-    // Render each harmonic line in this set
-    visibleHarmonics.forEach(harmonicNumber => {
-      const harmonicFreq = harmonicNumber * harmonicSet.spacing
-      
-      // Calculate X position using coordinate transformation utility
-      const harmonicPoint = { freq: harmonicFreq, time: harmonicSet.anchorTime }
-      const harmonicSVG = calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage)
-      const lineX = harmonicSVG.x
-      
-      // Create and append line and label elements
-      const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
-      const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, lineTop)
-      
-      this.instance.cursorGroup.appendChild(line)
+    const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top
+
+    // Draw every pin line in the visible span (FR-001) — unless this set is set
+    // to hide its pin. Sets restored from storage without the flag are pinned.
+    if (harmonicSet.showPin !== false) {
+      for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
+        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
+        const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
+        this.instance.cursorGroup.appendChild(line)
+      }
+    }
+
+    // Draw labels + symbols only on the thinned major subset (FR-002), stacked
+    // above each pin line with a shared, on-screen vertical layout.
+    const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic)
+    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet)
+
+    labelledHarmonics.forEach(harmonicNumber => {
+      const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
+      const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy)
+      const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY)
+      // `cross` sets have no symbol mark; the number label is still drawn.
+      if (symbol) {
+        this.instance.cursorGroup.appendChild(symbol)
+      }
       this.instance.cursorGroup.appendChild(label)
     })
   }

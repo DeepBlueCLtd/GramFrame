@@ -161,6 +161,15 @@ Example configuration:
 - Browser Web Storage API (localStorage / sessionStorage) (155-browser-storage)
 - JavaScript (ES2020+), JSDoc-typed, no compilation + None at runtime (zero runtime deps); Vite for build (156-expand-image-toggle)
 - N/A — expand state is in-memory only (explicitly NOT browser storage) (156-expand-image-toggle)
+- JavaScript (ES2020+), JSDoc-typed, no compilation step + None at runtime (zero runtime dependencies); Vite for build (157-student-tonal-expiry)
+- Browser Web Storage API — `sessionStorage` (student), `localStorage` (trainer) (157-student-tonal-expiry)
+- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (157-harmonic-pin-symbols)
+- Browser Web Storage (localStorage for trainers / sessionStorage for students) (157-harmonic-pin-symbols)
+- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (158-harmonic-pin-sampling)
+- N/A — purely presentational; no persisted data or new state (158-harmonic-pin-sampling)
+- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (161-reformat-markers-harmonics)
+- Browser Web Storage — additive `symbol` field on markers; `cross` (symbol-less) default; no schema bump (161-reformat-markers-harmonics)
 
 ## Recent Changes
+- 161-reformat-markers-harmonics: Added a `cross` (symbol-less) default style and in-place restyling of selected markers/harmonic sets (colour + symbol)
 - 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)

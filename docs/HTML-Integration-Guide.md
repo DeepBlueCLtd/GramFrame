@@ -36,6 +36,12 @@ The standalone bundle includes CSS inlined automatically — no separate stylesh
 
 On `DOMContentLoaded`, GramFrame scans the page for all `<table class="gram-config">` elements and replaces each one with an interactive spectrogram viewer.
 
+### Before the Component Appears
+
+Until that scan runs, a config table is ordinary HTML, so on a cold load (large spectrogram, slow network) the browser paints it before GramFrame replaces it. The stylesheet dresses that gap up as a loading placeholder: the parameter rows are hidden, the spectrogram is dimmed back and a "Loading spectrogram" caption sits over it. The same caption then covers the component's image panel until the spectrogram's dimensions are known; if the image never loads, it is replaced with a plain failure message.
+
+For the placeholder to be in effect at first paint, the styling must reach the browser before the config table does — put the `<link rel="stylesheet">` (or, for the standalone bundle, the `<script>` that inlines the CSS) in `<head>` rather than at the end of `<body>`.
+
 ## Parameter Reference
 
 The configuration table uses a 2-column format: `parameter | value`.
@@ -113,6 +119,64 @@ GramFrame.removeStateListener(listener)
 ```
 
 State is deep-copied before being passed to listeners, so you cannot accidentally mutate internal state.
+
+## Annotation Persistence (Trainer vs. Student)
+
+GramFrame can persist annotations (analysis markers, harmonic sets, doppler
+curves) in browser storage. The storage backend depends on whether the page is
+detected as a **trainer** page or a **student** page:
+
+- **Trainer pages** use `localStorage` — annotations persist permanently, so an
+  instructor can author them once and have them survive browser restarts.
+- **Student pages** use `sessionStorage` — annotations are ephemeral and cleared
+  when the browser tab/session closes.
+
+A page is treated as a trainer page if **any** of the following explicit flags is
+present anywhere in the page, in order of preference:
+
+| Form | Example | Notes |
+|------|---------|-------|
+| Class | `<span class="gf-persistent"></span>` | **Recommended** — DITA-friendly |
+| Data attribute | `<span data-gf-persistent></span>` | DITA-friendly |
+| Id | `<span id="gf-persistent"></span>` | Legacy; kept for backward compatibility |
+
+The flag element can be hidden and placed anywhere on the page — detection runs
+over the whole document with no ordering constraints.
+
+```html
+<!-- Mark this page as a trainer/instructor page -->
+<span class="gf-persistent" hidden></span>
+```
+
+A legacy heuristic also treats a page as trainer context if it contains an
+anchor whose exact text is `ANALYSIS`. This is fragile (it false-positives on
+any page with such a link) and is retained only for backward compatibility —
+prefer an explicit flag above.
+
+### Why a class and data-attribute, not just an id
+
+The AAAC training material is produced through a DITA-OT / Oxygen WebHelp
+publishing pipeline. **DITA-OT topic-scopes and uniquifies every `@id`** in its
+HTML output, so an authored `id="gf-persistent"` is rewritten to something
+page-specific (e.g. `id="ariaid-title1_gf-persistent"`) and
+`getElementById('gf-persistent')` never matches — instructor pages would
+silently fall back to ephemeral `sessionStorage`.
+
+A DITA `@outputclass`, by contrast, is passed straight through to the HTML
+`@class` **verbatim and un-mangled** (this is exactly how `table.gram-config`
+itself is detected), and classes are not uniquified. So `.gf-persistent` is
+reliably emittable from DITA and stable on every page.
+
+DITA integrators add the class to an instructor-only marker they already emit
+(profiled out of the student build via DITAVAL), so no extra authoring is
+required — students get no flag and stay ephemeral:
+
+```xml
+<p outputclass="gf-persistent" audience="instructor">…</p>
+```
+
+→ renders to `class="p gf-persistent"` on instructor pages only. No id, no
+post-processing, no client-side shim.
 
 ## File Protocol Compatibility
 

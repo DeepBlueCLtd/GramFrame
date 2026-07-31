@@ -9,6 +9,14 @@ import { updateCursorIndicators } from '../rendering/cursors.js'
 import { notifyStateListeners } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 import { setFocusedInstance } from './FocusManager.js'
+import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized } from './viewport.js'
+
+/**
+ * Per-notch multiplicative zoom factor for Ctrl+wheel zoom (smoother than the
+ * ×1.5 button step).
+ * @type {number}
+ */
+const WHEEL_ZOOM_STEP = 1.2
 
 /**
  * Convert screen coordinates to data coordinates, accounting for zoom
@@ -72,6 +80,46 @@ function screenToDataWithZoom(instance, event) {
 }
 
 /**
+ * Handle mouse-wheel events on the SVG: Ctrl+scroll zooms around the pointer,
+ * plain scroll pans horizontally along frequency (only when zoomed in). Works in
+ * every mode. Does nothing (and lets the page scroll) when the pointer is not over
+ * the spectrogram image, or on a plain scroll while not zoomed in.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {WheelEvent} event - Wheel event
+ */
+function handleWheel(instance, event) {
+  const result = screenToDataWithZoom(instance, event)
+  if (!result) {
+    return // Not over the spectrogram image - leave the page scroll alone
+  }
+
+  if (event.ctrlKey) {
+    // Zoom around the pointer. Scroll up/away (deltaY < 0) zooms in.
+    const factor = event.deltaY < 0 ? WHEEL_ZOOM_STEP : 1 / WHEEL_ZOOM_STEP
+    zoomAtImagePoint(instance, factor, result.imageX, result.imageY)
+    event.preventDefault() // Always consume the zoom gesture
+  } else if (instance.state.zoom.level > 1.0) {
+    // Horizontal pan: map vertical wheel delta to frequency panning.
+    // Scroll down (deltaY > 0) moves forward in frequency.
+    const { normalizedDeltaX } = pixelDeltaToNormalizedPan(instance, -event.deltaY, 0)
+    panByNormalized(instance, normalizedDeltaX, 0)
+    event.preventDefault()
+  }
+  // else: not zoomed in - nothing to pan; allow the page to scroll normally.
+}
+
+/**
+ * End an in-progress wheel-button (middle) drag pan, restoring the cursor.
+ * @param {GramFrame} instance - GramFrame instance
+ */
+function endWheelPan(instance) {
+  if (instance.svg && instance._wheelPan) {
+    instance.svg.style.cursor = instance._wheelPan.prevCursor || 'crosshair'
+  }
+  instance._wheelPan = null
+}
+
+/**
  * Set up event listeners for the GramFrame instance
  * @param {GramFrame} instance - GramFrame instance
  */
@@ -102,6 +150,13 @@ export function setupEventListeners(instance) {
     instance.svg.addEventListener('contextmenu', (event) => {
       handleContextMenu(instance, event)
     })
+
+    // Mouse wheel for global zoom (Ctrl+scroll) and horizontal pan (scroll).
+    // passive:false so the handler can preventDefault() to stop the host page
+    // from scrolling during a zoom/pan gesture.
+    instance.svg.addEventListener('wheel', (event) => {
+      handleWheel(instance, event)
+    }, { passive: false })
   }
   
   // Bind resize handler
@@ -150,8 +205,19 @@ export function setupResizeObserver(instance) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseMove(instance, event) {
+  // Wheel-button drag pan takes precedence over any mode interaction.
+  if (instance._wheelPan && instance._wheelPan.active) {
+    const dx = event.clientX - instance._wheelPan.lastX
+    const dy = event.clientY - instance._wheelPan.lastY
+    const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy)
+    panByNormalized(instance, normalizedDeltaX, normalizedDeltaY)
+    instance._wheelPan.lastX = event.clientX
+    instance._wheelPan.lastY = event.clientY
+    return
+  }
+
   const result = screenToDataWithZoom(instance, event)
-  
+
   if (result) {
     const { svgCoords, dataCoords } = result
     
@@ -194,7 +260,25 @@ function handleMouseMove(instance, event) {
 function handleMouseDown(instance, event) {
   // Set focus when user interacts with this instance
   setFocusedInstance(instance)
-  
+
+  // Middle (wheel) button starts a global pan and is never delegated to a mode,
+  // so it can never place a cursor/marker/harmonic/doppler point.
+  if (event.button === 1) {
+    event.preventDefault() // Suppress browser middle-click autoscroll
+    if (instance.state.zoom.level > 1.0) {
+      instance._wheelPan = {
+        active: true,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        prevCursor: instance.svg ? instance.svg.style.cursor : ''
+      }
+      if (instance.svg) {
+        instance.svg.style.cursor = 'grabbing'
+      }
+    }
+    return
+  }
+
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
@@ -213,6 +297,12 @@ function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseUp(instance, event) {
+  // End a wheel-button drag pan without delegating to the mode.
+  if (instance._wheelPan && instance._wheelPan.active) {
+    endWheelPan(instance)
+    return
+  }
+
   const result = screenToDataWithZoom(instance, event)
   
   if (result) {
@@ -230,6 +320,11 @@ function handleMouseUp(instance, event) {
  * @param {GramFrame} instance - GramFrame instance
  */
 function handleMouseLeave(instance) {
+  // End a wheel-button drag pan cleanly if the pointer leaves the component.
+  if (instance._wheelPan && instance._wheelPan.active) {
+    endWheelPan(instance)
+  }
+
   // Clear cursor position
   instance.state.cursorPosition = null
   

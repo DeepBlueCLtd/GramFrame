@@ -2,6 +2,90 @@
  * GramFrame Component Styles - Military/Industrial Theme
  */
 
+/* ---------------------------------------------------------------------------
+ * Pre-conversion placeholder
+ *
+ * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a
+ * cold load (large spectrogram, slow network, unbundled dev modules) the raw
+ * table is painted first: a stretched image followed by the time/freq parameter
+ * rows in whatever table styling the host page uses. These rules dress that
+ * intermediate state as a loading placeholder in the component's own dark
+ * styling - the parameter rows are hidden, the image is dimmed back, and a
+ * "Loading spectrogram" caption sits over the top. They stop applying the
+ * moment the table is swapped for .gram-frame-container.
+ *
+ * Selectors are deliberately more specific than a bare `table.gram-config td`
+ * so host-page table styling (borders, padding, stretched images) does not show
+ * through the placeholder.
+ * ------------------------------------------------------------------------- */
+table.gram-config {
+  border-collapse: collapse;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  border: 3px solid #444;
+  border-radius: 8px;
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,0.1),
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    0 4px 8px rgba(0,0,0,0.5);
+}
+
+/* Per the config format, the first row holds the image and every later row is a
+   parameter definition - configuration, not content, so hide those rows */
+table.gram-config tr:not(:first-child) {
+  display: none;
+}
+
+table.gram-config tr:first-child td {
+  position: relative;
+  padding: 15px;
+  border: 0;
+  background: none;
+}
+
+table.gram-config tr:first-child img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  opacity: 0.25;
+}
+
+table.gram-config tr:first-child td::after {
+  content: 'Loading spectrogram';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #00ff00;
+  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Initialisation failed: the table is kept in place beside the error message,
+   so drop the placeholder styling and show the config as plain content again */
+table.gram-config.gram-frame-config-error {
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+table.gram-config.gram-frame-config-error tr:not(:first-child) {
+  display: table-row;
+}
+
+table.gram-config.gram-frame-config-error tr:first-child img {
+  opacity: 1;
+}
+
+table.gram-config.gram-frame-config-error tr:first-child td::after {
+  content: none;
+}
+
 /* Container that replaces the config table */
 .gram-frame-container {
   position: relative;
@@ -74,6 +158,38 @@
   border: 1px solid #666;
   border-radius: 4px;
   pointer-events: none;
+}
+
+/* The SVG has no size until the spectrogram's natural dimensions are known, so
+   the panel is an empty black rectangle between the table being replaced and
+   the image arriving. Caption that gap, and say so plainly if the image never
+   arrives, rather than leaving the analyst looking at a silent black box. */
+.gram-frame-container.gram-frame-loading .gram-frame-main-panel,
+.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {
+  min-height: 120px;
+}
+
+.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,
+.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {
+  content: 'Loading spectrogram';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #00ff00;
+  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {
+  content: 'Spectrogram image could not be loaded';
+  color: #ff6b6b;
+  text-shadow: none;
 }
 
 /* Expand/collapse image toggle — floats at the top-left of the image region,
@@ -178,6 +294,7 @@
 
 .gram-frame-readout {
   flex: 0 1 auto;
+  width: 100%; /* Definite width so the unified layout's flex sizing applies */
   padding: 0;
   background: transparent;
 }
@@ -334,6 +451,58 @@
   position: relative;
 }
 
+/* Symbol drop-down embedded to the right of the colour slider. Its `color` is
+   set inline to the selected colour so the glyphs render in that colour. */
+.gram-frame-symbol-select {
+  flex-shrink: 0;
+  padding: 2px 4px;
+  background: #0a0a0a;
+  border: 1px solid #555;
+  border-radius: 2px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Harmonic-pin visibility toggle, below the colour slider / symbol row.
+   TEMPORARY (symbol-size experiment): the "Large symbols" toggle sits under the
+   pin toggle and shares its styling. Remove that selector, and the block below,
+   together with the control once a symbol size is agreed. */
+.gram-frame-pin-toggle,
+.gram-frame-large-symbols-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gram-frame-pin-toggle-input,
+.gram-frame-large-symbols-checkbox {
+  margin: 0;
+  cursor: pointer;
+  accent-color: #00ff00;
+}
+
+.gram-frame-pin-toggle-label,
+.gram-frame-large-symbols-label {
+  font-size: 10px;
+  color: #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.gram-frame-pin-toggle-disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.gram-frame-pin-toggle-disabled .gram-frame-pin-toggle-input {
+  cursor: default;
+}
+
 .gram-frame-color-canvas {
   width: 140px;
   max-width: 140px;
@@ -385,27 +554,97 @@
 }
 
 /* Unified table styles for both markers and harmonics */
+
+/*
+ * Fixed-height home for a markers/harmonics table.
+ *
+ * It claims the column's remaining height (flex: 1) but contributes nothing to
+ * the layout's intrinsic height, because its only child is absolutely
+ * positioned. That is what keeps the panels a constant size however many rows
+ * they hold: the tables can no longer push the readout row taller (untidy
+ * layout) nor steal vertical space from an expanded spectrogram image.
+ */
+.gram-frame-table-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .gram-frame-table-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
   padding: 0;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
   border: 2px solid #333;
   border-radius: 4px;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 6px rgba(0,0,0,0.8),
     inset 0 -1px 2px rgba(255,255,255,0.05),
     0 2px 4px rgba(0,0,0,0.5);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows
+     are added or removed (no reflow of the table columns). */
+  overflow-y: scroll;
+  overflow-x: hidden;
+  /* Dark-theme scrollbar (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: #555 #111;
 }
 
-.gram-frame-table {
+/* Dark-theme scrollbar (WebKit/Blink) */
+.gram-frame-table-container::-webkit-scrollbar {
+  width: 10px;
+}
+
+.gram-frame-table-container::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.gram-frame-table-container::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 5px;
+  border: 2px solid #111;
+}
+
+.gram-frame-table-container::-webkit-scrollbar-thumb:hover {
+  background: #6a6a6a;
+}
+
+/*
+ * Separate (not collapsed) borders: sticky header cells are unreliable with
+ * border-collapse, so each cell draws its own right/bottom edge and the first
+ * column/header row close the outer edges. Visually identical to the collapsed
+ * 1px grid, because border-spacing is zero.
+ *
+ * Element-qualified because the `gram-frame-table` class is also carried by the
+ * component's outer frame <div> (display: table), which must keep its own
+ * border. Zeroing the border here matters for the sticky header too — a border
+ * on the table box offsets the header cells from the scrollport, which makes
+ * them jump when the body first scrolls.
+ */
+table.gram-frame-table {
   width: 100%;
-  border-collapse: collapse;
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 10px;
   color: #ccc;
   table-layout: fixed;
+}
+
+.gram-frame-table th,
+.gram-frame-table td {
+  border: 0;
+  border-right: 1px solid #444;
+  border-bottom: 1px solid #444;
+}
+
+.gram-frame-table th:first-child,
+.gram-frame-table td:first-child {
+  border-left: 1px solid #444;
 }
 
 .gram-frame-table th {
@@ -413,16 +652,20 @@
   color: #00ff00;
   padding: 4px;
   text-align: center;
-  border: 1px solid #444;
+  border-top: 1px solid #444;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  /* Header row stays pinned while the body scrolls beneath it. The z-index sits
+     above the positioned body rows, including a selected row's cells (11). */
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .gram-frame-table td {
   padding: 4px;
   text-align: center;
-  border: 1px solid #444;
   background: #1a1a1a;
 }
 
@@ -515,11 +758,6 @@
 
 .gram-frame-marker-point {
   opacity: 0.9;
-}
-
-.gram-frame-current-color {
-  border: 1px solid #555;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
 }
 
 /* Military-style mode selection header */
@@ -732,6 +970,37 @@
     0 1px 2px rgba(0,0,0,0.2);
 }
 
+/* Legacy-browser compatibility warning — shown in place of the component when
+   the browser lacks a required JS/DOM API. Kept legible even in small
+   containers (min sizing, word wrapping) so it is never clipped to nothing. */
+.gram-frame-compat-warning {
+  box-sizing: border-box;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  margin: 10px 0;
+  padding: 16px 20px;
+  background-color: #fff8e1;
+  border: 2px solid #f0ad4e;
+  border-radius: 4px;
+  color: #663c00;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.gram-frame-compat-warning-heading {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.gram-frame-compat-warning-message {
+  margin: 0;
+}
+
 /* Rate input UI styles removed - backend functionality preserved */
 
 /* SVG cursor styles removed - using CSS cursor only */
@@ -752,8 +1021,11 @@
   font-size: 12px;
   font-weight: bold;
   pointer-events: none;
-  /* Add text shadow for readability */
-  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+  /*
+   * Legibility comes from the halo (black glyphs inside a white outline) set as
+   * presentation attributes by applyTextHalo() in src/utils/svg.js — see the
+   * fill/stroke/paint-order there. No drop-shadow: it only blurred the outline.
+   */
 }
 
 /* SVG Harmonic Set styles (new system) */
@@ -810,11 +1082,15 @@
 }
 
 .gram-frame-harmonic-color {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 20px;
-  height: 12px;
-  border: 1px solid #555;
-  border-radius: 2px;
-  display: inline-block;
+  height: 16px;
+}
+
+.gram-frame-harmonic-symbol-swatch {
+  display: block;
 }
 
 .gram-frame-harmonic-delete {

@@ -11,6 +11,7 @@ import { AnalysisMode } from '../modes/analysis/AnalysisMode.js'
 import { HarmonicsMode } from '../modes/harmonics/HarmonicsMode.js'
 import { DopplerMode } from '../modes/doppler/DopplerMode.js'
 import { PanMode } from '../modes/pan/PanMode.js'
+import { getVersion } from '../utils/version.js'
 
 /**
  * Build mode-specific initial state by collecting from all mode classes
@@ -34,13 +35,23 @@ function buildModeInitialState() {
  * @type {GramFrameState}
  */
 export const initialState = {
-  version: '0.0.1',
+  version: getVersion(),
   timestamp: new Date().toISOString(),
   instanceId: '',
-  mode: 'analysis', // 'analysis', 'harmonics', 'doppler', 'pan'
+  mode: 'pan', // 'analysis', 'harmonics', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
   previousMode: null, // Previous mode for switching back
   rate: 1,
   selectedColor: '#ff6b6b', // Currently selected color for new features across all modes
+  selectedSymbol: 'cross', // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
+  // Whether the NEXT created harmonic set draws its vertical pin lines. Shown
+  // as a toggle in the Symbol panel; on by default at the start of a browser
+  // session and remembered (sessionStorage) for the rest of it.
+  showHarmonicPin: true,
+  // EXPERIMENT (temporary): large-symbol size for the NEXT created feature, set
+  // from the Symbol panel's toggle when nothing is selected (with a feature
+  // selected, the toggle resizes that feature instead). In-memory only, default
+  // off, never persisted — it exists to gather feedback on the preferred size.
+  largeSymbols: false,
   cursorPosition: null,
   cursors: [],
   imageDetails: {

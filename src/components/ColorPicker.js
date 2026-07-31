@@ -1,10 +1,16 @@
 /**
- * Color Picker Component for GramFrame
- * 
- * Provides color selection functionality for harmonic overlays
+ * Combined colour + symbol picker for GramFrame
+ *
+ * Provides colour selection (gradient slider) and, alongside it, the symbol
+ * drop-down for harmonic overlays, plus a harmonic-pin visibility toggle, under
+ * a single "Symbol" panel.
  */
 
 /// <reference path="../types.js" />
+
+import { createSymbolSelect, createLargeSymbolToggle } from './SymbolPicker.js'
+import { createPinToggle } from './PinToggle.js'
+import { getActiveStyle } from '../core/keyboardControl.js'
 
 /**
  * Standard color palette used for color picker gradient and calculations
@@ -26,91 +32,136 @@ const COLOR_PALETTE = [
 ]
 
 /**
- * Create a color picker component for harmonic selection
- * @param {GramFrameState} state - Current state object
- * @returns {HTMLDivElement} The color picker element
+ * Create the combined "Symbol" control: a colour slider on the left and a
+ * symbol drop-down (tinted with the selected colour) on the right.
+ *
+ * When a marker or harmonic set is selected, this panel restyles that feature
+ * in place; otherwise it sets the colour/symbol for the next created feature
+ * (feature 161). The panel also syncs its displayed colour/symbol to whichever
+ * feature is selected via `instance.syncStyleControls`.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {HTMLDivElement} The combined colour/symbol picker element
  */
-export function createColorPicker(state) {
+export function createColorPicker(instance) {
+  const state = instance.state
   const container = document.createElement('div')
   container.className = 'gram-frame-color-picker'
   container.style.display = 'block'
-  
+
   // Label
   const label = document.createElement('div')
   label.className = 'gram-frame-color-picker-label'
-  label.textContent = 'Harmonic Color'
+  label.textContent = 'Symbol'
   container.appendChild(label)
-  
-  // Color palette container - now horizontal with slider and lozenge
+
+  // Palette container - horizontal row with the colour slider and symbol select
   const paletteContainer = document.createElement('div')
   paletteContainer.className = 'gram-frame-color-palette'
   paletteContainer.style.display = 'flex'
   paletteContainer.style.alignItems = 'center'
   paletteContainer.style.gap = '8px'
   container.appendChild(paletteContainer)
-  
+
   // Slider container for canvas and indicator
   const sliderContainer = document.createElement('div')
   sliderContainer.className = 'gram-frame-color-slider'
   sliderContainer.style.position = 'relative'
   sliderContainer.style.flex = '1'
   paletteContainer.appendChild(sliderContainer)
-  
+
   // Create continuous color palette using canvas
   const canvas = document.createElement('canvas')
   canvas.width = 140
   canvas.height = 20
   canvas.className = 'gram-frame-color-canvas'
   sliderContainer.appendChild(canvas)
-  
+
   // Initialize default color
   if (!state.selectedColor) {
     state.selectedColor = '#ff6b6b' // Default first color
   }
-  
+
   // Draw the color palette
   drawColorPalette(canvas)
-  
+
   // Color selection indicator
   const indicator = document.createElement('div')
   indicator.className = 'gram-frame-color-indicator'
   sliderContainer.appendChild(indicator)
-  
-  // Current color display - now a compact lozenge
-  const currentColor = document.createElement('div')
-  currentColor.className = 'gram-frame-current-color'
-  currentColor.style.backgroundColor = state.selectedColor
-  currentColor.style.width = '30px'
-  currentColor.style.height = '20px'
-  currentColor.style.borderRadius = '10px'
-  currentColor.style.flexShrink = '0'
-  paletteContainer.appendChild(currentColor)
-  
+
+  // Symbol drop-down on the right (where the colour swatch used to be); its
+  // glyphs are tinted with the currently selected colour, so it doubles as the
+  // colour readout.
+  const symbolSelect = createSymbolSelect(instance)
+  paletteContainer.appendChild(symbolSelect)
+
+  // Harmonic-pin visibility toggle, below the colour/symbol row.
+  container.appendChild(createPinToggle(instance))
+
+  // TEMPORARY (size experiment): size toggle beneath the pin toggle, for
+  // feedback on whether the larger symbols read better on a real gram.
+  container.appendChild(createLargeSymbolToggle(instance))
+
   // Add click handler for color selection
   canvas.addEventListener('click', (event) => {
     const rect = canvas.getBoundingClientRect()
     const x = event.clientX - rect.left
-    
+
     // Scale x coordinate to canvas dimensions if CSS scaling differs
     const scaleX = canvas.width / rect.width
     const canvasX = x * scaleX
-    
+
     const color = getColorFromPosition(canvasX, canvas.width)
-    
-    // Update state
-    state.selectedColor = color
-    
-    // Update current color display
-    currentColor.style.backgroundColor = color
-    
+
+    // Route to the selected feature when one is selected (restyle in place),
+    // otherwise set the colour for the next created feature (feature 161).
+    if (!instance.applyColorToSelectedFeature || !instance.applyColorToSelectedFeature(color)) {
+      state.selectedColor = color
+    }
+
+    // Tint the symbol drop-down with the newly selected colour
+    symbolSelect.style.color = color
+
     // Update indicator position using the same canvasX coordinate for consistency
     updateIndicatorPosition(indicator, canvasX, canvas.width)
   })
-  
+
+  /**
+   * Move the colour indicator/tint to reflect a given colour (without mutating
+   * state) — used when selection changes to show the selected feature's colour.
+   * @param {string} color - Hex colour to display
+   */
+  const showColor = (color) => {
+    const position = getPositionFromColor(color, canvas.width)
+    updateIndicatorPosition(indicator, position, canvas.width)
+    symbolSelect.style.color = color
+  }
+
+  // Sync both controls (colour indicator + symbol drop-down) to whatever is
+  // currently selected, or to the next-feature defaults when nothing is
+  // selected (feature 161, FR-004/FR-013).
+  instance.syncStyleControls = () => {
+    const { color, symbol, showPin, pinApplies, largeSymbols } = getActiveStyle(instance)
+    showColor(color)
+    if (instance._symbolControl) {
+      instance._symbolControl.setValue(symbol)
+      instance._symbolControl.setTint(color)
+    }
+    if (instance._pinControl) {
+      instance._pinControl.setValue(showPin)
+      // Markers have no pin, so the toggle is disabled while one is selected.
+      instance._pinControl.setEnabled(pinApplies)
+    }
+    // TEMPORARY (size experiment): keep the size toggle in step with selection.
+    if (instance._largeSymbolsControl) {
+      instance._largeSymbolsControl.setValue(largeSymbols)
+    }
+  }
+
   // Initialize indicator position (use canvas coordinates directly)
   const initialPosition = getPositionFromColor(state.selectedColor, canvas.width)
   updateIndicatorPosition(indicator, initialPosition, canvas.width)
-  
+
   return container
 }
 

@@ -1,12 +1,14 @@
 {
   "name": "spectro-component",
-  "version": "0.1.10",
+  "version": "0.1.13",
   "type": "module",
   "scripts": {
     "generate-version": "node scripts/generate-version.js",
     "dev": "vite",
+    "prebuild": "yarn generate-version",
     "build": "vite build",
     "build:standalone": "BUILD_STANDALONE=true vite build",
+    "pretest": "yarn generate-version",
     "test": "playwright test",
     "typecheck": "tsc --noEmit"
   },

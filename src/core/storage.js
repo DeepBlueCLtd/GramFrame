@@ -5,9 +5,28 @@
  * in browser storage. Trainers get localStorage (permanent); students get
  * sessionStorage (cleared on browser close).
  *
- * Context detection: a page is treated as a trainer page if EITHER an anchor
- * with exact text "ANALYSIS" is present, OR an element with id "gf-persistent"
- * exists anywhere on the page. All other pages are student pages.
+ * Student persistence is additionally capped at 24 hours (feature 157): on
+ * load, a student-context record whose `savedAt` is older than
+ * STUDENT_TTL_MS — or missing, unparseable, or in the future — is discarded
+ * and its key removed (fail-safe toward clearing). Trainer-context records are
+ * exempt and remain permanent regardless of age. See isAnnotationExpired().
+ *
+ * Context detection: a page is treated as a trainer page if ANY of the
+ * following is present anywhere on the page:
+ *   - an element with id "gf-persistent",
+ *   - an element with class "gf-persistent",
+ *   - an element carrying the data-gf-persistent attribute, OR
+ *   - (legacy) an anchor whose exact text is "ANALYSIS".
+ * All other pages are student pages.
+ *
+ * The class and data-attribute forms exist so the flag can be emitted from a
+ * DITA-OT / Oxygen WebHelp publishing pipeline. DITA-OT topic-scopes and
+ * uniquifies every @id in its HTML output, so an authored id="gf-persistent"
+ * is rewritten to something page-specific and getElementById() never matches.
+ * @outputclass, by contrast, is passed straight through to the HTML @class
+ * verbatim and un-mangled (this is exactly how table.gram-config is already
+ * detected), and classes are not uniquified — so .gf-persistent is reliably
+ * emittable from DITA and stable on every page.
  */
 
 /// <reference path="../types.js" />
@@ -15,20 +34,80 @@
 /** @type {number} */
 const SCHEMA_VERSION = 1
 
+/**
+ * Fixed 24-hour student persistence policy. Student-context annotations older
+ * than this (measured from their last-save `savedAt`) are discarded on load.
+ * This is a fixed policy — not HTML-configurable — so it lives as a named
+ * constant. Trainer-context records are never subject to it.
+ * @type {number}
+ */
+export const STUDENT_TTL_MS = 24 * 60 * 60 * 1000
+
 /** @type {string} */
 const KEY_PREFIX = 'gramframe::'
 
 /**
+ * Storage key for the harmonic-pin visibility preference.
+ *
+ * Deliberately NOT page-scoped: the preference follows the analyst across the
+ * topics of a training package. It is also deliberately kept in sessionStorage
+ * for BOTH contexts (trainer and student) — unlike annotations — so it starts
+ * every browser session at its default (pins shown) while staying put for the
+ * rest of that session.
+ * @type {string}
+ */
+const PIN_PREF_KEY = `${KEY_PREFIX}pref::harmonicPin`
+
+/**
+ * CSS selector matching the explicit trainer-persistence flag. Accepts the
+ * id, class, or data-attribute form. Exported for unit testing.
+ * @type {string}
+ */
+export const TRAINER_FLAG_SELECTOR = '#gf-persistent, .gf-persistent, [data-gf-persistent]'
+
+/**
+ * Determine whether a student-context annotation record has expired.
+ *
+ * A record is treated as expired (and therefore discarded on load) when its
+ * `savedAt` timestamp cannot be proven fresh. This is deliberately fail-safe
+ * toward clearing student data:
+ *   - missing / unparseable `savedAt` (`Date.parse` → `NaN`) → expired,
+ *   - a `savedAt` in the future (`nowMs - t < 0`) → expired (guards clock skew
+ *     and hand-edited records),
+ *   - a `savedAt` older than {@link STUDENT_TTL_MS} → expired.
+ * Otherwise the record is within the 24-hour window and is NOT expired.
+ *
+ * Pure and side-effect-free: identical inputs always yield identical output.
+ * Applies to student context only — trainer records never call this.
+ *
+ * @param {string | undefined | null} savedAt - ISO-8601 timestamp of the last save
+ * @param {number} nowMs - Current wall-clock time in ms (e.g. `Date.now()`)
+ * @returns {boolean} True when the record should be discarded as expired
+ */
+export function isAnnotationExpired(savedAt, nowMs) {
+  const t = Date.parse(/** @type {string} */ (savedAt))
+  if (Number.isNaN(t)) {
+    return true
+  }
+  const age = nowMs - t
+  if (age < 0) {
+    return true
+  }
+  return age > STUDENT_TTL_MS
+}
+
+/**
  * Detect whether the current page is a trainer or student context.
  * A page is treated as trainer context if EITHER condition holds:
- *   - an anchor element with exact text "ANALYSIS" is present, OR
- *   - an element with id "gf-persistent" exists anywhere on the page.
+ *   - an explicit persistence flag (id, class, or data-attribute) is present
+ *     anywhere on the page (see TRAINER_FLAG_SELECTOR), OR
+ *   - (legacy) an anchor element with exact text "ANALYSIS" is present.
  * All other pages are student context.
  * @returns {'trainer' | 'student'}
  */
 export function detectUserContext() {
-  // Explicit persistence flag: an element with id "gf-persistent"
-  if (document.getElementById('gf-persistent')) {
+  // Explicit persistence flag: id, class, or data-attribute form.
+  if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
     return 'trainer'
   }
   // Legacy detection: an anchor whose exact text is "ANALYSIS"
@@ -74,6 +153,40 @@ export function buildStorageKey(instanceIndex) {
 }
 
 /**
+ * Read the harmonic-pin visibility preference for this browser session.
+ *
+ * Defaults to `true` (pins shown) whenever nothing has been stored yet, storage
+ * is unavailable, or the stored value is not one of the two recognised strings —
+ * so a fresh session always starts with pins visible.
+ * @returns {boolean} True when new/edited harmonic sets should show their pin
+ */
+export function loadPinPreference() {
+  try {
+    const raw = sessionStorage.getItem(PIN_PREF_KEY)
+    if (raw === 'false') return false
+    return true
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Store the harmonic-pin visibility preference for the rest of this browser
+ * session. Failures (private mode, quota) are swallowed — the in-memory state
+ * still holds for the current page.
+ * @param {boolean} showPin - Whether pins should be shown
+ * @returns {boolean} True if the preference was written
+ */
+export function savePinPreference(showPin) {
+  try {
+    sessionStorage.setItem(PIN_PREF_KEY, showPin ? 'true' : 'false')
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Extract annotation data from GramFrame state and save to storage.
  * Only writes when there is at least one annotation present.
  * @param {GramFrameState} state - Current component state
@@ -106,7 +219,11 @@ export function saveAnnotations(state, instanceIndex) {
           id: m.id,
           color: m.color,
           time: m.time,
-          freq: m.freq
+          freq: m.freq,
+          // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
+          // SCHEMA_VERSION bump: legacy records simply lack it and default to
+          // 'cross' (no drawn symbol) on restore.
+          symbol: m.symbol || 'cross'
         }))
       },
       harmonics: {
@@ -114,7 +231,17 @@ export function saveAnnotations(state, instanceIndex) {
           id: hs.id,
           color: hs.color,
           anchorTime: hs.anchorTime,
-          spacing: hs.spacing
+          spacing: hs.spacing,
+          // `symbol` is an ADDITIVE field (feature 157-harmonic-pin-symbols). It
+          // MUST NOT trigger a SCHEMA_VERSION bump: the strict version guard in
+          // loadAnnotations would otherwise discard all pre-existing v1 records.
+          // Legacy records simply lack this key and default to 'cross' (the
+          // symbol-less default, feature 161) on restore.
+          symbol: hs.symbol || 'cross',
+          // `showPin` is likewise ADDITIVE (harmonic-pin toggle) and MUST NOT
+          // bump SCHEMA_VERSION. Records written before it simply lack the key
+          // and restore as `true` (pin shown), matching their original look.
+          showPin: hs.showPin !== false
         }))
       },
       doppler: {
@@ -153,6 +280,15 @@ export function loadAnnotations(instanceIndex) {
 
     if (!data || data.version !== SCHEMA_VERSION) {
       console.warn('GramFrame: Discarding stored annotations — unrecognised schema version:', data && data.version)
+      storage.removeItem(key)
+      return null
+    }
+
+    // Student 24-hour expiry gate (feature 157). Trainer context is permanent
+    // and bypasses this entirely. A student record that cannot be proven fresh
+    // (missing/unparseable/future/older-than-24h savedAt) is discarded.
+    if (context === 'student' && isAnnotationExpired(data.savedAt, Date.now())) {
+      console.info('GramFrame: Discarding student annotations — older than the 24-hour persistence limit')
       storage.removeItem(key)
       return null
     }

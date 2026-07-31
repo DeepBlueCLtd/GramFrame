@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Legacy Browser Page - Compatibility Warning Test</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+
+  <!--
+    Simulate an out-of-date browser (e.g. Chrome/Edge 84) that lacks
+    Element.replaceChildren() (added in 86). This classic inline script runs
+    during parsing, before the deferred GramFrame module executes, so the
+    compatibility guard sees the API as missing exactly as it would on a real
+    legacy browser. Two config tables are present so we can confirm every
+    GramFrame area shows the warning (none left silently blank).
+  -->
+  <script>
+    try {
+      delete Element.prototype.replaceChildren
+    } catch (e) {
+      Element.prototype.replaceChildren = undefined
+    }
+  </script>
+
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Legacy Browser Page</h1>
+
+  <div class="component-container">
+    <table class="gram-config" id="config1">
+      <tr>
+        <td colspan="2">
+          <img src="../../sample/mock-gram.png" alt="Sample Spectrogram 1">
+        </td>
+      </tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>60</td></tr>
+      <tr><td>freq-start</td><td>0</td></tr>
+      <tr><td>freq-end</td><td>100</td></tr>
+    </table>
+  </div>
+
+  <div class="component-container">
+    <table class="gram-config" id="config2">
+      <tr>
+        <td colspan="2">
+          <img src="../../sample/mock-gram.png" alt="Sample Spectrogram 2">
+        </td>
+      </tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>60</td></tr>
+      <tr><td>freq-start</td><td>0</td></tr>
+      <tr><td>freq-end</td><td>100</td></tr>
+    </table>
+  </div>
+</body>
+</html>

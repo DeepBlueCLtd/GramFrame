@@ -168,6 +168,73 @@ class GramFramePage {
   }
 
   /**
+   * Dispatch a mouse-wheel event over the SVG at SVG-relative coordinates.
+   * Uses a synthetic WheelEvent so `deltaY` and `ctrlKey` are fully controlled.
+   * @param {number} x - X coordinate relative to the SVG
+   * @param {number} y - Y coordinate relative to the SVG
+   * @param {number} deltaY - Wheel delta (negative = scroll up/zoom in)
+   * @param {boolean} [ctrl=false] - Whether Ctrl is held (zoom vs pan)
+   * @returns {Promise<void>}
+   */
+  async wheelAtSVG(x, y, deltaY, ctrl = false) {
+    await this.page.evaluate(({ x, y, deltaY, ctrl }) => {
+      const svg = document.querySelector('.gram-frame-svg')
+      if (!svg) {
+        return
+      }
+      const rect = svg.getBoundingClientRect()
+      const ev = new WheelEvent('wheel', {
+        clientX: rect.left + x,
+        clientY: rect.top + y,
+        deltaY,
+        ctrlKey: ctrl,
+        bubbles: true,
+        cancelable: true
+      })
+      svg.dispatchEvent(ev)
+    }, { x, y, deltaY, ctrl })
+  }
+
+  /**
+   * Get an SVG-relative pixel point at a fraction across/down the rendered
+   * spectrogram image (accounts for the current zoom/pan and axis margins).
+   * @param {number} fracX - Horizontal fraction of the image (0-1)
+   * @param {number} fracY - Vertical fraction of the image (0-1)
+   * @returns {Promise<{x: number, y: number}>} SVG-relative coordinates
+   */
+  async imageSVGPoint(fracX, fracY) {
+    return await this.page.evaluate(({ fracX, fracY }) => {
+      const svg = document.querySelector('.gram-frame-svg')
+      const img = document.querySelector('.gram-frame-svg image')
+      const svgRect = svg.getBoundingClientRect()
+      const imgRect = img.getBoundingClientRect()
+      return {
+        x: (imgRect.left - svgRect.left) + fracX * imgRect.width,
+        y: (imgRect.top - svgRect.top) + fracY * imgRect.height
+      }
+    }, { fracX, fracY })
+  }
+
+  /**
+   * Perform a wheel-button (middle) drag on the SVG, in SVG-relative coordinates.
+   * @param {number} startX - Starting X coordinate relative to the SVG
+   * @param {number} startY - Starting Y coordinate relative to the SVG
+   * @param {number} endX - Ending X coordinate relative to the SVG
+   * @param {number} endY - Ending Y coordinate relative to the SVG
+   * @returns {Promise<void>}
+   */
+  async middleDragSVG(startX, startY, endX, endY) {
+    const svgBox = await this.svg.boundingBox()
+    if (!svgBox) {
+      return
+    }
+    await this.page.mouse.move(svgBox.x + startX, svgBox.y + startY)
+    await this.page.mouse.down({ button: 'middle' })
+    await this.page.mouse.move(svgBox.x + endX, svgBox.y + endY, { steps: 5 })
+    await this.page.mouse.up({ button: 'middle' })
+  }
+
+  /**
    * Verify the value of an LED display
    * @param {string} label - The label of the LED display (e.g., "Frequency", "Time", "Mode")
    * @param {RegExp} expectedValueRegex - Regular expression to match the expected value
@@ -449,6 +516,199 @@ class GramFramePage {
       }
       return keys
     }, storageType)
+  }
+
+  /**
+   * Build a CSS selector for harmonic lines, optionally scoped to one set.
+   * @param {string} [setId] - Restrict to a single harmonic set's lines
+   * @returns {string} Selector string
+   */
+  harmonicLineSelector(setId) {
+    return setId
+      ? `.gram-frame-harmonic-line[data-harmonic-set-id="${setId}"]`
+      : '.gram-frame-harmonic-line'
+  }
+
+  /**
+   * Count the rendered harmonic pin lines, optionally for a single set.
+   * @param {string} [setId] - Restrict the count to one harmonic set
+   * @returns {Promise<number>} Number of `.gram-frame-harmonic-line` elements
+   */
+  async getHarmonicLineCount(setId) {
+    return this.page.locator(this.harmonicLineSelector(setId)).count()
+  }
+
+  /**
+   * Read the `data-harmonic-number` of each rendered harmonic line, in document
+   * order, optionally for a single set.
+   * @param {string} [setId] - Restrict to one harmonic set
+   * @returns {Promise<number[]>} Harmonic numbers in order
+   */
+  async getHarmonicNumbers(setId) {
+    return this.page.evaluate((selector) => {
+      const lines = Array.from(document.querySelectorAll(selector))
+      return lines.map((line) => Number(line.getAttribute('data-harmonic-number')))
+    }, this.harmonicLineSelector(setId))
+  }
+
+  /**
+   * Read the harmonic number of every rendered number label, optionally scoped to
+   * a single set. Reads the label's `data-harmonic-number` attribute.
+   * @param {string} [setId] - Restrict to one harmonic set
+   * @returns {Promise<number[]>} Label numbers in document order
+   */
+  async getHarmonicLabelNumbers(setId) {
+    const selector = setId
+      ? `.gram-frame-harmonic-number[data-harmonic-set-id="${setId}"]`
+      : '.gram-frame-harmonic-number'
+    return this.page.evaluate((sel) => {
+      const labels = Array.from(document.querySelectorAll(sel))
+      return labels.map((label) => Number(label.getAttribute('data-harmonic-number')))
+    }, selector)
+  }
+
+  /**
+   * Read the resolved paint of every rendered harmonic number label, optionally
+   * scoped to a single set. Uses computed style (not attributes) so a CSS rule
+   * overriding the halo would be caught.
+   * @param {string} [setId] - Restrict to one harmonic set
+   * @returns {Promise<Array<{fill: string, stroke: string, strokeWidth: string, strokeLinejoin: string, paintOrder: string}>>}
+   */
+  async getHarmonicLabelStyles(setId) {
+    const selector = setId
+      ? `.gram-frame-harmonic-number[data-harmonic-set-id="${setId}"]`
+      : '.gram-frame-harmonic-number'
+    return this.page.evaluate((sel) => {
+      return Array.from(document.querySelectorAll(sel)).map((el) => {
+        const style = window.getComputedStyle(el)
+        return {
+          fill: style.fill,
+          stroke: style.stroke,
+          strokeWidth: style.strokeWidth,
+          strokeLinejoin: style.strokeLinejoin,
+          paintOrder: style.paintOrder
+        }
+      })
+    }, selector)
+  }
+
+  /**
+   * Programmatically add an analysis marker via the test instance API.
+   * @param {number} time - Time position in seconds
+   * @param {number} freq - Frequency in Hz
+   * @returns {Promise<string>} The created marker's id
+   */
+  async addMarker(time, freq) {
+    return this.page.evaluate(([t, f]) => {
+      // @ts-ignore - test-only global
+      const instances = window.GramFrame.__test__getInstances()
+      const instance = instances[0]
+      instance.modes['analysis'].createMarkerAtPosition({ time: t, freq: f })
+      const markers = instance.state.analysis.markers
+      return markers[markers.length - 1].id
+    }, [time, freq])
+  }
+
+  /**
+   * Programmatically add a harmonic set via the test instance API.
+   * @param {number} anchorTime - Time position in seconds
+   * @param {number} spacing - Frequency spacing in Hz
+   * @returns {Promise<string>} The created harmonic set's id
+   */
+  async addHarmonicSet(anchorTime, spacing) {
+    return this.page.evaluate(([time, space]) => {
+      // @ts-ignore - test-only global
+      const instances = window.GramFrame.__test__getInstances()
+      const instance = instances[0]
+      const set = instance.modes['harmonics'].addHarmonicSet(time, space)
+      return set.id
+    }, [anchorTime, spacing])
+  }
+
+  /**
+   * Programmatically set the zoom level/centre via the test instance API.
+   * @param {number} level - Zoom level (1.0 = no zoom)
+   * @param {number} [centerX=0.5] - Normalised horizontal centre (0-1)
+   * @param {number} [centerY=0.5] - Normalised vertical centre (0-1)
+   * @returns {Promise<void>}
+   */
+  async setZoom(level, centerX = 0.5, centerY = 0.5) {
+    await this.page.evaluate(([lvl, cx, cy]) => {
+      // @ts-ignore - test-only global
+      const instances = window.GramFrame.__test__getInstances()
+      instances[0]._setZoom(lvl, cx, cy)
+    }, [level, centerX, centerY])
+  }
+
+  /**
+   * Select a symbol from the control-panel symbol drop-down.
+   * @param {string} symbolId - One of 'circle','square','diamond','triangle','triangle-down','star'
+   * @returns {Promise<void>}
+   */
+  async selectSymbol(symbolId) {
+    await this.page.locator('.gram-frame-symbol-select').selectOption(symbolId)
+  }
+
+  /**
+   * Set the harmonic-pin toggle in the Symbol panel.
+   * @param {boolean} checked - Desired checkbox state
+   * @returns {Promise<void>}
+   */
+  async setPinToggle(checked) {
+    const toggle = this.page.locator('.gram-frame-pin-toggle-input')
+    if (checked) {
+      await toggle.check()
+    } else {
+      await toggle.uncheck()
+    }
+  }
+
+  /**
+   * Read the harmonic-pin toggle's current state.
+   * @returns {Promise<{checked: boolean, disabled: boolean}>}
+   */
+  async getPinToggleState() {
+    return this.page.evaluate(() => {
+      const el = /** @type {HTMLInputElement|null} */ (
+        document.querySelector('.gram-frame-pin-toggle-input')
+      )
+      if (!el) return { checked: false, disabled: false }
+      return { checked: el.checked, disabled: el.disabled }
+    })
+  }
+
+  /**
+   * Read the pin symbol marks rendered on the spectrogram overlay.
+   * @param {string} [harmonicSetId] - Optional filter to a single set's marks
+   * @returns {Promise<Array<{symbol: string, fill: string, tag: string}>>}
+   */
+  async getPinSymbols(harmonicSetId) {
+    return this.page.evaluate((setId) => {
+      const selector = setId
+        ? `.gram-frame-harmonic-symbol[data-harmonic-set-id="${setId}"]`
+        : '.gram-frame-harmonic-symbol'
+      return Array.from(document.querySelectorAll(selector)).map((el) => ({
+        symbol: el.getAttribute('data-symbol') || '',
+        fill: el.getAttribute('fill') || '',
+        tag: el.tagName.toLowerCase()
+      }))
+    }, harmonicSetId)
+  }
+
+  /**
+   * Read the symbol swatches shown in the harmonics table rows.
+   * @returns {Promise<Array<{symbol: string, fill: string}>>}
+   */
+  async getTableSymbolSwatches() {
+    return this.page.evaluate(() => {
+      const marks = Array.from(document.querySelectorAll(
+        '.gram-frame-harmonic-row .gram-frame-harmonic-symbol'
+      ))
+      return marks.map((el) => ({
+        symbol: el.getAttribute('data-symbol') || '',
+        fill: el.getAttribute('fill') || ''
+      }))
+    })
   }
 }
 

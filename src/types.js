@@ -71,6 +71,8 @@
  * @property {string} color - Marker color
  * @property {number} time - Time coordinate
  * @property {number} freq - Frequency coordinate
+ * @property {SymbolType} [symbol] - Marker symbol; `cross` (default) draws a crosshair, a shaped symbol draws that mark
+ * @property {boolean} [largeSymbols] - EXPERIMENT (temporary): draw this marker's symbol at the large size; not persisted
  */
 
 /**
@@ -91,12 +93,22 @@
  */
 
 /**
+ * Symbol style used as a colour-blind-friendly visual code for a feature.
+ * `cross` is the symbol-less default (no drawn shape); the remaining values are
+ * filled shapes. Any unknown/absent value resolves to `cross`.
+ * @typedef {'cross'|'circle'|'square'|'diamond'|'triangle'|'triangle-down'|'star'} SymbolType
+ */
+
+/**
  * Harmonic set definition for interactive overlays
  * @typedef {Object} HarmonicSet
  * @property {string} id - Unique identifier for the harmonic set
  * @property {string} color - Display color for harmonic lines
  * @property {number} anchorTime - Time position (Y-axis) in seconds
  * @property {number} spacing - Frequency spacing between harmonics in Hz
+ * @property {SymbolType} symbol - Filled shape drawn at the top of each pin and shown in the harmonics table
+ * @property {boolean} [showPin] - Whether the vertical pin lines are drawn; absent (legacy/restored) means shown
+ * @property {boolean} [largeSymbols] - EXPERIMENT (temporary): draw this set's pin symbols at the large size; not persisted
  */
 
 /**
@@ -172,7 +184,10 @@
  * @property {ModeType} mode - Current analysis mode
  * @property {ModeType|null} previousMode - Previous analysis mode
  * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
- * @property {string} selectedColor - Currently selected color for new features across all modes
+ * @property {string} selectedColor - Colour for the NEXT created feature (when nothing is selected); when a feature is selected the picker restyles it instead
+ * @property {SymbolType} selectedSymbol - Symbol for the NEXT created harmonic set or marker (when nothing is selected); when a feature is selected the picker restyles it instead
+ * @property {boolean} showHarmonicPin - Pin visibility for the NEXT created harmonic set; session preference, on by default
+ * @property {boolean} largeSymbols - EXPERIMENT (temporary): large-symbol size for the NEXT created feature (when nothing is selected); in-memory only, never persisted
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {HarmonicsState} harmonics - Harmonics mode state
@@ -232,6 +247,7 @@
  * @property {string} color - Marker colour (hex)
  * @property {number} time - Time position in seconds
  * @property {number} freq - Frequency position in Hz
+ * @property {SymbolType} [symbol] - Persisted symbol; ABSENT in legacy records (default `cross` on restore)
  */
 
 /**
@@ -247,6 +263,8 @@
  * @property {string} color - Display colour (hex)
  * @property {number} anchorTime - Y-axis position in seconds
  * @property {number} spacing - Frequency spacing between harmonics in Hz
+ * @property {SymbolType} [symbol] - Persisted symbol; ABSENT in legacy (pre-feature) records
+ * @property {boolean} [showPin] - Persisted pin visibility; ABSENT in records saved before the pin toggle (restores as shown)
  */
 
 /**
@@ -286,6 +304,7 @@
  * @property {HTMLDivElement|null} [mainRow] - Main display row
  * 
  * @property {HTMLDivElement|null} [container] - Main container element
+ * @property {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null} [_wheelPan] - Transient wheel-button drag-pan state
  * @property {SVGSVGElement|null} [svg] - Main SVG element
  * @property {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
  * @property {HTMLButtonElement|null} [expandToggleButton] - Expand/collapse toggle button (landscape only)
@@ -296,7 +315,7 @@
  * @property {HTMLDivElement|null} [readoutPanel] - Container for readouts
  * @property {HTMLDivElement|null} [modeCell] - Mode selection cell
  * @property {HTMLDivElement|null} [mainCell] - Main display cell
- * @property {HTMLElement|null} [colorPicker] - Color picker component
+ * @property {HTMLElement|null} [colorPicker] - Combined colour/symbol picker component
  * @property {HTMLElement|null} [timeLED] - Time display LED
  * @property {HTMLElement|null} [freqLED] - Frequency display LED
  * @property {HTMLElement|null} [speedLED] - Speed display LED
@@ -340,6 +359,14 @@
  * @property {function(): void} [clearSelection] - Clear selection  
  * @property {function(): void} [updateSelectionVisuals] - Update selection visuals
  * @property {function(string): void} [removeHarmonicSet] - Remove harmonic set by ID
+ * @property {function(string): boolean} [applyColorToSelectedFeature] - Restyle the selected feature's colour in place (feature 161)
+ * @property {function(SymbolType): boolean} [applySymbolToSelectedFeature] - Restyle the selected feature's symbol in place (feature 161)
+ * @property {function(boolean): boolean} [applyPinToSelectedFeature] - Show/hide the selected harmonic set's pin lines in place
+ * @property {function(boolean): boolean} [applyLargeSymbolsToSelectedFeature] - EXPERIMENT (temporary): resize the selected feature's symbols in place
+ * @property {function(): void} [syncStyleControls] - Sync the colour/symbol/pin controls to the current selection (feature 161)
+ * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} [_symbolControl] - Symbol drop-down control handle
+ * @property {{setValue: function(boolean): void, setEnabled: function(boolean): void}|null} [_pinControl] - Pin toggle control handle
+ * @property {{setValue: function(boolean): void}|null} [_largeSymbolsControl] - EXPERIMENT (temporary): "Large symbols" checkbox handle
  * @property {function(): void} [createUnifiedLayout] - Create unified layout
  */
 
