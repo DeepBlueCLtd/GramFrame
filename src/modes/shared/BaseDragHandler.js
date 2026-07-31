@@ -79,6 +79,16 @@ function publishDragProjection(instance) {
 }
 
 /**
+ * A drag in progress, as reported by `getDraggedTarget`.
+ * @typedef {Object} DraggedTargetInfo
+ * @property {DragKind|null} kind - What kind of drag is running
+ * @property {string|null} id - Feature id being dragged
+ * @property {string|null} type - Feature type being dragged
+ * @property {DataCoordinates|null} startPosition - Where the drag began
+ * @property {any} originalData - Snapshot taken at drag start
+ */
+
+/**
  * Base drag handler class for managing drag operations
  */
 export class BaseDragHandler {
@@ -121,8 +131,12 @@ export class BaseDragHandler {
   }
 
   /**
-   * Get the current dragged target information
-   * @returns {Object|null} Drag target info or null if not dragging
+   * Get the current dragged target information.
+   *
+   * Deliberately not a `DragTarget`: this carries the drag's *start* position
+   * and the snapshot taken at that moment, where `DragTarget` carries the
+   * current position. See {@link BaseDragHandler#currentTarget} for the latter.
+   * @returns {DraggedTargetInfo|null} Drag target info or null if not dragging
    */
   getDraggedTarget() {
     if (!this.dragState.isDragging) return null

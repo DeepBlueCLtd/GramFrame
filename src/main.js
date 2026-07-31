@@ -4,6 +4,9 @@
 
 /// <reference path="./types.js" />
 
+/** @typedef {import('./modes/BaseMode.js').BaseMode} BaseMode */
+/** @typedef {import('./core/FeatureRenderer.js').FeatureRenderer} FeatureRenderer */
+
 import {
   createInitialState,
   dispatch,
@@ -79,80 +82,129 @@ export class GramFrame {
   // Core properties
   /** @type {GramFrameState} */
   state;
+  /** @type {HTMLTableElement} */
   configTable;
+  /** @type {StateListener[]} */
   stateListeners;
+  /** @type {string} */
   instanceId;
   
   // DOM element properties
+  /** @type {HTMLDivElement} */
   container;
+  /** @type {HTMLDivElement} */
   readoutPanel;
+  /** @type {HTMLDivElement} */
   modeCell;
+  /** @type {HTMLDivElement} */
   mainCell;
+  /** @type {HTMLElement|null} */
   modeLED;
+  /** @type {HTMLElement|null} */
   rateLED;
+  /** @type {HTMLElement} */
   colorPicker;
+  /** @type {SVGSVGElement} */
   svg;
+  /** @type {SVGGElement} */
   cursorGroup;
+  /** @type {SVGGElement} */
   axesGroup;
+  /** @type {SVGRectElement} */
   imageClipRect;
+  /** @type {SVGRectElement} */
   cursorClipRect;
   
   // Unified layout containers
+  /** @type {HTMLDivElement} */
   leftColumn;
+  /** @type {HTMLDivElement} */
   middleColumn;
+  /** @type {HTMLDivElement} */
   rightColumn;
+  /** @type {HTMLDivElement} */
   modeColumn;
+  /** @type {HTMLDivElement} */
   guidanceColumn;
+  /** @type {HTMLDivElement} */
   controlsColumn;
+  /** @type {HTMLDivElement} */
   unifiedLayoutContainer;
+  /** @type {HTMLElement} */
   timeLED;
+  /** @type {HTMLElement} */
   freqLED;
+  /** @type {HTMLElement} */
   speedLED;
+  /** @type {HTMLDivElement} */
   markersContainer;
+  /** @type {HTMLDivElement} */
   harmonicsContainer;
   
   // Spectrogram image
+  /** @type {SVGImageElement} */
   spectrogramImage;
 
   // Expand/collapse toggle button (landscape images only)
+  /** @type {HTMLButtonElement|null} */
   expandToggleButton;
   
   // Mode switching UI
+  /** @type {HTMLDivElement} */
   modesContainer;
+  /** @type {Object<string, HTMLButtonElement>} */
   modeButtons;
+  /** @type {Object<string, HTMLButtonElement[]>} */
   commandButtons;
+  /** @type {HTMLDivElement} */
   guidancePanel;
   
   // Mode system
+  /** @type {Object<string, BaseMode>} */
   modes;
+  /** @type {BaseMode} */
   currentMode;
+  /** @type {FeatureRenderer} */
   featureRenderer;
   
   // Keyboard control functions
+  /** @type {function(string, string, number): void} */
   setSelection;
+  /** @type {function(): void} */
   clearSelection;
+  /** @type {function(): void} */
   updateSelectionVisuals;
 
   // Reformatting (feature 161): restyle the selected feature in place
+  /** @type {function(string): boolean} */
   applyColorToSelectedFeature;
+  /** @type {function(SymbolType): boolean} */
   applySymbolToSelectedFeature;
   // Show/hide the selected harmonic set's pin lines
+  /** @type {function(boolean): boolean} */
   applyPinToSelectedFeature;
   // EXPERIMENT (temporary): resize the selected feature's symbols
+  /** @type {function(boolean): boolean} */
   applyLargeSymbolsToSelectedFeature;
   // Sync the colour/symbol/pin controls to the current selection
+  /** @type {function(): void} */
   syncStyleControls;
   // Symbol drop-down control handle (registered by the symbol picker)
+  /** @type {any} */
   _symbolControl;
   // Pin toggle control handle (registered by the pin toggle)
+  /** @type {any} */
   _pinControl;
   // EXPERIMENT (temporary): "Large symbols" checkbox handle
+  /** @type {any} */
   _largeSymbolsControl;
   
   // ResizeObserver
+  /** @type {ResizeObserver|null} */
   resizeObserver;
   
   // Bound event handlers
+  /** @type {(function(Event): void)|null} */
   _boundHandleResize;
 
   /**
@@ -173,13 +225,16 @@ export class GramFrame {
   _wheelPanLast = null;
 
   // Storage instance index for multi-instance pages
+  /** @type {number} */
   _storageInstanceIndex;
 
   // Whether this instance is a trainer context
+  /** @type {boolean} */
   _isTrainerContext;
 
   // Set when the browser lacks a required API; construction is skipped and a
   // compatibility warning is shown in place of the component.
+  /** @type {boolean} */
   _unsupportedBrowser;
 
   /**

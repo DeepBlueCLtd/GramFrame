@@ -25,7 +25,7 @@ const DopplerDraggedMarker = {
 export class DopplerMode extends BaseMode {
   /**
    * Initialize DopplerMode with drag handler
-   * @param {Object} instance - GramFrame instance
+   * @param {GramFrame} instance - GramFrame instance
    */
   constructor(instance) {
     super(instance)
@@ -47,7 +47,7 @@ export class DopplerMode extends BaseMode {
    * Find doppler marker at given position
    * Returns a drag target object compatible with BaseDragHandler
    * @param {DataCoordinates} position - Position to check
-   * @returns {Object|null} Drag target if found, null otherwise
+   * @returns {DragTarget|null} Drag target if found, null otherwise
    */
   findDopplerMarkerAtPosition(position) {
     const doppler = this.instance.state.doppler
@@ -66,7 +66,9 @@ export class DopplerMode extends BaseMode {
     ]
       .filter(markerType => doppler[markerType])
       .map(markerType => ({
-        kind: 'move',
+        // Inside a `.map` there is no contextual type to keep the literal
+        // narrow, so 'move' would widen to `string` and stop being a `DragKind`.
+        kind: /** @type {DragKind} */ ('move'),
         id: markerType,
         type: 'dopplerMarker',
         position: doppler[markerType],
@@ -79,7 +81,7 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Start dragging a doppler marker
-   * @param {Object} target - Drag target with id and type
+   * @param {DragTarget} target - Drag target with id and type
    * @param {DataCoordinates} _position - Start position (unused)
    */
   onMarkerDragStart(target, _position) {

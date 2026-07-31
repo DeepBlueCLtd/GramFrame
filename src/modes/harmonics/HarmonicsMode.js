@@ -18,7 +18,7 @@ import { calculateVisibleDataRange, getRenderDimensions } from '../../utils/coor
 export class HarmonicsMode extends BaseMode {
   /**
    * Initialize HarmonicsMode with drag handler
-   * @param {Object} instance - GramFrame instance
+   * @param {GramFrame} instance - GramFrame instance
    */
   constructor(instance) {
     super(instance)
@@ -40,7 +40,7 @@ export class HarmonicsMode extends BaseMode {
   /**
    * Find harmonic set target for drag handler
    * @param {DataCoordinates} position - Position to check
-   * @returns {Object|null} Drag target if found, null otherwise
+   * @returns {DragTarget|null} Drag target if found, null otherwise
    */
   findHarmonicSetTarget(position) {
     const harmonicSet = this.findHarmonicSetAtFrequency(position.freq)
@@ -79,7 +79,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Start dragging a harmonic set
-   * @param {Object} target - Drag target with id and type
+   * @param {DragTarget} target - Drag target with id and type
    * @param {DataCoordinates} position - Start position
    */
   onHarmonicSetDragStart(target, position) {

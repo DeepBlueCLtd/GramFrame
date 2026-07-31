@@ -25,6 +25,20 @@ export class BaseMode {
    */
   constructor(instance) {
     this.instance = instance
+
+    /**
+     * This mode's drag handler, when it has one. Pan, Analysis, Harmonics and
+     * Doppler each construct one; a mode with no drag interaction leaves it null.
+     * @type {import('./shared/BaseDragHandler.js').BaseDragHandler|null}
+     */
+    this.dragHandler = null
+
+    /**
+     * DOM elements this mode created, kept so `destroyUI` can remove them.
+     * Populated by `createUI`; the keys are mode-specific.
+     * @type {Object<string, HTMLElement|null>}
+     */
+    this.uiElements = {}
   }
 
   /**

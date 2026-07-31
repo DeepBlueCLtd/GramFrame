@@ -19,6 +19,42 @@ import { formatTime } from '../utils/timeFormatter.js'
 import { calculateVisibleDataRange, getRenderDimensions } from '../utils/coordinates.js'
 
 /**
+ * A nice-number tick layout for one axis.
+ * @typedef {Object} AxisTicks
+ * @property {number} majorInterval - Spacing between labelled ticks, in data units
+ * @property {number} minorInterval - Spacing between unlabelled ticks
+ * @property {number} majorStart - First major tick, aligned to the interval
+ * @property {number} minorStart - First minor tick, aligned to the interval
+ * @property {number} expectedMajorTicks - Major ticks the range should produce
+ * @property {number} expectedMinorTicks - Minor ticks the range should produce
+ * @property {number} maxTicks - Safety limit on the drawing loops
+ */
+
+/**
+ * Where one axis line sits, in SVG units.
+ * @typedef {Object} AxisConfig
+ * @property {number} startX - Line start
+ * @property {number} endX - Line end
+ * @property {number} y - Line offset along the other axis
+ */
+
+/**
+ * One tick to draw.
+ * @typedef {Object} AxisTick
+ * @property {number} x - Position along the axis
+ * @property {number} height - Tick length
+ * @property {string} className - CSS class distinguishing major from minor
+ */
+
+/**
+ * One label to draw.
+ * @typedef {Object} AxisLabel
+ * @property {number} x - Position along the axis
+ * @property {string} text - Rendered label
+ * @property {string} className - CSS class
+ */
+
+/**
  * Render time and frequency axes
  * @param {GramFrame} instance - GramFrame instance
  */
@@ -111,7 +147,7 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
  * @param {number} max - Maximum value
  * @param {number} containerSize - Container size in pixels
  * @param {number} targetSpacing - Target spacing between major ticks in pixels
- * @returns {Object} Tick calculation results with major and minor intervals, starts, and tick counts
+ * @returns {AxisTicks} Tick calculation results with major and minor intervals, starts, and tick counts
  */
 function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
   const range = max - min
@@ -193,8 +229,8 @@ function formatFrequencyLabels(frequency) {
 
 /**
  * Render main axis line
- * @param {Object} instance - Component instance
- * @param {Object} axisConfig - Axis configuration with start/end positions
+ * @param {GramFrame} instance - Component instance
+ * @param {AxisConfig} axisConfig - Axis configuration with start/end positions
  */
 function renderAxisLine(instance, axisConfig) {
   const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
@@ -208,9 +244,9 @@ function renderAxisLine(instance, axisConfig) {
 
 /**
  * Render axis tick marks
- * @param {Object} instance - Component instance
- * @param {Array} tickData - Array of tick positions and types
- * @param {Object} axisConfig - Axis configuration
+ * @param {GramFrame} instance - Component instance
+ * @param {AxisTick[]} tickData - Array of tick positions and types
+ * @param {AxisConfig} axisConfig - Axis configuration
  */
 function renderAxisTicks(instance, tickData, axisConfig) {
   tickData.forEach(tickInfo => {
@@ -226,9 +262,9 @@ function renderAxisTicks(instance, tickData, axisConfig) {
 
 /**
  * Render axis labels
- * @param {Object} instance - Component instance
- * @param {Array} labelData - Array of label positions and text
- * @param {Object} axisConfig - Axis configuration
+ * @param {GramFrame} instance - Component instance
+ * @param {AxisLabel[]} labelData - Array of label positions and text
+ * @param {AxisConfig} axisConfig - Axis configuration
  */
 function renderAxisLabels(instance, labelData, axisConfig) {
   labelData.forEach(labelInfo => {

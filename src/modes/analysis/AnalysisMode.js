@@ -41,7 +41,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Initialize AnalysisMode with drag handler
-   * @param {Object} instance - GramFrame instance
+   * @param {GramFrame} instance - GramFrame instance
    */
   constructor(instance) {
     super(instance)
@@ -58,7 +58,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Start dragging a marker
-   * @param {Object} target - Drag target with id and type
+   * @param {DragTarget} target - Drag target with id and type
    * @param {DataCoordinates} position - Start position
    */
   onMarkerDragStart(target, position) {
@@ -76,7 +76,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Update marker position during drag
-   * @param {Object} target - Drag target with id and type
+   * @param {DragTarget} target - Drag target with id and type
    * @param {DataCoordinates} currentPos - Current position
    * @param {DataCoordinates} _startPos - Start position (unused)
    */
@@ -546,7 +546,7 @@ export class AnalysisMode extends BaseMode {
    * Find marker at given position (with tolerance)
    * Returns a drag target object compatible with BaseDragHandler
    * @param {DataCoordinates} position - Position to check
-   * @returns {Object|null} Drag target if found, null otherwise
+   * @returns {DragTarget|null} Drag target if found, null otherwise
    */
   findMarkerAtPosition(position) {
     if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null

@@ -4,7 +4,7 @@
     "allowJs": true,
     "noEmit": true,
     "strict": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "strictNullChecks": false,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
