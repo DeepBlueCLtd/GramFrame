@@ -187,7 +187,8 @@ export class BaseMode {
       margins: this.instance.state.margins,
       imageDetails: this.instance.state.imageDetails,
       config: this.instance.state.config,
-      zoom: this.instance.state.zoom
+      zoom: this.instance.state.zoom,
+      rate: this.instance.state.rate
     }
   }
 

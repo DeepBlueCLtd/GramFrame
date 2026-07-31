@@ -9,7 +9,8 @@
 import {
   addGlobalStateListener,
   removeGlobalStateListener,
-  notifyStateListeners
+  dispatch,
+  flushDispatch
 } from '../core/state.js'
 import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
 import { isBrowserSupported, showCompatibilityWarning, looksLikeMissingApiError } from '../core/browserCompatibility.js'
@@ -41,7 +42,25 @@ function attachDebugAPI(api) {
    */
   api.__test__forceUpdate = function () {
     this._getInstances().forEach(instance => {
-      notifyStateListeners(instance.state, instance.stateListeners)
+      dispatch(instance)
+      // "Force" means now: notifications are coalesced (spec 166, US4), so a
+      // bare dispatch would only schedule one.
+      flushDispatch(instance)
+    })
+  }
+
+  /**
+   * Deliver every instance's pending notification immediately.
+   *
+   * Notifications are coalesced (spec 166, US4), so a test that performs an
+   * action and reads the broadcast state back is otherwise racing the
+   * dispatcher. This settles it deterministically instead of waiting out a
+   * frame.
+   * @returns {void}
+   */
+  api.__test__flushDispatches = function () {
+    this._getInstances().forEach(instance => {
+      flushDispatch(instance)
     })
   }
 

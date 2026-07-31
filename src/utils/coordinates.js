@@ -1,75 +1,247 @@
 /**
- * Coordinate transformation utilities for GramFrame
- * 
- * This module provides functions to convert between different coordinate systems:
- * - Screen coordinates (relative to browser viewport)
- * - SVG coordinates (relative to SVG viewBox)  
- * - Image coordinates (relative to spectrogram image)
- * - Data coordinates (time/frequency values)
+ * Canonical coordinate transformations for GramFrame.
+ *
+ * This is the single module every screen/SVG/image/data conversion in `src/`
+ * routes through (spec 166, FR-002; constitution Principle I). It replaces the
+ * four parallel implementations that preceded it: this file's original
+ * screen/image pair, `utils/coordinateTransformations.js`, the private pair in
+ * `core/keyboardControl.js`, and the inline `screenToDataWithZoom` in
+ * `core/events.js`.
+ *
+ * Coordinate systems, outermost first:
+ *
+ * - **Screen** — client pixels, relative to the SVG element's bounding box.
+ * - **SVG** — viewBox units. The viewBox is fixed; zoom resizes the image
+ *   element inside it (ADR-015).
+ * - **Image** — render-pixel space, relative to the image's top-left. Always
+ *   expressed against `imageDetails.renderWidth/renderHeight`, so a point keeps
+ *   the same image coordinates whatever the element is currently scaled to.
+ * - **Data** — time in seconds and frequency in Hz.
+ *
+ * Two invariants are worth stating because they are easy to get wrong:
+ *
+ * - Where a spectrogram image element is supplied, its live `x`/`y`/`width`/
+ *   `height` attributes are the source of truth: they already encode expand ×
+ *   zoom. `renderWidth`/`renderHeight` (defaulting to natural size) are the
+ *   fallback when no element is present. Callers therefore do **not**
+ *   compensate for zoom externally.
+ * - Bounds handling is separate from transformation. The transforms never clamp
+ *   and never return null; a caller that needs a bounds decision asks
+ *   {@link isWithinImage} for it, and one that needs clamping asks
+ *   {@link clampToImage}.
  */
 
 /// <reference path="../types.js" />
 
 /**
- * Convert screen coordinates to SVG coordinates
- * @param {number} screenX - Screen X coordinate relative to SVG element
- * @param {number} screenY - Screen Y coordinate relative to SVG element
+ * The viewport bundle every transform takes.
+ * @typedef {Object} Viewport
+ * @property {AxesMargins} margins - Axes margins
+ * @property {ImageDetails} imageDetails - Image dimensions
+ * @property {Config} config - Time/frequency configuration
+ * @property {number} rate - Frequency divider
+ */
+
+/**
+ * Base render size, falling back to the image's natural size.
+ * @param {ImageDetails} imageDetails - Image dimensions
+ * @returns {{width: number, height: number}} Base render size in image pixels
+ */
+function renderSize(imageDetails) {
+  return {
+    width: imageDetails.renderWidth || imageDetails.naturalWidth,
+    height: imageDetails.renderHeight || imageDetails.naturalHeight
+  }
+}
+
+/**
+ * Live image bounds in SVG space.
+ *
+ * The element's attributes win when it is present, because they already reflect
+ * expand × zoom. Without an element the base render size at the margin origin
+ * is the best available answer.
+ *
+ * @param {Viewport} viewport - Current viewport
+ * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @returns {{left: number, top: number, width: number, height: number}} Bounds in SVG units
+ */
+export function getImageBounds(viewport, spectrogramImage = null) {
+  const { margins, imageDetails } = viewport
+  const { width, height } = renderSize(imageDetails)
+
+  if (spectrogramImage) {
+    return {
+      left: parseFloat(spectrogramImage.getAttribute('x') || String(margins.left)),
+      top: parseFloat(spectrogramImage.getAttribute('y') || String(margins.top)),
+      width: parseFloat(spectrogramImage.getAttribute('width') || String(width)),
+      height: parseFloat(spectrogramImage.getAttribute('height') || String(height))
+    }
+  }
+
+  return { left: margins.left, top: margins.top, width, height }
+}
+
+/**
+ * Convert screen coordinates to SVG coordinates.
+ * @param {number} screenX - X relative to the SVG element's bounding box
+ * @param {number} screenY - Y relative to the SVG element's bounding box
  * @param {SVGSVGElement} svg - SVG element reference
- * @param {ImageDetails} _imageDetails - Image dimensions
  * @returns {SVGCoordinates} SVG coordinates
  */
-export function screenToSVGCoordinates(screenX, screenY, svg, _imageDetails) {
+export function screenToSVG(screenX, screenY, svg) {
   const svgRect = svg.getBoundingClientRect()
   const viewBox = svg.viewBox.baseVal
-  
-  // Use viewBox if available, otherwise calculate from image dimensions + margins
+
+  // Use viewBox if available, otherwise assume SVG units match screen pixels
   if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
-    // Scale factors between screen and SVG coordinates
     const scaleX = viewBox.width / svgRect.width
     const scaleY = viewBox.height / svgRect.height
-    
+
     return {
       x: (screenX * scaleX) + viewBox.x,
       y: (screenY * scaleY) + viewBox.y
     }
   }
-  
-  // Fallback: assume SVG coordinates match screen coordinates
+
   return { x: screenX, y: screenY }
 }
 
-
 /**
- * Convert image-relative coordinates to data coordinates (time and frequency)
- * @param {number} imageX - Image X coordinate  
- * @param {number} imageY - Image Y coordinate
- * @param {Config} config - Configuration object
- * @param {ImageDetails} imageDetails - Image dimensions
- * @param {number} rate - Rate scaling factor
- * @returns {DataCoordinates} Data coordinates
+ * Convert an SVG point to image-relative coordinates, in render-pixel space.
+ * @param {number} svgX - SVG X coordinate
+ * @param {number} svgY - SVG Y coordinate
+ * @param {Viewport} viewport - Current viewport
+ * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @returns {ImageCoordinates} Image-relative coordinates
  */
-export function imageToDataCoordinates(imageX, imageY, config, imageDetails, rate) {
-  const { freqMin, freqMax, timeMin, timeMax } = config
-  const { naturalWidth, naturalHeight } = imageDetails
-  // Use the base render dimensions (default to natural) so coordinate fidelity
-  // is preserved at any rendered size. imageX/imageY are expressed in render-pixel space.
-  const renderWidth = imageDetails.renderWidth || naturalWidth
-  const renderHeight = imageDetails.renderHeight || naturalHeight
+export function svgToImage(svgX, svgY, viewport, spectrogramImage = null) {
+  const bounds = getImageBounds(viewport, spectrogramImage)
+  const { width, height } = renderSize(viewport.imageDetails)
 
-  // Ensure coordinates are within image bounds
-  const boundedX = Math.max(0, Math.min(imageX, renderWidth))
-  const boundedY = Math.max(0, Math.min(imageY, renderHeight))
-
-  // Convert to data coordinates
-  // X-axis = Frequency (horizontal)
-  const rawFreq = freqMin + (boundedX / renderWidth) * (freqMax - freqMin)
-  // Y-axis = Time (vertical, with time increasing upward, Y=0 at top)
-  const time = timeMax - (boundedY / renderHeight) * (timeMax - timeMin)
-  
-  // Apply rate scaling to frequency - rate acts as a frequency divider
-  const freq = rawFreq / rate
-  
-  return { freq, time }
+  return {
+    x: (svgX - bounds.left) * (width / bounds.width),
+    y: (svgY - bounds.top) * (height / bounds.height)
+  }
 }
 
+/**
+ * Convert image-relative coordinates to data coordinates.
+ *
+ * `rate` is applied here and only here — it divides frequency, so SVG and image
+ * space stay rate-free.
+ *
+ * @param {number} imageX - Image X coordinate, in render pixels
+ * @param {number} imageY - Image Y coordinate, in render pixels
+ * @param {Viewport} viewport - Current viewport
+ * @returns {DataCoordinates} Data coordinates
+ */
+export function imageToData(imageX, imageY, viewport) {
+  const { config, imageDetails, rate } = viewport
+  const { freqMin, freqMax, timeMin, timeMax } = config
+  const { width, height } = renderSize(imageDetails)
 
+  // X-axis = frequency (horizontal)
+  const rawFreq = freqMin + (imageX / width) * (freqMax - freqMin)
+  // Y-axis = time (vertical), increasing upward with Y=0 at the top
+  const time = timeMax - (imageY / height) * (timeMax - timeMin)
+
+  return { freq: rawFreq / rate, time }
+}
+
+/**
+ * Convert data coordinates to SVG coordinates.
+ *
+ * Note the deliberate asymmetry with {@link imageToData}: this takes frequency
+ * in the raw configured scale and does not re-apply `rate`. That matches every
+ * caller — features store the frequency they were created with — and matches
+ * the behaviour pinned before consolidation. With the rate control removed from
+ * the UI, `rate` is 1 in practice; the asymmetry is recorded here rather than
+ * silently "fixed", because changing it would move rendered features.
+ *
+ * @param {DataCoordinates} dataPoint - Data point with time and frequency
+ * @param {Viewport} viewport - Current viewport
+ * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @returns {SVGCoordinates} SVG coordinates
+ */
+export function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
+  const { config } = viewport
+  const { timeMin, timeMax, freqMin, freqMax } = config
+  const bounds = getImageBounds(viewport, spectrogramImage)
+
+  const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin)
+  const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin)
+
+  return {
+    x: bounds.left + freqRatio * bounds.width,
+    y: bounds.top + (1 - timeRatio) * bounds.height // Invert Y
+  }
+}
+
+/**
+ * Whether an SVG point lies over the spectrogram image.
+ *
+ * The only place that decision is made (I5). Kept separate from the transforms
+ * so a caller that wants to convert an off-image point still can.
+ *
+ * @param {SVGCoordinates} svgPoint - Point in SVG space
+ * @param {Viewport} viewport - Current viewport
+ * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @returns {boolean} True when the point is over the image
+ */
+export function isWithinImage(svgPoint, viewport, spectrogramImage = null) {
+  const bounds = getImageBounds(viewport, spectrogramImage)
+  const { width, height } = renderSize(viewport.imageDetails)
+  const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage)
+
+  return svgPoint.x >= bounds.left && svgPoint.x <= bounds.left + bounds.width &&
+         svgPoint.y >= bounds.top && svgPoint.y <= bounds.top + bounds.height &&
+         image.x >= 0 && image.x <= width &&
+         image.y >= 0 && image.y <= height
+}
+
+/**
+ * Clamp an image-space point to the image's extent.
+ *
+ * Explicit, so callers that want clamping (the keyboard mover, which pins a
+ * feature at the edge rather than letting it leave the image) opt into it, and
+ * callers that want a bounds decision use {@link isWithinImage} instead.
+ *
+ * @param {number} imageX - Image X coordinate, in render pixels
+ * @param {number} imageY - Image Y coordinate, in render pixels
+ * @param {Viewport} viewport - Current viewport
+ * @returns {ImageCoordinates} Clamped image coordinates
+ */
+export function clampToImage(imageX, imageY, viewport) {
+  const { width, height } = renderSize(viewport.imageDetails)
+  return {
+    x: Math.max(0, Math.min(imageX, width)),
+    y: Math.max(0, Math.min(imageY, height))
+  }
+}
+
+/**
+ * Convenience composition used by the pointer and wheel handlers: screen point
+ * to data, carrying the intermediate SVG and image points the callers also need.
+ *
+ * Converts unconditionally — a point off the image comes back extrapolated, not
+ * clamped and not null. A caller that needs the bounds decision asks
+ * {@link isWithinImage} for it, which keeps that decision in one place (I5).
+ *
+ * @param {number} clientX - Client X coordinate
+ * @param {number} clientY - Client Y coordinate
+ * @param {SVGSVGElement} svg - SVG element reference
+ * @param {Viewport} viewport - Current viewport
+ * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @returns {{data: DataCoordinates, image: ImageCoordinates, svg: SVGCoordinates}} Converted point
+ */
+export function screenToData(clientX, clientY, svg, viewport, spectrogramImage = null) {
+  const svgRect = svg.getBoundingClientRect()
+  const svgPoint = screenToSVG(clientX - svgRect.left, clientY - svgRect.top, svg)
+  const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage)
+
+  return {
+    svg: svgPoint,
+    image,
+    data: imageToData(image.x, image.y, viewport)
+  }
+}

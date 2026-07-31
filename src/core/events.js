@@ -4,9 +4,10 @@
 
 /// <reference path="../types.js" />
 
-import { screenToSVGCoordinates, imageToDataCoordinates } from '../utils/coordinates.js'
+import { screenToData, isWithinImage } from '../utils/coordinates.js'
+import { BaseDragHandler } from '../modes/shared/BaseDragHandler.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
-import { notifyStateListeners } from './state.js'
+import { dispatch } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 import { setFocusedInstance } from './FocusManager.js'
 import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized } from './viewport.js'
@@ -19,64 +20,37 @@ import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized } from './
 const WHEEL_ZOOM_STEP = 1.2
 
 /**
- * Convert screen coordinates to data coordinates, accounting for zoom
+ * Convert a pointer event to data coordinates, or null when it is not over the
+ * spectrogram image.
+ *
+ * The transformation itself lives in the canonical coordinate module, which is
+ * already zoom-, expand-, render-size- and margin-aware (FR-002, FR-003). What
+ * stays here is only the local convention every caller below relies on: an
+ * off-image pointer reads as `null` rather than as an out-of-range point.
+ *
  * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
- * @returns {ScreenToDataResult|null} Object with svgCoords, imageX, imageY, dataCoords, and bounds check
+ * @returns {ScreenToDataResult|null} Object with svgCoords, imageX, imageY and dataCoords, or null when off-image
  */
 function screenToDataWithZoom(instance, event) {
-  const svgRect = instance.svg.getBoundingClientRect()
-  const screenX = event.clientX - svgRect.left
-  const screenY = event.clientY - svgRect.top
-  
-  // Convert to SVG coordinates
-  const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
-  
-  // Convert to data coordinates (accounting for margins, expand and zoom)
-  const margins = instance.state.margins
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  // Base render size (defaults to natural; grows when expanded). Zoom multiplies
-  // it, so the rendered element size is renderWidth/renderHeight × zoom.
-  const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
-  const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
+  const point = screenToData(
+    event.clientX,
+    event.clientY,
+    instance.svg,
+    instance.state,
+    instance.spectrogramImage
+  )
 
-  // Get the actual rendered image position and dimensions. The element's
-  // width/height attribute is the source of truth (it already reflects
-  // expand × zoom), so read it whenever the image element is present.
-  let imageLeft = margins.left
-  let imageTop = margins.top
-  let imageWidth = renderWidth
-  let imageHeight = renderHeight
-
-  if (instance.spectrogramImage) {
-    imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
-    imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(renderWidth))
-    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(renderHeight))
-  }
-
-  // Convert SVG coordinates to image-relative coordinates in render-pixel space
-  const imageX = (svgCoords.x - imageLeft) * (renderWidth / imageWidth)
-  const imageY = (svgCoords.y - imageTop) * (renderHeight / imageHeight)
-
-  // Check if within the rendered image bounds
-  const withinBounds = svgCoords.x >= imageLeft && svgCoords.x <= imageLeft + imageWidth &&
-                      svgCoords.y >= imageTop && svgCoords.y <= imageTop + imageHeight &&
-                      imageX >= 0 && imageX <= renderWidth &&
-                      imageY >= 0 && imageY <= renderHeight
-  
-  if (!withinBounds) {
+  if (!isWithinImage(point.svg, instance.state, instance.spectrogramImage)) {
     return null
   }
-  
-  const dataCoords = imageToDataCoordinates(
-    imageX, imageY,
-    instance.state.config,
-    instance.state.imageDetails,
-    instance.state.rate
-  )
-  
-  return { svgCoords, imageX, imageY, dataCoords }
+
+  return {
+    svgCoords: point.svg,
+    imageX: point.image.x,
+    imageY: point.image.y,
+    dataCoords: point.data
+  }
 }
 
 /**
@@ -109,14 +83,52 @@ function handleWheel(instance, event) {
 }
 
 /**
- * End an in-progress wheel-button (middle) drag pan, restoring the cursor.
+ * The middle-button pan, as a `pan`-kind drag on the shared engine.
+ *
+ * It differs from PanMode's drag only in its trigger (button 1, with
+ * preventDefault to suppress browser autoscroll) and in being available in
+ * *every* mode. Resolving it centrally, ahead of the mode's own handlers, is
+ * what stops a middle-click ever reaching a mode and placing something
+ * (contract: drag-engine.md, "Middle-button pan").
  * @param {GramFrame} instance - GramFrame instance
+ * @returns {BaseDragHandler} The instance's wheel-pan handler
  */
-function endWheelPan(instance) {
-  if (instance.svg && instance._wheelPan) {
-    instance.svg.style.cursor = instance._wheelPan.prevCursor || 'crosshair'
+function wheelPanHandler(instance) {
+  if (!instance._wheelPanHandler) {
+    let previousCursor = ''
+
+    instance._wheelPanHandler = new BaseDragHandler(instance, {
+      resolveTarget: () => (
+        instance.state.zoom.level > 1.0 ? { kind: 'pan', id: null, type: null } : null
+      ),
+      onDragStart: (_target, _position, event) => {
+        previousCursor = instance.svg ? instance.svg.style.cursor : ''
+        if (event) {
+          instance._wheelPanLast = { x: event.clientX, y: event.clientY }
+        }
+      },
+      onDragMove: (_target, _position, _startPosition, event) => {
+        if (!event || !instance._wheelPanLast) return
+        const dx = event.clientX - instance._wheelPanLast.x
+        const dy = event.clientY - instance._wheelPanLast.y
+        const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy)
+        panByNormalized(instance, normalizedDeltaX, normalizedDeltaY)
+        instance._wheelPanLast = { x: event.clientX, y: event.clientY }
+      },
+      onDragEnd: () => { instance._wheelPanLast = null },
+      onDragCancel: () => { instance._wheelPanLast = null },
+      updateCursor: (style) => {
+        if (instance.svg) {
+          instance.svg.style.cursor = style
+        }
+      },
+      // Restore whatever cursor the mode had, rather than forcing a crosshair
+      cursorFor: (_kind, fallback) => (
+        fallback === 'grabbing' ? 'grabbing' : (previousCursor || 'crosshair')
+      )
+    }, null)
   }
-  instance._wheelPan = null
+  return instance._wheelPanHandler
 }
 
 /**
@@ -226,13 +238,9 @@ export function setupResizeObserver(instance) {
  */
 function handleMouseMove(instance, event) {
   // Wheel-button drag pan takes precedence over any mode interaction.
-  if (instance._wheelPan && instance._wheelPan.active) {
-    const dx = event.clientX - instance._wheelPan.lastX
-    const dy = event.clientY - instance._wheelPan.lastY
-    const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy)
-    panByNormalized(instance, normalizedDeltaX, normalizedDeltaY)
-    instance._wheelPan.lastX = event.clientX
-    instance._wheelPan.lastY = event.clientY
+  const wheelPan = wheelPanHandler(instance)
+  if (wheelPan.isDragging()) {
+    wheelPan.handleMouseMove(null, event)
     return
   }
 
@@ -269,7 +277,7 @@ function handleMouseMove(instance, event) {
   updateCursorIndicators(instance)
   
   // Notify listeners of cursor position change
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance, { frame: true })
 }
 
 /**
@@ -285,17 +293,7 @@ function handleMouseDown(instance, event) {
   // so it can never place a cursor/marker/harmonic/doppler point.
   if (event.button === 1) {
     event.preventDefault() // Suppress browser middle-click autoscroll
-    if (instance.state.zoom.level > 1.0) {
-      instance._wheelPan = {
-        active: true,
-        lastX: event.clientX,
-        lastY: event.clientY,
-        prevCursor: instance.svg ? instance.svg.style.cursor : ''
-      }
-      if (instance.svg) {
-        instance.svg.style.cursor = 'grabbing'
-      }
-    }
+    wheelPanHandler(instance).startDrag(null, event)
     return
   }
 
@@ -318,8 +316,9 @@ function handleMouseDown(instance, event) {
  */
 function handleMouseUp(instance, event) {
   // End a wheel-button drag pan without delegating to the mode.
-  if (instance._wheelPan && instance._wheelPan.active) {
-    endWheelPan(instance)
+  const wheelPan = wheelPanHandler(instance)
+  if (wheelPan.isDragging()) {
+    wheelPan.endDrag(null, event)
     return
   }
 
@@ -341,9 +340,7 @@ function handleMouseUp(instance, event) {
  */
 function handleMouseLeave(instance) {
   // End a wheel-button drag pan cleanly if the pointer leaves the component.
-  if (instance._wheelPan && instance._wheelPan.active) {
-    endWheelPan(instance)
-  }
+  wheelPanHandler(instance).cancelDrag()
 
   // Clear cursor position
   instance.state.cursorPosition = null
@@ -357,7 +354,7 @@ function handleMouseLeave(instance) {
   }
   
   // Notify listeners
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance, { frame: true })
 }
 
 /**

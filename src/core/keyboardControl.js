@@ -7,7 +7,8 @@
 
 /// <reference path="../types.js" />
 
-import { notifyStateListeners } from './state.js'
+import { dispatch, markAnnotationsChanged } from './state.js'
+import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coordinates.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
 import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount } from './FocusManager.js'
@@ -101,14 +102,12 @@ function handleGlobalKeyboardEvent(event) {
   event.preventDefault()
   event.stopPropagation()
   
-  // Determine increment size based on modifier keys
-  const baseIncrement = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal
-  
-  // Account for zoom level - scale movement down when zoomed in
-  // This ensures 1 pixel movement on screen regardless of zoom level
-  const zoomLevel = focusedInstance.state.zoom.level || 1.0
-  const increment = baseIncrement / zoomLevel
-  
+  // Determine increment size based on modifier keys. The increment is in
+  // rendered pixels and needs no zoom compensation: the canonical coordinate
+  // module positions against the live image element, so a rendered pixel is a
+  // rendered pixel at any zoom level (spec 166, FR-003 / I2).
+  const increment = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal
+
   // Calculate movement direction
   const movement = calculateMovementFromKey(event.key, increment)
   
@@ -165,37 +164,35 @@ function moveSelectedMarker(instance, markerId, movement) {
   if (!marker) {
     return
   }
-  
-  
-  // Convert current marker position to SVG coordinates
-  const currentSVG = dataToSVGCoordinates(
-    marker.freq, 
-    marker.time, 
-    instance.state.config,
-    instance.state.imageDetails,
-    instance.state.rate,
-    instance.state.margins
+
+  // Move in SVG space, then convert back. The canonical module reads the live
+  // image element, so `movement` is in rendered pixels at any zoom level and
+  // needs no external compensation.
+  //
+  // `dataToSVG` takes frequency in the raw configured scale while `imageToData`
+  // divides by rate (see the module's note), so the rate is re-applied on the
+  // way out and removed on the way back — keeping this a true round trip, as
+  // the private pair this replaces was.
+  const currentSVG = dataToSVG(
+    { freq: marker.freq * instance.state.rate, time: marker.time },
+    instance.state,
+    instance.spectrogramImage
   )
-  
-  // Apply movement in SVG space
   const newSVG = {
     x: currentSVG.x + movement.dx,
     y: currentSVG.y + movement.dy
   }
-  
-  // Convert back to data coordinates
-  const newData = svgToDataCoordinates(
-    newSVG.x,
-    newSVG.y,
-    instance.state.config,
-    instance.state.imageDetails,
-    instance.state.rate,
-    instance.state.margins
-  )
+
+  // Clamping is explicit: a marker pushed past an edge pins to it rather than
+  // leaving the image, as it did before consolidation.
+  const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.spectrogramImage)
+  const clamped = clampToImage(image.x, image.y, instance.state)
+  const newData = imageToData(clamped.x, clamped.y, instance.state)
   
   // Update marker position
   marker.freq = newData.freq
   marker.time = newData.time
+  markAnnotationsChanged(instance)
   
   // Re-render features and notify listeners
   if (instance.featureRenderer) {
@@ -207,7 +204,7 @@ function moveSelectedMarker(instance, markerId, movement) {
     instance.currentMode.updateMarkersTable()
   }
   
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**
@@ -229,44 +226,51 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
   /** @type {Partial<HarmonicSet>} */
   const updates = {}
   
+  // Both branches go through the canonical coordinate module, so the movement
+  // is in rendered pixels at any zoom level (FR-002, FR-003).
+  const { timeMin, timeMax } = instance.state.config
+  const viewport = instance.state
+  const image = instance.spectrogramImage
+
+  /**
+   * Convert an SVG point to data coordinates through the canonical module.
+   * @param {number} svgX - SVG X coordinate
+   * @param {number} svgY - SVG Y coordinate
+   * @returns {DataCoordinates} Data coordinates
+   */
+  const svgPointToData = (svgX, svgY) => {
+    const imagePoint = svgToImage(svgX, svgY, viewport, image)
+    return imageToData(imagePoint.x, imagePoint.y, viewport)
+  }
+
   // For horizontal movement (frequency/spacing adjustment)
   if (movement.dx !== 0) {
-    // Convert current spacing to pixel width for one harmonic interval
-    const { naturalWidth } = instance.state.imageDetails
-    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
-    const { freqMin, freqMax } = instance.state.config
-    const freqRange = (freqMax - freqMin) / instance.state.rate
+    // Measure what one keypress is worth in frequency rather than re-deriving
+    // it: take a reference point and the same point moved by the increment.
+    const reference = dataToSVG(
+      { freq: instance.state.config.freqMin, time: timeMax },
+      viewport,
+      image
+    )
+    const before = svgPointToData(reference.x, reference.y)
+    const after = svgPointToData(reference.x + movement.dx, reference.y)
 
-    // Calculate how much frequency change one (rendered) pixel represents
-    const pixelToFreqRatio = freqRange / renderWidth
-    
-    // Adjust spacing based on horizontal movement
     // Positive dx increases spacing, negative dx decreases spacing
-    const spacingChange = movement.dx * pixelToFreqRatio
+    const spacingChange = after.freq - before.freq
     updates.spacing = Math.max(1.0, harmonicSet.spacing + spacingChange)
   }
-  
+
   // For vertical movement (time/anchor position adjustment)
   if (movement.dy !== 0) {
-    // Convert current anchor time to SVG coordinates
-    const { naturalHeight } = instance.state.imageDetails
-    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
-    const { timeMin, timeMax } = instance.state.config
-    const margins = instance.state.margins
+    const anchorSVG = dataToSVG(
+      { freq: instance.state.config.freqMin, time: harmonicSet.anchorTime },
+      viewport,
+      image
+    )
+    const moved = svgPointToData(anchorSVG.x, anchorSVG.y + movement.dy)
 
-    // Calculate current anchor position in SVG space (at the current render size)
-    const normalizedTime = 1.0 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin)
-    const currentY = margins.top + normalizedTime * renderHeight
-
-    // Apply movement
-    const newY = currentY + movement.dy
-
-    // Convert back to time
-    const newNormalizedTime = (newY - margins.top) / renderHeight
-    updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin)
-    
     // Clamp to valid time range
-    updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime))
+    updates.anchorTime = Math.max(timeMin, Math.min(timeMax, moved.time))
   }
   
   // Apply updates directly to the harmonic set
@@ -274,6 +278,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     const setIndex = instance.state.harmonics.harmonicSets.findIndex(set => set.id === harmonicSetId)
     if (setIndex !== -1) {
       Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates)
+      markAnnotationsChanged(instance)
       
       // Update visual elements if harmonic panel exists. This uses the static
       // import at the top of the file: the dynamic import that used to be here
@@ -289,74 +294,11 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
         instance.featureRenderer.renderAllPersistentFeatures()
       }
       
-      notifyStateListeners(instance.state, instance.stateListeners)
+      dispatch(instance)
     }
   }
 }
 
-
-/**
- * Convert data coordinates to SVG coordinates
- * @param {number} freq - Frequency in Hz
- * @param {number} time - Time in seconds
- * @param {Config} config - Configuration object
- * @param {ImageDetails} imageDetails - Image dimensions
- * @param {number} rate - Rate scaling factor
- * @param {AxesMargins} margins - Axes margins
- * @returns {SVGCoordinates} SVG coordinates {x, y}
- */
-function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
-  const { freqMin, freqMax, timeMin, timeMax } = config
-  const { naturalWidth, naturalHeight } = imageDetails
-  const renderWidth = imageDetails.renderWidth || naturalWidth
-  const renderHeight = imageDetails.renderHeight || naturalHeight
-
-  // Convert frequency back to raw frequency space for positioning
-  const rawFreq = freq * rate
-
-  // Calculate position within image bounds
-  const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin)
-  const normalizedY = 1.0 - (time - timeMin) / (timeMax - timeMin) // Invert Y
-
-  return {
-    x: margins.left + normalizedX * renderWidth,
-    y: margins.top + normalizedY * renderHeight
-  }
-}
-
-/**
- * Convert SVG coordinates to data coordinates
- * @param {number} svgX - SVG X coordinate
- * @param {number} svgY - SVG Y coordinate
- * @param {Config} config - Configuration object
- * @param {ImageDetails} imageDetails - Image dimensions
- * @param {number} rate - Rate scaling factor
- * @param {AxesMargins} margins - Axes margins
- * @returns {DataCoordinates} Data coordinates {freq, time}
- */
-function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
-  const { freqMin, freqMax, timeMin, timeMax } = config
-  const { naturalWidth, naturalHeight } = imageDetails
-  const renderWidth = imageDetails.renderWidth || naturalWidth
-  const renderHeight = imageDetails.renderHeight || naturalHeight
-
-  // Convert SVG coordinates to image-relative coordinates
-  const imageX = svgX - margins.left
-  const imageY = svgY - margins.top
-
-  // Ensure coordinates are within image bounds
-  const boundedX = Math.max(0, Math.min(imageX, renderWidth))
-  const boundedY = Math.max(0, Math.min(imageY, renderHeight))
-
-  // Convert to data coordinates
-  const rawFreq = freqMin + (boundedX / renderWidth) * (freqMax - freqMin)
-  const time = timeMax - (boundedY / renderHeight) * (timeMax - timeMin)
-  
-  // Apply rate scaling to frequency
-  const freq = rawFreq / rate
-  
-  return { freq, time }
-}
 
 /**
  * Set selection state for an item
@@ -382,7 +324,7 @@ export function setSelection(instance, type, id, index) {
     instance.syncStyleControls()
   }
 
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**
@@ -403,7 +345,7 @@ export function clearSelection(instance) {
     instance.syncStyleControls()
   }
 
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**
@@ -489,7 +431,7 @@ function refreshFeatureVisuals(instance, type) {
       updateHarmonicPanelContent(instance.harmonicPanel, instance)
     }
   }
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**
@@ -505,6 +447,7 @@ export function applyColorToSelectedFeature(instance, color) {
     return false
   }
   selected.feature.color = color
+  markAnnotationsChanged(instance)
   refreshFeatureVisuals(instance, selected.type)
   return true
 }
@@ -522,6 +465,7 @@ export function applySymbolToSelectedFeature(instance, symbol) {
     return false
   }
   selected.feature.symbol = symbol
+  markAnnotationsChanged(instance)
   refreshFeatureVisuals(instance, selected.type)
   return true
 }
@@ -592,7 +536,7 @@ export function removeHarmonicSet(instance, id) {
       instance.featureRenderer.renderAllPersistentFeatures()
     }
     
-    notifyStateListeners(instance.state, instance.stateListeners)
+    dispatch(instance)
   }
 }
 
@@ -602,33 +546,16 @@ export function removeHarmonicSet(instance, id) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function updateSelectionVisuals(instance) {
-  // Clear existing selection highlights ONLY within this instance's container
-  if (instance.container) {
-    const existingHighlights = instance.container.querySelectorAll('.gram-frame-selected-row')
-    existingHighlights.forEach(el => {
-      el.classList.remove('gram-frame-selected-row')
-    })
+  // Selected-row styling is now table mechanism: both tables mark their own
+  // selected row through the shared DiffingTable, so this only has to ask them
+  // to re-diff. The two hand-written `tr[data-...-id]` lookups this replaces
+  // were the same code twice (spec 166, T3).
+  const analysisMode = instance.modes && instance.modes['analysis']
+  if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
+    analysisMode.updateMarkersTable()
   }
-  
-  // Apply selection highlight if there's a selection
-  const selection = instance.state.selection
-  if (selection.selectedType && selection.selectedId) {
-    const container = instance.container || document
-    
-    if (selection.selectedType === 'marker') {
-      // Find marker table row by data attribute within this instance
-      const selector = `tr[data-marker-id="${selection.selectedId}"]`
-      const row = container.querySelector(selector)
-      if (row) {
-        row.classList.add('gram-frame-selected-row')
-      }
-    } else if (selection.selectedType === 'harmonicSet') {
-      // Find harmonic table row by data attribute within this instance
-      const selector = `tr[data-harmonic-id="${selection.selectedId}"]`
-      const row = container.querySelector(selector)
-      if (row) {
-        row.classList.add('gram-frame-selected-row')
-      }
-    }
+
+  if (instance.harmonicPanel) {
+    updateHarmonicPanelContent(instance.harmonicPanel, instance)
   }
 }

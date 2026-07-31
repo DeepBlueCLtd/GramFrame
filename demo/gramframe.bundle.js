@@ -158,7 +158,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         margins: this.instance.state.margins,
         imageDetails: this.instance.state.imageDetails,
         config: this.instance.state.config,
-        zoom: this.instance.state.zoom
+        zoom: this.instance.state.zoom,
+        rate: this.instance.state.rate
       };
     }
     /**
@@ -171,6 +172,146 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
   }
+  function createDiffingTable(container, spec) {
+    const area = document.createElement("div");
+    area.className = "gram-frame-table-area";
+    const wrapper = document.createElement("div");
+    wrapper.className = "gram-frame-table-container";
+    const table = document.createElement("table");
+    table.className = "gram-frame-table";
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    spec.columns.forEach((column) => {
+      const th = document.createElement("th");
+      th.textContent = column.label || "";
+      if (column.width) {
+        th.style.width = column.width;
+      }
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    area.appendChild(wrapper);
+    container.appendChild(area);
+    let currentRows = [];
+    function setCellContent(cell, content) {
+      if (content instanceof Node) {
+        cell.replaceChildren(content);
+      } else if (cell.textContent !== content) {
+        cell.textContent = content;
+      }
+    }
+    function applySelection(tr, key) {
+      const selected = spec.isSelected ? spec.isSelected(key) : false;
+      tr.classList.toggle("gram-frame-selected-row", selected);
+    }
+    function buildRow(row, index) {
+      const key = spec.rowKey(row, index);
+      const tr = document.createElement("tr");
+      tr.setAttribute(spec.rowAttribute, key);
+      if (spec.rowClassName) {
+        tr.className = spec.rowClassName;
+      }
+      applySelection(tr, key);
+      spec.cells(row, index).forEach((content, column) => {
+        const td = document.createElement("td");
+        const className = spec.columns[column] && spec.columns[column].cellClassName;
+        if (className) {
+          td.className = className;
+        }
+        setCellContent(td, content);
+        tr.appendChild(td);
+      });
+      return tr;
+    }
+    function updateRow(tr, row, index) {
+      applySelection(tr, spec.rowKey(row, index));
+      spec.cells(row, index).forEach((content, column) => {
+        const cell = tr.cells[column];
+        if (cell) {
+          setCellContent(cell, content);
+        }
+      });
+    }
+    function rebuildFrom(rows, startIndex) {
+      const existing = tbody.querySelectorAll("tr");
+      for (let i = startIndex; i < existing.length; i++) {
+        existing[i].remove();
+      }
+      for (let i = startIndex; i < rows.length; i++) {
+        tbody.appendChild(buildRow(rows[i], i));
+      }
+    }
+    function handleClick(event) {
+      const target = (
+        /** @type {Element|null} */
+        event.target
+      );
+      if (!target) return;
+      const tr = (
+        /** @type {HTMLTableRowElement|null} */
+        target.closest("tr")
+      );
+      if (!tr || !tbody.contains(tr)) return;
+      const key = tr.getAttribute(spec.rowAttribute);
+      if (key === null) return;
+      const index = Array.prototype.indexOf.call(tbody.children, tr);
+      const row = currentRows[index];
+      if (spec.deleteSelector && target.closest(spec.deleteSelector)) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (spec.onDelete) {
+          spec.onDelete(key, row, index);
+        }
+        return;
+      }
+      if (spec.onSelect) {
+        spec.onSelect(key, row, index);
+      }
+    }
+    tbody.addEventListener("click", handleClick);
+    return {
+      element: table,
+      /**
+       * Diff `rows` against what is rendered and apply the difference.
+       *
+       * Idempotent: calling it twice with equal input performs no DOM writes.
+       * @param {any[]} rows - The rows to render
+       */
+      update(rows) {
+        currentRows = rows || [];
+        const existing = tbody.querySelectorAll("tr");
+        for (let index = 0; index < currentRows.length; index++) {
+          const tr = (
+            /** @type {HTMLTableRowElement} */
+            existing[index]
+          );
+          const key = spec.rowKey(currentRows[index], index);
+          if (tr && tr.getAttribute(spec.rowAttribute) === key) {
+            updateRow(tr, currentRows[index], index);
+          } else {
+            rebuildFrom(currentRows, index);
+            return;
+          }
+        }
+        for (let i = currentRows.length; i < existing.length; i++) {
+          existing[i].remove();
+        }
+      },
+      /**
+       * Remove the table and its listener.
+       */
+      destroy() {
+        tbody.removeEventListener("click", handleClick);
+        if (area.parentNode) {
+          area.parentNode.removeChild(area);
+        }
+      }
+    };
+  }
   function formatTime(seconds) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
@@ -178,83 +319,135 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
     return `${paddedMinutes}:${paddedSeconds}`;
   }
-  function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
-    const { margins, imageDetails, config } = viewport;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const { timeMin, timeMax, freqMin, freqMax } = config;
-    const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin);
-    const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin);
-    let imageLeft = margins.left;
-    let imageTop = margins.top;
-    let imageWidth = renderWidth;
-    let imageHeight = renderHeight;
-    if (spectrogramImage) {
-      imageLeft = parseFloat(spectrogramImage.getAttribute("x") || String(margins.left));
-      imageTop = parseFloat(spectrogramImage.getAttribute("y") || String(margins.top));
-      imageWidth = parseFloat(spectrogramImage.getAttribute("width") || String(renderWidth));
-      imageHeight = parseFloat(spectrogramImage.getAttribute("height") || String(renderHeight));
-    }
+  function renderSize(imageDetails) {
     return {
-      x: imageLeft + freqRatio * imageWidth,
-      y: imageTop + (1 - timeRatio) * imageHeight
-      // Invert Y coordinate
+      width: imageDetails.renderWidth || imageDetails.naturalWidth,
+      height: imageDetails.renderHeight || imageDetails.naturalHeight
     };
-  }
-  function calculateZoomAwarePosition(point, viewport, spectrogramImage = null) {
-    const { margins, imageDetails, config } = viewport;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const { timeMin, timeMax, freqMin, freqMax } = config;
-    const normalizedX = (point.freq - freqMin) / (freqMax - freqMin);
-    const normalizedY = 1 - (point.time - timeMin) / (timeMax - timeMin);
-    let currentX, currentY;
-    if (spectrogramImage) {
-      const imageLeft = parseFloat(spectrogramImage.getAttribute("x") || String(margins.left));
-      const imageTop = parseFloat(spectrogramImage.getAttribute("y") || String(margins.top));
-      const imageWidth = parseFloat(spectrogramImage.getAttribute("width") || String(renderWidth));
-      const imageHeight = parseFloat(spectrogramImage.getAttribute("height") || String(renderHeight));
-      currentX = imageLeft + normalizedX * imageWidth;
-      currentY = imageTop + normalizedY * imageHeight;
-    } else {
-      currentX = margins.left + normalizedX * renderWidth;
-      currentY = margins.top + normalizedY * renderHeight;
-    }
-    return { x: currentX, y: currentY };
   }
   function getImageBounds(viewport, spectrogramImage = null) {
     const { margins, imageDetails } = viewport;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const { width, height } = renderSize(imageDetails);
     if (spectrogramImage) {
       return {
         left: parseFloat(spectrogramImage.getAttribute("x") || String(margins.left)),
         top: parseFloat(spectrogramImage.getAttribute("y") || String(margins.top)),
-        width: parseFloat(spectrogramImage.getAttribute("width") || String(renderWidth)),
-        height: parseFloat(spectrogramImage.getAttribute("height") || String(renderHeight))
+        width: parseFloat(spectrogramImage.getAttribute("width") || String(width)),
+        height: parseFloat(spectrogramImage.getAttribute("height") || String(height))
       };
     }
+    return { left: margins.left, top: margins.top, width, height };
+  }
+  function screenToSVG(screenX, screenY, svg) {
+    const svgRect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox.baseVal;
+    if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+      const scaleX = viewBox.width / svgRect.width;
+      const scaleY = viewBox.height / svgRect.height;
+      return {
+        x: screenX * scaleX + viewBox.x,
+        y: screenY * scaleY + viewBox.y
+      };
+    }
+    return { x: screenX, y: screenY };
+  }
+  function svgToImage(svgX, svgY, viewport, spectrogramImage = null) {
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const { width, height } = renderSize(viewport.imageDetails);
     return {
-      left: margins.left,
-      top: margins.top,
-      width: renderWidth,
-      height: renderHeight
+      x: (svgX - bounds.left) * (width / bounds.width),
+      y: (svgY - bounds.top) * (height / bounds.height)
     };
+  }
+  function imageToData(imageX, imageY, viewport) {
+    const { config, imageDetails, rate } = viewport;
+    const { freqMin, freqMax, timeMin, timeMax } = config;
+    const { width, height } = renderSize(imageDetails);
+    const rawFreq = freqMin + imageX / width * (freqMax - freqMin);
+    const time = timeMax - imageY / height * (timeMax - timeMin);
+    return { freq: rawFreq / rate, time };
+  }
+  function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
+    const { config } = viewport;
+    const { timeMin, timeMax, freqMin, freqMax } = config;
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin);
+    const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin);
+    return {
+      x: bounds.left + freqRatio * bounds.width,
+      y: bounds.top + (1 - timeRatio) * bounds.height
+      // Invert Y
+    };
+  }
+  function isWithinImage(svgPoint, viewport, spectrogramImage = null) {
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const { width, height } = renderSize(viewport.imageDetails);
+    const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage);
+    return svgPoint.x >= bounds.left && svgPoint.x <= bounds.left + bounds.width && svgPoint.y >= bounds.top && svgPoint.y <= bounds.top + bounds.height && image.x >= 0 && image.x <= width && image.y >= 0 && image.y <= height;
+  }
+  function clampToImage(imageX, imageY, viewport) {
+    const { width, height } = renderSize(viewport.imageDetails);
+    return {
+      x: Math.max(0, Math.min(imageX, width)),
+      y: Math.max(0, Math.min(imageY, height))
+    };
+  }
+  function screenToData(clientX, clientY, svg, viewport, spectrogramImage = null) {
+    const svgRect = svg.getBoundingClientRect();
+    const svgPoint = screenToSVG(clientX - svgRect.left, clientY - svgRect.top, svg);
+    const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage);
+    return {
+      svg: svgPoint,
+      image,
+      data: imageToData(image.x, image.y, viewport)
+    };
+  }
+  const activeDragOwners = /* @__PURE__ */ new WeakMap();
+  function idleProjection() {
+    return {
+      active: false,
+      kind: null,
+      mode: null,
+      targetId: null,
+      targetType: null,
+      startPosition: null
+    };
+  }
+  function publishDragProjection(instance) {
+    if (!instance || !instance.state) {
+      return;
+    }
+    const owner = activeDragOwners.get(instance);
+    if (!owner || !owner.dragState.isDragging) {
+      instance.state.drag = idleProjection();
+    } else {
+      instance.state.drag = {
+        active: true,
+        kind: owner.dragState.kind,
+        mode: owner.modeName,
+        targetId: owner.dragState.draggedTargetId,
+        targetType: owner.dragState.draggedTargetType,
+        startPosition: owner.dragState.dragStartPosition ? { ...owner.dragState.dragStartPosition } : null
+      };
+    }
+    if (typeof instance.notifyStateListeners === "function") {
+      instance.notifyStateListeners();
+    }
   }
   class BaseDragHandler {
     /**
      * Create a new BaseDragHandler
-     * @param {Object} instance - Mode instance
+     * @param {GramFrame} instance - GramFrame instance
      * @param {DragCallbacks} callbacks - Drag lifecycle callbacks
+     * @param {ModeType|null} [modeName] - Mode that owns this handler, for the projection
      */
-    constructor(instance, callbacks) {
+    constructor(instance, callbacks, modeName = null) {
       this.instance = instance;
       this.callbacks = callbacks;
+      this.modeName = modeName;
       this.dragState = {
         isDragging: false,
+        kind: null,
         draggedTargetId: null,
         draggedTargetType: null,
         dragStartPosition: null,
@@ -269,12 +462,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return this.dragState.isDragging;
     }
     /**
+     * The kind of drag in progress, if any.
+     * @returns {DragKind|null} Drag kind or null when idle
+     */
+    dragKind() {
+      return this.dragState.isDragging ? this.dragState.kind : null;
+    }
+    /**
      * Get the current dragged target information
      * @returns {Object|null} Drag target info or null if not dragging
      */
     getDraggedTarget() {
       if (!this.dragState.isDragging) return null;
       return {
+        kind: this.dragState.kind,
         id: this.dragState.draggedTargetId,
         type: this.dragState.draggedTargetType,
         startPosition: this.dragState.dragStartPosition,
@@ -282,72 +483,105 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       };
     }
     /**
-     * Handle mouse move events for drag operations
-     * @param {DataCoordinates} currentPosition - Current mouse position in data coordinates
+     * The target descriptor handed back to the mode's callbacks.
+     * @param {DataCoordinates} position - Current position
+     * @returns {DragTarget} Target descriptor
      */
-    handleMouseMove(currentPosition) {
-      if (!this.dragState.isDragging) return;
-      const target = {
+    currentTarget(position) {
+      return {
+        kind: this.dragState.kind,
         id: this.dragState.draggedTargetId,
         type: this.dragState.draggedTargetType,
-        position: currentPosition
+        position,
+        data: this.dragState.originalData
       };
-      this.callbacks.onDragUpdate(target, currentPosition, this.dragState.dragStartPosition);
+    }
+    /**
+     * Handle mouse move events for drag operations
+     * @param {DataCoordinates} currentPosition - Current mouse position in data coordinates
+     * @param {MouseEvent} [event] - Originating event, for drags that work in screen pixels
+     */
+    handleMouseMove(currentPosition, event) {
+      if (!this.dragState.isDragging) return;
+      this.callbacks.onDragMove(
+        this.currentTarget(currentPosition),
+        currentPosition,
+        this.dragState.dragStartPosition,
+        event
+      );
     }
     /**
      * Start a drag operation
      * @param {DataCoordinates} position - Position where drag started
+     * @param {MouseEvent} [event] - Originating mousedown, passed to the resolver
      * @returns {boolean} True if drag started successfully, false otherwise
      */
-    startDrag(position) {
+    startDrag(position, event) {
       if (this.dragState.isDragging) return false;
-      const target = this.callbacks.findTargetAt(position);
+      const owner = activeDragOwners.get(this.instance);
+      if (owner && owner !== this && owner.dragState.isDragging) return false;
+      const target = this.callbacks.resolveTarget(position, event);
       if (!target) return false;
       this.dragState.isDragging = true;
-      this.dragState.draggedTargetId = target.id;
-      this.dragState.draggedTargetType = target.type;
-      this.dragState.dragStartPosition = { ...position };
+      this.dragState.kind = target.kind || "move";
+      this.dragState.draggedTargetId = target.id ?? null;
+      this.dragState.draggedTargetType = target.type ?? null;
+      this.dragState.dragStartPosition = position ? { ...position } : null;
       this.dragState.originalData = target.data ? { ...target.data } : null;
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor("grabbing");
-      }
-      this.callbacks.onDragStart(target, position);
+      activeDragOwners.set(this.instance, this);
+      publishDragProjection(this.instance);
+      this.applyCursor(this.dragState.kind, "grabbing");
+      this.callbacks.onDragStart(this.currentTarget(position), position, event);
       return true;
     }
     /**
      * End the current drag operation
      * @param {DataCoordinates} position - Position where drag ended
+     * @param {MouseEvent} [event] - Originating mouseup
      */
-    endDrag(position) {
+    endDrag(position, event) {
       if (!this.dragState.isDragging) return;
-      const target = {
-        id: this.dragState.draggedTargetId,
-        type: this.dragState.draggedTargetType,
-        position
-      };
-      this.callbacks.onDragEnd(target, position);
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor("crosshair");
-      }
-      this.dragState.isDragging = false;
-      this.dragState.draggedTargetId = null;
-      this.dragState.draggedTargetType = null;
-      this.dragState.dragStartPosition = null;
-      this.dragState.originalData = null;
+      const target = this.currentTarget(position);
+      this.callbacks.onDragEnd(target, position, event);
+      this.applyCursor(this.dragState.kind, "crosshair");
+      this.clearDragState();
     }
     /**
      * Cancel the current drag operation without applying changes
      */
     cancelDrag() {
       if (!this.dragState.isDragging) return;
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor("crosshair");
+      const target = this.currentTarget(this.dragState.dragStartPosition);
+      if (this.callbacks.onDragCancel) {
+        this.callbacks.onDragCancel(target);
       }
+      this.applyCursor(this.dragState.kind, "crosshair");
+      this.clearDragState();
+    }
+    /**
+     * Clear drag bookkeeping and republish the projection.
+     */
+    clearDragState() {
       this.dragState.isDragging = false;
+      this.dragState.kind = null;
       this.dragState.draggedTargetId = null;
       this.dragState.draggedTargetType = null;
       this.dragState.dragStartPosition = null;
       this.dragState.originalData = null;
+      if (activeDragOwners.get(this.instance) === this) {
+        activeDragOwners.delete(this.instance);
+      }
+      publishDragProjection(this.instance);
+    }
+    /**
+     * Apply the cursor for a drag kind, falling back to the generic style.
+     * @param {DragKind|null} kind - Drag kind
+     * @param {string} fallback - Cursor to use when the mode has no per-kind opinion
+     */
+    applyCursor(kind, fallback) {
+      if (!this.callbacks.updateCursor) return;
+      const style = this.callbacks.cursorFor ? this.callbacks.cursorFor(kind, fallback) || fallback : fallback;
+      this.callbacks.updateCursor(style);
     }
     /**
      * Update cursor style based on proximity to drag targets
@@ -355,7 +589,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     updateCursorForHover(position) {
       if (this.dragState.isDragging) return;
-      const target = this.callbacks.findTargetAt(position);
+      const target = this.callbacks.resolveTarget(position);
       const cursorStyle = target ? "grab" : "crosshair";
       if (this.callbacks.updateCursor) {
         this.callbacks.updateCursor(cursorStyle);
@@ -567,6 +801,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     div.style.border = "1px solid #ccc";
     return div;
   }
+  function createMarkerDeleteButton() {
+    const button = document.createElement("button");
+    button.textContent = "×";
+    button.className = "gram-frame-marker-delete-btn";
+    button.style.background = "none";
+    button.style.border = "none";
+    button.style.color = "#ff4444";
+    button.style.cursor = "pointer";
+    button.style.fontSize = "16px";
+    button.style.fontWeight = "bold";
+    return button;
+  }
   const _AnalysisMode = class _AnalysisMode extends BaseMode {
     /**
      * Initialize AnalysisMode with drag handler
@@ -575,12 +821,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     constructor(instance) {
       super(instance);
       this.dragHandler = new BaseDragHandler(instance, {
-        findTargetAt: (position) => this.findMarkerAtPosition(position),
+        resolveTarget: (position) => this.findMarkerAtPosition(position),
         onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-        onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+        onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
         onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
         updateCursor: (style) => this.updateCursorStyle(style)
-      });
+      }, "analysis");
     }
     /**
      * Start dragging a marker
@@ -588,9 +834,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} position - Start position
      */
     onMarkerDragStart(target, position) {
-      this.instance.state.analysis.isDragging = true;
-      this.instance.state.analysis.draggedMarkerId = target.id;
-      this.instance.state.analysis.dragStartPosition = { ...position };
       const marker = this.instance.state.analysis.markers.find((m) => m.id === target.id);
       if (marker) {
         const index = this.instance.state.analysis.markers.findIndex((m) => m.id === target.id);
@@ -608,6 +851,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (marker) {
         marker.freq = currentPos.freq;
         marker.time = currentPos.time;
+        markAnnotationsChanged(this.instance);
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
         }
@@ -618,7 +862,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             this.updateTableScheduled = false;
           });
         }
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -627,9 +871,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} _position - End position (unused)
      */
     onMarkerDragEnd(_target, _position) {
-      this.instance.state.analysis.isDragging = false;
-      this.instance.state.analysis.draggedMarkerId = null;
-      this.instance.state.analysis.dragStartPosition = null;
     }
     /**
      * Update cursor style for drag operations
@@ -750,7 +991,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         return;
       }
       const markerPoint = { freq: marker.freq, time: marker.time };
-      const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage);
+      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage);
       const currentX = markerSVG.x;
       const currentY = markerSVG.y;
       const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -802,7 +1043,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.uiElements.markersContainer = markersContainer;
       this.createMarkersTable(markersContainer);
       this.uiElements.markersTable = markersContainer.querySelector(".gram-frame-table");
-      this.uiElements.markersTableBody = markersContainer.querySelector(".gram-frame-table tbody");
       this.instance.colorPicker = this.instance.colorPicker || null;
       this.instance.timeLED = this.instance.timeLED || null;
       this.instance.freqLED = this.instance.freqLED || null;
@@ -821,40 +1061,44 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (markersContainer.querySelector(".gram-frame-table")) {
         return;
       }
-      const tableArea = document.createElement("div");
-      tableArea.className = "gram-frame-table-area";
-      const tableWrapper = document.createElement("div");
-      tableWrapper.className = "gram-frame-table-container";
-      const table = document.createElement("table");
-      table.className = "gram-frame-table";
-      const thead = document.createElement("thead");
-      const headerRow = document.createElement("tr");
-      const colorHeader = document.createElement("th");
-      colorHeader.textContent = "";
-      colorHeader.style.width = "15%";
-      headerRow.appendChild(colorHeader);
-      const timeHeader = document.createElement("th");
-      timeHeader.textContent = "Time (mm:ss)";
-      timeHeader.style.width = "35%";
-      headerRow.appendChild(timeHeader);
-      const freqHeader = document.createElement("th");
-      freqHeader.textContent = "Freq (Hz)";
-      freqHeader.style.width = "35%";
-      headerRow.appendChild(freqHeader);
-      const deleteHeader = document.createElement("th");
-      deleteHeader.textContent = "";
-      deleteHeader.style.width = "15%";
-      headerRow.appendChild(deleteHeader);
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-      const tbody = document.createElement("tbody");
-      table.appendChild(tbody);
-      tableWrapper.appendChild(table);
-      tableArea.appendChild(tableWrapper);
-      markersContainer.appendChild(tableArea);
-      this.uiElements.markersTable = table;
-      this.uiElements.markersTableBody = tbody;
+      this.markersTable = createDiffingTable(markersContainer, {
+        columns: [
+          { label: "", width: "15%", cellClassName: "gram-frame-marker-color" },
+          { label: "Time (mm:ss)", width: "35%" },
+          { label: "Freq (Hz)", width: "35%" },
+          { label: "", width: "15%" }
+        ],
+        rowAttribute: "data-marker-id",
+        rowKey: (marker) => marker.id,
+        cells: (marker) => [
+          // Colour/symbol cell — a shaped symbol shows the colour-coded symbol;
+          // the cross (symbol-less) style shows a filled colour rectangle (FR-010).
+          createColorIndicator(marker.symbol, marker.color, 20),
+          formatTime(marker.time),
+          marker.freq.toFixed(2),
+          createMarkerDeleteButton()
+        ],
+        deleteSelector: ".gram-frame-marker-delete-btn",
+        onSelect: (markerId, _marker, index) => {
+          if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId) {
+            this.instance.clearSelection();
+          } else {
+            this.instance.setSelection("marker", markerId, index);
+          }
+        },
+        onDelete: (markerId) => this.removeMarker(markerId),
+        isSelected: (markerId) => this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId
+      });
+      this.uiElements.markersTable = this.markersTable.element;
       this.updateMarkersTable();
+    }
+    /**
+     * Update markers table with current markers
+     */
+    updateMarkersTable() {
+      if (!this.markersTable) return;
+      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
+      this.markersTable.update(this.instance.state.analysis.markers);
     }
     /**
      * Update LED displays for analysis mode
@@ -869,12 +1113,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     static getInitialState() {
       return {
         analysis: {
-          markers: [],
-          // Note: isDragging, draggedMarkerId, dragStartPosition are now managed by BaseDragHandler
-          // but kept here for backward compatibility with existing code
-          isDragging: false,
-          draggedMarkerId: null,
-          dragStartPosition: null
+          markers: []
         }
       };
     }
@@ -884,21 +1123,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     addMarker(marker) {
       if (!this.instance.state.analysis) {
-        this.instance.state.analysis = {
-          markers: [],
-          isDragging: false,
-          draggedMarkerId: null,
-          dragStartPosition: null
-        };
+        this.instance.state.analysis = { markers: [] };
       }
       this.instance.state.analysis.markers.push(marker);
+      markAnnotationsChanged(this.instance);
       const index = this.instance.state.analysis.markers.length - 1;
       this.instance.setSelection("marker", marker.id, index);
       this.updateMarkersTable();
       if (this.instance.featureRenderer) {
         this.instance.featureRenderer.renderAllPersistentFeatures();
       }
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
+      dispatch(this.instance, { frame: true });
     }
     /**
      * Remove a marker by ID
@@ -912,11 +1147,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           this.instance.clearSelection();
         }
         this.instance.state.analysis.markers.splice(index, 1);
+        markAnnotationsChanged(this.instance);
         this.updateMarkersTable();
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
         }
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -937,8 +1173,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           return true;
         }
         const markerPoint = { freq: marker2.freq, time: marker2.time };
-        const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage);
-        const clickSVG = calculateZoomAwarePosition(position, this.getViewport(), this.instance.spectrogramImage);
+        const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage);
+        const clickSVG = dataToSVG(position, this.getViewport(), this.instance.spectrogramImage);
         const crosshairSize = 15;
         const lineThickness = 3;
         const onHorizontalLine = Math.abs(clickSVG.y - markerSVG.y) <= lineThickness && Math.abs(clickSVG.x - markerSVG.x) <= crosshairSize;
@@ -947,6 +1183,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       });
       if (marker) {
         return {
+          kind: "move",
           id: marker.id,
           type: "marker",
           position: { freq: marker.freq, time: marker.time },
@@ -954,110 +1191,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         };
       }
       return null;
-    }
-    /**
-     * Update markers table with current markers
-     */
-    updateMarkersTable() {
-      if (!this.uiElements.markersTableBody) return;
-      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
-      const existingRows = this.uiElements.markersTableBody.querySelectorAll("tr");
-      const markers = this.instance.state.analysis.markers;
-      markers.forEach((marker, index) => {
-        let row = existingRows[index];
-        if (row && row.getAttribute("data-marker-id") === marker.id) {
-          this.updateMarkerRow(row, marker);
-        } else {
-          this.rebuildMarkersTableFrom(index);
-          return;
-        }
-      });
-      for (let i = markers.length; i < existingRows.length; i++) {
-        existingRows[i].remove();
-      }
-    }
-    /**
-     * Update only the changing cells in an existing marker row
-     * @param {HTMLTableRowElement} row - The table row to update
-     * @param {AnalysisMarker} marker - The marker data
-     */
-    updateMarkerRow(row, marker) {
-      const colorCell = row.cells[0];
-      if (colorCell) {
-        colorCell.replaceChildren(createColorIndicator(marker.symbol, marker.color, 20));
-      }
-      const timeCell = row.cells[1];
-      if (timeCell) {
-        const newTime = formatTime(marker.time);
-        if (timeCell.textContent !== newTime) {
-          timeCell.textContent = newTime;
-        }
-      }
-      const freqCell = row.cells[2];
-      if (freqCell) {
-        const newFreq = marker.freq.toFixed(2);
-        if (freqCell.textContent !== newFreq) {
-          freqCell.textContent = newFreq;
-        }
-      }
-    }
-    /**
-     * Rebuild the markers table from a specific index
-     * @param {number} startIndex - Index to start rebuilding from
-     */
-    rebuildMarkersTableFrom(startIndex) {
-      if (!this.uiElements.markersTableBody) return;
-      const markers = this.instance.state.analysis.markers;
-      const existingRows = this.uiElements.markersTableBody.querySelectorAll("tr");
-      for (let i = startIndex; i < existingRows.length; i++) {
-        existingRows[i].remove();
-      }
-      for (let index = startIndex; index < markers.length; index++) {
-        const marker = markers[index];
-        const row = document.createElement("tr");
-        row.setAttribute("data-marker-id", marker.id);
-        row.addEventListener("click", (event) => {
-          if (event.target && /** @type {Element} */
-          event.target.closest(".gram-frame-marker-delete-btn")) {
-            return;
-          }
-          if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === marker.id) {
-            this.instance.clearSelection();
-          } else {
-            this.instance.setSelection("marker", marker.id, index);
-          }
-        });
-        const colorCell = document.createElement("td");
-        colorCell.className = "gram-frame-marker-color";
-        colorCell.appendChild(createColorIndicator(marker.symbol, marker.color, 20));
-        row.appendChild(colorCell);
-        const timeCell = document.createElement("td");
-        timeCell.textContent = formatTime(marker.time);
-        row.appendChild(timeCell);
-        const freqCell = document.createElement("td");
-        freqCell.textContent = marker.freq.toFixed(2);
-        row.appendChild(freqCell);
-        const deleteCell = document.createElement("td");
-        const deleteButton = document.createElement("button");
-        deleteButton.textContent = "×";
-        deleteButton.className = "gram-frame-marker-delete-btn";
-        deleteButton.style.background = "none";
-        deleteButton.style.border = "none";
-        deleteButton.style.color = "#ff4444";
-        deleteButton.style.cursor = "pointer";
-        deleteButton.style.fontSize = "16px";
-        deleteButton.style.fontWeight = "bold";
-        const markerId = marker.id;
-        deleteButton.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          this.removeMarker(markerId);
-        });
-        deleteCell.appendChild(deleteButton);
-        row.appendChild(deleteCell);
-        this.uiElements.markersTableBody.appendChild(row);
-      }
-      this.instance.updateSelectionVisuals();
     }
     /**
      * Update mode-specific LED values based on cursor position
@@ -1089,148 +1222,75 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
    */
   __publicField(_AnalysisMode, "MARKER_SYMBOL_SIZE", 14);
   let AnalysisMode = _AnalysisMode;
+  const panelTables = /* @__PURE__ */ new WeakMap();
   function createSymbolSwatch(harmonicSet) {
     return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
   }
-  function createHarmonicPanel(container) {
-    const area = document.createElement("div");
-    area.className = "gram-frame-table-area";
-    const panel = document.createElement("div");
-    panel.className = "gram-frame-table-container";
-    panel.innerHTML = `
-    <table class="gram-frame-table">
-      <thead>
-        <tr>
-          <th style="width: 15%"></th>
-          <th style="width: 35%">Spacing (Hz)</th>
-          <th style="width: 35%">Ratio</th>
-          <th style="width: 15%"></th>
-        </tr>
-      </thead>
-      <tbody>
-      </tbody>
-    </table>
-  `;
-    area.appendChild(panel);
-    container.appendChild(area);
+  function createColorCellContent(harmonicSet) {
+    const colorDiv = document.createElement("div");
+    colorDiv.className = "gram-frame-harmonic-color";
+    colorDiv.style.color = harmonicSet.color;
+    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
+    return colorDiv;
+  }
+  function formatRatio(harmonicSet, instance) {
+    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
+      return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
+    }
+    return "5.000";
+  }
+  function createHarmonicDeleteButton(harmonicSet) {
+    const button = document.createElement("button");
+    button.className = "gram-frame-harmonic-delete";
+    button.setAttribute("data-harmonic-id", harmonicSet.id);
+    button.title = "Delete harmonic set";
+    button.textContent = "×";
+    return button;
+  }
+  function createHarmonicPanel(container, instance) {
+    const table = createDiffingTable(container, {
+      columns: [
+        { label: "", width: "15%" },
+        { label: "Spacing (Hz)", width: "35%", cellClassName: "gram-frame-harmonic-spacing" },
+        { label: "Ratio", width: "35%", cellClassName: "gram-frame-harmonic-rate" },
+        { label: "", width: "15%" }
+      ],
+      rowAttribute: "data-harmonic-id",
+      rowClassName: "gram-frame-harmonic-row",
+      rowKey: (harmonicSet) => harmonicSet.id,
+      cells: (harmonicSet) => [
+        createColorCellContent(harmonicSet),
+        harmonicSet.spacing.toFixed(2),
+        formatRatio(harmonicSet, instance),
+        createHarmonicDeleteButton(harmonicSet)
+      ],
+      deleteSelector: ".gram-frame-harmonic-delete",
+      onSelect: (harmonicSetId, _harmonicSet, index) => {
+        if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId) {
+          instance.clearSelection();
+        } else {
+          instance.setSelection("harmonicSet", harmonicSetId, index);
+        }
+      },
+      onDelete: (harmonicSetId) => instance.removeHarmonicSet(harmonicSetId),
+      isSelected: (harmonicSetId) => instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId
+    });
+    const panel = (
+      /** @type {HTMLElement} */
+      table.element.parentElement
+    );
+    panelTables.set(panel, table);
     return panel;
   }
   function updateHarmonicPanelContent(panel, instance) {
     if (!panel) {
       return;
     }
-    const tbody = (
-      /** @type {HTMLTableSectionElement} */
-      panel.querySelector(".gram-frame-table tbody")
-    );
-    if (!tbody) {
+    const table = panelTables.get(panel);
+    if (!table) {
       return;
     }
-    const harmonicSets = instance.state.harmonics.harmonicSets;
-    const existingRows = tbody.querySelectorAll("tr");
-    harmonicSets.forEach((harmonicSet, index) => {
-      let row = existingRows[index];
-      if (row && row.getAttribute("data-harmonic-id") === harmonicSet.id) {
-        updateHarmonicRow(row, harmonicSet, instance);
-      } else {
-        rebuildHarmonicTableFrom(tbody, harmonicSets, instance, index);
-        return;
-      }
-    });
-    for (let i = harmonicSets.length; i < existingRows.length; i++) {
-      existingRows[i].remove();
-    }
-  }
-  function updateHarmonicRow(row, harmonicSet, instance) {
-    const colorCell = row.cells[0];
-    const colorDiv = colorCell && /** @type {HTMLElement} */
-    colorCell.querySelector(".gram-frame-harmonic-color");
-    if (colorDiv) {
-      colorDiv.style.color = harmonicSet.color;
-      colorDiv.replaceChildren(createSymbolSwatch(harmonicSet));
-    }
-    const spacingCell = row.cells[1];
-    if (spacingCell) {
-      const newSpacing = harmonicSet.spacing.toFixed(2);
-      if (spacingCell.textContent !== newSpacing) {
-        spacingCell.textContent = newSpacing;
-      }
-    }
-    const rateCell = row.cells[2];
-    if (rateCell) {
-      let rate;
-      if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-        rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
-      } else {
-        rate = "5.000";
-      }
-      if (rateCell.textContent !== rate) {
-        rateCell.textContent = rate;
-      }
-    }
-  }
-  function rebuildHarmonicTableFrom(tbody, harmonicSets, instance, startIndex) {
-    const existingRows = tbody.querySelectorAll("tr");
-    for (let i = startIndex; i < existingRows.length; i++) {
-      existingRows[i].remove();
-    }
-    for (let index = startIndex; index < harmonicSets.length; index++) {
-      const harmonicSet = harmonicSets[index];
-      const row = createHarmonicRow(harmonicSet, instance, index);
-      tbody.appendChild(row);
-    }
-    instance.updateSelectionVisuals();
-  }
-  function createHarmonicRow(harmonicSet, instance, index) {
-    const row = document.createElement("tr");
-    row.setAttribute("data-harmonic-id", harmonicSet.id);
-    row.className = "gram-frame-harmonic-row";
-    const colorCell = document.createElement("td");
-    const colorDiv = document.createElement("div");
-    colorDiv.className = "gram-frame-harmonic-color";
-    colorDiv.style.color = harmonicSet.color;
-    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
-    colorCell.appendChild(colorDiv);
-    row.appendChild(colorCell);
-    const spacingCell = document.createElement("td");
-    spacingCell.className = "gram-frame-harmonic-spacing";
-    spacingCell.textContent = harmonicSet.spacing.toFixed(2);
-    row.appendChild(spacingCell);
-    const rateCell = document.createElement("td");
-    rateCell.className = "gram-frame-harmonic-rate";
-    let rate;
-    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-      rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
-    } else {
-      rate = "5.000";
-    }
-    rateCell.textContent = rate;
-    row.appendChild(rateCell);
-    const actionCell = document.createElement("td");
-    const deleteButton = document.createElement("button");
-    deleteButton.className = "gram-frame-harmonic-delete";
-    deleteButton.setAttribute("data-harmonic-id", harmonicSet.id);
-    deleteButton.title = "Delete harmonic set";
-    deleteButton.textContent = "×";
-    actionCell.appendChild(deleteButton);
-    row.appendChild(actionCell);
-    row.addEventListener("click", (event) => {
-      if (event.target && /** @type {Element} */
-      event.target.closest(".gram-frame-harmonic-delete")) {
-        return;
-      }
-      if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSet.id) {
-        instance.clearSelection();
-      } else {
-        instance.setSelection("harmonicSet", harmonicSet.id, index);
-      }
-    });
-    deleteButton.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      instance.removeHarmonicSet(harmonicSet.id);
-    });
-    return row;
+    table.update(instance.state.harmonics.harmonicSets);
   }
   const BOTTOM_GAP = 16;
   function isLandscape(instance) {
@@ -1279,7 +1339,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function updateToggleButton(button, expanded) {
     button.setAttribute("aria-pressed", expanded ? "true" : "false");
@@ -1423,7 +1483,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       updateSVGLayout(instance);
       renderAxes(instance);
       createExpandToggle(instance);
-      notifyStateListeners(instance.state, instance.stateListeners);
+      dispatch(instance);
     };
     tempImg.onerror = function() {
       console.error(`GramFrame: Failed to load spectrogram image: ${imageUrl}`);
@@ -1525,16 +1585,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (zoomLevel === 1) {
       return { timeMin, timeMax, freqMin, freqMax };
     }
-    let imageLeft = margins.left;
-    let imageTop = margins.top;
-    let imageWidth = renderWidth;
-    let imageHeight = renderHeight;
-    if (instance.spectrogramImage) {
-      imageLeft = parseFloat(instance.spectrogramImage.getAttribute("x") || String(margins.left));
-      imageTop = parseFloat(instance.spectrogramImage.getAttribute("y") || String(margins.top));
-      imageWidth = parseFloat(instance.spectrogramImage.getAttribute("width") || String(renderWidth));
-      imageHeight = parseFloat(instance.spectrogramImage.getAttribute("height") || String(renderHeight));
-    }
+    const {
+      left: imageLeft,
+      top: imageTop,
+      width: imageWidth,
+      height: imageHeight
+    } = getImageBounds(instance.state, instance.spectrogramImage);
     const visibleLeft = Math.max(0, margins.left - imageLeft);
     const visibleRight = Math.min(imageWidth, margins.left + renderWidth - imageLeft);
     const visibleTop = Math.max(0, margins.top - imageTop);
@@ -1868,12 +1924,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     constructor(instance) {
       super(instance);
       this.dragHandler = new BaseDragHandler(instance, {
-        findTargetAt: (position) => this.findHarmonicSetTarget(position),
+        resolveTarget: (position) => this.resolveHarmonicDrag(position),
         onDragStart: (target, position) => this.onHarmonicSetDragStart(target, position),
-        onDragUpdate: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
+        onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
         onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
+        onDragCancel: (target) => this.onHarmonicSetDragEnd(target, null),
         updateCursor: (style) => this.updateCursorStyle(style)
-      });
+      }, "harmonics");
     }
     /**
      * Find harmonic set target for drag handler
@@ -1884,16 +1941,34 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const harmonicSet = this.findHarmonicSetAtFrequency(position.freq);
       if (harmonicSet) {
         return {
+          kind: "move",
           id: harmonicSet.id,
           type: "harmonicSet",
           position,
           data: {
             harmonicSet,
-            clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq)
+            clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq),
+            originalAnchorTime: harmonicSet.anchorTime
           }
         };
       }
       return null;
+    }
+    /**
+     * Resolve what a mousedown in harmonics mode starts.
+     *
+     * Landing on an existing set moves it; landing anywhere else creates one and
+     * drags it out from there. The new set is minted here, on mousedown, so the
+     * engine has a target id for the whole gesture (contract: drag-engine.md).
+     * @param {DataCoordinates} position - Position of the mousedown
+     * @returns {DragTarget|null} A move- or create-kind target
+     */
+    resolveHarmonicDrag(position) {
+      const existing = this.findHarmonicSetTarget(position);
+      if (existing) {
+        return existing;
+      }
+      return this.createHarmonicSetTarget(position);
     }
     /**
      * Start dragging a harmonic set
@@ -1902,25 +1977,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     onHarmonicSetDragStart(target, position) {
       const harmonicSet = target.data.harmonicSet;
-      const clickedHarmonicNumber = target.data.clickedHarmonicNumber;
       const index = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSet.id);
       if (index !== -1) {
         this.instance.setSelection("harmonicSet", harmonicSet.id, index);
       }
-      this.instance.state.dragState.isDragging = true;
-      this.instance.state.dragState.dragStartPosition = { ...position };
-      this.instance.state.dragState.draggedHarmonicSetId = harmonicSet.id;
-      this.instance.state.dragState.originalSpacing = harmonicSet.spacing;
-      this.instance.state.dragState.originalAnchorTime = harmonicSet.anchorTime;
-      this.instance.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber;
     }
     /**
      * Update harmonic set during drag
-     * @param {Object} _target - Drag target with id and type (unused)
+     * @param {DragTarget} target - Drag target
      * @param {DataCoordinates} currentPos - Current position
-     * @param {DataCoordinates} _startPos - Start position (unused)
+     * @param {DataCoordinates} startPos - Start position
      */
-    onHarmonicSetDragUpdate(_target, currentPos, _startPos) {
+    onHarmonicSetDragUpdate(target, currentPos, startPos) {
       this.instance.state.cursorPosition = {
         freq: currentPos.freq,
         time: currentPos.time,
@@ -1932,7 +2000,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         imageY: 0
         // Minimal values for compatibility
       };
-      this.handleHarmonicSetDrag();
+      this.applyHarmonicSetDrag(target, currentPos, startPos);
     }
     /**
      * End dragging a harmonic set
@@ -1940,12 +2008,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} _position - End position (unused)
      */
     onHarmonicSetDragEnd(_target, _position) {
-      this.instance.state.dragState.isDragging = false;
-      this.instance.state.dragState.dragStartPosition = null;
-      this.instance.state.dragState.draggedHarmonicSetId = null;
-      this.instance.state.dragState.originalSpacing = null;
-      this.instance.state.dragState.originalAnchorTime = null;
-      this.instance.state.dragState.clickedHarmonicNumber = null;
     }
     /**
      * Update cursor style for drag operations
@@ -1979,19 +2041,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     handleMouseMove(_event, dataCoords) {
       if (this.dragHandler.isDragging()) {
         this.dragHandler.handleMouseMove(dataCoords);
-      } else if (this.instance.state.dragState.isCreatingNewHarmonicSet) {
-        this.instance.state.cursorPosition = {
-          freq: dataCoords.freq,
-          time: dataCoords.time,
-          x: 0,
-          y: 0,
-          svgX: 0,
-          svgY: 0,
-          imageX: 0,
-          imageY: 0
-          // Minimal values
-        };
-        this.handleHarmonicSetDrag();
       } else {
         this.dragHandler.updateCursorForHover(dataCoords);
       }
@@ -2008,10 +2057,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (event.button !== 0) {
         return;
       }
-      const dragStarted = this.dragHandler.startDrag(dataCoords);
-      if (!dragStarted) {
-        this.startNewHarmonicSetCreation(dataCoords);
-      }
+      this.dragHandler.startDrag(dataCoords, event);
     }
     /**
      * Handle mouse up events in harmonics mode
@@ -2019,15 +2065,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
      */
     handleMouseUp(_event, dataCoords) {
-      if (this.dragHandler.isDragging()) {
-        this.dragHandler.endDrag(dataCoords);
-      }
-      if (this.instance.state.dragState.isCreatingNewHarmonicSet) {
-        this.completeNewHarmonicSetCreation(dataCoords);
-        if (this.instance.svg) {
-          this.instance.svg.style.cursor = "crosshair";
-        }
-      }
+      this.dragHandler.endDrag(dataCoords);
     }
     /**
      * Create UI elements for harmonics mode
@@ -2047,7 +2085,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (buttonContainer) {
         buttonContainer.appendChild(this.uiElements.manualButton);
       }
-      this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer);
+      this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer, this.instance);
       this.instance.harmonicPanel = this.uiElements.harmonicPanel;
       this.instance.colorPicker = this.instance.colorPicker || null;
       this.updateHarmonicPanel();
@@ -2113,6 +2151,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         largeSymbols: !!this.instance.state.largeSymbols
       };
       this.instance.state.harmonics.harmonicSets.push(harmonicSet);
+      markAnnotationsChanged(this.instance);
       const index = this.instance.state.harmonics.harmonicSets.length - 1;
       this.instance.setSelection("harmonicSet", harmonicSet.id, index);
       if (this.instance.harmonicPanel) {
@@ -2121,7 +2160,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.instance.featureRenderer) {
         this.instance.featureRenderer.renderAllPersistentFeatures();
       }
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
+      dispatch(this.instance, { frame: true });
       return harmonicSet;
     }
     /**
@@ -2133,13 +2172,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
       if (setIndex !== -1) {
         Object.assign(this.instance.state.harmonics.harmonicSets[setIndex], updates);
+        markAnnotationsChanged(this.instance);
         if (this.instance.harmonicPanel) {
           updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
         }
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
         }
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -2153,13 +2193,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           this.instance.clearSelection();
         }
         this.instance.state.harmonics.harmonicSets.splice(setIndex, 1);
+        markAnnotationsChanged(this.instance);
         if (this.instance.harmonicPanel) {
           updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
         }
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
         }
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -2188,7 +2229,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic));
           const pinDrawn = harmonicSet.showPin !== false;
           const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
-          const cursorSVG = calculateZoomAwarePosition(
+          const cursorSVG = dataToSVG(
             { freq, time: cursorTime },
             this.getViewport(),
             this.instance.spectrogramImage
@@ -2207,11 +2248,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return null;
     }
     /**
-     * Create a new harmonic set immediately and start drag mode for updates
+     * Mint a new harmonic set at the mousedown position and return it as a
+     * `create`-kind drag target, so the rest of the gesture is an ordinary drag.
+     *
+     * The initial spacing places the cursor on a sensible harmonic — the 10th
+     * when the frequency axis starts above zero, the 5th when it starts at zero —
+     * which is what keeps the first drawn set legible.
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
      */
-    startNewHarmonicSetCreation(dataCoords) {
-      const freqMin = this.instance.state.config.freqMin;
+    createHarmonicSetTarget(dataCoords) {
+      const { freqMin } = this.instance.state.config;
       let initialSpacing;
       let clickedHarmonicNumber;
       if (freqMin > 0) {
@@ -2223,27 +2270,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       initialSpacing = Math.max(initialSpacing, 0.1);
       const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing);
-      this.instance.state.dragState.isCreatingNewHarmonicSet = true;
-      this.instance.state.dragState.dragStartPosition = { ...dataCoords };
-      this.instance.state.dragState.draggedHarmonicSetId = harmonicSet.id;
-      this.instance.state.dragState.originalSpacing = initialSpacing;
-      this.instance.state.dragState.originalAnchorTime = dataCoords.time;
-      this.instance.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber;
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = "grabbing";
+      if (!harmonicSet) {
+        return null;
       }
-    }
-    /**
-     * Complete the drag update of the newly created harmonic set
-     * @param {DataCoordinates} _dataCoords - Final drag position coordinates (unused)
-     */
-    completeNewHarmonicSetCreation(_dataCoords) {
-      this.instance.state.dragState.isCreatingNewHarmonicSet = false;
-      this.instance.state.dragState.dragStartPosition = null;
-      this.instance.state.dragState.draggedHarmonicSetId = null;
-      this.instance.state.dragState.originalSpacing = null;
-      this.instance.state.dragState.originalAnchorTime = null;
-      this.instance.state.dragState.clickedHarmonicNumber = null;
+      return {
+        kind: "create",
+        id: harmonicSet.id,
+        type: "harmonicSet",
+        position: dataCoords,
+        data: {
+          harmonicSet,
+          clickedHarmonicNumber,
+          originalAnchorTime: dataCoords.time
+        }
+      };
     }
     /**
      * Find which harmonic number was clicked
@@ -2256,22 +2296,25 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return Math.max(1, harmonicNumber);
     }
     /**
-     * Handle harmonic set dragging (both existing sets and new creation)
+     * Apply a harmonic-set drag — the shared step for both the `move` and
+     * `create` kinds, which differ only in how their target was resolved.
+     * @param {DragTarget} target - The drag target from the engine
+     * @param {DataCoordinates} currentPos - Current pointer position
+     * @param {DataCoordinates} startPos - Where the drag began
      */
-    handleHarmonicSetDrag() {
-      if (!this.instance.state.cursorPosition || !this.instance.state.dragState.dragStartPosition) return;
-      const currentPos = this.instance.state.cursorPosition;
-      const startPos = this.instance.state.dragState.dragStartPosition;
-      const setId = this.instance.state.dragState.draggedHarmonicSetId;
+    applyHarmonicSetDrag(target, currentPos, startPos) {
+      if (!target || !currentPos || !startPos) return;
+      const setId = target.id;
       if (!setId) return;
       const harmonicSet = this.instance.state.harmonics.harmonicSets.find((set) => set.id === setId);
       if (!harmonicSet) return;
       let newSpacing, newAnchorTime;
-      const clickedHarmonicNumber = this.instance.state.dragState.clickedHarmonicNumber || 1;
+      const clickedHarmonicNumber = target.data && target.data.clickedHarmonicNumber || 1;
       newSpacing = currentPos.freq / clickedHarmonicNumber;
       newSpacing = Math.max(newSpacing, 0.1);
+      const originalAnchorTime = target.data && target.data.originalAnchorTime !== void 0 ? target.data.originalAnchorTime : harmonicSet.anchorTime;
       const deltaTime = currentPos.time - startPos.time;
-      newAnchorTime = this.instance.state.dragState.originalAnchorTime + deltaTime;
+      newAnchorTime = originalAnchorTime + deltaTime;
       const updates = {};
       if (newSpacing > 0) {
         updates.spacing = newSpacing;
@@ -2379,7 +2422,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const { renderHeight } = getRenderDimensions(this.instance);
       const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
       const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
-      const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
+      const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
       const lineTop = anchorSVG.y - lineHeight / 2;
       return { lineHeight, lineTop };
     }
@@ -2558,7 +2601,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     harmonicLineX(harmonicSet, harmonicNumber) {
       const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime };
-      return calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x;
+      return dataToSVG(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x;
     }
     /**
      * Render a single harmonic set as vertical pin lines.
@@ -2615,15 +2658,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           baseFrequency: null,
           harmonicData: [],
           harmonicSets: []
-        },
-        dragState: {
-          isDragging: false,
-          dragStartPosition: null,
-          draggedHarmonicSetId: null,
-          originalSpacing: null,
-          originalAnchorTime: null,
-          clickedHarmonicNumber: null,
-          isCreatingNewHarmonicSet: false
         }
       };
     }
@@ -2736,7 +2770,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     checkbox.addEventListener("change", () => {
       if (!instance.applyLargeSymbolsToSelectedFeature || !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
         instance.state.largeSymbols = checkbox.checked;
-        notifyStateListeners(instance.state, instance.stateListeners);
+        dispatch(instance);
       }
     });
     instance._largeSymbolsControl = {
@@ -3113,9 +3147,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     event.preventDefault();
     event.stopPropagation();
-    const baseIncrement = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal;
-    const zoomLevel = focusedInstance.state.zoom.level || 1;
-    const increment = baseIncrement / zoomLevel;
+    const increment = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal;
     const movement = calculateMovementFromKey(event.key, increment);
     if (selection.selectedType === "marker") {
       moveSelectedMarker(focusedInstance, selection.selectedId, movement);
@@ -3148,35 +3180,28 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (!marker) {
       return;
     }
-    const currentSVG = dataToSVGCoordinates(
-      marker.freq,
-      marker.time,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate,
-      instance.state.margins
+    const currentSVG = dataToSVG(
+      { freq: marker.freq * instance.state.rate, time: marker.time },
+      instance.state,
+      instance.spectrogramImage
     );
     const newSVG = {
       x: currentSVG.x + movement.dx,
       y: currentSVG.y + movement.dy
     };
-    const newData = svgToDataCoordinates(
-      newSVG.x,
-      newSVG.y,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate,
-      instance.state.margins
-    );
+    const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.spectrogramImage);
+    const clamped = clampToImage(image.x, image.y, instance.state);
+    const newData = imageToData(clamped.x, clamped.y, instance.state);
     marker.freq = newData.freq;
     marker.time = newData.time;
+    markAnnotationsChanged(instance);
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
     }
     if (instance.currentMode && instance.currentMode.updateMarkersTable) {
       instance.currentMode.updateMarkersTable();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
@@ -3187,67 +3212,47 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     const updates = {};
+    const { timeMin, timeMax } = instance.state.config;
+    const viewport = instance.state;
+    const image = instance.spectrogramImage;
+    const svgPointToData = (svgX, svgY) => {
+      const imagePoint = svgToImage(svgX, svgY, viewport, image);
+      return imageToData(imagePoint.x, imagePoint.y, viewport);
+    };
     if (movement.dx !== 0) {
-      const { naturalWidth } = instance.state.imageDetails;
-      const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-      const { freqMin, freqMax } = instance.state.config;
-      const freqRange = (freqMax - freqMin) / instance.state.rate;
-      const pixelToFreqRatio = freqRange / renderWidth;
-      const spacingChange = movement.dx * pixelToFreqRatio;
+      const reference = dataToSVG(
+        { freq: instance.state.config.freqMin, time: timeMax },
+        viewport,
+        image
+      );
+      const before = svgPointToData(reference.x, reference.y);
+      const after = svgPointToData(reference.x + movement.dx, reference.y);
+      const spacingChange = after.freq - before.freq;
       updates.spacing = Math.max(1, harmonicSet.spacing + spacingChange);
     }
     if (movement.dy !== 0) {
-      const { naturalHeight } = instance.state.imageDetails;
-      const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-      const { timeMin, timeMax } = instance.state.config;
-      const margins = instance.state.margins;
-      const normalizedTime = 1 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin);
-      const currentY = margins.top + normalizedTime * renderHeight;
-      const newY = currentY + movement.dy;
-      const newNormalizedTime = (newY - margins.top) / renderHeight;
-      updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin);
-      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime));
+      const anchorSVG = dataToSVG(
+        { freq: instance.state.config.freqMin, time: harmonicSet.anchorTime },
+        viewport,
+        image
+      );
+      const moved = svgPointToData(anchorSVG.x, anchorSVG.y + movement.dy);
+      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, moved.time));
     }
     if (Object.keys(updates).length > 0) {
       const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
       if (setIndex !== -1) {
         Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates);
+        markAnnotationsChanged(instance);
         if (instance.harmonicPanel) {
           updateHarmonicPanelContent(instance.harmonicPanel, instance);
         }
         if (instance.featureRenderer) {
           instance.featureRenderer.renderAllPersistentFeatures();
         }
-        notifyStateListeners(instance.state, instance.stateListeners);
+        dispatch(instance);
       }
     }
-  }
-  function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const rawFreq = freq * rate;
-    const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin);
-    const normalizedY = 1 - (time - timeMin) / (timeMax - timeMin);
-    return {
-      x: margins.left + normalizedX * renderWidth,
-      y: margins.top + normalizedY * renderHeight
-    };
-  }
-  function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const imageX = svgX - margins.left;
-    const imageY = svgY - margins.top;
-    const boundedX = Math.max(0, Math.min(imageX, renderWidth));
-    const boundedY = Math.max(0, Math.min(imageY, renderHeight));
-    const rawFreq = freqMin + boundedX / renderWidth * (freqMax - freqMin);
-    const time = timeMax - boundedY / renderHeight * (timeMax - timeMin);
-    const freq = rawFreq / rate;
-    return { freq, time };
   }
   function setSelection(instance, type, id, index) {
     setFocusedInstance(instance);
@@ -3258,7 +3263,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (instance.syncStyleControls) {
       instance.syncStyleControls();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function clearSelection(instance) {
     instance.state.selection.selectedType = null;
@@ -3268,7 +3273,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (instance.syncStyleControls) {
       instance.syncStyleControls();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function getSelectedFeature(instance) {
     const sel = instance.state.selection;
@@ -3326,7 +3331,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         updateHarmonicPanelContent(instance.harmonicPanel, instance);
       }
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function applyColorToSelectedFeature(instance, color) {
     const selected = getSelectedFeature(instance);
@@ -3334,6 +3339,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return false;
     }
     selected.feature.color = color;
+    markAnnotationsChanged(instance);
     refreshFeatureVisuals(instance, selected.type);
     return true;
   }
@@ -3343,6 +3349,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return false;
     }
     selected.feature.symbol = symbol;
+    markAnnotationsChanged(instance);
     refreshFeatureVisuals(instance, selected.type);
     return true;
   }
@@ -3377,32 +3384,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (instance.featureRenderer) {
         instance.featureRenderer.renderAllPersistentFeatures();
       }
-      notifyStateListeners(instance.state, instance.stateListeners);
+      dispatch(instance);
     }
   }
   function updateSelectionVisuals(instance) {
-    if (instance.container) {
-      const existingHighlights = instance.container.querySelectorAll(".gram-frame-selected-row");
-      existingHighlights.forEach((el) => {
-        el.classList.remove("gram-frame-selected-row");
-      });
+    const analysisMode = instance.modes && instance.modes["analysis"];
+    if (analysisMode && typeof analysisMode.updateMarkersTable === "function") {
+      analysisMode.updateMarkersTable();
     }
-    const selection = instance.state.selection;
-    if (selection.selectedType && selection.selectedId) {
-      const container = instance.container || document;
-      if (selection.selectedType === "marker") {
-        const selector = `tr[data-marker-id="${selection.selectedId}"]`;
-        const row = container.querySelector(selector);
-        if (row) {
-          row.classList.add("gram-frame-selected-row");
-        }
-      } else if (selection.selectedType === "harmonicSet") {
-        const selector = `tr[data-harmonic-id="${selection.selectedId}"]`;
-        const row = container.querySelector(selector);
-        if (row) {
-          row.classList.add("gram-frame-selected-row");
-        }
-      }
+    if (instance.harmonicPanel) {
+      updateHarmonicPanelContent(instance.harmonicPanel, instance);
     }
   }
   const COLOR_PALETTE = [
@@ -3635,12 +3626,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     constructor(instance) {
       super(instance);
       this.dragHandler = new BaseDragHandler(instance, {
-        findTargetAt: (position) => this.findDopplerMarkerAtPosition(position),
+        resolveTarget: (position) => this.resolveDopplerDrag(position),
         onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-        onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+        onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
         onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
+        onDragCancel: (target) => this.onMarkerDragEnd(target, null),
         updateCursor: (style) => this.updateCursorStyle(style)
-      });
+      }, "doppler");
     }
     /**
      * Find doppler marker at given position
@@ -3657,6 +3649,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         DopplerDraggedMarker.fMinus,
         DopplerDraggedMarker.fZero
       ].filter((markerType) => doppler[markerType]).map((markerType) => ({
+        kind: "move",
         id: markerType,
         type: "dopplerMarker",
         position: doppler[markerType],
@@ -3670,28 +3663,92 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} _position - Start position (unused)
      */
     onMarkerDragStart(target, _position) {
-      const doppler = this.instance.state.doppler;
-      doppler.isDragging = true;
-      doppler.draggedMarker = target.data.markerType;
     }
     /**
      * Update doppler marker position during drag
-     * @param {Object} _target - Drag target with id and type (unused)
+     * @param {DragTarget} target - Drag target
      * @param {DataCoordinates} currentPos - Current position
      * @param {DataCoordinates} _startPos - Start position (unused)
      */
-    onMarkerDragUpdate(_target, currentPos, _startPos) {
-      this.handleMarkerDrag(currentPos, this.instance.state.doppler);
+    onMarkerDragUpdate(target, currentPos, _startPos) {
+      const doppler = this.instance.state.doppler;
+      if (target.kind === "place") {
+        this.handlePreviewDrag(currentPos, doppler);
+        return;
+      }
+      this.handleMarkerDrag(currentPos, doppler, target.id);
     }
     /**
      * End dragging a doppler marker
-     * @param {Object} _target - Drag target with id and type (unused)
+     * @param {DragTarget} target - Drag target
      * @param {DataCoordinates} _position - End position (unused)
      */
-    onMarkerDragEnd(_target, _position) {
+    onMarkerDragEnd(target, _position) {
+      if (target && target.kind === "place") {
+        this.completeMarkerPlacement();
+      }
+    }
+    /**
+     * Resolve what a mousedown in doppler mode starts: moving one of the placed
+     * markers, or — with nothing placed yet — laying down f+ and dragging out f-.
+     * @param {DataCoordinates} position - Position of the mousedown
+     * @returns {DragTarget|null} A move- or place-kind target
+     */
+    resolveDopplerDrag(position) {
       const doppler = this.instance.state.doppler;
-      doppler.isDragging = false;
-      doppler.draggedMarker = null;
+      if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
+        return this.findDopplerMarkerAtPosition(position);
+      }
+      return this.startMarkerPlacement(position);
+    }
+    /**
+     * Seed f+ at the mousedown position and return a `place`-kind target, so the
+     * rest of the placement is an ordinary drag with f- following the pointer.
+     *
+     * `tempFirst` and `previewEnd` stay on state.doppler: they are placement
+     * geometry the renderer needs, not drag bookkeeping (data-model.md §2).
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * @returns {DragTarget} A place-kind target
+     */
+    startMarkerPlacement(dataCoords) {
+      const doppler = this.instance.state.doppler;
+      doppler.fPlus = { time: dataCoords.time, freq: dataCoords.freq };
+      doppler.tempFirst = doppler.fPlus;
+      doppler.previewEnd = { time: dataCoords.time, freq: dataCoords.freq };
+      this.renderDopplerFeatures();
+      return {
+        kind: "place",
+        id: DopplerDraggedMarker.fMinus,
+        type: "dopplerMarker",
+        position: dataCoords,
+        data: { markerType: DopplerDraggedMarker.fMinus }
+      };
+    }
+    /**
+     * Finalise a placement drag: order the markers, derive f₀, and clear the
+     * placement geometry.
+     */
+    completeMarkerPlacement() {
+      const doppler = this.instance.state.doppler;
+      if (!doppler.tempFirst || !doppler.fPlus || !doppler.fMinus) {
+        doppler.tempFirst = null;
+        doppler.previewEnd = null;
+        return;
+      }
+      if (doppler.fPlus.time <= doppler.fMinus.time) {
+        const temp = doppler.fPlus;
+        doppler.fPlus = doppler.fMinus;
+        doppler.fMinus = temp;
+      }
+      doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus);
+      if (!doppler.color) {
+        doppler.color = this.instance.state.selectedColor || "#ff0000";
+      }
+      doppler.tempFirst = null;
+      doppler.previewEnd = null;
+      markAnnotationsChanged(this.instance);
+      this.calculateAndUpdateDopplerSpeed();
+      this.renderDopplerFeatures();
     }
     /**
      * Get guidance content for doppler mode
@@ -3726,22 +3783,24 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Handle marker dragging
      * @param {DataCoordinates} dataCoords - Data coordinates
      * @param {DopplerState} doppler - Doppler state
+     * @param {string|null} markerType - Which marker is being dragged
      */
-    handleMarkerDrag(dataCoords, doppler) {
+    handleMarkerDrag(dataCoords, doppler, markerType) {
       const newPoint = {
         time: dataCoords.time,
         freq: dataCoords.freq
       };
-      if (doppler.draggedMarker === DopplerDraggedMarker.fPlus) {
+      if (markerType === DopplerDraggedMarker.fPlus) {
         doppler.fPlus = newPoint;
-      } else if (doppler.draggedMarker === DopplerDraggedMarker.fMinus) {
+      } else if (markerType === DopplerDraggedMarker.fMinus) {
         doppler.fMinus = newPoint;
-      } else if (doppler.draggedMarker === DopplerDraggedMarker.fZero) {
+      } else if (markerType === DopplerDraggedMarker.fZero) {
         doppler.fZero = newPoint;
       }
+      markAnnotationsChanged(this.instance);
       this.calculateAndUpdateDopplerSpeed();
       this.renderDopplerFeatures();
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
+      dispatch(this.instance, { frame: true });
     }
     /**
      * Handle mouse move events in doppler mode
@@ -3750,10 +3809,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     handleMouseMove(_event, dataCoords) {
       const doppler = this.instance.state.doppler;
-      if (doppler.isPreviewDrag && doppler.tempFirst) {
-        this.handlePreviewDrag(dataCoords, doppler);
-        return;
-      }
       if (this.dragHandler.isDragging()) {
         this.dragHandler.handleMouseMove(dataCoords);
       } else if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
@@ -3762,31 +3817,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /**
      * Handle mouse down events in doppler mode
-     * @param {MouseEvent} _event - Mouse event
+     * @param {MouseEvent} event - Mouse event
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
      */
-    handleMouseDown(_event, dataCoords) {
-      const doppler = this.instance.state.doppler;
-      if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-        const dragStarted = this.dragHandler.startDrag(dataCoords);
-        if (dragStarted) {
-          notifyStateListeners(this.instance.state, this.instance.stateListeners);
-          return;
-        }
-      }
-      if (!doppler.fPlus && !doppler.fMinus) {
-        doppler.isPlacingMarkers = true;
-        doppler.fPlus = {
-          time: dataCoords.time,
-          freq: dataCoords.freq
-        };
-        doppler.isPreviewDrag = true;
-        doppler.tempFirst = doppler.fPlus;
-        doppler.previewEnd = {
-          time: dataCoords.time,
-          freq: dataCoords.freq
-        };
-        this.renderDopplerFeatures();
+    handleMouseDown(event, dataCoords) {
+      if (this.dragHandler.startDrag(dataCoords, event)) {
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -3795,30 +3831,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
      */
     handleMouseUp(_event, dataCoords) {
-      const doppler = this.instance.state.doppler;
-      if (doppler.isPreviewDrag && doppler.tempFirst) {
-        if (doppler.fPlus.time > doppler.fMinus.time) ;
-        else {
-          const temp = doppler.fPlus;
-          doppler.fPlus = doppler.fMinus;
-          doppler.fMinus = temp;
-        }
-        doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus);
-        if (!doppler.color) {
-          doppler.color = this.instance.state.selectedColor || "#ff0000";
-        }
-        doppler.isPlacingMarkers = false;
-        doppler.tempFirst = null;
-        doppler.isPreviewDrag = false;
-        doppler.previewEnd = null;
-        this.calculateAndUpdateDopplerSpeed();
-        this.renderDopplerFeatures();
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
-        return;
-      }
       if (this.dragHandler.isDragging()) {
         this.dragHandler.endDrag(dataCoords);
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -3850,24 +3865,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.instance.state.doppler.fZero = null;
       this.instance.state.doppler.speed = null;
       this.instance.state.doppler.color = null;
-      this.instance.state.doppler.isDragging = false;
-      this.instance.state.doppler.draggedMarker = null;
-      this.instance.state.doppler.isPlacingMarkers = false;
       this.instance.state.doppler.tempFirst = null;
-      this.instance.state.doppler.isPreviewDrag = false;
       this.instance.state.doppler.previewEnd = null;
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
+      this.dragHandler.reset();
+      dispatch(this.instance, { frame: true });
     }
     /**
      * Clean up doppler-specific state when switching away from doppler mode
      */
     cleanup() {
-      this.instance.state.doppler.isDragging = false;
-      this.instance.state.doppler.draggedMarker = null;
-      this.instance.state.doppler.isPlacingMarkers = false;
       this.instance.state.doppler.tempFirst = null;
-      this.instance.state.doppler.isPreviewDrag = false;
       this.instance.state.doppler.previewEnd = null;
+      this.dragHandler.reset();
     }
     /**
      * Deactivate doppler mode - hide speed LED
@@ -3884,7 +3893,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.instance.state.doppler.speed = speed;
         this.updateSpeedLED();
         updateLEDDisplays(this.instance, this.instance.state);
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -3904,14 +3913,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           // calculated speed in m/s
           color: null,
           // color used for this doppler curve
-          isDragging: false,
-          draggedMarker: null,
-          // 'fPlus', 'fMinus', 'fZero'
-          isPlacingMarkers: false,
+          // Placement geometry the renderer needs. Drag bookkeeping lives on
+          // state.drag, owned by the drag engine.
           tempFirst: null,
           // temporary storage for first marker during placement
-          isPreviewDrag: false,
-          // whether currently dragging to preview curve
           previewEnd: null
           // end point for preview drag
         }
@@ -3959,7 +3964,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
         this.renderMarkers();
         this.renderDopplerCurve();
-        if (doppler.isPreviewDrag) {
+        if (doppler.tempFirst) {
           const elements = this.instance.cursorGroup.querySelectorAll(".gram-frame-doppler-curve, .gram-frame-doppler-extension");
           elements.forEach((element) => {
             element.setAttribute("opacity", "0.8");
@@ -4222,19 +4227,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       applyZoomTransform(instance);
     }
     updateZoomControlStates(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance, { frame: true });
   }
   function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
     const { naturalWidth, naturalHeight } = instance.state.imageDetails;
     const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
     const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-    const margins = instance.state.margins;
-    const svgRect = instance.svg.getBoundingClientRect();
-    const scaleX = (renderWidth + margins.left + margins.right) / svgRect.width;
-    const scaleY = (renderHeight + margins.top + margins.bottom) / svgRect.height;
+    const origin = screenToSVG(0, 0, instance.svg);
+    const shifted = screenToSVG(dxPx, dyPx, instance.svg);
+    const svgDeltaX = shifted.x - origin.x;
+    const svgDeltaY = shifted.y - origin.y;
     return {
-      normalizedDeltaX: -(dxPx * scaleX / renderWidth) / instance.state.zoom.level,
-      normalizedDeltaY: -(dyPx * scaleY / renderHeight) / instance.state.zoom.level
+      normalizedDeltaX: -(svgDeltaX / renderWidth) / instance.state.zoom.level,
+      normalizedDeltaY: -(svgDeltaY / renderHeight) / instance.state.zoom.level
     };
   }
   function panByNormalized(instance, deltaX, deltaY) {
@@ -4301,91 +4306,123 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     constructor(instance) {
       super(instance);
-      this.isDragging = false;
-      this.dragState = {
-        lastX: 0,
-        lastY: 0
-      };
+      this.lastPointer = { x: 0, y: 0 };
+      this.dragHandler = new BaseDragHandler(instance, {
+        resolveTarget: () => this.resolvePanDrag(),
+        onDragStart: (_target, _position, event) => this.onPanStart(event),
+        onDragMove: (_target, _position, _startPosition, event) => this.onPanMove(event),
+        onDragEnd: () => this.onPanEnd(),
+        onDragCancel: () => this.onPanEnd(),
+        updateCursor: (style) => this.applyCursor(style),
+        // A pan shows the grabbing hand, not the crosshair the other kinds use
+        cursorFor: (kind, fallback) => {
+          if (kind !== "pan") return fallback;
+          return fallback === "grabbing" ? "grabbing" : this.idleCursor();
+        }
+      }, "pan");
+    }
+    /**
+     * Decide whether a mousedown starts a pan. Panning is only meaningful when
+     * zoomed in; at zoom 1 the click falls through and does nothing.
+     * @returns {DragTarget|null} A pan-kind target, or null to decline
+     */
+    resolvePanDrag() {
+      if (this.instance.state.zoom.level <= 1) {
+        return null;
+      }
+      return { kind: "pan", id: null, type: null };
+    }
+    /**
+     * The cursor pan mode rests at: a grab hand when there is something to pan.
+     * @returns {string} Cursor style
+     */
+    idleCursor() {
+      return this.instance.state.zoom.level > 1 ? "grab" : "crosshair";
+    }
+    /**
+     * Apply a cursor style to the SVG.
+     * @param {string} style - Cursor style
+     */
+    applyCursor(style) {
+      if (this.instance.svg) {
+        this.instance.svg.style.cursor = style;
+      }
+    }
+    /**
+     * Record where the pan began, in screen pixels.
+     * @param {MouseEvent} [event] - Originating mousedown
+     */
+    onPanStart(event) {
+      if (event) {
+        this.lastPointer = { x: event.clientX, y: event.clientY };
+        event.preventDefault();
+      }
+    }
+    /**
+     * Pan the viewport by the pointer delta since the last move.
+     * @param {MouseEvent} [event] - Originating mousemove
+     */
+    onPanMove(event) {
+      if (!event || this.instance.state.zoom.level <= 1) {
+        return;
+      }
+      const deltaX = event.clientX - this.lastPointer.x;
+      const deltaY = event.clientY - this.lastPointer.y;
+      const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(this.instance, deltaX, deltaY);
+      panByNormalized(this.instance, normalizedDeltaX, normalizedDeltaY);
+      this.lastPointer = { x: event.clientX, y: event.clientY };
+    }
+    /**
+     * Restore the resting cursor when the pan finishes.
+     */
+    onPanEnd() {
+      this.applyCursor(this.idleCursor());
     }
     /**
      * Activate pan mode
      */
     activate() {
-      if (this.instance.svg && this.instance.state.zoom.level > 1) {
-        this.instance.svg.style.cursor = "grab";
+      if (this.instance.state.zoom.level > 1) {
+        this.applyCursor("grab");
       }
-      this.isDragging = false;
-      this.dragState = { lastX: 0, lastY: 0 };
+      this.dragHandler.reset();
     }
     /**
      * Deactivate pan mode
      */
     deactivate() {
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = "crosshair";
-      }
-      this.isDragging = false;
-      this.dragState = { lastX: 0, lastY: 0 };
+      this.dragHandler.reset();
+      this.applyCursor("crosshair");
     }
     /**
      * Handle mouse down events - start pan drag
      * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+     * @param {DataCoordinates} dataCoords - Data coordinates
      */
-    handleMouseDown(event, _dataCoords) {
-      if (this.instance.state.zoom.level <= 1) {
-        return;
-      }
-      this.isDragging = true;
-      this.dragState = {
-        lastX: event.clientX,
-        lastY: event.clientY
-      };
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = "grabbing";
-      }
-      event.preventDefault();
+    handleMouseDown(event, dataCoords) {
+      this.dragHandler.startDrag(dataCoords, event);
     }
     /**
      * Handle mouse move events - perform pan if dragging
      * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+     * @param {DataCoordinates} dataCoords - Data coordinates
      */
-    handleMouseMove(event, _dataCoords) {
-      if (!this.isDragging || this.instance.state.zoom.level <= 1) {
-        return;
-      }
-      const deltaX = event.clientX - this.dragState.lastX;
-      const deltaY = event.clientY - this.dragState.lastY;
-      const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(this.instance, deltaX, deltaY);
-      panByNormalized(this.instance, normalizedDeltaX, normalizedDeltaY);
-      this.dragState.lastX = event.clientX;
-      this.dragState.lastY = event.clientY;
+    handleMouseMove(event, dataCoords) {
+      this.dragHandler.handleMouseMove(dataCoords, event);
     }
     /**
      * Handle mouse up events - end pan drag
-     * @param {MouseEvent} _event - Mouse event (unused)
-     * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+     * @param {MouseEvent} event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates
      */
-    handleMouseUp(_event, _dataCoords) {
-      if (!this.isDragging) {
-        return;
-      }
-      this.isDragging = false;
-      if (this.instance.svg && this.instance.state.zoom.level > 1) {
-        this.instance.svg.style.cursor = "grab";
-      }
+    handleMouseUp(event, dataCoords) {
+      this.dragHandler.endDrag(dataCoords, event);
     }
     /**
      * Handle mouse leave events
      */
     handleMouseLeave() {
-      if (this.isDragging) {
-        this.isDragging = false;
-        if (this.instance.svg && this.instance.state.zoom.level > 1) {
-          this.instance.svg.style.cursor = "grab";
-        }
-      }
+      this.dragHandler.cancelDrag();
     }
     /**
      * Get guidance content for pan mode.
@@ -4417,8 +4454,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Reset pan-specific state
      */
     resetState() {
-      this.isDragging = false;
-      this.dragState = { lastX: 0, lastY: 0 };
+      this.dragHandler.reset();
     }
     /**
      * Check if pan mode is enabled.
@@ -4496,6 +4532,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     largeSymbols: false,
     cursorPosition: null,
     cursors: [],
+    // Bumped by every path that mutates an annotation, so the storage listener
+    // can tell an annotation change from a cursor move without re-serialising
+    // the annotations on each notification (spec 166, AS-4.3).
+    annotationRevision: 0,
     imageDetails: {
       url: "",
       naturalWidth: 0,
@@ -4539,6 +4579,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       centerY: 0.5
       // Center point Y (0-1 normalized)
     },
+    // Read-only projection of the active drag, rebuilt by the drag engine on each
+    // transition. Modes never write it; it is always present, reading
+    // `active: false` when idle (spec 166, FR-004 / data-model.md §2).
+    drag: {
+      active: false,
+      kind: null,
+      mode: null,
+      targetId: null,
+      targetType: null,
+      startPosition: null
+    },
     // Selection state for keyboard fine control
     selection: {
       selectedType: null,
@@ -4555,7 +4606,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function createInitialState() {
     return JSON.parse(JSON.stringify(initialState));
   }
-  function notifyStateListeners(state, listeners) {
+  function deliverToListeners(state, listeners) {
+    if (!listeners || listeners.length === 0) {
+      return;
+    }
     const stateCopy = JSON.parse(JSON.stringify(state));
     listeners.forEach((listener) => {
       try {
@@ -4564,6 +4618,52 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         console.error("Error in state listener:", error);
       }
     });
+  }
+  function markAnnotationsChanged(instance) {
+    if (instance && instance.state) {
+      instance.state.annotationRevision = (instance.state.annotationRevision || 0) + 1;
+    }
+  }
+  const pendingDispatches = /* @__PURE__ */ new WeakMap();
+  function dispatch(instance, options = {}) {
+    if (!instance) {
+      return;
+    }
+    const wantsFrame = options.frame === true;
+    const pending = pendingDispatches.get(instance);
+    if (pending) {
+      if (!wantsFrame && pending.tier === "frame") {
+        if (pending.frameHandle !== null && typeof cancelAnimationFrame === "function") {
+          cancelAnimationFrame(pending.frameHandle);
+        }
+        pending.tier = "microtask";
+        pending.frameHandle = null;
+        queueMicrotask(() => flushDispatch(instance));
+      }
+      return;
+    }
+    const record = { tier: wantsFrame ? "frame" : "microtask", frameHandle: null };
+    pendingDispatches.set(instance, record);
+    if (wantsFrame && typeof requestAnimationFrame === "function") {
+      record.frameHandle = requestAnimationFrame(() => flushDispatch(instance));
+    } else {
+      record.tier = "microtask";
+      queueMicrotask(() => flushDispatch(instance));
+    }
+  }
+  function flushDispatch(instance) {
+    if (!instance) {
+      return;
+    }
+    const pending = pendingDispatches.get(instance);
+    if (!pending) {
+      return;
+    }
+    if (pending.frameHandle !== null && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(pending.frameHandle);
+    }
+    pendingDispatches.delete(instance);
+    deliverToListeners(instance.state, instance.stateListeners);
   }
   function addGlobalStateListener(callback) {
     if (!globalStateListeners.includes(callback)) {
@@ -4914,31 +5014,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     extractConfigData(instance);
     setupComponentTable(instance, instance.configTable);
   }
-  function screenToSVGCoordinates(screenX, screenY, svg, _imageDetails) {
-    const svgRect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
-    if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
-      const scaleX = viewBox.width / svgRect.width;
-      const scaleY = viewBox.height / svgRect.height;
-      return {
-        x: screenX * scaleX + viewBox.x,
-        y: screenY * scaleY + viewBox.y
-      };
-    }
-    return { x: screenX, y: screenY };
-  }
-  function imageToDataCoordinates(imageX, imageY, config, imageDetails, rate) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const boundedX = Math.max(0, Math.min(imageX, renderWidth));
-    const boundedY = Math.max(0, Math.min(imageY, renderHeight));
-    const rawFreq = freqMin + boundedX / renderWidth * (freqMax - freqMin);
-    const time = timeMax - boundedY / renderHeight * (timeMax - timeMin);
-    const freq = rawFreq / rate;
-    return { freq, time };
-  }
   function updateCursorIndicators(instance) {
     if (instance.cursorGroup) {
       instance.cursorGroup.innerHTML = "";
@@ -4949,38 +5024,22 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const WHEEL_ZOOM_STEP = 1.2;
   function screenToDataWithZoom(instance, event) {
-    const svgRect = instance.svg.getBoundingClientRect();
-    const screenX = event.clientX - svgRect.left;
-    const screenY = event.clientY - svgRect.top;
-    const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails);
-    const margins = instance.state.margins;
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-    let imageLeft = margins.left;
-    let imageTop = margins.top;
-    let imageWidth = renderWidth;
-    let imageHeight = renderHeight;
-    if (instance.spectrogramImage) {
-      imageLeft = parseFloat(instance.spectrogramImage.getAttribute("x") || String(margins.left));
-      imageTop = parseFloat(instance.spectrogramImage.getAttribute("y") || String(margins.top));
-      imageWidth = parseFloat(instance.spectrogramImage.getAttribute("width") || String(renderWidth));
-      imageHeight = parseFloat(instance.spectrogramImage.getAttribute("height") || String(renderHeight));
-    }
-    const imageX = (svgCoords.x - imageLeft) * (renderWidth / imageWidth);
-    const imageY = (svgCoords.y - imageTop) * (renderHeight / imageHeight);
-    const withinBounds = svgCoords.x >= imageLeft && svgCoords.x <= imageLeft + imageWidth && svgCoords.y >= imageTop && svgCoords.y <= imageTop + imageHeight && imageX >= 0 && imageX <= renderWidth && imageY >= 0 && imageY <= renderHeight;
-    if (!withinBounds) {
+    const point = screenToData(
+      event.clientX,
+      event.clientY,
+      instance.svg,
+      instance.state,
+      instance.spectrogramImage
+    );
+    if (!isWithinImage(point.svg, instance.state, instance.spectrogramImage)) {
       return null;
     }
-    const dataCoords = imageToDataCoordinates(
-      imageX,
-      imageY,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate
-    );
-    return { svgCoords, imageX, imageY, dataCoords };
+    return {
+      svgCoords: point.svg,
+      imageX: point.image.x,
+      imageY: point.image.y,
+      dataCoords: point.data
+    };
   }
   function handleWheel(instance, event) {
     const result = screenToDataWithZoom(instance, event);
@@ -4997,11 +5056,41 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       event.preventDefault();
     }
   }
-  function endWheelPan(instance) {
-    if (instance.svg && instance._wheelPan) {
-      instance.svg.style.cursor = instance._wheelPan.prevCursor || "crosshair";
+  function wheelPanHandler(instance) {
+    if (!instance._wheelPanHandler) {
+      let previousCursor = "";
+      instance._wheelPanHandler = new BaseDragHandler(instance, {
+        resolveTarget: () => instance.state.zoom.level > 1 ? { kind: "pan", id: null, type: null } : null,
+        onDragStart: (_target, _position, event) => {
+          previousCursor = instance.svg ? instance.svg.style.cursor : "";
+          if (event) {
+            instance._wheelPanLast = { x: event.clientX, y: event.clientY };
+          }
+        },
+        onDragMove: (_target, _position, _startPosition, event) => {
+          if (!event || !instance._wheelPanLast) return;
+          const dx = event.clientX - instance._wheelPanLast.x;
+          const dy = event.clientY - instance._wheelPanLast.y;
+          const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy);
+          panByNormalized(instance, normalizedDeltaX, normalizedDeltaY);
+          instance._wheelPanLast = { x: event.clientX, y: event.clientY };
+        },
+        onDragEnd: () => {
+          instance._wheelPanLast = null;
+        },
+        onDragCancel: () => {
+          instance._wheelPanLast = null;
+        },
+        updateCursor: (style) => {
+          if (instance.svg) {
+            instance.svg.style.cursor = style;
+          }
+        },
+        // Restore whatever cursor the mode had, rather than forcing a crosshair
+        cursorFor: (_kind, fallback) => fallback === "grabbing" ? "grabbing" : previousCursor || "crosshair"
+      }, null);
     }
-    instance._wheelPan = null;
+    return instance._wheelPanHandler;
   }
   function setupEventListeners(instance) {
     const registered = [];
@@ -5079,13 +5168,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseMove(instance, event) {
-    if (instance._wheelPan && instance._wheelPan.active) {
-      const dx = event.clientX - instance._wheelPan.lastX;
-      const dy = event.clientY - instance._wheelPan.lastY;
-      const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy);
-      panByNormalized(instance, normalizedDeltaX, normalizedDeltaY);
-      instance._wheelPan.lastX = event.clientX;
-      instance._wheelPan.lastY = event.clientY;
+    const wheelPan = wheelPanHandler(instance);
+    if (wheelPan.isDragging()) {
+      wheelPan.handleMouseMove(null, event);
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -5109,23 +5194,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.state.cursorPosition = null;
     }
     updateCursorIndicators(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance, { frame: true });
   }
   function handleMouseDown(instance, event) {
     setFocusedInstance(instance);
     if (event.button === 1) {
       event.preventDefault();
-      if (instance.state.zoom.level > 1) {
-        instance._wheelPan = {
-          active: true,
-          lastX: event.clientX,
-          lastY: event.clientY,
-          prevCursor: instance.svg ? instance.svg.style.cursor : ""
-        };
-        if (instance.svg) {
-          instance.svg.style.cursor = "grabbing";
-        }
-      }
+      wheelPanHandler(instance).startDrag(null, event);
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -5137,8 +5212,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseUp(instance, event) {
-    if (instance._wheelPan && instance._wheelPan.active) {
-      endWheelPan(instance);
+    const wheelPan = wheelPanHandler(instance);
+    if (wheelPan.isDragging()) {
+      wheelPan.endDrag(null, event);
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -5150,15 +5226,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseLeave(instance) {
-    if (instance._wheelPan && instance._wheelPan.active) {
-      endWheelPan(instance);
-    }
+    wheelPanHandler(instance).cancelDrag();
     instance.state.cursorPosition = null;
     updateCursorIndicators(instance);
     if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === "function") {
       instance.currentMode.handleMouseLeave();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance, { frame: true });
   }
   function handleContextMenu(instance, event) {
     const result = screenToDataWithZoom(instance, event);
@@ -5433,7 +5507,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function attachDebugAPI(api) {
     api.__test__forceUpdate = function() {
       this._getInstances().forEach((instance) => {
-        notifyStateListeners(instance.state, instance.stateListeners);
+        dispatch(instance);
+        flushDispatch(instance);
+      });
+    };
+    api.__test__flushDispatches = function() {
+      this._getInstances().forEach((instance) => {
+        flushDispatch(instance);
       });
     };
     api.__test__getInstances = function() {
@@ -5784,7 +5864,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
        * Not part of the broadcast state.
        * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
        */
-      __publicField(this, "_wheelPan", null);
+      __publicField(this, "_wheelPanHandler", null);
+      /** @type {{x: number, y: number}|null} */
+      __publicField(this, "_wheelPanLast", null);
       // Storage instance index for multi-instance pages
       __publicField(this, "_storageInstanceIndex");
       // Whether this instance is a trainer context
@@ -5823,7 +5905,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.featureRenderer.renderAllPersistentFeatures();
       }
       this._setupStorageSaveListener();
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     /**
      * Creates LED display elements for showing measurement values
@@ -5899,7 +5981,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.state.harmonics = fresh.harmonics;
       this.state.doppler = fresh.doppler;
       this.state.selection = fresh.selection;
-      this.state.dragState = fresh.dragState;
+      this.state.drag = fresh.drag;
       this.state.cursors = fresh.cursors;
       if (clearAnnotations(this._storageInstanceIndex)) {
         clearStorageWarning(this);
@@ -5915,7 +5997,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       updatePersistentPanels(this);
       updateLEDDisplays(this, this.state);
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     /**
      * Restore saved annotations from browser storage into state
@@ -5923,6 +6005,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     _restoreAnnotations() {
       const saved = loadAnnotations(this._storageInstanceIndex);
       if (!saved) return;
+      markAnnotationsChanged(this);
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
         this.state.analysis.markers = saved.analysis.markers.map((m) => ({
           ...m,
@@ -5951,18 +6034,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Set up a state listener that saves annotations on relevant state changes
      */
     _setupStorageSaveListener() {
-      let lastSerialised = "";
+      let lastSignature = "";
       this.stateListeners.push((state) => {
-        const annotationSnapshot = JSON.stringify({
-          markers: state.analysis && state.analysis.markers,
-          harmonicSets: state.harmonics && state.harmonics.harmonicSets,
-          fPlus: state.doppler && state.doppler.fPlus,
-          fMinus: state.doppler && state.doppler.fMinus,
-          fZero: state.doppler && state.doppler.fZero,
-          dopplerColor: state.doppler && state.doppler.color
-        });
-        if (annotationSnapshot !== lastSerialised) {
-          lastSerialised = annotationSnapshot;
+        const doppler = state.doppler || {};
+        const signature = [
+          state.annotationRevision || 0,
+          state.analysis && state.analysis.markers ? state.analysis.markers.length : 0,
+          state.harmonics && state.harmonics.harmonicSets ? state.harmonics.harmonicSets.length : 0,
+          doppler.fPlus ? `${doppler.fPlus.time}:${doppler.fPlus.freq}` : "-",
+          doppler.fMinus ? `${doppler.fMinus.time}:${doppler.fMinus.freq}` : "-",
+          doppler.fZero ? `${doppler.fZero.time}:${doppler.fZero.freq}` : "-",
+          doppler.color || "-"
+        ].join("|");
+        if (signature !== lastSignature) {
+          lastSignature = signature;
           if (saveAnnotations(this.state, this._storageInstanceIndex)) {
             clearStorageWarning(this);
           } else if (hasPersistableAnnotations(state)) {
@@ -5972,9 +6057,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       });
     }
     /**
+     * Broadcast this instance's state to its listeners.
+     *
+     * An instance-level entry point so collaborators that must not import
+     * core/state.js — the drag engine, which core/state.js already imports
+     * transitively — can still notify without closing an import cycle.
+     */
+    notifyStateListeners() {
+      dispatch(this);
+    }
+    /**
      * Destroy the component and clean up resources
      */
     destroy() {
+      flushDispatch(this);
       cleanupEventListeners(this);
       cleanupKeyboardControl(this);
       if (this.container && this.container.parentNode) {
@@ -5991,12 +6087,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     _switchMode(mode) {
       this.state.previousMode = this.state.mode;
       this.state.mode = mode;
-      this.state.dragState.isDragging = false;
-      this.state.dragState.dragStartPosition = null;
-      this.state.dragState.draggedHarmonicSetId = null;
-      this.state.dragState.originalSpacing = null;
-      this.state.dragState.originalAnchorTime = null;
-      this.state.dragState.clickedHarmonicNumber = null;
+      Object.values(this.modes || {}).forEach((modeInstance) => {
+        if (modeInstance && modeInstance.dragHandler) {
+          modeInstance.dragHandler.cancelDrag();
+        }
+      });
       if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
         this.clearSelection();
       }
@@ -6035,7 +6130,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.featureRenderer) {
         this.featureRenderer.renderAllPersistentFeatures();
       }
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     /**
      * Set the rate value for frequency calculations
@@ -6044,7 +6139,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     _setRate(rate) {
       this.state.rate = rate;
       this._updateAxes();
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     // Zoom functionality removed - no display element
   }

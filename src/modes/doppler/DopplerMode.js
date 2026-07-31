@@ -1,9 +1,9 @@
 import { BaseMode } from '../BaseMode.js'
 import { updateLEDDisplays } from '../../components/UIComponents.js'
-import { notifyStateListeners } from '../../core/state.js'
+import { dispatch, markAnnotationsChanged } from '../../core/state.js'
 // Rendering imports removed - no display element
 import { calculateDopplerSpeed, calculateMidpoint } from '../../utils/doppler.js'
-import { dataToSVG } from '../../utils/coordinateTransformations.js'
+import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinDataTolerance, findClosestTarget } from '../../utils/tolerance.js'
 
@@ -29,14 +29,17 @@ export class DopplerMode extends BaseMode {
   constructor(instance) {
     super(instance)
     
-    // Initialize drag handler for existing marker dragging (not preview drag)
+    // One handler for both doppler drags: moving a placed marker (`move`) and
+    // laying down f+/f- by dragging (`place`). They differ only in how the
+    // target is resolved (spec 166, FR-004).
     this.dragHandler = new BaseDragHandler(instance, {
-      findTargetAt: (position) => this.findDopplerMarkerAtPosition(position),
+      resolveTarget: (position) => this.resolveDopplerDrag(position),
       onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-      onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
       onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
+      onDragCancel: (target) => this.onMarkerDragEnd(target, null),
       updateCursor: (style) => this.updateCursorStyle(style)
-    })
+    }, 'doppler')
   }
 
   /**
@@ -62,6 +65,7 @@ export class DopplerMode extends BaseMode {
     ]
       .filter(markerType => doppler[markerType])
       .map(markerType => ({
+        kind: 'move',
         id: markerType,
         type: 'dopplerMarker',
         position: doppler[markerType],
@@ -78,30 +82,124 @@ export class DopplerMode extends BaseMode {
    * @param {DataCoordinates} _position - Start position (unused)
    */
   onMarkerDragStart(target, _position) {
-    const doppler = this.instance.state.doppler
-    doppler.isDragging = true
-    doppler.draggedMarker = target.data.markerType
+    // A `place` drag has already seeded f+ in the resolver; a `move` drag has
+    // nothing to set up. Either way the drag record belongs to the engine.
+    void target
   }
 
   /**
    * Update doppler marker position during drag
-   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DragTarget} target - Drag target
    * @param {DataCoordinates} currentPos - Current position
    * @param {DataCoordinates} _startPos - Start position (unused)
    */
-  onMarkerDragUpdate(_target, currentPos, _startPos) {
-    this.handleMarkerDrag(currentPos, this.instance.state.doppler)
+  onMarkerDragUpdate(target, currentPos, _startPos) {
+    const doppler = this.instance.state.doppler
+
+    if (target.kind === 'place') {
+      // Placement: f- follows the pointer while f+ stays where it was seeded
+      this.handlePreviewDrag(currentPos, doppler)
+      return
+    }
+
+    this.handleMarkerDrag(currentPos, doppler, target.id)
   }
 
   /**
    * End dragging a doppler marker
-   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DragTarget} target - Drag target
    * @param {DataCoordinates} _position - End position (unused)
    */
-  onMarkerDragEnd(_target, _position) {
+  onMarkerDragEnd(target, _position) {
+    if (target && target.kind === 'place') {
+      this.completeMarkerPlacement()
+    }
+    // Nothing else to unwind: the engine clears the drag record itself.
+  }
+
+  /**
+   * Resolve what a mousedown in doppler mode starts: moving one of the placed
+   * markers, or — with nothing placed yet — laying down f+ and dragging out f-.
+   * @param {DataCoordinates} position - Position of the mousedown
+   * @returns {DragTarget|null} A move- or place-kind target
+   */
+  resolveDopplerDrag(position) {
     const doppler = this.instance.state.doppler
-    doppler.isDragging = false
-    doppler.draggedMarker = null
+
+    if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
+      return this.findDopplerMarkerAtPosition(position)
+    }
+
+    return this.startMarkerPlacement(position)
+  }
+
+  /**
+   * Seed f+ at the mousedown position and return a `place`-kind target, so the
+   * rest of the placement is an ordinary drag with f- following the pointer.
+   *
+   * `tempFirst` and `previewEnd` stay on state.doppler: they are placement
+   * geometry the renderer needs, not drag bookkeeping (data-model.md §2).
+   * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+   * @returns {DragTarget} A place-kind target
+   */
+  startMarkerPlacement(dataCoords) {
+    const doppler = this.instance.state.doppler
+
+    // Immediately set f+ at the current position
+    doppler.fPlus = { time: dataCoords.time, freq: dataCoords.freq }
+
+    // f- will follow the mouse from here
+    doppler.tempFirst = doppler.fPlus
+    doppler.previewEnd = { time: dataCoords.time, freq: dataCoords.freq }
+
+    // Render initial curve preview
+    this.renderDopplerFeatures()
+
+    return {
+      kind: 'place',
+      id: DopplerDraggedMarker.fMinus,
+      type: 'dopplerMarker',
+      position: dataCoords,
+      data: { markerType: DopplerDraggedMarker.fMinus }
+    }
+  }
+
+  /**
+   * Finalise a placement drag: order the markers, derive f₀, and clear the
+   * placement geometry.
+   */
+  completeMarkerPlacement() {
+    const doppler = this.instance.state.doppler
+    if (!doppler.tempFirst || !doppler.fPlus || !doppler.fMinus) {
+      doppler.tempFirst = null
+      doppler.previewEnd = null
+      return
+    }
+
+    // Ensure f+ is the later marker (higher time), f- is the earlier marker
+    if (doppler.fPlus.time <= doppler.fMinus.time) {
+      const temp = doppler.fPlus
+      doppler.fPlus = doppler.fMinus
+      doppler.fMinus = temp
+    }
+
+    // Recalculate f₀ as midpoint for final placement
+    doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus)
+
+    // Store the color for this doppler curve (only when first created)
+    if (!doppler.color) {
+      doppler.color = this.instance.state.selectedColor || '#ff0000'
+    }
+
+    // Clean up placement geometry
+    doppler.tempFirst = null
+    doppler.previewEnd = null
+
+    markAnnotationsChanged(this.instance)
+
+    // Calculate speed
+    this.calculateAndUpdateDopplerSpeed()
+    this.renderDopplerFeatures()
   }
 
   /**
@@ -146,27 +244,30 @@ export class DopplerMode extends BaseMode {
    * Handle marker dragging
    * @param {DataCoordinates} dataCoords - Data coordinates
    * @param {DopplerState} doppler - Doppler state
+   * @param {string|null} markerType - Which marker is being dragged
    */
-  handleMarkerDrag(dataCoords, doppler) {
+  handleMarkerDrag(dataCoords, doppler, markerType) {
     const newPoint = {
       time: dataCoords.time,
       freq: dataCoords.freq
     }
-    
-    if (doppler.draggedMarker === DopplerDraggedMarker.fPlus) {
+
+    if (markerType === DopplerDraggedMarker.fPlus) {
       doppler.fPlus = newPoint
-    } else if (doppler.draggedMarker === DopplerDraggedMarker.fMinus) {
+    } else if (markerType === DopplerDraggedMarker.fMinus) {
       doppler.fMinus = newPoint
-    } else if (doppler.draggedMarker === DopplerDraggedMarker.fZero) {
+    } else if (markerType === DopplerDraggedMarker.fZero) {
       doppler.fZero = newPoint
     }
     
+    markAnnotationsChanged(this.instance)
+
     // f₀ remains fixed when dragging f+ or f- - only moves when directly dragged
     
     // Update speed calculation
     this.calculateAndUpdateDopplerSpeed()
     this.renderDopplerFeatures()
-    notifyStateListeners(this.instance.state, this.instance.stateListeners)
+    dispatch(this.instance, { frame: true })
   }
 
 
@@ -177,14 +278,8 @@ export class DopplerMode extends BaseMode {
    */
   handleMouseMove(_event, dataCoords) {
     const doppler = this.instance.state.doppler
-    
-    // Handle preview drag when placing markers (not managed by BaseDragHandler)
-    if (doppler.isPreviewDrag && doppler.tempFirst) {
-      this.handlePreviewDrag(dataCoords, doppler)
-      return
-    }
-    
-    // Handle existing marker dragging through drag handler
+
+    // Placement and marker moves both run through the one handler
     if (this.dragHandler.isDragging()) {
       this.dragHandler.handleMouseMove(dataCoords)
     } else if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
@@ -195,43 +290,13 @@ export class DopplerMode extends BaseMode {
 
   /**
    * Handle mouse down events in doppler mode
-   * @param {MouseEvent} _event - Mouse event
+   * @param {MouseEvent} event - Mouse event
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
-  handleMouseDown(_event, dataCoords) {
-    const doppler = this.instance.state.doppler
-    
-    // Try to start drag on existing marker
-    if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-      const dragStarted = this.dragHandler.startDrag(dataCoords)
-      if (dragStarted) {
-        notifyStateListeners(this.instance.state, this.instance.stateListeners)
-        return
-      }
-    }
-    
-    // If no markers placed yet, start new placement
-    if (!doppler.fPlus && !doppler.fMinus) {
-      doppler.isPlacingMarkers = true
-      
-      // Immediately set f+ at the current position
-      doppler.fPlus = {
-        time: dataCoords.time,
-        freq: dataCoords.freq
-      }
-      
-      // Start preview drag mode - f- will follow the mouse
-      doppler.isPreviewDrag = true
-      doppler.tempFirst = doppler.fPlus // Store for reference
-      
-      // Initial preview with f- at same position as f+
-      doppler.previewEnd = {
-        time: dataCoords.time,
-        freq: dataCoords.freq
-      }
-      
-      // Render initial curve preview
-      this.renderDopplerFeatures()
+  handleMouseDown(event, dataCoords) {
+    // The resolver decides whether this moves a marker or starts a placement
+    if (this.dragHandler.startDrag(dataCoords, event)) {
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -241,47 +306,10 @@ export class DopplerMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseUp(_event, dataCoords) {
-    const doppler = this.instance.state.doppler
-    
-    // Complete marker placement (preview drag mode)
-    if (doppler.isPreviewDrag && doppler.tempFirst) {
-      // Markers are already set during mouse move, just need to finalize
-      // Ensure f+ is the later marker (higher time), f- is the earlier marker
-      if (doppler.fPlus.time > doppler.fMinus.time) {
-        // Correct order - keep as is
-      } else {
-        // Swap if f+ has earlier time than f-
-        const temp = doppler.fPlus
-        doppler.fPlus = doppler.fMinus
-        doppler.fMinus = temp
-      }
-      
-      // Recalculate f₀ as midpoint for final placement
-      doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus)
-      
-      // Store the color for this doppler curve (only when first created)
-      if (!doppler.color) {
-        doppler.color = this.instance.state.selectedColor || '#ff0000'
-      }
-      
-      // Clean up placement state
-      doppler.isPlacingMarkers = false
-      doppler.tempFirst = null
-      doppler.isPreviewDrag = false
-      doppler.previewEnd = null
-      
-      // Calculate speed
-      this.calculateAndUpdateDopplerSpeed()
-      this.renderDopplerFeatures()
-      
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
-      return
-    }
-    
-    // Complete existing marker dragging through drag handler
+    // One exit for both kinds; onDragEnd finalises a placement
     if (this.dragHandler.isDragging()) {
       this.dragHandler.endDrag(dataCoords)
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -332,28 +360,22 @@ export class DopplerMode extends BaseMode {
     this.instance.state.doppler.fZero = null
     this.instance.state.doppler.speed = null
     this.instance.state.doppler.color = null
-    this.instance.state.doppler.isDragging = false
-    this.instance.state.doppler.draggedMarker = null
-    this.instance.state.doppler.isPlacingMarkers = false
     this.instance.state.doppler.tempFirst = null
-    this.instance.state.doppler.isPreviewDrag = false
     this.instance.state.doppler.previewEnd = null
-    
+    this.dragHandler.reset()
+
     // Visual updates removed - no display element
-    notifyStateListeners(this.instance.state, this.instance.stateListeners)
+    dispatch(this.instance, { frame: true })
   }
 
   /**
    * Clean up doppler-specific state when switching away from doppler mode
    */
   cleanup() {
-    // Only clear transient drag state, preserve marker positions
-    this.instance.state.doppler.isDragging = false
-    this.instance.state.doppler.draggedMarker = null
-    this.instance.state.doppler.isPlacingMarkers = false
+    // Only clear transient placement geometry, preserve marker positions
     this.instance.state.doppler.tempFirst = null
-    this.instance.state.doppler.isPreviewDrag = false
     this.instance.state.doppler.previewEnd = null
+    this.dragHandler.reset()
   }
   
   /**
@@ -380,7 +402,7 @@ export class DopplerMode extends BaseMode {
       
       // Update LED displays with speed
       updateLEDDisplays(this.instance, this.instance.state)
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -396,11 +418,9 @@ export class DopplerMode extends BaseMode {
         fZero: null,  // DataCoordinates: { time, frequency }
         speed: null,  // calculated speed in m/s
         color: null,  // color used for this doppler curve
-        isDragging: false,
-        draggedMarker: null, // 'fPlus', 'fMinus', 'fZero'
-        isPlacingMarkers: false,
+        // Placement geometry the renderer needs. Drag bookkeeping lives on
+        // state.drag, owned by the drag engine.
         tempFirst: null, // temporary storage for first marker during placement
-        isPreviewDrag: false, // whether currently dragging to preview curve
         previewEnd: null // end point for preview drag
       }
     }
@@ -459,7 +479,7 @@ export class DopplerMode extends BaseMode {
       this.renderDopplerCurve()
       
       // If in preview mode, render with preview styling
-      if (doppler.isPreviewDrag) {
+      if (doppler.tempFirst) {
         // Add preview styling to indicate this is temporary
         const elements = this.instance.cursorGroup.querySelectorAll('.gram-frame-doppler-curve, .gram-frame-doppler-extension')
         elements.forEach(element => {

@@ -9,7 +9,8 @@
 
 import { applyZoomTransform, updateSVGLayout, renderAxes } from '../components/table.js'
 import { updateCommandButtonStates, updateModeButtonStates } from '../components/ModeButtons.js'
-import { notifyStateListeners } from './state.js'
+import { dispatch } from './state.js'
+import { screenToSVG } from '../utils/coordinates.js'
 import { refreshExpandedLayout } from '../components/ExpandToggle.js'
 
 /**
@@ -62,7 +63,7 @@ export function setZoom(instance, level, centerX, centerY) {
   updateZoomControlStates(instance)
   
   // Notify listeners
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance, { frame: true })
 }
 
 /**
@@ -81,18 +82,21 @@ export function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
   // Base render size (defaults to natural; grows when expanded)
   const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
   const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
-  const margins = instance.state.margins
-  const svgRect = instance.svg.getBoundingClientRect()
 
-  // Scale factor based on the current viewBox (render size) and SVG element size
-  const scaleX = (renderWidth + margins.left + margins.right) / svgRect.width
-  const scaleY = (renderHeight + margins.top + margins.bottom) / svgRect.height
+  // Screen pixels to SVG units, via the canonical module. The transform is
+  // affine, so converting the delta means converting both ends and taking the
+  // difference. Reading the live viewBox this way is what stops this becoming a
+  // fifth place that re-derives the screen scale (FR-002).
+  const origin = screenToSVG(0, 0, instance.svg)
+  const shifted = screenToSVG(dxPx, dyPx, instance.svg)
+  const svgDeltaX = shifted.x - origin.x
+  const svgDeltaY = shifted.y - origin.y
 
   // Convert to normalized coordinates (adjust for zoom level); negate so content
   // follows the drag.
   return {
-    normalizedDeltaX: -(dxPx * scaleX / renderWidth) / instance.state.zoom.level,
-    normalizedDeltaY: -(dyPx * scaleY / renderHeight) / instance.state.zoom.level
+    normalizedDeltaX: -(svgDeltaX / renderWidth) / instance.state.zoom.level,
+    normalizedDeltaY: -(svgDeltaY / renderHeight) / instance.state.zoom.level
   }
 }
 
