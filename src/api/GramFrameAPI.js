@@ -274,6 +274,10 @@ export function createGramFrameAPI(GramFrame) {
      */
     _addErrorIndicator(table, errorMsg) {
       try {
+        // The table stays on the page next to the error, so drop the
+        // pre-conversion placeholder styling and let its config show plainly
+        table.classList.add('gram-frame-config-error')
+
         // Create error overlay
         const errorDiv = document.createElement('div')
         errorDiv.className = 'gramframe-error-indicator'

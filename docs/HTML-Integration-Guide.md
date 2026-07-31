@@ -36,6 +36,12 @@ The standalone bundle includes CSS inlined automatically — no separate stylesh
 
 On `DOMContentLoaded`, GramFrame scans the page for all `<table class="gram-config">` elements and replaces each one with an interactive spectrogram viewer.
 
+### Before the Component Appears
+
+Until that scan runs, a config table is ordinary HTML, so on a cold load (large spectrogram, slow network) the browser paints it before GramFrame replaces it. The stylesheet dresses that gap up as a loading placeholder: the parameter rows are hidden, the spectrogram is dimmed back and a "Loading spectrogram" caption sits over it. The same caption then covers the component's image panel until the spectrogram's dimensions are known; if the image never loads, it is replaced with a plain failure message.
+
+For the placeholder to be in effect at first paint, the styling must reach the browser before the config table does — put the `<link rel="stylesheet">` (or, for the standalone bundle, the `<script>` that inlines the CSS) in `<head>` rather than at the end of `<body>`.
+
 ## Parameter Reference
 
 The configuration table uses a 2-column format: `parameter | value`.
