@@ -2,19 +2,22 @@
 /**
  * Debt-ratchet hygiene check (specs/164-quality-ratchets).
  *
- * Compares three measured counts against the committed baselines in
+ * Compares the measured counts against the committed baselines in
  * hygiene-baseline.json and exits non-zero on any regression:
  *
  *   1. Circular dependencies in src/ (madge)
  *   2. Modules with unused exports (ts-unused-exports)
  *   3. `waitForTimeout` occurrences in tests/ (containment until Phase 2)
+ *   4. Strict-flag type errors under tsconfig.strict.json (spec 167 Story 1)
+ *   5. `instance.state` reach-ins under src/ (spec 167 Story 5)
+ *   6. Class-field declarations on GramFrame (spec 167 Story 5)
  *
  * A count below its baseline passes with a reminder to lower the baseline in
  * the same PR, so improvements get locked in as ordinary reviewed diffs.
  */
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -103,6 +106,153 @@ results.push({
   baseline: baseline.waitForTimeoutOccurrences,
   current: timeoutTotal,
   detail: timeoutCounts,
+})
+
+// --- 4. Strict-flag type errors (spec 167 Story 1) --------------------------
+
+/**
+ * Recursively collect every `.js` file under `src/`.
+ * @param {string} dir
+ * @returns {string[]}
+ */
+function collectSourceFiles(dir) {
+  const files = []
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry)
+    if (statSync(full).isDirectory()) {
+      files.push(...collectSourceFiles(full))
+    } else if (full.endsWith('.js')) {
+      files.push(full)
+    }
+  }
+  return files
+}
+
+/**
+ * Type-check the project under an overlay tsconfig and return the raw output.
+ *
+ * `tsc --noEmit` exits non-zero whenever it reports an error, so the report
+ * arrives on stdout of a thrown error in the normal (non-empty) case.
+ * @param {string} project - Path to the tsconfig, relative to the repo root
+ * @returns {string} Combined compiler output
+ */
+function runTsc(project) {
+  const tscBin = join(repoRoot, 'node_modules', '.bin', 'tsc')
+  try {
+    return execFileSync(tscBin, ['--noEmit', '-p', project], { cwd: repoRoot, encoding: 'utf8' })
+  } catch (err) {
+    if (typeof err.stdout !== 'string') throw err
+    return err.stdout
+  }
+}
+
+/**
+ * Count `error TS` lines in compiler output.
+ * @param {string} output
+ * @returns {string[]} The matching lines
+ */
+function errorLines(output) {
+  return output.split('\n').filter(line => line.includes('error TS'))
+}
+
+// Temporary: this whole block disappears with tsconfig.strict.json once the
+// three flags move into tsconfig.json itself (spec 167 T014). Absence of the
+// overlay is the intended end state, not a misconfiguration, so skip silently.
+const strictProject = 'tsconfig.strict.json'
+if (existsSync(join(repoRoot, strictProject))) {
+  const output = runTsc(strictProject)
+
+  // A malformed overlay makes tsc report a *config* error and check nothing,
+  // which would read as the burn-down finishing overnight. Mirror the madge
+  // moduleCount guard and fail loudly instead.
+  const configError = ['TS5052', 'TS6046', 'TS5023'].find(code => output.includes(code))
+  if (configError) {
+    console.error(`✖ ${strictProject} is malformed — tsc reported ${configError} and checked nothing.`)
+    console.error(output.trim())
+    console.error('  The strict error count is meaningless until the overlay parses. Fix the config, not the baseline.')
+    process.exit(1)
+  }
+
+  const errors = errorLines(output)
+  const detail = []
+
+  // The per-flag split costs two extra tsc runs, so it is only computed when
+  // the count has moved — which is exactly when someone needs to see the shape.
+  if (errors.length !== baseline.strictTypeErrors) {
+    for (const flag of ['noImplicitAny', 'strictNullChecks']) {
+      const probe = join(repoRoot, `tsconfig.hygiene-${flag}.json`)
+      writeFileSync(probe, JSON.stringify({
+        extends: './tsconfig.json',
+        // strictPropertyInitialization is deliberately absent: it cannot be set
+        // without strictNullChecks (TS5052) and adds no errors once it is.
+        compilerOptions: { [flag]: true },
+      }, null, 2))
+      try {
+        detail.push(`${flag}: ${errorLines(runTsc(relative(repoRoot, probe))).length}`)
+      } finally {
+        rmSync(probe, { force: true })
+      }
+    }
+  }
+
+  /** @type {Map<string, number>} */
+  const byFile = new Map()
+  for (const line of errors) {
+    const file = line.split('(')[0]
+    byFile.set(file, (byFile.get(file) ?? 0) + 1)
+  }
+  const topFiles = [...byFile.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
+  detail.push(...topFiles.map(([file, count]) => `${file}: ${count}`))
+
+  results.push({
+    name: `Strict type errors (${strictProject})`,
+    baseline: baseline.strictTypeErrors,
+    current: errors.length,
+    detail,
+  })
+}
+
+// --- 5 & 6. Instance surface (spec 167 Story 5) -----------------------------
+
+const sourceFiles = collectSourceFiles(join(repoRoot, 'src'))
+
+// Lines rather than occurrences, matching the baseline command in
+// specs/167-structural-refactor/quickstart.md (`grep -rn … | wc -l`).
+const reachInCounts = []
+let reachInTotal = 0
+for (const file of sourceFiles) {
+  const count = readFileSync(file, 'utf8')
+    .split('\n')
+    .filter(line => line.includes('instance.state')).length
+  if (count) {
+    reachInCounts.push(`${relative(repoRoot, file)}: ${count}`)
+    reachInTotal += count
+  }
+}
+results.push({
+  name: 'instance.state reach-ins (src/)',
+  baseline: baseline.instanceStateReachIns,
+  current: reachInTotal,
+  detail: reachInCounts.sort((a, b) => Number(b.split(': ')[1]) - Number(a.split(': ')[1])),
+})
+
+// Class-field declarations between `export class GramFrame` and its
+// constructor — the flat instance surface Story 5 groups into sub-objects.
+const mainSource = readFileSync(join(repoRoot, 'src/main.js'), 'utf8').split('\n')
+const classStart = mainSource.findIndex(line => line.startsWith('export class GramFrame'))
+const ctorStart = mainSource.findIndex((line, i) => i > classStart && line.startsWith('  constructor'))
+if (classStart === -1 || ctorStart === -1) {
+  console.error('✖ Could not locate `export class GramFrame` and its constructor in src/main.js — the instanceFields ratchet cannot be measured.')
+  process.exit(1)
+}
+const fieldDeclarations = mainSource
+  .slice(classStart, ctorStart + 1)
+  .filter(line => /^ {2}[a-zA-Z_]\w*\s*(;|=)/.test(line))
+results.push({
+  name: 'GramFrame class fields (src/main.js)',
+  baseline: baseline.instanceFields,
+  current: fieldDeclarations.length,
+  detail: fieldDeclarations.map(line => line.trim()),
 })
 
 // --- Report -----------------------------------------------------------------

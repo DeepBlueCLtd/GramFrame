@@ -56,8 +56,8 @@ the baseline in `hygiene-baseline.json` **in the same commit**.
 machinery all exist. These tasks fix the reference point every later task is
 measured against.
 
-- [ ] T001 Record the phase-start reference in `specs/167-structural-refactor/baseline.md`: append the actual `git rev-parse HEAD` at phase start and confirm each measurement in that file still reproduces (strict count 540, madge 11, reach-ins 243, constructor fields 56)
-- [ ] T002 [P] Verify the standing gate passes on a clean tree before any change: `yarn typecheck && yarn lint && yarn test:unit && yarn hygiene && yarn build`
+- [x] T001 Record the phase-start reference in `specs/167-structural-refactor/baseline.md`: append the actual `git rev-parse HEAD` at phase start and confirm each measurement in that file still reproduces (strict count 540, madge 11, reach-ins 243, constructor fields 56)
+- [x] T002 [P] Verify the standing gate passes on a clean tree before any change: `yarn typecheck && yarn lint && yarn test:unit && yarn hygiene && yarn build`
 
 ---
 
@@ -69,11 +69,11 @@ accidentally *raises* another story's number is caught the same day.
 
 **⚠️ CRITICAL**: T003–T005 block all of US1; T006 blocks US5's acceptance.
 
-- [ ] T003 Create `tsconfig.strict.json` at the repo root extending `./tsconfig.json` with `noImplicitAny`, `strictNullChecks` and `strictPropertyInitialization` all `true`, per [contracts/strict-ratchet.md](./contracts/strict-ratchet.md). It must live at the repo root — from anywhere else it cannot resolve `node_modules/@types` and reports ~46 phantom errors
-- [ ] T004 Add the `strictTypeErrors: 540` ratchet to `scripts/hygiene.js` and `hygiene-baseline.json`: run `tsc -p tsconfig.strict.json`, count `error TS` lines, print per-flag sub-counts (143 / 401) and top offending files as detail; skip the ratchet silently when `tsconfig.strict.json` is absent so the check disappears after T014
-- [ ] T005 Add the config-error guard to the `strictTypeErrors` ratchet in `scripts/hygiene.js`: output containing `TS5052`, `TS6046` or `TS5023` means the overlay is malformed and the count is meaningless — fail loudly, mirroring the existing madge `moduleCount < 10` guard
-- [ ] T006 [P] Add `instanceStateReachIns: 243` and `instanceFields: 56` ratchets to `scripts/hygiene.js` and `hygiene-baseline.json`, counting `instance.state` occurrences under `src/` and class-field declarations between `export class GramFrame` and `constructor` in `src/main.js` (commands in [quickstart.md](./quickstart.md))
-- [ ] T007 Verify all four new ratchets in `scripts/hygiene.js` bite: introduce a deliberate `+1` to each in `src/main.js` (an unguarded `querySelector(...).classList`, an extra `instance.state` read, an extra class field), confirm `yarn hygiene` exits non-zero for each, then revert
+- [x] T003 Create `tsconfig.strict.json` at the repo root extending `./tsconfig.json` with `noImplicitAny`, `strictNullChecks` and `strictPropertyInitialization` all `true`, per [contracts/strict-ratchet.md](./contracts/strict-ratchet.md). It must live at the repo root — from anywhere else it cannot resolve `node_modules/@types` and reports ~46 phantom errors
+- [x] T004 Add the `strictTypeErrors: 540` ratchet to `scripts/hygiene.js` and `hygiene-baseline.json`: run `tsc -p tsconfig.strict.json`, count `error TS` lines, print per-flag sub-counts (143 / 401) and top offending files as detail; skip the ratchet silently when `tsconfig.strict.json` is absent so the check disappears after T014
+- [x] T005 Add the config-error guard to the `strictTypeErrors` ratchet in `scripts/hygiene.js`: output containing `TS5052`, `TS6046` or `TS5023` means the overlay is malformed and the count is meaningless — fail loudly, mirroring the existing madge `moduleCount < 10` guard
+- [x] T006 [P] Add `instanceStateReachIns: 243` and `instanceFields: 56` ratchets to `scripts/hygiene.js` and `hygiene-baseline.json`, counting `instance.state` occurrences under `src/` and class-field declarations between `export class GramFrame` and `constructor` in `src/main.js` (commands in [quickstart.md](./quickstart.md))
+- [x] T007 Verify all four new ratchets in `scripts/hygiene.js` bite: introduce a deliberate `+1` to each in `src/main.js` (an unguarded `querySelector(...).classList`, an extra `instance.state` read, an extra class field), confirm `yarn hygiene` exits non-zero for each, then revert
 
 **Checkpoint**: Four ratchets live and proven to fail on regression. Every story
 below now has a measurable, monotone target.
