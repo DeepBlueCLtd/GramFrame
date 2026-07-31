@@ -2,5 +2,5 @@
   "_comment": "Debt ratchet baselines (specs/164-quality-ratchets). `yarn hygiene` fails any change that raises a count above its baseline. When your change lowers a count, lower the baseline here in the same PR so the improvement is locked in.",
   "circularDependencies": 11,
   "unusedExportModules": 5,
-  "waitForTimeoutOccurrences": 244
+  "waitForTimeoutOccurrences": 205
 }

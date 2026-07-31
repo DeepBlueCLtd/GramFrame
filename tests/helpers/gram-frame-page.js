@@ -321,23 +321,114 @@ class GramFramePage {
   }
 
   /**
-   * Wait for a specific state condition
-   * @param {function(any): boolean} predicate - Function that returns true when the desired state is reached
-   * @param {number} timeoutMs - Maximum time to wait in milliseconds
+   * Wait for a specific state condition.
+   *
+   * Built on `expect.poll`, so the wait ends the moment the condition holds and
+   * fails with the last observed state rather than a bare timeout message. This
+   * is the primitive every other `waitFor*` helper here is built on — prefer it
+   * over a fixed sleep, which only guesses at how long an update takes.
+   *
+   * @param {function(any): boolean} predicate - Returns true when the desired state is reached
+   * @param {number|{timeout?: number, message?: string}} [opts] - Timeout in ms, or options
    * @returns {Promise<void>}
    */
-  async waitForState(predicate, timeoutMs = 5000) {
-    const startTime = Date.now()
-    
-    while (Date.now() - startTime < timeoutMs) {
-      const state = await this.getState()
-      if (predicate(state)) {
-        return
-      }
-      await this.page.waitForTimeout(100)
-    }
-    
-    throw new Error(`Timeout waiting for state condition after ${timeoutMs}ms`)
+  async waitForState(predicate, opts = {}) {
+    const { timeout = 5000, message = 'state condition' } =
+      typeof opts === 'number' ? { timeout: opts } : opts
+
+    await expect
+      .poll(async () => predicate(await this.getState()), {
+        timeout,
+        message: `Timed out waiting for ${message}`
+      })
+      .toBe(true)
+  }
+
+  /**
+   * Wait until the analysis markers list holds exactly `n` markers.
+   * @param {number} n - Expected marker count
+   * @param {{timeout?: number}} [opts] - Optional timeout override
+   * @returns {Promise<void>}
+   */
+  async waitForMarkerCount(n, opts = {}) {
+    await this.waitForState(
+      (state) => (state.analysis?.markers?.length ?? 0) === n,
+      { ...opts, message: `${n} analysis marker(s)` }
+    )
+  }
+
+  /**
+   * Wait until the harmonics state holds exactly `n` harmonic sets.
+   * @param {number} n - Expected harmonic set count
+   * @param {{timeout?: number}} [opts] - Optional timeout override
+   * @returns {Promise<void>}
+   */
+  async waitForHarmonicSetCount(n, opts = {}) {
+    await this.waitForState(
+      (state) => (state.harmonics?.harmonicSets?.length ?? 0) === n,
+      { ...opts, message: `${n} harmonic set(s)` }
+    )
+  }
+
+  /**
+   * Wait until the component reports the given mode.
+   * @param {string} mode - Mode identifier ('pan', 'analysis', 'harmonics', 'doppler')
+   * @param {{timeout?: number}} [opts] - Optional timeout override
+   * @returns {Promise<void>}
+   */
+  async waitForMode(mode, opts = {}) {
+    await this.waitForState((state) => state.mode === mode, {
+      ...opts,
+      message: `mode "${mode}"`
+    })
+  }
+
+  /**
+   * Wait until the zoom level settles on the given value.
+   * @param {number} level - Expected zoom level
+   * @param {{timeout?: number, tolerance?: number}} [opts] - Optional timeout/tolerance override
+   * @returns {Promise<void>}
+   */
+  async waitForZoomLevel(level, opts = {}) {
+    const { tolerance = 1e-6, ...rest } = opts
+    await this.waitForState(
+      (state) => Math.abs((state.zoom?.level ?? 0) - level) <= tolerance,
+      { ...rest, message: `zoom level ${level}` }
+    )
+  }
+
+  /**
+   * Locator for the data rows of one of the two feature tables.
+   * @param {'markers'|'harmonics'} table - Which table to address
+   * @returns {import('@playwright/test').Locator} Row locator
+   */
+  tableRows(table) {
+    return table === 'harmonics'
+      ? this.page.locator('tr[data-harmonic-id]')
+      : this.page.locator('tr[data-marker-id]')
+  }
+
+  /**
+   * Wait until a feature table has rendered exactly `n` data rows.
+   * @param {'markers'|'harmonics'} table - Which table to address
+   * @param {number} n - Expected row count
+   * @returns {Promise<void>}
+   */
+  async waitForTableRowCount(table, n) {
+    await expect(this.tableRows(table)).toHaveCount(n)
+  }
+
+  /**
+   * Wait until the row identified by `key` carries the selected-row class.
+   * @param {'markers'|'harmonics'} table - Which table to address
+   * @param {string} key - Feature id held in the row's `data-*` identity attribute
+   * @returns {Promise<void>}
+   */
+  async waitForSelectedRow(table, key) {
+    const attribute = table === 'harmonics' ? 'data-harmonic-id' : 'data-marker-id'
+    await expect(this.page.locator(`tr[${attribute}="${key}"]`)).toHaveClass(
+      /gram-frame-selected-row/
+    )
   }
 
   /**
@@ -473,12 +564,17 @@ class GramFramePage {
   }
 
   /**
-   * Click the expand toggle and wait briefly for relayout
+   * Click the expand toggle and wait for the relayout it triggers to land.
+   * Waits on the `imageExpanded` flag flipping rather than on a fixed delay, so
+   * the wait ends as soon as the new layout is in state.
    * @returns {Promise<void>}
    */
   async clickExpandToggle() {
+    const before = (await this.getState()).imageExpanded
     await this.expandToggle.first().click()
-    await this.page.waitForTimeout(150)
+    await this.waitForState((state) => state.imageExpanded !== before, {
+      message: `imageExpanded to flip away from ${before}`
+    })
   }
 
   /**
@@ -490,13 +586,45 @@ class GramFramePage {
    */
   async readDataAtPixel(x, y) {
     await this.svg.hover({ position: { x, y } })
-    await this.page.waitForTimeout(50)
+    // Wait for the readout to catch up with *this* hover rather than for a fixed
+    // delay: cursorPosition.x/y are the pixels the reading was computed from, so
+    // a stale value from a previous hover is distinguishable from a fresh one.
+    // `hover({position})` is padding-box relative while cursorPosition.x/y are
+    // border-box relative, so the SVG's border is added back before comparing.
+    const border = await this.svgBorderOffset()
+    const expectedX = x + border.left
+    const expectedY = y + border.top
+    await this.waitForState(
+      (state) => {
+        const cp = state.cursorPosition
+        return !!cp &&
+          Math.abs(cp.x - expectedX) <= 1 &&
+          Math.abs(cp.y - expectedY) <= 1
+      },
+      { message: `cursor readout at SVG pixel (${x}, ${y})` }
+    )
     const state = await this.getState()
     const cp = state.cursorPosition
     if (!cp || typeof cp.freq !== 'number' || typeof cp.time !== 'number') {
       return null
     }
     return { freq: cp.freq, time: cp.time }
+  }
+
+  /**
+   * The SVG element's left/top border widths, in CSS pixels. Bridges
+   * Playwright's padding-box-relative `position` option and the border-box
+   * relative pixels the component records in `cursorPosition`.
+   * @returns {Promise<{left: number, top: number}>} Border widths
+   */
+  async svgBorderOffset() {
+    return this.svg.evaluate((el) => {
+      const style = window.getComputedStyle(el)
+      return {
+        left: parseFloat(style.borderLeftWidth) || 0,
+        top: parseFloat(style.borderTopWidth) || 0
+      }
+    })
   }
 
   /**
