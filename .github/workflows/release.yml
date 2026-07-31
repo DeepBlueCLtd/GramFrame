@@ -60,21 +60,17 @@ jobs:
           echo "🔍 Running type checking..."
           yarn typecheck
 
-      - name: Update version for release
+      - name: Check the tag matches package.json
         run: |
-          echo "🏷️ Updating version.js with actual version from package.json..."
-          yarn generate-version
-          
-          # Verify version was updated correctly
-          VERSION_IN_FILE=$(grep "export const VERSION" src/utils/version.js | cut -d"'" -f2)
-          PACKAGE_VERSION="${{ steps.validate-tag.outputs.version }}"
-          
-          if [ "$VERSION_IN_FILE" != "$PACKAGE_VERSION" ]; then
-            echo "❌ Version mismatch: version.js has '$VERSION_IN_FILE', expected '$PACKAGE_VERSION'"
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ steps.validate-tag.outputs.version }}"
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "❌ Version mismatch: package.json has '$PACKAGE_VERSION', tag expects '$TAG_VERSION'"
             exit 1
           fi
-          
-          echo "✅ Version updated successfully to $PACKAGE_VERSION"
+
+          echo "✅ package.json version matches the tag: $PACKAGE_VERSION"
 
       - name: Build standalone version
         run: |
@@ -94,6 +90,14 @@ jobs:
             exit 1
           fi
           
+          # The version is injected into the bundle at build time (no tracked
+          # file is rewritten), so verify it landed in the shipped artifact.
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if ! grep -q "\"$PACKAGE_VERSION\"" dist/gramframe.bundle.js; then
+            echo "❌ Bundle does not carry version $PACKAGE_VERSION"
+            exit 1
+          fi
+
           echo "✅ Standalone build successful"
           echo "📋 Bundle size: $BUNDLE_SIZE bytes"
           echo "📋 Standalone build contents:"

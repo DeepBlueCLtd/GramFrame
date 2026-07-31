@@ -22,6 +22,9 @@
     document.createElementNS = undefined
   </script>
 
+  <!-- Development/test page: expose GramFrame's __test__* API (spec 165, GF-23).
+       Published training pages omit this, so those methods never ship. -->
+  <script>window.GRAMFRAME_DEBUG = true</script>
   <script type="module" src="../../src/main.js"></script>
 </head>
 <body>

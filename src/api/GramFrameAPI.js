@@ -15,12 +15,62 @@ import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
 import { isBrowserSupported, showCompatibilityWarning, looksLikeMissingApiError } from '../core/browserCompatibility.js'
 
 /**
+ * Whether the host page opted into the debug/test API surface.
+ *
+ * A page enables it with `window.GRAMFRAME_DEBUG = true` before loading
+ * GramFrame (see debug.html and the test fixtures). Published training material
+ * does not set it, so the `__test__*` methods are absent there rather than
+ * shipping on every page (spec 165, GF-23).
+ * @returns {boolean} True when the debug API should be attached
+ */
+function isDebugEnabled() {
+  return typeof window !== 'undefined' && /** @type {any} */ (window).GRAMFRAME_DEBUG === true
+}
+
+/**
+ * The test-only API surface, attached to the public API only on pages that set
+ * `window.GRAMFRAME_DEBUG`. These methods exist for the Playwright suite: they
+ * reach into instances in ways no production caller should depend on.
+ * @param {GramFrameAPI} api - The API object to attach to
+ * @returns {void}
+ */
+function attachDebugAPI(api) {
+  /**
+   * Force a state broadcast on every instance.
+   * @returns {void}
+   */
+  api.__test__forceUpdate = function () {
+    this._getInstances().forEach(instance => {
+      notifyStateListeners(instance.state, instance.stateListeners)
+    })
+  }
+
+  /**
+   * Get all active GramFrame instances.
+   * @returns {GramFrame[]} Active instances
+   */
+  api.__test__getInstances = function () {
+    return this._getInstances()
+  }
+
+  /**
+   * Get an instance by its ID.
+   * @param {string} instanceId - Instance ID to find
+   * @returns {GramFrame|null} Instance or null if not found
+   */
+  api.__test__getInstance = function (instanceId) {
+    return this._getInstances().find(instance => instance.instanceId === instanceId) || null
+  }
+}
+
+/**
  * Creates the GramFrame public API object
  * @param {any} GramFrame - The GramFrame class constructor
  * @returns {GramFrameAPI} The GramFrame API object
  */
 export function createGramFrameAPI(GramFrame) {
-  return {
+  /** @type {GramFrameAPI} */
+  const api = {
     /**
      * Initialize all config tables on the page
      * @returns {GramFrame[]} Array of GramFrame instances
@@ -245,39 +295,6 @@ export function createGramFrameAPI(GramFrame) {
       })
     },
 
-    // Debug and visualization API methods removed - implement when needed
-
-    /**
-     * Force update of the component state
-     * @__test__ This method is only used for testing purposes
-     */
-    __test__forceUpdate() {
-      // Trigger state update on all GramFrame instances
-      this._getInstances().forEach(instance => {
-        notifyStateListeners(instance.state, instance.stateListeners)
-      })
-    },
-    
-    /**
-     * Get all active GramFrame instances
-     * @__test__ This method is only used for testing purposes
-     * @returns {GramFrame[]} Array of active instances
-     */
-    __test__getInstances() {
-      return this._getInstances()
-    },
-    
-    /**
-     * Get instance by ID
-     * @__test__ This method is only used for testing purposes
-     * @param {string} instanceId - Instance ID to find
-     * @returns {GramFrame|null} Instance or null if not found
-     */
-    __test__getInstance(instanceId) {
-      return this._getInstances().find(instance => instance.instanceId === instanceId) || null
-    },
-    
-    
     /**
      * Put a config table back where it started after a failed initialization,
      * removing the half-built component container that replaced it.
@@ -367,4 +384,12 @@ export function createGramFrameAPI(GramFrame) {
       }
     }
   }
+
+  // Test-only methods are attached only when the page opts in, so they are not
+  // part of the API published pages see (GF-23).
+  if (isDebugEnabled()) {
+    attachDebugAPI(api)
+  }
+
+  return api
 }

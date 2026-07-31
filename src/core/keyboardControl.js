@@ -10,7 +10,7 @@
 import { notifyStateListeners } from './state.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
-import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance } from './FocusManager.js'
+import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount } from './FocusManager.js'
 
 /**
  * Movement increments in pixels
@@ -49,11 +49,16 @@ export function initializeKeyboardControl(instance) {
 export function cleanupKeyboardControl(instance) {
   // Unregister this instance from focus management
   unregisterInstance(instance)
-  
-  
-  // Note: We don't remove the global handler here to avoid issues
-  // if multiple instances are being destroyed. The handler will
-  // simply do nothing if no instances are focused.
+
+  // Uninstall the shared document-level handler once the last instance is gone
+  // (GF-14). While any instance remains it must stay installed — it is shared,
+  // not per-instance — so removal is gated on the registered count, not on this
+  // particular instance. A later instance reinstalls it via initializeKeyboardControl.
+  if (globalKeyboardHandler && getRegisteredInstanceCount() === 0) {
+    document.removeEventListener('keydown', globalKeyboardHandler)
+    globalKeyboardHandler = null
+    keyboardHandlerInitialized = false
+  }
 }
 
 /**

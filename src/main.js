@@ -154,6 +154,13 @@ export class GramFrame {
   _boundHandleResize;
 
   /**
+   * Every listener attached by setupEventListeners, kept so destroy() can
+   * remove them (they used to be anonymous and therefore unremovable).
+   * @type {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>}
+   */
+  _registeredListeners = [];
+
+  /**
    * Transient state for a wheel-button (middle) drag pan; null when not dragging.
    * Not part of the broadcast state.
    * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}

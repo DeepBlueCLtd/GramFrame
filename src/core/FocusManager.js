@@ -44,6 +44,16 @@ export function unregisterInstance(instance) {
 }
 
 /**
+ * How many instances are currently registered for focus management.
+ * Used to decide when the shared document-level keydown handler can be
+ * uninstalled (spec 165, GF-14).
+ * @returns {number} Registered instance count
+ */
+export function getRegisteredInstanceCount() {
+  return registeredInstances.size
+}
+
+/**
  * Set which instance should receive keyboard focus
  * @param {GramFrame} instance - GramFrame instance to focus
  */

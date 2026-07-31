@@ -124,62 +124,82 @@ function endWheelPan(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function setupEventListeners(instance) {
+  // Every listener is kept as a bound reference so cleanupEventListeners can
+  // actually remove it (GF-14). Anonymous inline handlers were unremovable, so
+  // "cleanup" relied entirely on the SVG being dropped from the DOM.
+  /** @type {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} */
+  const registered = []
+
+  /**
+   * Attach a listener and remember it for cleanup.
+   * @param {EventTarget} target - Element to listen on
+   * @param {string} type - Event name
+   * @param {EventListener} handler - Listener function
+   * @param {AddEventListenerOptions} [options] - addEventListener options
+   */
+  const listen = (target, type, handler, options) => {
+    target.addEventListener(type, handler, options)
+    registered.push({ target, type, handler, options })
+  }
+
   // Mouse event listeners for SVG interaction
   if (instance.svg) {
     // Mouse move for cursor tracking
-    instance.svg.addEventListener('mousemove', (event) => {
-      handleMouseMove(instance, event)
+    listen(instance.svg, 'mousemove', (event) => {
+      handleMouseMove(instance, /** @type {MouseEvent} */ (event))
     })
-    
+
     // Mouse down for starting drag operations
-    instance.svg.addEventListener('mousedown', (event) => {
-      handleMouseDown(instance, event)
+    listen(instance.svg, 'mousedown', (event) => {
+      handleMouseDown(instance, /** @type {MouseEvent} */ (event))
     })
-    
+
     // Mouse up for ending drag operations
-    instance.svg.addEventListener('mouseup', (event) => {
-      handleMouseUp(instance, event)
+    listen(instance.svg, 'mouseup', (event) => {
+      handleMouseUp(instance, /** @type {MouseEvent} */ (event))
     })
-    
+
     // Mouse leave to clear cursor position
-    instance.svg.addEventListener('mouseleave', () => {
+    listen(instance.svg, 'mouseleave', () => {
       handleMouseLeave(instance)
     })
-    
+
     // Context menu (right-click) for reset operations
-    instance.svg.addEventListener('contextmenu', (event) => {
-      handleContextMenu(instance, event)
+    listen(instance.svg, 'contextmenu', (event) => {
+      handleContextMenu(instance, /** @type {MouseEvent} */ (event))
     })
 
     // Mouse wheel for global zoom (Ctrl+scroll) and horizontal pan (scroll).
     // passive:false so the handler can preventDefault() to stop the host page
     // from scrolling during a zoom/pan gesture.
-    instance.svg.addEventListener('wheel', (event) => {
-      handleWheel(instance, event)
+    listen(instance.svg, 'wheel', (event) => {
+      handleWheel(instance, /** @type {WheelEvent} */ (event))
     }, { passive: false })
   }
-  
+
   // Bind resize handler
   instance._boundHandleResize = () => {
     if (instance._handleResize) {
       instance._handleResize()
     }
   }
-  
+
   // Mode button events
   Object.keys(instance.modeButtons || {}).forEach(mode => {
     const button = instance.modeButtons[mode]
     if (button) {
-      button.addEventListener('click', () => {
+      listen(button, 'click', () => {
         instance._switchMode(/** @type {ModeType} */ (mode))
       })
     }
   })
-  
+
   // Rate input UI events removed - backend rate functionality preserved
-  
+
   // Window resize event
-  window.addEventListener('resize', instance._boundHandleResize)
+  listen(window, 'resize', instance._boundHandleResize)
+
+  instance._registeredListeners = registered
 }
 
 /**
@@ -363,15 +383,14 @@ function handleContextMenu(instance, event) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function cleanupEventListeners(instance) {
-  // Clean up SVG event listeners
-  if (instance.svg) {
-    // SVG events are cleaned up automatically when SVG is removed from DOM
-  }
-  
-  if (instance._boundHandleResize) {
-    window.removeEventListener('resize', instance._boundHandleResize)
-  }
-  
+  // Remove every listener registered in setupEventListeners — SVG, mode
+  // buttons and the window resize handler alike.
+  const registered = instance._registeredListeners || []
+  registered.forEach(({ target, type, handler, options }) => {
+    target.removeEventListener(type, handler, options)
+  })
+  instance._registeredListeners = []
+
   // Clean up ResizeObserver
   if (instance.resizeObserver) {
     instance.resizeObserver.disconnect()

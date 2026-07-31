@@ -339,6 +339,7 @@
  * 
  * @property {ResizeObserver|null} [resizeObserver] - Resize observer instance
  * @property {(function(Event): void)|null} [_boundHandleResize] - Bound resize handler
+ * @property {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} [_registeredListeners] - Listeners attached by setupEventListeners, kept for removal on destroy
  * @property {Object|null} [_panDragState] - Pan drag state
  * @property {Object|null} [zoomControls] - Zoom control elements
  * @property {HTMLElement|null} [harmonicPanel] - Harmonic panel element
