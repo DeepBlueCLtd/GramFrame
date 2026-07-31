@@ -1,20 +1,19 @@
-import { test, expect } from '@playwright/test'
+import { describe, test, expect } from 'vitest'
 import {
   MAX_VISIBLE_PINS,
   NICE_STEPS,
   chooseSamplingStep,
   sampledHarmonics
-} from '../src/utils/harmonicSampling.js'
+} from '../../src/utils/harmonicSampling.js'
 
 /**
- * @fileoverview Unit-style tests for the pure harmonic sampling helper.
- * These import the module directly and run in Node (no browser / no dev server),
- * exercising the boundary counts, step progression, multiple-anchoring, range
- * bounds, and pan stability described in
+ * @fileoverview Unit tests for the pure harmonic sampling helper, exercising
+ * the boundary counts, step progression, multiple-anchoring, range bounds, and
+ * pan stability described in
  * specs/158-harmonic-pin-sampling/contracts/sampling-algorithm.md.
  */
 
-test.describe('harmonicSampling pure helper', () => {
+describe('harmonicSampling pure helper', () => {
   test('exposes the documented constants', () => {
     expect(MAX_VISIBLE_PINS).toBe(25)
     expect(NICE_STEPS).toEqual([1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000])

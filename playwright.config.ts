@@ -6,6 +6,10 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './tests',
+  // tests/unit/ belongs to the Vitest lane (`yarn test:unit`) and tests/smoke/
+  // to the WebKit smoke lane (playwright.smoke.config.ts); Playwright's
+  // default testMatch would otherwise pick those files up too.
+  testIgnore: ['**/unit/**', '**/smoke/**'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

@@ -6,8 +6,11 @@ on:
     branches: [main]
 
 jobs:
-  playwright:
-    name: Playwright tests
+  # Fast lanes first: hygiene ratchet, lint, typecheck, unit tests, and both
+  # builds. Fails in seconds, and the browser jobs below only start if it's
+  # green (specs/164-quality-ratchets).
+  checks:
+    name: Hygiene, lint, typecheck, unit tests, build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -16,20 +19,83 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '24'
           cache: 'yarn'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Hygiene ratchet (cycles, unused exports, waitForTimeout)
+        run: yarn hygiene
+
+      - name: Lint
+        run: yarn lint
+
       - name: Type check
         run: yarn typecheck
 
+      - name: Unit tests
+        run: yarn test:unit
+
+      - name: Embed version from package.json
+        run: yarn generate-version
+
       - name: Build
         run: yarn build
+
+      - name: Build standalone bundle (the shipped artifact)
+        run: |
+          yarn build:standalone
+          if [ ! -f "dist/gramframe.bundle.js" ]; then
+            echo "Standalone build failed: gramframe.bundle.js not found"
+            exit 1
+          fi
+
+  playwright:
+    name: Playwright tests
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
         run: yarn test
+
+  webkit-smoke:
+    name: WebKit smoke test
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright WebKit
+        run: npx playwright install --with-deps webkit
+
+      - name: Embed version from package.json
+        run: yarn generate-version
+
+      - name: Run WebKit smoke test
+        run: npx playwright test -c playwright.smoke.config.ts
