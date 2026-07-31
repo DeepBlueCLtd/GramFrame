@@ -219,16 +219,16 @@ function handleMouseMove(instance, event) {
   const result = screenToDataWithZoom(instance, event)
 
   if (result) {
-    const { svgCoords, dataCoords } = result
-    
+    const { svgCoords, imageX, imageY, dataCoords } = result
+
     // Update cursor position in state
     instance.state.cursorPosition = {
       x: event.clientX - instance.svg.getBoundingClientRect().left,
       y: event.clientY - instance.svg.getBoundingClientRect().top,
       svgX: svgCoords.x,
       svgY: svgCoords.y,
-      imageX: svgCoords.x, // Simplified - would need proper image coordinate calculation
-      imageY: svgCoords.y, // Simplified - would need proper image coordinate calculation
+      imageX,
+      imageY,
       freq: dataCoords.freq,
       time: dataCoords.time
     }
