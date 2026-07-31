@@ -1261,7 +1261,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function applyExpandLayout(instance) {
     if (instance.state.imageExpanded) {
-      let { width, height } = computeAvailableRenderSize(instance);
+      const { width, height } = computeAvailableRenderSize(instance);
       instance.state.imageDetails.renderWidth = width;
       instance.state.imageDetails.renderHeight = height;
       updateSVGLayout(instance);
@@ -1589,9 +1589,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const range = max - min;
     const targetMajorTicks = Math.max(2, Math.floor(containerSize / targetSpacing));
     const rawMajorInterval = range / (targetMajorTicks - 1);
-    function niceNum(range2, round) {
-      const exponent = Math.floor(Math.log10(range2));
-      const fraction = range2 / Math.pow(10, exponent);
+    function niceNum(value, round) {
+      const exponent = Math.floor(Math.log10(value));
+      const fraction = value / Math.pow(10, exponent);
       let niceFraction;
       {
         if (fraction <= 1) niceFraction = 1;
@@ -3011,7 +3011,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return row;
   }
   let currentFocusedInstance = null;
-  let registeredInstances = /* @__PURE__ */ new Set();
+  const registeredInstances = /* @__PURE__ */ new Set();
   function registerInstance(instance) {
     registeredInstances.add(instance);
   }
@@ -5222,7 +5222,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       var present = false;
       try {
         present = !!api.test();
-      } catch (e) {
+      } catch (_e) {
         present = false;
       }
       if (!present) {
