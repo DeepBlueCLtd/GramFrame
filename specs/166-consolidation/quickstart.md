@@ -104,7 +104,7 @@ Each PR's gate is the corresponding spec passing **unchanged**:
 ```bash
 npx playwright test tests/harmonics-mode.spec.js
 npx playwright test tests/doppler-mode.spec.js
-npx playwright test tests/pan-mode.spec.js tests/mouse-wheel-navigation.spec.js
+npx playwright test tests/pan-zoom.spec.js   # covers PanMode drag AND wheel-pan (feature 160)
 ```
 
 **Confirm the single owner (FR-004)**
