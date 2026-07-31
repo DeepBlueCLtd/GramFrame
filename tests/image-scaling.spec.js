@@ -122,14 +122,13 @@ test.describe('Image Scaling Tests', () => {
 
     // Hover just inside the image's top-left corner (margins: left=60, top=15)
     await svg.hover({ position: { x: 61, y: 16 } })
-    await page.waitForTimeout(500)
 
-    const coordinates = await page.evaluate(() => {
+    const readCursorPosition = () => page.evaluate(() => {
       const instances = window.GramFrame.__test__getInstances()
       return instances.length >= 3 ? instances[2].state.cursorPosition : null
     })
-
-    expect(coordinates).toBeTruthy()
+    await expect.poll(readCursorPosition).toBeTruthy()
+    const coordinates = await readCursorPosition()
     // Image-relative origin, within rounding tolerance — an SVG-coordinate
     // regression would report ~ (61, 16) here (GF-02, spec 165)
     expect(Math.abs(coordinates.imageX)).toBeLessThan(3)
