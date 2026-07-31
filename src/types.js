@@ -121,6 +121,29 @@
 
 
 /**
+ * One column of a DiffingTable.
+ * @typedef {Object} TableColumn
+ * @property {string} label - Header text
+ * @property {string} [width] - CSS width for the header cell
+ * @property {string} [cellClassName] - Class applied to every body cell in this column
+ */
+
+/**
+ * What a consumer supplies to `createDiffingTable`: the meaning, not the
+ * mechanism (spec 166, FR-009).
+ * @typedef {Object} TableSpec
+ * @property {TableColumn[]} columns - Header labels, in order
+ * @property {string} rowAttribute - Attribute carrying a row's identity, e.g. 'data-marker-id'
+ * @property {function(any, number): string} rowKey - Stable identity for diffing
+ * @property {string} [rowClassName] - Class applied to every row
+ * @property {function(any, number): Array<string|Node>} cells - Cell content per column
+ * @property {string} [deleteSelector] - Selector for the delete control; clicks on it delete rather than select
+ * @property {function(string, any, number): void} [onSelect] - Row click
+ * @property {function(string, any, number): void} [onDelete] - Delete-control click
+ * @property {function(string): boolean} [isSelected] - Whether the row with this key is selected
+ */
+
+/**
  * Coalescing options for a state dispatch.
  * @typedef {Object} DispatchOptions
  * @property {boolean} [frame] - Coalesce at animation-frame cadence instead of

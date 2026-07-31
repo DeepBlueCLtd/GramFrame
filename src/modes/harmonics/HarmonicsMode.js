@@ -286,7 +286,7 @@ export class HarmonicsMode extends BaseMode {
     }
     
     // Create harmonic management panel in the persistent container
-    this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer)
+    this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer, this.instance)
     
     // Store references on instance for compatibility
 

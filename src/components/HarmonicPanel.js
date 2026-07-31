@@ -1,10 +1,24 @@
 /**
  * Harmonic Management Panel Component
+ *
+ * The panel's table is a {@link createDiffingTable} instance: the row-diffing
+ * mechanism is shared with the markers table (spec 166, FR-009), and what stays
+ * here is what makes this the *harmonics* panel — its columns, its cell
+ * formatting, and what selecting or deleting a harmonic set means.
  */
 
 /// <reference path="../types.js" />
 
 import { createColorIndicator } from '../rendering/symbols.js'
+import { createDiffingTable } from './DiffingTable.js'
+
+/**
+ * The diffing table backing each panel element, so the existing
+ * `updateHarmonicPanelContent(panel, instance)` signature keeps working for its
+ * several callers.
+ * @type {WeakMap<HTMLElement, {update: function(any[]): void, destroy: function(): void, element: HTMLTableElement}>}
+ */
+const panelTables = new WeakMap()
 
 /**
  * Build the colour/symbol indicator for a harmonic set's table row: the set's
@@ -18,6 +32,48 @@ function createSymbolSwatch(harmonicSet) {
 }
 
 /**
+ * Build the colour cell's contents: the swatch inside the tinted wrapper the
+ * panel has always used.
+ * @param {HarmonicSet} harmonicSet - The harmonic set data
+ * @returns {HTMLDivElement} The colour cell content
+ */
+function createColorCellContent(harmonicSet) {
+  const colorDiv = document.createElement('div')
+  colorDiv.className = 'gram-frame-harmonic-color'
+  colorDiv.style.color = harmonicSet.color
+  colorDiv.appendChild(createSymbolSwatch(harmonicSet))
+  return colorDiv
+}
+
+/**
+ * The ratio of the cursor's frequency to a set's spacing, as displayed.
+ * @param {HarmonicSet} harmonicSet - The harmonic set data
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {string} Formatted ratio
+ */
+function formatRatio(harmonicSet, instance) {
+  if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
+    return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3)
+  }
+  return '5.000' // Representative rate for 5th harmonic
+}
+
+/**
+ * Build a harmonic row's delete button. Markup unchanged from before the table
+ * engines were shared, so existing selectors and styling keep working (T2).
+ * @param {HarmonicSet} harmonicSet - The harmonic set data
+ * @returns {HTMLButtonElement} The delete button
+ */
+function createHarmonicDeleteButton(harmonicSet) {
+  const button = document.createElement('button')
+  button.className = 'gram-frame-harmonic-delete'
+  button.setAttribute('data-harmonic-id', harmonicSet.id)
+  button.title = 'Delete harmonic set'
+  button.textContent = '\u00d7'
+  return button
+}
+
+/**
  * Create harmonic management panel
  *
  * The panel is mounted inside a `gram-frame-table-area` wrapper: the wrapper
@@ -26,31 +82,45 @@ function createSymbolSwatch(harmonicSet) {
  * growing the page layout (the header row stays pinned via sticky `th`).
  *
  * @param {HTMLElement} container - Container element to append the panel to
+ * @param {GramFrame} instance - GramFrame instance
  * @returns {HTMLElement} The created panel element
  */
-export function createHarmonicPanel(container) {
-  const area = document.createElement('div')
-  area.className = 'gram-frame-table-area'
+export function createHarmonicPanel(container, instance) {
+  const table = createDiffingTable(container, {
+    columns: [
+      { label: '', width: '15%' },
+      { label: 'Spacing (Hz)', width: '35%', cellClassName: 'gram-frame-harmonic-spacing' },
+      { label: 'Ratio', width: '35%', cellClassName: 'gram-frame-harmonic-rate' },
+      { label: '', width: '15%' }
+    ],
+    rowAttribute: 'data-harmonic-id',
+    rowClassName: 'gram-frame-harmonic-row',
+    rowKey: (harmonicSet) => harmonicSet.id,
+    cells: (harmonicSet) => [
+      createColorCellContent(harmonicSet),
+      harmonicSet.spacing.toFixed(2),
+      formatRatio(harmonicSet, instance),
+      createHarmonicDeleteButton(harmonicSet)
+    ],
+    deleteSelector: '.gram-frame-harmonic-delete',
+    onSelect: (harmonicSetId, _harmonicSet, index) => {
+      // Toggle selection
+      if (instance.state.selection.selectedType === 'harmonicSet' &&
+          instance.state.selection.selectedId === harmonicSetId) {
+        instance.clearSelection()
+      } else {
+        instance.setSelection('harmonicSet', harmonicSetId, index)
+      }
+    },
+    onDelete: (harmonicSetId) => instance.removeHarmonicSet(harmonicSetId),
+    isSelected: (harmonicSetId) => (
+      instance.state.selection.selectedType === 'harmonicSet' &&
+      instance.state.selection.selectedId === harmonicSetId
+    )
+  })
 
-  const panel = document.createElement('div')
-  panel.className = 'gram-frame-table-container'
-  panel.innerHTML = `
-    <table class="gram-frame-table">
-      <thead>
-        <tr>
-          <th style="width: 15%"></th>
-          <th style="width: 35%">Spacing (Hz)</th>
-          <th style="width: 35%">Ratio</th>
-          <th style="width: 15%"></th>
-        </tr>
-      </thead>
-      <tbody>
-      </tbody>
-    </table>
-  `
-  
-  area.appendChild(panel)
-  container.appendChild(area)
+  const panel = /** @type {HTMLElement} */ (table.element.parentElement)
+  panelTables.set(panel, table)
   return panel
 }
 
@@ -63,170 +133,11 @@ export function updateHarmonicPanelContent(panel, instance) {
   if (!panel) {
     return
   }
-  
-  const tbody = /** @type {HTMLTableSectionElement} */ (panel.querySelector('.gram-frame-table tbody'))
-  if (!tbody) {
+
+  const table = panelTables.get(panel)
+  if (!table) {
     return
   }
-  
-  const harmonicSets = instance.state.harmonics.harmonicSets
-  const existingRows = tbody.querySelectorAll('tr')
-  
-  // Update existing rows or create new ones
-  harmonicSets.forEach((harmonicSet, index) => {
-    let row = existingRows[index]
-    
-    if (row && row.getAttribute('data-harmonic-id') === harmonicSet.id) {
-      // Update existing row - only update cells that change
-      updateHarmonicRow(row, harmonicSet, instance)
-    } else {
-      // Need to rebuild from this point
-      rebuildHarmonicTableFrom(tbody, harmonicSets, instance, index)
-      return
-    }
-  })
-  
-  // Remove extra rows if harmonic sets were deleted
-  for (let i = harmonicSets.length; i < existingRows.length; i++) {
-    existingRows[i].remove()
-  }
-}
 
-/**
- * Update only the changing cells in an existing harmonic row
- * @param {HTMLTableRowElement} row - The table row to update
- * @param {HarmonicSet} harmonicSet - The harmonic set data
- * @param {GramFrame} instance - GramFrame instance
- */
-function updateHarmonicRow(row, harmonicSet, instance) {
-  // Update the colour/symbol swatch in case colour or symbol changed
-  const colorCell = row.cells[0]
-  const colorDiv = colorCell && /** @type {HTMLElement} */ (colorCell.querySelector('.gram-frame-harmonic-color'))
-  if (colorDiv) {
-    colorDiv.style.color = harmonicSet.color
-    colorDiv.replaceChildren(createSymbolSwatch(harmonicSet))
-  }
-
-  // Update spacing cell if changed
-  const spacingCell = row.cells[1]
-  if (spacingCell) {
-    const newSpacing = harmonicSet.spacing.toFixed(2)
-    if (spacingCell.textContent !== newSpacing) {
-      spacingCell.textContent = newSpacing
-    }
-  }
-  
-  // Update rate cell - this changes with cursor position
-  const rateCell = row.cells[2]
-  if (rateCell) {
-    let rate
-    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-      rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3)
-    } else {
-      rate = '5.000' // Representative rate for 5th harmonic
-    }
-    
-    if (rateCell.textContent !== rate) {
-      rateCell.textContent = rate
-    }
-  }
-}
-
-/**
- * Rebuild the harmonic table from a specific index
- * @param {HTMLTableSectionElement} tbody - Table body element
- * @param {Array} harmonicSets - Array of harmonic sets
- * @param {GramFrame} instance - GramFrame instance
- * @param {number} startIndex - Index to start rebuilding from
- */
-function rebuildHarmonicTableFrom(tbody, harmonicSets, instance, startIndex) {
-  // Remove rows from startIndex onward
-  const existingRows = tbody.querySelectorAll('tr')
-  for (let i = startIndex; i < existingRows.length; i++) {
-    existingRows[i].remove()
-  }
-  
-  // Add new rows from startIndex
-  for (let index = startIndex; index < harmonicSets.length; index++) {
-    const harmonicSet = harmonicSets[index]
-    const row = createHarmonicRow(harmonicSet, instance, index)
-    tbody.appendChild(row)
-  }
-  
-  // Restore selection highlighting if needed
-  instance.updateSelectionVisuals()
-}
-
-/**
- * Create a new harmonic table row
- * @param {HarmonicSet} harmonicSet - The harmonic set data
- * @param {GramFrame} instance - GramFrame instance
- * @param {number} index - Row index
- * @returns {HTMLTableRowElement} The created row
- */
-function createHarmonicRow(harmonicSet, instance, index) {
-  const row = document.createElement('tr')
-  row.setAttribute('data-harmonic-id', harmonicSet.id)
-  row.className = 'gram-frame-harmonic-row'
-  
-  // Color/symbol cell — the set's symbol rendered in the set's colour
-  const colorCell = document.createElement('td')
-  const colorDiv = document.createElement('div')
-  colorDiv.className = 'gram-frame-harmonic-color'
-  colorDiv.style.color = harmonicSet.color
-  colorDiv.appendChild(createSymbolSwatch(harmonicSet))
-  colorCell.appendChild(colorDiv)
-  row.appendChild(colorCell)
-  
-  // Spacing cell
-  const spacingCell = document.createElement('td')
-  spacingCell.className = 'gram-frame-harmonic-spacing'
-  spacingCell.textContent = harmonicSet.spacing.toFixed(2)
-  row.appendChild(spacingCell)
-  
-  // Rate cell
-  const rateCell = document.createElement('td')
-  rateCell.className = 'gram-frame-harmonic-rate'
-  let rate
-  if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-    rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3)
-  } else {
-    rate = '5.000'
-  }
-  rateCell.textContent = rate
-  row.appendChild(rateCell)
-  
-  // Delete button cell
-  const actionCell = document.createElement('td')
-  const deleteButton = document.createElement('button')
-  deleteButton.className = 'gram-frame-harmonic-delete'
-  deleteButton.setAttribute('data-harmonic-id', harmonicSet.id)
-  deleteButton.title = 'Delete harmonic set'
-  deleteButton.textContent = '×'
-  actionCell.appendChild(deleteButton)
-  row.appendChild(actionCell)
-  
-  // Add event listeners
-  row.addEventListener('click', (event) => {
-    // Don't trigger selection if clicking delete button
-    if (event.target && /** @type {Element} */ (event.target).closest('.gram-frame-harmonic-delete')) {
-      return
-    }
-    
-    // Toggle selection
-    if (instance.state.selection.selectedType === 'harmonicSet' && 
-        instance.state.selection.selectedId === harmonicSet.id) {
-      instance.clearSelection()
-    } else {
-      instance.setSelection('harmonicSet', harmonicSet.id, index)
-    }
-  })
-  
-  deleteButton.addEventListener('click', (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    instance.removeHarmonicSet(harmonicSet.id)
-  })
-  
-  return row
+  table.update(instance.state.harmonics.harmonicSets)
 }

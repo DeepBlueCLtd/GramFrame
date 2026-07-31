@@ -546,33 +546,16 @@ export function removeHarmonicSet(instance, id) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function updateSelectionVisuals(instance) {
-  // Clear existing selection highlights ONLY within this instance's container
-  if (instance.container) {
-    const existingHighlights = instance.container.querySelectorAll('.gram-frame-selected-row')
-    existingHighlights.forEach(el => {
-      el.classList.remove('gram-frame-selected-row')
-    })
+  // Selected-row styling is now table mechanism: both tables mark their own
+  // selected row through the shared DiffingTable, so this only has to ask them
+  // to re-diff. The two hand-written `tr[data-...-id]` lookups this replaces
+  // were the same code twice (spec 166, T3).
+  const analysisMode = instance.modes && instance.modes['analysis']
+  if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
+    analysisMode.updateMarkersTable()
   }
-  
-  // Apply selection highlight if there's a selection
-  const selection = instance.state.selection
-  if (selection.selectedType && selection.selectedId) {
-    const container = instance.container || document
-    
-    if (selection.selectedType === 'marker') {
-      // Find marker table row by data attribute within this instance
-      const selector = `tr[data-marker-id="${selection.selectedId}"]`
-      const row = container.querySelector(selector)
-      if (row) {
-        row.classList.add('gram-frame-selected-row')
-      }
-    } else if (selection.selectedType === 'harmonicSet') {
-      // Find harmonic table row by data attribute within this instance
-      const selector = `tr[data-harmonic-id="${selection.selectedId}"]`
-      const row = container.querySelector(selector)
-      if (row) {
-        row.classList.add('gram-frame-selected-row')
-      }
-    }
+
+  if (instance.harmonicPanel) {
+    updateHarmonicPanelContent(instance.harmonicPanel, instance)
   }
 }
