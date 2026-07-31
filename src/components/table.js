@@ -455,16 +455,6 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
 }
 
 /**
- * Render frequency axis with ticks and labels (horizontal - x-axis)
- * Enhanced with dense markers and labels for better granularity
- * @param {GramFrame} instance - GramFrame instance
- * @param {AxesMargins} margins - Margin configuration
- * @param {number} naturalWidth - Image natural width
- * @param {number} _naturalHeight - Image natural height (unused)
- * @param {number} freqMin - Minimum frequency value
- * @param {number} freqMax - Maximum frequency value
- */
-/**
  * Calculate axis ticks using "nice numbers" algorithm
  * @param {number} min - Minimum value
  * @param {number} max - Maximum value
@@ -480,6 +470,11 @@ function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
   const rawMajorInterval = range / (targetMajorTicks - 1)
   
   // Nice numbers algorithm: find the "nicest" interval near the raw interval
+  /**
+   * @param {number} value - Raw interval to round
+   * @param {boolean} round - Round to the nearest nice number rather than up
+   * @returns {number} The nice number
+   */
   function niceNum(value, round) {
     const exponent = Math.floor(Math.log10(value))
     const fraction = value / Math.pow(10, exponent)
@@ -596,6 +591,16 @@ function renderAxisLabels(instance, labelData, axisConfig) {
   })
 }
 
+/**
+ * Render frequency axis with ticks and labels (horizontal - x-axis)
+ * Enhanced with dense markers and labels for better granularity
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {AxesMargins} margins - Margin configuration
+ * @param {number} naturalWidth - Image natural width
+ * @param {number} _naturalHeight - Image natural height (unused)
+ * @param {number} freqMin - Minimum frequency value
+ * @param {number} freqMax - Maximum frequency value
+ */
 function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
   const axisY = margins.top + _naturalHeight
   const axisStartX = margins.left

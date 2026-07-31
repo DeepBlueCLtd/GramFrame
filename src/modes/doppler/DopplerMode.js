@@ -11,6 +11,7 @@ import { getUniformTolerance, isWithinDataTolerance, findClosestTarget } from '.
 const MS_TO_KNOTS_CONVERSION = 1.94384
 
 // Doppler marker types
+/** @type {Record<DopplerDraggedMarker, DopplerDraggedMarker>} */
 const DopplerDraggedMarker = {
   fPlus: 'fPlus',
   fMinus: 'fMinus', 

@@ -35,7 +35,7 @@ export function createUnifiedLayoutStructure(instance) {
 export function setupPersistentContainers(instance) {
   // Create mode switching UI initially (will be updated after modes are initialized)
   const tempContainer = document.createElement('div')
-  const modeUI = createModeSwitchingUI(tempContainer, instance.state, (mode) => instance._switchMode(mode))
+  const modeUI = createModeSwitchingUI(tempContainer, instance.state, (/** @type {ModeType} */ mode) => instance._switchMode(mode))
   instance.modesContainer = modeUI.modesContainer
   instance.modeButtons = modeUI.modeButtons
   instance.commandButtons = modeUI.commandButtons
@@ -56,7 +56,7 @@ export function updateModeUIWithCommands(instance) {
   instance.guidanceColumn.removeChild(instance.guidancePanel)
   
   const tempContainer2 = document.createElement('div')
-  const modeUIWithButtons = createModeSwitchingUI(tempContainer2, instance.state, (mode) => instance._switchMode(mode), instance.modes)
+  const modeUIWithButtons = createModeSwitchingUI(tempContainer2, instance.state, (/** @type {ModeType} */ mode) => instance._switchMode(mode), instance.modes)
   instance.modesContainer = modeUIWithButtons.modesContainer
   instance.modeButtons = modeUIWithButtons.modeButtons
   instance.commandButtons = modeUIWithButtons.commandButtons

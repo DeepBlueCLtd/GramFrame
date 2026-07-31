@@ -10,7 +10,9 @@
 /**
  * Global focus tracking
  */
+/** @type {GramFrame|null} */
 let currentFocusedInstance = null
+/** @type {Set<GramFrame>} */
 const registeredInstances = new Set()
 
 /**

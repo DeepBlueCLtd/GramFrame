@@ -24,6 +24,7 @@ const MOVEMENT_INCREMENTS = {
 /**
  * Global keyboard handler - only one listener for all instances
  */
+/** @type {((event: KeyboardEvent) => void)|null} */
 let globalKeyboardHandler = null
 let keyboardHandlerInitialized = false
 
@@ -37,7 +38,7 @@ export function initializeKeyboardControl(instance) {
   
   // Only set up the global keyboard handler once
   if (!keyboardHandlerInitialized) {
-    globalKeyboardHandler = (event) => handleGlobalKeyboardEvent(event)
+    globalKeyboardHandler = (/** @type {KeyboardEvent} */ event) => handleGlobalKeyboardEvent(event)
     document.addEventListener('keydown', globalKeyboardHandler)
     keyboardHandlerInitialized = true
   }

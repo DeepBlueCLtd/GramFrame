@@ -433,13 +433,14 @@ export class GramFrame {
     /** @type {string} */
     let lastSignature = ''
 
-    this.stateListeners.push((state) => {
+    this.stateListeners.push((/** @type {GramFrameState} */ state) => {
       // A cheap signature, not a re-serialisation of every annotation. The
       // listener runs on every notification — including pure cursor moves and
       // zoom changes — and stringifying the full annotation set each time is
       // the compounding cost GF-07 records. Counts plus the doppler marker
       // identity, guarded by a counter the annotation-mutating paths bump,
       // catch every change that matters (spec 166, AS-4.3).
+      /** @type {Partial<DopplerState>} */
       const doppler = state.doppler || {}
       const signature = [
         state.annotationRevision || 0,

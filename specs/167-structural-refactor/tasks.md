@@ -101,7 +101,7 @@ in the same commit** (AS-1.2).
 ### noImplicitAny burn-down (143 errors)
 
 - [ ] T008 [US1] Annotate the 46 `TS7008` class-field declarations in `src/main.js` (lines ~80–165) with `@type` JSDoc — the single largest concentrated fix in the phase, and the one that makes the US5 grouping legible
-- [ ] T009 [P] [US1] Fix the 14 `TS7006` implicit-`any` parameters and 7 `TS7053` implicit index accesses across `src/`, adding `@param` types
+- [x] T009 [P] [US1] Fix the 14 `TS7006` implicit-`any` parameters and 7 `TS7053` implicit index accesses across `src/`, adding `@param` types
 - [ ] T010 [US1] Fix the remaining `TS7005` implicit-`any` variables, then enable `noImplicitAny: true` in `tsconfig.json` and remove it from `tsconfig.strict.json` — the one flag that can be flipped independently (AS-1.3)
 
 ### strictNullChecks burn-down (401 errors, tranched by directory)

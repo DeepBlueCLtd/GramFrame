@@ -8,12 +8,14 @@
 
 import { getModeDisplayName } from '../utils/calculations.js'
 
+/** @typedef {import('../modes/BaseMode.js').BaseMode} BaseMode */
+
 /**
  * Create mode switching UI with buttons and guidance panel
  * @param {HTMLElement} modeCell - Container element for mode UI
  * @param {GramFrameState} state - Current state object
  * @param {Function} modeSwitchCallback - Callback function for mode changes
- * @param {Object} modes - Mode instances to get command buttons from
+ * @param {Object<string, BaseMode>} modes - Mode instances to get command buttons from
  * @returns {ModeUIElements} Object containing references to mode UI elements
  */
 export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes = {}) {
@@ -44,7 +46,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
 
     // Add pre-command buttons (left side)
     const preButtons = commandButtonDefs.slice(0, Math.floor(commandButtonDefs.length / 2))
-    preButtons.forEach(buttonDef => {
+    preButtons.forEach((/** @type {CommandButton} */ buttonDef) => {
       const cmdButton = createCommandButton(buttonDef)
       modeGroup.appendChild(cmdButton)
       commandButtons[modeType].push(cmdButton)
@@ -83,7 +85,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
 
     // Add post-command buttons (right side)
     const postButtons = commandButtonDefs.slice(Math.floor(commandButtonDefs.length / 2))
-    postButtons.forEach(buttonDef => {
+    postButtons.forEach((/** @type {CommandButton} */ buttonDef) => {
       const cmdButton = createCommandButton(buttonDef)
       modeGroup.appendChild(cmdButton)
       commandButtons[modeType].push(cmdButton)
@@ -137,7 +139,7 @@ function createCommandButton(buttonDef) {
 /**
  * Update command button states for all modes
  * @param {Object<string, HTMLButtonElement[]>} commandButtons - Command buttons by mode
- * @param {Object} modes - Mode instances
+ * @param {Object<string, BaseMode>} modes - Mode instances
  */
 export function updateCommandButtonStates(commandButtons, modes) {
   Object.keys(commandButtons).forEach(modeType => {
@@ -159,7 +161,7 @@ export function updateCommandButtonStates(commandButtons, modes) {
 /**
  * Update mode button states for all modes
  * @param {Object<string, HTMLButtonElement>} modeButtons - Mode buttons by mode
- * @param {Object} modes - Mode instances
+ * @param {Object<string, BaseMode>} modes - Mode instances
  */
 export function updateModeButtonStates(modeButtons, modes) {
   Object.keys(modeButtons).forEach(modeType => {
