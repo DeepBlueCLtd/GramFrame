@@ -200,3 +200,39 @@ it, and it did not. The drag engine notifies through an instance method rather
 than importing `core/state.js` precisely to avoid closing a twelfth cycle.
 `GF-02`, `GF-04`–`GF-06`, `GF-09`–`GF-16` and the process/documentation
 findings from `GF-29` onward are outside spec 166's scope and remain open.
+
+---
+
+## 8. Resolutions — Phase 3 structural refactor (spec 167)
+
+Closed by [PR #225](https://github.com/DeepBlueCLtd/GramFrame/pull/225), which
+implements [specs/167-structural-refactor](../../specs/167-structural-refactor/spec.md).
+Every resolution below is covered by a check that fails if the finding returns.
+
+| ID | Status | How it was closed | Guarded by |
+|----|--------|-------------------|------------|
+| GF-32 | **RESOLVED** | The register's only High finding. `tsconfig.json` had `strict: true` beside `noImplicitAny: false`, `strictNullChecks: false` and `strictPropertyInitialization: false`. All three are now on with no disable left, 540 errors burned to zero, no `@ts-expect-error`/`@ts-ignore`/`any` used to get there | `yarn typecheck` itself — an unguarded `document.querySelector('.nope').classList` in any `src/` file now fails it, where before the phase it passed. Recorded stage by stage in ADR-007 |
+| GF-03 | **RESOLVED** | madge cycles **11 → 0**. Ten closed through `core/state.js` importing the four mode classes; `ModeFactory.getModeInitialStates()` composes the slices and `createInitialState(modeStates)` receives them. The eleventh, `ExpandToggle ⇄ table`, went with the `table.js` split | `yarn hygiene` ratchet (`circularDependencies` baseline 0); `tests/unit/mode-registration.test.js` asserts `state.js` imports no mode |
+| GF-06 | **RESOLVED** | Instances stopped copying `globalStateListeners` into their own array at construction, so a global listener no longer lived in as many arrays as there were instances and removal no longer scrubbed each one. Delivery unions the two registries, de-duplicated | `tests/state-listener.spec.js` — add-then-remove touches one registry on a multi-instance page, one delivery per notification, and a listener registered before an instance exists still reaches it |
+| GF-09 | **RESOLVED** | `components/table.js` **713 → 151 lines** and scaffold-only, imported by exactly one module. Its other five responsibilities went to `rendering/axes.js`, `components/svgLayout.js`, `components/spectrogramImage.js` and `utils/coordinates.js` | full Playwright suite green **with no spec file edited** — the gate for a pure move; ADR-018 |
+| GF-10 | **RESOLVED** | `BaseMode`'s two hooks with zero overrides deleted, along with the `FeatureRenderer` method whose entire body was calling one of them. `getViewport` and `updateCursorStyle` also have zero overrides but 17 and 3 callers — they are concrete helpers, and the class header now says so, so the next audit does not delete them. The reverse case also surfaced: `handleContextMenu` had two live overrides and no declaration | `tsc` under the strict flags; `tests/mode-registration.spec.js` |
+| GF-11 | **RESOLVED** | `FeatureRenderer` and `MainUI` name no mode and use no `any` cast. Modes are found by duck-typed capability (`PersistentFeatureProvider`, `PanelOwner`). PanMode's `instance._zoomIn`/`_zoomOut` reach-ins replaced by the `core/viewport.js` seam; the three forwarders that then had no caller were deleted. Two named-mode sites remain, documented as exceptions in ADR-017 | `tests/mode-registration.spec.js` — a fifth mode is rendered and refreshed with no edit to either coordinator, and the three files are asserted to name no mode |
+| GF-13 | **RESOLVED** | `initializeDOMProperties` deleted with its double-nulling — it set `modes`, `currentMode` and `featureRenderer` to `null` three lines before `initializeModeInfrastructure` re-created them. Each step now declares what it needs and returns what it built | Verified by experiment: swapping two constructor steps produces four `TS2448` at check time and a TDZ `ReferenceError` at runtime, where before it produced `undefined` fields surfacing several steps later |
+| GF-30 (residual) | **RESOLVED** | The public API's coverage was `expect(typeof …).toBe('function')` for two methods and nothing at all for the rest. `tests/public-api.spec.js` asserts every documented method behaviourally, against a fixture that does **not** set `window.GRAMFRAME_DEBUG` | the spec itself, which also fails if the `__test__` hooks leak onto a published page |
+| GF-38 (partial) | **RESOLVED** | `src/rendering/axes.js` exists, so CLAUDE.md's long-standing claim about it is true. CLAUDE.md's file listing updated for the four new modules | the file exists; CLAUDE.md's listing is checked against `src/` by review |
+| GF-40 | **RESOLVED** | ADR-011 documents a `FeatureRenderer` interface whose method names have zero overlap with the real ones. ADR-017 records the correction and the surface as implemented | ADR-017 |
+| GF-43 | **RESOLVED** | The ADR numbering gap at 014 is filled by ADR-014 (mode state registration seam), and the index says so | `docs/ADRs/README.md` |
+
+### Not addressed by this phase
+
+**GF-05 (instance surface) is partially closed and remains open.** The
+`instance.state` reach-in count is 243 → 222 and class fields 56 → 54 — some of
+that from `FeatureRenderer`'s eight reach-ins moving onto the modes that own the
+state, some from six fields found to be write-only. The grouping into
+`ui`/`interaction`/`viewport`/`persistence` sub-objects (spec 167 T034–T035) is
+not done, so SC-005's targets (≤ 185 reach-ins, ≤ 33 fields) are not met. Both
+counts are ratcheted in `hygiene-baseline.json` and can only fall.
+
+`GF-02`, `GF-04`, `GF-12`, `GF-14`–`GF-16` and the remaining process and
+documentation findings are outside spec 167's scope and remain open.
+
