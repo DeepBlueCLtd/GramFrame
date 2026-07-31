@@ -47,6 +47,11 @@ export const initialState = {
   // as a toggle in the Symbol panel; on by default at the start of a browser
   // session and remembered (sessionStorage) for the rest of it.
   showHarmonicPin: true,
+  // EXPERIMENT (temporary): large-symbol size for the NEXT created feature, set
+  // from the Symbol panel's toggle when nothing is selected (with a feature
+  // selected, the toggle resizes that feature instead). In-memory only, default
+  // off, never persisted — it exists to gather feedback on the preferred size.
+  largeSymbols: false,
   cursorPosition: null,
   cursors: [],
   imageDetails: {

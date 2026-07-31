@@ -434,8 +434,12 @@ export function getSelectedFeature(instance) {
  * `showPin` only means anything for harmonic sets (markers have no pin), so
  * `pinApplies` tells the panel whether to offer the pin toggle at all: false
  * while a marker is selected, true otherwise.
+ *
+ * `largeSymbols` is part of the temporary symbol-size experiment and follows the
+ * same rule as colour/symbol, so the toggle always reflects whatever the
+ * controls would restyle.
  * @param {GramFrame} instance - GramFrame instance
- * @returns {{color: string, symbol: SymbolType, showPin: boolean, pinApplies: boolean}} Active style
+ * @returns {{color: string, symbol: SymbolType, showPin: boolean, pinApplies: boolean, largeSymbols: boolean}} Active style
  */
 export function getActiveStyle(instance) {
   const selected = getSelectedFeature(instance)
@@ -448,14 +452,16 @@ export function getActiveStyle(instance) {
       showPin: isHarmonicSet
         ? /** @type {HarmonicSet} */ (selected.feature).showPin !== false
         : instance.state.showHarmonicPin !== false,
-      pinApplies: isHarmonicSet
+      pinApplies: isHarmonicSet,
+      largeSymbols: !!selected.feature.largeSymbols
     }
   }
   return {
     color: instance.state.selectedColor,
     symbol: instance.state.selectedSymbol,
     showPin: instance.state.showHarmonicPin !== false,
-    pinApplies: true
+    pinApplies: true,
+    largeSymbols: !!instance.state.largeSymbols
   }
 }
 
@@ -531,6 +537,27 @@ export function applyPinToSelectedFeature(instance, showPin) {
     return false
   }
   /** @type {HarmonicSet} */ (selected.feature).showPin = !!showPin
+  refreshFeatureVisuals(instance, selected.type)
+  return true
+}
+
+/**
+ * Apply the large-symbol size to the currently selected feature, updating the
+ * overlay instantly. No-op when nothing is selected.
+ *
+ * EXPERIMENT (temporary): the size is per-feature so two sets can be shown at
+ * different sizes side by side for comparison. Delete with the rest of the
+ * experiment once a size is agreed.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {boolean} large - Whether the feature draws its symbol at the large size
+ * @returns {boolean} True if a feature was restyled
+ */
+export function applyLargeSymbolsToSelectedFeature(instance, large) {
+  const selected = getSelectedFeature(instance)
+  if (!selected) {
+    return false
+  }
+  selected.feature.largeSymbols = large
   refreshFeatureVisuals(instance, selected.type)
   return true
 }

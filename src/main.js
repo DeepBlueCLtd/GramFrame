@@ -130,12 +130,16 @@ export class GramFrame {
   applySymbolToSelectedFeature;
   // Show/hide the selected harmonic set's pin lines
   applyPinToSelectedFeature;
+  // EXPERIMENT (temporary): resize the selected feature's symbols
+  applyLargeSymbolsToSelectedFeature;
   // Sync the colour/symbol/pin controls to the current selection
   syncStyleControls;
   // Symbol drop-down control handle (registered by the symbol picker)
   _symbolControl;
   // Pin toggle control handle (registered by the pin toggle)
   _pinControl;
+  // EXPERIMENT (temporary): "Large symbols" checkbox handle
+  _largeSymbolsControl;
   
   // ResizeObserver
   resizeObserver;
