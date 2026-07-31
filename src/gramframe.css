@@ -825,8 +825,11 @@
   font-size: 12px;
   font-weight: bold;
   pointer-events: none;
-  /* Add text shadow for readability */
-  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+  /*
+   * Legibility comes from the halo (black glyphs inside a white outline) set as
+   * presentation attributes by applyTextHalo() in src/utils/svg.js — see the
+   * fill/stroke/paint-order there. No drop-shadow: it only blurred the outline.
+   */
 }
 
 /* SVG Harmonic Set styles (new system) */

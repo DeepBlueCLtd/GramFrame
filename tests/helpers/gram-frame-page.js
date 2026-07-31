@@ -568,6 +568,31 @@ class GramFramePage {
   }
 
   /**
+   * Read the resolved paint of every rendered harmonic number label, optionally
+   * scoped to a single set. Uses computed style (not attributes) so a CSS rule
+   * overriding the halo would be caught.
+   * @param {string} [setId] - Restrict to one harmonic set
+   * @returns {Promise<Array<{fill: string, stroke: string, strokeWidth: string, strokeLinejoin: string, paintOrder: string}>>}
+   */
+  async getHarmonicLabelStyles(setId) {
+    const selector = setId
+      ? `.gram-frame-harmonic-number[data-harmonic-set-id="${setId}"]`
+      : '.gram-frame-harmonic-number'
+    return this.page.evaluate((sel) => {
+      return Array.from(document.querySelectorAll(sel)).map((el) => {
+        const style = window.getComputedStyle(el)
+        return {
+          fill: style.fill,
+          stroke: style.stroke,
+          strokeWidth: style.strokeWidth,
+          strokeLinejoin: style.strokeLinejoin,
+          paintOrder: style.paintOrder
+        }
+      })
+    }, selector)
+  }
+
+  /**
    * Programmatically add a harmonic set via the test instance API.
    * @param {number} anchorTime - Time position in seconds
    * @param {number} spacing - Frequency spacing in Hz

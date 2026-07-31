@@ -8,6 +8,7 @@ import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
 import { createSymbolMark } from '../../rendering/symbols.js'
+import { applyTextHalo } from '../../utils/svg.js'
 import { calculateVisibleDataRange, getRenderDimensions } from '../../components/table.js'
 
 /**
@@ -774,6 +775,11 @@ export class HarmonicsMode extends BaseMode {
    * positioned above the pin's symbol (baseline at `labelY`), so the vertical
    * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
    *
+   * The digits are drawn black inside a white halo rather than in the set's
+   * colour: a single colour is only legible over part of a gram, whereas the
+   * halo reads over both dark and light backgrounds. Set identity is still
+   * carried by the pin's line and symbol colour.
+   *
    * @param {number} harmonicNumber - Harmonic number
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration
    * @param {number} lineX - X position of the pin line (label is centred on it)
@@ -788,8 +794,8 @@ export class HarmonicsMode extends BaseMode {
     label.setAttribute('x', String(lineX)) // centred on the pin line
     label.setAttribute('y', String(labelY)) // above the symbol
     label.setAttribute('text-anchor', 'middle')
-    label.setAttribute('fill', harmonicSet.color)
-    label.setAttribute('font-size', '12')
+    applyTextHalo(/** @type {SVGTextElement} */ (label))
+    label.setAttribute('font-size', String(HarmonicsMode.LABEL_FONT_SIZE))
     label.setAttribute('font-weight', 'bold')
     label.setAttribute('font-family', 'Arial, sans-serif')
     label.textContent = String(harmonicNumber)
