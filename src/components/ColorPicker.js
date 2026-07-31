@@ -2,12 +2,14 @@
  * Combined colour + symbol picker for GramFrame
  *
  * Provides colour selection (gradient slider) and, alongside it, the symbol
- * drop-down for harmonic overlays, under a single "Symbol" panel.
+ * drop-down for harmonic overlays, plus a harmonic-pin visibility toggle, under
+ * a single "Symbol" panel.
  */
 
 /// <reference path="../types.js" />
 
 import { createSymbolSelect } from './SymbolPicker.js'
+import { createPinToggle } from './PinToggle.js'
 import { getActiveStyle } from '../core/keyboardControl.js'
 
 /**
@@ -93,6 +95,9 @@ export function createColorPicker(instance) {
   const symbolSelect = createSymbolSelect(instance)
   paletteContainer.appendChild(symbolSelect)
 
+  // Harmonic-pin visibility toggle, below the colour/symbol row.
+  container.appendChild(createPinToggle(instance))
+
   // Add click handler for color selection
   canvas.addEventListener('click', (event) => {
     const rect = canvas.getBoundingClientRect()
@@ -132,11 +137,16 @@ export function createColorPicker(instance) {
   // currently selected, or to the next-feature defaults when nothing is
   // selected (feature 161, FR-004/FR-013).
   instance.syncStyleControls = () => {
-    const { color, symbol } = getActiveStyle(instance)
+    const { color, symbol, showPin, pinApplies } = getActiveStyle(instance)
     showColor(color)
     if (instance._symbolControl) {
       instance._symbolControl.setValue(symbol)
       instance._symbolControl.setTint(color)
+    }
+    if (instance._pinControl) {
+      instance._pinControl.setValue(showPin)
+      // Markers have no pin, so the toggle is disabled while one is selected.
+      instance._pinControl.setEnabled(pinApplies)
     }
   }
 
