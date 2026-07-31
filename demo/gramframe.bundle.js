@@ -6066,8 +6066,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.state.dragState.originalSpacing = null;
       this.state.dragState.originalAnchorTime = null;
       this.state.dragState.clickedHarmonicNumber = null;
-      const modeChanged = this.state.previousMode !== mode;
-      if (modeChanged && this.state.selection && this.state.selection.selectedType && this.clearSelection) {
+      if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
         this.clearSelection();
       }
       if (this.modeButtons) {
