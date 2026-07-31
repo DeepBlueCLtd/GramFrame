@@ -11,6 +11,10 @@
  * is trivially unit-testable in isolation. `HarmonicsMode` supplies the visible
  * harmonic range and renders whatever these functions return.
  *
+ * MAX_VISIBLE_PINS, NICE_STEPS and chooseSamplingStep have no importer in
+ * src/ (HarmonicsMode calls sampleHarmonics): they are test-only seams for the
+ * unit lane, and are excluded from the unused-export ratchet on that basis.
+ *
  * @see specs/158-harmonic-pin-sampling/contracts/sampling-algorithm.md
  */
 

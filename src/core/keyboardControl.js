@@ -10,7 +10,7 @@
 import { notifyStateListeners } from './state.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
-import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance } from './FocusManager.js'
+import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount } from './FocusManager.js'
 
 /**
  * Movement increments in pixels
@@ -49,11 +49,16 @@ export function initializeKeyboardControl(instance) {
 export function cleanupKeyboardControl(instance) {
   // Unregister this instance from focus management
   unregisterInstance(instance)
-  
-  
-  // Note: We don't remove the global handler here to avoid issues
-  // if multiple instances are being destroyed. The handler will
-  // simply do nothing if no instances are focused.
+
+  // Uninstall the shared document-level handler once the last instance is gone
+  // (GF-14). While any instance remains it must stay installed — it is shared,
+  // not per-instance — so removal is gated on the registered count, not on this
+  // particular instance. A later instance reinstalls it via initializeKeyboardControl.
+  if (globalKeyboardHandler && getRegisteredInstanceCount() === 0) {
+    document.removeEventListener('keydown', globalKeyboardHandler)
+    globalKeyboardHandler = null
+    keyboardHandlerInitialized = false
+  }
 }
 
 /**
@@ -270,14 +275,13 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     if (setIndex !== -1) {
       Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates)
       
-      // Update visual elements if harmonic panel exists
+      // Update visual elements if harmonic panel exists. This uses the static
+      // import at the top of the file: the dynamic import that used to be here
+      // cited circular dependencies, but the same module is already imported
+      // statically and called synchronously elsewhere in this file — so it only
+      // delayed the panel update by a microtask and swallowed any error.
       if (instance.harmonicPanel) {
-        // Dynamically import to avoid circular dependencies
-        import('../components/HarmonicPanel.js').then(({ updateHarmonicPanelContent }) => {
-          updateHarmonicPanelContent(instance.harmonicPanel, instance)
-        }).catch(() => {
-          // Harmonic panel will update on next render cycle
-        })
+        updateHarmonicPanelContent(instance.harmonicPanel, instance)
       }
       
       // Trigger re-render of persistent features to show updated harmonic set
@@ -407,7 +411,7 @@ export function clearSelection(instance) {
  * @param {GramFrame} instance - GramFrame instance
  * @returns {{type: 'marker'|'harmonicSet', feature: AnalysisMarker|HarmonicSet}|null} Selected feature or null
  */
-export function getSelectedFeature(instance) {
+function getSelectedFeature(instance) {
   const sel = instance.state.selection
   if (!sel || !sel.selectedType || !sel.selectedId) {
     return null

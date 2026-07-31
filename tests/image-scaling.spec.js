@@ -108,6 +108,31 @@ test.describe('Image Scaling Tests', () => {
     // Center should map to middle of time/freq ranges (30s, 2500Hz)
     expect(Math.abs(coordinates.time - 30)).toBeLessThan(2) // Within 2 seconds
     expect(Math.abs(coordinates.freq - 2500)).toBeLessThan(100) // Within 100 Hz
+
+    // imageX/imageY are image-relative (types.js contract), NOT SVG coordinates:
+    // the image centre is (600, 157.5) image-relative but (660, 172.5) in SVG
+    // space because of the left/top margins (GF-02, spec 165)
+    expect(Math.abs(coordinates.imageX - 600)).toBeLessThan(5)
+    expect(Math.abs(coordinates.imageY - 157.5)).toBeLessThan(5)
+  })
+
+  test('should report image-relative imageX/imageY near (0,0) at the image top-left corner', async ({ page }) => {
+    const largeImageContainer = page.locator('.gram-frame-container').nth(2)
+    const svg = largeImageContainer.locator('.gram-frame-svg').first()
+
+    // Hover just inside the image's top-left corner (margins: left=60, top=15)
+    await svg.hover({ position: { x: 61, y: 16 } })
+
+    const readCursorPosition = () => page.evaluate(() => {
+      const instances = window.GramFrame.__test__getInstances()
+      return instances.length >= 3 ? instances[2].state.cursorPosition : null
+    })
+    await expect.poll(readCursorPosition).toBeTruthy()
+    const coordinates = await readCursorPosition()
+    // Image-relative origin, within rounding tolerance — an SVG-coordinate
+    // regression would report ~ (61, 16) here (GF-02, spec 165)
+    expect(Math.abs(coordinates.imageX)).toBeLessThan(3)
+    expect(Math.abs(coordinates.imageY)).toBeLessThan(3)
   })
 
   test('should not scale images smaller than 1200px', async ({ page }) => {

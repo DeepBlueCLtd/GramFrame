@@ -1,2 +1,7 @@
+# Fast pre-push gate (spec 165, GF-35): type check, lint and the unit lane —
+# all of which run in seconds. The full Playwright suite takes minutes and is
+# CI's job; running it here made the hook slow enough to invite --no-verify,
+# which is worse than not running it at all.
 yarn typecheck
-yarn test
+yarn lint
+yarn test:unit

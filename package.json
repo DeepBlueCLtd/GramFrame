@@ -3,12 +3,9 @@
   "version": "0.1.15",
   "type": "module",
   "scripts": {
-    "generate-version": "node scripts/generate-version.js",
     "dev": "vite",
-    "prebuild": "yarn generate-version",
     "build": "vite build",
     "build:standalone": "BUILD_STANDALONE=true vite build",
-    "pretest": "yarn generate-version",
     "test": "playwright test",
     "typecheck": "tsc --noEmit",
     "hygiene": "node scripts/hygiene.js",

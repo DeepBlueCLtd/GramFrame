@@ -36,7 +36,7 @@ export function isLandscape(instance) {
  * @param {GramFrame} instance - GramFrame instance
  * @returns {{width: number, height: number}} Available render dimensions
  */
-export function computeAvailableRenderSize(instance) {
+function computeAvailableRenderSize(instance) {
   const margins = instance.state.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
 
@@ -80,7 +80,7 @@ function applyExpandLayout(instance) {
     // Two-pass: expanding a tall image can introduce a page scrollbar which
     // narrows the available width. Lay out once, then recompute against the
     // settled layout so the final fill is accurate (SC-001/SC-002).
-    let { width, height } = computeAvailableRenderSize(instance)
+    const { width, height } = computeAvailableRenderSize(instance)
     instance.state.imageDetails.renderWidth = width
     instance.state.imageDetails.renderHeight = height
     updateSVGLayout(instance)

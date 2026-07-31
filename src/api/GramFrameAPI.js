@@ -15,12 +15,62 @@ import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
 import { isBrowserSupported, showCompatibilityWarning, looksLikeMissingApiError } from '../core/browserCompatibility.js'
 
 /**
+ * Whether the host page opted into the debug/test API surface.
+ *
+ * A page enables it with `window.GRAMFRAME_DEBUG = true` before loading
+ * GramFrame (see debug.html and the test fixtures). Published training material
+ * does not set it, so the `__test__*` methods are absent there rather than
+ * shipping on every page (spec 165, GF-23).
+ * @returns {boolean} True when the debug API should be attached
+ */
+function isDebugEnabled() {
+  return typeof window !== 'undefined' && /** @type {any} */ (window).GRAMFRAME_DEBUG === true
+}
+
+/**
+ * The test-only API surface, attached to the public API only on pages that set
+ * `window.GRAMFRAME_DEBUG`. These methods exist for the Playwright suite: they
+ * reach into instances in ways no production caller should depend on.
+ * @param {GramFrameAPI} api - The API object to attach to
+ * @returns {void}
+ */
+function attachDebugAPI(api) {
+  /**
+   * Force a state broadcast on every instance.
+   * @returns {void}
+   */
+  api.__test__forceUpdate = function () {
+    this._getInstances().forEach(instance => {
+      notifyStateListeners(instance.state, instance.stateListeners)
+    })
+  }
+
+  /**
+   * Get all active GramFrame instances.
+   * @returns {GramFrame[]} Active instances
+   */
+  api.__test__getInstances = function () {
+    return this._getInstances()
+  }
+
+  /**
+   * Get an instance by its ID.
+   * @param {string} instanceId - Instance ID to find
+   * @returns {GramFrame|null} Instance or null if not found
+   */
+  api.__test__getInstance = function (instanceId) {
+    return this._getInstances().find(instance => instance.instanceId === instanceId) || null
+  }
+}
+
+/**
  * Creates the GramFrame public API object
  * @param {any} GramFrame - The GramFrame class constructor
  * @returns {GramFrameAPI} The GramFrame API object
  */
 export function createGramFrameAPI(GramFrame) {
-  return {
+  /** @type {GramFrameAPI} */
+  const api = {
     /**
      * Initialize all config tables on the page
      * @returns {GramFrame[]} Array of GramFrame instances
@@ -50,11 +100,18 @@ export function createGramFrameAPI(GramFrame) {
         configTables.forEach(table => {
           showCompatibilityWarning(/** @type {HTMLElement} */ (table))
         })
-        this._instances = instances
         return instances
       }
 
       configTables.forEach((table, index) => {
+        // Remember where the table sits so a failure part-way through
+        // construction can be reported in place. Construction replaces the
+        // table with the component container early on, so by the time a later
+        // step (e.g. mode construction — GF-04) throws, the table is detached
+        // and there is a half-built container in its place.
+        const originalParent = table.parentNode
+        const originalNextSibling = table.nextSibling
+
         try {
           // Generate unique ID for each component instance
           const instanceId = `gramframe-${Date.now()}-${index}`
@@ -73,6 +130,10 @@ export function createGramFrameAPI(GramFrame) {
           console.error('GramFrame Error:', errorMsg, error)
           errors.push({ table, error: errorMsg, index })
 
+          // Undo a partial replacement so the page is left in a truthful state:
+          // the config table back where it was, no dead component beside it.
+          this._restoreConfigTable(/** @type {HTMLTableElement} */ (table), originalParent, originalNextSibling)
+
           // Reactive legacy-browser safety net. Explicit feature detection only
           // catches APIs we listed; an even-older browser might be missing a
           // different required method we did not anticipate. When the failure
@@ -89,14 +150,32 @@ export function createGramFrameAPI(GramFrame) {
         }
       })
       
-      // Log summary - removed debug console statements
-      
-      // Store instances for global access
-      this._instances = instances
-      
+      // Register the new instances alongside any created by an earlier scan
+      // (e.g. a second call for a container added after page load).
+      this._instances = [...this._getInstances(), ...instances]
+
       return instances
     },
-        
+
+    /**
+     * The live set of GramFrame instances — the API's single registry.
+     *
+     * Every API method reads instances through here. Previously some methods
+     * walked `.gram-frame-container` elements in the DOM while others read the
+     * `_instances` array, so the two could disagree about which instances
+     * existed (GF-24). Instances whose container has left the document
+     * (destroyed, or replaced by a re-initialization) are dropped on read.
+     * @private
+     * @returns {GramFrame[]} Live instances
+     */
+    _getInstances() {
+      const live = (this._instances || []).filter(
+        instance => instance && instance.container && instance.container.isConnected
+      )
+      this._instances = live
+      return live
+    },
+
     /**
      * Add a state listener that will be called whenever the component state changes
      * @param {Function} callback - Function to be called with the current state
@@ -131,11 +210,8 @@ export function createGramFrameAPI(GramFrame) {
       addGlobalStateListener(callback)
       
       // Add the listener to all existing instances
-      const instances = document.querySelectorAll('.gram-frame-container')
-      instances.forEach(container => {
-        // @ts-ignore - Custom property on DOM element
-        const instance = container.__gramFrameInstance
-        if (instance && !instance.stateListeners.includes(callback)) {
+      this._getInstances().forEach(instance => {
+        if (!instance.stateListeners.includes(callback)) {
           instance.stateListeners.push(callback)
           
           // Immediately call the listener with the current state
@@ -187,16 +263,11 @@ export function createGramFrameAPI(GramFrame) {
       }
       
       // Remove the listener from all instances
-      const instances = document.querySelectorAll('.gram-frame-container')
-      instances.forEach(container => {
-        // @ts-ignore - Custom property on DOM element
-        const instance = container.__gramFrameInstance
-        if (instance) {
-          const index = instance.stateListeners.indexOf(callback)
-          if (index !== -1) {
-            instance.stateListeners.splice(index, 1)
-            removed = true
-          }
+      this._getInstances().forEach(instance => {
+        const index = instance.stateListeners.indexOf(callback)
+        if (index !== -1) {
+          instance.stateListeners.splice(index, 1)
+          removed = true
         }
       })
       return removed
@@ -207,8 +278,7 @@ export function createGramFrameAPI(GramFrame) {
      * @returns {boolean} True if the image is currently expanded
      */
     getExpandState() {
-      const instances = this._instances || []
-      const instance = instances[0]
+      const instance = this._getInstances()[0]
       return !!(instance && instance.state && instance.state.imageExpanded)
     },
 
@@ -218,54 +288,49 @@ export function createGramFrameAPI(GramFrame) {
      * @param {boolean} expanded - Desired expand state
      */
     setExpandState(expanded) {
-      const instances = this._instances || []
-      instances.forEach(instance => {
+      this._getInstances().forEach(instance => {
         if (isLandscape(instance)) {
           setImageExpanded(instance, expanded)
         }
       })
     },
 
-    // Debug and visualization API methods removed - implement when needed
-
     /**
-     * Force update of the component state
-     * @__test__ This method is only used for testing purposes
+     * Put a config table back where it started after a failed initialization,
+     * removing the half-built component container that replaced it.
+     *
+     * Construction swaps the table for the component container before the mode
+     * system is built, so a failure after that point leaves a container that
+     * looks like a working component but cannot interact. Restoring the table
+     * gives both the compatibility warning and the error indicator a live
+     * anchor to attach to, and leaves nothing misleading on the page.
+     * @private
+     * @param {HTMLTableElement} table - Table that failed to initialize
+     * @param {Node|null} originalParent - Parent the table had before construction
+     * @param {Node|null} originalNextSibling - Sibling the table sat before
      */
-    __test__forceUpdate() {
-      // Trigger state update on all GramFrame instances
-      const instances = document.querySelectorAll('.gram-frame-container')
-      instances.forEach(container => {
-        // @ts-ignore - Custom property on DOM element
-        const instance = container.__gramFrameInstance
-        if (instance) {
-          // Trigger a state update by calling notifyStateListeners
-          notifyStateListeners(instance.state, instance.stateListeners)
+    _restoreConfigTable(table, originalParent, originalNextSibling) {
+      if (!originalParent || table.parentNode) {
+        return // Never replaced, or already back in place — nothing to undo
+      }
+      try {
+        // Whatever now occupies the table's old slot is the partial component.
+        const replacement = originalNextSibling
+          ? originalNextSibling.previousSibling
+          : originalParent.lastChild
+        if (
+          replacement &&
+          replacement instanceof Element &&
+          replacement.classList.contains('gram-frame-container')
+        ) {
+          replacement.remove()
         }
-      })
+        originalParent.insertBefore(table, originalNextSibling)
+      } catch (e) {
+        console.error('GramFrame: Failed to restore the config table after an initialization error:', e)
+      }
     },
-    
-    /**
-     * Get all active GramFrame instances
-     * @__test__ This method is only used for testing purposes
-     * @returns {GramFrame[]} Array of active instances
-     */
-    __test__getInstances() {
-      return this._instances || []
-    },
-    
-    /**
-     * Get instance by ID
-     * @__test__ This method is only used for testing purposes
-     * @param {string} instanceId - Instance ID to find
-     * @returns {GramFrame|null} Instance or null if not found
-     */
-    __test__getInstance(instanceId) {
-      if (!this._instances) return null
-      return this._instances.find(instance => instance.instanceId === instanceId) || null
-    },
-    
-    
+
     /**
      * Add error indicator to a table that failed to initialize
      * @private
@@ -319,4 +384,12 @@ export function createGramFrameAPI(GramFrame) {
       }
     }
   }
+
+  // Test-only methods are attached only when the page opts in, so they are not
+  // part of the API published pages see (GF-23).
+  if (isDebugEnabled()) {
+    attachDebugAPI(api)
+  }
+
+  return api
 }

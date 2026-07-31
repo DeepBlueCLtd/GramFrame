@@ -1,7 +1,14 @@
 # ADR-015: Viewport-Based Zoom Architecture
 
 ## Status
-Accepted
+**Superseded by [ADR-016](ADR-016-Image-Resize-Zoom.md).**
+
+The viewBox-based approach described below was accepted but is *not* what
+shipped: the implementation keeps the viewBox fixed and resizes the image
+element instead — the "transform-based" family this ADR set out to reject.
+ADR-016 records what was actually built and why. This document is retained as
+the historical record of the decision and of the problems that motivated it,
+which remain accurate.
 
 ## Context
 

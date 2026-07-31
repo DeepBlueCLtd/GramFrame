@@ -53,12 +53,18 @@ import {
   loadAnnotations,
   clearAnnotations,
   detectUserContext,
-  loadPinPreference
+  loadPinPreference,
+  hasPersistableAnnotations
 } from './core/storage.js'
 
 import {
   cleanupKeyboardControl
 } from './core/keyboardControl.js'
+
+import {
+  showStorageWarning,
+  clearStorageWarning
+} from './components/StorageWarning.js'
 
 import {
   isBrowserSupported,
@@ -146,6 +152,13 @@ export class GramFrame {
   
   // Bound event handlers
   _boundHandleResize;
+
+  /**
+   * Every listener attached by setupEventListeners, kept so destroy() can
+   * remove them (they used to be anonymous and therefore unremovable).
+   * @type {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>}
+   */
+  _registeredListeners = [];
 
   /**
    * Transient state for a wheel-button (middle) drag pan; null when not dragging.
@@ -325,28 +338,26 @@ export class GramFrame {
    * Clear all annotations from state and storage
    */
   _clearGram() {
-    // Reset analysis markers
-    this.state.analysis.markers = []
-    this.state.analysis.isDragging = false
-    this.state.analysis.draggedMarkerId = null
+    // Rebuild the annotation-bearing parts of state from the initial-state
+    // builders rather than resetting fields by hand, so a field added to a mode
+    // later cannot survive a "Clear gram" by being forgotten here (GF-12).
+    // Everything describing *this* gram — its config, image, viewport, current
+    // mode and session-level style choices — is preserved.
+    const fresh = createInitialState()
+    this.state.analysis = fresh.analysis
+    this.state.harmonics = fresh.harmonics
+    this.state.doppler = fresh.doppler
+    this.state.selection = fresh.selection
+    this.state.dragState = fresh.dragState
+    this.state.cursors = fresh.cursors
 
-    // Reset harmonic sets
-    this.state.harmonics.harmonicSets = []
-
-    // Reset doppler
-    this.state.doppler.fPlus = null
-    this.state.doppler.fMinus = null
-    this.state.doppler.fZero = null
-    this.state.doppler.speed = null
-    this.state.doppler.color = null
-
-    // Clear selection
-    this.state.selection.selectedType = null
-    this.state.selection.selectedId = null
-    this.state.selection.selectedIndex = null
-
-    // Remove from storage
-    clearAnnotations(this._storageInstanceIndex)
+    // Remove from storage. A failure here means the annotations just cleared on
+    // screen will reappear on reload, so say so rather than failing silently.
+    if (clearAnnotations(this._storageInstanceIndex)) {
+      clearStorageWarning(this)
+    } else {
+      showStorageWarning(this, 'Saved annotations could not be removed from browser storage — they may reappear when this page is reloaded.')
+    }
 
     // Re-render
     if (this.featureRenderer) {
@@ -428,7 +439,16 @@ export class GramFrame {
 
       if (annotationSnapshot !== lastSerialised) {
         lastSerialised = annotationSnapshot
-        saveAnnotations(this.state, this._storageInstanceIndex)
+        // A failed write must be visible: the analyst keeps working in memory,
+        // but would otherwise never learn their annotations are not being
+        // persisted (quota, private browsing, disabled storage) — GF-16. With
+        // nothing annotated there is nothing to lose yet, so an unavailable
+        // store stays quiet until the analyst actually creates something.
+        if (saveAnnotations(this.state, this._storageInstanceIndex)) {
+          clearStorageWarning(this)
+        } else if (hasPersistableAnnotations(state)) {
+          showStorageWarning(this, 'Annotations could not be saved — they will be lost when this page is reloaded.')
+        }
       }
     })
   }

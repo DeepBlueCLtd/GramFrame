@@ -4,7 +4,7 @@ This component provides an interactive overlay for sonar spectrogram images, ena
 
 ## Key Features
 
-- Modes: Analysis, Harmonics, Doppler
+- Modes: Pan (default), Analysis, Harmonics, Doppler
 - Harmonic line overlays with frequency labels
 - Retro-style LED readouts for measurement
 - Drag-to-place cursor system with unlimited cursors

@@ -1,12 +1,20 @@
 import { defineConfig } from 'vite'
+import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
-export default defineConfig(({ command }) => {
+// Injected into src/utils/version.js. Read here rather than written into the
+// source by a script, so a build or test run never modifies a tracked file
+// (spec 165, GF-37).
+const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8'))
+const versionDefine = { __GRAMFRAME_VERSION__: JSON.stringify(pkg.version) }
+
+export default defineConfig(() => {
   const isStandalone = process.env.BUILD_STANDALONE === 'true'
   
   if (isStandalone) {
     // Standalone IIFE build for file:// protocol compatibility
     return {
+      define: versionDefine,
       build: {
         outDir: 'dist',
         minify: false, // Ensure source remains readable for field debugging
@@ -56,6 +64,7 @@ export default defineConfig(({ command }) => {
   } else {
     // Standard development build
     return {
+      define: versionDefine,
       build: {
         outDir: 'dist',
         minify: false, // Ensure source remains readable for field debugging

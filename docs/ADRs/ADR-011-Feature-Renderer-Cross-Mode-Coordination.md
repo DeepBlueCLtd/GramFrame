@@ -29,27 +29,36 @@ Implement a FeatureRenderer class in src/core/FeatureRenderer.js to coordinate c
 
 ## Implementation
 FeatureRenderer coordinates:
-- Analysis mode persistent markers that remain visible in other modes
-- Cross-mode feature visibility rules
-- Feature lifecycle management (create, update, destroy)
-- Integration with mode switching logic
+- Analysis markers, harmonic sets and doppler curves, all of which stay visible
+  in every mode once placed
+- A single clear-and-redraw pass over the shared cursor group, so modes never
+  fight over what is on screen
+- Redrawing after mode switches, restyling, keyboard moves and viewport changes
 
-Key methods:
-- `renderPersistentFeatures()` - Render features that persist across modes
-- `updateFeatureVisibility()` - Control feature visibility per mode
-- `clearModeSpecificFeatures()` - Clean up when switching modes
-- `coordinateFeatures()` - Resolve conflicts between features
+Key methods (as implemented in `src/core/FeatureRenderer.js`):
 
-Integration with mode system:
+- `renderAllPersistentFeatures()` — clear the cursor group, then ask each mode
+  that has features to draw its own
+- `hasAnalysisFeatures()` / `hasHarmonicFeatures()` / `hasDopplerFeatures()` —
+  whether that mode currently has anything to draw
+- `renderCurrentModeCursor()` — delegate transient cursor rendering to the
+  active mode
+
+The renderer holds no feature state of its own: it reads component state to
+decide who has something to draw, and each mode implements
+`renderPersistentFeatures()`. There is no per-mode visibility filtering — every
+feature is drawn in every mode, which is the point of the cross-mode
+coordination.
+
+Integration with mode switching:
+
 ```javascript
-// Mode switching includes feature coordination
-_switchMode(newMode) {
-  this.currentMode.deactivate()
-  this.featureRenderer.clearModeSpecificFeatures()
-  this.currentMode = this.modes[newMode]
-  this.currentMode.activate()
-  this.featureRenderer.renderPersistentFeatures()
-}
+// _switchMode (src/main.js), abridged
+this.currentMode.cleanup()
+this.currentMode.deactivate()
+this.currentMode = this.modes[mode]
+this.currentMode.activate()
+this.featureRenderer.renderAllPersistentFeatures()
 ```
 
 ## Related Decisions

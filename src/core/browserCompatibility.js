@@ -10,6 +10,12 @@
  * and, when the browser is unsupported, replaces the component's area with a
  * plain, readable "please update your browser" message instead.
  *
+ * Several of this module's exports (REQUIRED_APIS, MIN_BROWSER_VERSION,
+ * getMissingApis, getCompatibilityMessage, createCompatibilityWarningElement)
+ * have no importer in src/ — they are deliberate test-only seams, exercised by
+ * tests/browser-compatibility.spec.js, and are excluded from the unused-export
+ * ratchet on that basis.
+ *
  * IMPORTANT: the detection code in this file must not itself use any API that
  * is absent on the browsers it is meant to catch, or it would reproduce the
  * very silent failure it exists to prevent. It therefore sticks to long-baseline
@@ -71,7 +77,7 @@ export function getMissingApis() {
     var present = false
     try {
       present = !!api.test()
-    } catch (e) {
+    } catch (_e) {
       present = false
     }
     if (!present) {

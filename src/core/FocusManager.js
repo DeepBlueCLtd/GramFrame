@@ -11,7 +11,7 @@
  * Global focus tracking
  */
 let currentFocusedInstance = null
-let registeredInstances = new Set()
+const registeredInstances = new Set()
 
 /**
  * Register a GramFrame instance for focus management
@@ -44,6 +44,16 @@ export function unregisterInstance(instance) {
 }
 
 /**
+ * How many instances are currently registered for focus management.
+ * Used to decide when the shared document-level keydown handler can be
+ * uninstalled (spec 165, GF-14).
+ * @returns {number} Registered instance count
+ */
+export function getRegisteredInstanceCount() {
+  return registeredInstances.size
+}
+
+/**
  * Set which instance should receive keyboard focus
  * @param {GramFrame} instance - GramFrame instance to focus
  */
@@ -66,15 +76,6 @@ export function setFocusedInstance(instance) {
  */
 export function getFocusedInstance() {
   return currentFocusedInstance
-}
-
-/**
- * Check if the given instance is currently focused
- * @param {GramFrame} instance - Instance to check
- * @returns {boolean} True if instance is focused
- */
-export function isInstanceFocused(instance) {
-  return currentFocusedInstance === instance
 }
 
 /**

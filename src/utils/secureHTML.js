@@ -30,7 +30,7 @@
  * @param {HTMLElement} container - Target container element
  * @param {GuidanceContent} content - Structured guidance content
  */
-export function renderSecureGuidance(container, content) {
+function renderSecureGuidance(container, content) {
   // Clear existing content safely
   container.replaceChildren()
 

@@ -13,7 +13,7 @@
  * @param {string} string - String to capitalize
  * @returns {string} String with first letter capitalized
  */
-export function capitalizeFirstLetter(string) {
+function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
 

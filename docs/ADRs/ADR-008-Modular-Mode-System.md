@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-GramFrame needed to support multiple analysis modes (Analysis, Harmonics, Doppler) with different behaviors, interactions, and rendering requirements. The initial monolithic approach was becoming unwieldy.
+GramFrame needed to support multiple interaction modes (Pan, Analysis, Harmonics, Doppler) with different behaviors, interactions, and rendering requirements. The initial monolithic approach was becoming unwieldy.
 
 ## Decision
 Implement a modular mode system using polymorphic mode classes with a common BaseMode interface and factory pattern for mode instantiation.
@@ -56,14 +56,17 @@ export class BaseMode {
 ```
 
 Mode implementations:
-- `src/modes/analysis/AnalysisMode.js` - Cross-hair analysis and drag-based harmonics
-- `src/modes/harmonics/HarmonicsMode.js` - Harmonic frequency analysis  
+- `src/modes/pan/PanMode.js` - Pan and zoom navigation; the default mode
+- `src/modes/analysis/AnalysisMode.js` - Persistent "Cross Cursor" markers
+- `src/modes/harmonics/HarmonicsMode.js` - Harmonic set creation and adjustment
 - `src/modes/doppler/DopplerMode.js` - Doppler speed calculation
 
 Factory pattern in src/modes/ModeFactory.js:
 - Centralized mode instantiation
-- Error handling with fallback to BaseMode
 - Mode validation and available modes enumeration
+- A construction failure is propagated, not absorbed: the API surfaces the
+  standard error indicator rather than substituting a no-op BaseMode, which
+  would leave a component that looks alive but does nothing (spec 165, GF-04)
 
 ## Related Decisions
 - ADR-004: Centralized State Management

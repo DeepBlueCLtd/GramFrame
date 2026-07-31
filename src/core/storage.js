@@ -39,6 +39,8 @@ const SCHEMA_VERSION = 1
  * than this (measured from their last-save `savedAt`) are discarded on load.
  * This is a fixed policy — not HTML-configurable — so it lives as a named
  * constant. Trainer-context records are never subject to it.
+ *
+ * Exported as a test-only seam: the expiry specs assert against it directly.
  * @type {number}
  */
 export const STUDENT_TTL_MS = 24 * 60 * 60 * 1000
@@ -78,7 +80,8 @@ export const TRAINER_FLAG_SELECTOR = '#gf-persistent, .gf-persistent, [data-gf-p
  * Otherwise the record is within the 24-hour window and is NOT expired.
  *
  * Pure and side-effect-free: identical inputs always yield identical output.
- * Applies to student context only — trainer records never call this.
+ * Applies to student context only — trainer records never call this. Exported
+ * as a test-only seam so the expiry rules can be tested without a browser.
  *
  * @param {string | undefined | null} savedAt - ISO-8601 timestamp of the last save
  * @param {number} nowMs - Current wall-clock time in ms (e.g. `Date.now()`)
@@ -123,6 +126,8 @@ export function detectUserContext() {
 /**
  * Get the appropriate Storage object for the detected context.
  * Returns null if storage is unavailable.
+ *
+ * Exported as a test-only seam: within src/ it is used only by this module.
  * @param {'trainer' | 'student'} context
  * @returns {Storage | null}
  */
@@ -134,13 +139,17 @@ export function getStorage(context) {
     storage.setItem(testKey, '1')
     storage.removeItem(testKey)
     return storage
-  } catch {
+  } catch (error) {
+    console.warn(`GramFrame: ${context} storage is unavailable — annotations will not persist:`, error)
     return null
   }
 }
 
 /**
  * Build a namespaced storage key from the current page path.
+ *
+ * Exported as a test-only seam: the storage specs build the same key to assert
+ * on what was written.
  * @param {number} [instanceIndex] - Zero-based index when multiple instances exist on the same page
  * @returns {string}
  */
@@ -165,15 +174,16 @@ export function loadPinPreference() {
     const raw = sessionStorage.getItem(PIN_PREF_KEY)
     if (raw === 'false') return false
     return true
-  } catch {
+  } catch (error) {
+    console.warn('GramFrame: Could not read the harmonic-pin preference — using the default:', error)
     return true
   }
 }
 
 /**
  * Store the harmonic-pin visibility preference for the rest of this browser
- * session. Failures (private mode, quota) are swallowed — the in-memory state
- * still holds for the current page.
+ * session. A failure (private mode, quota) is reported to the caller and
+ * logged; the in-memory state still holds for the current page.
  * @param {boolean} showPin - Whether pins should be shown
  * @returns {boolean} True if the preference was written
  */
@@ -181,9 +191,26 @@ export function savePinPreference(showPin) {
   try {
     sessionStorage.setItem(PIN_PREF_KEY, showPin ? 'true' : 'false')
     return true
-  } catch {
+  } catch (error) {
+    console.warn('GramFrame: Could not save the harmonic-pin preference:', error)
     return false
   }
+}
+
+/**
+ * Whether the state holds anything worth persisting.
+ *
+ * Used both to decide what to write and — by callers — to decide whether a
+ * failed write is worth telling the analyst about: with nothing annotated,
+ * there is nothing to lose yet.
+ * @param {GramFrameState} state - Current component state
+ * @returns {boolean} True when at least one annotation exists
+ */
+export function hasPersistableAnnotations(state) {
+  const hasMarkers = !!(state.analysis && state.analysis.markers && state.analysis.markers.length > 0)
+  const hasHarmonics = !!(state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0)
+  const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null))
+  return hasMarkers || hasHarmonics || hasDoppler
 }
 
 /**
@@ -199,11 +226,7 @@ export function saveAnnotations(state, instanceIndex) {
     const storage = getStorage(context)
     if (!storage) return false
 
-    const hasMarkers = state.analysis && state.analysis.markers && state.analysis.markers.length > 0
-    const hasHarmonics = state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0
-    const hasDoppler = state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null)
-
-    if (!hasMarkers && !hasHarmonics && !hasDoppler) {
+    if (!hasPersistableAnnotations(state)) {
       // No annotations — remove any existing entry rather than storing empty data
       const key = buildStorageKey(instanceIndex)
       storage.removeItem(key)
@@ -255,7 +278,8 @@ export function saveAnnotations(state, instanceIndex) {
     const key = buildStorageKey(instanceIndex)
     storage.setItem(key, JSON.stringify(data))
     return true
-  } catch {
+  } catch (error) {
+    console.warn('GramFrame: Failed to save annotations — they exist in memory only:', error)
     return false
   }
 }
@@ -294,8 +318,8 @@ export function loadAnnotations(instanceIndex) {
     }
 
     return /** @type {StoredAnnotations} */ (data)
-  } catch {
-    console.warn('GramFrame: Failed to load stored annotations — data discarded')
+  } catch (error) {
+    console.warn('GramFrame: Failed to load stored annotations — data discarded:', error)
     return null
   }
 }
@@ -314,7 +338,8 @@ export function clearAnnotations(instanceIndex) {
     const key = buildStorageKey(instanceIndex)
     storage.removeItem(key)
     return true
-  } catch {
+  } catch (error) {
+    console.warn('GramFrame: Failed to clear stored annotations:', error)
     return false
   }
 }

@@ -7,7 +7,6 @@ import { GramFramePage } from './gram-frame-page.js'
 import { ModeHelpers } from './mode-helpers.js'
 import { CoordinateHelpers, SVGCoordinateHelpers } from './coordinate-helpers.js'
 import { InteractionHelpers, KeyboardHelpers } from './interaction-helpers.js'
-import { VisualHelpers, PerformanceHelpers } from './visual-helpers.js'
 
 /**
  * Extended test fixtures with custom GramFrame helpers
@@ -18,8 +17,6 @@ import { VisualHelpers, PerformanceHelpers } from './visual-helpers.js'
  * @property {import('./coordinate-helpers').SVGCoordinateHelpers} svgHelpers - SVG coordinate helpers fixture
  * @property {import('./interaction-helpers').InteractionHelpers} interactionHelpers - Advanced interaction helpers fixture
  * @property {import('./interaction-helpers').KeyboardHelpers} keyboardHelpers - Keyboard interaction helpers fixture
- * @property {import('./visual-helpers').VisualHelpers} visualHelpers - Visual testing helpers fixture
- * @property {import('./visual-helpers').PerformanceHelpers} performanceHelpers - Performance testing helpers fixture
  */
 
 /**
@@ -103,30 +100,6 @@ const test = base.extend({
   keyboardHelpers: async ({ gramFramePage }, use) => {
     const keyboardHelpers = new KeyboardHelpers(gramFramePage)
     await use(keyboardHelpers)
-  },
-
-  /**
-   * Visual testing helpers fixture
-   * @param {TestContext} context - Test context
-   * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
-   * @param {Function} use - Fixture use function
-   * @returns {Promise<void>}
-   */
-  visualHelpers: async ({ gramFramePage }, use) => {
-    const visualHelpers = new VisualHelpers(gramFramePage)
-    await use(visualHelpers)
-  },
-
-  /**
-   * Performance testing helpers fixture
-   * @param {TestContext} context - Test context
-   * @param {import('./gram-frame-page').GramFramePage} context.gramFramePage - GramFrame page instance
-   * @param {Function} use - Fixture use function
-   * @returns {Promise<void>}
-   */
-  performanceHelpers: async ({ gramFramePage }, use) => {
-    const performanceHelpers = new PerformanceHelpers(gramFramePage)
-    await use(performanceHelpers)
   }
 })
 

@@ -125,6 +125,7 @@ function expectValidCursorPosition(state, shouldExist = true) {
 function mapDisplayModeToInternalMode(displayMode) {
   /** @type {Record<string, string>} */
   const mapping = {
+    'pan': 'pan',
     'cross cursor': 'analysis',
     'harmonics': 'harmonics',
     'doppler': 'doppler'

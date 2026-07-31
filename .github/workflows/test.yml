@@ -37,9 +37,6 @@ jobs:
       - name: Unit tests
         run: yarn test:unit
 
-      - name: Embed version from package.json
-        run: yarn generate-version
-
       - name: Build
         run: yarn build
 
@@ -93,9 +90,6 @@ jobs:
 
       - name: Install Playwright WebKit
         run: npx playwright install --with-deps webkit
-
-      - name: Embed version from package.json
-        run: yarn generate-version
 
       - name: Run WebKit smoke test
         run: npx playwright test -c playwright.smoke.config.ts

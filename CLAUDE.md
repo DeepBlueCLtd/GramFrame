@@ -21,14 +21,21 @@ yarn typecheck
 
 ### Test Commands
 ```bash
-# Run specific test file
-npx playwright test tests/phase1.spec.ts
+# Run a specific test file
+npx playwright test tests/analysis-mode.spec.js
 
 # Run tests with UI
 npx playwright test --ui
 
-# Debug specific test
-npx playwright test tests/mode-switching.spec.ts --debug
+# Debug a specific test
+npx playwright test tests/mode-integration.spec.js --debug
+
+# Unit lane (Vitest, no browser)
+yarn test:unit
+
+# Lint and debt ratchets
+yarn lint
+yarn hygiene
 ```
 
 ### Status updates
@@ -49,7 +56,7 @@ curl -d "status here" ntfy.sh/iancc2025
 - **Main Class**: `GramFrame` in `src/main.js` - Central component managing all functionality
 - **Entry Point**: `src/index.js` - Main module export and global registration
 - **State Management**: `src/core/state.js` - Centralized state with listener pattern
-- **Mode System**: Modular architecture with Analysis, Harmonics, and Doppler modes
+- **Mode System**: Modular architecture with four modes — Pan (default), Analysis, Harmonics and Doppler
 - **Feature Rendering**: `src/core/FeatureRenderer.js` - Cross-mode feature coordination
 - **Mode Factory**: `src/modes/ModeFactory.js` - Centralized mode instantiation
 
@@ -63,40 +70,64 @@ curl -d "status here" ntfy.sh/iancc2025
 
 ### File Structure
 
+Every path below exists; keep this list in step with `src/` when adding modules.
+
 - `src/index.js` - Main entry point and global export
 - `src/main.js` - GramFrame class implementation
-- `src/types.js` - TypeScript-style JSDoc type definitions
+- `src/types.js` - JSDoc type definitions
+- `src/globals.d.ts` - Build-time defines (the injected version)
 - `src/gramframe.css` - Component styling
 - `src/core/` - Core system modules:
   - `state.js` - State management and listeners
-  - `events.js` - Event handling and ResizeObserver setup
+  - `events.js` - Mouse/wheel event handling and listener teardown
+  - `viewport.js` - Zoom, pan and axis updates
   - `configuration.js` - Config table parsing
+  - `storage.js` - Annotation persistence (local/sessionStorage)
+  - `keyboardControl.js` - Arrow-key control, selection and restyling
+  - `FocusManager.js` - Which instance receives keyboard input
   - `FeatureRenderer.js` - Cross-mode feature rendering
+  - `browserCompatibility.js` - Legacy-browser feature detection and warning
+  - `initialization/` - `DOMSetup.js`, `UISetup.js`, `EventBindings.js`, `ModeInitialization.js`
 - `src/modes/` - Mode system architecture:
   - `BaseMode.js` - Abstract base class for all modes
   - `ModeFactory.js` - Mode instantiation factory
   - `analysis/AnalysisMode.js` - Analysis mode with marker persistence
   - `harmonics/HarmonicsMode.js` - Harmonics calculation mode
+  - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog
   - `doppler/DopplerMode.js` - Doppler speed calculation mode
+  - `pan/PanMode.js` - Pan mode (the default mode)
+  - `shared/BaseDragHandler.js` - Shared drag lifecycle
 - `src/components/` - UI component modules:
-  - `UIComponents.js` - Rate input, LED displays, mode switching
+  - `UIComponents.js` - LED displays, colour picker and layout helpers
+  - `MainUI.js` - Unified layout and persistent panels
   - `ModeButtons.js` - Mode switching interface
   - `HarmonicPanel.js` - Harmonics display panel
-  - `ColorPicker.js` - Color selection component
+  - `ColorPicker.js` - Colour selection component
+  - `SymbolPicker.js` - Symbol selection component
+  - `PinToggle.js` - Harmonic-pin visibility toggle
+  - `ExpandToggle.js` - Expand/collapse the image to fill the space
+  - `StorageWarning.js` - Non-blocking banner when a save fails
   - `LEDDisplay.js` - Digital display component
-  - `table.js` - Configuration table handling
+  - `table.js` - Component scaffold, image setup, layout and axes
 - `src/rendering/` - Rendering system:
-  - `cursors.js` - Cursor and indicator rendering
-  - `axes.js` - Axis rendering and scaling
+  - `cursors.js` - Cursor indicator refresh
+  - `symbols.js` - Marker/harmonic symbol shapes
 - `src/utils/` - Utility modules:
-  - `coordinates.js` - Coordinate system transformations
+  - `coordinates.js` - Screen/SVG/image coordinate transformations
+  - `coordinateTransformations.js` - Zoom-aware data/SVG transformations
   - `calculations.js` - Mathematical calculations
   - `doppler.js` - Doppler-specific calculations
-  - `svg.js` - SVG manipulation utilities
+  - `harmonicSampling.js` - Pin sampling for dense harmonic sets
+  - `tolerance.js` - Shared hit-test tolerances
+  - `svg.js` - SVG text halo styling
+  - `secureHTML.js` - Guidance-panel rendering without innerHTML
   - `timeFormatter.js` - Time formatting utilities
+  - `wheelGuidance.js` - Wheel navigation guidance text
+  - `version.js` - Version constant (injected at build time)
 - `src/api/` - External API interface
-- `tests/` - Playwright test suite with helper utilities
+- `tests/` - Playwright suite, `tests/unit/` Vitest lane, `tests/smoke/` WebKit smoke, `tests/fixtures/` test pages
 - `sample/` - Sample HTML files for testing
+- `docs/archive/` - Development-history artefacts (not part of the component)
 - `debug.html` - Development debug page
 
 ### Configuration System
@@ -120,10 +151,16 @@ Example configuration:
 
 ### Test Architecture
 
-- **Playwright-based**: End-to-end tests covering all user interactions
+- **Playwright-based**: End-to-end tests covering all user interactions (`yarn test`)
+- **Unit lane**: Vitest over pure-JS modules in `tests/unit/` (`yarn test:unit`)
 - **Helper Classes**: `GramFramePage` class provides reusable test utilities
 - **State Assertions**: Comprehensive state validation helpers
-- **Visual Testing**: Screenshot comparisons for UI consistency
+- **Debug API**: `__test__*` methods exist only on pages that set
+  `window.GRAMFRAME_DEBUG = true` (the debug pages and `tests/fixtures/`), so
+  they never ship in published material
+
+There is no visual/screenshot regression testing — see
+[Testing-Strategy.md](docs/Testing-Strategy.md) for what is and is not covered.
 
 ## Development Workflow
 
@@ -136,7 +173,7 @@ Example configuration:
 ## Important Implementation Notes
 
 ### Architecture
-- **Modular Mode System**: Each mode (Analysis, Harmonics, Doppler) extends BaseMode
+- **Modular Mode System**: Each mode (Pan, Analysis, Harmonics, Doppler) extends BaseMode
 - **Feature Persistence**: FeatureRenderer coordinates cross-mode feature visibility
 - **Factory Pattern**: ModeFactory centralizes mode instantiation and error handling
 - **Separation of Concerns**: Clear separation between rendering, state, events, and UI
@@ -149,11 +186,15 @@ Example configuration:
 - HMR preserves state listeners across hot reloads
 - Build output is unminified for field debugging (`minify: false` in vite.config.js)
 - TypeScript checking with JSDoc annotations (no TypeScript compilation)
+- The version is injected from package.json by a Vite define; no build or test
+  run writes to a tracked file
+- Zoom resizes the image element (viewBox stays fixed) — see ADR-015
 
 ### Mode-Specific Features
+- **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
 - **Analysis Mode**: Persistent draggable markers with cross-mode visibility
 - **Harmonics Mode**: Real-time harmonic calculation and display
-- **Doppler Mode**: Speed calculation with bearing and time inputs
+- **Doppler Mode**: Speed calculation from f+/f-/f₀ markers
 
 ## Active Technologies
 - Markdown documentation (no code changes) + N/A (documentation-only feature) (154-enrich-docs)
@@ -171,5 +212,6 @@ Example configuration:
 - Browser Web Storage — additive `symbol` field on markers; `cross` (symbol-less) default; no schema bump (161-reformat-markers-harmonics)
 
 ## Recent Changes
+- 165-quick-fixes: Truthful published state and loud failures, dead-code sweep, docs corrected against the code
 - 161-reformat-markers-harmonics: Added a `cross` (symbol-less) default style and in-place restyling of selected markers/harmonic sets (colour + symbol)
 - 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)
