@@ -1,0 +1,6 @@
+{
+  "comment": "Debt ratchet baselines enforced by `yarn hygiene` (spec 164, GF-33/GF-27). A PR may never raise a count; a PR that lowers one should lower the baseline here in the same change.",
+  "circularDependencies": 11,
+  "unusedExportModules": 17,
+  "waitForTimeout": 235
+}

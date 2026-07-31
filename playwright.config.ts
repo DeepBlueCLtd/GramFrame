@@ -6,6 +6,8 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './tests',
+  // tests/unit belongs to the Vitest lane (yarn test:unit), not Playwright
+  testIgnore: 'unit/**',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -24,6 +26,13 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      // Cross-browser smoke only (spec 164, GF-34): run via
+      // `playwright test --project=webkit` in its own CI job.
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+      testMatch: 'smoke.spec.js',
     },
   ],
 
