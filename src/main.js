@@ -24,7 +24,7 @@ import {
 } from './components/MainUI.js'
 
 // Initialization modules
-import { initializeDOMProperties, setupSpectrogramComponents } from './core/initialization/DOMSetup.js'
+import { setupSpectrogramComponents } from './core/initialization/DOMSetup.js'
 import { setupAllEventListeners, setupStateListeners } from './core/initialization/EventBindings.js'
 import { initializeModeInfrastructure, setupModeUI } from './core/initialization/ModeInitialization.js'
 import { 
@@ -99,9 +99,9 @@ export class GramFrame {
   /** @type {HTMLDivElement} */
   mainCell;
   /** @type {HTMLElement|null} */
-  modeLED;
+  modeLED = null;
   /** @type {HTMLElement|null} */
-  rateLED;
+  rateLED = null;
   /** @type {HTMLElement} */
   colorPicker;
   /** @type {SVGSVGElement} */
@@ -147,7 +147,7 @@ export class GramFrame {
 
   // Expand/collapse toggle button (landscape images only)
   /** @type {HTMLButtonElement|null} */
-  expandToggleButton;
+  expandToggleButton = null;
   
   // Mode switching UI
   /** @type {HTMLDivElement} */
@@ -186,9 +186,11 @@ export class GramFrame {
   // EXPERIMENT (temporary): resize the selected feature's symbols
   /** @type {function(boolean): boolean} */
   applyLargeSymbolsToSelectedFeature;
-  // Sync the colour/symbol/pin controls to the current selection
+  // Sync the colour/symbol/pin controls to the current selection. Replaced by
+  // the colour picker when it mounts; a no-op until then, so a caller that runs
+  // before the controls exist does nothing rather than throwing.
   /** @type {function(): void} */
-  syncStyleControls;
+  syncStyleControls = () => {};
   // Symbol drop-down control handle (registered by the symbol picker)
   /** @type {any} */
   _symbolControl;
@@ -201,11 +203,11 @@ export class GramFrame {
   
   // ResizeObserver
   /** @type {ResizeObserver|null} */
-  resizeObserver;
+  resizeObserver = null;
   
   // Bound event handlers
   /** @type {(function(Event): void)|null} */
-  _boundHandleResize;
+  _boundHandleResize = null;
 
   /**
    * Every listener attached by setupEventListeners, kept so destroy() can
@@ -232,11 +234,6 @@ export class GramFrame {
   /** @type {boolean} */
   _isTrainerContext;
 
-  // Set when the browser lacks a required API; construction is skipped and a
-  // compatibility warning is shown in place of the component.
-  /** @type {boolean} */
-  _unsupportedBrowser;
-
   /**
    * Creates a new GramFrame instance
    * @param {HTMLTableElement} configTable - Configuration table element to replace
@@ -248,13 +245,18 @@ export class GramFrame {
     // never reaches the modern DOM calls (e.g. Element.replaceChildren) that
     // would throw and fail silently. When the required APIs are missing, show a
     // clear "please update your browser" warning in place of the component and
-    // stop constructing — the rest of the setup (which relies on those APIs) is
-    // skipped. Callers going through GramFrameAPI.init() are already short-
-    // circuited before this point; this covers direct `new GramFrame(table)` use.
+    // stop constructing — the rest of the setup relies on those APIs.
+    //
+    // Throws rather than returning a half-built instance. Callers going through
+    // `GramFrameAPI.init()` are short-circuited well before this point, so the
+    // only way here is a direct `new GramFrame(table)`, and handing that caller
+    // an object whose every field is undefined is the silent failure the
+    // warning exists to prevent. It also means every field below is assigned on
+    // every path that completes, which is what lets them carry non-null types
+    // (spec 167, FR-009).
     if (!isBrowserSupported()) {
-      this._unsupportedBrowser = true
       showCompatibilityWarning(configTable)
-      return
+      throw new Error('GramFrame: this browser is missing APIs the component requires. A compatibility warning has been shown in place of the component.')
     }
 
     // Core state initialization
@@ -272,16 +274,63 @@ export class GramFrame {
     // Detect trainer vs student context
     this._isTrainerContext = detectUserContext() === 'trainer'
 
-    // Delegate to initialization modules
-    initializeDOMProperties(this)
-    setupSpectrogramComponents(this)
-    createUnifiedLayoutStructure(this)
-    setupPersistentContainers(this)
+    // Initialization, in dependency order. Each step declares what it needs and
+    // returns what it built; the constructor is the only place the results are
+    // adopted onto the instance. Swap two of these and the failure is a missing
+    // argument at check time, not an `undefined` surfacing three steps later
+    // (spec 167, FR-009, AS-5.2).
+    const dom = setupSpectrogramComponents(this, configTable)
+    this.container = dom.container
+    this.modeCell = dom.modeCell
+    this.mainCell = dom.mainCell
+    this.readoutPanel = dom.readoutPanel
+    this.svg = dom.svg
+    this.spectrogramImage = dom.spectrogramImage
+    this.cursorGroup = dom.cursorGroup
+    this.axesGroup = dom.axesGroup
+    this.imageClipRect = dom.imageClipRect
+    this.cursorClipRect = dom.cursorClipRect
+
+    const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell)
+    this.unifiedLayoutContainer = layout.unifiedLayoutContainer
+    this.leftColumn = layout.leftColumn
+    this.middleColumn = layout.middleColumn
+    this.rightColumn = layout.rightColumn
+    this.modeColumn = layout.modeColumn
+    this.guidanceColumn = layout.guidanceColumn
+    this.controlsColumn = layout.controlsColumn
+    this.markersContainer = layout.markersContainer
+    this.harmonicsContainer = layout.harmonicsContainer
+    this.timeLED = layout.timeLED
+    this.freqLED = layout.freqLED
+    this.speedLED = layout.speedLED
+    this.colorPicker = layout.colorPicker
+
+    const initialModeUI = setupPersistentContainers(this, layout.modeColumn, layout.guidanceColumn)
     setupSpectrogramIfAvailable(this)
-    initializeModeInfrastructure(this)
-    setupModeUI(this)
-    updateModeUIWithCommands(this)
-    setupAllEventListeners(this)
+
+    const { modes, featureRenderer } = initializeModeInfrastructure(this)
+    this.modes = modes
+    this.featureRenderer = featureRenderer
+    this.currentMode = setupModeUI(this, modes, layout.markersContainer, layout.harmonicsContainer, initialModeUI.guidancePanel)
+
+    const modeUI = updateModeUIWithCommands(
+      this, initialModeUI, modes, this.currentMode, layout.modeColumn, layout.guidanceColumn
+    )
+    this.modesContainer = modeUI.modesContainer
+    this.modeButtons = modeUI.modeButtons
+    this.commandButtons = modeUI.commandButtons
+    this.guidancePanel = modeUI.guidancePanel
+
+    const controls = setupAllEventListeners(this)
+    this.setSelection = controls.setSelection
+    this.clearSelection = controls.clearSelection
+    this.updateSelectionVisuals = controls.updateSelectionVisuals
+    this.applyColorToSelectedFeature = controls.applyColorToSelectedFeature
+    this.applySymbolToSelectedFeature = controls.applySymbolToSelectedFeature
+    this.applyPinToSelectedFeature = controls.applyPinToSelectedFeature
+    this.applyLargeSymbolsToSelectedFeature = controls.applyLargeSymbolsToSelectedFeature
+
     setupStateListeners(this)
 
     // Add "Clear gram" button for trainer pages

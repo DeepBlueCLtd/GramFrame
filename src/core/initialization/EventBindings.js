@@ -12,8 +12,9 @@ import { setupEventListeners, setupResizeObserver } from '../events.js'
 import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../keyboardControl.js'
 
 /**
- * Set up all event listeners for the GramFrame instance
+ * Set up all event listeners for the GramFrame instance.
  * @param {GramFrame} instance - GramFrame instance
+ * @returns {SelectionControls} The bound selection and restyle functions
  */
 export function setupAllEventListeners(instance) {
   // Setup mouse and SVG event listeners
@@ -25,15 +26,23 @@ export function setupAllEventListeners(instance) {
   // Initialize keyboard control for fine positioning
   initializeKeyboardControl(instance)
   
-  // Store keyboard control functions on instance for easy access
-  instance.setSelection = (type, id, index) => setSelection(instance, type, id, index)
-  instance.clearSelection = () => clearSelection(instance)
-  instance.updateSelectionVisuals = () => updateSelectionVisuals(instance)
-  instance.removeHarmonicSet = (id) => removeHarmonicSet(instance, id)
-  instance.applyColorToSelectedFeature = (color) => applyColorToSelectedFeature(instance, color)
-  instance.applySymbolToSelectedFeature = (symbol) => applySymbolToSelectedFeature(instance, symbol)
-  instance.applyPinToSelectedFeature = (showPin) => applyPinToSelectedFeature(instance, showPin)
-  instance.applyLargeSymbolsToSelectedFeature = (large) => applyLargeSymbolsToSelectedFeature(instance, large)
+  // `removeHarmonicSet` is not a declared field — the harmonics panel looks it
+  // up dynamically — so it is still written directly.
+  instance.removeHarmonicSet = (/** @type {string} */ id) => removeHarmonicSet(instance, id)
+
+  // The rest are returned for the constructor to adopt, so they are definitely
+  // assigned rather than appearing on the instance from inside a helper
+  // (spec 167, FR-009).
+  return {
+    setSelection: (/** @type {string} */ type, /** @type {string} */ id, /** @type {number} */ index) =>
+      setSelection(instance, type, id, index),
+    clearSelection: () => clearSelection(instance),
+    updateSelectionVisuals: () => updateSelectionVisuals(instance),
+    applyColorToSelectedFeature: (/** @type {string} */ color) => applyColorToSelectedFeature(instance, color),
+    applySymbolToSelectedFeature: (/** @type {SymbolType} */ symbol) => applySymbolToSelectedFeature(instance, symbol),
+    applyPinToSelectedFeature: (/** @type {boolean} */ showPin) => applyPinToSelectedFeature(instance, showPin),
+    applyLargeSymbolsToSelectedFeature: (/** @type {boolean} */ large) => applyLargeSymbolsToSelectedFeature(instance, large)
+  }
 }
 
 /**

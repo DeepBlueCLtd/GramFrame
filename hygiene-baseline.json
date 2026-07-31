@@ -4,8 +4,8 @@
   "unusedExportModules": 5,
   "waitForTimeoutOccurrences": 1,
   "_comment_strictTypeErrors": "Temporary (specs/167-structural-refactor Story 1). Errors reported by tsc under tsconfig.strict.json, the overlay enabling the strict flags not yet in tsconfig.json. noImplicitAny graduated into tsconfig.json and left the overlay; strictNullChecks and strictPropertyInitialization remain. Burned to zero, at which point they move too and both the overlay and this entry are deleted.",
-  "strictTypeErrors": 400,
+  "strictTypeErrors": 332,
   "_comment_instanceSurface": "specs/167-structural-refactor Story 5. instanceStateReachIns counts lines containing `instance.state` under src/; instanceFields counts class-field declarations between `export class GramFrame` and its constructor in src/main.js.",
   "instanceStateReachIns": 222,
-  "instanceFields": 56
+  "instanceFields": 55
 }

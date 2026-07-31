@@ -480,6 +480,36 @@
  */
 
 /**
+ * The selection and restyle functions bound by `setupAllEventListeners`.
+ * @typedef {Object} SelectionControls
+ * @property {function(string, string, number): void} setSelection - Select a feature
+ * @property {function(): void} clearSelection - Clear the selection
+ * @property {function(): void} updateSelectionVisuals - Re-render selection styling
+ * @property {function(string): boolean} applyColorToSelectedFeature - Restyle colour in place
+ * @property {function(SymbolType): boolean} applySymbolToSelectedFeature - Restyle symbol in place
+ * @property {function(boolean): boolean} applyPinToSelectedFeature - Show/hide pin lines
+ * @property {function(boolean): boolean} applyLargeSymbolsToSelectedFeature - Resize symbols
+ */
+
+/**
+ * The columns, LED displays and panel containers built by `createUnifiedLayout`.
+ * @typedef {Object} UnifiedLayoutElements
+ * @property {HTMLDivElement} unifiedLayoutContainer - Main layout container
+ * @property {HTMLDivElement} leftColumn - Readout column
+ * @property {HTMLDivElement} middleColumn - Markers column
+ * @property {HTMLDivElement} rightColumn - Harmonics column
+ * @property {HTMLDivElement} modeColumn - Mode buttons column
+ * @property {HTMLDivElement} guidanceColumn - Guidance text column
+ * @property {HTMLDivElement} controlsColumn - Controls column
+ * @property {HTMLDivElement} markersContainer - Markers table container
+ * @property {HTMLDivElement} harmonicsContainer - Harmonics panel container
+ * @property {HTMLElement} timeLED - Time readout
+ * @property {HTMLElement} freqLED - Frequency readout
+ * @property {HTMLElement} speedLED - Speed readout
+ * @property {HTMLElement} colorPicker - Colour picker control
+ */
+
+/**
  * Collection of DOM elements from table setup
  * @typedef {Object} TableElements
  * @property {HTMLDivElement} container - Main container element

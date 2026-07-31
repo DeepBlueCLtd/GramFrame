@@ -17,9 +17,12 @@ import {
 import { formatTime } from '../utils/timeFormatter.js'
 
 /**
- * Create unified 3-column layout for readouts
+ * Create unified 3-column layout for readouts.
+ *
+ * Returns the handles rather than writing them onto the instance, so the
+ * constructor is the one place they are adopted (spec 167, FR-009).
  * @param {GramFrame} instance - GramFrame instance
- * @returns {HTMLDivElement} The unified layout container
+ * @returns {UnifiedLayoutElements} The columns, LEDs and containers just built
  */
 export function createUnifiedLayout(instance) {
   // Create main container for unified layout
@@ -104,22 +107,21 @@ export function createUnifiedLayout(instance) {
   unifiedLayoutContainer.appendChild(middleColumn)
   unifiedLayoutContainer.appendChild(rightColumn)
   
-  // Store references on instance for easy access
-  instance.unifiedLayoutContainer = unifiedLayoutContainer
-  instance.leftColumn = leftColumn
-  instance.middleColumn = middleColumn
-  instance.rightColumn = rightColumn
-  instance.modeColumn = modeColumn
-  instance.guidanceColumn = guidanceColumn
-  instance.controlsColumn = controlsColumn
-  instance.markersContainer = markersContainer
-  instance.harmonicsContainer = harmonicsContainer
-  instance.timeLED = timeLED
-  instance.freqLED = freqLED
-  instance.speedLED = speedLED
-  instance.colorPicker = colorPicker
-
-  return unifiedLayoutContainer
+  return {
+    unifiedLayoutContainer,
+    leftColumn,
+    middleColumn,
+    rightColumn,
+    modeColumn,
+    guidanceColumn,
+    controlsColumn,
+    markersContainer,
+    harmonicsContainer,
+    timeLED,
+    freqLED,
+    speedLED,
+    colorPicker
+  }
 }
 
 /**
