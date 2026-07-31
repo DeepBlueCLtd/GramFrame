@@ -270,14 +270,13 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     if (setIndex !== -1) {
       Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates)
       
-      // Update visual elements if harmonic panel exists
+      // Update visual elements if harmonic panel exists. This uses the static
+      // import at the top of the file: the dynamic import that used to be here
+      // cited circular dependencies, but the same module is already imported
+      // statically and called synchronously elsewhere in this file — so it only
+      // delayed the panel update by a microtask and swallowed any error.
       if (instance.harmonicPanel) {
-        // Dynamically import to avoid circular dependencies
-        import('../components/HarmonicPanel.js').then(({ updateHarmonicPanelContent }) => {
-          updateHarmonicPanelContent(instance.harmonicPanel, instance)
-        }).catch(() => {
-          // Harmonic panel will update on next render cycle
-        })
+        updateHarmonicPanelContent(instance.harmonicPanel, instance)
       }
       
       // Trigger re-render of persistent features to show updated harmonic set

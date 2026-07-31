@@ -50,7 +50,6 @@ export function createGramFrameAPI(GramFrame) {
         configTables.forEach(table => {
           showCompatibilityWarning(/** @type {HTMLElement} */ (table))
         })
-        this._instances = instances
         return instances
       }
 
@@ -101,14 +100,32 @@ export function createGramFrameAPI(GramFrame) {
         }
       })
       
-      // Log summary - removed debug console statements
-      
-      // Store instances for global access
-      this._instances = instances
-      
+      // Register the new instances alongside any created by an earlier scan
+      // (e.g. a second call for a container added after page load).
+      this._instances = [...this._getInstances(), ...instances]
+
       return instances
     },
-        
+
+    /**
+     * The live set of GramFrame instances — the API's single registry.
+     *
+     * Every API method reads instances through here. Previously some methods
+     * walked `.gram-frame-container` elements in the DOM while others read the
+     * `_instances` array, so the two could disagree about which instances
+     * existed (GF-24). Instances whose container has left the document
+     * (destroyed, or replaced by a re-initialization) are dropped on read.
+     * @private
+     * @returns {GramFrame[]} Live instances
+     */
+    _getInstances() {
+      const live = (this._instances || []).filter(
+        instance => instance && instance.container && instance.container.isConnected
+      )
+      this._instances = live
+      return live
+    },
+
     /**
      * Add a state listener that will be called whenever the component state changes
      * @param {Function} callback - Function to be called with the current state
@@ -143,11 +160,8 @@ export function createGramFrameAPI(GramFrame) {
       addGlobalStateListener(callback)
       
       // Add the listener to all existing instances
-      const instances = document.querySelectorAll('.gram-frame-container')
-      instances.forEach(container => {
-        // @ts-ignore - Custom property on DOM element
-        const instance = container.__gramFrameInstance
-        if (instance && !instance.stateListeners.includes(callback)) {
+      this._getInstances().forEach(instance => {
+        if (!instance.stateListeners.includes(callback)) {
           instance.stateListeners.push(callback)
           
           // Immediately call the listener with the current state
@@ -199,16 +213,11 @@ export function createGramFrameAPI(GramFrame) {
       }
       
       // Remove the listener from all instances
-      const instances = document.querySelectorAll('.gram-frame-container')
-      instances.forEach(container => {
-        // @ts-ignore - Custom property on DOM element
-        const instance = container.__gramFrameInstance
-        if (instance) {
-          const index = instance.stateListeners.indexOf(callback)
-          if (index !== -1) {
-            instance.stateListeners.splice(index, 1)
-            removed = true
-          }
+      this._getInstances().forEach(instance => {
+        const index = instance.stateListeners.indexOf(callback)
+        if (index !== -1) {
+          instance.stateListeners.splice(index, 1)
+          removed = true
         }
       })
       return removed
@@ -219,8 +228,7 @@ export function createGramFrameAPI(GramFrame) {
      * @returns {boolean} True if the image is currently expanded
      */
     getExpandState() {
-      const instances = this._instances || []
-      const instance = instances[0]
+      const instance = this._getInstances()[0]
       return !!(instance && instance.state && instance.state.imageExpanded)
     },
 
@@ -230,8 +238,7 @@ export function createGramFrameAPI(GramFrame) {
      * @param {boolean} expanded - Desired expand state
      */
     setExpandState(expanded) {
-      const instances = this._instances || []
-      instances.forEach(instance => {
+      this._getInstances().forEach(instance => {
         if (isLandscape(instance)) {
           setImageExpanded(instance, expanded)
         }
@@ -246,14 +253,8 @@ export function createGramFrameAPI(GramFrame) {
      */
     __test__forceUpdate() {
       // Trigger state update on all GramFrame instances
-      const instances = document.querySelectorAll('.gram-frame-container')
-      instances.forEach(container => {
-        // @ts-ignore - Custom property on DOM element
-        const instance = container.__gramFrameInstance
-        if (instance) {
-          // Trigger a state update by calling notifyStateListeners
-          notifyStateListeners(instance.state, instance.stateListeners)
-        }
+      this._getInstances().forEach(instance => {
+        notifyStateListeners(instance.state, instance.stateListeners)
       })
     },
     
@@ -263,7 +264,7 @@ export function createGramFrameAPI(GramFrame) {
      * @returns {GramFrame[]} Array of active instances
      */
     __test__getInstances() {
-      return this._instances || []
+      return this._getInstances()
     },
     
     /**
@@ -273,8 +274,7 @@ export function createGramFrameAPI(GramFrame) {
      * @returns {GramFrame|null} Instance or null if not found
      */
     __test__getInstance(instanceId) {
-      if (!this._instances) return null
-      return this._instances.find(instance => instance.instanceId === instanceId) || null
+      return this._getInstances().find(instance => instance.instanceId === instanceId) || null
     },
     
     

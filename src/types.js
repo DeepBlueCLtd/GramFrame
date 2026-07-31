@@ -467,6 +467,7 @@
  * @property {function(boolean): void} [setExpandState] - Expand/collapse landscape instances
  * @property {function(HTMLTableElement, string): void} _addErrorIndicator - Add error indicator to table
  * @property {function(HTMLTableElement, Node|null, Node|null): void} _restoreConfigTable - Put a config table back after a failed init
+ * @property {function(): GramFrame[]} _getInstances - The API's single instance registry
  * @property {GramFrame[]} [_instances] - Internal instances array
  * @property {function(): void} [__test__forceUpdate] - Test method to force update
  * @property {function(): GramFrame[]} [__test__getInstances] - Test method to get instances
