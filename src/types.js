@@ -163,6 +163,15 @@
  * @property {ImageDetails} imageDetails - Image dimensions
  * @property {Config} config - Time/frequency range configuration
  * @property {ZoomState} zoom - Current zoom state
+ * @property {number} rate - Frequency divider, applied on the data side only
+ */
+
+/**
+ * A point in image space: pixels relative to the image's top-left, expressed
+ * against the base render size so it is independent of the current zoom.
+ * @typedef {Object} ImageCoordinates
+ * @property {number} x - Image-relative x coordinate, in render pixels
+ * @property {number} y - Image-relative y coordinate, in render pixels
  */
 
 /**

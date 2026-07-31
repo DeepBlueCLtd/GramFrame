@@ -3,7 +3,7 @@ import { updateLEDDisplays } from '../../components/UIComponents.js'
 import { notifyStateListeners } from '../../core/state.js'
 // Rendering imports removed - no display element
 import { calculateDopplerSpeed, calculateMidpoint } from '../../utils/doppler.js'
-import { dataToSVG } from '../../utils/coordinateTransformations.js'
+import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinDataTolerance, findClosestTarget } from '../../utils/tolerance.js'
 

@@ -4,7 +4,7 @@
 
 /// <reference path="../types.js" />
 
-import { screenToSVGCoordinates, imageToDataCoordinates } from '../utils/coordinates.js'
+import { screenToData, isWithinImage } from '../utils/coordinates.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
 import { notifyStateListeners } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
@@ -19,64 +19,37 @@ import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized } from './
 const WHEEL_ZOOM_STEP = 1.2
 
 /**
- * Convert screen coordinates to data coordinates, accounting for zoom
+ * Convert a pointer event to data coordinates, or null when it is not over the
+ * spectrogram image.
+ *
+ * The transformation itself lives in the canonical coordinate module, which is
+ * already zoom-, expand-, render-size- and margin-aware (FR-002, FR-003). What
+ * stays here is only the local convention every caller below relies on: an
+ * off-image pointer reads as `null` rather than as an out-of-range point.
+ *
  * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
- * @returns {ScreenToDataResult|null} Object with svgCoords, imageX, imageY, dataCoords, and bounds check
+ * @returns {ScreenToDataResult|null} Object with svgCoords, imageX, imageY and dataCoords, or null when off-image
  */
 function screenToDataWithZoom(instance, event) {
-  const svgRect = instance.svg.getBoundingClientRect()
-  const screenX = event.clientX - svgRect.left
-  const screenY = event.clientY - svgRect.top
-  
-  // Convert to SVG coordinates
-  const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
-  
-  // Convert to data coordinates (accounting for margins, expand and zoom)
-  const margins = instance.state.margins
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  // Base render size (defaults to natural; grows when expanded). Zoom multiplies
-  // it, so the rendered element size is renderWidth/renderHeight × zoom.
-  const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
-  const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
+  const point = screenToData(
+    event.clientX,
+    event.clientY,
+    instance.svg,
+    instance.state,
+    instance.spectrogramImage
+  )
 
-  // Get the actual rendered image position and dimensions. The element's
-  // width/height attribute is the source of truth (it already reflects
-  // expand × zoom), so read it whenever the image element is present.
-  let imageLeft = margins.left
-  let imageTop = margins.top
-  let imageWidth = renderWidth
-  let imageHeight = renderHeight
-
-  if (instance.spectrogramImage) {
-    imageLeft = parseFloat(instance.spectrogramImage.getAttribute('x') || String(margins.left))
-    imageTop = parseFloat(instance.spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(instance.spectrogramImage.getAttribute('width') || String(renderWidth))
-    imageHeight = parseFloat(instance.spectrogramImage.getAttribute('height') || String(renderHeight))
-  }
-
-  // Convert SVG coordinates to image-relative coordinates in render-pixel space
-  const imageX = (svgCoords.x - imageLeft) * (renderWidth / imageWidth)
-  const imageY = (svgCoords.y - imageTop) * (renderHeight / imageHeight)
-
-  // Check if within the rendered image bounds
-  const withinBounds = svgCoords.x >= imageLeft && svgCoords.x <= imageLeft + imageWidth &&
-                      svgCoords.y >= imageTop && svgCoords.y <= imageTop + imageHeight &&
-                      imageX >= 0 && imageX <= renderWidth &&
-                      imageY >= 0 && imageY <= renderHeight
-  
-  if (!withinBounds) {
+  if (!isWithinImage(point.svg, instance.state, instance.spectrogramImage)) {
     return null
   }
-  
-  const dataCoords = imageToDataCoordinates(
-    imageX, imageY,
-    instance.state.config,
-    instance.state.imageDetails,
-    instance.state.rate
-  )
-  
-  return { svgCoords, imageX, imageY, dataCoords }
+
+  return {
+    svgCoords: point.svg,
+    imageX: point.image.x,
+    imageY: point.image.y,
+    dataCoords: point.data
+  }
 }
 
 /**

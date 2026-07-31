@@ -1,7 +1,7 @@
 import { BaseMode } from '../BaseMode.js'
 import { notifyStateListeners } from '../../core/state.js'
 import { formatTime } from '../../utils/timeFormatter.js'
-import { calculateZoomAwarePosition } from '../../utils/coordinateTransformations.js'
+import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
 import { createSymbolMark, createColorIndicator, resolveSymbolScale } from '../../rendering/symbols.js'
@@ -256,7 +256,7 @@ export class AnalysisMode extends BaseMode {
     
     // Calculate current position based on time/freq values and current zoom/pan state using utility
     const markerPoint = { freq: marker.freq, time: marker.time }
-    const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+    const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage)
     const currentX = markerSVG.x
     const currentY = markerSVG.y
     
@@ -538,10 +538,10 @@ export class AnalysisMode extends BaseMode {
       
       // Convert marker position to SVG coordinates
       const markerPoint = { freq: marker.freq, time: marker.time }
-      const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage)
       
       // Convert click position to SVG coordinates
-      const clickSVG = calculateZoomAwarePosition(position, this.getViewport(), this.instance.spectrogramImage)
+      const clickSVG = dataToSVG(position, this.getViewport(), this.instance.spectrogramImage)
       
       const crosshairSize = 15 // pixels in SVG space
       const lineThickness = 3 // effective hit area around the line (half of stroke-width + tolerance)

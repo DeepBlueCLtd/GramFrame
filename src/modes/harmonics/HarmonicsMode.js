@@ -3,7 +3,7 @@ import { BaseMode } from '../BaseMode.js'
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { showManualHarmonicModal } from './ManualHarmonicModal.js'
 import { notifyStateListeners } from '../../core/state.js'
-import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordinateTransformations.js'
+import { dataToSVG, getImageBounds } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
@@ -516,7 +516,7 @@ export class HarmonicsMode extends BaseMode {
         const pinDrawn = harmonicSet.showPin !== false
 
         const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
-        const cursorSVG = calculateZoomAwarePosition(
+        const cursorSVG = dataToSVG(
           { freq, time: cursorTime },
           this.getViewport(),
           this.instance.spectrogramImage
@@ -768,7 +768,7 @@ export class HarmonicsMode extends BaseMode {
     const { renderHeight } = getRenderDimensions(this.instance)
     const lineHeight = renderHeight * HarmonicsMode.PIN_HEIGHT_RATIO
     const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime }
-    const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage)
+    const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.spectrogramImage)
     const lineTop = anchorSVG.y - lineHeight / 2
 
     return { lineHeight, lineTop }
@@ -957,7 +957,7 @@ export class HarmonicsMode extends BaseMode {
    */
   harmonicLineX(harmonicSet, harmonicNumber) {
     const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime }
-    return calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x
+    return dataToSVG(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x
   }
 
   /**

@@ -1,62 +1,174 @@
 import { describe, test, expect } from 'vitest'
 import {
-  screenToSVGCoordinates,
-  imageToDataCoordinates
+  screenToSVG,
+  svgToImage,
+  imageToData,
+  dataToSVG,
+  screenToData,
+  getImageBounds,
+  isWithinImage,
+  clampToImage
 } from '../../src/utils/coordinates.js'
-import {
-  dataToSVG as dataToSVGZoomAware,
-  calculateZoomAwarePosition,
-  getImageBounds as getImageBoundsZoomAware
-} from '../../src/utils/coordinateTransformations.js'
 
 /**
  * @fileoverview Coordinate-pipeline equivalence grid (spec 166, US2).
  *
- * Pins the behaviour of GramFrame's four parallel coordinate implementations
- * BEFORE any of them is deleted (FR-001, AS-2.1). Every cell of the grid in
- * research.md §R2 is exercised, and the equivalences E1-E6 from
- * contracts/coordinates.md are asserted at 1e-9 relative tolerance.
+ * Before consolidation this file pinned GramFrame's four parallel coordinate
+ * implementations against each other (FR-001, AS-2.1). They are now one module,
+ * and the grid has become its regression suite: the reference implementations
+ * below are the *frozen, pre-consolidation behaviour*, transcribed verbatim
+ * from the code that has since been deleted, and every cell asserts that
+ * `src/utils/coordinates.js` reproduces them.
  *
- * If a cell fails here *before* consolidation, the pin is not faithful: the
- * four paths already disagree, and that is a bug to triage in its own right
- * rather than something to route around.
+ * Where each reference came from:
  *
- * ## Why two of the four are transcribed rather than imported
+ *  - `referenceScreenToSVG`, `referenceImageToData` — `utils/coordinates.js`
+ *    as it stood before this feature.
+ *  - `referenceDataToSVG`, `referenceImageBounds` — `utils/coordinateTransformations.js`
+ *    (deleted).
+ *  - `referenceKeyboardDataToSVG`, `referenceKeyboardSVGToData` — the private
+ *    pair in `core/keyboardControl.js` (deleted).
+ *  - `referenceEventsScreenToData` — the inline `screenToDataWithZoom` in
+ *    `core/events.js` (deleted).
  *
- * `utils/coordinates.js` and `utils/coordinateTransformations.js` are imported
- * live. The other two are not importable as they stand:
- *
- *  - `dataToSVGCoordinates` / `svgToDataCoordinates` are private to
- *    `core/keyboardControl.js`;
- *  - `screenToDataWithZoom` is private to `core/events.js`, which pulls in the
- *    rendering and DOM graph this pure-Node lane deliberately excludes.
- *
- * Exporting them for the test would be a source change in the pin commit —
- * which this group forbids — and would raise the `unusedExportModules` ratchet
- * that FR-011 says must only ever fall. They are therefore transcribed below
- * VERBATIM from the live code, with their source location recorded. The
- * transcription and the deletion of the originals land one commit apart, and
- * this grid is precisely the check that the canonical module reproduces them.
+ * They are deliberately kept as literal copies rather than re-expressed in
+ * terms of the canonical module: a reference that called the code under test
+ * would assert nothing. The grid walks every cell of research.md §R2 and checks
+ * E1-E6 from contracts/coordinates.md at 1e-9 relative tolerance.
  */
 
 // ──────────────────────────────────────────────────────────────
-// Recorded implementations (verbatim transcriptions)
+// Frozen reference implementations (verbatim, pre-consolidation)
 // ──────────────────────────────────────────────────────────────
 
 /**
- * Verbatim from `src/core/keyboardControl.js` — private `dataToSVGCoordinates`.
- * Note what it does NOT do: it positions against `margins.left + normalized *
- * renderWidth`, ignoring the image element's live x/width. That is why E3 is
- * asserted only at zoom 1 with the element at its base size (GF-01ᴿ).
- * @param {number} freq
- * @param {number} time
- * @param {Config} config
- * @param {ImageDetails} imageDetails
- * @param {number} rate
- * @param {AxesMargins} margins
+ * Was `screenToSVGCoordinates` in `src/utils/coordinates.js`.
+ * @param {number} screenX
+ * @param {number} screenY
+ * @param {any} svg
  * @returns {{x: number, y: number}}
  */
-function recordedKeyboardDataToSVG(freq, time, config, imageDetails, rate, margins) {
+function referenceScreenToSVG(screenX, screenY, svg) {
+  const svgRect = svg.getBoundingClientRect()
+  const viewBox = svg.viewBox.baseVal
+
+  if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+    const scaleX = viewBox.width / svgRect.width
+    const scaleY = viewBox.height / svgRect.height
+
+    return {
+      x: (screenX * scaleX) + viewBox.x,
+      y: (screenY * scaleY) + viewBox.y
+    }
+  }
+
+  return { x: screenX, y: screenY }
+}
+
+/**
+ * Was `imageToDataCoordinates` in `src/utils/coordinates.js`. Note that it
+ * clamped; the canonical `imageToData` does not, and clamping is now an
+ * explicit opt-in via `clampToImage` (I5). The grid checks both halves of that
+ * split below.
+ * @param {number} imageX
+ * @param {number} imageY
+ * @param {any} config
+ * @param {any} imageDetails
+ * @param {number} rate
+ * @returns {{freq: number, time: number}}
+ */
+function referenceImageToData(imageX, imageY, config, imageDetails, rate) {
+  const { freqMin, freqMax, timeMin, timeMax } = config
+  const { naturalWidth, naturalHeight } = imageDetails
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
+
+  const boundedX = Math.max(0, Math.min(imageX, renderWidth))
+  const boundedY = Math.max(0, Math.min(imageY, renderHeight))
+
+  const rawFreq = freqMin + (boundedX / renderWidth) * (freqMax - freqMin)
+  const time = timeMax - (boundedY / renderHeight) * (timeMax - timeMin)
+
+  return { freq: rawFreq / rate, time }
+}
+
+/**
+ * Was `dataToSVG` in `src/utils/coordinateTransformations.js`.
+ * @param {{freq: number, time: number}} dataPoint
+ * @param {any} viewport
+ * @param {any} spectrogramImage
+ * @returns {{x: number, y: number}}
+ */
+function referenceDataToSVG(dataPoint, viewport, spectrogramImage = null) {
+  const { margins, imageDetails, config } = viewport
+  const { naturalWidth, naturalHeight } = imageDetails
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
+  const { timeMin, timeMax, freqMin, freqMax } = config
+
+  const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin)
+  const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin)
+
+  let imageLeft = margins.left
+  let imageTop = margins.top
+  let imageWidth = renderWidth
+  let imageHeight = renderHeight
+
+  if (spectrogramImage) {
+    imageLeft = parseFloat(spectrogramImage.getAttribute('x') || String(margins.left))
+    imageTop = parseFloat(spectrogramImage.getAttribute('y') || String(margins.top))
+    imageWidth = parseFloat(spectrogramImage.getAttribute('width') || String(renderWidth))
+    imageHeight = parseFloat(spectrogramImage.getAttribute('height') || String(renderHeight))
+  }
+
+  return {
+    x: imageLeft + freqRatio * imageWidth,
+    y: imageTop + (1 - timeRatio) * imageHeight
+  }
+}
+
+/**
+ * Was `getImageBounds` in `src/utils/coordinateTransformations.js`.
+ * @param {any} viewport
+ * @param {any} spectrogramImage
+ * @returns {{left: number, top: number, width: number, height: number}}
+ */
+function referenceImageBounds(viewport, spectrogramImage = null) {
+  const { margins, imageDetails } = viewport
+  const { naturalWidth, naturalHeight } = imageDetails
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
+
+  if (spectrogramImage) {
+    return {
+      left: parseFloat(spectrogramImage.getAttribute('x') || String(margins.left)),
+      top: parseFloat(spectrogramImage.getAttribute('y') || String(margins.top)),
+      width: parseFloat(spectrogramImage.getAttribute('width') || String(renderWidth)),
+      height: parseFloat(spectrogramImage.getAttribute('height') || String(renderHeight))
+    }
+  }
+
+  return {
+    left: margins.left,
+    top: margins.top,
+    width: renderWidth,
+    height: renderHeight
+  }
+}
+
+/**
+ * Was the private `dataToSVGCoordinates` in `src/core/keyboardControl.js`.
+ * It positioned against the base render size, ignoring the image element's
+ * live x/width — which is why E3 holds only at zoom 1 (GF-01ᴿ).
+ * @param {number} freq
+ * @param {number} time
+ * @param {any} config
+ * @param {any} imageDetails
+ * @param {number} rate
+ * @param {any} margins
+ * @returns {{x: number, y: number}}
+ */
+function referenceKeyboardDataToSVG(freq, time, config, imageDetails, rate, margins) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
   const renderWidth = imageDetails.renderWidth || naturalWidth
@@ -74,18 +186,16 @@ function recordedKeyboardDataToSVG(freq, time, config, imageDetails, rate, margi
 }
 
 /**
- * Verbatim from `src/core/keyboardControl.js` — private `svgToDataCoordinates`.
- * Clamps to the image bounds rather than reporting out-of-bounds, which is the
- * documented difference from the events.js path (research.md §R2).
+ * Was the private `svgToDataCoordinates` in `src/core/keyboardControl.js`.
  * @param {number} svgX
  * @param {number} svgY
- * @param {Config} config
- * @param {ImageDetails} imageDetails
+ * @param {any} config
+ * @param {any} imageDetails
  * @param {number} rate
- * @param {AxesMargins} margins
+ * @param {any} margins
  * @returns {{freq: number, time: number}}
  */
-function recordedKeyboardSVGToData(svgX, svgY, config, imageDetails, rate, margins) {
+function referenceKeyboardSVGToData(svgX, svgY, config, imageDetails, rate, margins) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
   const renderWidth = imageDetails.renderWidth || naturalWidth
@@ -100,25 +210,22 @@ function recordedKeyboardSVGToData(svgX, svgY, config, imageDetails, rate, margi
   const rawFreq = freqMin + (boundedX / renderWidth) * (freqMax - freqMin)
   const time = timeMax - (boundedY / renderHeight) * (timeMax - timeMin)
 
-  const freq = rawFreq / rate
-
-  return { freq, time }
+  return { freq: rawFreq / rate, time }
 }
 
 /**
- * Verbatim from `src/core/events.js` — private `screenToDataWithZoom`, with the
- * `instance` dependency reduced to the three fields it reads (state, svg,
- * spectrogramImage) so it runs outside a browser.
+ * Was the private `screenToDataWithZoom` in `src/core/events.js`, with the
+ * `instance` dependency reduced to the three fields it read.
  * @param {{state: any, svg: any, spectrogramImage: any}} instance
  * @param {{clientX: number, clientY: number}} event
  * @returns {{svgCoords: {x: number, y: number}, imageX: number, imageY: number, dataCoords: {freq: number, time: number}}|null}
  */
-function recordedEventsScreenToData(instance, event) {
+function referenceEventsScreenToData(instance, event) {
   const svgRect = instance.svg.getBoundingClientRect()
   const screenX = event.clientX - svgRect.left
   const screenY = event.clientY - svgRect.top
 
-  const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails)
+  const svgCoords = referenceScreenToSVG(screenX, screenY, instance.svg)
 
   const margins = instance.state.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
@@ -149,7 +256,7 @@ function recordedEventsScreenToData(instance, event) {
     return null
   }
 
-  const dataCoords = imageToDataCoordinates(
+  const dataCoords = referenceImageToData(
     imageX, imageY,
     instance.state.config,
     instance.state.imageDetails,
@@ -250,7 +357,7 @@ function buildCell({ zoom, renderVariant, hasElement, marginVariant, rate }) {
   }
 
   const viewport = { margins, imageDetails, config: CONFIG, rate, zoom: { level: zoom } }
-  const instance = { state: { margins, imageDetails, config: CONFIG, rate }, svg, spectrogramImage }
+  const instance = { state: viewport, svg, spectrogramImage }
 
   return {
     axes: { zoom, renderVariant, hasElement, marginVariant, rate },
@@ -306,22 +413,17 @@ function imageSamplePoints(cell) {
 }
 
 /**
- * Convert an image-space point to the client coordinates that would produce it,
- * inverting the transforms under test so a sample point can be fed in as a real
- * pointer position.
+ * Convert an image-space point to the client coordinates that would produce it.
  * @param {any} cell
  * @param {number} imageX
  * @param {number} imageY
  * @returns {{clientX: number, clientY: number}}
  */
 function imagePointToClient(cell, imageX, imageY) {
-  const left = cell.spectrogramImage ? cell.elementX : cell.margins.left
-  const top = cell.spectrogramImage ? cell.elementY : cell.margins.top
-  const width = cell.spectrogramImage ? cell.elementWidth : cell.renderWidth
-  const height = cell.spectrogramImage ? cell.elementHeight : cell.renderHeight
+  const bounds = referenceImageBounds(cell.viewport, cell.spectrogramImage)
 
-  const svgX = left + imageX * (width / cell.renderWidth)
-  const svgY = top + imageY * (height / cell.renderHeight)
+  const svgX = bounds.left + imageX * (bounds.width / cell.renderWidth)
+  const svgY = bounds.top + imageY * (bounds.height / cell.renderHeight)
 
   const viewBox = cell.svg.viewBox.baseVal
   const scaleX = viewBox.width / cell.svgRect.width
@@ -354,166 +456,215 @@ function expectClose(actual, expected, what) {
   expect(Math.abs(actual - expected) / scale, what).toBeLessThan(TOL)
 }
 
-describe('coordinate pipeline equivalence grid', () => {
+describe('canonical coordinate module vs the pre-consolidation reference', () => {
   test('the grid covers every documented cell', () => {
     // 4 zoom x 3 render x 2 element x 3 margins x 2 rate
     expect(CELLS.length).toBe(4 * 3 * 2 * 3 * 2)
   })
 
-  // E4 — imageToData is the shared leaf every path bottoms out in
-  test('E4: imageToData is consistent with the keyboard path\'s inverse', () => {
+  test('getImageBounds reproduces the reference bounds', () => {
     for (const cell of CELLS) {
-      for (const point of imageSamplePoints(cell)) {
-        if (!point.inBounds) continue
-        const viaCoordinates = imageToDataCoordinates(
-          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.rate
-        )
-        // The keyboard path reaches the same data values from SVG space, and
-        // at its own positioning origin (margins + render size).
-        const viaKeyboard = recordedKeyboardSVGToData(
-          cell.margins.left + point.imageX,
-          cell.margins.top + point.imageY,
-          CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
-        )
-        expectClose(viaKeyboard.freq, viaCoordinates.freq, `${label(cell)} ${point.name} freq`)
-        expectClose(viaKeyboard.time, viaCoordinates.time, `${label(cell)} ${point.name} time`)
-      }
+      const actual = getImageBounds(cell.viewport, cell.spectrogramImage)
+      const expected = referenceImageBounds(cell.viewport, cell.spectrogramImage)
+      expectClose(actual.left, expected.left, `${label(cell)} left`)
+      expectClose(actual.top, expected.top, `${label(cell)} top`)
+      expectClose(actual.width, expected.width, `${label(cell)} width`)
+      expectClose(actual.height, expected.height, `${label(cell)} height`)
     }
   })
 
-  // E1 — the pointer path agrees with the composed transforms
-  test('E1: screenToDataWithZoom agrees with screenToSVG + imageToData for in-bounds points', () => {
+  test('screenToSVG reproduces the reference screen->SVG transform', () => {
     for (const cell of CELLS) {
       for (const point of imageSamplePoints(cell)) {
-        if (!point.inBounds) continue
         const client = imagePointToClient(cell, point.imageX, point.imageY)
-        const result = recordedEventsScreenToData(cell.instance, client)
+        const screenX = client.clientX - cell.svgRect.left
+        const screenY = client.clientY - cell.svgRect.top
 
-        expect(result, `${label(cell)} ${point.name} should be in bounds`).not.toBeNull()
-        expectClose(result.imageX, point.imageX, `${label(cell)} ${point.name} imageX`)
-        expectClose(result.imageY, point.imageY, `${label(cell)} ${point.name} imageY`)
-
-        const expected = imageToDataCoordinates(
-          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.rate
-        )
-        expectClose(result.dataCoords.freq, expected.freq, `${label(cell)} ${point.name} freq`)
-        expectClose(result.dataCoords.time, expected.time, `${label(cell)} ${point.name} time`)
+        const actual = screenToSVG(screenX, screenY, cell.svg)
+        const expected = referenceScreenToSVG(screenX, screenY, cell.svg)
+        expectClose(actual.x, expected.x, `${label(cell)} ${point.name} x`)
+        expectClose(actual.y, expected.y, `${label(cell)} ${point.name} y`)
       }
     }
   })
 
-  // E2 — the zoom-aware data->SVG pair agree with each other
-  test('E2: dataToSVG and calculateZoomAwarePosition agree everywhere', () => {
+  // E4
+  test('E4: imageToData reproduces the reference for in-bounds points', () => {
     for (const cell of CELLS) {
       for (const point of imageSamplePoints(cell)) {
-        const data = imageToDataCoordinates(
+        if (!point.inBounds) continue
+        const actual = imageToData(point.imageX, point.imageY, cell.viewport)
+        const expected = referenceImageToData(
           point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.rate
         )
-        // Both take raw (un-rated) data on the way back, matching their callers
+        expectClose(actual.freq, expected.freq, `${label(cell)} ${point.name} freq`)
+        expectClose(actual.time, expected.time, `${label(cell)} ${point.name} time`)
+      }
+    }
+  })
+
+  test('imageToData no longer clamps, and clampToImage restores the old behaviour (I5)', () => {
+    for (const cell of CELLS) {
+      for (const point of imageSamplePoints(cell)) {
+        if (point.inBounds) continue
+
+        // The reference clamped inside the transform; the canonical split does
+        // the clamping first and then transforms, reaching the same answer.
+        const clamped = clampToImage(point.imageX, point.imageY, cell.viewport)
+        const viaSplit = imageToData(clamped.x, clamped.y, cell.viewport)
+        const expected = referenceImageToData(
+          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.rate
+        )
+        expectClose(viaSplit.freq, expected.freq, `${label(cell)} ${point.name} clamped freq`)
+        expectClose(viaSplit.time, expected.time, `${label(cell)} ${point.name} clamped time`)
+
+        // ...and without the clamp the transform extrapolates rather than pinning
+        const unclamped = imageToData(point.imageX, point.imageY, cell.viewport)
+        const differs = Math.abs(unclamped.freq - expected.freq) > 1e-9 ||
+                        Math.abs(unclamped.time - expected.time) > 1e-9
+        expect(differs, `${label(cell)} ${point.name} should extrapolate`).toBe(true)
+      }
+    }
+  })
+
+  // E1
+  test('E1: screenToData reproduces the reference pointer path', () => {
+    for (const cell of CELLS) {
+      for (const point of imageSamplePoints(cell)) {
+        const client = imagePointToClient(cell, point.imageX, point.imageY)
+        const actual = screenToData(
+          client.clientX, client.clientY, cell.svg, cell.viewport, cell.spectrogramImage
+        )
+        const expected = referenceEventsScreenToData(cell.instance, client)
+
+        const within = isWithinImage(actual.svg, cell.viewport, cell.spectrogramImage)
+        if (expected === null) {
+          expect(within, `${label(cell)} ${point.name} should be out of bounds`).toBe(false)
+          continue
+        }
+
+        expect(within, `${label(cell)} ${point.name} should be in bounds`).toBe(true)
+        expectClose(actual.svg.x, expected.svgCoords.x, `${label(cell)} ${point.name} svgX`)
+        expectClose(actual.svg.y, expected.svgCoords.y, `${label(cell)} ${point.name} svgY`)
+        expectClose(actual.image.x, expected.imageX, `${label(cell)} ${point.name} imageX`)
+        expectClose(actual.image.y, expected.imageY, `${label(cell)} ${point.name} imageY`)
+        expectClose(actual.data.freq, expected.dataCoords.freq, `${label(cell)} ${point.name} freq`)
+        expectClose(actual.data.time, expected.dataCoords.time, `${label(cell)} ${point.name} time`)
+      }
+    }
+  })
+
+  // E2
+  test('E2: dataToSVG reproduces the reference zoom-aware transform', () => {
+    for (const cell of CELLS) {
+      for (const point of imageSamplePoints(cell)) {
+        const data = imageToData(point.imageX, point.imageY, cell.viewport)
         const rawData = { freq: data.freq * cell.axes.rate, time: data.time }
 
-        const viaDataToSVG = dataToSVGZoomAware(rawData, cell.viewport, cell.spectrogramImage)
-        const viaZoomAware = calculateZoomAwarePosition(rawData, cell.viewport, cell.spectrogramImage)
+        const actual = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
+        const expected = referenceDataToSVG(rawData, cell.viewport, cell.spectrogramImage)
 
-        expectClose(viaZoomAware.x, viaDataToSVG.x, `${label(cell)} ${point.name} x`)
-        expectClose(viaZoomAware.y, viaDataToSVG.y, `${label(cell)} ${point.name} y`)
+        expectClose(actual.x, expected.x, `${label(cell)} ${point.name} x`)
+        expectClose(actual.y, expected.y, `${label(cell)} ${point.name} y`)
       }
     }
   })
 
-  // E3 — the keyboard path agrees only where it is currently correct
-  test('E3: the keyboard data->SVG matches the zoom-aware one at zoom 1 with the element at base size', () => {
+  // E3
+  test('E3: dataToSVG matches the old keyboard transform at zoom 1', () => {
     const cells = CELLS.filter((c) => c.axes.zoom === 1)
     expect(cells.length).toBeGreaterThan(0)
 
     for (const cell of cells) {
       for (const point of imageSamplePoints(cell)) {
-        const data = imageToDataCoordinates(
-          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.rate
-        )
+        const data = imageToData(point.imageX, point.imageY, cell.viewport)
         const rawData = { freq: data.freq * cell.axes.rate, time: data.time }
 
-        const viaZoomAware = dataToSVGZoomAware(rawData, cell.viewport, cell.spectrogramImage)
-        const viaKeyboard = recordedKeyboardDataToSVG(
+        const actual = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
+        const expected = referenceKeyboardDataToSVG(
           data.freq, data.time, CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
         )
 
-        expectClose(viaKeyboard.x, viaZoomAware.x, `${label(cell)} ${point.name} x`)
-        expectClose(viaKeyboard.y, viaZoomAware.y, `${label(cell)} ${point.name} y`)
+        expectClose(actual.x, expected.x, `${label(cell)} ${point.name} x`)
+        expectClose(actual.y, expected.y, `${label(cell)} ${point.name} y`)
       }
     }
   })
 
-  test('E3 (rendered-pixels equivalence): outside zoom 1 the keyboard path needs its external compensation', () => {
-    // The keyboard path positions against the BASE render size, so one keypress
-    // always moves a fixed fraction of the base image. The zoom-aware path
-    // positions against the live element, which is `zoom` times larger. The
-    // ratio between the two is exactly the zoom level — which is what the
-    // `increment / zoomLevel` division in keyboardControl.js compensates for,
-    // and what the canonical module must make unnecessary (FR-003, I2).
-    for (const cell of CELLS.filter((c) => c.axes.zoom !== 1 && c.axes.hasElement)) {
-      const step = 1 // one pixel of keyboard movement
+  test('E3 (rendered-pixels equivalence): one keypress moves one rendered pixel at every zoom', () => {
+    // Before consolidation the keyboard path positioned against the base render
+    // size, so it moved `zoom` rendered pixels per keypress and compensated by
+    // dividing the increment by the zoom level. The canonical module positions
+    // against the live element, so an uncompensated increment now moves exactly
+    // one rendered pixel — which is what let that division be deleted
+    // (FR-003, I2). Both routes must agree on what the analyst sees.
+    for (const cell of CELLS.filter((c) => c.axes.hasElement)) {
+      const step = 1
       const origin = { freq: CONFIG.freqMin, time: CONFIG.timeMax } // image top-left
 
-      const keyboardOrigin = recordedKeyboardDataToSVG(
-        origin.freq / cell.axes.rate, origin.time, CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
+      // Canonical: move one pixel in SVG space, with no zoom compensation
+      const canonicalOrigin = dataToSVG(origin, cell.viewport, cell.spectrogramImage)
+      const canonicalMovedImage = svgToImage(
+        canonicalOrigin.x + step, canonicalOrigin.y, cell.viewport, cell.spectrogramImage
       )
-      const movedData = recordedKeyboardSVGToData(
-        keyboardOrigin.x + step, keyboardOrigin.y, CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
-      )
-
-      const svgOrigin = dataToSVGZoomAware(origin, cell.viewport, cell.spectrogramImage)
-      const svgMoved = dataToSVGZoomAware(
-        { freq: movedData.freq * cell.axes.rate, time: movedData.time },
+      const canonicalMoved = dataToSVG(
+        { freq: imageToData(canonicalMovedImage.x, canonicalMovedImage.y, cell.viewport).freq * cell.axes.rate,
+          time: origin.time },
         cell.viewport,
         cell.spectrogramImage
       )
+      expectClose(canonicalMoved.x - canonicalOrigin.x, step, `${label(cell)} canonical rendered pixels`)
 
-      // One un-compensated keypress moves `zoom` rendered pixels; dividing the
-      // increment by the zoom level is what brings it back to one.
-      expectClose(svgMoved.x - svgOrigin.x, step * cell.axes.zoom, `${label(cell)} rendered pixels per keypress`)
+      // Reference: the same rendered movement, but only once the increment is
+      // divided by the zoom level, as the deleted code did.
+      const compensated = step / cell.axes.zoom
+      const refOrigin = referenceKeyboardDataToSVG(
+        origin.freq / cell.axes.rate, origin.time, CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
+      )
+      const refMovedData = referenceKeyboardSVGToData(
+        refOrigin.x + compensated, refOrigin.y, CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
+      )
+      const refMoved = referenceDataToSVG(
+        { freq: refMovedData.freq * cell.axes.rate, time: refMovedData.time },
+        cell.viewport,
+        cell.spectrogramImage
+      )
+      expectClose(refMoved.x - canonicalOrigin.x, step, `${label(cell)} reference rendered pixels`)
     }
   })
 
-  // E5 — round trip
+  // E5
   test('E5: dataToSVG(imageToData(p)) round-trips back to p for in-bounds points', () => {
     for (const cell of CELLS) {
       for (const point of imageSamplePoints(cell)) {
         if (!point.inBounds) continue
 
-        const data = imageToDataCoordinates(
-          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.rate
-        )
+        const data = imageToData(point.imageX, point.imageY, cell.viewport)
         const rawData = { freq: data.freq * cell.axes.rate, time: data.time }
-        const svgPoint = dataToSVGZoomAware(rawData, cell.viewport, cell.spectrogramImage)
+        const svgPoint = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
+        const back = svgToImage(svgPoint.x, svgPoint.y, cell.viewport, cell.spectrogramImage)
 
-        // Back to image space the way the pointer path does it
-        const bounds = getImageBoundsZoomAware(cell.viewport, cell.spectrogramImage)
-        const backX = (svgPoint.x - bounds.left) * (cell.renderWidth / bounds.width)
-        const backY = (svgPoint.y - bounds.top) * (cell.renderHeight / bounds.height)
-
-        expectClose(backX, point.imageX, `${label(cell)} ${point.name} round-trip x`)
-        expectClose(backY, point.imageY, `${label(cell)} ${point.name} round-trip y`)
+        expectClose(back.x, point.imageX, `${label(cell)} ${point.name} round-trip x`)
+        expectClose(back.y, point.imageY, `${label(cell)} ${point.name} round-trip y`)
       }
     }
   })
 
-  // E6 — the bounds predicate
-  test('E6: getImageBounds agrees exactly with the bounds decision inside screenToDataWithZoom', () => {
+  // E6
+  test('E6: isWithinImage agrees exactly with the reference bounds decision', () => {
     for (const cell of CELLS) {
       for (const point of imageSamplePoints(cell)) {
         const client = imagePointToClient(cell, point.imageX, point.imageY)
-        const result = recordedEventsScreenToData(cell.instance, client)
+        const svgRect = cell.svgRect
+        const svgPoint = screenToSVG(
+          client.clientX - svgRect.left, client.clientY - svgRect.top, cell.svg
+        )
 
-        const bounds = getImageBoundsZoomAware(cell.viewport, cell.spectrogramImage)
-        const svgX = bounds.left + point.imageX * (bounds.width / cell.renderWidth)
-        const svgY = bounds.top + point.imageY * (bounds.height / cell.renderHeight)
-        const withinByBounds =
-          svgX >= bounds.left && svgX <= bounds.left + bounds.width &&
-          svgY >= bounds.top && svgY <= bounds.top + bounds.height
+        const actual = isWithinImage(svgPoint, cell.viewport, cell.spectrogramImage)
+        const expected = referenceEventsScreenToData(cell.instance, client) !== null
 
-        expect(result !== null, `${label(cell)} ${point.name} bounds agreement`).toBe(withinByBounds)
-        expect(withinByBounds, `${label(cell)} ${point.name} expected in-bounds`).toBe(point.inBounds)
+        expect(actual, `${label(cell)} ${point.name} bounds agreement`).toBe(expected)
+        expect(actual, `${label(cell)} ${point.name} expected in-bounds`).toBe(point.inBounds)
       }
     }
   })
@@ -522,14 +673,16 @@ describe('coordinate pipeline equivalence grid', () => {
     for (const cell of CELLS.filter((c) => c.axes.rate === 2)) {
       const rateOne = buildCell({ ...cell.axes, rate: 1 })
       for (const point of imageSamplePoints(cell)) {
-        const withRate = imageToDataCoordinates(
-          point.imageX, point.imageY, CONFIG, cell.imageDetails, 2
-        )
-        const withoutRate = imageToDataCoordinates(
-          point.imageX, point.imageY, CONFIG, rateOne.imageDetails, 1
-        )
+        const withRate = imageToData(point.imageX, point.imageY, cell.viewport)
+        const withoutRate = imageToData(point.imageX, point.imageY, rateOne.viewport)
         expectClose(withRate.freq * 2, withoutRate.freq, `${label(cell)} ${point.name} freq scales with rate`)
         expectClose(withRate.time, withoutRate.time, `${label(cell)} ${point.name} time ignores rate`)
+
+        // Image space itself is untouched by rate
+        const svgWith = dataToSVG({ freq: 1000, time: 30 }, cell.viewport, cell.spectrogramImage)
+        const svgWithout = dataToSVG({ freq: 1000, time: 30 }, rateOne.viewport, rateOne.spectrogramImage)
+        expectClose(svgWith.x, svgWithout.x, `${label(cell)} ${point.name} SVG x is rate-free`)
+        expectClose(svgWith.y, svgWithout.y, `${label(cell)} ${point.name} SVG y is rate-free`)
       }
     }
   })
