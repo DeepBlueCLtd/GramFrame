@@ -4424,7 +4424,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.renderDopplerFeatures();
     }
   }
-  const VERSION = "0.1.14";
+  const VERSION = "0.1.15";
   function getVersion() {
     return VERSION;
   }
