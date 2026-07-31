@@ -8,7 +8,7 @@
 
 /// <reference path="../types.js" />
 
-import { createSymbolSelect } from './SymbolPicker.js'
+import { createSymbolSelect, createLargeSymbolToggle } from './SymbolPicker.js'
 import { createPinToggle } from './PinToggle.js'
 import { getActiveStyle } from '../core/keyboardControl.js'
 
@@ -98,6 +98,10 @@ export function createColorPicker(instance) {
   // Harmonic-pin visibility toggle, below the colour/symbol row.
   container.appendChild(createPinToggle(instance))
 
+  // TEMPORARY (size experiment): size toggle beneath the pin toggle, for
+  // feedback on whether the larger symbols read better on a real gram.
+  container.appendChild(createLargeSymbolToggle(instance))
+
   // Add click handler for color selection
   canvas.addEventListener('click', (event) => {
     const rect = canvas.getBoundingClientRect()
@@ -137,7 +141,7 @@ export function createColorPicker(instance) {
   // currently selected, or to the next-feature defaults when nothing is
   // selected (feature 161, FR-004/FR-013).
   instance.syncStyleControls = () => {
-    const { color, symbol, showPin, pinApplies } = getActiveStyle(instance)
+    const { color, symbol, showPin, pinApplies, largeSymbols } = getActiveStyle(instance)
     showColor(color)
     if (instance._symbolControl) {
       instance._symbolControl.setValue(symbol)
@@ -147,6 +151,10 @@ export function createColorPicker(instance) {
       instance._pinControl.setValue(showPin)
       // Markers have no pin, so the toggle is disabled while one is selected.
       instance._pinControl.setEnabled(pinApplies)
+    }
+    // TEMPORARY (size experiment): keep the size toggle in step with selection.
+    if (instance._largeSymbolsControl) {
+      instance._largeSymbolsControl.setValue(largeSymbols)
     }
   }
 

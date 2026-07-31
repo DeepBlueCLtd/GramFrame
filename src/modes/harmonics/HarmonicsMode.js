@@ -7,7 +7,7 @@ import { calculateZoomAwarePosition, getImageBounds } from '../../utils/coordina
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
-import { createSymbolMark } from '../../rendering/symbols.js'
+import { createSymbolMark, resolveSymbolScale } from '../../rendering/symbols.js'
 import { applyTextHalo } from '../../utils/svg.js'
 import { calculateVisibleDataRange, getRenderDimensions } from '../../components/table.js'
 
@@ -128,7 +128,9 @@ export class HarmonicsMode extends BaseMode {
   static harmonicColors = ['#ff6b6b', '#2ecc71', '#f39c12', '#9b59b6', '#ffc93c', '#ff9ff3', '#45b7d1', '#e67e22']
 
   /**
-   * Pixel size (width/height) of a pin's symbol mark.
+   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
+   * this scaled by the "Large symbols" experiment toggle — use
+   * {@link HarmonicsMode#symbolSize} rather than reading this directly.
    * @type {number}
    */
   static SYMBOL_SIZE = 10
@@ -390,7 +392,10 @@ export class HarmonicsMode extends BaseMode {
       anchorTime,
       spacing,
       symbol,
-      showPin
+      showPin,
+      // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
+      // toggle's next-feature default, so sets at both sizes can coexist.
+      largeSymbols: !!this.instance.state.largeSymbols
     }
     
     this.instance.state.harmonics.harmonicSets.push(harmonicSet)
@@ -803,6 +808,18 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Effective pixel size of a set's symbol marks: the base size scaled by that
+   * set's own "Large symbols" flag, so sets at both sizes can share a gram. The
+   * whole label/symbol stack layout derives from this, so the label spacing and
+   * top-edge clamping follow the set's chosen size.
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @returns {number} Symbol diameter in px
+   */
+  symbolSize(harmonicSet) {
+    return HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(harmonicSet)
+  }
+
+  /**
    * Create the filled symbol mark drawn between a pin's number label and the top
    * of its line.
    *
@@ -817,7 +834,7 @@ export class HarmonicsMode extends BaseMode {
    */
   createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
     const symbol = createSymbolMark(
-      harmonicSet.symbol, lineX, symbolCy, HarmonicsMode.SYMBOL_SIZE, harmonicSet.color
+      harmonicSet.symbol, lineX, symbolCy, this.symbolSize(harmonicSet), harmonicSet.color
     )
     // `cross` sets draw no symbol shape (the pin keeps its line and label).
     if (!symbol) {
@@ -838,10 +855,11 @@ export class HarmonicsMode extends BaseMode {
    *
    * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
    * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
+   * @param {HarmonicSet} harmonicSet - Harmonic set being laid out (its symbol size drives the stack)
    * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
    */
-  calculateLabelStackPositions(lineTop, imageTop) {
-    const r = HarmonicsMode.SYMBOL_SIZE / 2
+  calculateLabelStackPositions(lineTop, imageTop, harmonicSet) {
+    const r = this.symbolSize(harmonicSet) / 2
     const gap = HarmonicsMode.LABEL_GAP
     const fontSize = HarmonicsMode.LABEL_FONT_SIZE
 
@@ -914,7 +932,7 @@ export class HarmonicsMode extends BaseMode {
     // Draw labels + symbols only on the thinned major subset (FR-002), stacked
     // above each pin line with a shared, on-screen vertical layout.
     const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic)
-    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop)
+    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet)
 
     labelledHarmonics.forEach(harmonicNumber => {
       const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
