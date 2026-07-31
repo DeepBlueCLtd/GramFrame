@@ -446,8 +446,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     "star": "Star"
   };
   const LARGE_SYMBOL_SCALE = 2;
-  function resolveSymbolScale(state) {
-    return state && state.largeSymbols ? LARGE_SYMBOL_SCALE : 1;
+  function resolveSymbolScale(source) {
+    return source && source.largeSymbols ? LARGE_SYMBOL_SCALE : 1;
   }
   function toPoints(pts) {
     return pts.map(([x, y]) => `${x},${y}`).join(" ");
@@ -703,7 +703,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         color,
         time: dataCoords.time,
         freq: dataCoords.freq,
-        symbol
+        symbol,
+        // EXPERIMENT (temporary): symbol size is carried per marker, seeded from
+        // the toggle's next-feature default, so both sizes can coexist.
+        largeSymbols: !!this.instance.state.largeSymbols
       };
       this.addMarker(marker);
     }
@@ -736,7 +739,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
       markerGroup.setAttribute("class", "gram-frame-analysis-marker");
       markerGroup.setAttribute("data-marker-id", marker.id);
-      const symbolSize = _AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(this.instance.state);
+      const symbolSize = _AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker);
       const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color);
       if (symbolMark) {
         symbolMark.setAttribute("class", "gram-frame-marker-symbol");
@@ -2058,7 +2061,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         color,
         anchorTime,
         spacing,
-        symbol
+        symbol,
+        // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
+        // toggle's next-feature default, so sets at both sizes can coexist.
+        largeSymbols: !!this.instance.state.largeSymbols
       };
       this.instance.state.harmonics.harmonicSets.push(harmonicSet);
       const index = this.instance.state.harmonics.harmonicSets.length - 1;
@@ -2124,17 +2130,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const freqMax = this.instance.state.config.freqMax;
           const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
           const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
+          const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
           for (let h = minHarmonic; h <= maxHarmonic; h++) {
             const expectedFreq = h * harmonicSet.spacing;
             const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
             if (Math.abs(freq - expectedFreq) < tolerance.freq) {
-              const { naturalHeight } = this.instance.state.imageDetails;
-              const lineHeight = naturalHeight * 0.2;
-              const timeRange = this.instance.state.config.timeMax - this.instance.state.config.timeMin;
-              const lineHeightInTime = lineHeight / naturalHeight * timeRange;
-              const lineStartTime = harmonicSet.anchorTime - lineHeightInTime / 2;
-              const lineEndTime = harmonicSet.anchorTime + lineHeightInTime / 2;
-              if (cursorTime >= lineStartTime && cursorTime <= lineEndTime) {
+              const cursorSVGY = calculateZoomAwarePosition(
+                { freq: expectedFreq, time: cursorTime },
+                this.getViewport(),
+                this.instance.spectrogramImage
+              ).y;
+              if (cursorSVGY >= lineTop && cursorSVGY <= lineTop + lineHeight) {
                 return harmonicSet;
               }
             }
@@ -2300,14 +2306,21 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return sampledHarmonics(minHarmonic, maxHarmonic).harmonics;
     }
     /**
-     * Calculate harmonic line dimensions and positions
+     * Calculate harmonic line dimensions and positions.
+     *
+     * The height is a fixed pixel length taken from the *base* (unzoomed) render
+     * height, so a pin covers the same number of screen pixels no matter how far
+     * the user has zoomed in — it is not a span of time that stretches with the
+     * image. Only the centre is zoom-aware: the pin stays centred on the set's
+     * anchor time (the original click location), so it tracks the feature while
+     * keeping a constant height.
+     *
      * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {Object} Line dimensions with height and top position
+     * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
      */
     calculateHarmonicLineDimensions(harmonicSet) {
-      const lineHeightRatio = 0.2;
-      const imageBounds = getImageBounds(this.getViewport(), this.instance.spectrogramImage);
-      const lineHeight = imageBounds.height * lineHeightRatio;
+      const { renderHeight } = getRenderDimensions(this.instance);
+      const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
       const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
       const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
       const lineTop = anchorSVG.y - lineHeight / 2;
@@ -2366,13 +2379,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return label;
     }
     /**
-     * Effective pixel size of a pin's symbol mark, i.e. the base size scaled by the
-     * temporary "Large symbols" toggle. The whole label/symbol stack layout derives
-     * from this, so the label spacing and top-edge clamping follow the chosen size.
+     * Effective pixel size of a set's symbol marks: the base size scaled by that
+     * set's own "Large symbols" flag, so sets at both sizes can share a gram. The
+     * whole label/symbol stack layout derives from this, so the label spacing and
+     * top-edge clamping follow the set's chosen size.
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
      * @returns {number} Symbol diameter in px
      */
-    symbolSize() {
-      return _HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(this.instance.state);
+    symbolSize(harmonicSet) {
+      return _HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(harmonicSet);
     }
     /**
      * Create the filled symbol mark drawn between a pin's number label and the top
@@ -2392,7 +2407,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         harmonicSet.symbol,
         lineX,
         symbolCy,
-        this.symbolSize(),
+        this.symbolSize(harmonicSet),
         harmonicSet.color
       );
       if (!symbol) {
@@ -2412,10 +2427,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      *
      * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
      * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
+     * @param {HarmonicSet} harmonicSet - Harmonic set being laid out (its symbol size drives the stack)
      * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
      */
-    calculateLabelStackPositions(lineTop, imageTop) {
-      const r = this.symbolSize() / 2;
+    calculateLabelStackPositions(lineTop, imageTop, harmonicSet) {
+      const r = this.symbolSize(harmonicSet) / 2;
       const gap = _HarmonicsMode.LABEL_GAP;
       const fontSize = _HarmonicsMode.LABEL_FONT_SIZE;
       let symbolCy = lineTop - r;
@@ -2465,7 +2481,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.instance.cursorGroup.appendChild(line);
       }
       const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic);
-      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop);
+      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
       labelledHarmonics.forEach((harmonicNumber) => {
         const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
         const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy);
@@ -2511,6 +2527,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
    * @type {number}
    */
   __publicField(_HarmonicsMode, "SYMBOL_SIZE", 10);
+  /**
+   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
+   *
+   * The resulting height is a fixed pixel length, not a span of time: it is
+   * derived from the viewport's base render size (which tracks expand, not zoom)
+   * rather than from the zoomed image element. Pins therefore keep the same
+   * on-screen height at every zoom level, growing/shrinking only when the
+   * component itself is resized.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "PIN_HEIGHT_RATIO", 0.2);
   /**
    * Font size (px) of a pin's number label; also used as its approximate ascent
    * when clamping the label/symbol stack to the image's top edge.
@@ -2582,18 +2609,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function createLargeSymbolToggle(instance) {
     const label = document.createElement("label");
     label.className = "gram-frame-large-symbols-toggle";
-    label.title = `Trial: draw symbols at ${LARGE_SYMBOL_SCALE}× their normal size`;
+    label.title = `Trial: draw the selected feature's symbols at ${LARGE_SYMBOL_SCALE}× their normal size`;
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.className = "gram-frame-large-symbols-checkbox";
     checkbox.checked = !!instance.state.largeSymbols;
     checkbox.addEventListener("change", () => {
-      instance.state.largeSymbols = checkbox.checked;
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures();
+      if (!instance.applyLargeSymbolsToSelectedFeature || !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
+        instance.state.largeSymbols = checkbox.checked;
+        notifyStateListeners(instance.state, instance.stateListeners);
       }
-      notifyStateListeners(instance.state, instance.stateListeners);
     });
+    instance._largeSymbolsControl = {
+      /** @param {boolean} large */
+      setValue(large) {
+        checkbox.checked = large;
+      }
+    };
     label.appendChild(checkbox);
     label.appendChild(document.createTextNode("Large symbols"));
     return label;
@@ -2943,12 +2975,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         symbol: (
           /** @type {SymbolType} */
           selected.feature.symbol || DEFAULT_SYMBOL
-        )
+        ),
+        largeSymbols: !!selected.feature.largeSymbols
       };
     }
     return {
       color: instance.state.selectedColor,
-      symbol: instance.state.selectedSymbol
+      symbol: instance.state.selectedSymbol,
+      largeSymbols: !!instance.state.largeSymbols
     };
   }
   function refreshFeatureVisuals(instance, type) {
@@ -2982,6 +3016,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return false;
     }
     selected.feature.symbol = symbol;
+    refreshFeatureVisuals(instance, selected.type);
+    return true;
+  }
+  function applyLargeSymbolsToSelectedFeature(instance, large) {
+    const selected = getSelectedFeature(instance);
+    if (!selected) {
+      return false;
+    }
+    selected.feature.largeSymbols = large;
     refreshFeatureVisuals(instance, selected.type);
     return true;
   }
@@ -3105,11 +3148,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       symbolSelect.style.color = color;
     };
     instance.syncStyleControls = () => {
-      const { color, symbol } = getActiveStyle(instance);
+      const { color, symbol, largeSymbols } = getActiveStyle(instance);
       showColor(color);
       if (instance._symbolControl) {
         instance._symbolControl.setValue(symbol);
         instance._symbolControl.setTint(color);
+      }
+      if (instance._largeSymbolsControl) {
+        instance._largeSymbolsControl.setValue(largeSymbols);
       }
     };
     const initialPosition = getPositionFromColor(state.selectedColor, canvas.width);
@@ -4331,9 +4377,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     // Currently selected color for new features across all modes
     selectedSymbol: "cross",
     // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
-    // EXPERIMENT (temporary): draw overlay symbols at double size, toggled from
-    // the Symbol panel. In-memory only, default off, never persisted — it exists
-    // to gather feedback on the preferred symbol size.
+    // EXPERIMENT (temporary): large-symbol size for the NEXT created feature, set
+    // from the Symbol panel's toggle when nothing is selected (with a feature
+    // selected, the toggle resizes that feature instead). In-memory only, default
+    // off, never persisted — it exists to gather feedback on the preferred size.
     largeSymbols: false,
     cursorPosition: null,
     cursors: [],
@@ -5000,6 +5047,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     instance.removeHarmonicSet = (id) => removeHarmonicSet(instance, id);
     instance.applyColorToSelectedFeature = (color) => applyColorToSelectedFeature(instance, color);
     instance.applySymbolToSelectedFeature = (symbol) => applySymbolToSelectedFeature(instance, symbol);
+    instance.applyLargeSymbolsToSelectedFeature = (large) => applyLargeSymbolsToSelectedFeature(instance, large);
   }
   function setupStateListeners(instance) {
     getGlobalStateListeners().forEach((listener) => {
@@ -5666,10 +5714,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       // Reformatting (feature 161): restyle the selected feature in place
       __publicField(this, "applyColorToSelectedFeature");
       __publicField(this, "applySymbolToSelectedFeature");
+      // EXPERIMENT (temporary): resize the selected feature's symbols
+      __publicField(this, "applyLargeSymbolsToSelectedFeature");
       // Sync the colour/symbol controls to the current selection
       __publicField(this, "syncStyleControls");
       // Symbol drop-down control handle (registered by the symbol picker)
       __publicField(this, "_symbolControl");
+      // EXPERIMENT (temporary): "Large symbols" checkbox handle
+      __publicField(this, "_largeSymbolsControl");
       // ResizeObserver
       __publicField(this, "resizeObserver");
       // Bound event handlers
