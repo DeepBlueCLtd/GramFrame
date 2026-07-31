@@ -172,6 +172,146 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
   }
+  function createDiffingTable(container, spec) {
+    const area = document.createElement("div");
+    area.className = "gram-frame-table-area";
+    const wrapper = document.createElement("div");
+    wrapper.className = "gram-frame-table-container";
+    const table = document.createElement("table");
+    table.className = "gram-frame-table";
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    spec.columns.forEach((column) => {
+      const th = document.createElement("th");
+      th.textContent = column.label || "";
+      if (column.width) {
+        th.style.width = column.width;
+      }
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    area.appendChild(wrapper);
+    container.appendChild(area);
+    let currentRows = [];
+    function setCellContent(cell, content) {
+      if (content instanceof Node) {
+        cell.replaceChildren(content);
+      } else if (cell.textContent !== content) {
+        cell.textContent = content;
+      }
+    }
+    function applySelection(tr, key) {
+      const selected = spec.isSelected ? spec.isSelected(key) : false;
+      tr.classList.toggle("gram-frame-selected-row", selected);
+    }
+    function buildRow(row, index) {
+      const key = spec.rowKey(row, index);
+      const tr = document.createElement("tr");
+      tr.setAttribute(spec.rowAttribute, key);
+      if (spec.rowClassName) {
+        tr.className = spec.rowClassName;
+      }
+      applySelection(tr, key);
+      spec.cells(row, index).forEach((content, column) => {
+        const td = document.createElement("td");
+        const className = spec.columns[column] && spec.columns[column].cellClassName;
+        if (className) {
+          td.className = className;
+        }
+        setCellContent(td, content);
+        tr.appendChild(td);
+      });
+      return tr;
+    }
+    function updateRow(tr, row, index) {
+      applySelection(tr, spec.rowKey(row, index));
+      spec.cells(row, index).forEach((content, column) => {
+        const cell = tr.cells[column];
+        if (cell) {
+          setCellContent(cell, content);
+        }
+      });
+    }
+    function rebuildFrom(rows, startIndex) {
+      const existing = tbody.querySelectorAll("tr");
+      for (let i = startIndex; i < existing.length; i++) {
+        existing[i].remove();
+      }
+      for (let i = startIndex; i < rows.length; i++) {
+        tbody.appendChild(buildRow(rows[i], i));
+      }
+    }
+    function handleClick(event) {
+      const target = (
+        /** @type {Element|null} */
+        event.target
+      );
+      if (!target) return;
+      const tr = (
+        /** @type {HTMLTableRowElement|null} */
+        target.closest("tr")
+      );
+      if (!tr || !tbody.contains(tr)) return;
+      const key = tr.getAttribute(spec.rowAttribute);
+      if (key === null) return;
+      const index = Array.prototype.indexOf.call(tbody.children, tr);
+      const row = currentRows[index];
+      if (spec.deleteSelector && target.closest(spec.deleteSelector)) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (spec.onDelete) {
+          spec.onDelete(key, row, index);
+        }
+        return;
+      }
+      if (spec.onSelect) {
+        spec.onSelect(key, row, index);
+      }
+    }
+    tbody.addEventListener("click", handleClick);
+    return {
+      element: table,
+      /**
+       * Diff `rows` against what is rendered and apply the difference.
+       *
+       * Idempotent: calling it twice with equal input performs no DOM writes.
+       * @param {any[]} rows - The rows to render
+       */
+      update(rows) {
+        currentRows = rows || [];
+        const existing = tbody.querySelectorAll("tr");
+        for (let index = 0; index < currentRows.length; index++) {
+          const tr = (
+            /** @type {HTMLTableRowElement} */
+            existing[index]
+          );
+          const key = spec.rowKey(currentRows[index], index);
+          if (tr && tr.getAttribute(spec.rowAttribute) === key) {
+            updateRow(tr, currentRows[index], index);
+          } else {
+            rebuildFrom(currentRows, index);
+            return;
+          }
+        }
+        for (let i = currentRows.length; i < existing.length; i++) {
+          existing[i].remove();
+        }
+      },
+      /**
+       * Remove the table and its listener.
+       */
+      destroy() {
+        tbody.removeEventListener("click", handleClick);
+        if (area.parentNode) {
+          area.parentNode.removeChild(area);
+        }
+      }
+    };
+  }
   function formatTime(seconds) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
@@ -661,6 +801,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     div.style.border = "1px solid #ccc";
     return div;
   }
+  function createMarkerDeleteButton() {
+    const button = document.createElement("button");
+    button.textContent = "×";
+    button.className = "gram-frame-marker-delete-btn";
+    button.style.background = "none";
+    button.style.border = "none";
+    button.style.color = "#ff4444";
+    button.style.cursor = "pointer";
+    button.style.fontSize = "16px";
+    button.style.fontWeight = "bold";
+    return button;
+  }
   const _AnalysisMode = class _AnalysisMode extends BaseMode {
     /**
      * Initialize AnalysisMode with drag handler
@@ -891,7 +1043,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.uiElements.markersContainer = markersContainer;
       this.createMarkersTable(markersContainer);
       this.uiElements.markersTable = markersContainer.querySelector(".gram-frame-table");
-      this.uiElements.markersTableBody = markersContainer.querySelector(".gram-frame-table tbody");
       this.instance.colorPicker = this.instance.colorPicker || null;
       this.instance.timeLED = this.instance.timeLED || null;
       this.instance.freqLED = this.instance.freqLED || null;
@@ -910,40 +1061,44 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (markersContainer.querySelector(".gram-frame-table")) {
         return;
       }
-      const tableArea = document.createElement("div");
-      tableArea.className = "gram-frame-table-area";
-      const tableWrapper = document.createElement("div");
-      tableWrapper.className = "gram-frame-table-container";
-      const table = document.createElement("table");
-      table.className = "gram-frame-table";
-      const thead = document.createElement("thead");
-      const headerRow = document.createElement("tr");
-      const colorHeader = document.createElement("th");
-      colorHeader.textContent = "";
-      colorHeader.style.width = "15%";
-      headerRow.appendChild(colorHeader);
-      const timeHeader = document.createElement("th");
-      timeHeader.textContent = "Time (mm:ss)";
-      timeHeader.style.width = "35%";
-      headerRow.appendChild(timeHeader);
-      const freqHeader = document.createElement("th");
-      freqHeader.textContent = "Freq (Hz)";
-      freqHeader.style.width = "35%";
-      headerRow.appendChild(freqHeader);
-      const deleteHeader = document.createElement("th");
-      deleteHeader.textContent = "";
-      deleteHeader.style.width = "15%";
-      headerRow.appendChild(deleteHeader);
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-      const tbody = document.createElement("tbody");
-      table.appendChild(tbody);
-      tableWrapper.appendChild(table);
-      tableArea.appendChild(tableWrapper);
-      markersContainer.appendChild(tableArea);
-      this.uiElements.markersTable = table;
-      this.uiElements.markersTableBody = tbody;
+      this.markersTable = createDiffingTable(markersContainer, {
+        columns: [
+          { label: "", width: "15%", cellClassName: "gram-frame-marker-color" },
+          { label: "Time (mm:ss)", width: "35%" },
+          { label: "Freq (Hz)", width: "35%" },
+          { label: "", width: "15%" }
+        ],
+        rowAttribute: "data-marker-id",
+        rowKey: (marker) => marker.id,
+        cells: (marker) => [
+          // Colour/symbol cell — a shaped symbol shows the colour-coded symbol;
+          // the cross (symbol-less) style shows a filled colour rectangle (FR-010).
+          createColorIndicator(marker.symbol, marker.color, 20),
+          formatTime(marker.time),
+          marker.freq.toFixed(2),
+          createMarkerDeleteButton()
+        ],
+        deleteSelector: ".gram-frame-marker-delete-btn",
+        onSelect: (markerId, _marker, index) => {
+          if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId) {
+            this.instance.clearSelection();
+          } else {
+            this.instance.setSelection("marker", markerId, index);
+          }
+        },
+        onDelete: (markerId) => this.removeMarker(markerId),
+        isSelected: (markerId) => this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId
+      });
+      this.uiElements.markersTable = this.markersTable.element;
       this.updateMarkersTable();
+    }
+    /**
+     * Update markers table with current markers
+     */
+    updateMarkersTable() {
+      if (!this.markersTable) return;
+      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
+      this.markersTable.update(this.instance.state.analysis.markers);
     }
     /**
      * Update LED displays for analysis mode
@@ -1038,110 +1193,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return null;
     }
     /**
-     * Update markers table with current markers
-     */
-    updateMarkersTable() {
-      if (!this.uiElements.markersTableBody) return;
-      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
-      const existingRows = this.uiElements.markersTableBody.querySelectorAll("tr");
-      const markers = this.instance.state.analysis.markers;
-      markers.forEach((marker, index) => {
-        let row = existingRows[index];
-        if (row && row.getAttribute("data-marker-id") === marker.id) {
-          this.updateMarkerRow(row, marker);
-        } else {
-          this.rebuildMarkersTableFrom(index);
-          return;
-        }
-      });
-      for (let i = markers.length; i < existingRows.length; i++) {
-        existingRows[i].remove();
-      }
-    }
-    /**
-     * Update only the changing cells in an existing marker row
-     * @param {HTMLTableRowElement} row - The table row to update
-     * @param {AnalysisMarker} marker - The marker data
-     */
-    updateMarkerRow(row, marker) {
-      const colorCell = row.cells[0];
-      if (colorCell) {
-        colorCell.replaceChildren(createColorIndicator(marker.symbol, marker.color, 20));
-      }
-      const timeCell = row.cells[1];
-      if (timeCell) {
-        const newTime = formatTime(marker.time);
-        if (timeCell.textContent !== newTime) {
-          timeCell.textContent = newTime;
-        }
-      }
-      const freqCell = row.cells[2];
-      if (freqCell) {
-        const newFreq = marker.freq.toFixed(2);
-        if (freqCell.textContent !== newFreq) {
-          freqCell.textContent = newFreq;
-        }
-      }
-    }
-    /**
-     * Rebuild the markers table from a specific index
-     * @param {number} startIndex - Index to start rebuilding from
-     */
-    rebuildMarkersTableFrom(startIndex) {
-      if (!this.uiElements.markersTableBody) return;
-      const markers = this.instance.state.analysis.markers;
-      const existingRows = this.uiElements.markersTableBody.querySelectorAll("tr");
-      for (let i = startIndex; i < existingRows.length; i++) {
-        existingRows[i].remove();
-      }
-      for (let index = startIndex; index < markers.length; index++) {
-        const marker = markers[index];
-        const row = document.createElement("tr");
-        row.setAttribute("data-marker-id", marker.id);
-        row.addEventListener("click", (event) => {
-          if (event.target && /** @type {Element} */
-          event.target.closest(".gram-frame-marker-delete-btn")) {
-            return;
-          }
-          if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === marker.id) {
-            this.instance.clearSelection();
-          } else {
-            this.instance.setSelection("marker", marker.id, index);
-          }
-        });
-        const colorCell = document.createElement("td");
-        colorCell.className = "gram-frame-marker-color";
-        colorCell.appendChild(createColorIndicator(marker.symbol, marker.color, 20));
-        row.appendChild(colorCell);
-        const timeCell = document.createElement("td");
-        timeCell.textContent = formatTime(marker.time);
-        row.appendChild(timeCell);
-        const freqCell = document.createElement("td");
-        freqCell.textContent = marker.freq.toFixed(2);
-        row.appendChild(freqCell);
-        const deleteCell = document.createElement("td");
-        const deleteButton = document.createElement("button");
-        deleteButton.textContent = "×";
-        deleteButton.className = "gram-frame-marker-delete-btn";
-        deleteButton.style.background = "none";
-        deleteButton.style.border = "none";
-        deleteButton.style.color = "#ff4444";
-        deleteButton.style.cursor = "pointer";
-        deleteButton.style.fontSize = "16px";
-        deleteButton.style.fontWeight = "bold";
-        const markerId = marker.id;
-        deleteButton.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          this.removeMarker(markerId);
-        });
-        deleteCell.appendChild(deleteButton);
-        row.appendChild(deleteCell);
-        this.uiElements.markersTableBody.appendChild(row);
-      }
-      this.instance.updateSelectionVisuals();
-    }
-    /**
      * Update mode-specific LED values based on cursor position
      */
     updateModeSpecificLEDs() {
@@ -1171,148 +1222,75 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
    */
   __publicField(_AnalysisMode, "MARKER_SYMBOL_SIZE", 14);
   let AnalysisMode = _AnalysisMode;
+  const panelTables = /* @__PURE__ */ new WeakMap();
   function createSymbolSwatch(harmonicSet) {
     return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
   }
-  function createHarmonicPanel(container) {
-    const area = document.createElement("div");
-    area.className = "gram-frame-table-area";
-    const panel = document.createElement("div");
-    panel.className = "gram-frame-table-container";
-    panel.innerHTML = `
-    <table class="gram-frame-table">
-      <thead>
-        <tr>
-          <th style="width: 15%"></th>
-          <th style="width: 35%">Spacing (Hz)</th>
-          <th style="width: 35%">Ratio</th>
-          <th style="width: 15%"></th>
-        </tr>
-      </thead>
-      <tbody>
-      </tbody>
-    </table>
-  `;
-    area.appendChild(panel);
-    container.appendChild(area);
+  function createColorCellContent(harmonicSet) {
+    const colorDiv = document.createElement("div");
+    colorDiv.className = "gram-frame-harmonic-color";
+    colorDiv.style.color = harmonicSet.color;
+    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
+    return colorDiv;
+  }
+  function formatRatio(harmonicSet, instance) {
+    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
+      return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
+    }
+    return "5.000";
+  }
+  function createHarmonicDeleteButton(harmonicSet) {
+    const button = document.createElement("button");
+    button.className = "gram-frame-harmonic-delete";
+    button.setAttribute("data-harmonic-id", harmonicSet.id);
+    button.title = "Delete harmonic set";
+    button.textContent = "×";
+    return button;
+  }
+  function createHarmonicPanel(container, instance) {
+    const table = createDiffingTable(container, {
+      columns: [
+        { label: "", width: "15%" },
+        { label: "Spacing (Hz)", width: "35%", cellClassName: "gram-frame-harmonic-spacing" },
+        { label: "Ratio", width: "35%", cellClassName: "gram-frame-harmonic-rate" },
+        { label: "", width: "15%" }
+      ],
+      rowAttribute: "data-harmonic-id",
+      rowClassName: "gram-frame-harmonic-row",
+      rowKey: (harmonicSet) => harmonicSet.id,
+      cells: (harmonicSet) => [
+        createColorCellContent(harmonicSet),
+        harmonicSet.spacing.toFixed(2),
+        formatRatio(harmonicSet, instance),
+        createHarmonicDeleteButton(harmonicSet)
+      ],
+      deleteSelector: ".gram-frame-harmonic-delete",
+      onSelect: (harmonicSetId, _harmonicSet, index) => {
+        if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId) {
+          instance.clearSelection();
+        } else {
+          instance.setSelection("harmonicSet", harmonicSetId, index);
+        }
+      },
+      onDelete: (harmonicSetId) => instance.removeHarmonicSet(harmonicSetId),
+      isSelected: (harmonicSetId) => instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId
+    });
+    const panel = (
+      /** @type {HTMLElement} */
+      table.element.parentElement
+    );
+    panelTables.set(panel, table);
     return panel;
   }
   function updateHarmonicPanelContent(panel, instance) {
     if (!panel) {
       return;
     }
-    const tbody = (
-      /** @type {HTMLTableSectionElement} */
-      panel.querySelector(".gram-frame-table tbody")
-    );
-    if (!tbody) {
+    const table = panelTables.get(panel);
+    if (!table) {
       return;
     }
-    const harmonicSets = instance.state.harmonics.harmonicSets;
-    const existingRows = tbody.querySelectorAll("tr");
-    harmonicSets.forEach((harmonicSet, index) => {
-      let row = existingRows[index];
-      if (row && row.getAttribute("data-harmonic-id") === harmonicSet.id) {
-        updateHarmonicRow(row, harmonicSet, instance);
-      } else {
-        rebuildHarmonicTableFrom(tbody, harmonicSets, instance, index);
-        return;
-      }
-    });
-    for (let i = harmonicSets.length; i < existingRows.length; i++) {
-      existingRows[i].remove();
-    }
-  }
-  function updateHarmonicRow(row, harmonicSet, instance) {
-    const colorCell = row.cells[0];
-    const colorDiv = colorCell && /** @type {HTMLElement} */
-    colorCell.querySelector(".gram-frame-harmonic-color");
-    if (colorDiv) {
-      colorDiv.style.color = harmonicSet.color;
-      colorDiv.replaceChildren(createSymbolSwatch(harmonicSet));
-    }
-    const spacingCell = row.cells[1];
-    if (spacingCell) {
-      const newSpacing = harmonicSet.spacing.toFixed(2);
-      if (spacingCell.textContent !== newSpacing) {
-        spacingCell.textContent = newSpacing;
-      }
-    }
-    const rateCell = row.cells[2];
-    if (rateCell) {
-      let rate;
-      if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-        rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
-      } else {
-        rate = "5.000";
-      }
-      if (rateCell.textContent !== rate) {
-        rateCell.textContent = rate;
-      }
-    }
-  }
-  function rebuildHarmonicTableFrom(tbody, harmonicSets, instance, startIndex) {
-    const existingRows = tbody.querySelectorAll("tr");
-    for (let i = startIndex; i < existingRows.length; i++) {
-      existingRows[i].remove();
-    }
-    for (let index = startIndex; index < harmonicSets.length; index++) {
-      const harmonicSet = harmonicSets[index];
-      const row = createHarmonicRow(harmonicSet, instance, index);
-      tbody.appendChild(row);
-    }
-    instance.updateSelectionVisuals();
-  }
-  function createHarmonicRow(harmonicSet, instance, index) {
-    const row = document.createElement("tr");
-    row.setAttribute("data-harmonic-id", harmonicSet.id);
-    row.className = "gram-frame-harmonic-row";
-    const colorCell = document.createElement("td");
-    const colorDiv = document.createElement("div");
-    colorDiv.className = "gram-frame-harmonic-color";
-    colorDiv.style.color = harmonicSet.color;
-    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
-    colorCell.appendChild(colorDiv);
-    row.appendChild(colorCell);
-    const spacingCell = document.createElement("td");
-    spacingCell.className = "gram-frame-harmonic-spacing";
-    spacingCell.textContent = harmonicSet.spacing.toFixed(2);
-    row.appendChild(spacingCell);
-    const rateCell = document.createElement("td");
-    rateCell.className = "gram-frame-harmonic-rate";
-    let rate;
-    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-      rate = (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
-    } else {
-      rate = "5.000";
-    }
-    rateCell.textContent = rate;
-    row.appendChild(rateCell);
-    const actionCell = document.createElement("td");
-    const deleteButton = document.createElement("button");
-    deleteButton.className = "gram-frame-harmonic-delete";
-    deleteButton.setAttribute("data-harmonic-id", harmonicSet.id);
-    deleteButton.title = "Delete harmonic set";
-    deleteButton.textContent = "×";
-    actionCell.appendChild(deleteButton);
-    row.appendChild(actionCell);
-    row.addEventListener("click", (event) => {
-      if (event.target && /** @type {Element} */
-      event.target.closest(".gram-frame-harmonic-delete")) {
-        return;
-      }
-      if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSet.id) {
-        instance.clearSelection();
-      } else {
-        instance.setSelection("harmonicSet", harmonicSet.id, index);
-      }
-    });
-    deleteButton.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      instance.removeHarmonicSet(harmonicSet.id);
-    });
-    return row;
+    table.update(instance.state.harmonics.harmonicSets);
   }
   const BOTTOM_GAP = 16;
   function isLandscape(instance) {
@@ -2107,7 +2085,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (buttonContainer) {
         buttonContainer.appendChild(this.uiElements.manualButton);
       }
-      this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer);
+      this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer, this.instance);
       this.instance.harmonicPanel = this.uiElements.harmonicPanel;
       this.instance.colorPicker = this.instance.colorPicker || null;
       this.updateHarmonicPanel();
@@ -3410,28 +3388,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function updateSelectionVisuals(instance) {
-    if (instance.container) {
-      const existingHighlights = instance.container.querySelectorAll(".gram-frame-selected-row");
-      existingHighlights.forEach((el) => {
-        el.classList.remove("gram-frame-selected-row");
-      });
+    const analysisMode = instance.modes && instance.modes["analysis"];
+    if (analysisMode && typeof analysisMode.updateMarkersTable === "function") {
+      analysisMode.updateMarkersTable();
     }
-    const selection = instance.state.selection;
-    if (selection.selectedType && selection.selectedId) {
-      const container = instance.container || document;
-      if (selection.selectedType === "marker") {
-        const selector = `tr[data-marker-id="${selection.selectedId}"]`;
-        const row = container.querySelector(selector);
-        if (row) {
-          row.classList.add("gram-frame-selected-row");
-        }
-      } else if (selection.selectedType === "harmonicSet") {
-        const selector = `tr[data-harmonic-id="${selection.selectedId}"]`;
-        const row = container.querySelector(selector);
-        if (row) {
-          row.classList.add("gram-frame-selected-row");
-        }
-      }
+    if (instance.harmonicPanel) {
+      updateHarmonicPanelContent(instance.harmonicPanel, instance);
     }
   }
   const COLOR_PALETTE = [
