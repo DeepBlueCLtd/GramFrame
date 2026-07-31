@@ -2,6 +2,21 @@
  * Base interface for GramFrame analysis modes
  * Provides common lifecycle methods and event handling interface
  * All mode implementations should extend this base class
+ *
+ * Two kinds of member live here, and the distinction matters (spec 167, FR-005):
+ *
+ * - **Hooks** — empty here, meant to be overridden. Every one has at least one
+ *   real override in a mode. A hook with none is a no-op dressed up as a
+ *   contract: a cursor-render hook and a state-snapshot hook were exactly that,
+ *   and were deleted along with the coordinator method whose only job was
+ *   calling the first of them.
+ * - **Concrete helpers** — `getViewport` and `updateCursorStyle`. Zero
+ *   overrides, but 17 and 3 callers: the base implementation *is* the whole
+ *   contract, so they stay.
+ *
+ * `renderPersistentFeatures` remains declared here for modes that inherit the
+ * no-op, but cross-module callers reach it through the `PersistentFeatureProvider`
+ * capability in `modes/capabilities.js` rather than through this base class.
  */
 export class BaseMode {
   /**
@@ -67,14 +82,6 @@ export class BaseMode {
    * Override in subclasses to render mode-specific persistent features
    */
   renderPersistentFeatures() {
-    // Default implementation - override in subclasses
-  }
-
-  /**
-   * Render current cursor for this mode
-   * Override in subclasses to render mode-specific cursor indicators
-   */
-  renderCursor() {
     // Default implementation - override in subclasses
   }
 
@@ -157,15 +164,6 @@ export class BaseMode {
       })
       this.uiElements = {}
     }
-  }
-
-  /**
-   * Get a snapshot of current mode-specific state
-   * @returns {*} Mode-specific state snapshot
-   */
-  getStateSnapshot() {
-    // Default implementation - override in subclasses
-    return {}
   }
 
   /**

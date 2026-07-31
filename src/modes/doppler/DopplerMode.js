@@ -651,6 +651,19 @@ export class DopplerMode extends BaseMode {
 
 
   /**
+   * Whether this mode currently owns any persistent feature.
+   *
+   * Half of the `PersistentFeatureProvider` capability. Lived on
+   * `FeatureRenderer` as `hasDopplerFeatures()` until spec 167 moved it onto
+   * the mode that owns the state it reads.
+   * @returns {boolean} True if any doppler marker has been placed
+   */
+  hasPersistentFeatures() {
+    const doppler = this.instance.state.doppler
+    return !!(doppler && (doppler.fPlus || doppler.fMinus || doppler.fZero))
+  }
+
+  /**
    * Render persistent features (for FeatureRenderer)
    */
   renderPersistentFeatures() {

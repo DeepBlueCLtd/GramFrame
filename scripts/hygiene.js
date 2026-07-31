@@ -155,6 +155,16 @@ function errorLines(output) {
   return output.split('\n').filter(line => line.includes('error TS'))
 }
 
+/**
+ * The compiler-output lines matching a pattern.
+ * @param {string} output
+ * @param {RegExp} pattern
+ * @returns {string[]} The matching lines
+ */
+function errorLinesMatching(output, pattern) {
+  return output.split('\n').filter(line => pattern.test(line))
+}
+
 // Temporary: this whole block disappears with tsconfig.strict.json once the
 // three flags move into tsconfig.json itself (spec 167 T014). Absence of the
 // overlay is the intended end state, not a misconfiguration, so skip silently.
@@ -170,6 +180,17 @@ if (existsSync(join(repoRoot, strictProject))) {
     console.error(`✖ ${strictProject} is malformed — tsc reported ${configError} and checked nothing.`)
     console.error(output.trim())
     console.error('  The strict error count is meaningless until the overlay parses. Fix the config, not the baseline.')
+    process.exit(1)
+  }
+
+  // A syntax error stops tsc before it type-checks, so the count collapses to a
+  // handful and reads as the burn-down finishing overnight. Observed for real:
+  // one stray brace took the count from 455 to 1 and the ratchet said
+  // "improved". Syntax errors are TS1xxx.
+  if (/error TS1\d{3}:/.test(output)) {
+    console.error(`✖ tsc reported a syntax error under ${strictProject} and stopped before type-checking.`)
+    for (const line of errorLinesMatching(output, /error TS1\d{3}:/)) console.error(`    ${line}`)
+    console.error('  The strict error count is meaningless until the source parses.')
     process.exit(1)
   }
 

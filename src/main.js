@@ -31,9 +31,6 @@ import {
   setupSpectrogramIfAvailable 
 } from './core/initialization/UISetup.js'
 import {
-  zoomIn,
-  zoomOut, 
-  zoomReset,
   setZoom,
   updateZoomControlStates,
   handleResize,
@@ -270,29 +267,14 @@ export class GramFrame {
   // Zoom controls removed - now handled by pan mode command buttons
   
   /**
-   * Zoom in by increasing zoom level
-   */
-  _zoomIn() {
-    zoomIn(this)
-  }
-  
-  /**
-   * Zoom out by decreasing zoom level
-   */
-  _zoomOut() {
-    zoomOut(this)
-  }
-  
-  /**
-   * Reset zoom to 1x
-   */
-  _zoomReset() {
-    zoomReset(this)
-  }
-  
-  
-  /**
-   * Set zoom level and center point
+   * Set zoom level and center point.
+   *
+   * The one surviving instance-level zoom forwarder. `_zoomIn`, `_zoomOut` and
+   * `_zoomReset` were deleted with their last caller when Pan mode's command
+   * buttons started calling `core/viewport.js` directly — zoom has one seam,
+   * and reaching it through an underscore-prefixed instance method was a second
+   * one (spec 167, FR-007, AS-4.3). This remains because the Playwright helper
+   * drives zoom through it from the page.
    * @param {number} level - Zoom level (1.0 = no zoom)
    * @param {number} centerX - Center X (0-1 normalized)
    * @param {number} centerY - Center Y (0-1 normalized)

@@ -674,6 +674,42 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Re-render this mode's persistent panel from current state.
+   *
+   * The `PanelOwner` capability. `MainUI` used to reach in by name, resolve the
+   * panel element on this mode's behalf, and call `updateHarmonicPanel` through
+   * an `any` cast. Resolving the panel reference belongs here — it is this
+   * mode's own UI element — so it is absorbed rather than left outside
+   * (spec 167, FR-006, AS-4.2).
+   */
+  refreshPanel() {
+    // The panel may have been created by a previous instance of this mode's UI
+    // (mode switches destroy and rebuild it), so re-resolve it when missing.
+    if (!this.instance.harmonicPanel && this.instance.harmonicsContainer) {
+      const existingPanel = /** @type {HTMLElement|null} */ (
+        this.instance.harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
+      )
+      if (existingPanel) {
+        this.instance.harmonicPanel = existingPanel
+      }
+    }
+    this.updateHarmonicPanel()
+  }
+
+  /**
+   * Whether this mode currently owns any persistent feature.
+   *
+   * Half of the `PersistentFeatureProvider` capability. Lived on
+   * `FeatureRenderer` as `hasHarmonicFeatures()` until spec 167 moved it onto
+   * the mode that owns the state it reads.
+   * @returns {boolean} True if at least one harmonic set exists
+   */
+  hasPersistentFeatures() {
+    const harmonics = this.instance.state.harmonics
+    return !!(harmonics && harmonics.harmonicSets && harmonics.harmonicSets.length > 0)
+  }
+
+  /**
    * Render persistent features for harmonics mode
    */
   renderPersistentFeatures() {

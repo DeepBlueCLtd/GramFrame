@@ -7,6 +7,7 @@
 
 /// <reference path="../types.js" />
 
+import { isPanelOwner } from '../modes/capabilities.js'
 import {
   createLEDDisplay,
   createColorPicker,
@@ -203,29 +204,17 @@ export function updateUniversalCursorReadouts(instance, dataCoords) {
 }
 
 /**
- * Update persistent panels (markers and harmonics) regardless of active mode
+ * Refresh every persistent panel, regardless of which mode is active.
+ *
+ * Modes are discovered by capability, not by name. This function used to name
+ * `analysis` and `harmonics`, cast both to `any` to reach methods the mode
+ * interface did not declare, and resolve the harmonics panel element on that
+ * mode's behalf. A fifth mode owning a panel now refreshes here with no edit to
+ * this file (spec 167, FR-006, AS-4.2, SC-003).
  * @param {GramFrame} instance - GramFrame instance
  */
 export function updatePersistentPanels(instance) {
-  // Update analysis markers table
-  const analysisMode = /** @type {any} */ (instance.modes['analysis'])
-  if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
-    analysisMode.updateMarkersTable()
-  }
-  
-  // Update harmonics panel - ensure panel reference is always available
-  const harmonicsMode = /** @type {any} */ (instance.modes['harmonics'])
-  if (harmonicsMode) {
-    // Make sure the panel reference is set
-    if (!harmonicsMode.instance.harmonicPanel && instance.harmonicsContainer) {
-      const existingPanel = instance.harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
-      if (existingPanel) {
-        harmonicsMode.instance.harmonicPanel = existingPanel
-      }
-    }
-    
-    if (typeof harmonicsMode.updateHarmonicPanel === 'function') {
-      harmonicsMode.updateHarmonicPanel()
-    }
-  }
+  Object.values(instance.modes)
+    .filter(isPanelOwner)
+    .forEach(mode => mode.refreshPanel())
 }

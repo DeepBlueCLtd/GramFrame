@@ -1,7 +1,7 @@
 import { BaseMode } from '../BaseMode.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getVersion } from '../../utils/version.js'
-import { pixelDeltaToNormalizedPan, panByNormalized } from '../../core/viewport.js'
+import { pixelDeltaToNormalizedPan, panByNormalized, zoomIn, zoomOut } from '../../core/viewport.js'
 import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
 
 /**
@@ -216,13 +216,13 @@ export class PanMode extends BaseMode {
       {
         label: '−',
         title: 'Zoom Out',
-        action: () => this.instance._zoomOut(),
+        action: () => zoomOut(this.instance),
         isEnabled: () => this.instance.state.zoom.level > 1.0
       },
       {
         label: '+',
         title: 'Zoom In',
-        action: () => this.instance._zoomIn(),
+        action: () => zoomIn(this.instance),
         isEnabled: () => this.instance.state.zoom.level < 10.0
       }
     ]

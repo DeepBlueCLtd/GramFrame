@@ -428,10 +428,7 @@
  * @property {function(): void} [updatePersistentPanels] - Update markers and harmonics panels
  * @property {function(): void} [destroy] - Clean up and destroy instance
  * @property {function(number, number): void} [_panImage] - Pan the image
- * @property {function(number, number, number): void} [_setZoom] - Set zoom level
- * @property {function(): void} [_zoomIn] - Zoom in
- * @property {function(): void} [_zoomOut] - Zoom out
- * @property {function(): void} [_zoomReset] - Reset zoom
+ * @property {function(number, number, number): void} [_setZoom] - Set zoom level; the sole instance-level zoom forwarder, used by the Playwright helper
  * @property {function(): void} [_handleResize] - Handle resize events
  * @property {function(ModeType): void} [_switchMode] - Switch between modes
  * @property {function(string, string, number): void} [setSelection] - Set selection

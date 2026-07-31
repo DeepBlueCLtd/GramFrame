@@ -19,17 +19,19 @@ rather than being edited into agreement with today's code.
 | [011](ADR-011-Feature-Renderer-Cross-Mode-Coordination.md) | FeatureRenderer cross-mode coordination | Accepted |
 | [012](ADR-012-Scale-Adjusted-Font-Sizing.md) | Scale-adjusted font sizing | Accepted |
 | [013](ADR-013-File-Protocol-Compatibility.md) | `file://` protocol compatibility | Proposed |
-| 014 | — | Never written (see below) |
+| [014](ADR-014-Mode-State-Registration-Seam.md) | Mode state registration seam | Accepted |
 | [015](ADR-015-Viewport-Based-Zoom.md) | Viewport (viewBox) based zoom | Superseded by 016 |
 | [016](ADR-016-Image-Resize-Zoom.md) | Zoom by resizing the image element | Accepted |
+| [017](ADR-017-Mode-Capability-Interfaces.md) | Mode capability interfaces | Accepted |
+| [018](ADR-018-Table-Split.md) | Splitting `components/table.js` | Accepted |
 
-## The gap at 014
+## The gap at 014, since filled
 
-There is no ADR-014 and there never was: the number was skipped when ADR-015 was
-written, and no decision is missing from the record. The number is left unused
-rather than reassigned, so existing references to 015 and 016 keep their
-meaning. A future ADR should take the next free number after the highest in use
-(017), not fill this gap.
+ADR-014 did not exist for a long time, and no decision was missing: the number
+was simply skipped when ADR-015 was written. Spec 167 used it for the mode state
+registration seam rather than leaving it permanently unused. References to 015
+and 016 are unaffected — nothing was renumbered. A new ADR takes the next free
+number after the highest in use.
 
 ## Writing a new ADR
 

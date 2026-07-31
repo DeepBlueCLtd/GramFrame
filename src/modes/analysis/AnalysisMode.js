@@ -244,6 +244,19 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
+   * Whether this mode currently owns any persistent feature.
+   *
+   * Half of the `PersistentFeatureProvider` capability. Lived on
+   * `FeatureRenderer` as `hasAnalysisFeatures()` until spec 167 moved it onto
+   * the mode that owns the state it reads.
+   * @returns {boolean} True if at least one marker exists
+   */
+  hasPersistentFeatures() {
+    const analysis = this.instance.state.analysis
+    return !!(analysis && analysis.markers && analysis.markers.length > 0)
+  }
+
+  /**
    * Render persistent features for analysis mode
    */
   renderPersistentFeatures() {
@@ -425,6 +438,17 @@ export class AnalysisMode extends BaseMode {
     this.uiElements.markersTable = this.markersTable.element
 
     // Populate table with existing markers when UI is created
+    this.updateMarkersTable()
+  }
+
+  /**
+   * Re-render this mode's persistent panel from current state.
+   *
+   * The `PanelOwner` capability. `MainUI` used to reach in by name and call
+   * `updateMarkersTable` through an `any` cast; it now asks every mode that
+   * owns a panel to refresh it (spec 167, FR-006, AS-4.2).
+   */
+  refreshPanel() {
     this.updateMarkersTable()
   }
 

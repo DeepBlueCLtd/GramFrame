@@ -10,6 +10,7 @@
 import { dispatch, markAnnotationsChanged } from './state.js'
 import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coordinates.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
+import { isPanelOwner } from '../modes/capabilities.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
 import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount } from './FocusManager.js'
 
@@ -422,15 +423,8 @@ function refreshFeatureVisuals(instance, type) {
   if (instance.featureRenderer) {
     instance.featureRenderer.renderAllPersistentFeatures()
   }
-  if (type === 'marker') {
-    const analysisMode = instance.modes && instance.modes['analysis']
-    if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
-      analysisMode.updateMarkersTable()
-    }
-  } else if (type === 'harmonicSet') {
-    if (instance.harmonicPanel) {
-      updateHarmonicPanelContent(instance.harmonicPanel, instance)
-    }
+  if (type === 'marker' || type === 'harmonicSet') {
+    refreshPanels(instance)
   }
   dispatch(instance)
 }
@@ -551,12 +545,24 @@ export function updateSelectionVisuals(instance) {
   // selected row through the shared DiffingTable, so this only has to ask them
   // to re-diff. The two hand-written `tr[data-...-id]` lookups this replaces
   // were the same code twice (spec 166, T3).
-  const analysisMode = instance.modes && instance.modes['analysis']
-  if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
-    analysisMode.updateMarkersTable()
-  }
+  refreshPanels(instance)
+}
 
-  if (instance.harmonicPanel) {
-    updateHarmonicPanelContent(instance.harmonicPanel, instance)
-  }
+/**
+ * Ask every mode that owns a persistent panel to refresh it.
+ *
+ * Replaces two `instance.modes['analysis']` reach-ins plus a direct
+ * `updateHarmonicPanelContent` call. Both sites were doing the same thing —
+ * "the tables are stale, redraw them" — through the modes' internals rather
+ * than through the `PanelOwner` capability (spec 167, FR-006).
+ *
+ * `MainUI.updatePersistentPanels` is the same loop, but importing it here would
+ * close a cycle back through `UIComponents` → `ColorPicker` → this module.
+ * `modes/capabilities.js` imports nothing, so the predicate is safe to take.
+ * @param {GramFrame} instance - GramFrame instance
+ */
+function refreshPanels(instance) {
+  Object.values(instance.modes)
+    .filter(isPanelOwner)
+    .forEach(mode => mode.refreshPanel())
 }

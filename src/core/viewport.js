@@ -35,10 +35,16 @@ export function zoomOut(instance) {
 }
 
 /**
- * Reset zoom to 1x
+ * Reset zoom to 1x.
+ *
+ * Module-private since spec 167: its only caller is `zoomAtImagePoint` below,
+ * which recentres when a zoom-out lands back at 1×. The instance-level
+ * `_zoomReset` forwarder that used to export it out of here went with Pan
+ * mode's move onto this seam (FR-007, AS-4.3). Export it again the moment a
+ * caller outside this module needs it.
  * @param {GramFrame} instance - GramFrame instance
  */
-export function zoomReset(instance) {
+function zoomReset(instance) {
   setZoom(instance, 1.0, 0.5, 0.5)
 }
 
