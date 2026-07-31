@@ -1,6 +1,6 @@
 # Findings Register — GramFrame Architecture & Implementation Audit
 
-**Date:** 2026-07-23 · **Companion:** [Architecture-Analysis.md](Architecture-Analysis.md)
+**Date:** 2026-07-23 · **Re-verified:** 2026-07-31 against `edfc549` — see [§6](#6-re-verification--2026-07-31) · **Companion:** [Architecture-Analysis.md](Architecture-Analysis.md)
 
 Every row was adversarially verified by independent reviewer agents running on a different Claude model (Opus) than the author, given only the claim and repo access and instructed to refute it. Critical/High claims: three verifiers (correctness / reproducibility / severity lenses), 2-of-3 majority required. Medium/Low claims: one verifier. The **Verified** column records the outcome; severities below are the *post-review* severities (the severity lens's corrections were applied). Refuted findings are retained in §5 with their refutations — not silently dropped.
 
@@ -106,3 +106,69 @@ The adversarial review refuted or materially narrowed four findings; per the aud
 - **GF-28:** the POM-adoption count was wrong; actual duplication is limited to ~6–8 small specs. Reframed to Low (GF-28ᴿ).
 
 Two additional evidence corrections from reviewers were applied in place: GF-29 (`visual-helpers.js` is transitively imported but unused) and GF-43 (README mode list is line 7, not 9).
+
+## 6. Re-verification — 2026-07-31
+
+All 44 findings were re-verified against HEAD `edfc549` (25 non-merge commits after the audit, spanning features 159–163: harmonic pin labels/toggles, mouse-wheel pan/zoom, in-place restyling, legacy-browser check, loading placeholder). Verification was performed by four independent agents, one per dimension, instructed to locate current evidence rather than trust audited line numbers.
+
+**Outcome: no finding was resolved.** 41 of 44 hold as written (many with drifted line numbers — corrected below), 3 are partially valid, and several **worsened** because new feature work extended the audited patterns rather than the consolidation seams. The severity distribution (0 Critical / 1 High / 35 Medium / 8 Low) is unchanged. The original tables above are retained as the audit-date record; the table below is the current-state authority for evidence locations.
+
+**Headline deltas since the audit:**
+
+- **GF-27 worsened materially:** `waitForTimeout` occurrences grew 142 → **249**; the heaviest new users are `reformat-markers-harmonics.spec.js` (43), `storage.spec.js` (30), `harmonic-pin-toggle.spec.js` (19), `harmonic-pin-sampling.spec.js` (16).
+- **GF-18 worsened:** a **fourth** hand-rolled drag machine was added — the middle-button wheel-pan (`instance._wheelPan`) in `events.js:115-120,208-217,264-280,300-304`.
+- **GF-07 worsened:** feature-160 wheel navigation notifies (and therefore full-state-clones) on **every wheel notch** via `viewport.js:65 setZoom`, and `main.js:414-434` re-serializes annotation state inside every notification.
+- **GF-30 largely resolved (best news):** new `tests/pan-zoom.spec.js` covers zoom clamping to 1–10×, pointer-centred zoom, scroll-pan edge clamping, middle-drag pan, and Pan-mode switching. Residual gap: interactions still route through `__test__` hooks and the public API surface remains untested.
+- **GF-01ᴿ duplication confirmed live:** the post-audit `renderWidth`/`renderHeight` support was copy-pasted into each of the four coordinate pipelines — exactly the fragility the finding predicted.
+- **GF-15 now provably pointless:** the dynamic `import()`'s "avoid circular dependencies" rationale is voided — the same module is statically imported at `keyboardControl.js:11`.
+
+### Per-finding status (current evidence at `edfc549`)
+
+| ID | Status | Current evidence / notes |
+|----|--------|--------------------------|
+| GF-01ᴿ | VALID (drifted) | `coordinates.js:21-73`; `coordinateTransformations.js:25-115,124-196`; `keyboardControl.js:304-321,333-355` (still not zoom/expand-aware); `events.js:27-80`. Feature-156/160 render-size support copy-pasted into all four |
+| GF-02 | VALID (drifted) | `events.js:230-231` still writes SVG coords into `imageX/imageY` ("Simplified" comment); correct values computed at `events.js:59-60`, returned at `:79`, discarded by destructuring at `:222`; `types.js:61-62` contract unchanged |
+| GF-03 | VALID (marginally worse) | madge now reports **11** cycles, 10 involving state⇄modes; `state.js:10-13,20-31`; 12 self-broadcast sites in mode files; PanMode closes its cycle via `viewport.js:12` |
+| GF-04 | VALID | `ModeFactory.js:47-54` unchanged |
+| GF-05 | VALID (slightly worse) | `instance.state` now **371×/21 files** (was ~347/19); ~54 constructor fields (`main.js:72-165`), grown by feature-161 style-control fields |
+| GF-06 | VALID | `state.js:104`; `EventBindings.js:44-50`; `GramFrameAPI.js:181-202`; HMR re-read `main.js:614` |
+| GF-07 | **WORSENED** | Clone unchanged (`state.js:121`; `events.js:252`; `AnalysisMode.js:87`; `DopplerMode.js:244`); new per-wheel-notch notify path via `viewport.js:65`; `main.js:414-434` storage listener re-serializes annotations per notification |
+| GF-08 | VALID | 29 sites / 11 files (unchanged); e.g. `_switchMode` fires ≥2 notifies per gesture (`keyboardControl.js:402` + `main.js:558`) |
+| GF-09 | VALID (slightly worse) | `table.js` now **716 lines** (was 703); same six responsibilities; ExpandToggle⇄table cycle is madge cycle #1 |
+| GF-10 | VALID | `BaseMode.js` 20 methods; `renderCursor:77-79` no overrides (sole caller `FeatureRenderer.js:88-89` always hits base no-op); `getStateSnapshot:166-169` zero overrides & zero callers |
+| GF-11 | VALID (drifted) | `MainUI.js:209-230` (casts modes to `any`, calls named methods); `FeatureRenderer.js:32-44`; `PanMode.js:193,199` |
+| GF-12 | VALID (drifted) | `_clearGram` now `main.js:327-369`, hand-resets 12 nested fields |
+| GF-13 | VALID (drifted) | 10-call sequence `main.js:203-212` + further order-sensitive steps `:220-234`; `DOMSetup.js:100-106` |
+| GF-14 | VALID | `keyboardControl.js:38-42,49-57`; `events.js:130-159,170-177,367-369`; destroy `main.js:439-447` |
+| GF-15 | VALID (drifted; rationale voided) | `keyboardControl.js:274-281`; same module statically imported at `:11` and used synchronously at `:485,583` — the cited circular-dependency justification no longer applies |
+| GF-16 | VALID (drifted) | Bare catches `storage.js:137-139,168-170,184-186,258-260,317-319` (`loadAnnotations:297-300` gained a `console.warn`); ignored returns `main.js:349,431` + **new** ignoring site `PinToggle.js:54` |
+| GF-17 | VALID | `BaseDragHandler.js:51-57`; mirrors `AnalysisMode.js:47-49,97-100,442-446`; `HarmonicsMode.js:72-78,105-111,1030-1038`; third mirror `DopplerMode.js:109-113,130-134` |
+| GF-18 | **WORSENED** | PanMode drag `PanMode.js:17-21,57-134`; Harmonics creation machine `HarmonicsMode.js:202-210,255-261,551-599`; Doppler placement `DopplerMode.js:256-260,288-310,322-354`; **fourth machine added:** wheel-pan `events.js:115-120,208-217,264-280,300-304,323-326` |
+| GF-19 | VALID | Triplicated hit-tests `DopplerMode.js:62-99` and `:158-196`; `tolerance.js:91-96,105-110,130-144` still unused (only `isWithinToleranceRadius` used, `AnalysisMode.js:527`) |
+| GF-20 | VALID (grew) | `AnalysisMode.js:577-717` vs `HarmonicPanel.js:62-232`; post-audit fixed-height scroll wrapper also implemented twice (`AnalysisMode.js:373-377` vs `HarmonicPanel.js:32-36`) |
+| GF-21ᴿ | VALID | `renderPreviewCurve` (`DopplerMode.js:609-612`) never called; `drawDopplerPreview` now `cursors.js:40-109`; live path is `handlePreviewDrag → renderDopplerFeatures` (`DopplerMode.js:203-218`) |
+| GF-22 | VALID (grew) | Dead Doppler methods `:158-196,504-528,536-539,547-551,609-612`; `zoom.panMode` `state.js:88`/`types.js:158`; `markersPlaced` `DopplerMode.js:413,478`; ts-unused-exports now reports **17** modules (was ~15), incl. `tolerance.js` (5), `browserCompatibility.js` (5) |
+| GF-23 | VALID (drifted) | `GramFrameAPI.js:235-266` |
+| GF-24 | VALID (extended) | DOM-scan registry `GramFrameAPI.js:134-137,190-193,237-240` vs `_instances` `:53,95,210-212,221,253-255,264-265`; post-audit `getExpandState`/`setExpandState` (`:209-227`) built on `_instances` only, deepening the split |
+| GF-25 | PARTIAL (evidence corrected) | Still no unit runner (`package.json`: Playwright only). Correction: `harmonic-sampling-unit.spec.js` runs Node-side without a `page` fixture — but still rides Playwright, whose `webServer` boots Vite for every run |
+| GF-26ᴺ | VALID | Both `keyboard-focus*.spec.js.disabled` still disabled; only ArrowKey presses in active specs assert visibility (`keyboard-simple.spec.js:20-26`) or absence-of-errors (`mode-integration.spec.js:272-273`), never marker movement |
+| GF-27 | **WORSENED** | `waitForTimeout` **249** (was ~142); page object now 3 sites (`gram-frame-page.js:337,481,493`); `retries: 2` unchanged (`playwright.config.ts:11`) |
+| GF-28ᴿ | VALID (unchanged) | Not re-examined in depth; no POM consolidation commits landed |
+| GF-29 | VALID | `CLAUDE.md:126` claim intact; zero `toHaveScreenshot`/`toMatchSnapshot` in tests/; `visualHelpers` referenced only in `fixtures.js:21-22` JSDoc |
+| GF-30 | **LARGELY RESOLVED** | `tests/pan-zoom.spec.js` (new): zoom clamping `:25-52`, pointer-centred zoom `:54-63`, scroll-pan clamping `:95-105`, middle-drag pan `:108-141`, mode switching `:166-176`, click-drag pan `:188-200`. Residual: `__test__` hook routing (`gram-frame-page.js:604,621,638-639`); public API still only typeof-checked (`auto-detection.spec.js:88,96`) |
+| GF-31 | VALID | No ESLint config/script/CI step in any of the 3 workflows; `.eslintcache` still in `.gitignore` |
+| GF-32 | VALID | `tsconfig.json:6-11` byte-identical: `strict: true` + three strict-flag disables |
+| GF-33 | VALID | `madge`/`ts-unused-exports`/`unimported` at `package.json:19,20,22`; wired to nothing |
+| GF-34 | VALID | Node '18' (`test.yml:19`, `pr-preview.yml:25,109`, `release.yml:45`) vs `@types/node ^24`; test path runs `yarn build`, never `build:standalone`; chromium-only |
+| GF-35 | VALID (drifted) | `.husky/pre-push` now `yarn typecheck` + `yarn test` — full suite plus typecheck |
+| GF-36 | VALID | All tracked artefacts confirmed via `git ls-files`; `.obsidian/` 916K, `prompts/` 404K, `zoom-demonstrator/` 276K |
+| GF-37 | VALID | `generate-version.js:21,30` writes tracked `src/utils/version.js`; `prebuild`/`pretest` hooks unchanged |
+| GF-38 | VALID | Post-audit CLAUDE.md edits fixed none of it: still three modes claimed, phantom `src/rendering/axes.js`, missing modules (now also `PinToggle`, `SymbolPicker`, `browserCompatibility`, `wheelGuidance`, `secureHTML`), nonexistent `.spec.ts` files cited, phantom visual testing |
+| GF-39 | VALID (drifted) | ADR-015:34-35 vs `table.js:262-311` (`applyZoomTransform` mutates image x/y/width/height; viewBox fixed at `:232`); **new** `viewport.js` `setZoom` delegates to the same image-mutating path — divergence carried into the wheel-zoom feature |
+| GF-40 | VALID | ADR-011:38-51 method names vs `FeatureRenderer.js:23,51,61,71,82` — zero name overlap |
+| GF-41 | VALID | `Gram-Modes.md:3` still "two interaction modes" |
+| GF-42 | VALID | `Testing-Strategy.md:97,101,115,117` still prescribe Jest/80%/unit-tests-for-all |
+| GF-43 | PARTIAL (one sub-item resolved) | `state-assertions.js:150` now includes `'pan'`. Still valid: `README.md:7`, ADR-008:7,58-61, ADR-014 gap, ADR-004:37-51 contradiction, display-name map `state-assertions.js:127-131` omits pan (fallback `:133` handles it) |
+| GF-44 | VALID (drifted) | Doc still claims ~2100-line main.js; actual now **628** lines (grew from 562) |
+
+**Implication for sequencing:** the worsenings are concentrated where new feature work touched audited seams (drag machines, notification fan-out, waitForTimeout, coordinate pipelines). Consolidation findings GF-01ᴿ/GF-18/GF-07/GF-27 are accruing interest fastest and are the strongest candidates to fix before further feature work lands on top of them.
