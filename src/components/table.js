@@ -32,10 +32,13 @@ export function getRenderDimensions(instance) {
  * @returns {TableElements} Object containing all created DOM elements
  */
 export function createComponentStructure(instance) {
-  // Create a container to replace the table
+  // Create a container to replace the table. It starts in the loading state:
+  // the SVG has no dimensions until the spectrogram's natural size is known, so
+  // the panel would otherwise be an unexplained empty black rectangle until the
+  // image arrives. setupSpectrogramImage() clears the class on load.
   instance.container = document.createElement('div')
-  instance.container.className = 'gram-frame-container'
-  
+  instance.container.className = 'gram-frame-container gram-frame-loading'
+
   // Create table structure for proper resizing
   instance.table = document.createElement('div')
   instance.table.className = 'gram-frame-table'
@@ -147,6 +150,9 @@ export function setupSpectrogramImage(instance, imageUrl) {
   // Load image to get natural dimensions
   const tempImg = new Image()
   tempImg.onload = function() {
+    // Dimensions are known, so the panel is about to render for real
+    instance.container.classList.remove('gram-frame-loading')
+
     // Get original dimensions
     let imageWidth = tempImg.naturalWidth
     let imageHeight = tempImg.naturalHeight
@@ -181,6 +187,13 @@ export function setupSpectrogramImage(instance, imageUrl) {
 
     // Notify listeners of updated dimensions
     notifyStateListeners(instance.state, instance.stateListeners)
+  }
+  tempImg.onerror = function() {
+    // Without dimensions nothing can be rendered, so replace the loading
+    // caption with a failure one instead of leaving it spinning forever
+    console.error(`GramFrame: Failed to load spectrogram image: ${imageUrl}`)
+    instance.container.classList.remove('gram-frame-loading')
+    instance.container.classList.add('gram-frame-image-error')
   }
   tempImg.src = imageUrl
 }
