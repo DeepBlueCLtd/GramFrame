@@ -24,8 +24,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
    * @returns {Promise<void>}
    */
   test.beforeEach(async ({ gramFramePage }) => {
-    // Wait for component to fully load
-    await gramFramePage.page.waitForTimeout(100)
     
     // Switch to Doppler mode
     await gramFramePage.clickMode('Doppler')
@@ -158,9 +156,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       /** @type {number} */
       const originalFZeroTime = state.doppler.fZero.time
       
-      // Wait for markers to be rendered
-      await gramFramePage.page.waitForTimeout(200)
-      
       // Calculate approximate f₀ position for dragging
       /** @type {number} */
       const fZeroX = (200 + 300) / 2 // Approximate midpoint
@@ -192,9 +187,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(300, 200)
       await gramFramePage.page.mouse.up()
-      
-      // Wait for markers to be rendered
-      await gramFramePage.page.waitForTimeout(200)
       
       // Hover over f+ marker position
       await gramFramePage.page.mouse.move(200, 150)
@@ -276,7 +268,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       const initialFreqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
       
       // Drag one marker to change frequency difference
-      await gramFramePage.page.waitForTimeout(200)
       await gramFramePage.page.mouse.move(200, 150)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(200, 100) // Move to higher frequency
@@ -428,17 +419,13 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         const initialText = await resultsDisplay.textContent()
         
         // Drag marker to change calculation
-        await gramFramePage.page.waitForTimeout(200)
         await gramFramePage.page.mouse.move(200, 150)
         await gramFramePage.page.mouse.down()
         await gramFramePage.page.mouse.move(200, 100) // Change frequency
         await gramFramePage.page.mouse.up()
         
         // Verify display updated
-        await gramFramePage.page.waitForTimeout(200)
-        /** @type {string | null} */
-        const updatedText = await resultsDisplay.textContent()
-        expect(updatedText).not.toBe(initialText)
+        await expect(resultsDisplay).not.toHaveText(initialText ?? '')
       } catch (error) {
         console.log('Real-time display update not testable')
       }
@@ -586,9 +573,8 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       // Right-click to reset (if implemented)
       await gramFramePage.page.mouse.click(250, 175, { button: 'right' })
       
-      // Small delay for right-click handling
-      await gramFramePage.page.waitForTimeout(200)
-      
+      // The context-menu handler runs synchronously, so the click resolving is
+      // itself the signal that any reset has already happened.
       // Check if markers were reset
       state = await gramFramePage.getState()
       // Note: This test assumes right-click reset is implemented
@@ -646,12 +632,10 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.move(200, 150)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(250, 180)
-      await gramFramePage.page.waitForTimeout(50)
       await gramFramePage.page.mouse.move(300, 200)
       await gramFramePage.page.mouse.up()
-      
+
       // Immediately start dragging
-      await gramFramePage.page.waitForTimeout(100)
       await gramFramePage.page.mouse.move(200, 150)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(180, 130)
@@ -802,9 +786,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       const originalFPlusFreq = state.doppler.fPlus.freq
       const originalFMinusFreq = state.doppler.fMinus.freq
       
-      // Wait for render
-      await gramFramePage.page.waitForTimeout(200)
-      
       // Try to drag the f+ marker to a new position  
       // First, click on the approximate location of f+ marker
       await gramFramePage.page.mouse.move(400, 200)
@@ -817,7 +798,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       const fPlusChanged = state.doppler.fPlus.freq !== originalFPlusFreq
       
       // Try dragging f- marker as well
-      await gramFramePage.page.waitForTimeout(100)
       await gramFramePage.page.mouse.move(500, 300)
       await gramFramePage.page.mouse.down()
       await gramFramePage.page.mouse.move(480, 320)

@@ -14,11 +14,9 @@ test.describe('Keyboard Interaction Tests', () => {
     
     // Focus on first container
     await container1.click()
-    await page.waitForTimeout(100)
     
     // Test keyboard interaction
     await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(100)
     
     // Verify containers are still visible
     await expect(container1).toBeVisible()
@@ -31,11 +29,8 @@ test.describe('Keyboard Interaction Tests', () => {
     
     // Click back and forth between containers
     await container1.click()
-    await page.waitForTimeout(50)
     await container2.click()  
-    await page.waitForTimeout(50)
     await container1.click()
-    await page.waitForTimeout(50)
     
     // Both should still be visible and functional
     await expect(container1).toBeVisible()
@@ -48,7 +43,6 @@ test.describe('Keyboard Interaction Tests', () => {
     
     // Click first container
     await container1.click()
-    await page.waitForTimeout(100)
     
     // Check if any focus indicator exists (visual or programmatic)
     const hasFocusIndication1 = await container1.evaluate(el => {
@@ -61,7 +55,6 @@ test.describe('Keyboard Interaction Tests', () => {
     
     // Click second container
     await container2.click()
-    await page.waitForTimeout(100)
     
     const hasFocusIndication2 = await container2.evaluate(el => {
       const hasClass = el.classList.contains('focused') || 
@@ -84,11 +77,9 @@ test.describe('Keyboard Interaction Tests', () => {
     const container1 = page.locator('.gram-frame-container').first()
     
     await container1.click()
-    await page.waitForTimeout(100)
     
     // Press escape - should not cause errors
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(100)
     
     // Container should still be visible
     await expect(container1).toBeVisible()

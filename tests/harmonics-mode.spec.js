@@ -24,8 +24,6 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
    * @returns {Promise<void>}
    */
   test.beforeEach(async ({ gramFramePage }) => {
-    // Wait for component to fully load
-    await gramFramePage.page.waitForTimeout(100)
     
     // Switch to Harmonics mode
     await gramFramePage.clickMode('Harmonics')
@@ -148,9 +146,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       
       /** @type {import('../src/types.js').HarmonicSet} */
       const horizontalHarmonic = state.harmonics.harmonicSets[0]
-      
-      await gramFramePage.page.waitForTimeout(200)
-      
+
       // Test vertical drag
       await gramFramePage.page.mouse.move(200, 200)
       await gramFramePage.page.mouse.down()
@@ -206,10 +202,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       
       for (const pos of dragPositions) {
         await gramFramePage.page.mouse.move(pos.x, pos.y)
-        
-        // Small delay to allow for real-time calculation
-        await gramFramePage.page.waitForTimeout(100)
-        
+
         // Verify harmonic calculation is happening
         /** @type {import('../src/types.js').GramFrameState} */
         const state = await gramFramePage.getState()
@@ -253,10 +246,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       
       /** @type {number} */
       const originalRate = state.harmonics.harmonicSets[0].rate
-      
-      // Wait a moment then drag the existing harmonic set
-      await gramFramePage.page.waitForTimeout(200)
-      
+
       // Click and drag on the harmonic line to adjust spacing
       await gramFramePage.page.mouse.move(200, 200) // Click on harmonic line
       await gramFramePage.page.mouse.down()

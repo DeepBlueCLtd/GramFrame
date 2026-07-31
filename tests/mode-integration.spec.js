@@ -24,8 +24,6 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
    * @returns {Promise<void>}
    */
   test.beforeEach(async ({ gramFramePage }) => {
-    // Wait for component to fully load
-    await gramFramePage.page.waitForTimeout(100)
   })
 
   /**

@@ -24,8 +24,6 @@ test.describe('Advanced Mouse Interactions - Comprehensive E2E Tests', () => {
    * @returns {Promise<void>}
    */
   test.beforeEach(async ({ gramFramePage }) => {
-    // Wait for component to fully load
-    await gramFramePage.page.waitForTimeout(100)
   })
 
   /**
@@ -82,7 +80,6 @@ test.describe('Advanced Mouse Interactions - Comprehensive E2E Tests', () => {
           await gramFramePage.page.keyboard.up(modifier)
         }
         
-        await gramFramePage.page.waitForTimeout(100)
       }
       
       // Verify markers were created (modifiers shouldn't prevent creation)
