@@ -29,12 +29,12 @@ export class FeatureRenderer {
    * (spec 167, FR-006, AS-4.2, SC-003).
    */
   renderAllPersistentFeatures() {
-    if (!this.instance.cursorGroup) {
+    if (!this.instance.ui.cursorGroup) {
       return
     }
 
     // Clear existing features
-    this.instance.cursorGroup.innerHTML = ''
+    this.instance.ui.cursorGroup.innerHTML = ''
 
     Object.values(this.instance.modes)
       .filter(isPersistentFeatureProvider)

@@ -69,11 +69,12 @@ export class AnalysisMode extends BaseMode {
     void position
 
     // Auto-select the marker being dragged
-    const marker = this.instance.state.analysis.markers.find(m => m.id === target.id)
+    const markers = this.instance.state.analysis.markers
+    const marker = markers.find(m => m.id === target.id)
     if (marker) {
-      const index = this.instance.state.analysis.markers.findIndex(m => m.id === target.id)
+      const index = markers.findIndex(m => m.id === target.id)
       // Non-null: a marker was found by matching this id, so it is a real one.
-      this.instance.setSelection('marker', /** @type {string} */ (target.id), index)
+      this.instance.interaction.setSelection('marker', /** @type {string} */ (target.id), index)
     }
   }
 
@@ -124,8 +125,8 @@ export class AnalysisMode extends BaseMode {
    * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
    */
   updateCursorStyle(style) {
-    if (this.instance.svg) {
-      this.instance.svg.style.cursor = style
+    if (this.instance.ui.svg) {
+      this.instance.ui.svg.style.cursor = style
     }
   }
 
@@ -227,8 +228,9 @@ export class AnalysisMode extends BaseMode {
    */
   createMarkerAtPosition(dataCoords) {
     // Get the current marker color and symbol from global state
-    const color = this.instance.state.selectedColor || '#ff6b6b'
-    const symbol = this.instance.state.selectedSymbol || 'cross'
+    const { selectedColor, selectedSymbol, largeSymbols } = this.instance.state
+    const color = selectedColor || '#ff6b6b'
+    const symbol = selectedSymbol || 'cross'
 
     // Create marker object (we only need time/freq for positioning)
     /** @type {AnalysisMarker} */
@@ -240,7 +242,7 @@ export class AnalysisMode extends BaseMode {
       symbol,
       // EXPERIMENT (temporary): symbol size is carried per marker, seeded from
       // the toggle's next-feature default, so both sizes can coexist.
-      largeSymbols: !!this.instance.state.largeSymbols
+      largeSymbols: !!largeSymbols
     }
     
     // Add marker to state
@@ -264,12 +266,12 @@ export class AnalysisMode extends BaseMode {
    * Render persistent features for analysis mode
    */
   renderPersistentFeatures() {
-    if (!this.instance.cursorGroup || !this.instance.state.analysis?.markers) {
+    if (!this.instance.ui.cursorGroup || !this.instance.state.analysis?.markers) {
       return
     }
     
     // Clear existing analysis markers
-    const existingMarkers = this.instance.cursorGroup.querySelectorAll('.gram-frame-analysis-marker')
+    const existingMarkers = this.instance.ui.cursorGroup.querySelectorAll('.gram-frame-analysis-marker')
     existingMarkers.forEach(marker => marker.remove())
     
     // Render all markers
@@ -283,13 +285,13 @@ export class AnalysisMode extends BaseMode {
    * @param {AnalysisMarker} marker - Marker object
    */
   renderMarker(marker) {
-    if (!this.instance.cursorGroup) {
+    if (!this.instance.ui.cursorGroup) {
       return
     }
     
     // Calculate current position based on time/freq values and current zoom/pan state using utility
     const markerPoint = { freq: marker.freq, time: marker.time }
-    const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+    const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage)
     const currentX = markerSVG.x
     const currentY = markerSVG.y
     
@@ -350,7 +352,7 @@ export class AnalysisMode extends BaseMode {
       markerGroup.appendChild(circle)
     }
 
-    this.instance.cursorGroup.appendChild(markerGroup)
+    this.instance.ui.cursorGroup.appendChild(markerGroup)
   }
 
 
@@ -379,9 +381,9 @@ export class AnalysisMode extends BaseMode {
     this.uiElements.markersTable = markersContainer.querySelector('.gram-frame-table')
     
     // Store references for central color picker and LEDs (managed by unified layout)
-    this.instance.colorPicker = this.instance.colorPicker || null
-    this.instance.timeLED = this.instance.timeLED || null
-    this.instance.freqLED = this.instance.freqLED || null
+    this.instance.ui.colorPicker = this.instance.ui.colorPicker || null
+    this.instance.ui.timeLED = this.instance.ui.timeLED || null
+    this.instance.ui.freqLED = this.instance.ui.freqLED || null
   }
 
   /**
@@ -424,11 +426,11 @@ export class AnalysisMode extends BaseMode {
       deleteSelector: '.gram-frame-marker-delete-btn',
       onSelect: (markerId, _marker, index) => {
         // Toggle selection
-        if (this.instance.state.selection.selectedType === 'marker' &&
-            this.instance.state.selection.selectedId === markerId) {
-          this.instance.clearSelection()
+        const selection = this.instance.state.selection
+        if (selection.selectedType === 'marker' && selection.selectedId === markerId) {
+          this.instance.interaction.clearSelection()
         } else {
-          this.instance.setSelection('marker', markerId, index)
+          this.instance.interaction.setSelection('marker', markerId, index)
         }
       },
       onDelete: (markerId) => this.removeMarker(markerId),
@@ -461,7 +463,8 @@ export class AnalysisMode extends BaseMode {
    */
   updateMarkersTable() {
     if (!this.markersTable) return
-    if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return
+    const analysis = this.instance.state.analysis
+    if (!analysis || !analysis.markers) return
 
     this.markersTable.update(this.instance.state.analysis.markers)
   }
@@ -501,7 +504,7 @@ export class AnalysisMode extends BaseMode {
     
     // Auto-select the newly created marker
     const index = this.instance.state.analysis.markers.length - 1
-    this.instance.setSelection('marker', marker.id, index)
+    this.instance.interaction.setSelection('marker', marker.id, index)
     
     // Update markers table
     this.updateMarkersTable()
@@ -527,7 +530,7 @@ export class AnalysisMode extends BaseMode {
       // Clear selection if removing the selected marker
       if (this.instance.state.selection.selectedType === 'marker' && 
           this.instance.state.selection.selectedId === markerId) {
-        this.instance.clearSelection()
+        this.instance.interaction.clearSelection()
       }
       
       this.instance.state.analysis.markers.splice(index, 1)
@@ -555,7 +558,7 @@ export class AnalysisMode extends BaseMode {
   findMarkerAtPosition(position) {
     if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null
     
-    const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
+    const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage)
     
     // Check each marker to see if position hits the crosshair lines
     const marker = this.instance.state.analysis.markers.find(marker => {
@@ -574,10 +577,10 @@ export class AnalysisMode extends BaseMode {
       
       // Convert marker position to SVG coordinates
       const markerPoint = { freq: marker.freq, time: marker.time }
-      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage)
+      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage)
       
       // Convert click position to SVG coordinates
-      const clickSVG = dataToSVG(position, this.getViewport(), this.instance.spectrogramImage)
+      const clickSVG = dataToSVG(position, this.getViewport(), this.instance.ui.spectrogramImage)
       
       const crosshairSize = 15 // pixels in SVG space
       const lineThickness = 3 // effective hit area around the line (half of stroke-width + tolerance)

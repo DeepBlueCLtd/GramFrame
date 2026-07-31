@@ -13,124 +13,130 @@
 /// <reference path="../types.js" />
 
 /**
- * Create the complete DOM structure for the GramFrame component
- * @param {GramFrame} instance - GramFrame instance to populate with DOM elements
+ * Create the complete DOM structure for the GramFrame component.
+ *
+ * Builds locally and returns; it writes nothing onto the instance. That is what
+ * lets the constructor assemble `instance.ui` in one place, after every element
+ * exists, rather than the sub-object having to be half-formed before the first
+ * step runs (spec 167, FR-009).
+ * @param {string} instanceId - Instance id, used to make the clip-path ids unique
  * @returns {TableElements} Object containing all created DOM elements
  */
-function createComponentStructure(instance) {
+function createComponentStructure(instanceId) {
   // Create a container to replace the table. It starts in the loading state:
   // the SVG has no dimensions until the spectrogram's natural size is known, so
   // the panel would otherwise be an unexplained empty black rectangle until the
   // image arrives. setupSpectrogramImage() clears the class on load.
-  instance.container = document.createElement('div')
-  instance.container.className = 'gram-frame-container gram-frame-loading'
+  const container = document.createElement('div')
+  container.className = 'gram-frame-container gram-frame-loading'
 
   // Create table structure for proper resizing
-  instance.table = document.createElement('div')
-  instance.table.className = 'gram-frame-table'
-  instance.container.appendChild(instance.table)
-  
+  const table = document.createElement('div')
+  table.className = 'gram-frame-table'
+  container.appendChild(table)
+
   // Create mode header row
-  instance.modeRow = document.createElement('div')
-  instance.modeRow.className = 'gram-frame-row'
-  instance.table.appendChild(instance.modeRow)
-  
-  instance.modeCell = document.createElement('div')
-  instance.modeCell.className = 'gram-frame-cell gram-frame-mode-header'
-  instance.modeRow.appendChild(instance.modeCell)
-  
+  const modeRow = document.createElement('div')
+  modeRow.className = 'gram-frame-row'
+  table.appendChild(modeRow)
+
+  const modeCell = document.createElement('div')
+  modeCell.className = 'gram-frame-cell gram-frame-mode-header'
+  modeRow.appendChild(modeCell)
+
   // Create main panel row (stretches)
-  instance.mainRow = document.createElement('div')
-  instance.mainRow.className = 'gram-frame-row'
-  instance.mainRow.style.height = '100%'
-  instance.table.appendChild(instance.mainRow)
-  
-  instance.mainCell = document.createElement('div')
-  instance.mainCell.className = 'gram-frame-cell gram-frame-main-panel'
-  instance.mainRow.appendChild(instance.mainCell)
-  
+  const mainRow = document.createElement('div')
+  mainRow.className = 'gram-frame-row'
+  mainRow.style.height = '100%'
+  table.appendChild(mainRow)
+
+  const mainCell = document.createElement('div')
+  mainCell.className = 'gram-frame-cell gram-frame-main-panel'
+  mainRow.appendChild(mainCell)
+
   // Create SVG container for spectrogram display
-  instance.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  instance.svg.setAttribute('class', 'gram-frame-svg')
-  instance.svg.style.width = '100%'
-  instance.svg.style.height = '100%'
-  instance.svg.style.display = 'block'
-  instance.mainCell.appendChild(instance.svg)
-  
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('class', 'gram-frame-svg')
+  svg.style.width = '100%'
+  svg.style.height = '100%'
+  svg.style.display = 'block'
+  mainCell.appendChild(svg)
+
   // Create clipping paths for both image and cursor group with unique IDs
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
-  instance.svg.appendChild(defs)
-  
-  const clipPathId = `imageClip-${instance.instanceId || Date.now()}`
+  svg.appendChild(defs)
+
+  const clipPathId = `imageClip-${instanceId || Date.now()}`
   const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
   clipPath.setAttribute('id', clipPathId)
   defs.appendChild(clipPath)
-  
-  instance.imageClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-  clipPath.appendChild(instance.imageClipRect)
-  
+
+  const imageClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+  clipPath.appendChild(imageClipRect)
+
   // Create second clipping path for cursor group features
-  const cursorClipPathId = `cursorClip-${instance.instanceId || Date.now()}`
+  const cursorClipPathId = `cursorClip-${instanceId || Date.now()}`
   const cursorClipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath')
   cursorClipPath.setAttribute('id', cursorClipPathId)
   defs.appendChild(cursorClipPath)
-  
-  instance.cursorClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-  cursorClipPath.appendChild(instance.cursorClipRect)
-  
+
+  const cursorClipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+  cursorClipPath.appendChild(cursorClipRect)
+
   // Create image element within SVG
-  instance.spectrogramImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
-  instance.spectrogramImage.setAttribute('class', 'gram-frame-spectrogram-image')
-  instance.spectrogramImage.setAttribute('clip-path', `url(#${clipPathId})`)
-  instance.spectrogramImage.setAttribute('preserveAspectRatio', 'none')
-  instance.svg.appendChild(instance.spectrogramImage)
-  
+  const spectrogramImage = document.createElementNS('http://www.w3.org/2000/svg', 'image')
+  spectrogramImage.setAttribute('class', 'gram-frame-spectrogram-image')
+  spectrogramImage.setAttribute('clip-path', `url(#${clipPathId})`)
+  spectrogramImage.setAttribute('preserveAspectRatio', 'none')
+  svg.appendChild(spectrogramImage)
+
   // Create cursor group for overlays with clipping applied
-  instance.cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.cursorGroup.setAttribute('class', 'gram-frame-cursors')
-  instance.cursorGroup.setAttribute('clip-path', `url(#${cursorClipPathId})`)
-  instance.svg.appendChild(instance.cursorGroup)
-  
+  const cursorGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  cursorGroup.setAttribute('class', 'gram-frame-cursors')
+  cursorGroup.setAttribute('clip-path', `url(#${cursorClipPathId})`)
+  svg.appendChild(cursorGroup)
+
   // Create axes group
-  instance.axesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  instance.axesGroup.setAttribute('class', 'gram-frame-axes')
-  instance.svg.appendChild(instance.axesGroup)
-  
-  instance.readoutPanel = document.createElement('div')
-  instance.readoutPanel.className = 'gram-frame-readout'
-  // Will be appended to modeCell in UIComponents.js
-  
+  const axesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  axesGroup.setAttribute('class', 'gram-frame-axes')
+  svg.appendChild(axesGroup)
+
+  const readoutPanel = document.createElement('div')
+  readoutPanel.className = 'gram-frame-readout'
+  // Will be appended to modeCell by the layout step
+
   return {
-    container: instance.container,
-    table: instance.table,
-    modeRow: instance.modeRow,
-    modeCell: instance.modeCell,
-    mainRow: instance.mainRow,
-    mainCell: instance.mainCell,
-    readoutPanel: instance.readoutPanel,
-    svg: instance.svg,
-    spectrogramImage: instance.spectrogramImage,
-    cursorGroup: instance.cursorGroup,
-    axesGroup: instance.axesGroup,
-    imageClipRect: instance.imageClipRect,
-    cursorClipRect: instance.cursorClipRect
+    container,
+    table,
+    modeRow,
+    modeCell,
+    mainRow,
+    mainCell,
+    readoutPanel,
+    svg,
+    spectrogramImage,
+    cursorGroup,
+    axesGroup,
+    imageClipRect,
+    cursorClipRect
   }
 }
 
 /**
  * Replace the original config table with the new component structure
- * @param {GramFrame} instance - GramFrame instance with created DOM structure
+ * @param {GramFrame} instance - GramFrame instance, stamped onto the container
+ * @param {HTMLDivElement} container - Component container standing in for the table
  * @param {HTMLTableElement} configTable - Original table to replace
  */
-function replaceConfigTable(instance, configTable) {
+function replaceConfigTable(instance, container, configTable) {
   // Replace the table with our container
   if (configTable && configTable.parentNode) {
-    configTable.parentNode.replaceChild(instance.container, configTable)
-    
+    configTable.parentNode.replaceChild(container, configTable)
+
     // Store a reference to this instance on the container element
     // This allows the state listener mechanism to access the instance
     // @ts-ignore - Adding custom property to DOM element
-    instance.container.__gramFrameInstance = instance
+    container.__gramFrameInstance = instance
   }
 }
 
@@ -142,10 +148,10 @@ function replaceConfigTable(instance, configTable) {
  */
 export function setupComponentTable(instance, configTable) {
   // Create DOM structure only
-  const domElements = createComponentStructure(instance)
-  
+  const domElements = createComponentStructure(instance.instanceId)
+
   // Replace original table
-  replaceConfigTable(instance, configTable)
-  
+  replaceConfigTable(instance, domElements.container, configTable)
+
   return domElements
 }

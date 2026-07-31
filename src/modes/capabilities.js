@@ -23,7 +23,7 @@
  * @property {function(): boolean} hasPersistentFeatures - True iff at least one
  *   such feature currently exists. Reads this mode's own state slice.
  * @property {function(): void} renderPersistentFeatures - Draws them into
- *   `instance.cursorGroup`. Called only when `hasPersistentFeatures()` is true,
+ *   `instance.ui.cursorGroup`. Called only when `hasPersistentFeatures()` is true,
  *   and safe to call repeatedly.
  */
 

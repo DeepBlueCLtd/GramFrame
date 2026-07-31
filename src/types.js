@@ -418,6 +418,77 @@
  */
 
 /**
+ * Selection, restyling and the transient pointer state behind them,
+ * grouped as `instance.interaction`.
+ * @typedef {Object} GramFrameInteraction
+ * @property {function(string, string, number): void} setSelection - Select a feature
+ * @property {function(): void} clearSelection - Clear the selection
+ * @property {function(): void} updateSelectionVisuals - Re-render selection styling
+ * @property {function(string): boolean} applyColorToSelectedFeature - Restyle colour in place
+ * @property {function(SymbolType): boolean} applySymbolToSelectedFeature - Restyle symbol in place
+ * @property {function(boolean): boolean} applyPinToSelectedFeature - Show/hide pin lines
+ * @property {function(boolean): boolean} applyLargeSymbolsToSelectedFeature - Resize symbols
+ * @property {function(string): void} removeHarmonicSet - Delete a harmonic set by id
+ * @property {function(): void} syncStyleControls - Sync the controls to the selection
+ * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} _symbolControl - Symbol drop-down handle
+ * @property {{setValue: function(boolean): void, setEnabled: function(boolean): void}|null} _pinControl - Pin toggle handle
+ * @property {{setValue: function(boolean): void}|null} _largeSymbolsControl - "Large symbols" checkbox handle
+ * @property {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} _registeredListeners - Listeners kept for removal on destroy
+ * @property {import('./modes/shared/BaseDragHandler.js').BaseDragHandler|null} _wheelPanHandler - Drag engine for a middle-button pan
+ * @property {{x: number, y: number}|null} _wheelPanLast - Last pointer position during a middle-button pan
+ */
+
+/**
+ * How the component watches for size changes, grouped as `instance.viewport`.
+ * @typedef {Object} GramFrameViewport
+ * @property {ResizeObserver|null} resizeObserver - Observer on the container
+ * @property {(function(Event): void)|null} _boundHandleResize - Bound window resize handler
+ */
+
+/**
+ * Where this instance's annotations are saved, grouped as `instance.persistence`.
+ * @typedef {Object} GramFramePersistence
+ * @property {number} _storageInstanceIndex - Index distinguishing instances on one page
+ * @property {boolean} _isTrainerContext - Whether this page is trainer material
+ */
+
+/**
+ * Every DOM element handle a GramFrame instance owns, grouped as `instance.ui`.
+ *
+ * Non-null except where noted: the constructor builds all of these before it
+ * returns, and nothing outside `main.js` runs before that finishes.
+ * @typedef {Object} GramFrameUI
+ * @property {HTMLDivElement} container - Root container replacing the config table
+ * @property {HTMLDivElement} table - Layout table
+ * @property {HTMLDivElement} modeRow - Mode header row
+ * @property {HTMLDivElement} mainRow - Main display row
+ * @property {HTMLDivElement} readoutPanel - Readout panel
+ * @property {HTMLDivElement} modeCell - Mode header cell
+ * @property {HTMLDivElement} mainCell - Main display cell
+ * @property {HTMLElement|null} modeLED - Mode LED; never assigned today, so always null
+ * @property {HTMLElement|null} rateLED - Rate LED; never assigned today, so always null
+ * @property {HTMLElement} colorPicker - Combined colour/symbol picker
+ * @property {SVGSVGElement} svg - Root SVG
+ * @property {SVGGElement} cursorGroup - Group holding cursors and persistent features
+ * @property {SVGGElement} axesGroup - Group holding the axes
+ * @property {SVGRectElement} imageClipRect - Clip rect for the image
+ * @property {SVGRectElement} cursorClipRect - Clip rect for the cursor group
+ * @property {HTMLDivElement} modeColumn - Mode buttons column
+ * @property {HTMLElement} timeLED - Time readout
+ * @property {HTMLElement} freqLED - Frequency readout
+ * @property {HTMLElement} speedLED - Speed readout
+ * @property {HTMLDivElement} markersContainer - Markers table container
+ * @property {HTMLDivElement} harmonicsContainer - Harmonics panel container
+ * @property {HTMLElement|null} harmonicPanel - Harmonics panel, mounted by HarmonicsMode
+ * @property {SVGImageElement} spectrogramImage - The spectrogram image element
+ * @property {HTMLButtonElement|null} expandToggleButton - Expand toggle; absent for portrait images
+ * @property {HTMLDivElement} modesContainer - Mode buttons container
+ * @property {Object<string, HTMLButtonElement>} modeButtons - Mode buttons by mode
+ * @property {Object<string, HTMLButtonElement[]>} commandButtons - Command buttons by mode
+ * @property {HTMLDivElement} guidancePanel - Guidance text panel
+ */
+
+/**
  * The selection and restyle functions bound by `setupAllEventListeners`.
  * @typedef {Object} SelectionControls
  * @property {function(string): void} removeHarmonicSet - Delete a harmonic set by id

@@ -23,12 +23,12 @@ const MAX_IMAGE_WIDTH = 1200
  * @param {string} imageUrl - URL of the spectrogram image
  */
 export function setupSpectrogramImage(instance, imageUrl) {
-  if (!instance.spectrogramImage || !imageUrl) {
+  if (!instance.ui.spectrogramImage || !imageUrl) {
     return
   }
   
   // Set image source
-  instance.spectrogramImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imageUrl)
+  instance.ui.spectrogramImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imageUrl)
   
   // Store URL in state
   instance.state.imageDetails.url = imageUrl
@@ -37,7 +37,7 @@ export function setupSpectrogramImage(instance, imageUrl) {
   const tempImg = new Image()
   tempImg.onload = function() {
     // Dimensions are known, so the panel is about to render for real
-    instance.container.classList.remove('gram-frame-loading')
+    instance.ui.container.classList.remove('gram-frame-loading')
 
     // Get original dimensions
     let imageWidth = tempImg.naturalWidth
@@ -79,8 +79,8 @@ export function setupSpectrogramImage(instance, imageUrl) {
     // Without dimensions nothing can be rendered, so replace the loading
     // caption with a failure one instead of leaving it spinning forever
     console.error(`GramFrame: Failed to load spectrogram image: ${imageUrl}`)
-    instance.container.classList.remove('gram-frame-loading')
-    instance.container.classList.add('gram-frame-image-error')
+    instance.ui.container.classList.remove('gram-frame-loading')
+    instance.ui.container.classList.add('gram-frame-image-error')
   }
   tempImg.src = imageUrl
 }

@@ -158,11 +158,12 @@ function calculateMovementFromKey(key, increment) {
  * @param {MovementVector} movement - Movement vector {dx, dy}
  */
 function moveSelectedMarker(instance, markerId, movement) {
-  if (!instance.state.analysis || !instance.state.analysis.markers) {
+  const analysis = instance.state.analysis
+  if (!analysis || !analysis.markers) {
     return
   }
   
-  const marker = instance.state.analysis.markers.find(m => m.id === markerId)
+  const marker = analysis.markers.find(m => m.id === markerId)
   if (!marker) {
     return
   }
@@ -178,7 +179,7 @@ function moveSelectedMarker(instance, markerId, movement) {
   const currentSVG = dataToSVG(
     { freq: marker.freq * instance.state.rate, time: marker.time },
     instance.state,
-    instance.spectrogramImage
+    instance.ui.spectrogramImage
   )
   const newSVG = {
     x: currentSVG.x + movement.dx,
@@ -187,7 +188,7 @@ function moveSelectedMarker(instance, markerId, movement) {
 
   // Clamping is explicit: a marker pushed past an edge pins to it rather than
   // leaving the image, as it did before consolidation.
-  const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.spectrogramImage)
+  const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.ui.spectrogramImage)
   const clamped = clampToImage(image.x, image.y, instance.state)
   const newData = imageToData(clamped.x, clamped.y, instance.state)
   
@@ -213,11 +214,12 @@ function moveSelectedMarker(instance, markerId, movement) {
  * @param {MovementVector} movement - Movement vector {dx, dy}
  */
 function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
-  if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
+  const harmonics = instance.state.harmonics
+  if (!harmonics || !harmonics.harmonicSets) {
     return
   }
   
-  const harmonicSet = instance.state.harmonics.harmonicSets.find(h => h.id === harmonicSetId)
+  const harmonicSet = harmonics.harmonicSets.find(h => h.id === harmonicSetId)
   if (!harmonicSet) {
     return
   }
@@ -229,7 +231,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
   // is in rendered pixels at any zoom level (FR-002, FR-003).
   const { timeMin, timeMax } = instance.state.config
   const viewport = instance.state
-  const image = instance.spectrogramImage
+  const image = instance.ui.spectrogramImage
 
   /**
    * Convert an SVG point to data coordinates through the canonical module.
@@ -274,9 +276,9 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
   
   // Apply updates directly to the harmonic set
   if (Object.keys(updates).length > 0) {
-    const setIndex = instance.state.harmonics.harmonicSets.findIndex(set => set.id === harmonicSetId)
+    const setIndex = harmonics.harmonicSets.findIndex(set => set.id === harmonicSetId)
     if (setIndex !== -1) {
-      Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates)
+      Object.assign(harmonics.harmonicSets[setIndex], updates)
       markAnnotationsChanged(instance)
       
       // Update visual elements if harmonic panel exists. This uses the static
@@ -284,8 +286,8 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
       // cited circular dependencies, but the same module is already imported
       // statically and called synchronously elsewhere in this file — so it only
       // delayed the panel update by a microtask and swallowed any error.
-      if (instance.harmonicPanel) {
-        updateHarmonicPanelContent(instance.harmonicPanel, instance)
+      if (instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(instance.ui.harmonicPanel, instance)
       }
       
       // Trigger re-render of persistent features to show updated harmonic set
@@ -310,17 +312,18 @@ export function setSelection(instance, type, id, index) {
   // When selecting an item, also focus the instance
   setFocusedInstance(instance)
 
-  instance.state.selection.selectedType = type
-  instance.state.selection.selectedId = id
-  instance.state.selection.selectedIndex = index
+  const selection = instance.state.selection
+  selection.selectedType = type
+  selection.selectedId = id
+  selection.selectedIndex = index
 
   // Update visual feedback
   updateSelectionVisuals(instance)
 
   // Reflect the selected feature's colour/symbol in the style controls so the
   // analyst can restyle it in place (feature 161, FR-004).
-  if (instance.syncStyleControls) {
-    instance.syncStyleControls()
+  if (instance.interaction.syncStyleControls) {
+    instance.interaction.syncStyleControls()
   }
 
   dispatch(instance)
@@ -331,17 +334,18 @@ export function setSelection(instance, type, id, index) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function clearSelection(instance) {
-  instance.state.selection.selectedType = null
-  instance.state.selection.selectedId = null
-  instance.state.selection.selectedIndex = null
+  const selection = instance.state.selection
+  selection.selectedType = null
+  selection.selectedId = null
+  selection.selectedIndex = null
 
   // Update visual feedback
   updateSelectionVisuals(instance)
 
   // With nothing selected, the style controls revert to targeting the NEXT
   // created feature (feature 161, FR-013).
-  if (instance.syncStyleControls) {
-    instance.syncStyleControls()
+  if (instance.interaction.syncStyleControls) {
+    instance.interaction.syncStyleControls()
   }
 
   dispatch(instance)
@@ -358,14 +362,16 @@ function getSelectedFeature(instance) {
     return null
   }
   if (sel.selectedType === 'marker') {
-    const feature = instance.state.analysis && instance.state.analysis.markers
-      ? instance.state.analysis.markers.find(m => m.id === sel.selectedId)
+    const analysis = instance.state.analysis
+    const feature = analysis && analysis.markers
+      ? analysis.markers.find(m => m.id === sel.selectedId)
       : null
     return feature ? { type: 'marker', feature } : null
   }
   if (sel.selectedType === 'harmonicSet') {
-    const feature = instance.state.harmonics && instance.state.harmonics.harmonicSets
-      ? instance.state.harmonics.harmonicSets.find(h => h.id === sel.selectedId)
+    const harmonics = instance.state.harmonics
+    const feature = harmonics && harmonics.harmonicSets
+      ? harmonics.harmonicSets.find(h => h.id === sel.selectedId)
       : null
     return feature ? { type: 'harmonicSet', feature } : null
   }
@@ -401,12 +407,13 @@ export function getActiveStyle(instance) {
       largeSymbols: !!selected.feature.largeSymbols
     }
   }
+  const { selectedColor, selectedSymbol, showHarmonicPin, largeSymbols } = instance.state
   return {
-    color: instance.state.selectedColor,
-    symbol: instance.state.selectedSymbol,
-    showPin: instance.state.showHarmonicPin !== false,
+    color: selectedColor,
+    symbol: selectedSymbol,
+    showPin: showHarmonicPin !== false,
     pinApplies: true,
-    largeSymbols: !!instance.state.largeSymbols
+    largeSymbols: !!largeSymbols
   }
 }
 
@@ -508,19 +515,19 @@ export function applyLargeSymbolsToSelectedFeature(instance, large) {
  * @param {string} id - Harmonic set ID to remove
  */
 export function removeHarmonicSet(instance, id) {
-  const setIndex = instance.state.harmonics.harmonicSets.findIndex(set => set.id === id)
+  const { harmonics, selection } = instance.state
+  const setIndex = harmonics.harmonicSets.findIndex(set => set.id === id)
   if (setIndex !== -1) {
     // Clear selection if removing the selected harmonic set
-    if (instance.state.selection.selectedType === 'harmonicSet' && 
-        instance.state.selection.selectedId === id) {
+    if (selection.selectedType === 'harmonicSet' && selection.selectedId === id) {
       clearSelection(instance)
     }
     
-    instance.state.harmonics.harmonicSets.splice(setIndex, 1)
+    harmonics.harmonicSets.splice(setIndex, 1)
     
     // Update visual elements
-    if (instance.harmonicPanel) {
-      updateHarmonicPanelContent(instance.harmonicPanel, instance)
+    if (instance.ui.harmonicPanel) {
+      updateHarmonicPanelContent(instance.ui.harmonicPanel, instance)
     }
     
     // Trigger re-render of persistent features to remove the harmonic set

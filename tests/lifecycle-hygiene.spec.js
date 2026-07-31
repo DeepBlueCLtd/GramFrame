@@ -58,7 +58,7 @@ test.describe('Destroy removes what it installed (GF-14)', () => {
     const consumedWhileAlive = await page.evaluate(() => {
       const instance = window.GramFrame.__test__getInstances()[0]
       // Focusing an instance is what makes the shared handler act on Tab.
-      instance.svg.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+      instance.ui.svg.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
       const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
       document.dispatchEvent(event)
       return event.defaultPrevented
@@ -81,8 +81,8 @@ test.describe('Destroy removes what it installed (GF-14)', () => {
 
     const result = await page.evaluate(() => {
       const instance = window.GramFrame.__test__getInstances()[0]
-      const svg = instance.svg
-      const before = instance._registeredListeners.length
+      const svg = instance.ui.svg
+      const before = instance.interaction._registeredListeners.length
 
       let movesAfterDestroy = 0
       const originalMouseMove = instance.state.cursorPosition
@@ -94,7 +94,7 @@ test.describe('Destroy removes what it installed (GF-14)', () => {
 
       return {
         before,
-        after: instance._registeredListeners.length,
+        after: instance.interaction._registeredListeners.length,
         movesAfterDestroy
       }
     })

@@ -59,13 +59,13 @@ export function setLEDValue(led, value) {
  */
 export function updateLEDDisplays(instance, state) {
   // Update global mode LED display
-  if (instance.modeLED) {
-    setLEDValue(instance.modeLED, getModeDisplayName(state.mode))
+  if (instance.ui.modeLED) {
+    setLEDValue(instance.ui.modeLED, getModeDisplayName(state.mode))
   }
   
   // Update global rate LED display
-  if (instance.rateLED) {
-    setLEDValue(instance.rateLED, `${state.rate}`)
+  if (instance.ui.rateLED) {
+    setLEDValue(instance.ui.rateLED, `${state.rate}`)
   }
   
   // Color picker visibility is now managed by individual modes

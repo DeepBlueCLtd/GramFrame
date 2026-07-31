@@ -30,12 +30,12 @@ const WARNING_CLASS = 'gram-frame-storage-warning'
  * @returns {HTMLElement|null} The banner element, or null if there is nowhere to put it
  */
 export function showStorageWarning(instance, message) {
-  if (!instance || !instance.container) {
+  if (!instance || !instance.ui.container) {
     return null
   }
 
   const existing = /** @type {HTMLElement|null} */ (
-    instance.container.querySelector(`.${WARNING_CLASS}`)
+    instance.ui.container.querySelector(`.${WARNING_CLASS}`)
   )
   if (existing) {
     const text = existing.querySelector(`.${WARNING_CLASS}-message`)
@@ -65,7 +65,7 @@ export function showStorageWarning(instance, message) {
   banner.appendChild(text)
   banner.appendChild(dismiss)
 
-  instance.container.insertBefore(banner, instance.container.firstChild)
+  instance.ui.container.insertBefore(banner, instance.ui.container.firstChild)
   return banner
 }
 
@@ -76,10 +76,10 @@ export function showStorageWarning(instance, message) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function clearStorageWarning(instance) {
-  if (!instance || !instance.container) {
+  if (!instance || !instance.ui.container) {
     return
   }
-  const existing = instance.container.querySelector(`.${WARNING_CLASS}`)
+  const existing = instance.ui.container.querySelector(`.${WARNING_CLASS}`)
   if (existing) {
     existing.remove()
   }

@@ -59,12 +59,12 @@ import { calculateVisibleDataRange, getRenderDimensions } from '../utils/coordin
  * @param {GramFrame} instance - GramFrame instance
  */
 export function renderAxes(instance) {
-  if (!instance.axesGroup) {
+  if (!instance.ui.axesGroup) {
     return
   }
   
   // Clear existing axes
-  instance.axesGroup.innerHTML = ''
+  instance.ui.axesGroup.innerHTML = ''
   
   const viewport = instance.state
   const { naturalWidth, naturalHeight } = viewport.imageDetails
@@ -78,7 +78,7 @@ export function renderAxes(instance) {
   const { renderWidth, renderHeight } = getRenderDimensions(viewport)
 
   // Calculate visible data range based on zoom
-  const visibleRange = calculateVisibleDataRange(viewport, instance.spectrogramImage)
+  const visibleRange = calculateVisibleDataRange(viewport, instance.ui.spectrogramImage)
 
   // Render frequency axis (bottom/horizontal - x-axis)
   renderFrequencyAxis(instance, margins, renderWidth, renderHeight, visibleRange.freqMin, visibleRange.freqMax)
@@ -108,7 +108,7 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
   axisLine.setAttribute('x2', String(axisX))
   axisLine.setAttribute('y2', String(axisEndY))
   axisLine.setAttribute('class', 'gram-frame-axis-line')
-  instance.axesGroup.appendChild(axisLine)
+  instance.ui.axesGroup.appendChild(axisLine)
   
   // Calculate tick positions
   const timeRange = timeMax - timeMin
@@ -127,7 +127,7 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
     tick.setAttribute('x2', String(axisX))
     tick.setAttribute('y2', String(y))
     tick.setAttribute('class', 'gram-frame-axis-tick')
-    instance.axesGroup.appendChild(tick)
+    instance.ui.axesGroup.appendChild(tick)
     
     // Draw label
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
@@ -136,7 +136,7 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
     label.setAttribute('text-anchor', 'end')
     label.setAttribute('class', 'gram-frame-axis-label')
     label.textContent = formatTime(time)
-    instance.axesGroup.appendChild(label)
+    instance.ui.axesGroup.appendChild(label)
   }
   
 }
@@ -239,7 +239,7 @@ function renderAxisLine(instance, axisConfig) {
   axisLine.setAttribute('x2', String(axisConfig.endX))
   axisLine.setAttribute('y2', String(axisConfig.y))
   axisLine.setAttribute('class', 'gram-frame-axis-line')
-  instance.axesGroup.appendChild(axisLine)
+  instance.ui.axesGroup.appendChild(axisLine)
 }
 
 /**
@@ -256,7 +256,7 @@ function renderAxisTicks(instance, tickData, axisConfig) {
     tick.setAttribute('x2', String(tickInfo.x))
     tick.setAttribute('y2', String(axisConfig.y + tickInfo.height))
     tick.setAttribute('class', tickInfo.className)
-    instance.axesGroup.appendChild(tick)
+    instance.ui.axesGroup.appendChild(tick)
   })
 }
 
@@ -274,7 +274,7 @@ function renderAxisLabels(instance, labelData, axisConfig) {
     label.setAttribute('text-anchor', 'middle')
     label.setAttribute('class', labelInfo.className)
     label.textContent = labelInfo.text
-    instance.axesGroup.appendChild(label)
+    instance.ui.axesGroup.appendChild(label)
   })
 }
 

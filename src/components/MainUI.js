@@ -190,15 +190,15 @@ function createHarmonicsContainer() {
  * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
  */
 export function updateUniversalCursorReadouts(instance, dataCoords) {
-  if (instance.timeLED) {
-    const timeValue = instance.timeLED.querySelector('.gram-frame-led-value')
+  if (instance.ui.timeLED) {
+    const timeValue = instance.ui.timeLED.querySelector('.gram-frame-led-value')
     if (timeValue) {
       timeValue.textContent = formatTime(dataCoords.time)
     }
   }
   
-  if (instance.freqLED) {
-    const freqValue = instance.freqLED.querySelector('.gram-frame-led-value')
+  if (instance.ui.freqLED) {
+    const freqValue = instance.ui.freqLED.querySelector('.gram-frame-led-value')
     if (freqValue) {
       freqValue.textContent = dataCoords.freq.toFixed(2)
     }

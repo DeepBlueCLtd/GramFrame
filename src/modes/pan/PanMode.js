@@ -60,8 +60,8 @@ export class PanMode extends BaseMode {
    * @param {string} style - Cursor style
    */
   applyCursor(style) {
-    if (this.instance.svg) {
-      this.instance.svg.style.cursor = style
+    if (this.instance.ui.svg) {
+      this.instance.ui.svg.style.cursor = style
     }
   }
 

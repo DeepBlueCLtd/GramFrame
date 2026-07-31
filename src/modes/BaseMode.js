@@ -219,8 +219,8 @@ export class BaseMode {
    * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
    */
   updateCursorStyle(style) {
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = style
+    if (this.instance.ui.spectrogramImage) {
+      this.instance.ui.spectrogramImage.style.cursor = style
     }
   }
 }

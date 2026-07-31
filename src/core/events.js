@@ -36,12 +36,12 @@ function screenToDataWithZoom(instance, event) {
   const point = screenToData(
     event.clientX,
     event.clientY,
-    instance.svg,
+    instance.ui.svg,
     instance.state,
-    instance.spectrogramImage
+    instance.ui.spectrogramImage
   )
 
-  if (!isWithinImage(point.svg, instance.state, instance.spectrogramImage)) {
+  if (!isWithinImage(point.svg, instance.state, instance.ui.spectrogramImage)) {
     return null
   }
 
@@ -94,32 +94,32 @@ function handleWheel(instance, event) {
  * @returns {BaseDragHandler} The instance's wheel-pan handler
  */
 function wheelPanHandler(instance) {
-  if (!instance._wheelPanHandler) {
+  if (!instance.interaction._wheelPanHandler) {
     let previousCursor = ''
 
-    instance._wheelPanHandler = new BaseDragHandler(instance, {
+    instance.interaction._wheelPanHandler = new BaseDragHandler(instance, {
       resolveTarget: () => (
         instance.state.zoom.level > 1.0 ? { kind: 'pan', id: null, type: null } : null
       ),
       onDragStart: (_target, _position, event) => {
-        previousCursor = instance.svg ? instance.svg.style.cursor : ''
+        previousCursor = instance.ui.svg ? instance.ui.svg.style.cursor : ''
         if (event) {
-          instance._wheelPanLast = { x: event.clientX, y: event.clientY }
+          instance.interaction._wheelPanLast = { x: event.clientX, y: event.clientY }
         }
       },
       onDragMove: (_target, _position, _startPosition, event) => {
-        if (!event || !instance._wheelPanLast) return
-        const dx = event.clientX - instance._wheelPanLast.x
-        const dy = event.clientY - instance._wheelPanLast.y
+        if (!event || !instance.interaction._wheelPanLast) return
+        const dx = event.clientX - instance.interaction._wheelPanLast.x
+        const dy = event.clientY - instance.interaction._wheelPanLast.y
         const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy)
         panByNormalized(instance, normalizedDeltaX, normalizedDeltaY)
-        instance._wheelPanLast = { x: event.clientX, y: event.clientY }
+        instance.interaction._wheelPanLast = { x: event.clientX, y: event.clientY }
       },
-      onDragEnd: () => { instance._wheelPanLast = null },
-      onDragCancel: () => { instance._wheelPanLast = null },
+      onDragEnd: () => { instance.interaction._wheelPanLast = null },
+      onDragCancel: () => { instance.interaction._wheelPanLast = null },
       updateCursor: (style) => {
-        if (instance.svg) {
-          instance.svg.style.cursor = style
+        if (instance.ui.svg) {
+          instance.ui.svg.style.cursor = style
         }
       },
       // Restore whatever cursor the mode had, rather than forcing a crosshair
@@ -128,7 +128,7 @@ function wheelPanHandler(instance) {
       )
     }, null)
   }
-  return instance._wheelPanHandler
+  return instance.interaction._wheelPanHandler
 }
 
 /**
@@ -155,50 +155,50 @@ export function setupEventListeners(instance) {
   }
 
   // Mouse event listeners for SVG interaction
-  if (instance.svg) {
+  if (instance.ui.svg) {
     // Mouse move for cursor tracking
-    listen(instance.svg, 'mousemove', (event) => {
+    listen(instance.ui.svg, 'mousemove', (event) => {
       handleMouseMove(instance, /** @type {MouseEvent} */ (event))
     })
 
     // Mouse down for starting drag operations
-    listen(instance.svg, 'mousedown', (event) => {
+    listen(instance.ui.svg, 'mousedown', (event) => {
       handleMouseDown(instance, /** @type {MouseEvent} */ (event))
     })
 
     // Mouse up for ending drag operations
-    listen(instance.svg, 'mouseup', (event) => {
+    listen(instance.ui.svg, 'mouseup', (event) => {
       handleMouseUp(instance, /** @type {MouseEvent} */ (event))
     })
 
     // Mouse leave to clear cursor position
-    listen(instance.svg, 'mouseleave', () => {
+    listen(instance.ui.svg, 'mouseleave', () => {
       handleMouseLeave(instance)
     })
 
     // Context menu (right-click) for reset operations
-    listen(instance.svg, 'contextmenu', (event) => {
+    listen(instance.ui.svg, 'contextmenu', (event) => {
       handleContextMenu(instance, /** @type {MouseEvent} */ (event))
     })
 
     // Mouse wheel for global zoom (Ctrl+scroll) and horizontal pan (scroll).
     // passive:false so the handler can preventDefault() to stop the host page
     // from scrolling during a zoom/pan gesture.
-    listen(instance.svg, 'wheel', (event) => {
+    listen(instance.ui.svg, 'wheel', (event) => {
       handleWheel(instance, /** @type {WheelEvent} */ (event))
     }, { passive: false })
   }
 
   // Bind resize handler
-  instance._boundHandleResize = () => {
+  instance.viewport._boundHandleResize = () => {
     if (instance._handleResize) {
       instance._handleResize()
     }
   }
 
   // Mode button events
-  Object.keys(instance.modeButtons || {}).forEach(mode => {
-    const button = instance.modeButtons[mode]
+  Object.keys(instance.ui.modeButtons || {}).forEach(mode => {
+    const button = instance.ui.modeButtons[mode]
     if (button) {
       listen(button, 'click', () => {
         instance._switchMode(/** @type {ModeType} */ (mode))
@@ -209,9 +209,9 @@ export function setupEventListeners(instance) {
   // Rate input UI events removed - backend rate functionality preserved
 
   // Window resize event
-  listen(window, 'resize', instance._boundHandleResize)
+  listen(window, 'resize', instance.viewport._boundHandleResize)
 
-  instance._registeredListeners = registered
+  instance.interaction._registeredListeners = registered
 }
 
 /**
@@ -221,13 +221,13 @@ export function setupEventListeners(instance) {
 export function setupResizeObserver(instance) {
   // Use ResizeObserver to monitor SVG container dimensions
   if (typeof ResizeObserver !== 'undefined') {
-    instance.resizeObserver = new ResizeObserver(_entries => {
+    instance.viewport.resizeObserver = new ResizeObserver(_entries => {
       // Trigger resize handling
       if (instance._handleResize) {
         instance._handleResize()
       }
     })
-    instance.resizeObserver.observe(instance.container)
+    instance.viewport.resizeObserver.observe(instance.ui.container)
   }
 }
 
@@ -251,8 +251,8 @@ function handleMouseMove(instance, event) {
 
     // Update cursor position in state
     instance.state.cursorPosition = {
-      x: event.clientX - instance.svg.getBoundingClientRect().left,
-      y: event.clientY - instance.svg.getBoundingClientRect().top,
+      x: event.clientX - instance.ui.svg.getBoundingClientRect().left,
+      y: event.clientY - instance.ui.svg.getBoundingClientRect().top,
       svgX: svgCoords.x,
       svgY: svgCoords.y,
       imageX,
@@ -382,15 +382,15 @@ function handleContextMenu(instance, event) {
 export function cleanupEventListeners(instance) {
   // Remove every listener registered in setupEventListeners — SVG, mode
   // buttons and the window resize handler alike.
-  const registered = instance._registeredListeners || []
+  const registered = instance.interaction._registeredListeners || []
   registered.forEach(({ target, type, handler, options }) => {
     target.removeEventListener(type, handler, options)
   })
-  instance._registeredListeners = []
+  instance.interaction._registeredListeners = []
 
   // Clean up ResizeObserver
-  if (instance.resizeObserver) {
-    instance.resizeObserver.disconnect()
-    instance.resizeObserver = null
+  if (instance.viewport.resizeObserver) {
+    instance.viewport.resizeObserver.disconnect()
+    instance.viewport.resizeObserver = null
   }
 }

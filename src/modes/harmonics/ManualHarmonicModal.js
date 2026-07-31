@@ -15,7 +15,7 @@ function calculateVisibleTimePeriodCenter(state, instance) {
   }
   
   // Zoomed - calculate visible time range center
-  const visibleRange = calculateVisibleDataRange(instance.state, instance.spectrogramImage)
+  const visibleRange = calculateVisibleDataRange(instance.state, instance.ui.spectrogramImage)
   return (visibleRange.timeMin + visibleRange.timeMax) / 2
 }
 

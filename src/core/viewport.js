@@ -19,9 +19,9 @@ import { refreshExpandedLayout } from '../components/ExpandToggle.js'
  * @param {GramFrame} instance - GramFrame instance
  */
 export function zoomIn(instance) {
-  const currentLevel = instance.state.zoom.level
-  const newLevel = Math.min(currentLevel * 1.5, 10.0) // Max 10x zoom
-  setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY)
+  const zoom = instance.state.zoom
+  const newLevel = Math.min(zoom.level * 1.5, 10.0) // Max 10x zoom
+  setZoom(instance, newLevel, zoom.centerX, zoom.centerY)
 }
 
 /**
@@ -29,9 +29,9 @@ export function zoomIn(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function zoomOut(instance) {
-  const currentLevel = instance.state.zoom.level
-  const newLevel = Math.max(currentLevel / 1.5, 1.0) // Min 1x zoom
-  setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY)
+  const zoom = instance.state.zoom
+  const newLevel = Math.max(zoom.level / 1.5, 1.0) // Min 1x zoom
+  setZoom(instance, newLevel, zoom.centerX, zoom.centerY)
 }
 
 /**
@@ -57,12 +57,13 @@ function zoomReset(instance) {
  */
 export function setZoom(instance, level, centerX, centerY) {
   // Update state
-  instance.state.zoom.level = level
-  instance.state.zoom.centerX = centerX
-  instance.state.zoom.centerY = centerY
+  const zoom = instance.state.zoom
+  zoom.level = level
+  zoom.centerX = centerX
+  zoom.centerY = centerY
   
   // Apply zoom transform
-  if (instance.svg) {
+  if (instance.ui.svg) {
     applyZoomTransform(instance)
   }
   
@@ -85,25 +86,27 @@ export function setZoom(instance, level, centerX, centerY) {
  * @returns {{ normalizedDeltaX: number, normalizedDeltaY: number }} Normalized centre delta
  */
 export function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const imageDetails = instance.state.imageDetails
+  const { naturalWidth, naturalHeight } = imageDetails
   // Base render size (defaults to natural; grows when expanded)
-  const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
-  const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
 
   // Screen pixels to SVG units, via the canonical module. The transform is
   // affine, so converting the delta means converting both ends and taking the
   // difference. Reading the live viewBox this way is what stops this becoming a
   // fifth place that re-derives the screen scale (FR-002).
-  const origin = screenToSVG(0, 0, instance.svg)
-  const shifted = screenToSVG(dxPx, dyPx, instance.svg)
+  const origin = screenToSVG(0, 0, instance.ui.svg)
+  const shifted = screenToSVG(dxPx, dyPx, instance.ui.svg)
   const svgDeltaX = shifted.x - origin.x
   const svgDeltaY = shifted.y - origin.y
 
   // Convert to normalized coordinates (adjust for zoom level); negate so content
   // follows the drag.
+  const zoomLevel = instance.state.zoom.level
   return {
-    normalizedDeltaX: -(svgDeltaX / renderWidth) / instance.state.zoom.level,
-    normalizedDeltaY: -(svgDeltaY / renderHeight) / instance.state.zoom.level
+    normalizedDeltaX: -(svgDeltaX / renderWidth) / zoomLevel,
+    normalizedDeltaY: -(svgDeltaY / renderHeight) / zoomLevel
   }
 }
 
@@ -115,12 +118,13 @@ export function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
  * @param {number} deltaY - Change in centre Y (normalized)
  */
 export function panByNormalized(instance, deltaX, deltaY) {
-  if (instance.state.zoom.level <= 1.0) {
+  const zoom = instance.state.zoom
+  if (zoom.level <= 1.0) {
     return // No panning when not zoomed
   }
-  const newCenterX = Math.max(0, Math.min(1, instance.state.zoom.centerX + deltaX))
-  const newCenterY = Math.max(0, Math.min(1, instance.state.zoom.centerY + deltaY))
-  setZoom(instance, instance.state.zoom.level, newCenterX, newCenterY)
+  const newCenterX = Math.max(0, Math.min(1, zoom.centerX + deltaX))
+  const newCenterY = Math.max(0, Math.min(1, zoom.centerY + deltaY))
+  setZoom(instance, zoom.level, newCenterX, newCenterY)
 }
 
 /**
@@ -143,9 +147,10 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
     zoomReset(instance)
     return
   }
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth
-  const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight
+  const imageDetails = instance.state.imageDetails
+  const { naturalWidth, naturalHeight } = imageDetails
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
   const centerX = Math.max(0, Math.min(1, imageX / renderWidth))
   const centerY = Math.max(0, Math.min(1, imageY / renderHeight))
   setZoom(instance, newLevel, centerX, centerY)
@@ -157,17 +162,18 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
  */
 export function updateZoomControlStates(instance) {
   // Update command button states for all modes (zoom buttons are now in pan mode)
-  if (instance.commandButtons && instance.modes) {
-    updateCommandButtonStates(instance.commandButtons, instance.modes)
+  if (instance.ui.commandButtons && instance.modes) {
+    updateCommandButtonStates(instance.ui.commandButtons, instance.modes)
   }
   
   // Update mode button states (enabled/disabled)
-  if (instance.modeButtons && instance.modes) {
-    updateModeButtonStates(instance.modeButtons, instance.modes)
+  if (instance.ui.modeButtons && instance.modes) {
+    updateModeButtonStates(instance.ui.modeButtons, instance.modes)
     
     // Switch away from pan mode if currently active but now disabled
-    if (instance.state.mode === 'pan' && instance.modes.pan && !instance.modes.pan.isEnabled() && instance.state.previousMode) {
-      instance._switchMode(instance.state.previousMode)
+    const { mode, previousMode } = instance.state
+    if (mode === 'pan' && instance.modes.pan && !instance.modes.pan.isEnabled() && previousMode) {
+      instance._switchMode(previousMode)
     }
   }
 }
@@ -177,7 +183,7 @@ export function updateZoomControlStates(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function handleResize(instance) {
-  if (instance.svg) {
+  if (instance.ui.svg) {
     // When expanded, recompute the available space so the image keeps filling it.
     refreshExpandedLayout(instance)
     updateSVGLayout(instance)
@@ -194,7 +200,7 @@ export function handleResize(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function updateAxes(instance) {
-  if (instance.axesGroup) {
+  if (instance.ui.axesGroup) {
     renderAxes(instance)
   }
 }

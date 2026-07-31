@@ -42,7 +42,7 @@ test.describe('A fifth mode is coordinated by capability, not by name', () => {
           mark.setAttribute('cx', '100')
           mark.setAttribute('cy', '100')
           mark.setAttribute('r', '5')
-          instance.cursorGroup.appendChild(mark)
+          instance.ui.cursorGroup.appendChild(mark)
         }
       }
 

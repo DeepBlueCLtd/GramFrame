@@ -44,36 +44,36 @@ export function updateSVGLayout(instance) {
   const totalHeight = axesHeight + margins.top + margins.bottom
   
   // Let the container size naturally, but ensure SVG is properly sized
-  instance.container.style.width = 'auto'
-  instance.container.style.height = 'auto'
-  instance.container.style.aspectRatio = 'unset' // Remove aspect ratio constraint
+  instance.ui.container.style.width = 'auto'
+  instance.ui.container.style.height = 'auto'
+  instance.ui.container.style.aspectRatio = 'unset' // Remove aspect ratio constraint
   
   // Set SVG to explicit dimensions so container wraps around it naturally
-  instance.svg.style.width = `${totalWidth}px`
-  instance.svg.style.height = `${totalHeight}px`
-  instance.svg.setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight}`)
-  instance.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+  instance.ui.svg.style.width = `${totalWidth}px`
+  instance.ui.svg.style.height = `${totalHeight}px`
+  instance.ui.svg.setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight}`)
+  instance.ui.svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
   
   // Position image to fill the axes area completely
-  instance.spectrogramImage.setAttribute('x', String(margins.left))
-  instance.spectrogramImage.setAttribute('y', String(margins.top))
-  instance.spectrogramImage.setAttribute('width', String(axesWidth))
-  instance.spectrogramImage.setAttribute('height', String(axesHeight))
+  instance.ui.spectrogramImage.setAttribute('x', String(margins.left))
+  instance.ui.spectrogramImage.setAttribute('y', String(margins.top))
+  instance.ui.spectrogramImage.setAttribute('width', String(axesWidth))
+  instance.ui.spectrogramImage.setAttribute('height', String(axesHeight))
   
   // Set up clipping rectangle to match axes area
-  if (instance.imageClipRect) {
-    instance.imageClipRect.setAttribute('x', String(margins.left))
-    instance.imageClipRect.setAttribute('y', String(margins.top))
-    instance.imageClipRect.setAttribute('width', String(axesWidth))
-    instance.imageClipRect.setAttribute('height', String(axesHeight))
+  if (instance.ui.imageClipRect) {
+    instance.ui.imageClipRect.setAttribute('x', String(margins.left))
+    instance.ui.imageClipRect.setAttribute('y', String(margins.top))
+    instance.ui.imageClipRect.setAttribute('width', String(axesWidth))
+    instance.ui.imageClipRect.setAttribute('height', String(axesHeight))
   }
   
   // Update cursor clipping rectangle with identical dimensions
-  if (instance.cursorClipRect) {
-    instance.cursorClipRect.setAttribute('x', String(margins.left))
-    instance.cursorClipRect.setAttribute('y', String(margins.top))
-    instance.cursorClipRect.setAttribute('width', String(axesWidth))
-    instance.cursorClipRect.setAttribute('height', String(axesHeight))
+  if (instance.ui.cursorClipRect) {
+    instance.ui.cursorClipRect.setAttribute('x', String(margins.left))
+    instance.ui.cursorClipRect.setAttribute('y', String(margins.top))
+    instance.ui.cursorClipRect.setAttribute('width', String(axesWidth))
+    instance.ui.cursorClipRect.setAttribute('height', String(axesHeight))
   }
   
   // Apply zoom if needed
@@ -91,17 +91,17 @@ export function applyZoomTransform(instance) {
   // Base render size (defaults to natural); zoom multiplies it so expand × zoom compose.
   const { renderWidth, renderHeight } = getRenderDimensions(viewport)
 
-  if (!instance.spectrogramImage) {
+  if (!instance.ui.spectrogramImage) {
     return
   }
 
   if (level === 1.0) {
     // No zoom - reset to axes position and size
-    instance.spectrogramImage.setAttribute('x', String(margins.left))
-    instance.spectrogramImage.setAttribute('y', String(margins.top))
-    instance.spectrogramImage.setAttribute('width', String(renderWidth))
-    instance.spectrogramImage.setAttribute('height', String(renderHeight))
-    instance.spectrogramImage.removeAttribute('transform')
+    instance.ui.spectrogramImage.setAttribute('x', String(margins.left))
+    instance.ui.spectrogramImage.setAttribute('y', String(margins.top))
+    instance.ui.spectrogramImage.setAttribute('width', String(renderWidth))
+    instance.ui.spectrogramImage.setAttribute('height', String(renderHeight))
+    instance.ui.spectrogramImage.removeAttribute('transform')
     
     // Update axes to show full data range
     renderAxes(instance)
@@ -127,10 +127,10 @@ export function applyZoomTransform(instance) {
   const newY = margins.top + centerImageY - (centerImageY * level)
   
   // Apply zoom to image only
-  instance.spectrogramImage.setAttribute('x', String(newX))
-  instance.spectrogramImage.setAttribute('y', String(newY))
-  instance.spectrogramImage.setAttribute('width', String(zoomedWidth))
-  instance.spectrogramImage.setAttribute('height', String(zoomedHeight))
+  instance.ui.spectrogramImage.setAttribute('x', String(newX))
+  instance.ui.spectrogramImage.setAttribute('y', String(newY))
+  instance.ui.spectrogramImage.setAttribute('width', String(zoomedWidth))
+  instance.ui.spectrogramImage.setAttribute('height', String(zoomedHeight))
   
   // Update axes to reflect the new visible data range
   renderAxes(instance)

@@ -222,17 +222,15 @@ Every resolution below is covered by a check that fails if the finding returns.
 | GF-38 (partial) | **RESOLVED** | `src/rendering/axes.js` exists, so CLAUDE.md's long-standing claim about it is true. CLAUDE.md's file listing updated for the four new modules | the file exists; CLAUDE.md's listing is checked against `src/` by review |
 | GF-40 | **RESOLVED** | ADR-011 documents a `FeatureRenderer` interface whose method names have zero overlap with the real ones. ADR-017 records the correction and the surface as implemented | ADR-017 |
 | GF-43 | **RESOLVED** | The ADR numbering gap at 014 is filled by ADR-014 (mode state registration seam), and the index says so | `docs/ADRs/README.md` |
+| GF-05 | **RESOLVED** | The instance's 56 flat fields are 11: 28 DOM handles behind `instance.ui`, and 15/2/2 more behind `instance.interaction`, `instance.viewport` and `instance.persistence`. `state`, `configTable`, `stateListeners`, `instanceId`, `modes`, `currentMode` and `featureRenderer` stay flat — `state` deliberately, since it is the broadcast state and the constitution names it. Reach-ins 243 → 183, partly from `FeatureRenderer`'s eight moving onto the modes that own the state, partly from binding a state slice once per function instead of walking `instance.state` on every line | `yarn hygiene` ratchets: `instanceFields` 11 (was 56, SC-005 target ≤ 33) and `instanceStateReachIns` 183 (was 243, target ≤ 185). Both only ever fall |
 
 ### Not addressed by this phase
 
-**GF-05 (instance surface) is partially closed and remains open.** The
-`instance.state` reach-in count is 243 → 222 and class fields 56 → 54 — some of
-that from `FeatureRenderer`'s eight reach-ins moving onto the modes that own the
-state, some from six fields found to be write-only. The grouping into
-`ui`/`interaction`/`viewport`/`persistence` sub-objects (spec 167 T034–T035) is
-not done, so SC-005's targets (≤ 185 reach-ins, ≤ 33 fields) are not met. Both
-counts are ratcheted in `hygiene-baseline.json` and can only fall.
-
 `GF-02`, `GF-04`, `GF-12`, `GF-14`–`GF-16` and the remaining process and
 documentation findings are outside spec 167's scope and remain open.
+
+Three modules are still over the SC-004 ~350-line guideline and untouched by
+this phase — `HarmonicsMode.js`, `DopplerMode.js` and `AnalysisMode.js`. They
+are recorded as documented exceptions in `hygiene-baseline.json` and flagged
+there as candidates for a later phase.
 

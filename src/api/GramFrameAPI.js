@@ -189,7 +189,7 @@ export function createGramFrameAPI(GramFrame) {
      */
     _getInstances() {
       const live = (this._instances || []).filter(
-        instance => instance && instance.container && instance.container.isConnected
+        instance => instance && instance.ui.container && instance.ui.container.isConnected
       )
       this._instances = live
       return live

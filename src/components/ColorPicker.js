@@ -38,7 +38,7 @@ const COLOR_PALETTE = [
  * When a marker or harmonic set is selected, this panel restyles that feature
  * in place; otherwise it sets the colour/symbol for the next created feature
  * (feature 161). The panel also syncs its displayed colour/symbol to whichever
- * feature is selected via `instance.syncStyleControls`.
+ * feature is selected via `instance.interaction.syncStyleControls`.
  * @param {GramFrame} instance - GramFrame instance
  * @returns {HTMLDivElement} The combined colour/symbol picker element
  */
@@ -115,7 +115,7 @@ export function createColorPicker(instance) {
 
     // Route to the selected feature when one is selected (restyle in place),
     // otherwise set the colour for the next created feature (feature 161).
-    if (!instance.applyColorToSelectedFeature || !instance.applyColorToSelectedFeature(color)) {
+    if (!instance.interaction.applyColorToSelectedFeature || !instance.interaction.applyColorToSelectedFeature(color)) {
       state.selectedColor = color
     }
 
@@ -140,21 +140,21 @@ export function createColorPicker(instance) {
   // Sync both controls (colour indicator + symbol drop-down) to whatever is
   // currently selected, or to the next-feature defaults when nothing is
   // selected (feature 161, FR-004/FR-013).
-  instance.syncStyleControls = () => {
+  instance.interaction.syncStyleControls = () => {
     const { color, symbol, showPin, pinApplies, largeSymbols } = getActiveStyle(instance)
     showColor(color)
-    if (instance._symbolControl) {
-      instance._symbolControl.setValue(symbol)
-      instance._symbolControl.setTint(color)
+    if (instance.interaction._symbolControl) {
+      instance.interaction._symbolControl.setValue(symbol)
+      instance.interaction._symbolControl.setTint(color)
     }
-    if (instance._pinControl) {
-      instance._pinControl.setValue(showPin)
+    if (instance.interaction._pinControl) {
+      instance.interaction._pinControl.setValue(showPin)
       // Markers have no pin, so the toggle is disabled while one is selected.
-      instance._pinControl.setEnabled(pinApplies)
+      instance.interaction._pinControl.setEnabled(pinApplies)
     }
     // TEMPORARY (size experiment): keep the size toggle in step with selection.
-    if (instance._largeSymbolsControl) {
-      instance._largeSymbolsControl.setValue(largeSymbols)
+    if (instance.interaction._largeSymbolsControl) {
+      instance.interaction._largeSymbolsControl.setValue(largeSymbols)
     }
   }
 

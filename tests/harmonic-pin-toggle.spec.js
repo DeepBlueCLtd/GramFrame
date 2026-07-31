@@ -113,7 +113,7 @@ test.describe('US1: Pin toggle governs newly created harmonic sets', () => {
     // Deselect the newly created set so the toggle targets the session default
     await gramFramePage.page.evaluate(() => {
       // @ts-ignore - test-only global
-      window.GramFrame.__test__getInstances()[0].clearSelection()
+      window.GramFrame.__test__getInstances()[0].interaction.clearSelection()
     })
     await gramFramePage.setPinToggle(false)
     const pinlessId = await gramFramePage.addHarmonicSet(5, 150)
@@ -159,7 +159,7 @@ test.describe('US2: Toggling restyles the selected harmonic set in place', () =>
     const pinlessId = await gramFramePage.addHarmonicSet(5, 100)
     await gramFramePage.page.evaluate(() => {
       // @ts-ignore - test-only global
-      window.GramFrame.__test__getInstances()[0].clearSelection()
+      window.GramFrame.__test__getInstances()[0].interaction.clearSelection()
     })
     await gramFramePage.setPinToggle(true)
     const pinnedId = await gramFramePage.addHarmonicSet(5, 150)

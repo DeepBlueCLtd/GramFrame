@@ -169,7 +169,7 @@ test.describe('Drag state has one owner and one projection (GF-17, spec 166)', (
       const dragging = Object.entries(instance.modes)
         .filter(([, mode]) => mode.dragHandler && mode.dragHandler.isDragging())
         .map(([name]) => name)
-      const wheelPanActive = !!(instance._wheelPanHandler && instance._wheelPanHandler.isDragging())
+      const wheelPanActive = !!(instance.interaction._wheelPanHandler && instance.interaction._wheelPanHandler.isDragging())
       return { dragging, wheelPanActive, drag: instance.state.drag }
     })
 

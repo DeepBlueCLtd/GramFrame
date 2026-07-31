@@ -87,8 +87,8 @@ export function getFocusedInstance() {
  * @param {GramFrame} instance - Instance to add indicator to
  */
 function addFocusIndicator(instance) {
-  if (instance.container) {
-    instance.container.classList.add('gram-frame-focused')
+  if (instance.ui.container) {
+    instance.ui.container.classList.add('gram-frame-focused')
   }
 }
 
@@ -97,8 +97,8 @@ function addFocusIndicator(instance) {
  * @param {GramFrame} instance - Instance to remove indicator from
  */
 function removeFocusIndicator(instance) {
-  if (instance.container) {
-    instance.container.classList.remove('gram-frame-focused')
+  if (instance.ui.container) {
+    instance.ui.container.classList.remove('gram-frame-focused')
   }
 }
 

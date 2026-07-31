@@ -221,6 +221,11 @@ There is no visual/screenshot regression testing — see
   `MainUI` or `FeatureRenderer` (ADR-017)
 - Each initialization step declares what it needs and returns what it built; the
   constructor is the only place results are adopted onto the instance
+- The instance surface is grouped: `instance.ui` (DOM handles), `instance.interaction`
+  (selection and restyling), `instance.viewport` (resize watching) and
+  `instance.persistence` (storage context). `state`, `configTable`,
+  `stateListeners`, `instanceId`, `modes`, `currentMode` and `featureRenderer`
+  stay flat — `state` deliberately so, since it is the broadcast state
 
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything

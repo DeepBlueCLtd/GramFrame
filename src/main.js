@@ -80,6 +80,53 @@ import {
  * GramFrame class - Main component implementation
  */
 export class GramFrame {
+  /**
+   * Every DOM element handle this component owns.
+   *
+   * Grouped rather than kept as 28 flat fields (spec 167, US5): they share a
+   * lifetime — built during construction, torn down together — and reading
+   * `instance.ui.svg` says which of the instance's concerns you are reaching
+   * into, where `instance.svg` said only that you were reaching.
+   * @type {GramFrameUI}
+   */
+  ui;
+
+  /**
+   * Selection, restyling and the transient pointer state behind them.
+   * @type {GramFrameInteraction}
+   */
+  interaction = {
+    setSelection: () => {},
+    clearSelection: () => {},
+    updateSelectionVisuals: () => {},
+    applyColorToSelectedFeature: () => false,
+    applySymbolToSelectedFeature: () => false,
+    applyPinToSelectedFeature: () => false,
+    applyLargeSymbolsToSelectedFeature: () => false,
+    removeHarmonicSet: () => {},
+    // Replaced by the colour picker when it mounts; a no-op until then, so a
+    // caller arriving early does nothing rather than throwing.
+    syncStyleControls: () => {},
+    _symbolControl: null,
+    _pinControl: null,
+    _largeSymbolsControl: null,
+    _registeredListeners: [],
+    _wheelPanHandler: null,
+    _wheelPanLast: null
+  };
+
+  /**
+   * How the component watches for size changes.
+   * @type {GramFrameViewport}
+   */
+  viewport = { resizeObserver: null, _boundHandleResize: null };
+
+  /**
+   * Where this instance's annotations are saved, and under which context.
+   * @type {GramFramePersistence}
+   */
+  persistence = { _storageInstanceIndex: 0, _isTrainerContext: false };
+
   // Core properties
   /** @type {GramFrameState} */
   state;
@@ -90,77 +137,11 @@ export class GramFrame {
   /** @type {string} */
   instanceId;
   
-  // DOM element properties
-  /** @type {HTMLDivElement} */
-  container;
-  /** @type {HTMLDivElement} */
-  table;
-  /** @type {HTMLDivElement} */
-  modeRow;
-  /** @type {HTMLDivElement} */
-  mainRow;
-  /** @type {HTMLDivElement} */
-  readoutPanel;
-  /** @type {HTMLDivElement} */
-  modeCell;
-  /** @type {HTMLDivElement} */
-  mainCell;
-  /** @type {HTMLElement|null} */
-  modeLED = null;
-  /** @type {HTMLElement|null} */
-  rateLED = null;
-  /** @type {HTMLElement} */
-  colorPicker;
-  /** @type {SVGSVGElement} */
-  svg;
-  /** @type {SVGGElement} */
-  cursorGroup;
-  /** @type {SVGGElement} */
-  axesGroup;
-  /** @type {SVGRectElement} */
-  imageClipRect;
-  /** @type {SVGRectElement} */
-  cursorClipRect;
   
-  // The one layout column read back off the instance: the trainer-only
-  // "Clear gram" button is appended to it after construction. The other six
-  // columns were copied here and never read again — `createUnifiedLayout`
-  // assembles them itself and hands the panel-mounting ones straight to the
-  // steps that need them — so they are no longer kept (spec 167, US5).
-  /** @type {HTMLDivElement} */
-  modeColumn;
-  /** @type {HTMLElement} */
-  timeLED;
-  /** @type {HTMLElement} */
-  freqLED;
-  /** @type {HTMLElement} */
-  speedLED;
-  /** @type {HTMLDivElement} */
-  markersContainer;
-  /** @type {HTMLDivElement} */
-  harmonicsContainer;
   
-  // The harmonics panel, mounted by HarmonicsMode when its UI is created
-  /** @type {HTMLElement|null} */
-  harmonicPanel = null;
 
-  // Spectrogram image
-  /** @type {SVGImageElement} */
-  spectrogramImage;
 
-  // Expand/collapse toggle button (landscape images only)
-  /** @type {HTMLButtonElement|null} */
-  expandToggleButton = null;
   
-  // Mode switching UI
-  /** @type {HTMLDivElement} */
-  modesContainer;
-  /** @type {Object<string, HTMLButtonElement>} */
-  modeButtons;
-  /** @type {Object<string, HTMLButtonElement[]>} */
-  commandButtons;
-  /** @type {HTMLDivElement} */
-  guidancePanel;
   
   // Mode system
   /** @type {Object<string, BaseMode>} */
@@ -170,74 +151,14 @@ export class GramFrame {
   /** @type {FeatureRenderer} */
   featureRenderer;
   
-  // Keyboard control functions
-  /** @type {function(string, string, number): void} */
-  setSelection;
-  /** @type {function(): void} */
-  clearSelection;
-  /** @type {function(): void} */
-  updateSelectionVisuals;
 
-  // Reformatting (feature 161): restyle the selected feature in place
-  /** @type {function(string): boolean} */
-  applyColorToSelectedFeature;
-  /** @type {function(SymbolType): boolean} */
-  applySymbolToSelectedFeature;
-  // Show/hide the selected harmonic set's pin lines
-  /** @type {function(boolean): boolean} */
-  applyPinToSelectedFeature;
-  // EXPERIMENT (temporary): resize the selected feature's symbols
-  /** @type {function(boolean): boolean} */
-  applyLargeSymbolsToSelectedFeature;
-  /** @type {function(string): void} */
-  removeHarmonicSet;
-  // Sync the colour/symbol/pin controls to the current selection. Replaced by
-  // the colour picker when it mounts; a no-op until then, so a caller that runs
-  // before the controls exist does nothing rather than throwing.
-  /** @type {function(): void} */
-  syncStyleControls = () => {};
-  // Symbol drop-down control handle (registered by the symbol picker)
-  /** @type {any} */
-  _symbolControl;
-  // Pin toggle control handle (registered by the pin toggle)
-  /** @type {any} */
-  _pinControl;
-  // EXPERIMENT (temporary): "Large symbols" checkbox handle
-  /** @type {any} */
-  _largeSymbolsControl;
   
-  // ResizeObserver
-  /** @type {ResizeObserver|null} */
-  resizeObserver = null;
   
-  // Bound event handlers
-  /** @type {(function(Event): void)|null} */
-  _boundHandleResize = null;
 
-  /**
-   * Every listener attached by setupEventListeners, kept so destroy() can
-   * remove them (they used to be anonymous and therefore unremovable).
-   * @type {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>}
-   */
-  _registeredListeners = [];
 
-  /**
-   * The drag engine driving a wheel-button (middle) pan, created lazily on the
-   * first such drag. Not part of the broadcast state.
-   * @type {import('./modes/shared/BaseDragHandler.js').BaseDragHandler|null}
-   */
-  _wheelPanHandler = null;
 
-  /** @type {{x: number, y: number}|null} */
-  _wheelPanLast = null;
 
-  // Storage instance index for multi-instance pages
-  /** @type {number} */
-  _storageInstanceIndex;
 
-  // Whether this instance is a trainer context
-  /** @type {boolean} */
-  _isTrainerContext;
 
   /**
    * Creates a new GramFrame instance
@@ -274,10 +195,10 @@ export class GramFrame {
     this.instanceId = ''
 
     // Determine storage instance index (count existing containers)
-    this._storageInstanceIndex = document.querySelectorAll('.gram-frame-container').length
+    this.persistence._storageInstanceIndex = document.querySelectorAll('.gram-frame-container').length
 
     // Detect trainer vs student context
-    this._isTrainerContext = detectUserContext() === 'trainer'
+    this.persistence._isTrainerContext = detectUserContext() === 'trainer'
 
     // Initialization, in dependency order. Each step declares what it needs and
     // returns what it built; the constructor is the only place the results are
@@ -285,30 +206,43 @@ export class GramFrame {
     // argument at check time, not an `undefined` surfacing three steps later
     // (spec 167, FR-009, AS-5.2).
     const dom = setupSpectrogramComponents(this, configTable)
-    this.container = dom.container
-    this.table = dom.table
-    this.modeRow = dom.modeRow
-    this.mainRow = dom.mainRow
-    this.modeCell = dom.modeCell
-    this.mainCell = dom.mainCell
-    this.readoutPanel = dom.readoutPanel
-    this.svg = dom.svg
-    this.spectrogramImage = dom.spectrogramImage
-    this.cursorGroup = dom.cursorGroup
-    this.axesGroup = dom.axesGroup
-    this.imageClipRect = dom.imageClipRect
-    this.cursorClipRect = dom.cursorClipRect
-
     const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell)
-    this.modeColumn = layout.modeColumn
-    this.markersContainer = layout.markersContainer
-    this.harmonicsContainer = layout.harmonicsContainer
-    this.timeLED = layout.timeLED
-    this.freqLED = layout.freqLED
-    this.speedLED = layout.speedLED
-    this.colorPicker = layout.colorPicker
-
     const initialModeUI = setupPersistentContainers(this, layout.modeColumn, layout.guidanceColumn)
+
+    this.ui = {
+      container: dom.container,
+      table: dom.table,
+      modeRow: dom.modeRow,
+      mainRow: dom.mainRow,
+      readoutPanel: dom.readoutPanel,
+      modeCell: dom.modeCell,
+      mainCell: dom.mainCell,
+      svg: dom.svg,
+      spectrogramImage: dom.spectrogramImage,
+      cursorGroup: dom.cursorGroup,
+      axesGroup: dom.axesGroup,
+      imageClipRect: dom.imageClipRect,
+      cursorClipRect: dom.cursorClipRect,
+      modeColumn: layout.modeColumn,
+      markersContainer: layout.markersContainer,
+      harmonicsContainer: layout.harmonicsContainer,
+      timeLED: layout.timeLED,
+      freqLED: layout.freqLED,
+      speedLED: layout.speedLED,
+      colorPicker: layout.colorPicker,
+      modesContainer: initialModeUI.modesContainer,
+      modeButtons: initialModeUI.modeButtons,
+      commandButtons: initialModeUI.commandButtons,
+      guidancePanel: initialModeUI.guidancePanel,
+      // Mounted later, or not at all: the harmonics panel arrives with that
+      // mode's UI, the expand toggle only for a landscape image, and nothing
+      // assigns the mode/rate LEDs at all — every read of them is guarded.
+      harmonicPanel: null,
+      expandToggleButton: null,
+      modeLED: null,
+      rateLED: null
+    }
+
     setupSpectrogramIfAvailable(this)
 
     const { modes, featureRenderer } = initializeModeInfrastructure(this)
@@ -319,25 +253,25 @@ export class GramFrame {
     const modeUI = updateModeUIWithCommands(
       this, initialModeUI, modes, this.currentMode, layout.modeColumn, layout.guidanceColumn
     )
-    this.modesContainer = modeUI.modesContainer
-    this.modeButtons = modeUI.modeButtons
-    this.commandButtons = modeUI.commandButtons
-    this.guidancePanel = modeUI.guidancePanel
+    this.ui.modesContainer = modeUI.modesContainer
+    this.ui.modeButtons = modeUI.modeButtons
+    this.ui.commandButtons = modeUI.commandButtons
+    this.ui.guidancePanel = modeUI.guidancePanel
 
     const controls = setupAllEventListeners(this)
-    this.removeHarmonicSet = controls.removeHarmonicSet
-    this.setSelection = controls.setSelection
-    this.clearSelection = controls.clearSelection
-    this.updateSelectionVisuals = controls.updateSelectionVisuals
-    this.applyColorToSelectedFeature = controls.applyColorToSelectedFeature
-    this.applySymbolToSelectedFeature = controls.applySymbolToSelectedFeature
-    this.applyPinToSelectedFeature = controls.applyPinToSelectedFeature
-    this.applyLargeSymbolsToSelectedFeature = controls.applyLargeSymbolsToSelectedFeature
+    this.interaction.removeHarmonicSet = controls.removeHarmonicSet
+    this.interaction.setSelection = controls.setSelection
+    this.interaction.clearSelection = controls.clearSelection
+    this.interaction.updateSelectionVisuals = controls.updateSelectionVisuals
+    this.interaction.applyColorToSelectedFeature = controls.applyColorToSelectedFeature
+    this.interaction.applySymbolToSelectedFeature = controls.applySymbolToSelectedFeature
+    this.interaction.applyPinToSelectedFeature = controls.applyPinToSelectedFeature
+    this.interaction.applyLargeSymbolsToSelectedFeature = controls.applyLargeSymbolsToSelectedFeature
 
     setupStateListeners(this)
 
     // Add "Clear gram" button for trainer pages
-    if (this._isTrainerContext) {
+    if (this.persistence._isTrainerContext) {
       this._addClearGramButton()
     }
 
@@ -426,8 +360,8 @@ export class GramFrame {
     })
 
     // Append to the mode column alongside the mode buttons
-    if (this.modeColumn) {
-      this.modeColumn.appendChild(btn)
+    if (this.ui.modeColumn) {
+      this.ui.modeColumn.appendChild(btn)
     }
   }
 
@@ -450,7 +384,7 @@ export class GramFrame {
 
     // Remove from storage. A failure here means the annotations just cleared on
     // screen will reappear on reload, so say so rather than failing silently.
-    if (clearAnnotations(this._storageInstanceIndex)) {
+    if (clearAnnotations(this.persistence._storageInstanceIndex)) {
       clearStorageWarning(this)
     } else {
       showStorageWarning(this, 'Saved annotations could not be removed from browser storage — they may reappear when this page is reloaded.')
@@ -480,7 +414,7 @@ export class GramFrame {
    * Restore saved annotations from browser storage into state
    */
   _restoreAnnotations() {
-    const saved = loadAnnotations(this._storageInstanceIndex)
+    const saved = loadAnnotations(this.persistence._storageInstanceIndex)
     if (!saved) return
 
     markAnnotationsChanged(this)
@@ -551,7 +485,7 @@ export class GramFrame {
         // persisted (quota, private browsing, disabled storage) — GF-16. With
         // nothing annotated there is nothing to lose yet, so an unavailable
         // store stays quiet until the analyst actually creates something.
-        if (saveAnnotations(this.state, this._storageInstanceIndex)) {
+        if (saveAnnotations(this.state, this.persistence._storageInstanceIndex)) {
           clearStorageWarning(this)
         } else if (hasPersistableAnnotations(state)) {
           showStorageWarning(this, 'Annotations could not be saved — they will be lost when this page is reloaded.')
@@ -583,8 +517,8 @@ export class GramFrame {
     cleanupKeyboardControl(this)
     
     // Remove from DOM if still attached
-    if (this.container && this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container)
+    if (this.ui.container && this.ui.container.parentNode) {
+      this.ui.container.parentNode.removeChild(this.ui.container)
     }
   }
   
@@ -625,16 +559,16 @@ export class GramFrame {
     // targeting the NEXT created feature instead of restyling the previously
     // selected one (feature 161). Re-clicking the already-active mode counts too:
     // it is the natural gesture for "deselect and start fresh".
-    if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
-      this.clearSelection()
+    if (this.state.selection && this.state.selection.selectedType && this.interaction.clearSelection) {
+      this.interaction.clearSelection()
     }
 
     // Cursor styling removed - no display element
     
     // Update UI
-    if (this.modeButtons) {
-      Object.keys(this.modeButtons).forEach(m => {
-        const button = this.modeButtons[m]
+    if (this.ui.modeButtons) {
+      Object.keys(this.ui.modeButtons).forEach(m => {
+        const button = this.ui.modeButtons[m]
         if (button) {
           if (m === mode) {
             button.classList.add('active')
@@ -646,11 +580,11 @@ export class GramFrame {
     }
     
     // Update container class for mode-specific styling
-    if (this.container) {
+    if (this.ui.container) {
       // Remove all mode classes
-      this.container.classList.remove('gram-frame-analysis-mode', 'gram-frame-harmonics-mode')
+      this.ui.container.classList.remove('gram-frame-analysis-mode', 'gram-frame-harmonics-mode')
       // Add current mode class
-      this.container.classList.add(`gram-frame-${mode}-mode`)
+      this.ui.container.classList.add(`gram-frame-${mode}-mode`)
     }
     
     // Switch to new mode instance and activate it (all modes now use polymorphic pattern)
@@ -668,9 +602,9 @@ export class GramFrame {
     this.currentMode.activate()
     
     // Update guidance panel using mode's guidance text
-    if (this.guidancePanel) {
+    if (this.ui.guidancePanel) {
       const guidanceContent = this.currentMode.getGuidanceText()
-      updateGuidancePanel(this.guidancePanel, guidanceContent)
+      updateGuidancePanel(this.ui.guidancePanel, guidanceContent)
     }
     
     // Update LED display visibility
@@ -680,8 +614,8 @@ export class GramFrame {
     updateLEDDisplays(this, this.state)
     
     // Update global status LEDs
-    if (this.modeLED) {
-      setLEDValue(this.modeLED, getModeDisplayName(mode))
+    if (this.ui.modeLED) {
+      setLEDValue(this.ui.modeLED, getModeDisplayName(mode))
     }
     
     // Update persistent panels regardless of active mode
