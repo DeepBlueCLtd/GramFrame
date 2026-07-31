@@ -12,7 +12,10 @@ export default defineConfig({
   testIgnore: ['**/unit/**', '**/smoke/**'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // No retries anywhere, CI included. A retry turns a race into a pass and
+  // hides it; with the suite on state-based waits (spec 166, US1) a failure is
+  // a real failure and should be reported as one.
+  retries: 0,
   workers: process.env.CI ? 1 : 2, // Limit to 2 workers to reduce resource contention
   reporter: 'list',
   // Don't open the HTML report after the test run
