@@ -9,7 +9,7 @@
 /// <reference path="../../types.js" />
 
 import { setupEventListeners, setupResizeObserver } from '../events.js'
-import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature } from '../keyboardControl.js'
+import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../keyboardControl.js'
 import { getGlobalStateListeners } from '../state.js'
 
 /**
@@ -34,6 +34,7 @@ export function setupAllEventListeners(instance) {
   instance.applyColorToSelectedFeature = (color) => applyColorToSelectedFeature(instance, color)
   instance.applySymbolToSelectedFeature = (symbol) => applySymbolToSelectedFeature(instance, symbol)
   instance.applyPinToSelectedFeature = (showPin) => applyPinToSelectedFeature(instance, showPin)
+  instance.applyLargeSymbolsToSelectedFeature = (large) => applyLargeSymbolsToSelectedFeature(instance, large)
 }
 
 /**
