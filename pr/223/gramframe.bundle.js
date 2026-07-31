@@ -262,17 +262,52 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       data: imageToData(image.x, image.y, viewport)
     };
   }
+  const activeDragOwners = /* @__PURE__ */ new WeakMap();
+  function idleProjection() {
+    return {
+      active: false,
+      kind: null,
+      mode: null,
+      targetId: null,
+      targetType: null,
+      startPosition: null
+    };
+  }
+  function publishDragProjection(instance) {
+    if (!instance || !instance.state) {
+      return;
+    }
+    const owner = activeDragOwners.get(instance);
+    if (!owner || !owner.dragState.isDragging) {
+      instance.state.drag = idleProjection();
+    } else {
+      instance.state.drag = {
+        active: true,
+        kind: owner.dragState.kind,
+        mode: owner.modeName,
+        targetId: owner.dragState.draggedTargetId,
+        targetType: owner.dragState.draggedTargetType,
+        startPosition: owner.dragState.dragStartPosition ? { ...owner.dragState.dragStartPosition } : null
+      };
+    }
+    if (typeof instance.notifyStateListeners === "function") {
+      instance.notifyStateListeners();
+    }
+  }
   class BaseDragHandler {
     /**
      * Create a new BaseDragHandler
-     * @param {Object} instance - Mode instance
+     * @param {GramFrame} instance - GramFrame instance
      * @param {DragCallbacks} callbacks - Drag lifecycle callbacks
+     * @param {ModeType|null} [modeName] - Mode that owns this handler, for the projection
      */
-    constructor(instance, callbacks) {
+    constructor(instance, callbacks, modeName = null) {
       this.instance = instance;
       this.callbacks = callbacks;
+      this.modeName = modeName;
       this.dragState = {
         isDragging: false,
+        kind: null,
         draggedTargetId: null,
         draggedTargetType: null,
         dragStartPosition: null,
@@ -287,12 +322,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return this.dragState.isDragging;
     }
     /**
+     * The kind of drag in progress, if any.
+     * @returns {DragKind|null} Drag kind or null when idle
+     */
+    dragKind() {
+      return this.dragState.isDragging ? this.dragState.kind : null;
+    }
+    /**
      * Get the current dragged target information
      * @returns {Object|null} Drag target info or null if not dragging
      */
     getDraggedTarget() {
       if (!this.dragState.isDragging) return null;
       return {
+        kind: this.dragState.kind,
         id: this.dragState.draggedTargetId,
         type: this.dragState.draggedTargetType,
         startPosition: this.dragState.dragStartPosition,
@@ -300,72 +343,105 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       };
     }
     /**
-     * Handle mouse move events for drag operations
-     * @param {DataCoordinates} currentPosition - Current mouse position in data coordinates
+     * The target descriptor handed back to the mode's callbacks.
+     * @param {DataCoordinates} position - Current position
+     * @returns {DragTarget} Target descriptor
      */
-    handleMouseMove(currentPosition) {
-      if (!this.dragState.isDragging) return;
-      const target = {
+    currentTarget(position) {
+      return {
+        kind: this.dragState.kind,
         id: this.dragState.draggedTargetId,
         type: this.dragState.draggedTargetType,
-        position: currentPosition
+        position,
+        data: this.dragState.originalData
       };
-      this.callbacks.onDragUpdate(target, currentPosition, this.dragState.dragStartPosition);
+    }
+    /**
+     * Handle mouse move events for drag operations
+     * @param {DataCoordinates} currentPosition - Current mouse position in data coordinates
+     * @param {MouseEvent} [event] - Originating event, for drags that work in screen pixels
+     */
+    handleMouseMove(currentPosition, event) {
+      if (!this.dragState.isDragging) return;
+      this.callbacks.onDragMove(
+        this.currentTarget(currentPosition),
+        currentPosition,
+        this.dragState.dragStartPosition,
+        event
+      );
     }
     /**
      * Start a drag operation
      * @param {DataCoordinates} position - Position where drag started
+     * @param {MouseEvent} [event] - Originating mousedown, passed to the resolver
      * @returns {boolean} True if drag started successfully, false otherwise
      */
-    startDrag(position) {
+    startDrag(position, event) {
       if (this.dragState.isDragging) return false;
-      const target = this.callbacks.findTargetAt(position);
+      const owner = activeDragOwners.get(this.instance);
+      if (owner && owner !== this && owner.dragState.isDragging) return false;
+      const target = this.callbacks.resolveTarget(position, event);
       if (!target) return false;
       this.dragState.isDragging = true;
-      this.dragState.draggedTargetId = target.id;
-      this.dragState.draggedTargetType = target.type;
-      this.dragState.dragStartPosition = { ...position };
+      this.dragState.kind = target.kind || "move";
+      this.dragState.draggedTargetId = target.id ?? null;
+      this.dragState.draggedTargetType = target.type ?? null;
+      this.dragState.dragStartPosition = position ? { ...position } : null;
       this.dragState.originalData = target.data ? { ...target.data } : null;
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor("grabbing");
-      }
-      this.callbacks.onDragStart(target, position);
+      activeDragOwners.set(this.instance, this);
+      publishDragProjection(this.instance);
+      this.applyCursor(this.dragState.kind, "grabbing");
+      this.callbacks.onDragStart(this.currentTarget(position), position, event);
       return true;
     }
     /**
      * End the current drag operation
      * @param {DataCoordinates} position - Position where drag ended
+     * @param {MouseEvent} [event] - Originating mouseup
      */
-    endDrag(position) {
+    endDrag(position, event) {
       if (!this.dragState.isDragging) return;
-      const target = {
-        id: this.dragState.draggedTargetId,
-        type: this.dragState.draggedTargetType,
-        position
-      };
-      this.callbacks.onDragEnd(target, position);
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor("crosshair");
-      }
-      this.dragState.isDragging = false;
-      this.dragState.draggedTargetId = null;
-      this.dragState.draggedTargetType = null;
-      this.dragState.dragStartPosition = null;
-      this.dragState.originalData = null;
+      const target = this.currentTarget(position);
+      this.callbacks.onDragEnd(target, position, event);
+      this.applyCursor(this.dragState.kind, "crosshair");
+      this.clearDragState();
     }
     /**
      * Cancel the current drag operation without applying changes
      */
     cancelDrag() {
       if (!this.dragState.isDragging) return;
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor("crosshair");
+      const target = this.currentTarget(this.dragState.dragStartPosition);
+      if (this.callbacks.onDragCancel) {
+        this.callbacks.onDragCancel(target);
       }
+      this.applyCursor(this.dragState.kind, "crosshair");
+      this.clearDragState();
+    }
+    /**
+     * Clear drag bookkeeping and republish the projection.
+     */
+    clearDragState() {
       this.dragState.isDragging = false;
+      this.dragState.kind = null;
       this.dragState.draggedTargetId = null;
       this.dragState.draggedTargetType = null;
       this.dragState.dragStartPosition = null;
       this.dragState.originalData = null;
+      if (activeDragOwners.get(this.instance) === this) {
+        activeDragOwners.delete(this.instance);
+      }
+      publishDragProjection(this.instance);
+    }
+    /**
+     * Apply the cursor for a drag kind, falling back to the generic style.
+     * @param {DragKind|null} kind - Drag kind
+     * @param {string} fallback - Cursor to use when the mode has no per-kind opinion
+     */
+    applyCursor(kind, fallback) {
+      if (!this.callbacks.updateCursor) return;
+      const style = this.callbacks.cursorFor ? this.callbacks.cursorFor(kind, fallback) || fallback : fallback;
+      this.callbacks.updateCursor(style);
     }
     /**
      * Update cursor style based on proximity to drag targets
@@ -373,7 +449,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     updateCursorForHover(position) {
       if (this.dragState.isDragging) return;
-      const target = this.callbacks.findTargetAt(position);
+      const target = this.callbacks.resolveTarget(position);
       const cursorStyle = target ? "grab" : "crosshair";
       if (this.callbacks.updateCursor) {
         this.callbacks.updateCursor(cursorStyle);
@@ -593,12 +669,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     constructor(instance) {
       super(instance);
       this.dragHandler = new BaseDragHandler(instance, {
-        findTargetAt: (position) => this.findMarkerAtPosition(position),
+        resolveTarget: (position) => this.findMarkerAtPosition(position),
         onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-        onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+        onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
         onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
         updateCursor: (style) => this.updateCursorStyle(style)
-      });
+      }, "analysis");
     }
     /**
      * Start dragging a marker
@@ -606,9 +682,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} position - Start position
      */
     onMarkerDragStart(target, position) {
-      this.instance.state.analysis.isDragging = true;
-      this.instance.state.analysis.draggedMarkerId = target.id;
-      this.instance.state.analysis.dragStartPosition = { ...position };
       const marker = this.instance.state.analysis.markers.find((m) => m.id === target.id);
       if (marker) {
         const index = this.instance.state.analysis.markers.findIndex((m) => m.id === target.id);
@@ -645,9 +718,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} _position - End position (unused)
      */
     onMarkerDragEnd(_target, _position) {
-      this.instance.state.analysis.isDragging = false;
-      this.instance.state.analysis.draggedMarkerId = null;
-      this.instance.state.analysis.dragStartPosition = null;
     }
     /**
      * Update cursor style for drag operations
@@ -887,12 +957,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     static getInitialState() {
       return {
         analysis: {
-          markers: [],
-          // Note: isDragging, draggedMarkerId, dragStartPosition are now managed by BaseDragHandler
-          // but kept here for backward compatibility with existing code
-          isDragging: false,
-          draggedMarkerId: null,
-          dragStartPosition: null
+          markers: []
         }
       };
     }
@@ -902,12 +967,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     addMarker(marker) {
       if (!this.instance.state.analysis) {
-        this.instance.state.analysis = {
-          markers: [],
-          isDragging: false,
-          draggedMarkerId: null,
-          dragStartPosition: null
-        };
+        this.instance.state.analysis = { markers: [] };
       }
       this.instance.state.analysis.markers.push(marker);
       const index = this.instance.state.analysis.markers.length - 1;
@@ -965,6 +1025,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       });
       if (marker) {
         return {
+          kind: "move",
           id: marker.id,
           type: "marker",
           position: { freq: marker.freq, time: marker.time },
@@ -1882,12 +1943,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     constructor(instance) {
       super(instance);
       this.dragHandler = new BaseDragHandler(instance, {
-        findTargetAt: (position) => this.findHarmonicSetTarget(position),
+        resolveTarget: (position) => this.resolveHarmonicDrag(position),
         onDragStart: (target, position) => this.onHarmonicSetDragStart(target, position),
-        onDragUpdate: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
+        onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
         onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
+        onDragCancel: (target) => this.onHarmonicSetDragEnd(target, null),
         updateCursor: (style) => this.updateCursorStyle(style)
-      });
+      }, "harmonics");
     }
     /**
      * Find harmonic set target for drag handler
@@ -1898,16 +1960,34 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const harmonicSet = this.findHarmonicSetAtFrequency(position.freq);
       if (harmonicSet) {
         return {
+          kind: "move",
           id: harmonicSet.id,
           type: "harmonicSet",
           position,
           data: {
             harmonicSet,
-            clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq)
+            clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq),
+            originalAnchorTime: harmonicSet.anchorTime
           }
         };
       }
       return null;
+    }
+    /**
+     * Resolve what a mousedown in harmonics mode starts.
+     *
+     * Landing on an existing set moves it; landing anywhere else creates one and
+     * drags it out from there. The new set is minted here, on mousedown, so the
+     * engine has a target id for the whole gesture (contract: drag-engine.md).
+     * @param {DataCoordinates} position - Position of the mousedown
+     * @returns {DragTarget|null} A move- or create-kind target
+     */
+    resolveHarmonicDrag(position) {
+      const existing = this.findHarmonicSetTarget(position);
+      if (existing) {
+        return existing;
+      }
+      return this.createHarmonicSetTarget(position);
     }
     /**
      * Start dragging a harmonic set
@@ -1916,25 +1996,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     onHarmonicSetDragStart(target, position) {
       const harmonicSet = target.data.harmonicSet;
-      const clickedHarmonicNumber = target.data.clickedHarmonicNumber;
       const index = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSet.id);
       if (index !== -1) {
         this.instance.setSelection("harmonicSet", harmonicSet.id, index);
       }
-      this.instance.state.dragState.isDragging = true;
-      this.instance.state.dragState.dragStartPosition = { ...position };
-      this.instance.state.dragState.draggedHarmonicSetId = harmonicSet.id;
-      this.instance.state.dragState.originalSpacing = harmonicSet.spacing;
-      this.instance.state.dragState.originalAnchorTime = harmonicSet.anchorTime;
-      this.instance.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber;
     }
     /**
      * Update harmonic set during drag
-     * @param {Object} _target - Drag target with id and type (unused)
+     * @param {DragTarget} target - Drag target
      * @param {DataCoordinates} currentPos - Current position
-     * @param {DataCoordinates} _startPos - Start position (unused)
+     * @param {DataCoordinates} startPos - Start position
      */
-    onHarmonicSetDragUpdate(_target, currentPos, _startPos) {
+    onHarmonicSetDragUpdate(target, currentPos, startPos) {
       this.instance.state.cursorPosition = {
         freq: currentPos.freq,
         time: currentPos.time,
@@ -1946,7 +2019,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         imageY: 0
         // Minimal values for compatibility
       };
-      this.handleHarmonicSetDrag();
+      this.applyHarmonicSetDrag(target, currentPos, startPos);
     }
     /**
      * End dragging a harmonic set
@@ -1954,12 +2027,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} _position - End position (unused)
      */
     onHarmonicSetDragEnd(_target, _position) {
-      this.instance.state.dragState.isDragging = false;
-      this.instance.state.dragState.dragStartPosition = null;
-      this.instance.state.dragState.draggedHarmonicSetId = null;
-      this.instance.state.dragState.originalSpacing = null;
-      this.instance.state.dragState.originalAnchorTime = null;
-      this.instance.state.dragState.clickedHarmonicNumber = null;
     }
     /**
      * Update cursor style for drag operations
@@ -1993,19 +2060,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     handleMouseMove(_event, dataCoords) {
       if (this.dragHandler.isDragging()) {
         this.dragHandler.handleMouseMove(dataCoords);
-      } else if (this.instance.state.dragState.isCreatingNewHarmonicSet) {
-        this.instance.state.cursorPosition = {
-          freq: dataCoords.freq,
-          time: dataCoords.time,
-          x: 0,
-          y: 0,
-          svgX: 0,
-          svgY: 0,
-          imageX: 0,
-          imageY: 0
-          // Minimal values
-        };
-        this.handleHarmonicSetDrag();
       } else {
         this.dragHandler.updateCursorForHover(dataCoords);
       }
@@ -2022,10 +2076,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (event.button !== 0) {
         return;
       }
-      const dragStarted = this.dragHandler.startDrag(dataCoords);
-      if (!dragStarted) {
-        this.startNewHarmonicSetCreation(dataCoords);
-      }
+      this.dragHandler.startDrag(dataCoords, event);
     }
     /**
      * Handle mouse up events in harmonics mode
@@ -2033,15 +2084,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
      */
     handleMouseUp(_event, dataCoords) {
-      if (this.dragHandler.isDragging()) {
-        this.dragHandler.endDrag(dataCoords);
-      }
-      if (this.instance.state.dragState.isCreatingNewHarmonicSet) {
-        this.completeNewHarmonicSetCreation(dataCoords);
-        if (this.instance.svg) {
-          this.instance.svg.style.cursor = "crosshair";
-        }
-      }
+      this.dragHandler.endDrag(dataCoords);
     }
     /**
      * Create UI elements for harmonics mode
@@ -2221,11 +2264,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return null;
     }
     /**
-     * Create a new harmonic set immediately and start drag mode for updates
+     * Mint a new harmonic set at the mousedown position and return it as a
+     * `create`-kind drag target, so the rest of the gesture is an ordinary drag.
+     *
+     * The initial spacing places the cursor on a sensible harmonic — the 10th
+     * when the frequency axis starts above zero, the 5th when it starts at zero —
+     * which is what keeps the first drawn set legible.
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
      */
-    startNewHarmonicSetCreation(dataCoords) {
-      const freqMin = this.instance.state.config.freqMin;
+    createHarmonicSetTarget(dataCoords) {
+      const { freqMin } = this.instance.state.config;
       let initialSpacing;
       let clickedHarmonicNumber;
       if (freqMin > 0) {
@@ -2237,27 +2286,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       initialSpacing = Math.max(initialSpacing, 0.1);
       const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing);
-      this.instance.state.dragState.isCreatingNewHarmonicSet = true;
-      this.instance.state.dragState.dragStartPosition = { ...dataCoords };
-      this.instance.state.dragState.draggedHarmonicSetId = harmonicSet.id;
-      this.instance.state.dragState.originalSpacing = initialSpacing;
-      this.instance.state.dragState.originalAnchorTime = dataCoords.time;
-      this.instance.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber;
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = "grabbing";
+      if (!harmonicSet) {
+        return null;
       }
-    }
-    /**
-     * Complete the drag update of the newly created harmonic set
-     * @param {DataCoordinates} _dataCoords - Final drag position coordinates (unused)
-     */
-    completeNewHarmonicSetCreation(_dataCoords) {
-      this.instance.state.dragState.isCreatingNewHarmonicSet = false;
-      this.instance.state.dragState.dragStartPosition = null;
-      this.instance.state.dragState.draggedHarmonicSetId = null;
-      this.instance.state.dragState.originalSpacing = null;
-      this.instance.state.dragState.originalAnchorTime = null;
-      this.instance.state.dragState.clickedHarmonicNumber = null;
+      return {
+        kind: "create",
+        id: harmonicSet.id,
+        type: "harmonicSet",
+        position: dataCoords,
+        data: {
+          harmonicSet,
+          clickedHarmonicNumber,
+          originalAnchorTime: dataCoords.time
+        }
+      };
     }
     /**
      * Find which harmonic number was clicked
@@ -2270,22 +2312,25 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return Math.max(1, harmonicNumber);
     }
     /**
-     * Handle harmonic set dragging (both existing sets and new creation)
+     * Apply a harmonic-set drag — the shared step for both the `move` and
+     * `create` kinds, which differ only in how their target was resolved.
+     * @param {DragTarget} target - The drag target from the engine
+     * @param {DataCoordinates} currentPos - Current pointer position
+     * @param {DataCoordinates} startPos - Where the drag began
      */
-    handleHarmonicSetDrag() {
-      if (!this.instance.state.cursorPosition || !this.instance.state.dragState.dragStartPosition) return;
-      const currentPos = this.instance.state.cursorPosition;
-      const startPos = this.instance.state.dragState.dragStartPosition;
-      const setId = this.instance.state.dragState.draggedHarmonicSetId;
+    applyHarmonicSetDrag(target, currentPos, startPos) {
+      if (!target || !currentPos || !startPos) return;
+      const setId = target.id;
       if (!setId) return;
       const harmonicSet = this.instance.state.harmonics.harmonicSets.find((set) => set.id === setId);
       if (!harmonicSet) return;
       let newSpacing, newAnchorTime;
-      const clickedHarmonicNumber = this.instance.state.dragState.clickedHarmonicNumber || 1;
+      const clickedHarmonicNumber = target.data && target.data.clickedHarmonicNumber || 1;
       newSpacing = currentPos.freq / clickedHarmonicNumber;
       newSpacing = Math.max(newSpacing, 0.1);
+      const originalAnchorTime = target.data && target.data.originalAnchorTime !== void 0 ? target.data.originalAnchorTime : harmonicSet.anchorTime;
       const deltaTime = currentPos.time - startPos.time;
-      newAnchorTime = this.instance.state.dragState.originalAnchorTime + deltaTime;
+      newAnchorTime = originalAnchorTime + deltaTime;
       const updates = {};
       if (newSpacing > 0) {
         updates.spacing = newSpacing;
@@ -2629,15 +2674,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           baseFrequency: null,
           harmonicData: [],
           harmonicSets: []
-        },
-        dragState: {
-          isDragging: false,
-          dragStartPosition: null,
-          draggedHarmonicSetId: null,
-          originalSpacing: null,
-          originalAnchorTime: null,
-          clickedHarmonicNumber: null,
-          isCreatingNewHarmonicSet: false
         }
       };
     }
@@ -3618,12 +3654,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     constructor(instance) {
       super(instance);
       this.dragHandler = new BaseDragHandler(instance, {
-        findTargetAt: (position) => this.findDopplerMarkerAtPosition(position),
+        resolveTarget: (position) => this.resolveDopplerDrag(position),
         onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-        onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+        onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
         onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
+        onDragCancel: (target) => this.onMarkerDragEnd(target, null),
         updateCursor: (style) => this.updateCursorStyle(style)
-      });
+      }, "doppler");
     }
     /**
      * Find doppler marker at given position
@@ -3640,6 +3677,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         DopplerDraggedMarker.fMinus,
         DopplerDraggedMarker.fZero
       ].filter((markerType) => doppler[markerType]).map((markerType) => ({
+        kind: "move",
         id: markerType,
         type: "dopplerMarker",
         position: doppler[markerType],
@@ -3653,28 +3691,91 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} _position - Start position (unused)
      */
     onMarkerDragStart(target, _position) {
-      const doppler = this.instance.state.doppler;
-      doppler.isDragging = true;
-      doppler.draggedMarker = target.data.markerType;
     }
     /**
      * Update doppler marker position during drag
-     * @param {Object} _target - Drag target with id and type (unused)
+     * @param {DragTarget} target - Drag target
      * @param {DataCoordinates} currentPos - Current position
      * @param {DataCoordinates} _startPos - Start position (unused)
      */
-    onMarkerDragUpdate(_target, currentPos, _startPos) {
-      this.handleMarkerDrag(currentPos, this.instance.state.doppler);
+    onMarkerDragUpdate(target, currentPos, _startPos) {
+      const doppler = this.instance.state.doppler;
+      if (target.kind === "place") {
+        this.handlePreviewDrag(currentPos, doppler);
+        return;
+      }
+      this.handleMarkerDrag(currentPos, doppler, target.id);
     }
     /**
      * End dragging a doppler marker
-     * @param {Object} _target - Drag target with id and type (unused)
+     * @param {DragTarget} target - Drag target
      * @param {DataCoordinates} _position - End position (unused)
      */
-    onMarkerDragEnd(_target, _position) {
+    onMarkerDragEnd(target, _position) {
+      if (target && target.kind === "place") {
+        this.completeMarkerPlacement();
+      }
+    }
+    /**
+     * Resolve what a mousedown in doppler mode starts: moving one of the placed
+     * markers, or — with nothing placed yet — laying down f+ and dragging out f-.
+     * @param {DataCoordinates} position - Position of the mousedown
+     * @returns {DragTarget|null} A move- or place-kind target
+     */
+    resolveDopplerDrag(position) {
       const doppler = this.instance.state.doppler;
-      doppler.isDragging = false;
-      doppler.draggedMarker = null;
+      if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
+        return this.findDopplerMarkerAtPosition(position);
+      }
+      return this.startMarkerPlacement(position);
+    }
+    /**
+     * Seed f+ at the mousedown position and return a `place`-kind target, so the
+     * rest of the placement is an ordinary drag with f- following the pointer.
+     *
+     * `tempFirst` and `previewEnd` stay on state.doppler: they are placement
+     * geometry the renderer needs, not drag bookkeeping (data-model.md §2).
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * @returns {DragTarget} A place-kind target
+     */
+    startMarkerPlacement(dataCoords) {
+      const doppler = this.instance.state.doppler;
+      doppler.fPlus = { time: dataCoords.time, freq: dataCoords.freq };
+      doppler.tempFirst = doppler.fPlus;
+      doppler.previewEnd = { time: dataCoords.time, freq: dataCoords.freq };
+      this.renderDopplerFeatures();
+      return {
+        kind: "place",
+        id: DopplerDraggedMarker.fMinus,
+        type: "dopplerMarker",
+        position: dataCoords,
+        data: { markerType: DopplerDraggedMarker.fMinus }
+      };
+    }
+    /**
+     * Finalise a placement drag: order the markers, derive f₀, and clear the
+     * placement geometry.
+     */
+    completeMarkerPlacement() {
+      const doppler = this.instance.state.doppler;
+      if (!doppler.tempFirst || !doppler.fPlus || !doppler.fMinus) {
+        doppler.tempFirst = null;
+        doppler.previewEnd = null;
+        return;
+      }
+      if (doppler.fPlus.time <= doppler.fMinus.time) {
+        const temp = doppler.fPlus;
+        doppler.fPlus = doppler.fMinus;
+        doppler.fMinus = temp;
+      }
+      doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus);
+      if (!doppler.color) {
+        doppler.color = this.instance.state.selectedColor || "#ff0000";
+      }
+      doppler.tempFirst = null;
+      doppler.previewEnd = null;
+      this.calculateAndUpdateDopplerSpeed();
+      this.renderDopplerFeatures();
     }
     /**
      * Get guidance content for doppler mode
@@ -3709,17 +3810,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Handle marker dragging
      * @param {DataCoordinates} dataCoords - Data coordinates
      * @param {DopplerState} doppler - Doppler state
+     * @param {string|null} markerType - Which marker is being dragged
      */
-    handleMarkerDrag(dataCoords, doppler) {
+    handleMarkerDrag(dataCoords, doppler, markerType) {
       const newPoint = {
         time: dataCoords.time,
         freq: dataCoords.freq
       };
-      if (doppler.draggedMarker === DopplerDraggedMarker.fPlus) {
+      if (markerType === DopplerDraggedMarker.fPlus) {
         doppler.fPlus = newPoint;
-      } else if (doppler.draggedMarker === DopplerDraggedMarker.fMinus) {
+      } else if (markerType === DopplerDraggedMarker.fMinus) {
         doppler.fMinus = newPoint;
-      } else if (doppler.draggedMarker === DopplerDraggedMarker.fZero) {
+      } else if (markerType === DopplerDraggedMarker.fZero) {
         doppler.fZero = newPoint;
       }
       this.calculateAndUpdateDopplerSpeed();
@@ -3733,10 +3835,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     handleMouseMove(_event, dataCoords) {
       const doppler = this.instance.state.doppler;
-      if (doppler.isPreviewDrag && doppler.tempFirst) {
-        this.handlePreviewDrag(dataCoords, doppler);
-        return;
-      }
       if (this.dragHandler.isDragging()) {
         this.dragHandler.handleMouseMove(dataCoords);
       } else if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
@@ -3745,31 +3843,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /**
      * Handle mouse down events in doppler mode
-     * @param {MouseEvent} _event - Mouse event
+     * @param {MouseEvent} event - Mouse event
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
      */
-    handleMouseDown(_event, dataCoords) {
-      const doppler = this.instance.state.doppler;
-      if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-        const dragStarted = this.dragHandler.startDrag(dataCoords);
-        if (dragStarted) {
-          notifyStateListeners(this.instance.state, this.instance.stateListeners);
-          return;
-        }
-      }
-      if (!doppler.fPlus && !doppler.fMinus) {
-        doppler.isPlacingMarkers = true;
-        doppler.fPlus = {
-          time: dataCoords.time,
-          freq: dataCoords.freq
-        };
-        doppler.isPreviewDrag = true;
-        doppler.tempFirst = doppler.fPlus;
-        doppler.previewEnd = {
-          time: dataCoords.time,
-          freq: dataCoords.freq
-        };
-        this.renderDopplerFeatures();
+    handleMouseDown(event, dataCoords) {
+      if (this.dragHandler.startDrag(dataCoords, event)) {
+        notifyStateListeners(this.instance.state, this.instance.stateListeners);
       }
     }
     /**
@@ -3778,27 +3857,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
      */
     handleMouseUp(_event, dataCoords) {
-      const doppler = this.instance.state.doppler;
-      if (doppler.isPreviewDrag && doppler.tempFirst) {
-        if (doppler.fPlus.time > doppler.fMinus.time) ;
-        else {
-          const temp = doppler.fPlus;
-          doppler.fPlus = doppler.fMinus;
-          doppler.fMinus = temp;
-        }
-        doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus);
-        if (!doppler.color) {
-          doppler.color = this.instance.state.selectedColor || "#ff0000";
-        }
-        doppler.isPlacingMarkers = false;
-        doppler.tempFirst = null;
-        doppler.isPreviewDrag = false;
-        doppler.previewEnd = null;
-        this.calculateAndUpdateDopplerSpeed();
-        this.renderDopplerFeatures();
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
-        return;
-      }
       if (this.dragHandler.isDragging()) {
         this.dragHandler.endDrag(dataCoords);
         notifyStateListeners(this.instance.state, this.instance.stateListeners);
@@ -3833,24 +3891,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.instance.state.doppler.fZero = null;
       this.instance.state.doppler.speed = null;
       this.instance.state.doppler.color = null;
-      this.instance.state.doppler.isDragging = false;
-      this.instance.state.doppler.draggedMarker = null;
-      this.instance.state.doppler.isPlacingMarkers = false;
       this.instance.state.doppler.tempFirst = null;
-      this.instance.state.doppler.isPreviewDrag = false;
       this.instance.state.doppler.previewEnd = null;
+      this.dragHandler.reset();
       notifyStateListeners(this.instance.state, this.instance.stateListeners);
     }
     /**
      * Clean up doppler-specific state when switching away from doppler mode
      */
     cleanup() {
-      this.instance.state.doppler.isDragging = false;
-      this.instance.state.doppler.draggedMarker = null;
-      this.instance.state.doppler.isPlacingMarkers = false;
       this.instance.state.doppler.tempFirst = null;
-      this.instance.state.doppler.isPreviewDrag = false;
       this.instance.state.doppler.previewEnd = null;
+      this.dragHandler.reset();
     }
     /**
      * Deactivate doppler mode - hide speed LED
@@ -3887,14 +3939,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           // calculated speed in m/s
           color: null,
           // color used for this doppler curve
-          isDragging: false,
-          draggedMarker: null,
-          // 'fPlus', 'fMinus', 'fZero'
-          isPlacingMarkers: false,
+          // Placement geometry the renderer needs. Drag bookkeeping lives on
+          // state.drag, owned by the drag engine.
           tempFirst: null,
           // temporary storage for first marker during placement
-          isPreviewDrag: false,
-          // whether currently dragging to preview curve
           previewEnd: null
           // end point for preview drag
         }
@@ -3942,7 +3990,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
         this.renderMarkers();
         this.renderDopplerCurve();
-        if (doppler.isPreviewDrag) {
+        if (doppler.tempFirst) {
           const elements = this.instance.cursorGroup.querySelectorAll(".gram-frame-doppler-curve, .gram-frame-doppler-extension");
           elements.forEach((element) => {
             element.setAttribute("opacity", "0.8");
@@ -4284,91 +4332,123 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     constructor(instance) {
       super(instance);
-      this.isDragging = false;
-      this.dragState = {
-        lastX: 0,
-        lastY: 0
-      };
+      this.lastPointer = { x: 0, y: 0 };
+      this.dragHandler = new BaseDragHandler(instance, {
+        resolveTarget: () => this.resolvePanDrag(),
+        onDragStart: (_target, _position, event) => this.onPanStart(event),
+        onDragMove: (_target, _position, _startPosition, event) => this.onPanMove(event),
+        onDragEnd: () => this.onPanEnd(),
+        onDragCancel: () => this.onPanEnd(),
+        updateCursor: (style) => this.applyCursor(style),
+        // A pan shows the grabbing hand, not the crosshair the other kinds use
+        cursorFor: (kind, fallback) => {
+          if (kind !== "pan") return fallback;
+          return fallback === "grabbing" ? "grabbing" : this.idleCursor();
+        }
+      }, "pan");
+    }
+    /**
+     * Decide whether a mousedown starts a pan. Panning is only meaningful when
+     * zoomed in; at zoom 1 the click falls through and does nothing.
+     * @returns {DragTarget|null} A pan-kind target, or null to decline
+     */
+    resolvePanDrag() {
+      if (this.instance.state.zoom.level <= 1) {
+        return null;
+      }
+      return { kind: "pan", id: null, type: null };
+    }
+    /**
+     * The cursor pan mode rests at: a grab hand when there is something to pan.
+     * @returns {string} Cursor style
+     */
+    idleCursor() {
+      return this.instance.state.zoom.level > 1 ? "grab" : "crosshair";
+    }
+    /**
+     * Apply a cursor style to the SVG.
+     * @param {string} style - Cursor style
+     */
+    applyCursor(style) {
+      if (this.instance.svg) {
+        this.instance.svg.style.cursor = style;
+      }
+    }
+    /**
+     * Record where the pan began, in screen pixels.
+     * @param {MouseEvent} [event] - Originating mousedown
+     */
+    onPanStart(event) {
+      if (event) {
+        this.lastPointer = { x: event.clientX, y: event.clientY };
+        event.preventDefault();
+      }
+    }
+    /**
+     * Pan the viewport by the pointer delta since the last move.
+     * @param {MouseEvent} [event] - Originating mousemove
+     */
+    onPanMove(event) {
+      if (!event || this.instance.state.zoom.level <= 1) {
+        return;
+      }
+      const deltaX = event.clientX - this.lastPointer.x;
+      const deltaY = event.clientY - this.lastPointer.y;
+      const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(this.instance, deltaX, deltaY);
+      panByNormalized(this.instance, normalizedDeltaX, normalizedDeltaY);
+      this.lastPointer = { x: event.clientX, y: event.clientY };
+    }
+    /**
+     * Restore the resting cursor when the pan finishes.
+     */
+    onPanEnd() {
+      this.applyCursor(this.idleCursor());
     }
     /**
      * Activate pan mode
      */
     activate() {
-      if (this.instance.svg && this.instance.state.zoom.level > 1) {
-        this.instance.svg.style.cursor = "grab";
+      if (this.instance.state.zoom.level > 1) {
+        this.applyCursor("grab");
       }
-      this.isDragging = false;
-      this.dragState = { lastX: 0, lastY: 0 };
+      this.dragHandler.reset();
     }
     /**
      * Deactivate pan mode
      */
     deactivate() {
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = "crosshair";
-      }
-      this.isDragging = false;
-      this.dragState = { lastX: 0, lastY: 0 };
+      this.dragHandler.reset();
+      this.applyCursor("crosshair");
     }
     /**
      * Handle mouse down events - start pan drag
      * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+     * @param {DataCoordinates} dataCoords - Data coordinates
      */
-    handleMouseDown(event, _dataCoords) {
-      if (this.instance.state.zoom.level <= 1) {
-        return;
-      }
-      this.isDragging = true;
-      this.dragState = {
-        lastX: event.clientX,
-        lastY: event.clientY
-      };
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = "grabbing";
-      }
-      event.preventDefault();
+    handleMouseDown(event, dataCoords) {
+      this.dragHandler.startDrag(dataCoords, event);
     }
     /**
      * Handle mouse move events - perform pan if dragging
      * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+     * @param {DataCoordinates} dataCoords - Data coordinates
      */
-    handleMouseMove(event, _dataCoords) {
-      if (!this.isDragging || this.instance.state.zoom.level <= 1) {
-        return;
-      }
-      const deltaX = event.clientX - this.dragState.lastX;
-      const deltaY = event.clientY - this.dragState.lastY;
-      const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(this.instance, deltaX, deltaY);
-      panByNormalized(this.instance, normalizedDeltaX, normalizedDeltaY);
-      this.dragState.lastX = event.clientX;
-      this.dragState.lastY = event.clientY;
+    handleMouseMove(event, dataCoords) {
+      this.dragHandler.handleMouseMove(dataCoords, event);
     }
     /**
      * Handle mouse up events - end pan drag
-     * @param {MouseEvent} _event - Mouse event (unused)
-     * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+     * @param {MouseEvent} event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates
      */
-    handleMouseUp(_event, _dataCoords) {
-      if (!this.isDragging) {
-        return;
-      }
-      this.isDragging = false;
-      if (this.instance.svg && this.instance.state.zoom.level > 1) {
-        this.instance.svg.style.cursor = "grab";
-      }
+    handleMouseUp(event, dataCoords) {
+      this.dragHandler.endDrag(dataCoords, event);
     }
     /**
      * Handle mouse leave events
      */
     handleMouseLeave() {
-      if (this.isDragging) {
-        this.isDragging = false;
-        if (this.instance.svg && this.instance.state.zoom.level > 1) {
-          this.instance.svg.style.cursor = "grab";
-        }
-      }
+      this.dragHandler.cancelDrag();
     }
     /**
      * Get guidance content for pan mode.
@@ -4400,8 +4480,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Reset pan-specific state
      */
     resetState() {
-      this.isDragging = false;
-      this.dragState = { lastX: 0, lastY: 0 };
+      this.dragHandler.reset();
     }
     /**
      * Check if pan mode is enabled.
@@ -4521,6 +4600,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       // Center point X (0-1 normalized)
       centerY: 0.5
       // Center point Y (0-1 normalized)
+    },
+    // Read-only projection of the active drag, rebuilt by the drag engine on each
+    // transition. Modes never write it; it is always present, reading
+    // `active: false` when idle (spec 166, FR-004 / data-model.md §2).
+    drag: {
+      active: false,
+      kind: null,
+      mode: null,
+      targetId: null,
+      targetType: null,
+      startPosition: null
     },
     // Selection state for keyboard fine control
     selection: {
@@ -4939,11 +5029,41 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       event.preventDefault();
     }
   }
-  function endWheelPan(instance) {
-    if (instance.svg && instance._wheelPan) {
-      instance.svg.style.cursor = instance._wheelPan.prevCursor || "crosshair";
+  function wheelPanHandler(instance) {
+    if (!instance._wheelPanHandler) {
+      let previousCursor = "";
+      instance._wheelPanHandler = new BaseDragHandler(instance, {
+        resolveTarget: () => instance.state.zoom.level > 1 ? { kind: "pan", id: null, type: null } : null,
+        onDragStart: (_target, _position, event) => {
+          previousCursor = instance.svg ? instance.svg.style.cursor : "";
+          if (event) {
+            instance._wheelPanLast = { x: event.clientX, y: event.clientY };
+          }
+        },
+        onDragMove: (_target, _position, _startPosition, event) => {
+          if (!event || !instance._wheelPanLast) return;
+          const dx = event.clientX - instance._wheelPanLast.x;
+          const dy = event.clientY - instance._wheelPanLast.y;
+          const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy);
+          panByNormalized(instance, normalizedDeltaX, normalizedDeltaY);
+          instance._wheelPanLast = { x: event.clientX, y: event.clientY };
+        },
+        onDragEnd: () => {
+          instance._wheelPanLast = null;
+        },
+        onDragCancel: () => {
+          instance._wheelPanLast = null;
+        },
+        updateCursor: (style) => {
+          if (instance.svg) {
+            instance.svg.style.cursor = style;
+          }
+        },
+        // Restore whatever cursor the mode had, rather than forcing a crosshair
+        cursorFor: (_kind, fallback) => fallback === "grabbing" ? "grabbing" : previousCursor || "crosshair"
+      }, null);
     }
-    instance._wheelPan = null;
+    return instance._wheelPanHandler;
   }
   function setupEventListeners(instance) {
     const registered = [];
@@ -5021,13 +5141,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseMove(instance, event) {
-    if (instance._wheelPan && instance._wheelPan.active) {
-      const dx = event.clientX - instance._wheelPan.lastX;
-      const dy = event.clientY - instance._wheelPan.lastY;
-      const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy);
-      panByNormalized(instance, normalizedDeltaX, normalizedDeltaY);
-      instance._wheelPan.lastX = event.clientX;
-      instance._wheelPan.lastY = event.clientY;
+    const wheelPan = wheelPanHandler(instance);
+    if (wheelPan.isDragging()) {
+      wheelPan.handleMouseMove(null, event);
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -5057,17 +5173,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     setFocusedInstance(instance);
     if (event.button === 1) {
       event.preventDefault();
-      if (instance.state.zoom.level > 1) {
-        instance._wheelPan = {
-          active: true,
-          lastX: event.clientX,
-          lastY: event.clientY,
-          prevCursor: instance.svg ? instance.svg.style.cursor : ""
-        };
-        if (instance.svg) {
-          instance.svg.style.cursor = "grabbing";
-        }
-      }
+      wheelPanHandler(instance).startDrag(null, event);
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -5079,8 +5185,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseUp(instance, event) {
-    if (instance._wheelPan && instance._wheelPan.active) {
-      endWheelPan(instance);
+    const wheelPan = wheelPanHandler(instance);
+    if (wheelPan.isDragging()) {
+      wheelPan.endDrag(null, event);
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -5092,9 +5199,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function handleMouseLeave(instance) {
-    if (instance._wheelPan && instance._wheelPan.active) {
-      endWheelPan(instance);
-    }
+    wheelPanHandler(instance).cancelDrag();
     instance.state.cursorPosition = null;
     updateCursorIndicators(instance);
     if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === "function") {
@@ -5726,7 +5831,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
        * Not part of the broadcast state.
        * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
        */
-      __publicField(this, "_wheelPan", null);
+      __publicField(this, "_wheelPanHandler", null);
+      /** @type {{x: number, y: number}|null} */
+      __publicField(this, "_wheelPanLast", null);
       // Storage instance index for multi-instance pages
       __publicField(this, "_storageInstanceIndex");
       // Whether this instance is a trainer context
@@ -5841,7 +5948,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.state.harmonics = fresh.harmonics;
       this.state.doppler = fresh.doppler;
       this.state.selection = fresh.selection;
-      this.state.dragState = fresh.dragState;
+      this.state.drag = fresh.drag;
       this.state.cursors = fresh.cursors;
       if (clearAnnotations(this._storageInstanceIndex)) {
         clearStorageWarning(this);
@@ -5914,6 +6021,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       });
     }
     /**
+     * Broadcast this instance's state to its listeners.
+     *
+     * An instance-level entry point so collaborators that must not import
+     * core/state.js — the drag engine, which core/state.js already imports
+     * transitively — can still notify without closing an import cycle.
+     */
+    notifyStateListeners() {
+      notifyStateListeners(this.state, this.stateListeners);
+    }
+    /**
      * Destroy the component and clean up resources
      */
     destroy() {
@@ -5933,12 +6050,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     _switchMode(mode) {
       this.state.previousMode = this.state.mode;
       this.state.mode = mode;
-      this.state.dragState.isDragging = false;
-      this.state.dragState.dragStartPosition = null;
-      this.state.dragState.draggedHarmonicSetId = null;
-      this.state.dragState.originalSpacing = null;
-      this.state.dragState.originalAnchorTime = null;
-      this.state.dragState.clickedHarmonicNumber = null;
+      Object.values(this.modes || {}).forEach((modeInstance) => {
+        if (modeInstance && modeInstance.dragHandler) {
+          modeInstance.dragHandler.cancelDrag();
+        }
+      });
       if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
         this.clearSelection();
       }
