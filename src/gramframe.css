@@ -438,27 +438,97 @@
 }
 
 /* Unified table styles for both markers and harmonics */
+
+/*
+ * Fixed-height home for a markers/harmonics table.
+ *
+ * It claims the column's remaining height (flex: 1) but contributes nothing to
+ * the layout's intrinsic height, because its only child is absolutely
+ * positioned. That is what keeps the panels a constant size however many rows
+ * they hold: the tables can no longer push the readout row taller (untidy
+ * layout) nor steal vertical space from an expanded spectrogram image.
+ */
+.gram-frame-table-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .gram-frame-table-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
   padding: 0;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
   border: 2px solid #333;
   border-radius: 4px;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 6px rgba(0,0,0,0.8),
     inset 0 -1px 2px rgba(255,255,255,0.05),
     0 2px 4px rgba(0,0,0,0.5);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows
+     are added or removed (no reflow of the table columns). */
+  overflow-y: scroll;
+  overflow-x: hidden;
+  /* Dark-theme scrollbar (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: #555 #111;
 }
 
-.gram-frame-table {
+/* Dark-theme scrollbar (WebKit/Blink) */
+.gram-frame-table-container::-webkit-scrollbar {
+  width: 10px;
+}
+
+.gram-frame-table-container::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.gram-frame-table-container::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 5px;
+  border: 2px solid #111;
+}
+
+.gram-frame-table-container::-webkit-scrollbar-thumb:hover {
+  background: #6a6a6a;
+}
+
+/*
+ * Separate (not collapsed) borders: sticky header cells are unreliable with
+ * border-collapse, so each cell draws its own right/bottom edge and the first
+ * column/header row close the outer edges. Visually identical to the collapsed
+ * 1px grid, because border-spacing is zero.
+ *
+ * Element-qualified because the `gram-frame-table` class is also carried by the
+ * component's outer frame <div> (display: table), which must keep its own
+ * border. Zeroing the border here matters for the sticky header too — a border
+ * on the table box offsets the header cells from the scrollport, which makes
+ * them jump when the body first scrolls.
+ */
+table.gram-frame-table {
   width: 100%;
-  border-collapse: collapse;
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 10px;
   color: #ccc;
   table-layout: fixed;
+}
+
+.gram-frame-table th,
+.gram-frame-table td {
+  border: 0;
+  border-right: 1px solid #444;
+  border-bottom: 1px solid #444;
+}
+
+.gram-frame-table th:first-child,
+.gram-frame-table td:first-child {
+  border-left: 1px solid #444;
 }
 
 .gram-frame-table th {
@@ -466,16 +536,20 @@
   color: #00ff00;
   padding: 4px;
   text-align: center;
-  border: 1px solid #444;
+  border-top: 1px solid #444;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  /* Header row stays pinned while the body scrolls beneath it. The z-index sits
+     above the positioned body rows, including a selected row's cells (11). */
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .gram-frame-table td {
   padding: 4px;
   text-align: center;
-  border: 1px solid #444;
   background: #1a1a1a;
 }
 

@@ -19,10 +19,19 @@ function createSymbolSwatch(harmonicSet) {
 
 /**
  * Create harmonic management panel
+ *
+ * The panel is mounted inside a `gram-frame-table-area` wrapper: the wrapper
+ * takes whatever vertical space the column has, and the panel fills it
+ * absolutely, so however many harmonic sets exist the panel scrolls instead of
+ * growing the page layout (the header row stays pinned via sticky `th`).
+ *
  * @param {HTMLElement} container - Container element to append the panel to
  * @returns {HTMLElement} The created panel element
  */
 export function createHarmonicPanel(container) {
+  const area = document.createElement('div')
+  area.className = 'gram-frame-table-area'
+
   const panel = document.createElement('div')
   panel.className = 'gram-frame-table-container'
   panel.innerHTML = `
@@ -40,7 +49,8 @@ export function createHarmonicPanel(container) {
     </table>
   `
   
-  container.appendChild(panel)
+  area.appendChild(panel)
+  container.appendChild(area)
   return panel
 }
 
