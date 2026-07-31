@@ -210,8 +210,11 @@ There is no visual/screenshot regression testing — see
 - N/A — purely presentational; no persisted data or new state (158-harmonic-pin-sampling)
 - JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (161-reformat-markers-harmonics)
 - Browser Web Storage — additive `symbol` field on markers; `cross` (symbol-less) default; no schema bump (161-reformat-markers-harmonics)
+- JavaScript ES2020+, JSDoc-typed, no TypeScript compilation + None at runtime (zero runtime deps); Vite 5 for build (166-consolidation)
+- Unchanged — Web Storage (`localStorage` trainer / `sessionStorage` student) (166-consolidation)
 
 ## Recent Changes
+- 166-consolidation: Planned Phase 2 consolidation — one coordinate pipeline, one drag engine, batched notifications, one diffing table, deterministic tests
 - 165-quick-fixes: Truthful published state and loud failures, dead-code sweep, docs corrected against the code
 - 161-reformat-markers-harmonics: Added a `cross` (symbol-less) default style and in-place restyling of selected markers/harmonic sets (colour + symbol)
 - 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)
