@@ -36,7 +36,7 @@ export function isLandscape(instance) {
  * @param {GramFrame} instance - GramFrame instance
  * @returns {{width: number, height: number}} Available render dimensions
  */
-export function computeAvailableRenderSize(instance) {
+function computeAvailableRenderSize(instance) {
   const margins = instance.state.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
 

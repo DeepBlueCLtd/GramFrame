@@ -39,6 +39,8 @@ const SCHEMA_VERSION = 1
  * than this (measured from their last-save `savedAt`) are discarded on load.
  * This is a fixed policy — not HTML-configurable — so it lives as a named
  * constant. Trainer-context records are never subject to it.
+ *
+ * Exported as a test-only seam: the expiry specs assert against it directly.
  * @type {number}
  */
 export const STUDENT_TTL_MS = 24 * 60 * 60 * 1000
@@ -78,7 +80,8 @@ export const TRAINER_FLAG_SELECTOR = '#gf-persistent, .gf-persistent, [data-gf-p
  * Otherwise the record is within the 24-hour window and is NOT expired.
  *
  * Pure and side-effect-free: identical inputs always yield identical output.
- * Applies to student context only — trainer records never call this.
+ * Applies to student context only — trainer records never call this. Exported
+ * as a test-only seam so the expiry rules can be tested without a browser.
  *
  * @param {string | undefined | null} savedAt - ISO-8601 timestamp of the last save
  * @param {number} nowMs - Current wall-clock time in ms (e.g. `Date.now()`)
@@ -123,6 +126,8 @@ export function detectUserContext() {
 /**
  * Get the appropriate Storage object for the detected context.
  * Returns null if storage is unavailable.
+ *
+ * Exported as a test-only seam: within src/ it is used only by this module.
  * @param {'trainer' | 'student'} context
  * @returns {Storage | null}
  */
@@ -142,6 +147,9 @@ export function getStorage(context) {
 
 /**
  * Build a namespaced storage key from the current page path.
+ *
+ * Exported as a test-only seam: the storage specs build the same key to assert
+ * on what was written.
  * @param {number} [instanceIndex] - Zero-based index when multiple instances exist on the same page
  * @returns {string}
  */

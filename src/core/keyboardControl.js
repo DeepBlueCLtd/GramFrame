@@ -407,7 +407,7 @@ export function clearSelection(instance) {
  * @param {GramFrame} instance - GramFrame instance
  * @returns {{type: 'marker'|'harmonicSet', feature: AnalysisMarker|HarmonicSet}|null} Selected feature or null
  */
-export function getSelectedFeature(instance) {
+function getSelectedFeature(instance) {
   const sel = instance.state.selection
   if (!sel || !sel.selectedType || !sel.selectedId) {
     return null

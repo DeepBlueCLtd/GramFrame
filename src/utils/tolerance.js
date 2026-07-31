@@ -11,7 +11,7 @@
  * Default tolerance configuration
  * @type {Object}
  */
-export const DEFAULT_TOLERANCE = {
+const DEFAULT_TOLERANCE = {
   // Pixel tolerance for drag/click detection (in SVG coordinate space)
   pixelRadius: 8,
   
@@ -35,7 +35,7 @@ export const DEFAULT_TOLERANCE = {
  * @param {Object} [customTolerance] - Custom tolerance overrides
  * @returns {Object} Tolerance object with time and freq properties
  */
-export function calculateDataTolerance(viewport, spectrogramImage, customTolerance = {}) {
+function calculateDataTolerance(viewport, spectrogramImage, customTolerance = {}) {
   const config = { ...DEFAULT_TOLERANCE, ...customTolerance }
   
   if (!viewport || !spectrogramImage) {
@@ -102,7 +102,7 @@ export function isWithinDataTolerance(position, targetPosition, tolerance) {
  * @param {Object} tolerance - Tolerance object for scaling
  * @returns {number} Normalized distance (1.0 = at tolerance boundary)
  */
-export function calculateNormalizedDistance(pos1, pos2, tolerance) {
+function calculateNormalizedDistance(pos1, pos2, tolerance) {
   const timeDiff = Math.abs(pos1.time - pos2.time) / tolerance.time
   const freqDiff = Math.abs(pos1.freq - pos2.freq) / tolerance.freq
   

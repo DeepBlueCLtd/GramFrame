@@ -19,7 +19,6 @@
  * @property {boolean} isDragging - Whether currently dragging a marker
  * @property {string|null} draggedMarker - Which marker is being dragged
  * @property {boolean} isPlacingMarkers - Whether in marker placement mode
- * @property {number} markersPlaced - Number of markers placed (0-2)
  * @property {DataCoordinates|null} tempFirst - Temporary storage for first marker during placement
  * @property {boolean} isPreviewDrag - Whether currently dragging to preview curve
  * @property {DataCoordinates|null} previewEnd - End point for preview drag
@@ -155,7 +154,6 @@
  * @property {number} level - Current zoom level (1.0 = no zoom)
  * @property {number} centerX - Center point X (0-1 normalized)
  * @property {number} centerY - Center point Y (0-1 normalized)
- * @property {boolean} panMode - Whether pan mode is active
  */
 
 /**

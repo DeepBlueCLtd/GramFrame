@@ -69,15 +69,6 @@ export function getFocusedInstance() {
 }
 
 /**
- * Check if the given instance is currently focused
- * @param {GramFrame} instance - Instance to check
- * @returns {boolean} True if instance is focused
- */
-export function isInstanceFocused(instance) {
-  return currentFocusedInstance === instance
-}
-
-/**
  * Add visual focus indicator to an instance
  * @param {GramFrame} instance - Instance to add indicator to
  */

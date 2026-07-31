@@ -34,7 +34,7 @@ function buildModeInitialState() {
  * Initial state object for GramFrame component
  * @type {GramFrameState}
  */
-export const initialState = {
+const initialState = {
   version: getVersion(),
   timestamp: new Date().toISOString(),
   instanceId: '',
@@ -84,8 +84,7 @@ export const initialState = {
   zoom: {
     level: 1.0,  // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
     centerX: 0.5, // Center point X (0-1 normalized)
-    centerY: 0.5,  // Center point Y (0-1 normalized)
-    panMode: false // Legacy pan mode flag (deprecated - pan is now a proper mode)
+    centerY: 0.5  // Center point Y (0-1 normalized)
   },
   // Selection state for keyboard fine control
   selection: {
@@ -101,7 +100,7 @@ export const initialState = {
  * Global registry of listeners that should be applied to all instances
  * @type {StateListener[]}
  */
-export const globalStateListeners = []
+const globalStateListeners = []
 
 /**
  * Create a deep copy of the initial state for new instances
