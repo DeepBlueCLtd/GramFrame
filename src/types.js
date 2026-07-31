@@ -121,6 +121,13 @@
 
 
 /**
+ * Coalescing options for a state dispatch.
+ * @typedef {Object} DispatchOptions
+ * @property {boolean} [frame] - Coalesce at animation-frame cadence instead of
+ *                               microtask cadence. For mousemove/wheel/drag paths.
+ */
+
+/**
  * What kind of drag is in progress.
  * @typedef {'move'|'create'|'place'|'pan'} DragKind
  */
@@ -236,6 +243,7 @@
  * @property {boolean} largeSymbols - EXPERIMENT (temporary): large-symbol size for the NEXT created feature (when nothing is selected); in-memory only, never persisted
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
+ * @property {number} annotationRevision - Bumped by every annotation mutation; lets the storage listener skip pure cursor moves
  * @property {HarmonicsState} harmonics - Harmonics mode state
  * @property {DopplerState} doppler - Doppler mode state
  * @property {AnalysisState} analysis - Analysis mode state
@@ -517,6 +525,7 @@
  * @property {function(HTMLTableElement, string): void} _addErrorIndicator - Add error indicator to table
  * @property {function(HTMLTableElement, Node|null, Node|null): void} _restoreConfigTable - Put a config table back after a failed init
  * @property {function(): GramFrame[]} _getInstances - The API's single instance registry
+ * @property {function(): void} [__test__flushDispatches] - Deliver every instance's pending notification (debug pages only)
  * @property {GramFrame[]} [_instances] - Internal instances array
  * @property {function(): void} [__test__forceUpdate] - Test method to force update
  * @property {function(): GramFrame[]} [__test__getInstances] - Test method to get instances

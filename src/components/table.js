@@ -9,7 +9,7 @@ const MAX_IMAGE_WIDTH = 1200
 
 import { formatTime } from '../utils/timeFormatter.js'
 import { getImageBounds } from '../utils/coordinates.js'
-import { notifyStateListeners } from '../core/state.js'
+import { dispatch } from '../core/state.js'
 import { createExpandToggle } from './ExpandToggle.js'
 
 /**
@@ -187,7 +187,7 @@ export function setupSpectrogramImage(instance, imageUrl) {
     createExpandToggle(instance)
 
     // Notify listeners of updated dimensions
-    notifyStateListeners(instance.state, instance.stateListeners)
+    dispatch(instance)
   }
   tempImg.onerror = function() {
     // Without dimensions nothing can be rendered, so replace the loading

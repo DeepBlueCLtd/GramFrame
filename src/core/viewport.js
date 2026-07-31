@@ -9,7 +9,7 @@
 
 import { applyZoomTransform, updateSVGLayout, renderAxes } from '../components/table.js'
 import { updateCommandButtonStates, updateModeButtonStates } from '../components/ModeButtons.js'
-import { notifyStateListeners } from './state.js'
+import { dispatch } from './state.js'
 import { screenToSVG } from '../utils/coordinates.js'
 import { refreshExpandedLayout } from '../components/ExpandToggle.js'
 
@@ -63,7 +63,7 @@ export function setZoom(instance, level, centerX, centerY) {
   updateZoomControlStates(instance)
   
   // Notify listeners
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance, { frame: true })
 }
 
 /**

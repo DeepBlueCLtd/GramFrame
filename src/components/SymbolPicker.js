@@ -14,7 +14,7 @@
 /// <reference path="../types.js" />
 
 import { SYMBOL_CATALOG, SYMBOL_DISPLAY_NAMES, DEFAULT_SYMBOL, LARGE_SYMBOL_SCALE } from '../rendering/symbols.js'
-import { notifyStateListeners } from '../core/state.js'
+import { dispatch } from '../core/state.js'
 
 /**
  * Unicode glyph shown for each symbol id in the drop-down. The list is a
@@ -123,7 +123,7 @@ export function createLargeSymbolToggle(instance) {
     if (!instance.applyLargeSymbolsToSelectedFeature ||
         !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
       instance.state.largeSymbols = checkbox.checked
-      notifyStateListeners(instance.state, instance.stateListeners)
+      dispatch(instance)
     }
   })
 

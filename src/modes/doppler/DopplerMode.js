@@ -1,6 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
 import { updateLEDDisplays } from '../../components/UIComponents.js'
-import { notifyStateListeners } from '../../core/state.js'
+import { dispatch, markAnnotationsChanged } from '../../core/state.js'
 // Rendering imports removed - no display element
 import { calculateDopplerSpeed, calculateMidpoint } from '../../utils/doppler.js'
 import { dataToSVG } from '../../utils/coordinates.js'
@@ -195,6 +195,8 @@ export class DopplerMode extends BaseMode {
     doppler.tempFirst = null
     doppler.previewEnd = null
 
+    markAnnotationsChanged(this.instance)
+
     // Calculate speed
     this.calculateAndUpdateDopplerSpeed()
     this.renderDopplerFeatures()
@@ -258,12 +260,14 @@ export class DopplerMode extends BaseMode {
       doppler.fZero = newPoint
     }
     
+    markAnnotationsChanged(this.instance)
+
     // f₀ remains fixed when dragging f+ or f- - only moves when directly dragged
     
     // Update speed calculation
     this.calculateAndUpdateDopplerSpeed()
     this.renderDopplerFeatures()
-    notifyStateListeners(this.instance.state, this.instance.stateListeners)
+    dispatch(this.instance, { frame: true })
   }
 
 
@@ -292,7 +296,7 @@ export class DopplerMode extends BaseMode {
   handleMouseDown(event, dataCoords) {
     // The resolver decides whether this moves a marker or starts a placement
     if (this.dragHandler.startDrag(dataCoords, event)) {
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -305,7 +309,7 @@ export class DopplerMode extends BaseMode {
     // One exit for both kinds; onDragEnd finalises a placement
     if (this.dragHandler.isDragging()) {
       this.dragHandler.endDrag(dataCoords)
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -361,7 +365,7 @@ export class DopplerMode extends BaseMode {
     this.dragHandler.reset()
 
     // Visual updates removed - no display element
-    notifyStateListeners(this.instance.state, this.instance.stateListeners)
+    dispatch(this.instance, { frame: true })
   }
 
   /**
@@ -398,7 +402,7 @@ export class DopplerMode extends BaseMode {
       
       // Update LED displays with speed
       updateLEDDisplays(this.instance, this.instance.state)
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 

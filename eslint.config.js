@@ -80,4 +80,24 @@ export default [
       'no-empty': 'warn',
     },
   },
+  {
+    // One dispatch choke-point (specs/166, FR-005 / N1 / AS-4.4). Notifications
+    // are coalesced by `dispatch`; a mode reaching past it to the raw delivery
+    // would notify on every event again and undo the batching. Caught here
+    // rather than in review.
+    files: ['src/modes/**/*.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: '../../core/state.js',
+          importNames: ['notifyStateListeners', 'deliverToListeners'],
+          message: 'Modes must notify through dispatch() so notifications stay coalesced (spec 166, FR-005).',
+        }, {
+          name: '../core/state.js',
+          importNames: ['notifyStateListeners', 'deliverToListeners'],
+          message: 'Modes must notify through dispatch() so notifications stay coalesced (spec 166, FR-005).',
+        }],
+      }],
+    },
+  },
 ]

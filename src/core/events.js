@@ -7,7 +7,7 @@
 import { screenToData, isWithinImage } from '../utils/coordinates.js'
 import { BaseDragHandler } from '../modes/shared/BaseDragHandler.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
-import { notifyStateListeners } from './state.js'
+import { dispatch } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 import { setFocusedInstance } from './FocusManager.js'
 import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized } from './viewport.js'
@@ -277,7 +277,7 @@ function handleMouseMove(instance, event) {
   updateCursorIndicators(instance)
   
   // Notify listeners of cursor position change
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance, { frame: true })
 }
 
 /**
@@ -354,7 +354,7 @@ function handleMouseLeave(instance) {
   }
   
   // Notify listeners
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance, { frame: true })
 }
 
 /**

@@ -2,7 +2,7 @@ import { BaseMode } from '../BaseMode.js'
 // SVG utilities removed - no display element
 import { updateHarmonicPanelContent, createHarmonicPanel } from '../../components/HarmonicPanel.js'
 import { showManualHarmonicModal } from './ManualHarmonicModal.js'
-import { notifyStateListeners } from '../../core/state.js'
+import { dispatch, markAnnotationsChanged } from '../../core/state.js'
 import { dataToSVG, getImageBounds } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
@@ -390,6 +390,7 @@ export class HarmonicsMode extends BaseMode {
     }
     
     this.instance.state.harmonics.harmonicSets.push(harmonicSet)
+    markAnnotationsChanged(this.instance)
     
     // Auto-select the newly created harmonic set
     const index = this.instance.state.harmonics.harmonicSets.length - 1
@@ -405,7 +406,7 @@ export class HarmonicsMode extends BaseMode {
       this.instance.featureRenderer.renderAllPersistentFeatures()
     }
     
-    notifyStateListeners(this.instance.state, this.instance.stateListeners)
+    dispatch(this.instance, { frame: true })
     
     return harmonicSet
   }
@@ -419,7 +420,8 @@ export class HarmonicsMode extends BaseMode {
     const setIndex = this.instance.state.harmonics.harmonicSets.findIndex(set => set.id === id)
     if (setIndex !== -1) {
       Object.assign(this.instance.state.harmonics.harmonicSets[setIndex], updates)
-      
+      markAnnotationsChanged(this.instance)
+
       // Update visual elements
       if (this.instance.harmonicPanel) {
         updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
@@ -430,7 +432,7 @@ export class HarmonicsMode extends BaseMode {
         this.instance.featureRenderer.renderAllPersistentFeatures()
       }
       
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -448,7 +450,8 @@ export class HarmonicsMode extends BaseMode {
       }
       
       this.instance.state.harmonics.harmonicSets.splice(setIndex, 1)
-      
+      markAnnotationsChanged(this.instance)
+
       // Update visual elements
       if (this.instance.harmonicPanel) {
         updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
@@ -459,7 +462,7 @@ export class HarmonicsMode extends BaseMode {
         this.instance.featureRenderer.renderAllPersistentFeatures()
       }
       
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 

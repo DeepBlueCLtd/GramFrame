@@ -99,6 +99,16 @@ class GramFramePage {
    * @returns {Promise<import('../../src/types.js').GramFrameState>} The parsed state object
    */
   async getState() {
+    // Notifications are coalesced (spec 166, US4) and the debug page's state
+    // display is written by a listener, so reading it straight after an action
+    // would race the dispatcher. Flushing first makes the read deterministic
+    // without waiting out a frame.
+    await this.page.evaluate(() => {
+      // @ts-ignore - test-only global
+      if (window.GramFrame && window.GramFrame.__test__flushDispatches) {
+        window.GramFrame.__test__flushDispatches()
+      }
+    })
     const stateContent = await this.stateDisplay.textContent()
     return JSON.parse(stateContent || '{}')
   }

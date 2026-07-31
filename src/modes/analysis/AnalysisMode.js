@@ -1,5 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
-import { notifyStateListeners } from '../../core/state.js'
+import { dispatch, markAnnotationsChanged } from '../../core/state.js'
 import { formatTime } from '../../utils/timeFormatter.js'
 import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
@@ -67,6 +67,7 @@ export class AnalysisMode extends BaseMode {
       // Update marker position
       marker.freq = currentPos.freq
       marker.time = currentPos.time
+      markAnnotationsChanged(this.instance)
       
       // Re-render persistent features
       if (this.instance.featureRenderer) {
@@ -83,7 +84,7 @@ export class AnalysisMode extends BaseMode {
       }
       
       // Notify listeners
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 
@@ -449,6 +450,7 @@ export class AnalysisMode extends BaseMode {
     }
     
     this.instance.state.analysis.markers.push(marker)
+    markAnnotationsChanged(this.instance)
     
     // Auto-select the newly created marker
     const index = this.instance.state.analysis.markers.length - 1
@@ -463,7 +465,7 @@ export class AnalysisMode extends BaseMode {
     }
     
     // Notify listeners
-    notifyStateListeners(this.instance.state, this.instance.stateListeners)
+    dispatch(this.instance, { frame: true })
   }
 
   /**
@@ -482,7 +484,8 @@ export class AnalysisMode extends BaseMode {
       }
       
       this.instance.state.analysis.markers.splice(index, 1)
-      
+      markAnnotationsChanged(this.instance)
+
       // Update markers table
       this.updateMarkersTable()
       
@@ -492,7 +495,7 @@ export class AnalysisMode extends BaseMode {
       }
       
       // Notify listeners
-      notifyStateListeners(this.instance.state, this.instance.stateListeners)
+      dispatch(this.instance, { frame: true })
     }
   }
 

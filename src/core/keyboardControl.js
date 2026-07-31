@@ -7,7 +7,7 @@
 
 /// <reference path="../types.js" />
 
-import { notifyStateListeners } from './state.js'
+import { dispatch, markAnnotationsChanged } from './state.js'
 import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coordinates.js'
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
@@ -192,6 +192,7 @@ function moveSelectedMarker(instance, markerId, movement) {
   // Update marker position
   marker.freq = newData.freq
   marker.time = newData.time
+  markAnnotationsChanged(instance)
   
   // Re-render features and notify listeners
   if (instance.featureRenderer) {
@@ -203,7 +204,7 @@ function moveSelectedMarker(instance, markerId, movement) {
     instance.currentMode.updateMarkersTable()
   }
   
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**
@@ -277,6 +278,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     const setIndex = instance.state.harmonics.harmonicSets.findIndex(set => set.id === harmonicSetId)
     if (setIndex !== -1) {
       Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates)
+      markAnnotationsChanged(instance)
       
       // Update visual elements if harmonic panel exists. This uses the static
       // import at the top of the file: the dynamic import that used to be here
@@ -292,7 +294,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
         instance.featureRenderer.renderAllPersistentFeatures()
       }
       
-      notifyStateListeners(instance.state, instance.stateListeners)
+      dispatch(instance)
     }
   }
 }
@@ -322,7 +324,7 @@ export function setSelection(instance, type, id, index) {
     instance.syncStyleControls()
   }
 
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**
@@ -343,7 +345,7 @@ export function clearSelection(instance) {
     instance.syncStyleControls()
   }
 
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**
@@ -429,7 +431,7 @@ function refreshFeatureVisuals(instance, type) {
       updateHarmonicPanelContent(instance.harmonicPanel, instance)
     }
   }
-  notifyStateListeners(instance.state, instance.stateListeners)
+  dispatch(instance)
 }
 
 /**
@@ -445,6 +447,7 @@ export function applyColorToSelectedFeature(instance, color) {
     return false
   }
   selected.feature.color = color
+  markAnnotationsChanged(instance)
   refreshFeatureVisuals(instance, selected.type)
   return true
 }
@@ -462,6 +465,7 @@ export function applySymbolToSelectedFeature(instance, symbol) {
     return false
   }
   selected.feature.symbol = symbol
+  markAnnotationsChanged(instance)
   refreshFeatureVisuals(instance, selected.type)
   return true
 }
@@ -532,7 +536,7 @@ export function removeHarmonicSet(instance, id) {
       instance.featureRenderer.renderAllPersistentFeatures()
     }
     
-    notifyStateListeners(instance.state, instance.stateListeners)
+    dispatch(instance)
   }
 }
 

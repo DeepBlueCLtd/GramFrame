@@ -6,7 +6,9 @@
 
 import {
   createInitialState,
-  notifyStateListeners,
+  dispatch,
+  flushDispatch,
+  markAnnotationsChanged,
   getGlobalStateListeners,
   clearGlobalStateListeners
 } from './core/state.js'
@@ -247,7 +249,7 @@ export class GramFrame {
     this._setupStorageSaveListener()
 
     // Final state notification
-    notifyStateListeners(this.state, this.stateListeners)
+    dispatch(this)
   }
   
   /**
@@ -379,7 +381,7 @@ export class GramFrame {
     // Refresh LED displays (e.g. Doppler readouts) to reflect the cleared state
     updateLEDDisplays(this, this.state)
 
-    notifyStateListeners(this.state, this.stateListeners)
+    dispatch(this)
   }
 
   /**
@@ -388,6 +390,8 @@ export class GramFrame {
   _restoreAnnotations() {
     const saved = loadAnnotations(this._storageInstanceIndex)
     if (!saved) return
+
+    markAnnotationsChanged(this)
 
     // Merge analysis markers. Legacy records (persisted before feature 161)
     // have no `symbol`; default those to 'cross' (the symbol-less crosshair).
@@ -427,21 +431,28 @@ export class GramFrame {
    */
   _setupStorageSaveListener() {
     /** @type {string} */
-    let lastSerialised = ''
+    let lastSignature = ''
 
     this.stateListeners.push((state) => {
-      // Build a minimal representation of annotation-relevant state
-      const annotationSnapshot = JSON.stringify({
-        markers: state.analysis && state.analysis.markers,
-        harmonicSets: state.harmonics && state.harmonics.harmonicSets,
-        fPlus: state.doppler && state.doppler.fPlus,
-        fMinus: state.doppler && state.doppler.fMinus,
-        fZero: state.doppler && state.doppler.fZero,
-        dopplerColor: state.doppler && state.doppler.color
-      })
+      // A cheap signature, not a re-serialisation of every annotation. The
+      // listener runs on every notification — including pure cursor moves and
+      // zoom changes — and stringifying the full annotation set each time is
+      // the compounding cost GF-07 records. Counts plus the doppler marker
+      // identity, guarded by a counter the annotation-mutating paths bump,
+      // catch every change that matters (spec 166, AS-4.3).
+      const doppler = state.doppler || {}
+      const signature = [
+        state.annotationRevision || 0,
+        state.analysis && state.analysis.markers ? state.analysis.markers.length : 0,
+        state.harmonics && state.harmonics.harmonicSets ? state.harmonics.harmonicSets.length : 0,
+        doppler.fPlus ? `${doppler.fPlus.time}:${doppler.fPlus.freq}` : '-',
+        doppler.fMinus ? `${doppler.fMinus.time}:${doppler.fMinus.freq}` : '-',
+        doppler.fZero ? `${doppler.fZero.time}:${doppler.fZero.freq}` : '-',
+        doppler.color || '-'
+      ].join('|')
 
-      if (annotationSnapshot !== lastSerialised) {
-        lastSerialised = annotationSnapshot
+      if (signature !== lastSignature) {
+        lastSignature = signature
         // A failed write must be visible: the analyst keeps working in memory,
         // but would otherwise never learn their annotations are not being
         // persisted (quota, private browsing, disabled storage) — GF-16. With
@@ -464,13 +475,17 @@ export class GramFrame {
    * transitively — can still notify without closing an import cycle.
    */
   notifyStateListeners() {
-    notifyStateListeners(this.state, this.stateListeners)
+    dispatch(this)
   }
 
   /**
    * Destroy the component and clean up resources
    */
   destroy() {
+    // Deliver anything still queued before the instance goes away, so a
+    // listener never misses the final state (spec 166, N6).
+    flushDispatch(this)
+
     cleanupEventListeners(this)
     cleanupKeyboardControl(this)
     
@@ -589,7 +604,7 @@ export class GramFrame {
     // CSS now handles cursor behavior properly, no need for explicit reset
     
     // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
+    dispatch(this)
   }
 
 
@@ -608,7 +623,7 @@ export class GramFrame {
     this._updateAxes()
     
     // Notify listeners
-    notifyStateListeners(this.state, this.stateListeners)
+    dispatch(this)
   }
 
   // Zoom functionality removed - no display element
