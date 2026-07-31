@@ -155,6 +155,13 @@ export class HarmonicsMode extends BaseMode {
   static LABEL_FONT_SIZE = 12
 
   /**
+   * Approximate width of one label digit as a fraction of the label font size,
+   * used to size the label's grab region (bold Arial digits are ~0.6 em wide).
+   * @type {number}
+   */
+  static LABEL_CHAR_WIDTH_RATIO = 0.6
+
+  /**
    * Vertical gap (px) between the pin's number label and its symbol.
    * @type {number}
    */
@@ -473,15 +480,22 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Find harmonic set containing given frequency coordinate
+   * Find harmonic set containing given frequency coordinate.
+   *
+   * Hit-testing follows exactly what is drawn — nothing more, nothing less.
+   * Every visible part of a pin grabs it: the pin line's fixed-pixel span AND
+   * the number label + symbol stacked above it. A set with its pin hidden is
+   * grabbable by its label/symbol stack alone; the span where its line would
+   * have been is empty on screen, so it is empty to the mouse too.
+   *
    * @param {number} freq - Frequency in Hz to check
    * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
    */
   findHarmonicSetAtFrequency(freq) {
     if (!this.instance.state.cursorPosition) return null
-    
+
     const cursorTime = this.instance.state.cursorPosition.time
-    
+
     for (const harmonicSet of this.instance.state.harmonics.harmonicSets) {
       // Check if frequency is close to any harmonic line in this set
       if (harmonicSet.spacing > 0) {
@@ -495,22 +509,34 @@ export class HarmonicsMode extends BaseMode {
         // Pins are a fixed pixel height, so hit-test vertically in SVG pixels
         // against the same geometry the renderer draws.
         const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
+        const stack = this.calculateLabelStackBounds(lineTop, harmonicSet)
+        // Only the thinned subset is labelled, so only those pins carry a stack.
+        const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic))
+        // A hidden pin draws no lines, so its line span is not a grab region.
+        const pinDrawn = harmonicSet.showPin !== false
+
+        const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
+        const cursorSVG = calculateZoomAwarePosition(
+          { freq, time: cursorTime },
+          this.getViewport(),
+          this.instance.spectrogramImage
+        )
 
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
           const expectedFreq = h * harmonicSet.spacing
-          const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
 
-          if (Math.abs(freq - expectedFreq) < tolerance.freq) {
-            const cursorSVGY = calculateZoomAwarePosition(
-              { freq: expectedFreq, time: cursorTime },
-              this.getViewport(),
-              this.instance.spectrogramImage
-            ).y
+          // The pin line: frequency tolerance horizontally, the line span vertically.
+          if (pinDrawn && Math.abs(freq - expectedFreq) < tolerance.freq &&
+              cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
+            return harmonicSet
+          }
 
-            // Check if cursor is within the vertical range of the harmonic line
-            if (cursorSVGY >= lineTop && cursorSVGY <= lineTop + lineHeight) {
-              return harmonicSet
-            }
+          // The label/symbol stack above the line: measured in SVG pixels, since
+          // the digits and symbol are a fixed pixel size regardless of zoom.
+          if (labelled.has(h) &&
+              cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom &&
+              Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
+            return harmonicSet
           }
         }
       }
@@ -880,6 +906,50 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Vertical extent (SVG coords) of a pin's label/symbol stack, for hit-testing.
+   *
+   * Derived from the same {@link calculateLabelStackPositions} layout the
+   * renderer uses, so the grab region tracks the drawn stack — including the
+   * downward nudge applied near the image's top edge. The bottom is clamped to
+   * the pin line's top so the stack region and the line region always meet with
+   * no dead gap between them.
+   *
+   * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+   * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
+   * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
+   */
+  calculateLabelStackBounds(lineTop, harmonicSet) {
+    const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top
+    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet)
+    const r = this.symbolSize(harmonicSet) / 2
+
+    return {
+      // One ascent above the label's baseline is the top of the digits.
+      top: labelY - HarmonicsMode.LABEL_FONT_SIZE,
+      bottom: Math.max(lineTop, symbolCy + r)
+    }
+  }
+
+  /**
+   * Half-width (SVG px) of a pin's label/symbol stack, for hit-testing.
+   *
+   * The wider of the symbol mark and the number label, so both are grabbable:
+   * a `cross` set has no symbol but still shows its digits, and a "Large
+   * symbols" set's mark is wider than its digits. Label width is estimated from
+   * the digit count rather than measured, which is ample for a grab region.
+   *
+   * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
+   * @param {number} harmonicNumber - Harmonic number whose label is drawn
+   * @returns {number} Half-width in SVG pixels
+   */
+  labelStackHalfWidth(harmonicSet, harmonicNumber) {
+    const digits = String(harmonicNumber).length
+    const labelHalfWidth = digits * HarmonicsMode.LABEL_FONT_SIZE * HarmonicsMode.LABEL_CHAR_WIDTH_RATIO / 2
+
+    return Math.max(this.symbolSize(harmonicSet) / 2, labelHalfWidth)
+  }
+
+  /**
    * Compute the SVG x-coordinate of a harmonic's vertical pin line.
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration
    * @param {number} harmonicNumber - Harmonic number
@@ -901,8 +971,8 @@ export class HarmonicsMode extends BaseMode {
    * A set with `showPin === false` skips the lines entirely and renders as its
    * symbols and numbers alone — the low-clutter style for stacking many sets over
    * dense data. The label/symbol geometry is unchanged, so toggling the pin adds
-   * or removes the lines without moving anything else, and the set stays
-   * draggable over the same region.
+   * or removes the lines without moving anything else; the set is then grabbed
+   * by its label/symbol stack, since hit-testing only covers what is drawn.
    *
    * @param {HarmonicSet} harmonicSet - Harmonic set to render
    */
