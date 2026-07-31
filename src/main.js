@@ -165,7 +165,10 @@ export class GramFrame {
    * Not part of the broadcast state.
    * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
    */
-  _wheelPan = null;
+  _wheelPanHandler = null;
+
+  /** @type {{x: number, y: number}|null} */
+  _wheelPanLast = null;
 
   // Storage instance index for multi-instance pages
   _storageInstanceIndex;
@@ -348,7 +351,7 @@ export class GramFrame {
     this.state.harmonics = fresh.harmonics
     this.state.doppler = fresh.doppler
     this.state.selection = fresh.selection
-    this.state.dragState = fresh.dragState
+    this.state.drag = fresh.drag
     this.state.cursors = fresh.cursors
 
     // Remove from storage. A failure here means the annotations just cleared on
@@ -454,6 +457,17 @@ export class GramFrame {
   }
 
   /**
+   * Broadcast this instance's state to its listeners.
+   *
+   * An instance-level entry point so collaborators that must not import
+   * core/state.js — the drag engine, which core/state.js already imports
+   * transitively — can still notify without closing an import cycle.
+   */
+  notifyStateListeners() {
+    notifyStateListeners(this.state, this.stateListeners)
+  }
+
+  /**
    * Destroy the component and clean up resources
    */
   destroy() {
@@ -490,13 +504,13 @@ export class GramFrame {
     // Update state
     this.state.mode = mode
     
-    // Clear drag state when switching modes
-    this.state.dragState.isDragging = false
-    this.state.dragState.dragStartPosition = null
-    this.state.dragState.draggedHarmonicSetId = null
-    this.state.dragState.originalSpacing = null
-    this.state.dragState.originalAnchorTime = null
-    this.state.dragState.clickedHarmonicNumber = null
+    // Cancel any drag in progress, so the engine — the single owner of the drag
+    // record — clears it rather than a second place unwinding it by hand.
+    Object.values(this.modes || {}).forEach(modeInstance => {
+      if (modeInstance && modeInstance.dragHandler) {
+        modeInstance.dragHandler.cancelDrag()
+      }
+    })
 
     // Choosing a mode signals the analyst is about to add something new, so drop
     // any selected marker/harmonic. This returns the colour/symbol controls to

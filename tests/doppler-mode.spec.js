@@ -654,9 +654,10 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         }
       }
       
-      // Verify drag states are clean
-      expect(state.doppler.isDragging).toBe(false)
-      expect(state.doppler.isPreviewDrag).toBe(false)
+      // Verify drag states are clean. Drag bookkeeping is now the engine's
+      // single read-only projection (spec 166, FR-004).
+      expect(state.drag.active).toBe(false)
+      expect(state.drag.kind).toBeNull()
     })
     
     /**
@@ -683,8 +684,8 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       expectValidImageDetails(state)
       
       // Doppler state should be consistent despite mode switching
-      expect(state.doppler.isDragging).toBe(false)
-      expect(state.doppler.isPreviewDrag).toBe(false)
+      expect(state.drag.active).toBe(false)
+      expect(state.drag.kind).toBeNull()
     })
     
     /**

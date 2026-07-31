@@ -29,12 +29,12 @@ export class AnalysisMode extends BaseMode {
     
     // Initialize drag handler with analysis-specific callbacks
     this.dragHandler = new BaseDragHandler(instance, {
-      findTargetAt: (position) => this.findMarkerAtPosition(position),
+      resolveTarget: (position) => this.findMarkerAtPosition(position),
       onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-      onDragUpdate: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
       onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
       updateCursor: (style) => this.updateCursorStyle(style)
-    })
+    }, 'analysis')
   }
 
   /**
@@ -43,11 +43,10 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} position - Start position
    */
   onMarkerDragStart(target, position) {
-    // Store drag state in analysis state
-    this.instance.state.analysis.isDragging = true
-    this.instance.state.analysis.draggedMarkerId = target.id
-    this.instance.state.analysis.dragStartPosition = { ...position }
-    
+    // Drag bookkeeping belongs to the engine (state.drag); this callback only
+    // does the mode-specific part.
+    void position
+
     // Auto-select the marker being dragged
     const marker = this.instance.state.analysis.markers.find(m => m.id === target.id)
     if (marker) {
@@ -94,10 +93,7 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} _position - End position (unused)
    */
   onMarkerDragEnd(_target, _position) {
-    // Clear analysis drag state
-    this.instance.state.analysis.isDragging = false
-    this.instance.state.analysis.draggedMarkerId = null
-    this.instance.state.analysis.dragStartPosition = null
+    // Nothing to unwind: the engine clears the drag record itself.
   }
 
   /**
@@ -438,12 +434,7 @@ export class AnalysisMode extends BaseMode {
   static getInitialState() {
     return {
       analysis: {
-        markers: [],
-        // Note: isDragging, draggedMarkerId, dragStartPosition are now managed by BaseDragHandler
-        // but kept here for backward compatibility with existing code
-        isDragging: false,
-        draggedMarkerId: null,
-        dragStartPosition: null
+        markers: []
       }
     }
   }
@@ -454,12 +445,7 @@ export class AnalysisMode extends BaseMode {
    */
   addMarker(marker) {
     if (!this.instance.state.analysis) {
-      this.instance.state.analysis = { 
-        markers: [],
-        isDragging: false,
-        draggedMarkerId: null,
-        dragStartPosition: null
-      }
+      this.instance.state.analysis = { markers: [] }
     }
     
     this.instance.state.analysis.markers.push(marker)
@@ -561,6 +547,7 @@ export class AnalysisMode extends BaseMode {
     
     if (marker) {
       return {
+        kind: 'move',
         id: marker.id,
         type: 'marker',
         position: { freq: marker.freq, time: marker.time },

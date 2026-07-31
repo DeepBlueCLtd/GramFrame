@@ -86,6 +86,17 @@ const initialState = {
     centerX: 0.5, // Center point X (0-1 normalized)
     centerY: 0.5  // Center point Y (0-1 normalized)
   },
+  // Read-only projection of the active drag, rebuilt by the drag engine on each
+  // transition. Modes never write it; it is always present, reading
+  // `active: false` when idle (spec 166, FR-004 / data-model.md §2).
+  drag: {
+    active: false,
+    kind: null,
+    mode: null,
+    targetId: null,
+    targetType: null,
+    startPosition: null
+  },
   // Selection state for keyboard fine control
   selection: {
     selectedType: null,  // 'marker' | 'harmonicSet' | null

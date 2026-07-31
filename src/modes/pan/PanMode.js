@@ -1,4 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
+import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getVersion } from '../../utils/version.js'
 import { pixelDeltaToNormalizedPan, panByNormalized } from '../../core/viewport.js'
 import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
@@ -14,11 +15,92 @@ export class PanMode extends BaseMode {
    */
   constructor(instance) {
     super(instance)
-    this.isDragging = false
-    this.dragState = {
-      lastX: 0,
-      lastY: 0
+
+    // Panning is a `pan`-kind drag: it has no feature target, and its move
+    // callback writes viewport state rather than feature state. The engine
+    // accommodates that by allowing a null target id/type (spec 166, FR-004).
+    this.lastPointer = { x: 0, y: 0 }
+    this.dragHandler = new BaseDragHandler(instance, {
+      resolveTarget: () => this.resolvePanDrag(),
+      onDragStart: (_target, _position, event) => this.onPanStart(event),
+      onDragMove: (_target, _position, _startPosition, event) => this.onPanMove(event),
+      onDragEnd: () => this.onPanEnd(),
+      onDragCancel: () => this.onPanEnd(),
+      updateCursor: (style) => this.applyCursor(style),
+      // A pan shows the grabbing hand, not the crosshair the other kinds use
+      cursorFor: (kind, fallback) => {
+        if (kind !== 'pan') return fallback
+        return fallback === 'grabbing' ? 'grabbing' : this.idleCursor()
+      }
+    }, 'pan')
+  }
+
+  /**
+   * Decide whether a mousedown starts a pan. Panning is only meaningful when
+   * zoomed in; at zoom 1 the click falls through and does nothing.
+   * @returns {DragTarget|null} A pan-kind target, or null to decline
+   */
+  resolvePanDrag() {
+    if (this.instance.state.zoom.level <= 1.0) {
+      return null
     }
+    return { kind: 'pan', id: null, type: null }
+  }
+
+  /**
+   * The cursor pan mode rests at: a grab hand when there is something to pan.
+   * @returns {string} Cursor style
+   */
+  idleCursor() {
+    return this.instance.state.zoom.level > 1.0 ? 'grab' : 'crosshair'
+  }
+
+  /**
+   * Apply a cursor style to the SVG.
+   * @param {string} style - Cursor style
+   */
+  applyCursor(style) {
+    if (this.instance.svg) {
+      this.instance.svg.style.cursor = style
+    }
+  }
+
+  /**
+   * Record where the pan began, in screen pixels.
+   * @param {MouseEvent} [event] - Originating mousedown
+   */
+  onPanStart(event) {
+    if (event) {
+      this.lastPointer = { x: event.clientX, y: event.clientY }
+      // Prevent default to avoid text selection
+      event.preventDefault()
+    }
+  }
+
+  /**
+   * Pan the viewport by the pointer delta since the last move.
+   * @param {MouseEvent} [event] - Originating mousemove
+   */
+  onPanMove(event) {
+    if (!event || this.instance.state.zoom.level <= 1.0) {
+      return
+    }
+
+    const deltaX = event.clientX - this.lastPointer.x
+    const deltaY = event.clientY - this.lastPointer.y
+
+    // Convert pixel delta to normalized delta (shared with wheel-pan) and apply
+    const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(this.instance, deltaX, deltaY)
+    panByNormalized(this.instance, normalizedDeltaX, normalizedDeltaY)
+
+    this.lastPointer = { x: event.clientX, y: event.clientY }
+  }
+
+  /**
+   * Restore the resting cursor when the pan finishes.
+   */
+  onPanEnd() {
+    this.applyCursor(this.idleCursor())
   }
 
   /**
@@ -26,96 +108,48 @@ export class PanMode extends BaseMode {
    */
   activate() {
     // Set cursor to grab if zoomed
-    if (this.instance.svg && this.instance.state.zoom.level > 1.0) {
-      this.instance.svg.style.cursor = 'grab'
+    if (this.instance.state.zoom.level > 1.0) {
+      this.applyCursor('grab')
     }
-    
+
     // Reset any existing drag state
-    this.isDragging = false
-    this.dragState = { lastX: 0, lastY: 0 }
+    this.dragHandler.reset()
   }
 
   /**
    * Deactivate pan mode
    */
   deactivate() {
-    // Reset cursor
-    if (this.instance.svg) {
-      this.instance.svg.style.cursor = 'crosshair'
-    }
-    
-    // Clear drag state
-    this.isDragging = false
-    this.dragState = { lastX: 0, lastY: 0 }
+    // Clear drag state, then reset the cursor
+    this.dragHandler.reset()
+    this.applyCursor('crosshair')
   }
 
   /**
    * Handle mouse down events - start pan drag
    * @param {MouseEvent} event - Mouse event
-   * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+   * @param {DataCoordinates} dataCoords - Data coordinates
    */
-  handleMouseDown(event, _dataCoords) {
-    // Only allow panning when zoomed
-    if (this.instance.state.zoom.level <= 1.0) {
-      return
-    }
-    
-    // Start drag
-    this.isDragging = true
-    this.dragState = {
-      lastX: event.clientX,
-      lastY: event.clientY
-    }
-    
-    // Change cursor to grabbing
-    if (this.instance.svg) {
-      this.instance.svg.style.cursor = 'grabbing'
-    }
-    
-    // Prevent default to avoid text selection
-    event.preventDefault()
+  handleMouseDown(event, dataCoords) {
+    this.dragHandler.startDrag(dataCoords, event)
   }
 
   /**
    * Handle mouse move events - perform pan if dragging
    * @param {MouseEvent} event - Mouse event
-   * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+   * @param {DataCoordinates} dataCoords - Data coordinates
    */
-  handleMouseMove(event, _dataCoords) {
-    if (!this.isDragging || this.instance.state.zoom.level <= 1.0) {
-      return
-    }
-    
-    // Calculate pixel delta
-    const deltaX = event.clientX - this.dragState.lastX
-    const deltaY = event.clientY - this.dragState.lastY
-
-    // Convert pixel delta to normalized delta (shared with wheel-pan) and apply
-    const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(this.instance, deltaX, deltaY)
-    panByNormalized(this.instance, normalizedDeltaX, normalizedDeltaY)
-
-    // Update drag state
-    this.dragState.lastX = event.clientX
-    this.dragState.lastY = event.clientY
+  handleMouseMove(event, dataCoords) {
+    this.dragHandler.handleMouseMove(dataCoords, event)
   }
 
   /**
    * Handle mouse up events - end pan drag
-   * @param {MouseEvent} _event - Mouse event (unused)
-   * @param {DataCoordinates} _dataCoords - Data coordinates (unused)
+   * @param {MouseEvent} event - Mouse event
+   * @param {DataCoordinates} dataCoords - Data coordinates
    */
-  handleMouseUp(_event, _dataCoords) {
-    if (!this.isDragging) {
-      return
-    }
-    
-    // End drag
-    this.isDragging = false
-    
-    // Restore cursor to grab (pan mode still active)
-    if (this.instance.svg && this.instance.state.zoom.level > 1.0) {
-      this.instance.svg.style.cursor = 'grab'
-    }
+  handleMouseUp(event, dataCoords) {
+    this.dragHandler.endDrag(dataCoords, event)
   }
 
   /**
@@ -123,14 +157,7 @@ export class PanMode extends BaseMode {
    */
   handleMouseLeave() {
     // End drag if mouse leaves the SVG area
-    if (this.isDragging) {
-      this.isDragging = false
-      
-      // Restore cursor
-      if (this.instance.svg && this.instance.state.zoom.level > 1.0) {
-        this.instance.svg.style.cursor = 'grab'
-      }
-    }
+    this.dragHandler.cancelDrag()
   }
 
   /**
@@ -164,8 +191,7 @@ export class PanMode extends BaseMode {
    * Reset pan-specific state
    */
   resetState() {
-    this.isDragging = false
-    this.dragState = { lastX: 0, lastY: 0 }
+    this.dragHandler.reset()
   }
 
   /**

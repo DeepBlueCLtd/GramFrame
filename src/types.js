@@ -16,12 +16,12 @@
  * @property {DataCoordinates|null} fZero - f₀ marker position
  * @property {number|null} speed - Calculated speed in m/s
  * @property {string|null} color - Color used for this doppler curve
- * @property {boolean} isDragging - Whether currently dragging a marker
- * @property {string|null} draggedMarker - Which marker is being dragged
- * @property {boolean} isPlacingMarkers - Whether in marker placement mode
  * @property {DataCoordinates|null} tempFirst - Temporary storage for first marker during placement
- * @property {boolean} isPreviewDrag - Whether currently dragging to preview curve
  * @property {DataCoordinates|null} previewEnd - End point for preview drag
+ *
+ * Drag bookkeeping lives on `state.drag` (see DragProjection); `tempFirst` and
+ * `previewEnd` stay here because they are placement geometry the renderer
+ * needs, not drag state.
  */
 
 /**
@@ -78,9 +78,8 @@
  * Analysis state object for analysis mode
  * @typedef {Object} AnalysisState
  * @property {Array<AnalysisMarker>} markers - Array of analysis markers
- * @property {boolean} isDragging - Whether currently dragging a marker
- * @property {string|null} draggedMarkerId - ID of marker being dragged
- * @property {DataCoordinates|null} dragStartPosition - Starting position of drag with freq and time properties
+ *
+ * Drag bookkeeping lives on `state.drag` (see DragProjection).
  */
 
 /**
@@ -122,15 +121,55 @@
 
 
 /**
- * Drag interaction state
+ * What kind of drag is in progress.
+ * @typedef {'move'|'create'|'place'|'pan'} DragKind
+ */
+
+/**
+ * Drag bookkeeping, internal to BaseDragHandler. Not broadcast: listeners see
+ * the DragProjection below instead.
  * @typedef {Object} DragState
- * @property {boolean} isDragging - Whether user is currently dragging
- * @property {DataCoordinates|null} dragStartPosition - Starting position of drag
- * @property {string|null} draggedHarmonicSetId - ID of harmonic set being dragged
- * @property {number|null} originalSpacing - Original spacing of dragged harmonic set
- * @property {number|null} originalAnchorTime - Original anchor time of dragged harmonic set  
- * @property {number|null} clickedHarmonicNumber - Which harmonic number was clicked for dragging
- * @property {boolean} isCreatingNewHarmonicSet - Whether currently creating a new harmonic set via drag
+ * @property {boolean} isDragging - Whether a drag operation is active
+ * @property {DragKind|null} kind - What kind of drag is in progress
+ * @property {string|null} draggedTargetId - ID of the target being dragged
+ * @property {string|null} draggedTargetType - Type of the target being dragged
+ * @property {DataCoordinates|null} dragStartPosition - Position the drag began at
+ * @property {any} originalData - Snapshot the mode needs to compute deltas
+ */
+
+/**
+ * Read-only projection of the active drag, derived from the owning
+ * BaseDragHandler. Modes MUST NOT write this; it is rebuilt on each transition
+ * and is always present, reading `active: false` when idle.
+ * @typedef {Object} DragProjection
+ * @property {boolean} active - Whether a drag is in progress
+ * @property {DragKind|null} kind - What kind of drag
+ * @property {ModeType|null} mode - Mode that owns the drag
+ * @property {string|null} targetId - Id of the dragged feature, if any
+ * @property {string|null} targetType - 'marker' | 'harmonicSet' | 'dopplerMarker' | null
+ * @property {DataCoordinates|null} startPosition - Where the drag began, in data coordinates
+ */
+
+/**
+ * What a mode's target resolver returns on mousedown; null means "not a drag".
+ * @typedef {Object} DragTarget
+ * @property {DragKind} kind - What kind of drag this starts
+ * @property {string|null} id - Feature id for move/place; null for create/pan
+ * @property {string|null} type - Feature type; null for pan
+ * @property {DataCoordinates} [position] - Current position of the target
+ * @property {any} [data] - Snapshot the mode needs to compute deltas
+ */
+
+/**
+ * Lifecycle callbacks a mode supplies to the drag engine.
+ * @typedef {Object} DragCallbacks
+ * @property {function(DataCoordinates, MouseEvent=): DragTarget|null} resolveTarget - Decide whether this mousedown starts a drag, and of what kind
+ * @property {function(DragTarget, DataCoordinates, MouseEvent=): void} onDragStart - Called once, when the drag starts
+ * @property {function(DragTarget, DataCoordinates, DataCoordinates, MouseEvent=): void} onDragMove - Called per move
+ * @property {function(DragTarget, DataCoordinates, MouseEvent=): void} onDragEnd - Called on mouseup
+ * @property {function(DragTarget): void} [onDragCancel] - Called on mouseleave / cancel; must restore prior state
+ * @property {function(string): void} [updateCursor] - Apply a cursor style
+ * @property {function(DragKind|null, string): string|null} [cursorFor] - Optional per-kind cursor
  */
 
 /**
@@ -200,7 +239,7 @@
  * @property {HarmonicsState} harmonics - Harmonics mode state
  * @property {DopplerState} doppler - Doppler mode state
  * @property {AnalysisState} analysis - Analysis mode state
- * @property {DragState} dragState - Drag interaction state
+ * @property {DragProjection} drag - Read-only projection of the active drag
  * @property {SelectionState} selection - Selection state for keyboard control
  * @property {ImageDetails} imageDetails - Image source and dimensions
  * @property {Config} config - Time and frequency configuration
@@ -311,7 +350,6 @@
  * @property {HTMLDivElement|null} [mainRow] - Main display row
  * 
  * @property {HTMLDivElement|null} [container] - Main container element
- * @property {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null} [_wheelPan] - Transient wheel-button drag-pan state
  * @property {SVGSVGElement|null} [svg] - Main SVG element
  * @property {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
  * @property {HTMLButtonElement|null} [expandToggleButton] - Expand/collapse toggle button (landscape only)
@@ -349,7 +387,9 @@
  * @property {ResizeObserver|null} [resizeObserver] - Resize observer instance
  * @property {(function(Event): void)|null} [_boundHandleResize] - Bound resize handler
  * @property {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} [_registeredListeners] - Listeners attached by setupEventListeners, kept for removal on destroy
- * @property {Object|null} [_panDragState] - Pan drag state
+ * @property {function(): void} notifyStateListeners - Broadcast this instance's state to its listeners
+ * @property {any} [_wheelPanHandler] - Central middle-button pan drag handler
+ * @property {{x: number, y: number}|null} [_wheelPanLast] - Last pointer position during a middle-button pan
  * @property {Object|null} [zoomControls] - Zoom control elements
  * @property {HTMLElement|null} [harmonicPanel] - Harmonic panel element
  * 
@@ -456,7 +496,6 @@
  * Harmonics mode initial state object
  * @typedef {Object} HarmonicsInitialState
  * @property {HarmonicsState} harmonics - Harmonics state
- * @property {DragState} dragState - Drag interaction state
  */
 
 /**

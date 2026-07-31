@@ -5,6 +5,7 @@
 /// <reference path="../types.js" />
 
 import { screenToData, isWithinImage } from '../utils/coordinates.js'
+import { BaseDragHandler } from '../modes/shared/BaseDragHandler.js'
 import { updateCursorIndicators } from '../rendering/cursors.js'
 import { notifyStateListeners } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
@@ -82,14 +83,52 @@ function handleWheel(instance, event) {
 }
 
 /**
- * End an in-progress wheel-button (middle) drag pan, restoring the cursor.
+ * The middle-button pan, as a `pan`-kind drag on the shared engine.
+ *
+ * It differs from PanMode's drag only in its trigger (button 1, with
+ * preventDefault to suppress browser autoscroll) and in being available in
+ * *every* mode. Resolving it centrally, ahead of the mode's own handlers, is
+ * what stops a middle-click ever reaching a mode and placing something
+ * (contract: drag-engine.md, "Middle-button pan").
  * @param {GramFrame} instance - GramFrame instance
+ * @returns {BaseDragHandler} The instance's wheel-pan handler
  */
-function endWheelPan(instance) {
-  if (instance.svg && instance._wheelPan) {
-    instance.svg.style.cursor = instance._wheelPan.prevCursor || 'crosshair'
+function wheelPanHandler(instance) {
+  if (!instance._wheelPanHandler) {
+    let previousCursor = ''
+
+    instance._wheelPanHandler = new BaseDragHandler(instance, {
+      resolveTarget: () => (
+        instance.state.zoom.level > 1.0 ? { kind: 'pan', id: null, type: null } : null
+      ),
+      onDragStart: (_target, _position, event) => {
+        previousCursor = instance.svg ? instance.svg.style.cursor : ''
+        if (event) {
+          instance._wheelPanLast = { x: event.clientX, y: event.clientY }
+        }
+      },
+      onDragMove: (_target, _position, _startPosition, event) => {
+        if (!event || !instance._wheelPanLast) return
+        const dx = event.clientX - instance._wheelPanLast.x
+        const dy = event.clientY - instance._wheelPanLast.y
+        const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy)
+        panByNormalized(instance, normalizedDeltaX, normalizedDeltaY)
+        instance._wheelPanLast = { x: event.clientX, y: event.clientY }
+      },
+      onDragEnd: () => { instance._wheelPanLast = null },
+      onDragCancel: () => { instance._wheelPanLast = null },
+      updateCursor: (style) => {
+        if (instance.svg) {
+          instance.svg.style.cursor = style
+        }
+      },
+      // Restore whatever cursor the mode had, rather than forcing a crosshair
+      cursorFor: (_kind, fallback) => (
+        fallback === 'grabbing' ? 'grabbing' : (previousCursor || 'crosshair')
+      )
+    }, null)
   }
-  instance._wheelPan = null
+  return instance._wheelPanHandler
 }
 
 /**
@@ -199,13 +238,9 @@ export function setupResizeObserver(instance) {
  */
 function handleMouseMove(instance, event) {
   // Wheel-button drag pan takes precedence over any mode interaction.
-  if (instance._wheelPan && instance._wheelPan.active) {
-    const dx = event.clientX - instance._wheelPan.lastX
-    const dy = event.clientY - instance._wheelPan.lastY
-    const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy)
-    panByNormalized(instance, normalizedDeltaX, normalizedDeltaY)
-    instance._wheelPan.lastX = event.clientX
-    instance._wheelPan.lastY = event.clientY
+  const wheelPan = wheelPanHandler(instance)
+  if (wheelPan.isDragging()) {
+    wheelPan.handleMouseMove(null, event)
     return
   }
 
@@ -258,17 +293,7 @@ function handleMouseDown(instance, event) {
   // so it can never place a cursor/marker/harmonic/doppler point.
   if (event.button === 1) {
     event.preventDefault() // Suppress browser middle-click autoscroll
-    if (instance.state.zoom.level > 1.0) {
-      instance._wheelPan = {
-        active: true,
-        lastX: event.clientX,
-        lastY: event.clientY,
-        prevCursor: instance.svg ? instance.svg.style.cursor : ''
-      }
-      if (instance.svg) {
-        instance.svg.style.cursor = 'grabbing'
-      }
-    }
+    wheelPanHandler(instance).startDrag(null, event)
     return
   }
 
@@ -291,8 +316,9 @@ function handleMouseDown(instance, event) {
  */
 function handleMouseUp(instance, event) {
   // End a wheel-button drag pan without delegating to the mode.
-  if (instance._wheelPan && instance._wheelPan.active) {
-    endWheelPan(instance)
+  const wheelPan = wheelPanHandler(instance)
+  if (wheelPan.isDragging()) {
+    wheelPan.endDrag(null, event)
     return
   }
 
@@ -314,9 +340,7 @@ function handleMouseUp(instance, event) {
  */
 function handleMouseLeave(instance) {
   // End a wheel-button drag pan cleanly if the pointer leaves the component.
-  if (instance._wheelPan && instance._wheelPan.active) {
-    endWheelPan(instance)
-  }
+  wheelPanHandler(instance).cancelDrag()
 
   // Clear cursor position
   instance.state.cursorPosition = null

@@ -23,14 +23,18 @@ export class HarmonicsMode extends BaseMode {
   constructor(instance) {
     super(instance)
     
-    // Initialize drag handler for existing harmonic set dragging (not for new creation)
+    // One handler for both harmonic drags: moving an existing set (`move`) and
+    // creating one by dragging (`create`). They differ only in how the target
+    // is resolved — a create mints its set on mousedown — and share every
+    // subsequent step (spec 166, FR-004).
     this.dragHandler = new BaseDragHandler(instance, {
-      findTargetAt: (position) => this.findHarmonicSetTarget(position),
+      resolveTarget: (position) => this.resolveHarmonicDrag(position),
       onDragStart: (target, position) => this.onHarmonicSetDragStart(target, position),
-      onDragUpdate: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
+      onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
       onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
+      onDragCancel: (target) => this.onHarmonicSetDragEnd(target, null),
       updateCursor: (style) => this.updateCursorStyle(style)
-    })
+    }, 'harmonics')
   }
 
   /**
@@ -42,16 +46,35 @@ export class HarmonicsMode extends BaseMode {
     const harmonicSet = this.findHarmonicSetAtFrequency(position.freq)
     if (harmonicSet) {
       return {
+        kind: 'move',
         id: harmonicSet.id,
         type: 'harmonicSet',
         position: position,
         data: {
           harmonicSet: harmonicSet,
-          clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq)
+          clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq),
+          originalAnchorTime: harmonicSet.anchorTime
         }
       }
     }
     return null
+  }
+
+  /**
+   * Resolve what a mousedown in harmonics mode starts.
+   *
+   * Landing on an existing set moves it; landing anywhere else creates one and
+   * drags it out from there. The new set is minted here, on mousedown, so the
+   * engine has a target id for the whole gesture (contract: drag-engine.md).
+   * @param {DataCoordinates} position - Position of the mousedown
+   * @returns {DragTarget|null} A move- or create-kind target
+   */
+  resolveHarmonicDrag(position) {
+    const existing = this.findHarmonicSetTarget(position)
+    if (existing) {
+      return existing
+    }
+    return this.createHarmonicSetTarget(position)
   }
 
   /**
@@ -60,40 +83,32 @@ export class HarmonicsMode extends BaseMode {
    * @param {DataCoordinates} position - Start position
    */
   onHarmonicSetDragStart(target, position) {
+    void position
     const harmonicSet = target.data.harmonicSet
-    const clickedHarmonicNumber = target.data.clickedHarmonicNumber
-    
+
     // Auto-select the harmonic set being dragged (consistent with analysis markers)
     const index = this.instance.state.harmonics.harmonicSets.findIndex(set => set.id === harmonicSet.id)
     if (index !== -1) {
       this.instance.setSelection('harmonicSet', harmonicSet.id, index)
     }
-    
-    // Update legacy drag state for backward compatibility
-    this.instance.state.dragState.isDragging = true
-    this.instance.state.dragState.dragStartPosition = { ...position }
-    this.instance.state.dragState.draggedHarmonicSetId = harmonicSet.id
-    this.instance.state.dragState.originalSpacing = harmonicSet.spacing
-    this.instance.state.dragState.originalAnchorTime = harmonicSet.anchorTime
-    this.instance.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber
+    // Drag bookkeeping belongs to the engine (state.drag) — nothing to mirror.
   }
 
   /**
    * Update harmonic set during drag
-   * @param {Object} _target - Drag target with id and type (unused)
+   * @param {DragTarget} target - Drag target
    * @param {DataCoordinates} currentPos - Current position
-   * @param {DataCoordinates} _startPos - Start position (unused)
+   * @param {DataCoordinates} startPos - Start position
    */
-  onHarmonicSetDragUpdate(_target, currentPos, _startPos) {
-    // Update cursor position for legacy compatibility
+  onHarmonicSetDragUpdate(target, currentPos, startPos) {
+    // Update cursor position so the readouts follow the drag
     this.instance.state.cursorPosition = {
       freq: currentPos.freq,
       time: currentPos.time,
       x: 0, y: 0, svgX: 0, svgY: 0, imageX: 0, imageY: 0 // Minimal values for compatibility
     }
-    
-    // Use existing drag handling logic
-    this.handleHarmonicSetDrag()
+
+    this.applyHarmonicSetDrag(target, currentPos, startPos)
   }
 
   /**
@@ -102,13 +117,7 @@ export class HarmonicsMode extends BaseMode {
    * @param {DataCoordinates} _position - End position (unused)
    */
   onHarmonicSetDragEnd(_target, _position) {
-    // Clear legacy drag state
-    this.instance.state.dragState.isDragging = false
-    this.instance.state.dragState.dragStartPosition = null
-    this.instance.state.dragState.draggedHarmonicSetId = null
-    this.instance.state.dragState.originalSpacing = null
-    this.instance.state.dragState.originalAnchorTime = null
-    this.instance.state.dragState.clickedHarmonicNumber = null
+    // Nothing to unwind: the engine clears the drag record itself.
   }
 
   /**
@@ -196,18 +205,9 @@ export class HarmonicsMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseMove(_event, dataCoords) {
-    // Handle existing harmonic set dragging through drag handler
+    // Both the move and create drags run through the one handler
     if (this.dragHandler.isDragging()) {
       this.dragHandler.handleMouseMove(dataCoords)
-    } else if (this.instance.state.dragState.isCreatingNewHarmonicSet) {
-      // Handle new creation drag (not managed by BaseDragHandler)
-      // Update cursor position for legacy compatibility
-      this.instance.state.cursorPosition = {
-        freq: dataCoords.freq,
-        time: dataCoords.time,
-        x: 0, y: 0, svgX: 0, svgY: 0, imageX: 0, imageY: 0 // Minimal values
-      }
-      this.handleHarmonicSetDrag()
     } else {
       // Update cursor for hover when not dragging
       this.dragHandler.updateCursorForHover(dataCoords)
@@ -231,13 +231,8 @@ export class HarmonicsMode extends BaseMode {
       return
     }
     
-    // Try to start drag on existing harmonic set
-    const dragStarted = this.dragHandler.startDrag(dataCoords)
-    
-    if (!dragStarted) {
-      // No existing harmonic set found, start creating new harmonic set
-      this.startNewHarmonicSetCreation(dataCoords)
-    }
+    // The resolver decides whether this moves an existing set or creates one
+    this.dragHandler.startDrag(dataCoords, event)
   }
 
   /**
@@ -246,19 +241,8 @@ export class HarmonicsMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    */
   handleMouseUp(_event, dataCoords) {
-    // End existing harmonic set dragging through drag handler
-    if (this.dragHandler.isDragging()) {
-      this.dragHandler.endDrag(dataCoords)
-    }
-    
-    // Complete new harmonic set creation if in creation mode (not managed by BaseDragHandler)
-    if (this.instance.state.dragState.isCreatingNewHarmonicSet) {
-      this.completeNewHarmonicSetCreation(dataCoords)
-      // Reset cursor after creation
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = 'crosshair'
-      }
-    }
+    // One exit for both kinds; the engine restores the cursor
+    this.dragHandler.endDrag(dataCoords)
   }
 
 
@@ -545,15 +529,21 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Create a new harmonic set immediately and start drag mode for updates
+   * Mint a new harmonic set at the mousedown position and return it as a
+   * `create`-kind drag target, so the rest of the gesture is an ordinary drag.
+   *
+   * The initial spacing places the cursor on a sensible harmonic — the 10th
+   * when the frequency axis starts above zero, the 5th when it starts at zero —
+   * which is what keeps the first drawn set legible.
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+   * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
    */
-  startNewHarmonicSetCreation(dataCoords) {
-    // Calculate initial spacing based on frequency axis origin
-    const freqMin = this.instance.state.config.freqMin
+  createHarmonicSetTarget(dataCoords) {
+    const { freqMin } = this.instance.state.config
+
     let initialSpacing
     let clickedHarmonicNumber
-    
+
     if (freqMin > 0) {
       // Origin > 0, position at 10th harmonic
       clickedHarmonicNumber = 10
@@ -563,41 +553,28 @@ export class HarmonicsMode extends BaseMode {
       clickedHarmonicNumber = 5
       initialSpacing = dataCoords.freq / clickedHarmonicNumber
     }
-    
+
     // Ensure minimum spacing
     initialSpacing = Math.max(initialSpacing, 0.1)
-    
-    // Create the harmonic set immediately
+
+    // Create the harmonic set immediately, so the drag has something to move
     const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing)
-    
-    // Set creation mode for drag updates
-    this.instance.state.dragState.isCreatingNewHarmonicSet = true
-    this.instance.state.dragState.dragStartPosition = { ...dataCoords }
-    this.instance.state.dragState.draggedHarmonicSetId = harmonicSet.id
-    this.instance.state.dragState.originalSpacing = initialSpacing
-    this.instance.state.dragState.originalAnchorTime = dataCoords.time
-    this.instance.state.dragState.clickedHarmonicNumber = clickedHarmonicNumber
-    
-    // Change cursor to indicate drag interaction
-    if (this.instance.svg) {
-      this.instance.svg.style.cursor = 'grabbing'
+    if (!harmonicSet) {
+      return null
+    }
+
+    return {
+      kind: 'create',
+      id: harmonicSet.id,
+      type: 'harmonicSet',
+      position: dataCoords,
+      data: {
+        harmonicSet,
+        clickedHarmonicNumber,
+        originalAnchorTime: dataCoords.time
+      }
     }
   }
-
-  /**
-   * Complete the drag update of the newly created harmonic set
-   * @param {DataCoordinates} _dataCoords - Final drag position coordinates (unused)
-   */
-  completeNewHarmonicSetCreation(_dataCoords) {
-    // Just clear the creation state - harmonic set was already created and updated during drag
-    this.instance.state.dragState.isCreatingNewHarmonicSet = false
-    this.instance.state.dragState.dragStartPosition = null
-    this.instance.state.dragState.draggedHarmonicSetId = null
-    this.instance.state.dragState.originalSpacing = null
-    this.instance.state.dragState.originalAnchorTime = null
-    this.instance.state.dragState.clickedHarmonicNumber = null
-  }
-
 
   /**
    * Find which harmonic number was clicked
@@ -611,15 +588,16 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Handle harmonic set dragging (both existing sets and new creation)
+   * Apply a harmonic-set drag — the shared step for both the `move` and
+   * `create` kinds, which differ only in how their target was resolved.
+   * @param {DragTarget} target - The drag target from the engine
+   * @param {DataCoordinates} currentPos - Current pointer position
+   * @param {DataCoordinates} startPos - Where the drag began
    */
-  handleHarmonicSetDrag() {
-    if (!this.instance.state.cursorPosition || !this.instance.state.dragState.dragStartPosition) return
+  applyHarmonicSetDrag(target, currentPos, startPos) {
+    if (!target || !currentPos || !startPos) return
 
-    const currentPos = this.instance.state.cursorPosition
-    const startPos = this.instance.state.dragState.dragStartPosition
-    const setId = this.instance.state.dragState.draggedHarmonicSetId
-
+    const setId = target.id
     if (!setId) return
 
     const harmonicSet = this.instance.state.harmonics.harmonicSets.find(set => set.id === setId)
@@ -628,17 +606,20 @@ export class HarmonicsMode extends BaseMode {
     let newSpacing, newAnchorTime
 
     // For both new creation and existing drags, keep the clicked harmonic under the cursor
-    const clickedHarmonicNumber = this.instance.state.dragState.clickedHarmonicNumber || 1
-    
+    const clickedHarmonicNumber = (target.data && target.data.clickedHarmonicNumber) || 1
+
     // Calculate spacing so the clicked harmonic stays at cursor position
     newSpacing = currentPos.freq / clickedHarmonicNumber
-    
+
     // Ensure minimum spacing
     newSpacing = Math.max(newSpacing, 0.1)
-    
+
     // Allow vertical movement for both new creation and existing drags
+    const originalAnchorTime = target.data && target.data.originalAnchorTime !== undefined
+      ? target.data.originalAnchorTime
+      : harmonicSet.anchorTime
     const deltaTime = currentPos.time - startPos.time
-    newAnchorTime = this.instance.state.dragState.originalAnchorTime + deltaTime
+    newAnchorTime = originalAnchorTime + deltaTime
 
     // Apply updates
     const updates = {}
@@ -1027,15 +1008,6 @@ export class HarmonicsMode extends BaseMode {
         harmonicData: [],
         harmonicSets: []
       },
-      dragState: {
-        isDragging: false,
-        dragStartPosition: null,
-        draggedHarmonicSetId: null,
-        originalSpacing: null,
-        originalAnchorTime: null,
-        clickedHarmonicNumber: null,
-        isCreatingNewHarmonicSet: false
-      }
     }
   }
 
