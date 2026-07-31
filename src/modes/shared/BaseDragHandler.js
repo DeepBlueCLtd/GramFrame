@@ -204,26 +204,3 @@ export class BaseDragHandler {
     this.reset()
   }
 }
-
-/**
- * Utility function to calculate distance between two data coordinates
- * @param {DataCoordinates} pos1 - First position
- * @param {DataCoordinates} pos2 - Second position
- * @returns {number} Distance in data coordinate space
- */
-export function calculateDataDistance(pos1, pos2) {
-  const freqDiff = pos1.freq - pos2.freq
-  const timeDiff = pos1.time - pos2.time
-  return Math.sqrt(freqDiff * freqDiff + timeDiff * timeDiff)
-}
-
-/**
- * Utility function to check if a position is within tolerance of a target
- * @param {DataCoordinates} position - Position to check
- * @param {DataCoordinates} targetPosition - Target position
- * @param {number} tolerance - Tolerance in data coordinate units
- * @returns {boolean} True if within tolerance
- */
-export function isWithinTolerance(position, targetPosition, tolerance) {
-  return calculateDataDistance(position, targetPosition) <= tolerance
-}

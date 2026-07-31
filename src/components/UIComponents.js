@@ -8,28 +8,13 @@
 /// <reference path="../types.js" />
 
 import { createColorPicker } from './ColorPicker.js'
-import { createSymbolSelect } from './SymbolPicker.js'
 import { createLEDDisplay, updateLEDDisplays } from './LEDDisplay.js'
-import { createModeSwitchingUI } from './ModeButtons.js'
 
-
-// Re-export LED display functions from LEDDisplay module
-export { createLEDDisplay, updateLEDDisplays }
-
-
-
-
-// Re-export mode switching functions from ModeButtons module
-export { createModeSwitchingUI }
+// Re-exported because importers take LED and colour-picker helpers from this
+// module rather than reaching into the individual component modules.
+export { createLEDDisplay, updateLEDDisplays, createColorPicker }
 
 // Rate input UI component removed - backend rate functionality preserved
-
-// Re-export color picker function from ColorPicker module
-export { createColorPicker }
-
-// Re-export symbol selector function from SymbolPicker module
-export { createSymbolSelect }
-
 
 /**
  * Creates a flex layout container with standard styling
@@ -38,7 +23,7 @@ export { createSymbolSelect }
  * @param {string} direction - Flex direction (default: 'row')
  * @returns {HTMLElement} The created flex container
  */
-export function createFlexLayout(className, gap = '10px', direction = 'row') {
+function createFlexLayout(className, gap = '10px', direction = 'row') {
   const container = document.createElement('div')
   container.className = className
   container.style.display = 'flex'

@@ -1,8 +1,10 @@
-import { BaseMode } from './BaseMode.js'
 import { AnalysisMode } from './analysis/AnalysisMode.js'
 import { HarmonicsMode } from './harmonics/HarmonicsMode.js'
 import { DopplerMode } from './doppler/DopplerMode.js'
 import { PanMode } from './pan/PanMode.js'
+import { looksLikeMissingApiError } from '../core/browserCompatibility.js'
+
+/** @typedef {import('./BaseMode.js').BaseMode} BaseMode */
 
 /**
  * Factory for creating mode instances
@@ -14,7 +16,10 @@ export class ModeFactory {
    * @param {ModeType} modeName - Name of the mode
    * @param {GramFrame} instance - GramFrame instance
    * @returns {BaseMode} Mode instance
-   * @throws {Error} If mode name is invalid or mode class is not available
+   * @throws {Error} If mode name is invalid or the mode fails to construct.
+   *   The failure is always propagated (spec 165, GF-04): a mode that cannot be
+   *   built leaves the component unable to interact, so the caller surfaces the
+   *   standard `.gramframe-error-indicator` instead of shipping a silent no-op.
    */
   static createMode(modeName, instance) {
     try {
@@ -43,15 +48,24 @@ export class ModeFactory {
         instanceType: instance?.constructor?.name,
         stateExists: !!instance?.state
       })
-      
-      // In test environments, throw the error to fail fast
-      if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
-        throw new Error(`Mode creation failed for "${modeName}": ${error instanceof Error ? error.message : String(error)}`)
+
+      // Fail loud on every hostname. The previous localhost-only throw meant a
+      // broken mode silently killed interaction in the field behind a no-op
+      // BaseMode; now the failure reaches GramFrameAPI, which renders the error
+      // indicator next to the config table.
+      //
+      // A missing-API TypeError is re-thrown unwrapped so the API's legacy-
+      // browser safety net still recognises it and shows the "please update
+      // your browser" message rather than a technical error.
+      if (looksLikeMissingApiError(error)) {
+        throw error
       }
-      
-      // Fallback to base mode to prevent complete failure in production
-      console.warn(`Falling back to BaseMode for "${modeName}" due to error`)
-      return new BaseMode(instance)
+      const message = `Mode creation failed for "${modeName}": ${error instanceof Error ? error.message : String(error)}`
+      const wrapped = /** @type {any} */ (new Error(message))
+      // Attached rather than passed to the constructor: the project's tsc lib
+      // level predates the Error `cause` option.
+      wrapped.cause = error
+      throw wrapped
     }
   }
 

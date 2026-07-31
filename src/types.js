@@ -19,7 +19,6 @@
  * @property {boolean} isDragging - Whether currently dragging a marker
  * @property {string|null} draggedMarker - Which marker is being dragged
  * @property {boolean} isPlacingMarkers - Whether in marker placement mode
- * @property {number} markersPlaced - Number of markers placed (0-2)
  * @property {DataCoordinates|null} tempFirst - Temporary storage for first marker during placement
  * @property {boolean} isPreviewDrag - Whether currently dragging to preview curve
  * @property {DataCoordinates|null} previewEnd - End point for preview drag
@@ -155,7 +154,6 @@
  * @property {number} level - Current zoom level (1.0 = no zoom)
  * @property {number} centerX - Center point X (0-1 normalized)
  * @property {number} centerY - Center point Y (0-1 normalized)
- * @property {boolean} panMode - Whether pan mode is active
  */
 
 /**
@@ -341,6 +339,7 @@
  * 
  * @property {ResizeObserver|null} [resizeObserver] - Resize observer instance
  * @property {(function(Event): void)|null} [_boundHandleResize] - Bound resize handler
+ * @property {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} [_registeredListeners] - Listeners attached by setupEventListeners, kept for removal on destroy
  * @property {Object|null} [_panDragState] - Pan drag state
  * @property {Object|null} [zoomControls] - Zoom control elements
  * @property {HTMLElement|null} [harmonicPanel] - Harmonic panel element
@@ -468,6 +467,8 @@
  * @property {function(): boolean} [getExpandState] - Get current expand state (first instance)
  * @property {function(boolean): void} [setExpandState] - Expand/collapse landscape instances
  * @property {function(HTMLTableElement, string): void} _addErrorIndicator - Add error indicator to table
+ * @property {function(HTMLTableElement, Node|null, Node|null): void} _restoreConfigTable - Put a config table back after a failed init
+ * @property {function(): GramFrame[]} _getInstances - The API's single instance registry
  * @property {GramFrame[]} [_instances] - Internal instances array
  * @property {function(): void} [__test__forceUpdate] - Test method to force update
  * @property {function(): GramFrame[]} [__test__getInstances] - Test method to get instances

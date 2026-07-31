@@ -54,67 +54,6 @@ export function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
 }
 
 /**
- * Convert screen coordinates to data coordinates
- * @param {ScreenCoordinates} screenPoint - Screen coordinates
- * @param {Object} viewport - Current viewport state
- * @param {SVGSVGElement} svg - SVG element reference
- * @param {SVGImageElement} spectrogramImage - Spectrogram image element
- * @param {number} rate - Rate scaling factor
- * @returns {DataCoordinates} Data coordinates
- */
-export function screenToDataCoordinates(screenPoint, viewport, svg, spectrogramImage = null, rate = 1) {
-  const { margins, imageDetails, config } = viewport
-  const { naturalWidth, naturalHeight } = imageDetails
-  const renderWidth = imageDetails.renderWidth || naturalWidth
-  const renderHeight = imageDetails.renderHeight || naturalHeight
-  const { timeMin, timeMax, freqMin, freqMax } = config
-
-  // Convert screen to SVG coordinates first
-  const svgRect = svg.getBoundingClientRect()
-  const viewBox = svg.viewBox.baseVal
-
-  let svgX, svgY
-  if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
-    const scaleX = viewBox.width / svgRect.width
-    const scaleY = viewBox.height / svgRect.height
-    svgX = (screenPoint.x * scaleX) + viewBox.x
-    svgY = (screenPoint.y * scaleY) + viewBox.y
-  } else {
-    svgX = screenPoint.x
-    svgY = screenPoint.y
-  }
-
-  // Get current image bounds (reflecting expand × zoom via element attributes)
-  let imageLeft = margins.left
-  let imageTop = margins.top
-  let imageWidth = renderWidth
-  let imageHeight = renderHeight
-
-  if (spectrogramImage) {
-    imageLeft = parseFloat(spectrogramImage.getAttribute('x') || String(margins.left))
-    imageTop = parseFloat(spectrogramImage.getAttribute('y') || String(margins.top))
-    imageWidth = parseFloat(spectrogramImage.getAttribute('width') || String(renderWidth))
-    imageHeight = parseFloat(spectrogramImage.getAttribute('height') || String(renderHeight))
-  }
-
-  // Convert SVG to image coordinates
-  const imageX = Math.max(0, Math.min(svgX - imageLeft, imageWidth))
-  const imageY = Math.max(0, Math.min(svgY - imageTop, imageHeight))
-
-  // Convert to data coordinates
-  const freqRatio = imageX / imageWidth
-  const timeRatio = 1 - (imageY / imageHeight) // Invert Y coordinate
-  
-  const rawFreq = freqMin + freqRatio * (freqMax - freqMin)
-  const time = timeMin + timeRatio * (timeMax - timeMin)
-  
-  // Apply rate scaling to frequency
-  const freq = rawFreq / rate
-  
-  return { freq, time }
-}
-
-/**
  * Calculate zoom-aware position for rendering elements
  * @param {DataCoordinates} point - Data coordinates
  * @param {Object} viewport - Current viewport state
@@ -150,19 +89,6 @@ export function calculateZoomAwarePosition(point, viewport, spectrogramImage = n
   }
 
   return { x: currentX, y: currentY }
-}
-
-/**
- * Check if a point is within image boundaries
- * @param {DataCoordinates} point - Data coordinates to check
- * @param {Config} config - Configuration object
- * @returns {boolean} True if point is within bounds
- */
-export function isPointInImageBounds(point, config) {
-  const { timeMin, timeMax, freqMin, freqMax } = config
-  
-  return point.time >= timeMin && point.time <= timeMax &&
-         point.freq >= freqMin && point.freq <= freqMax
 }
 
 /**

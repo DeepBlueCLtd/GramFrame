@@ -31,7 +31,7 @@ export function getRenderDimensions(instance) {
  * @param {GramFrame} instance - GramFrame instance to populate with DOM elements
  * @returns {TableElements} Object containing all created DOM elements
  */
-export function createComponentStructure(instance) {
+function createComponentStructure(instance) {
   // Create a container to replace the table. It starts in the loading state:
   // the SVG has no dimensions until the spectrogram's natural size is known, so
   // the panel would otherwise be an unexplained empty black rectangle until the
@@ -483,9 +483,9 @@ function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
   const rawMajorInterval = range / (targetMajorTicks - 1)
   
   // Nice numbers algorithm: find the "nicest" interval near the raw interval
-  function niceNum(range, round) {
-    const exponent = Math.floor(Math.log10(range))
-    const fraction = range / Math.pow(10, exponent)
+  function niceNum(value, round) {
+    const exponent = Math.floor(Math.log10(value))
+    const fraction = value / Math.pow(10, exponent)
     let niceFraction
     
     if (round) {
@@ -688,7 +688,7 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
  * @param {GramFrame} instance - GramFrame instance with created DOM structure
  * @param {HTMLTableElement} configTable - Original table to replace
  */
-export function replaceConfigTable(instance, configTable) {
+function replaceConfigTable(instance, configTable) {
   // Replace the table with our container
   if (configTable && configTable.parentNode) {
     configTable.parentNode.replaceChild(instance.container, configTable)
