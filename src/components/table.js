@@ -483,9 +483,9 @@ function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
   const rawMajorInterval = range / (targetMajorTicks - 1)
   
   // Nice numbers algorithm: find the "nicest" interval near the raw interval
-  function niceNum(range, round) {
-    const exponent = Math.floor(Math.log10(range))
-    const fraction = range / Math.pow(10, exponent)
+  function niceNum(value, round) {
+    const exponent = Math.floor(Math.log10(value))
+    const fraction = value / Math.pow(10, exponent)
     let niceFraction
     
     if (round) {

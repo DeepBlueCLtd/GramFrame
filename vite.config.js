@@ -8,7 +8,7 @@ import { resolve } from 'path'
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8'))
 const versionDefine = { __GRAMFRAME_VERSION__: JSON.stringify(pkg.version) }
 
-export default defineConfig(({ command }) => {
+export default defineConfig(() => {
   const isStandalone = process.env.BUILD_STANDALONE === 'true'
   
   if (isStandalone) {

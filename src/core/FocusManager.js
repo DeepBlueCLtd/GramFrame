@@ -11,7 +11,7 @@
  * Global focus tracking
  */
 let currentFocusedInstance = null
-let registeredInstances = new Set()
+const registeredInstances = new Set()
 
 /**
  * Register a GramFrame instance for focus management

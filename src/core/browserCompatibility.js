@@ -77,7 +77,7 @@ export function getMissingApis() {
     var present = false
     try {
       present = !!api.test()
-    } catch (e) {
+    } catch (_e) {
       present = false
     }
     if (!present) {
