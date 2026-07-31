@@ -94,11 +94,14 @@ export function createSymbolSelect(instance) {
  *
  * EXPERIMENT: an on/off switch between the current symbol size and
  * {@link LARGE_SYMBOL_SCALE}× that size, so analysts can compare the two on a
- * real gram and tell us which to adopt. Toggling redraws every overlay symbol
- * (harmonic pins and analysis markers) immediately; the table swatches are
- * unaffected. The state is in-memory only and is never persisted.
+ * real gram and tell us which to adopt. The size is a per-feature property and
+ * the toggle follows the same routing as the colour slider and symbol
+ * drop-down: with a marker or harmonic set selected it resizes THAT feature
+ * only — so both sizes can be on screen at once — and with nothing selected it
+ * sets the size for the next created feature. Table swatches are unaffected,
+ * and the flag is never persisted.
  *
- * Once a size is agreed, delete this control along with `state.largeSymbols`
+ * Once a size is agreed, delete this control along with the per-feature flag
  * and fold the winning size into the base constants.
  *
  * @param {GramFrame} instance - GramFrame instance
@@ -107,7 +110,7 @@ export function createSymbolSelect(instance) {
 export function createLargeSymbolToggle(instance) {
   const label = document.createElement('label')
   label.className = 'gram-frame-large-symbols-toggle'
-  label.title = `Trial: draw symbols at ${LARGE_SYMBOL_SCALE}× their normal size`
+  label.title = `Trial: draw the selected feature's symbols at ${LARGE_SYMBOL_SCALE}× their normal size`
 
   const checkbox = document.createElement('input')
   checkbox.type = 'checkbox'
@@ -115,13 +118,23 @@ export function createLargeSymbolToggle(instance) {
   checkbox.checked = !!instance.state.largeSymbols
 
   checkbox.addEventListener('change', () => {
-    instance.state.largeSymbols = checkbox.checked
-    // Redraw the overlay so the new size applies to every existing feature.
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures()
+    // Resize the selected feature when one is selected, otherwise set the size
+    // for the next created feature.
+    if (!instance.applyLargeSymbolsToSelectedFeature ||
+        !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
+      instance.state.largeSymbols = checkbox.checked
+      notifyStateListeners(instance.state, instance.stateListeners)
     }
-    notifyStateListeners(instance.state, instance.stateListeners)
   })
+
+  // Expose a handle so selection changes reflect the selected feature's size
+  // back into the checkbox (mirrors the symbol drop-down's control handle).
+  instance._largeSymbolsControl = {
+    /** @param {boolean} large */
+    setValue(large) {
+      checkbox.checked = large
+    }
+  }
 
   label.appendChild(checkbox)
   label.appendChild(document.createTextNode('Large symbols'))

@@ -57,16 +57,21 @@ export const SYMBOL_DISPLAY_NAMES = {
 export const LARGE_SYMBOL_SCALE = 2
 
 /**
- * Resolve the symbol size multiplier for an instance's current state.
+ * Resolve the symbol size multiplier carried by a feature.
+ *
+ * The flag is per-feature (a marker or a harmonic set), so sets drawn at both
+ * sizes can be compared side by side on the same gram. Passing the GramFrame
+ * state instead yields the default for the NEXT created feature, which is how
+ * the toggle behaves when nothing is selected.
  *
  * Applies to the overlay marks only (harmonic pins and analysis markers) — the
  * table swatches keep their fixed box size so row heights do not jump.
  *
- * @param {GramFrameState|null|undefined} state - GramFrame state
+ * @param {{largeSymbols?: boolean}|null|undefined} source - Feature (or state) carrying the flag
  * @returns {number} `LARGE_SYMBOL_SCALE` when large symbols are on, else 1
  */
-export function resolveSymbolScale(state) {
-  return state && state.largeSymbols ? LARGE_SYMBOL_SCALE : 1
+export function resolveSymbolScale(source) {
+  return source && source.largeSymbols ? LARGE_SYMBOL_SCALE : 1
 }
 
 /**

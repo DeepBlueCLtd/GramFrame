@@ -217,7 +217,10 @@ export class AnalysisMode extends BaseMode {
       color,
       time: dataCoords.time,
       freq: dataCoords.freq,
-      symbol
+      symbol,
+      // EXPERIMENT (temporary): symbol size is carried per marker, seeded from
+      // the toggle's next-feature default, so both sizes can coexist.
+      largeSymbols: !!this.instance.state.largeSymbols
     }
     
     // Add marker to state
@@ -265,7 +268,7 @@ export class AnalysisMode extends BaseMode {
     // A marker carrying a shaped symbol is drawn as that colour-coded symbol
     // (feature 161, FR-009); a marker with the `cross` (symbol-less) style
     // continues to render as the crosshair.
-    const symbolSize = AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(this.instance.state)
+    const symbolSize = AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker)
     const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color)
 
     if (symbolMark) {

@@ -127,10 +127,14 @@ export class GramFrame {
   // Reformatting (feature 161): restyle the selected feature in place
   applyColorToSelectedFeature;
   applySymbolToSelectedFeature;
+  // EXPERIMENT (temporary): resize the selected feature's symbols
+  applyLargeSymbolsToSelectedFeature;
   // Sync the colour/symbol controls to the current selection
   syncStyleControls;
   // Symbol drop-down control handle (registered by the symbol picker)
   _symbolControl;
+  // EXPERIMENT (temporary): "Large symbols" checkbox handle
+  _largeSymbolsControl;
   
   // ResizeObserver
   resizeObserver;

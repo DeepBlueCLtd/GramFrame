@@ -430,20 +430,25 @@ export function getSelectedFeature(instance) {
 /**
  * Get the colour/symbol the style controls should currently show: the selected
  * feature's when one is selected, otherwise the next-feature defaults.
+ *
+ * `largeSymbols` is part of the temporary symbol-size experiment and follows the
+ * same rule, so the toggle always reflects whatever the controls would restyle.
  * @param {GramFrame} instance - GramFrame instance
- * @returns {{color: string, symbol: SymbolType}} Active style
+ * @returns {{color: string, symbol: SymbolType, largeSymbols: boolean}} Active style
  */
 export function getActiveStyle(instance) {
   const selected = getSelectedFeature(instance)
   if (selected) {
     return {
       color: selected.feature.color,
-      symbol: /** @type {SymbolType} */ (selected.feature.symbol || DEFAULT_SYMBOL)
+      symbol: /** @type {SymbolType} */ (selected.feature.symbol || DEFAULT_SYMBOL),
+      largeSymbols: !!selected.feature.largeSymbols
     }
   }
   return {
     color: instance.state.selectedColor,
-    symbol: instance.state.selectedSymbol
+    symbol: instance.state.selectedSymbol,
+    largeSymbols: !!instance.state.largeSymbols
   }
 }
 
@@ -500,6 +505,27 @@ export function applySymbolToSelectedFeature(instance, symbol) {
     return false
   }
   selected.feature.symbol = symbol
+  refreshFeatureVisuals(instance, selected.type)
+  return true
+}
+
+/**
+ * Apply the large-symbol size to the currently selected feature, updating the
+ * overlay instantly. No-op when nothing is selected.
+ *
+ * EXPERIMENT (temporary): the size is per-feature so two sets can be shown at
+ * different sizes side by side for comparison. Delete with the rest of the
+ * experiment once a size is agreed.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {boolean} large - Whether the feature draws its symbol at the large size
+ * @returns {boolean} True if a feature was restyled
+ */
+export function applyLargeSymbolsToSelectedFeature(instance, large) {
+  const selected = getSelectedFeature(instance)
+  if (!selected) {
+    return false
+  }
+  selected.feature.largeSymbols = large
   refreshFeatureVisuals(instance, selected.type)
   return true
 }

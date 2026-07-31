@@ -9,7 +9,7 @@
 /// <reference path="../../types.js" />
 
 import { setupEventListeners, setupResizeObserver } from '../events.js'
-import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, applyColorToSelectedFeature, applySymbolToSelectedFeature } from '../keyboardControl.js'
+import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../keyboardControl.js'
 import { getGlobalStateListeners } from '../state.js'
 
 /**
@@ -33,6 +33,7 @@ export function setupAllEventListeners(instance) {
   instance.removeHarmonicSet = (id) => removeHarmonicSet(instance, id)
   instance.applyColorToSelectedFeature = (color) => applyColorToSelectedFeature(instance, color)
   instance.applySymbolToSelectedFeature = (symbol) => applySymbolToSelectedFeature(instance, symbol)
+  instance.applyLargeSymbolsToSelectedFeature = (large) => applyLargeSymbolsToSelectedFeature(instance, large)
 }
 
 /**

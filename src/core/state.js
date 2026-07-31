@@ -43,9 +43,10 @@ export const initialState = {
   rate: 1,
   selectedColor: '#ff6b6b', // Currently selected color for new features across all modes
   selectedSymbol: 'cross', // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
-  // EXPERIMENT (temporary): draw overlay symbols at double size, toggled from
-  // the Symbol panel. In-memory only, default off, never persisted — it exists
-  // to gather feedback on the preferred symbol size.
+  // EXPERIMENT (temporary): large-symbol size for the NEXT created feature, set
+  // from the Symbol panel's toggle when nothing is selected (with a feature
+  // selected, the toggle resizes that feature instead). In-memory only, default
+  // off, never persisted — it exists to gather feedback on the preferred size.
   largeSymbols: false,
   cursorPosition: null,
   cursors: [],

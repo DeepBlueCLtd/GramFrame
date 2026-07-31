@@ -136,11 +136,15 @@ export function createColorPicker(instance) {
   // currently selected, or to the next-feature defaults when nothing is
   // selected (feature 161, FR-004/FR-013).
   instance.syncStyleControls = () => {
-    const { color, symbol } = getActiveStyle(instance)
+    const { color, symbol, largeSymbols } = getActiveStyle(instance)
     showColor(color)
     if (instance._symbolControl) {
       instance._symbolControl.setValue(symbol)
       instance._symbolControl.setTint(color)
+    }
+    // TEMPORARY (size experiment): keep the size toggle in step with selection.
+    if (instance._largeSymbolsControl) {
+      instance._largeSymbolsControl.setValue(largeSymbols)
     }
   }
 

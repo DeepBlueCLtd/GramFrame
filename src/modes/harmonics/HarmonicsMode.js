@@ -386,7 +386,10 @@ export class HarmonicsMode extends BaseMode {
       color,
       anchorTime,
       spacing,
-      symbol
+      symbol,
+      // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
+      // toggle's next-feature default, so sets at both sizes can coexist.
+      largeSymbols: !!this.instance.state.largeSymbols
     }
     
     this.instance.state.harmonics.harmonicSets.push(harmonicSet)
@@ -794,13 +797,15 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Effective pixel size of a pin's symbol mark, i.e. the base size scaled by the
-   * temporary "Large symbols" toggle. The whole label/symbol stack layout derives
-   * from this, so the label spacing and top-edge clamping follow the chosen size.
+   * Effective pixel size of a set's symbol marks: the base size scaled by that
+   * set's own "Large symbols" flag, so sets at both sizes can share a gram. The
+   * whole label/symbol stack layout derives from this, so the label spacing and
+   * top-edge clamping follow the set's chosen size.
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
    * @returns {number} Symbol diameter in px
    */
-  symbolSize() {
-    return HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(this.instance.state)
+  symbolSize(harmonicSet) {
+    return HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(harmonicSet)
   }
 
   /**
@@ -818,7 +823,7 @@ export class HarmonicsMode extends BaseMode {
    */
   createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
     const symbol = createSymbolMark(
-      harmonicSet.symbol, lineX, symbolCy, this.symbolSize(), harmonicSet.color
+      harmonicSet.symbol, lineX, symbolCy, this.symbolSize(harmonicSet), harmonicSet.color
     )
     // `cross` sets draw no symbol shape (the pin keeps its line and label).
     if (!symbol) {
@@ -839,10 +844,11 @@ export class HarmonicsMode extends BaseMode {
    *
    * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
    * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
+   * @param {HarmonicSet} harmonicSet - Harmonic set being laid out (its symbol size drives the stack)
    * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
    */
-  calculateLabelStackPositions(lineTop, imageTop) {
-    const r = this.symbolSize() / 2
+  calculateLabelStackPositions(lineTop, imageTop, harmonicSet) {
+    const r = this.symbolSize(harmonicSet) / 2
     const gap = HarmonicsMode.LABEL_GAP
     const fontSize = HarmonicsMode.LABEL_FONT_SIZE
 
@@ -906,7 +912,7 @@ export class HarmonicsMode extends BaseMode {
     // Draw labels + symbols only on the thinned major subset (FR-002), stacked
     // above each pin line with a shared, on-screen vertical layout.
     const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic)
-    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop)
+    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet)
 
     labelledHarmonics.forEach(harmonicNumber => {
       const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
