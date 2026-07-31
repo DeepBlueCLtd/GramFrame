@@ -134,7 +134,8 @@ export function getStorage(context) {
     storage.setItem(testKey, '1')
     storage.removeItem(testKey)
     return storage
-  } catch {
+  } catch (error) {
+    console.warn(`GramFrame: ${context} storage is unavailable — annotations will not persist:`, error)
     return null
   }
 }
@@ -165,15 +166,16 @@ export function loadPinPreference() {
     const raw = sessionStorage.getItem(PIN_PREF_KEY)
     if (raw === 'false') return false
     return true
-  } catch {
+  } catch (error) {
+    console.warn('GramFrame: Could not read the harmonic-pin preference — using the default:', error)
     return true
   }
 }
 
 /**
  * Store the harmonic-pin visibility preference for the rest of this browser
- * session. Failures (private mode, quota) are swallowed — the in-memory state
- * still holds for the current page.
+ * session. A failure (private mode, quota) is reported to the caller and
+ * logged; the in-memory state still holds for the current page.
  * @param {boolean} showPin - Whether pins should be shown
  * @returns {boolean} True if the preference was written
  */
@@ -181,9 +183,26 @@ export function savePinPreference(showPin) {
   try {
     sessionStorage.setItem(PIN_PREF_KEY, showPin ? 'true' : 'false')
     return true
-  } catch {
+  } catch (error) {
+    console.warn('GramFrame: Could not save the harmonic-pin preference:', error)
     return false
   }
+}
+
+/**
+ * Whether the state holds anything worth persisting.
+ *
+ * Used both to decide what to write and — by callers — to decide whether a
+ * failed write is worth telling the analyst about: with nothing annotated,
+ * there is nothing to lose yet.
+ * @param {GramFrameState} state - Current component state
+ * @returns {boolean} True when at least one annotation exists
+ */
+export function hasPersistableAnnotations(state) {
+  const hasMarkers = !!(state.analysis && state.analysis.markers && state.analysis.markers.length > 0)
+  const hasHarmonics = !!(state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0)
+  const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null))
+  return hasMarkers || hasHarmonics || hasDoppler
 }
 
 /**
@@ -199,11 +218,7 @@ export function saveAnnotations(state, instanceIndex) {
     const storage = getStorage(context)
     if (!storage) return false
 
-    const hasMarkers = state.analysis && state.analysis.markers && state.analysis.markers.length > 0
-    const hasHarmonics = state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0
-    const hasDoppler = state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null)
-
-    if (!hasMarkers && !hasHarmonics && !hasDoppler) {
+    if (!hasPersistableAnnotations(state)) {
       // No annotations — remove any existing entry rather than storing empty data
       const key = buildStorageKey(instanceIndex)
       storage.removeItem(key)
@@ -255,7 +270,8 @@ export function saveAnnotations(state, instanceIndex) {
     const key = buildStorageKey(instanceIndex)
     storage.setItem(key, JSON.stringify(data))
     return true
-  } catch {
+  } catch (error) {
+    console.warn('GramFrame: Failed to save annotations — they exist in memory only:', error)
     return false
   }
 }
@@ -294,8 +310,8 @@ export function loadAnnotations(instanceIndex) {
     }
 
     return /** @type {StoredAnnotations} */ (data)
-  } catch {
-    console.warn('GramFrame: Failed to load stored annotations — data discarded')
+  } catch (error) {
+    console.warn('GramFrame: Failed to load stored annotations — data discarded:', error)
     return null
   }
 }
@@ -314,7 +330,8 @@ export function clearAnnotations(instanceIndex) {
     const key = buildStorageKey(instanceIndex)
     storage.removeItem(key)
     return true
-  } catch {
+  } catch (error) {
+    console.warn('GramFrame: Failed to clear stored annotations:', error)
     return false
   }
 }

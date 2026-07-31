@@ -53,12 +53,18 @@ import {
   loadAnnotations,
   clearAnnotations,
   detectUserContext,
-  loadPinPreference
+  loadPinPreference,
+  hasPersistableAnnotations
 } from './core/storage.js'
 
 import {
   cleanupKeyboardControl
 } from './core/keyboardControl.js'
+
+import {
+  showStorageWarning,
+  clearStorageWarning
+} from './components/StorageWarning.js'
 
 import {
   isBrowserSupported,
@@ -345,8 +351,13 @@ export class GramFrame {
     this.state.selection.selectedId = null
     this.state.selection.selectedIndex = null
 
-    // Remove from storage
-    clearAnnotations(this._storageInstanceIndex)
+    // Remove from storage. A failure here means the annotations just cleared on
+    // screen will reappear on reload, so say so rather than failing silently.
+    if (clearAnnotations(this._storageInstanceIndex)) {
+      clearStorageWarning(this)
+    } else {
+      showStorageWarning(this, 'Saved annotations could not be removed from browser storage — they may reappear when this page is reloaded.')
+    }
 
     // Re-render
     if (this.featureRenderer) {
@@ -428,7 +439,16 @@ export class GramFrame {
 
       if (annotationSnapshot !== lastSerialised) {
         lastSerialised = annotationSnapshot
-        saveAnnotations(this.state, this._storageInstanceIndex)
+        // A failed write must be visible: the analyst keeps working in memory,
+        // but would otherwise never learn their annotations are not being
+        // persisted (quota, private browsing, disabled storage) — GF-16. With
+        // nothing annotated there is nothing to lose yet, so an unavailable
+        // store stays quiet until the analyst actually creates something.
+        if (saveAnnotations(this.state, this._storageInstanceIndex)) {
+          clearStorageWarning(this)
+        } else if (hasPersistableAnnotations(state)) {
+          showStorageWarning(this, 'Annotations could not be saved — they will be lost when this page is reloaded.')
+        }
       }
     })
   }

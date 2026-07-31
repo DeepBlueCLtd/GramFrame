@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mode Construction Failure - Error Indicator Test</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+
+  <!--
+    Simulate a mode class that throws while being constructed (spec 165, GF-04).
+
+    Every mode that owns a drag handler assigns it as `this.dragHandler` in its
+    constructor, so a throwing setter for that property name fails mode
+    construction and nothing else — the surrounding DOM/SVG setup has already
+    completed by then. A plain Error (not a TypeError about a missing method)
+    keeps this out of the legacy-browser path, so the failure must surface as
+    the standard technical error indicator.
+
+    Before the fix this only failed loudly on localhost; everywhere else the
+    factory returned a no-op BaseMode and the component rendered but did
+    nothing. The spec therefore loads this fixture over 127.0.0.1.
+  -->
+  <script>
+    Object.defineProperty(Object.prototype, 'dragHandler', {
+      configurable: true,
+      set: function () {
+        throw new Error('simulated mode construction failure')
+      },
+      get: function () {
+        return undefined
+      }
+    })
+  </script>
+
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Mode Construction Failure Page</h1>
+
+  <div class="component-container">
+    <table class="gram-config" id="config1">
+      <tr>
+        <td colspan="2">
+          <img src="../../sample/mock-gram.png" alt="Sample Spectrogram">
+        </td>
+      </tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>60</td></tr>
+      <tr><td>freq-start</td><td>0</td></tr>
+      <tr><td>freq-end</td><td>100</td></tr>
+    </table>
+  </div>
+</body>
+</html>

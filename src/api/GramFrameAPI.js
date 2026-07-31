@@ -55,6 +55,14 @@ export function createGramFrameAPI(GramFrame) {
       }
 
       configTables.forEach((table, index) => {
+        // Remember where the table sits so a failure part-way through
+        // construction can be reported in place. Construction replaces the
+        // table with the component container early on, so by the time a later
+        // step (e.g. mode construction — GF-04) throws, the table is detached
+        // and there is a half-built container in its place.
+        const originalParent = table.parentNode
+        const originalNextSibling = table.nextSibling
+
         try {
           // Generate unique ID for each component instance
           const instanceId = `gramframe-${Date.now()}-${index}`
@@ -72,6 +80,10 @@ export function createGramFrameAPI(GramFrame) {
           const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error instanceof Error ? error.message : String(error)}`
           console.error('GramFrame Error:', errorMsg, error)
           errors.push({ table, error: errorMsg, index })
+
+          // Undo a partial replacement so the page is left in a truthful state:
+          // the config table back where it was, no dead component beside it.
+          this._restoreConfigTable(/** @type {HTMLTableElement} */ (table), originalParent, originalNextSibling)
 
           // Reactive legacy-browser safety net. Explicit feature detection only
           // catches APIs we listed; an even-older browser might be missing a
@@ -266,6 +278,42 @@ export function createGramFrameAPI(GramFrame) {
     },
     
     
+    /**
+     * Put a config table back where it started after a failed initialization,
+     * removing the half-built component container that replaced it.
+     *
+     * Construction swaps the table for the component container before the mode
+     * system is built, so a failure after that point leaves a container that
+     * looks like a working component but cannot interact. Restoring the table
+     * gives both the compatibility warning and the error indicator a live
+     * anchor to attach to, and leaves nothing misleading on the page.
+     * @private
+     * @param {HTMLTableElement} table - Table that failed to initialize
+     * @param {Node|null} originalParent - Parent the table had before construction
+     * @param {Node|null} originalNextSibling - Sibling the table sat before
+     */
+    _restoreConfigTable(table, originalParent, originalNextSibling) {
+      if (!originalParent || table.parentNode) {
+        return // Never replaced, or already back in place — nothing to undo
+      }
+      try {
+        // Whatever now occupies the table's old slot is the partial component.
+        const replacement = originalNextSibling
+          ? originalNextSibling.previousSibling
+          : originalParent.lastChild
+        if (
+          replacement &&
+          replacement instanceof Element &&
+          replacement.classList.contains('gram-frame-container')
+        ) {
+          replacement.remove()
+        }
+        originalParent.insertBefore(table, originalNextSibling)
+      } catch (e) {
+        console.error('GramFrame: Failed to restore the config table after an initialization error:', e)
+      }
+    },
+
     /**
      * Add error indicator to a table that failed to initialize
      * @private

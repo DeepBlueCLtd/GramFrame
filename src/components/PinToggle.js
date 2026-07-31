@@ -18,6 +18,7 @@
 /// <reference path="../types.js" />
 
 import { savePinPreference } from '../core/storage.js'
+import { showStorageWarning, clearStorageWarning } from './StorageWarning.js'
 
 /**
  * Create the harmonic-pin toggle row.
@@ -51,7 +52,13 @@ export function createPinToggle(instance) {
     // for the rest of the session.
     if (!instance.applyPinToSelectedFeature || !instance.applyPinToSelectedFeature(showPin)) {
       state.showHarmonicPin = showPin
-      savePinPreference(showPin)
+      // The choice applies immediately either way; the warning only says it
+      // will not survive the next page load (GF-16).
+      if (savePinPreference(showPin)) {
+        clearStorageWarning(instance)
+      } else {
+        showStorageWarning(instance, 'The pin preference could not be saved — it applies to this page only.')
+      }
     }
   })
 
