@@ -699,6 +699,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (marker) {
         marker.freq = currentPos.freq;
         marker.time = currentPos.time;
+        markAnnotationsChanged(this.instance);
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
         }
@@ -709,7 +710,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             this.updateTableScheduled = false;
           });
         }
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -970,13 +971,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.instance.state.analysis = { markers: [] };
       }
       this.instance.state.analysis.markers.push(marker);
+      markAnnotationsChanged(this.instance);
       const index = this.instance.state.analysis.markers.length - 1;
       this.instance.setSelection("marker", marker.id, index);
       this.updateMarkersTable();
       if (this.instance.featureRenderer) {
         this.instance.featureRenderer.renderAllPersistentFeatures();
       }
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
+      dispatch(this.instance, { frame: true });
     }
     /**
      * Remove a marker by ID
@@ -990,11 +992,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           this.instance.clearSelection();
         }
         this.instance.state.analysis.markers.splice(index, 1);
+        markAnnotationsChanged(this.instance);
         this.updateMarkersTable();
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
         }
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -1358,7 +1361,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function updateToggleButton(button, expanded) {
     button.setAttribute("aria-pressed", expanded ? "true" : "false");
@@ -1502,7 +1505,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       updateSVGLayout(instance);
       renderAxes(instance);
       createExpandToggle(instance);
-      notifyStateListeners(instance.state, instance.stateListeners);
+      dispatch(instance);
     };
     tempImg.onerror = function() {
       console.error(`GramFrame: Failed to load spectrogram image: ${imageUrl}`);
@@ -2170,6 +2173,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         largeSymbols: !!this.instance.state.largeSymbols
       };
       this.instance.state.harmonics.harmonicSets.push(harmonicSet);
+      markAnnotationsChanged(this.instance);
       const index = this.instance.state.harmonics.harmonicSets.length - 1;
       this.instance.setSelection("harmonicSet", harmonicSet.id, index);
       if (this.instance.harmonicPanel) {
@@ -2178,7 +2182,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.instance.featureRenderer) {
         this.instance.featureRenderer.renderAllPersistentFeatures();
       }
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
+      dispatch(this.instance, { frame: true });
       return harmonicSet;
     }
     /**
@@ -2190,13 +2194,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
       if (setIndex !== -1) {
         Object.assign(this.instance.state.harmonics.harmonicSets[setIndex], updates);
+        markAnnotationsChanged(this.instance);
         if (this.instance.harmonicPanel) {
           updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
         }
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
         }
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -2210,13 +2215,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           this.instance.clearSelection();
         }
         this.instance.state.harmonics.harmonicSets.splice(setIndex, 1);
+        markAnnotationsChanged(this.instance);
         if (this.instance.harmonicPanel) {
           updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
         }
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
         }
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -2786,7 +2792,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     checkbox.addEventListener("change", () => {
       if (!instance.applyLargeSymbolsToSelectedFeature || !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
         instance.state.largeSymbols = checkbox.checked;
-        notifyStateListeners(instance.state, instance.stateListeners);
+        dispatch(instance);
       }
     });
     instance._largeSymbolsControl = {
@@ -3210,13 +3216,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const newData = imageToData(clamped.x, clamped.y, instance.state);
     marker.freq = newData.freq;
     marker.time = newData.time;
+    markAnnotationsChanged(instance);
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
     }
     if (instance.currentMode && instance.currentMode.updateMarkersTable) {
       instance.currentMode.updateMarkersTable();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
@@ -3258,13 +3265,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
       if (setIndex !== -1) {
         Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates);
+        markAnnotationsChanged(instance);
         if (instance.harmonicPanel) {
           updateHarmonicPanelContent(instance.harmonicPanel, instance);
         }
         if (instance.featureRenderer) {
           instance.featureRenderer.renderAllPersistentFeatures();
         }
-        notifyStateListeners(instance.state, instance.stateListeners);
+        dispatch(instance);
       }
     }
   }
@@ -3277,7 +3285,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (instance.syncStyleControls) {
       instance.syncStyleControls();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function clearSelection(instance) {
     instance.state.selection.selectedType = null;
@@ -3287,7 +3295,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (instance.syncStyleControls) {
       instance.syncStyleControls();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function getSelectedFeature(instance) {
     const sel = instance.state.selection;
@@ -3345,7 +3353,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         updateHarmonicPanelContent(instance.harmonicPanel, instance);
       }
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance);
   }
   function applyColorToSelectedFeature(instance, color) {
     const selected = getSelectedFeature(instance);
@@ -3353,6 +3361,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return false;
     }
     selected.feature.color = color;
+    markAnnotationsChanged(instance);
     refreshFeatureVisuals(instance, selected.type);
     return true;
   }
@@ -3362,6 +3371,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return false;
     }
     selected.feature.symbol = symbol;
+    markAnnotationsChanged(instance);
     refreshFeatureVisuals(instance, selected.type);
     return true;
   }
@@ -3396,7 +3406,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (instance.featureRenderer) {
         instance.featureRenderer.renderAllPersistentFeatures();
       }
-      notifyStateListeners(instance.state, instance.stateListeners);
+      dispatch(instance);
     }
   }
   function updateSelectionVisuals(instance) {
@@ -3774,6 +3784,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       doppler.tempFirst = null;
       doppler.previewEnd = null;
+      markAnnotationsChanged(this.instance);
       this.calculateAndUpdateDopplerSpeed();
       this.renderDopplerFeatures();
     }
@@ -3824,9 +3835,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       } else if (markerType === DopplerDraggedMarker.fZero) {
         doppler.fZero = newPoint;
       }
+      markAnnotationsChanged(this.instance);
       this.calculateAndUpdateDopplerSpeed();
       this.renderDopplerFeatures();
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
+      dispatch(this.instance, { frame: true });
     }
     /**
      * Handle mouse move events in doppler mode
@@ -3848,7 +3860,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     handleMouseDown(event, dataCoords) {
       if (this.dragHandler.startDrag(dataCoords, event)) {
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -3859,7 +3871,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     handleMouseUp(_event, dataCoords) {
       if (this.dragHandler.isDragging()) {
         this.dragHandler.endDrag(dataCoords);
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -3894,7 +3906,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.instance.state.doppler.tempFirst = null;
       this.instance.state.doppler.previewEnd = null;
       this.dragHandler.reset();
-      notifyStateListeners(this.instance.state, this.instance.stateListeners);
+      dispatch(this.instance, { frame: true });
     }
     /**
      * Clean up doppler-specific state when switching away from doppler mode
@@ -3919,7 +3931,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.instance.state.doppler.speed = speed;
         this.updateSpeedLED();
         updateLEDDisplays(this.instance, this.instance.state);
-        notifyStateListeners(this.instance.state, this.instance.stateListeners);
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -4253,7 +4265,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       applyZoomTransform(instance);
     }
     updateZoomControlStates(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance, { frame: true });
   }
   function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
     const { naturalWidth, naturalHeight } = instance.state.imageDetails;
@@ -4558,6 +4570,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     largeSymbols: false,
     cursorPosition: null,
     cursors: [],
+    // Bumped by every path that mutates an annotation, so the storage listener
+    // can tell an annotation change from a cursor move without re-serialising
+    // the annotations on each notification (spec 166, AS-4.3).
+    annotationRevision: 0,
     imageDetails: {
       url: "",
       naturalWidth: 0,
@@ -4628,7 +4644,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function createInitialState() {
     return JSON.parse(JSON.stringify(initialState));
   }
-  function notifyStateListeners(state, listeners) {
+  function deliverToListeners(state, listeners) {
+    if (!listeners || listeners.length === 0) {
+      return;
+    }
     const stateCopy = JSON.parse(JSON.stringify(state));
     listeners.forEach((listener) => {
       try {
@@ -4637,6 +4656,52 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         console.error("Error in state listener:", error);
       }
     });
+  }
+  function markAnnotationsChanged(instance) {
+    if (instance && instance.state) {
+      instance.state.annotationRevision = (instance.state.annotationRevision || 0) + 1;
+    }
+  }
+  const pendingDispatches = /* @__PURE__ */ new WeakMap();
+  function dispatch(instance, options = {}) {
+    if (!instance) {
+      return;
+    }
+    const wantsFrame = options.frame === true;
+    const pending = pendingDispatches.get(instance);
+    if (pending) {
+      if (!wantsFrame && pending.tier === "frame") {
+        if (pending.frameHandle !== null && typeof cancelAnimationFrame === "function") {
+          cancelAnimationFrame(pending.frameHandle);
+        }
+        pending.tier = "microtask";
+        pending.frameHandle = null;
+        queueMicrotask(() => flushDispatch(instance));
+      }
+      return;
+    }
+    const record = { tier: wantsFrame ? "frame" : "microtask", frameHandle: null };
+    pendingDispatches.set(instance, record);
+    if (wantsFrame && typeof requestAnimationFrame === "function") {
+      record.frameHandle = requestAnimationFrame(() => flushDispatch(instance));
+    } else {
+      record.tier = "microtask";
+      queueMicrotask(() => flushDispatch(instance));
+    }
+  }
+  function flushDispatch(instance) {
+    if (!instance) {
+      return;
+    }
+    const pending = pendingDispatches.get(instance);
+    if (!pending) {
+      return;
+    }
+    if (pending.frameHandle !== null && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(pending.frameHandle);
+    }
+    pendingDispatches.delete(instance);
+    deliverToListeners(instance.state, instance.stateListeners);
   }
   function addGlobalStateListener(callback) {
     if (!globalStateListeners.includes(callback)) {
@@ -5167,7 +5232,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.state.cursorPosition = null;
     }
     updateCursorIndicators(instance);
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance, { frame: true });
   }
   function handleMouseDown(instance, event) {
     setFocusedInstance(instance);
@@ -5205,7 +5270,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === "function") {
       instance.currentMode.handleMouseLeave();
     }
-    notifyStateListeners(instance.state, instance.stateListeners);
+    dispatch(instance, { frame: true });
   }
   function handleContextMenu(instance, event) {
     const result = screenToDataWithZoom(instance, event);
@@ -5480,7 +5545,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function attachDebugAPI(api) {
     api.__test__forceUpdate = function() {
       this._getInstances().forEach((instance) => {
-        notifyStateListeners(instance.state, instance.stateListeners);
+        dispatch(instance);
+        flushDispatch(instance);
+      });
+    };
+    api.__test__flushDispatches = function() {
+      this._getInstances().forEach((instance) => {
+        flushDispatch(instance);
       });
     };
     api.__test__getInstances = function() {
@@ -5872,7 +5943,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.featureRenderer.renderAllPersistentFeatures();
       }
       this._setupStorageSaveListener();
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     /**
      * Creates LED display elements for showing measurement values
@@ -5964,7 +6035,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       updatePersistentPanels(this);
       updateLEDDisplays(this, this.state);
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     /**
      * Restore saved annotations from browser storage into state
@@ -5972,6 +6043,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     _restoreAnnotations() {
       const saved = loadAnnotations(this._storageInstanceIndex);
       if (!saved) return;
+      markAnnotationsChanged(this);
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
         this.state.analysis.markers = saved.analysis.markers.map((m) => ({
           ...m,
@@ -6000,18 +6072,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Set up a state listener that saves annotations on relevant state changes
      */
     _setupStorageSaveListener() {
-      let lastSerialised = "";
+      let lastSignature = "";
       this.stateListeners.push((state) => {
-        const annotationSnapshot = JSON.stringify({
-          markers: state.analysis && state.analysis.markers,
-          harmonicSets: state.harmonics && state.harmonics.harmonicSets,
-          fPlus: state.doppler && state.doppler.fPlus,
-          fMinus: state.doppler && state.doppler.fMinus,
-          fZero: state.doppler && state.doppler.fZero,
-          dopplerColor: state.doppler && state.doppler.color
-        });
-        if (annotationSnapshot !== lastSerialised) {
-          lastSerialised = annotationSnapshot;
+        const doppler = state.doppler || {};
+        const signature = [
+          state.annotationRevision || 0,
+          state.analysis && state.analysis.markers ? state.analysis.markers.length : 0,
+          state.harmonics && state.harmonics.harmonicSets ? state.harmonics.harmonicSets.length : 0,
+          doppler.fPlus ? `${doppler.fPlus.time}:${doppler.fPlus.freq}` : "-",
+          doppler.fMinus ? `${doppler.fMinus.time}:${doppler.fMinus.freq}` : "-",
+          doppler.fZero ? `${doppler.fZero.time}:${doppler.fZero.freq}` : "-",
+          doppler.color || "-"
+        ].join("|");
+        if (signature !== lastSignature) {
+          lastSignature = signature;
           if (saveAnnotations(this.state, this._storageInstanceIndex)) {
             clearStorageWarning(this);
           } else if (hasPersistableAnnotations(state)) {
@@ -6028,12 +6102,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * transitively — can still notify without closing an import cycle.
      */
     notifyStateListeners() {
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     /**
      * Destroy the component and clean up resources
      */
     destroy() {
+      flushDispatch(this);
       cleanupEventListeners(this);
       cleanupKeyboardControl(this);
       if (this.container && this.container.parentNode) {
@@ -6093,7 +6168,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.featureRenderer) {
         this.featureRenderer.renderAllPersistentFeatures();
       }
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     /**
      * Set the rate value for frequency calculations
@@ -6102,7 +6177,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     _setRate(rate) {
       this.state.rate = rate;
       this._updateAxes();
-      notifyStateListeners(this.state, this.stateListeners);
+      dispatch(this);
     }
     // Zoom functionality removed - no display element
   }
