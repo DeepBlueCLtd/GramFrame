@@ -158,7 +158,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         margins: this.instance.state.margins,
         imageDetails: this.instance.state.imageDetails,
         config: this.instance.state.config,
-        zoom: this.instance.state.zoom
+        zoom: this.instance.state.zoom,
+        rate: this.instance.state.rate
       };
     }
     /**
@@ -178,70 +179,87 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
     return `${paddedMinutes}:${paddedSeconds}`;
   }
-  function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
-    const { margins, imageDetails, config } = viewport;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const { timeMin, timeMax, freqMin, freqMax } = config;
-    const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin);
-    const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin);
-    let imageLeft = margins.left;
-    let imageTop = margins.top;
-    let imageWidth = renderWidth;
-    let imageHeight = renderHeight;
-    if (spectrogramImage) {
-      imageLeft = parseFloat(spectrogramImage.getAttribute("x") || String(margins.left));
-      imageTop = parseFloat(spectrogramImage.getAttribute("y") || String(margins.top));
-      imageWidth = parseFloat(spectrogramImage.getAttribute("width") || String(renderWidth));
-      imageHeight = parseFloat(spectrogramImage.getAttribute("height") || String(renderHeight));
-    }
+  function renderSize(imageDetails) {
     return {
-      x: imageLeft + freqRatio * imageWidth,
-      y: imageTop + (1 - timeRatio) * imageHeight
-      // Invert Y coordinate
+      width: imageDetails.renderWidth || imageDetails.naturalWidth,
+      height: imageDetails.renderHeight || imageDetails.naturalHeight
     };
-  }
-  function calculateZoomAwarePosition(point, viewport, spectrogramImage = null) {
-    const { margins, imageDetails, config } = viewport;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const { timeMin, timeMax, freqMin, freqMax } = config;
-    const normalizedX = (point.freq - freqMin) / (freqMax - freqMin);
-    const normalizedY = 1 - (point.time - timeMin) / (timeMax - timeMin);
-    let currentX, currentY;
-    if (spectrogramImage) {
-      const imageLeft = parseFloat(spectrogramImage.getAttribute("x") || String(margins.left));
-      const imageTop = parseFloat(spectrogramImage.getAttribute("y") || String(margins.top));
-      const imageWidth = parseFloat(spectrogramImage.getAttribute("width") || String(renderWidth));
-      const imageHeight = parseFloat(spectrogramImage.getAttribute("height") || String(renderHeight));
-      currentX = imageLeft + normalizedX * imageWidth;
-      currentY = imageTop + normalizedY * imageHeight;
-    } else {
-      currentX = margins.left + normalizedX * renderWidth;
-      currentY = margins.top + normalizedY * renderHeight;
-    }
-    return { x: currentX, y: currentY };
   }
   function getImageBounds(viewport, spectrogramImage = null) {
     const { margins, imageDetails } = viewport;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const { width, height } = renderSize(imageDetails);
     if (spectrogramImage) {
       return {
         left: parseFloat(spectrogramImage.getAttribute("x") || String(margins.left)),
         top: parseFloat(spectrogramImage.getAttribute("y") || String(margins.top)),
-        width: parseFloat(spectrogramImage.getAttribute("width") || String(renderWidth)),
-        height: parseFloat(spectrogramImage.getAttribute("height") || String(renderHeight))
+        width: parseFloat(spectrogramImage.getAttribute("width") || String(width)),
+        height: parseFloat(spectrogramImage.getAttribute("height") || String(height))
       };
     }
+    return { left: margins.left, top: margins.top, width, height };
+  }
+  function screenToSVG(screenX, screenY, svg) {
+    const svgRect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox.baseVal;
+    if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+      const scaleX = viewBox.width / svgRect.width;
+      const scaleY = viewBox.height / svgRect.height;
+      return {
+        x: screenX * scaleX + viewBox.x,
+        y: screenY * scaleY + viewBox.y
+      };
+    }
+    return { x: screenX, y: screenY };
+  }
+  function svgToImage(svgX, svgY, viewport, spectrogramImage = null) {
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const { width, height } = renderSize(viewport.imageDetails);
     return {
-      left: margins.left,
-      top: margins.top,
-      width: renderWidth,
-      height: renderHeight
+      x: (svgX - bounds.left) * (width / bounds.width),
+      y: (svgY - bounds.top) * (height / bounds.height)
+    };
+  }
+  function imageToData(imageX, imageY, viewport) {
+    const { config, imageDetails, rate } = viewport;
+    const { freqMin, freqMax, timeMin, timeMax } = config;
+    const { width, height } = renderSize(imageDetails);
+    const rawFreq = freqMin + imageX / width * (freqMax - freqMin);
+    const time = timeMax - imageY / height * (timeMax - timeMin);
+    return { freq: rawFreq / rate, time };
+  }
+  function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
+    const { config } = viewport;
+    const { timeMin, timeMax, freqMin, freqMax } = config;
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin);
+    const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin);
+    return {
+      x: bounds.left + freqRatio * bounds.width,
+      y: bounds.top + (1 - timeRatio) * bounds.height
+      // Invert Y
+    };
+  }
+  function isWithinImage(svgPoint, viewport, spectrogramImage = null) {
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const { width, height } = renderSize(viewport.imageDetails);
+    const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage);
+    return svgPoint.x >= bounds.left && svgPoint.x <= bounds.left + bounds.width && svgPoint.y >= bounds.top && svgPoint.y <= bounds.top + bounds.height && image.x >= 0 && image.x <= width && image.y >= 0 && image.y <= height;
+  }
+  function clampToImage(imageX, imageY, viewport) {
+    const { width, height } = renderSize(viewport.imageDetails);
+    return {
+      x: Math.max(0, Math.min(imageX, width)),
+      y: Math.max(0, Math.min(imageY, height))
+    };
+  }
+  function screenToData(clientX, clientY, svg, viewport, spectrogramImage = null) {
+    const svgRect = svg.getBoundingClientRect();
+    const svgPoint = screenToSVG(clientX - svgRect.left, clientY - svgRect.top, svg);
+    const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage);
+    return {
+      svg: svgPoint,
+      image,
+      data: imageToData(image.x, image.y, viewport)
     };
   }
   class BaseDragHandler {
@@ -750,7 +768,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         return;
       }
       const markerPoint = { freq: marker.freq, time: marker.time };
-      const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage);
+      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage);
       const currentX = markerSVG.x;
       const currentY = markerSVG.y;
       const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -937,8 +955,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           return true;
         }
         const markerPoint = { freq: marker2.freq, time: marker2.time };
-        const markerSVG = calculateZoomAwarePosition(markerPoint, this.getViewport(), this.instance.spectrogramImage);
-        const clickSVG = calculateZoomAwarePosition(position, this.getViewport(), this.instance.spectrogramImage);
+        const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage);
+        const clickSVG = dataToSVG(position, this.getViewport(), this.instance.spectrogramImage);
         const crosshairSize = 15;
         const lineThickness = 3;
         const onHorizontalLine = Math.abs(clickSVG.y - markerSVG.y) <= lineThickness && Math.abs(clickSVG.x - markerSVG.x) <= crosshairSize;
@@ -1525,16 +1543,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (zoomLevel === 1) {
       return { timeMin, timeMax, freqMin, freqMax };
     }
-    let imageLeft = margins.left;
-    let imageTop = margins.top;
-    let imageWidth = renderWidth;
-    let imageHeight = renderHeight;
-    if (instance.spectrogramImage) {
-      imageLeft = parseFloat(instance.spectrogramImage.getAttribute("x") || String(margins.left));
-      imageTop = parseFloat(instance.spectrogramImage.getAttribute("y") || String(margins.top));
-      imageWidth = parseFloat(instance.spectrogramImage.getAttribute("width") || String(renderWidth));
-      imageHeight = parseFloat(instance.spectrogramImage.getAttribute("height") || String(renderHeight));
-    }
+    const {
+      left: imageLeft,
+      top: imageTop,
+      width: imageWidth,
+      height: imageHeight
+    } = getImageBounds(instance.state, instance.spectrogramImage);
     const visibleLeft = Math.max(0, margins.left - imageLeft);
     const visibleRight = Math.min(imageWidth, margins.left + renderWidth - imageLeft);
     const visibleTop = Math.max(0, margins.top - imageTop);
@@ -2188,7 +2202,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic));
           const pinDrawn = harmonicSet.showPin !== false;
           const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
-          const cursorSVG = calculateZoomAwarePosition(
+          const cursorSVG = dataToSVG(
             { freq, time: cursorTime },
             this.getViewport(),
             this.instance.spectrogramImage
@@ -2379,7 +2393,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const { renderHeight } = getRenderDimensions(this.instance);
       const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
       const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
-      const anchorSVG = calculateZoomAwarePosition(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
+      const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
       const lineTop = anchorSVG.y - lineHeight / 2;
       return { lineHeight, lineTop };
     }
@@ -2558,7 +2572,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     harmonicLineX(harmonicSet, harmonicNumber) {
       const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime };
-      return calculateZoomAwarePosition(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x;
+      return dataToSVG(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x;
     }
     /**
      * Render a single harmonic set as vertical pin lines.
@@ -3113,9 +3127,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     event.preventDefault();
     event.stopPropagation();
-    const baseIncrement = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal;
-    const zoomLevel = focusedInstance.state.zoom.level || 1;
-    const increment = baseIncrement / zoomLevel;
+    const increment = event.shiftKey ? MOVEMENT_INCREMENTS.fast : MOVEMENT_INCREMENTS.normal;
     const movement = calculateMovementFromKey(event.key, increment);
     if (selection.selectedType === "marker") {
       moveSelectedMarker(focusedInstance, selection.selectedId, movement);
@@ -3148,26 +3160,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (!marker) {
       return;
     }
-    const currentSVG = dataToSVGCoordinates(
-      marker.freq,
-      marker.time,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate,
-      instance.state.margins
+    const currentSVG = dataToSVG(
+      { freq: marker.freq * instance.state.rate, time: marker.time },
+      instance.state,
+      instance.spectrogramImage
     );
     const newSVG = {
       x: currentSVG.x + movement.dx,
       y: currentSVG.y + movement.dy
     };
-    const newData = svgToDataCoordinates(
-      newSVG.x,
-      newSVG.y,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate,
-      instance.state.margins
-    );
+    const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.spectrogramImage);
+    const clamped = clampToImage(image.x, image.y, instance.state);
+    const newData = imageToData(clamped.x, clamped.y, instance.state);
     marker.freq = newData.freq;
     marker.time = newData.time;
     if (instance.featureRenderer) {
@@ -3187,26 +3191,32 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     const updates = {};
+    const { timeMin, timeMax } = instance.state.config;
+    const viewport = instance.state;
+    const image = instance.spectrogramImage;
+    const svgPointToData = (svgX, svgY) => {
+      const imagePoint = svgToImage(svgX, svgY, viewport, image);
+      return imageToData(imagePoint.x, imagePoint.y, viewport);
+    };
     if (movement.dx !== 0) {
-      const { naturalWidth } = instance.state.imageDetails;
-      const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-      const { freqMin, freqMax } = instance.state.config;
-      const freqRange = (freqMax - freqMin) / instance.state.rate;
-      const pixelToFreqRatio = freqRange / renderWidth;
-      const spacingChange = movement.dx * pixelToFreqRatio;
+      const reference = dataToSVG(
+        { freq: instance.state.config.freqMin, time: timeMax },
+        viewport,
+        image
+      );
+      const before = svgPointToData(reference.x, reference.y);
+      const after = svgPointToData(reference.x + movement.dx, reference.y);
+      const spacingChange = after.freq - before.freq;
       updates.spacing = Math.max(1, harmonicSet.spacing + spacingChange);
     }
     if (movement.dy !== 0) {
-      const { naturalHeight } = instance.state.imageDetails;
-      const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-      const { timeMin, timeMax } = instance.state.config;
-      const margins = instance.state.margins;
-      const normalizedTime = 1 - (harmonicSet.anchorTime - timeMin) / (timeMax - timeMin);
-      const currentY = margins.top + normalizedTime * renderHeight;
-      const newY = currentY + movement.dy;
-      const newNormalizedTime = (newY - margins.top) / renderHeight;
-      updates.anchorTime = timeMax - newNormalizedTime * (timeMax - timeMin);
-      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, updates.anchorTime));
+      const anchorSVG = dataToSVG(
+        { freq: instance.state.config.freqMin, time: harmonicSet.anchorTime },
+        viewport,
+        image
+      );
+      const moved = svgPointToData(anchorSVG.x, anchorSVG.y + movement.dy);
+      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, moved.time));
     }
     if (Object.keys(updates).length > 0) {
       const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
@@ -3221,33 +3231,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         notifyStateListeners(instance.state, instance.stateListeners);
       }
     }
-  }
-  function dataToSVGCoordinates(freq, time, config, imageDetails, rate, margins) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const rawFreq = freq * rate;
-    const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin);
-    const normalizedY = 1 - (time - timeMin) / (timeMax - timeMin);
-    return {
-      x: margins.left + normalizedX * renderWidth,
-      y: margins.top + normalizedY * renderHeight
-    };
-  }
-  function svgToDataCoordinates(svgX, svgY, config, imageDetails, rate, margins) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const imageX = svgX - margins.left;
-    const imageY = svgY - margins.top;
-    const boundedX = Math.max(0, Math.min(imageX, renderWidth));
-    const boundedY = Math.max(0, Math.min(imageY, renderHeight));
-    const rawFreq = freqMin + boundedX / renderWidth * (freqMax - freqMin);
-    const time = timeMax - boundedY / renderHeight * (timeMax - timeMin);
-    const freq = rawFreq / rate;
-    return { freq, time };
   }
   function setSelection(instance, type, id, index) {
     setFocusedInstance(instance);
@@ -4228,13 +4211,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const { naturalWidth, naturalHeight } = instance.state.imageDetails;
     const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
     const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-    const margins = instance.state.margins;
-    const svgRect = instance.svg.getBoundingClientRect();
-    const scaleX = (renderWidth + margins.left + margins.right) / svgRect.width;
-    const scaleY = (renderHeight + margins.top + margins.bottom) / svgRect.height;
+    const origin = screenToSVG(0, 0, instance.svg);
+    const shifted = screenToSVG(dxPx, dyPx, instance.svg);
+    const svgDeltaX = shifted.x - origin.x;
+    const svgDeltaY = shifted.y - origin.y;
     return {
-      normalizedDeltaX: -(dxPx * scaleX / renderWidth) / instance.state.zoom.level,
-      normalizedDeltaY: -(dyPx * scaleY / renderHeight) / instance.state.zoom.level
+      normalizedDeltaX: -(svgDeltaX / renderWidth) / instance.state.zoom.level,
+      normalizedDeltaY: -(svgDeltaY / renderHeight) / instance.state.zoom.level
     };
   }
   function panByNormalized(instance, deltaX, deltaY) {
@@ -4914,31 +4897,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     extractConfigData(instance);
     setupComponentTable(instance, instance.configTable);
   }
-  function screenToSVGCoordinates(screenX, screenY, svg, _imageDetails) {
-    const svgRect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
-    if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
-      const scaleX = viewBox.width / svgRect.width;
-      const scaleY = viewBox.height / svgRect.height;
-      return {
-        x: screenX * scaleX + viewBox.x,
-        y: screenY * scaleY + viewBox.y
-      };
-    }
-    return { x: screenX, y: screenY };
-  }
-  function imageToDataCoordinates(imageX, imageY, config, imageDetails, rate) {
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    const boundedX = Math.max(0, Math.min(imageX, renderWidth));
-    const boundedY = Math.max(0, Math.min(imageY, renderHeight));
-    const rawFreq = freqMin + boundedX / renderWidth * (freqMax - freqMin);
-    const time = timeMax - boundedY / renderHeight * (timeMax - timeMin);
-    const freq = rawFreq / rate;
-    return { freq, time };
-  }
   function updateCursorIndicators(instance) {
     if (instance.cursorGroup) {
       instance.cursorGroup.innerHTML = "";
@@ -4949,38 +4907,22 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const WHEEL_ZOOM_STEP = 1.2;
   function screenToDataWithZoom(instance, event) {
-    const svgRect = instance.svg.getBoundingClientRect();
-    const screenX = event.clientX - svgRect.left;
-    const screenY = event.clientY - svgRect.top;
-    const svgCoords = screenToSVGCoordinates(screenX, screenY, instance.svg, instance.state.imageDetails);
-    const margins = instance.state.margins;
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-    let imageLeft = margins.left;
-    let imageTop = margins.top;
-    let imageWidth = renderWidth;
-    let imageHeight = renderHeight;
-    if (instance.spectrogramImage) {
-      imageLeft = parseFloat(instance.spectrogramImage.getAttribute("x") || String(margins.left));
-      imageTop = parseFloat(instance.spectrogramImage.getAttribute("y") || String(margins.top));
-      imageWidth = parseFloat(instance.spectrogramImage.getAttribute("width") || String(renderWidth));
-      imageHeight = parseFloat(instance.spectrogramImage.getAttribute("height") || String(renderHeight));
-    }
-    const imageX = (svgCoords.x - imageLeft) * (renderWidth / imageWidth);
-    const imageY = (svgCoords.y - imageTop) * (renderHeight / imageHeight);
-    const withinBounds = svgCoords.x >= imageLeft && svgCoords.x <= imageLeft + imageWidth && svgCoords.y >= imageTop && svgCoords.y <= imageTop + imageHeight && imageX >= 0 && imageX <= renderWidth && imageY >= 0 && imageY <= renderHeight;
-    if (!withinBounds) {
+    const point = screenToData(
+      event.clientX,
+      event.clientY,
+      instance.svg,
+      instance.state,
+      instance.spectrogramImage
+    );
+    if (!isWithinImage(point.svg, instance.state, instance.spectrogramImage)) {
       return null;
     }
-    const dataCoords = imageToDataCoordinates(
-      imageX,
-      imageY,
-      instance.state.config,
-      instance.state.imageDetails,
-      instance.state.rate
-    );
-    return { svgCoords, imageX, imageY, dataCoords };
+    return {
+      svgCoords: point.svg,
+      imageX: point.image.x,
+      imageY: point.image.y,
+      dataCoords: point.data
+    };
   }
   function handleWheel(instance, event) {
     const result = screenToDataWithZoom(instance, event);
