@@ -345,11 +345,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         /** @type {SymbolType} */
         select.value
       );
-      if (!instance.applySymbolToSelectedFeature || !instance.applySymbolToSelectedFeature(symbol)) {
+      if (!instance.interaction.applySymbolToSelectedFeature || !instance.interaction.applySymbolToSelectedFeature(symbol)) {
         state.selectedSymbol = symbol;
       }
     });
-    instance._symbolControl = {
+    instance.interaction._symbolControl = {
       /** @param {SymbolType} symbol */
       setValue(symbol) {
         select.value = symbol;
@@ -370,12 +370,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     checkbox.className = "gram-frame-large-symbols-checkbox";
     checkbox.checked = !!instance.state.largeSymbols;
     checkbox.addEventListener("change", () => {
-      if (!instance.applyLargeSymbolsToSelectedFeature || !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
+      if (!instance.interaction.applyLargeSymbolsToSelectedFeature || !instance.interaction.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
         instance.state.largeSymbols = checkbox.checked;
         dispatch(instance);
       }
     });
-    instance._largeSymbolsControl = {
+    instance.interaction._largeSymbolsControl = {
       /** @param {boolean} large */
       setValue(large) {
         checkbox.checked = large;
@@ -565,12 +565,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const WARNING_CLASS = "gram-frame-storage-warning";
   function showStorageWarning(instance, message) {
-    if (!instance || !instance.container) {
+    if (!instance || !instance.ui.container) {
       return null;
     }
     const existing = (
       /** @type {HTMLElement|null} */
-      instance.container.querySelector(`.${WARNING_CLASS}`)
+      instance.ui.container.querySelector(`.${WARNING_CLASS}`)
     );
     if (existing) {
       const text2 = existing.querySelector(`.${WARNING_CLASS}-message`);
@@ -595,14 +595,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     dismiss.addEventListener("click", () => banner.remove());
     banner.appendChild(text);
     banner.appendChild(dismiss);
-    instance.container.insertBefore(banner, instance.container.firstChild);
+    instance.ui.container.insertBefore(banner, instance.ui.container.firstChild);
     return banner;
   }
   function clearStorageWarning(instance) {
-    if (!instance || !instance.container) {
+    if (!instance || !instance.ui.container) {
       return;
     }
-    const existing = instance.container.querySelector(`.${WARNING_CLASS}`);
+    const existing = instance.ui.container.querySelector(`.${WARNING_CLASS}`);
     if (existing) {
       existing.remove();
     }
@@ -624,7 +624,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     row.appendChild(text);
     checkbox.addEventListener("change", () => {
       const showPin = checkbox.checked;
-      if (!instance.applyPinToSelectedFeature || !instance.applyPinToSelectedFeature(showPin)) {
+      if (!instance.interaction.applyPinToSelectedFeature || !instance.interaction.applyPinToSelectedFeature(showPin)) {
         state.showHarmonicPin = showPin;
         if (savePinPreference(showPin)) {
           clearStorageWarning(instance);
@@ -633,7 +633,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         }
       }
     });
-    instance._pinControl = {
+    instance.interaction._pinControl = {
       /** @param {boolean} showPin */
       setValue(showPin) {
         checkbox.checked = showPin;
@@ -950,12 +950,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       deleteSelector: ".gram-frame-harmonic-delete",
       onSelect: (harmonicSetId, _harmonicSet, index) => {
         if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId) {
-          instance.clearSelection();
+          instance.interaction.clearSelection();
         } else {
-          instance.setSelection("harmonicSet", harmonicSetId, index);
+          instance.interaction.setSelection("harmonicSet", harmonicSetId, index);
         }
       },
-      onDelete: (harmonicSetId) => instance.removeHarmonicSet(harmonicSetId),
+      onDelete: (harmonicSetId) => instance.interaction.removeHarmonicSet(harmonicSetId),
       isSelected: (harmonicSetId) => instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId
     });
     const panel = (
@@ -1023,13 +1023,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return currentFocusedInstance;
   }
   function addFocusIndicator(instance) {
-    if (instance.container) {
-      instance.container.classList.add("gram-frame-focused");
+    if (instance.ui.container) {
+      instance.ui.container.classList.add("gram-frame-focused");
     }
   }
   function removeFocusIndicator(instance) {
-    if (instance.container) {
-      instance.container.classList.remove("gram-frame-focused");
+    if (instance.ui.container) {
+      instance.ui.container.classList.remove("gram-frame-focused");
     }
   }
   function focusNextInstance() {
@@ -1126,23 +1126,24 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function moveSelectedMarker(instance, markerId, movement) {
-    if (!instance.state.analysis || !instance.state.analysis.markers) {
+    const analysis = instance.state.analysis;
+    if (!analysis || !analysis.markers) {
       return;
     }
-    const marker = instance.state.analysis.markers.find((m) => m.id === markerId);
+    const marker = analysis.markers.find((m) => m.id === markerId);
     if (!marker) {
       return;
     }
     const currentSVG = dataToSVG(
       { freq: marker.freq * instance.state.rate, time: marker.time },
       instance.state,
-      instance.spectrogramImage
+      instance.ui.spectrogramImage
     );
     const newSVG = {
       x: currentSVG.x + movement.dx,
       y: currentSVG.y + movement.dy
     };
-    const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.spectrogramImage);
+    const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.ui.spectrogramImage);
     const clamped = clampToImage(image.x, image.y, instance.state);
     const newData = imageToData(clamped.x, clamped.y, instance.state);
     marker.freq = newData.freq;
@@ -1155,17 +1156,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     dispatch(instance);
   }
   function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
-    if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
+    const harmonics = instance.state.harmonics;
+    if (!harmonics || !harmonics.harmonicSets) {
       return;
     }
-    const harmonicSet = instance.state.harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
+    const harmonicSet = harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
     if (!harmonicSet) {
       return;
     }
     const updates = {};
     const { timeMin, timeMax } = instance.state.config;
     const viewport = instance.state;
-    const image = instance.spectrogramImage;
+    const image = instance.ui.spectrogramImage;
     const svgPointToData = (svgX, svgY) => {
       const imagePoint = svgToImage(svgX, svgY, viewport, image);
       return imageToData(imagePoint.x, imagePoint.y, viewport);
@@ -1191,12 +1193,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       updates.anchorTime = Math.max(timeMin, Math.min(timeMax, moved.time));
     }
     if (Object.keys(updates).length > 0) {
-      const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
+      const setIndex = harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
       if (setIndex !== -1) {
-        Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates);
+        Object.assign(harmonics.harmonicSets[setIndex], updates);
         markAnnotationsChanged(instance);
-        if (instance.harmonicPanel) {
-          updateHarmonicPanelContent(instance.harmonicPanel, instance);
+        if (instance.ui.harmonicPanel) {
+          updateHarmonicPanelContent(instance.ui.harmonicPanel, instance);
         }
         if (instance.featureRenderer) {
           instance.featureRenderer.renderAllPersistentFeatures();
@@ -1207,22 +1209,24 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function setSelection(instance, type, id, index) {
     setFocusedInstance(instance);
-    instance.state.selection.selectedType = type;
-    instance.state.selection.selectedId = id;
-    instance.state.selection.selectedIndex = index;
+    const selection = instance.state.selection;
+    selection.selectedType = type;
+    selection.selectedId = id;
+    selection.selectedIndex = index;
     updateSelectionVisuals(instance);
-    if (instance.syncStyleControls) {
-      instance.syncStyleControls();
+    if (instance.interaction.syncStyleControls) {
+      instance.interaction.syncStyleControls();
     }
     dispatch(instance);
   }
   function clearSelection(instance) {
-    instance.state.selection.selectedType = null;
-    instance.state.selection.selectedId = null;
-    instance.state.selection.selectedIndex = null;
+    const selection = instance.state.selection;
+    selection.selectedType = null;
+    selection.selectedId = null;
+    selection.selectedIndex = null;
     updateSelectionVisuals(instance);
-    if (instance.syncStyleControls) {
-      instance.syncStyleControls();
+    if (instance.interaction.syncStyleControls) {
+      instance.interaction.syncStyleControls();
     }
     dispatch(instance);
   }
@@ -1232,11 +1236,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return null;
     }
     if (sel.selectedType === "marker") {
-      const feature = instance.state.analysis && instance.state.analysis.markers ? instance.state.analysis.markers.find((m) => m.id === sel.selectedId) : null;
+      const analysis = instance.state.analysis;
+      const feature = analysis && analysis.markers ? analysis.markers.find((m) => m.id === sel.selectedId) : null;
       return feature ? { type: "marker", feature } : null;
     }
     if (sel.selectedType === "harmonicSet") {
-      const feature = instance.state.harmonics && instance.state.harmonics.harmonicSets ? instance.state.harmonics.harmonicSets.find((h) => h.id === sel.selectedId) : null;
+      const harmonics = instance.state.harmonics;
+      const feature = harmonics && harmonics.harmonicSets ? harmonics.harmonicSets.find((h) => h.id === sel.selectedId) : null;
       return feature ? { type: "harmonicSet", feature } : null;
     }
     return null;
@@ -1260,12 +1266,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         largeSymbols: !!selected.feature.largeSymbols
       };
     }
+    const { selectedColor, selectedSymbol, showHarmonicPin, largeSymbols } = instance.state;
     return {
-      color: instance.state.selectedColor,
-      symbol: instance.state.selectedSymbol,
-      showPin: instance.state.showHarmonicPin !== false,
+      color: selectedColor,
+      symbol: selectedSymbol,
+      showPin: showHarmonicPin !== false,
       pinApplies: true,
-      largeSymbols: !!instance.state.largeSymbols
+      largeSymbols: !!largeSymbols
     };
   }
   function refreshFeatureVisuals(instance, type) {
@@ -1316,14 +1323,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return true;
   }
   function removeHarmonicSet(instance, id) {
-    const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
+    const { harmonics, selection } = instance.state;
+    const setIndex = harmonics.harmonicSets.findIndex((set) => set.id === id);
     if (setIndex !== -1) {
-      if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === id) {
+      if (selection.selectedType === "harmonicSet" && selection.selectedId === id) {
         clearSelection(instance);
       }
-      instance.state.harmonics.harmonicSets.splice(setIndex, 1);
-      if (instance.harmonicPanel) {
-        updateHarmonicPanelContent(instance.harmonicPanel, instance);
+      harmonics.harmonicSets.splice(setIndex, 1);
+      if (instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(instance.ui.harmonicPanel, instance);
       }
       if (instance.featureRenderer) {
         instance.featureRenderer.renderAllPersistentFeatures();
@@ -1405,7 +1413,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const scaleX = canvas.width / rect.width;
       const canvasX = x * scaleX;
       const color = getColorFromPosition(canvasX, canvas.width);
-      if (!instance.applyColorToSelectedFeature || !instance.applyColorToSelectedFeature(color)) {
+      if (!instance.interaction.applyColorToSelectedFeature || !instance.interaction.applyColorToSelectedFeature(color)) {
         state.selectedColor = color;
       }
       symbolSelect.style.color = color;
@@ -1416,19 +1424,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       updateIndicatorPosition(indicator, position, canvas.width);
       symbolSelect.style.color = color;
     };
-    instance.syncStyleControls = () => {
+    instance.interaction.syncStyleControls = () => {
       const { color, symbol, showPin, pinApplies, largeSymbols } = getActiveStyle(instance);
       showColor(color);
-      if (instance._symbolControl) {
-        instance._symbolControl.setValue(symbol);
-        instance._symbolControl.setTint(color);
+      if (instance.interaction._symbolControl) {
+        instance.interaction._symbolControl.setValue(symbol);
+        instance.interaction._symbolControl.setTint(color);
       }
-      if (instance._pinControl) {
-        instance._pinControl.setValue(showPin);
-        instance._pinControl.setEnabled(pinApplies);
+      if (instance.interaction._pinControl) {
+        instance.interaction._pinControl.setValue(showPin);
+        instance.interaction._pinControl.setEnabled(pinApplies);
       }
-      if (instance._largeSymbolsControl) {
-        instance._largeSymbolsControl.setValue(largeSymbols);
+      if (instance.interaction._largeSymbolsControl) {
+        instance.interaction._largeSymbolsControl.setValue(largeSymbols);
       }
     };
     const initialPosition = getPositionFromColor(state.selectedColor, canvas.width);
@@ -1526,11 +1534,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function updateLEDDisplays(instance, state) {
-    if (instance.modeLED) {
-      setLEDValue(instance.modeLED, getModeDisplayName(state.mode));
+    if (instance.ui.modeLED) {
+      setLEDValue(instance.ui.modeLED, getModeDisplayName(state.mode));
     }
-    if (instance.rateLED) {
-      setLEDValue(instance.rateLED, `${state.rate}`);
+    if (instance.ui.rateLED) {
+      setLEDValue(instance.ui.rateLED, `${state.rate}`);
     }
   }
   function createFlexLayout(className, gap = "10px", direction = "row") {
@@ -1684,14 +1692,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return harmonicsContainer;
   }
   function updateUniversalCursorReadouts(instance, dataCoords) {
-    if (instance.timeLED) {
-      const timeValue = instance.timeLED.querySelector(".gram-frame-led-value");
+    if (instance.ui.timeLED) {
+      const timeValue = instance.ui.timeLED.querySelector(".gram-frame-led-value");
       if (timeValue) {
         timeValue.textContent = formatTime(dataCoords.time);
       }
     }
-    if (instance.freqLED) {
-      const freqValue = instance.freqLED.querySelector(".gram-frame-led-value");
+    if (instance.ui.freqLED) {
+      const freqValue = instance.ui.freqLED.querySelector(".gram-frame-led-value");
       if (freqValue) {
         freqValue.textContent = dataCoords.freq.toFixed(2);
       }
@@ -1769,84 +1777,84 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       throw error;
     }
   }
-  function createComponentStructure(instance) {
-    instance.container = document.createElement("div");
-    instance.container.className = "gram-frame-container gram-frame-loading";
-    instance.table = document.createElement("div");
-    instance.table.className = "gram-frame-table";
-    instance.container.appendChild(instance.table);
-    instance.modeRow = document.createElement("div");
-    instance.modeRow.className = "gram-frame-row";
-    instance.table.appendChild(instance.modeRow);
-    instance.modeCell = document.createElement("div");
-    instance.modeCell.className = "gram-frame-cell gram-frame-mode-header";
-    instance.modeRow.appendChild(instance.modeCell);
-    instance.mainRow = document.createElement("div");
-    instance.mainRow.className = "gram-frame-row";
-    instance.mainRow.style.height = "100%";
-    instance.table.appendChild(instance.mainRow);
-    instance.mainCell = document.createElement("div");
-    instance.mainCell.className = "gram-frame-cell gram-frame-main-panel";
-    instance.mainRow.appendChild(instance.mainCell);
-    instance.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    instance.svg.setAttribute("class", "gram-frame-svg");
-    instance.svg.style.width = "100%";
-    instance.svg.style.height = "100%";
-    instance.svg.style.display = "block";
-    instance.mainCell.appendChild(instance.svg);
+  function createComponentStructure(instanceId) {
+    const container = document.createElement("div");
+    container.className = "gram-frame-container gram-frame-loading";
+    const table = document.createElement("div");
+    table.className = "gram-frame-table";
+    container.appendChild(table);
+    const modeRow = document.createElement("div");
+    modeRow.className = "gram-frame-row";
+    table.appendChild(modeRow);
+    const modeCell = document.createElement("div");
+    modeCell.className = "gram-frame-cell gram-frame-mode-header";
+    modeRow.appendChild(modeCell);
+    const mainRow = document.createElement("div");
+    mainRow.className = "gram-frame-row";
+    mainRow.style.height = "100%";
+    table.appendChild(mainRow);
+    const mainCell = document.createElement("div");
+    mainCell.className = "gram-frame-cell gram-frame-main-panel";
+    mainRow.appendChild(mainCell);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "gram-frame-svg");
+    svg.style.width = "100%";
+    svg.style.height = "100%";
+    svg.style.display = "block";
+    mainCell.appendChild(svg);
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    instance.svg.appendChild(defs);
-    const clipPathId = `imageClip-${instance.instanceId || Date.now()}`;
+    svg.appendChild(defs);
+    const clipPathId = `imageClip-${instanceId || Date.now()}`;
     const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
     clipPath.setAttribute("id", clipPathId);
     defs.appendChild(clipPath);
-    instance.imageClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    clipPath.appendChild(instance.imageClipRect);
-    const cursorClipPathId = `cursorClip-${instance.instanceId || Date.now()}`;
+    const imageClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    clipPath.appendChild(imageClipRect);
+    const cursorClipPathId = `cursorClip-${instanceId || Date.now()}`;
     const cursorClipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
     cursorClipPath.setAttribute("id", cursorClipPathId);
     defs.appendChild(cursorClipPath);
-    instance.cursorClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    cursorClipPath.appendChild(instance.cursorClipRect);
-    instance.spectrogramImage = document.createElementNS("http://www.w3.org/2000/svg", "image");
-    instance.spectrogramImage.setAttribute("class", "gram-frame-spectrogram-image");
-    instance.spectrogramImage.setAttribute("clip-path", `url(#${clipPathId})`);
-    instance.spectrogramImage.setAttribute("preserveAspectRatio", "none");
-    instance.svg.appendChild(instance.spectrogramImage);
-    instance.cursorGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    instance.cursorGroup.setAttribute("class", "gram-frame-cursors");
-    instance.cursorGroup.setAttribute("clip-path", `url(#${cursorClipPathId})`);
-    instance.svg.appendChild(instance.cursorGroup);
-    instance.axesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    instance.axesGroup.setAttribute("class", "gram-frame-axes");
-    instance.svg.appendChild(instance.axesGroup);
-    instance.readoutPanel = document.createElement("div");
-    instance.readoutPanel.className = "gram-frame-readout";
+    const cursorClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    cursorClipPath.appendChild(cursorClipRect);
+    const spectrogramImage = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    spectrogramImage.setAttribute("class", "gram-frame-spectrogram-image");
+    spectrogramImage.setAttribute("clip-path", `url(#${clipPathId})`);
+    spectrogramImage.setAttribute("preserveAspectRatio", "none");
+    svg.appendChild(spectrogramImage);
+    const cursorGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    cursorGroup.setAttribute("class", "gram-frame-cursors");
+    cursorGroup.setAttribute("clip-path", `url(#${cursorClipPathId})`);
+    svg.appendChild(cursorGroup);
+    const axesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    axesGroup.setAttribute("class", "gram-frame-axes");
+    svg.appendChild(axesGroup);
+    const readoutPanel = document.createElement("div");
+    readoutPanel.className = "gram-frame-readout";
     return {
-      container: instance.container,
-      table: instance.table,
-      modeRow: instance.modeRow,
-      modeCell: instance.modeCell,
-      mainRow: instance.mainRow,
-      mainCell: instance.mainCell,
-      readoutPanel: instance.readoutPanel,
-      svg: instance.svg,
-      spectrogramImage: instance.spectrogramImage,
-      cursorGroup: instance.cursorGroup,
-      axesGroup: instance.axesGroup,
-      imageClipRect: instance.imageClipRect,
-      cursorClipRect: instance.cursorClipRect
+      container,
+      table,
+      modeRow,
+      modeCell,
+      mainRow,
+      mainCell,
+      readoutPanel,
+      svg,
+      spectrogramImage,
+      cursorGroup,
+      axesGroup,
+      imageClipRect,
+      cursorClipRect
     };
   }
-  function replaceConfigTable(instance, configTable) {
+  function replaceConfigTable(instance, container, configTable) {
     if (configTable && configTable.parentNode) {
-      configTable.parentNode.replaceChild(instance.container, configTable);
-      instance.container.__gramFrameInstance = instance;
+      configTable.parentNode.replaceChild(container, configTable);
+      container.__gramFrameInstance = instance;
     }
   }
   function setupComponentTable(instance, configTable) {
-    const domElements = createComponentStructure(instance);
-    replaceConfigTable(instance, configTable);
+    const domElements = createComponentStructure(instance.instanceId);
+    replaceConfigTable(instance, domElements.container, configTable);
     return domElements;
   }
   function setupSpectrogramComponents(instance, configTable) {
@@ -2071,18 +2079,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function updateCursorIndicators(instance) {
-    if (instance.cursorGroup) {
-      instance.cursorGroup.innerHTML = "";
+    if (instance.ui.cursorGroup) {
+      instance.ui.cursorGroup.innerHTML = "";
     }
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
     }
   }
   function renderAxes(instance) {
-    if (!instance.axesGroup) {
+    if (!instance.ui.axesGroup) {
       return;
     }
-    instance.axesGroup.innerHTML = "";
+    instance.ui.axesGroup.innerHTML = "";
     const viewport = instance.state;
     const { naturalWidth, naturalHeight } = viewport.imageDetails;
     const margins = viewport.margins;
@@ -2090,7 +2098,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     const { renderWidth, renderHeight } = getRenderDimensions(viewport);
-    const visibleRange = calculateVisibleDataRange(viewport, instance.spectrogramImage);
+    const visibleRange = calculateVisibleDataRange(viewport, instance.ui.spectrogramImage);
     renderFrequencyAxis(instance, margins, renderWidth, renderHeight, visibleRange.freqMin, visibleRange.freqMax);
     renderTimeAxis(instance, margins, renderWidth, renderHeight, visibleRange.timeMin, visibleRange.timeMax);
   }
@@ -2104,7 +2112,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     axisLine.setAttribute("x2", String(axisX));
     axisLine.setAttribute("y2", String(axisEndY));
     axisLine.setAttribute("class", "gram-frame-axis-line");
-    instance.axesGroup.appendChild(axisLine);
+    instance.ui.axesGroup.appendChild(axisLine);
     const timeRange = timeMax - timeMin;
     const tickCount = 5;
     const tickInterval = timeRange / (tickCount - 1);
@@ -2117,14 +2125,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       tick.setAttribute("x2", String(axisX));
       tick.setAttribute("y2", String(y));
       tick.setAttribute("class", "gram-frame-axis-tick");
-      instance.axesGroup.appendChild(tick);
+      instance.ui.axesGroup.appendChild(tick);
       const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
       label.setAttribute("x", String(axisX - 12));
       label.setAttribute("y", String(y + 4));
       label.setAttribute("text-anchor", "end");
       label.setAttribute("class", "gram-frame-axis-label");
       label.textContent = formatTime(time);
-      instance.axesGroup.appendChild(label);
+      instance.ui.axesGroup.appendChild(label);
     }
   }
   function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
@@ -2180,7 +2188,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     axisLine.setAttribute("x2", String(axisConfig.endX));
     axisLine.setAttribute("y2", String(axisConfig.y));
     axisLine.setAttribute("class", "gram-frame-axis-line");
-    instance.axesGroup.appendChild(axisLine);
+    instance.ui.axesGroup.appendChild(axisLine);
   }
   function renderAxisTicks(instance, tickData, axisConfig) {
     tickData.forEach((tickInfo) => {
@@ -2190,7 +2198,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       tick.setAttribute("x2", String(tickInfo.x));
       tick.setAttribute("y2", String(axisConfig.y + tickInfo.height));
       tick.setAttribute("class", tickInfo.className);
-      instance.axesGroup.appendChild(tick);
+      instance.ui.axesGroup.appendChild(tick);
     });
   }
   function renderAxisLabels(instance, labelData, axisConfig) {
@@ -2201,7 +2209,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("class", labelInfo.className);
       label.textContent = labelInfo.text;
-      instance.axesGroup.appendChild(label);
+      instance.ui.axesGroup.appendChild(label);
     });
   }
   function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
@@ -2270,28 +2278,28 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const axesHeight = renderHeight;
     const totalWidth = axesWidth + margins.left + margins.right;
     const totalHeight = axesHeight + margins.top + margins.bottom;
-    instance.container.style.width = "auto";
-    instance.container.style.height = "auto";
-    instance.container.style.aspectRatio = "unset";
-    instance.svg.style.width = `${totalWidth}px`;
-    instance.svg.style.height = `${totalHeight}px`;
-    instance.svg.setAttribute("viewBox", `0 0 ${totalWidth} ${totalHeight}`);
-    instance.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-    instance.spectrogramImage.setAttribute("x", String(margins.left));
-    instance.spectrogramImage.setAttribute("y", String(margins.top));
-    instance.spectrogramImage.setAttribute("width", String(axesWidth));
-    instance.spectrogramImage.setAttribute("height", String(axesHeight));
-    if (instance.imageClipRect) {
-      instance.imageClipRect.setAttribute("x", String(margins.left));
-      instance.imageClipRect.setAttribute("y", String(margins.top));
-      instance.imageClipRect.setAttribute("width", String(axesWidth));
-      instance.imageClipRect.setAttribute("height", String(axesHeight));
+    instance.ui.container.style.width = "auto";
+    instance.ui.container.style.height = "auto";
+    instance.ui.container.style.aspectRatio = "unset";
+    instance.ui.svg.style.width = `${totalWidth}px`;
+    instance.ui.svg.style.height = `${totalHeight}px`;
+    instance.ui.svg.setAttribute("viewBox", `0 0 ${totalWidth} ${totalHeight}`);
+    instance.ui.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    instance.ui.spectrogramImage.setAttribute("x", String(margins.left));
+    instance.ui.spectrogramImage.setAttribute("y", String(margins.top));
+    instance.ui.spectrogramImage.setAttribute("width", String(axesWidth));
+    instance.ui.spectrogramImage.setAttribute("height", String(axesHeight));
+    if (instance.ui.imageClipRect) {
+      instance.ui.imageClipRect.setAttribute("x", String(margins.left));
+      instance.ui.imageClipRect.setAttribute("y", String(margins.top));
+      instance.ui.imageClipRect.setAttribute("width", String(axesWidth));
+      instance.ui.imageClipRect.setAttribute("height", String(axesHeight));
     }
-    if (instance.cursorClipRect) {
-      instance.cursorClipRect.setAttribute("x", String(margins.left));
-      instance.cursorClipRect.setAttribute("y", String(margins.top));
-      instance.cursorClipRect.setAttribute("width", String(axesWidth));
-      instance.cursorClipRect.setAttribute("height", String(axesHeight));
+    if (instance.ui.cursorClipRect) {
+      instance.ui.cursorClipRect.setAttribute("x", String(margins.left));
+      instance.ui.cursorClipRect.setAttribute("y", String(margins.top));
+      instance.ui.cursorClipRect.setAttribute("width", String(axesWidth));
+      instance.ui.cursorClipRect.setAttribute("height", String(axesHeight));
     }
     applyZoomTransform(instance);
   }
@@ -2300,15 +2308,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const { level, centerX, centerY } = viewport.zoom;
     const margins = viewport.margins;
     const { renderWidth, renderHeight } = getRenderDimensions(viewport);
-    if (!instance.spectrogramImage) {
+    if (!instance.ui.spectrogramImage) {
       return;
     }
     if (level === 1) {
-      instance.spectrogramImage.setAttribute("x", String(margins.left));
-      instance.spectrogramImage.setAttribute("y", String(margins.top));
-      instance.spectrogramImage.setAttribute("width", String(renderWidth));
-      instance.spectrogramImage.setAttribute("height", String(renderHeight));
-      instance.spectrogramImage.removeAttribute("transform");
+      instance.ui.spectrogramImage.setAttribute("x", String(margins.left));
+      instance.ui.spectrogramImage.setAttribute("y", String(margins.top));
+      instance.ui.spectrogramImage.setAttribute("width", String(renderWidth));
+      instance.ui.spectrogramImage.setAttribute("height", String(renderHeight));
+      instance.ui.spectrogramImage.removeAttribute("transform");
       renderAxes(instance);
       if (instance.featureRenderer) {
         instance.featureRenderer.renderAllPersistentFeatures();
@@ -2321,10 +2329,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const zoomedHeight = renderHeight * level;
     const newX = margins.left + centerImageX - centerImageX * level;
     const newY = margins.top + centerImageY - centerImageY * level;
-    instance.spectrogramImage.setAttribute("x", String(newX));
-    instance.spectrogramImage.setAttribute("y", String(newY));
-    instance.spectrogramImage.setAttribute("width", String(zoomedWidth));
-    instance.spectrogramImage.setAttribute("height", String(zoomedHeight));
+    instance.ui.spectrogramImage.setAttribute("x", String(newX));
+    instance.ui.spectrogramImage.setAttribute("y", String(newY));
+    instance.ui.spectrogramImage.setAttribute("width", String(zoomedWidth));
+    instance.ui.spectrogramImage.setAttribute("height", String(zoomedHeight));
     renderAxes(instance);
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
@@ -2442,8 +2450,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function computeAvailableRenderSize(instance) {
     const margins = instance.state.margins;
     const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const cell = instance.mainCell;
-    const svg = instance.svg;
+    const cell = instance.ui.mainCell;
+    const svg = instance.ui.svg;
     if (!cell || !svg) {
       return { width: naturalWidth, height: naturalHeight };
     }
@@ -2462,19 +2470,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     };
   }
   function applyExpandLayout(instance) {
+    const imageDetails = instance.state.imageDetails;
     if (instance.state.imageExpanded) {
       const { width, height } = computeAvailableRenderSize(instance);
-      instance.state.imageDetails.renderWidth = width;
-      instance.state.imageDetails.renderHeight = height;
+      imageDetails.renderWidth = width;
+      imageDetails.renderHeight = height;
       updateSVGLayout(instance);
       const settled = computeAvailableRenderSize(instance);
       if (Math.abs(settled.width - width) > 1 || Math.abs(settled.height - height) > 1) {
-        instance.state.imageDetails.renderWidth = settled.width;
-        instance.state.imageDetails.renderHeight = settled.height;
+        imageDetails.renderWidth = settled.width;
+        imageDetails.renderHeight = settled.height;
       }
     } else {
-      instance.state.imageDetails.renderWidth = instance.state.imageDetails.naturalWidth;
-      instance.state.imageDetails.renderHeight = instance.state.imageDetails.naturalHeight;
+      imageDetails.renderWidth = imageDetails.naturalWidth;
+      imageDetails.renderHeight = imageDetails.naturalHeight;
     }
     updateSVGLayout(instance);
     renderAxes(instance);
@@ -2494,9 +2503,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     instance.state.imageExpanded = !!expanded;
+    const expandedNow = instance.state.imageExpanded;
     applyExpandLayout(instance);
-    if (instance.expandToggleButton) {
-      updateToggleButton(instance.expandToggleButton, instance.state.imageExpanded);
+    if (instance.ui.expandToggleButton) {
+      updateToggleButton(instance.ui.expandToggleButton, expandedNow);
     }
   }
   function refreshExpandedLayout(instance) {
@@ -2504,8 +2514,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     const { width, height } = computeAvailableRenderSize(instance);
-    instance.state.imageDetails.renderWidth = width;
-    instance.state.imageDetails.renderHeight = height;
+    const imageDetails = instance.state.imageDetails;
+    imageDetails.renderWidth = width;
+    imageDetails.renderHeight = height;
   }
   function createExpandToggle(instance) {
     if (!isLandscape(instance)) {
@@ -2520,53 +2531,57 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       e.stopPropagation();
       setImageExpanded(instance, !instance.state.imageExpanded);
     });
-    instance.mainCell.appendChild(button);
-    instance.expandToggleButton = button;
+    instance.ui.mainCell.appendChild(button);
+    instance.ui.expandToggleButton = button;
     return button;
   }
   function zoomIn(instance) {
-    const currentLevel = instance.state.zoom.level;
-    const newLevel = Math.min(currentLevel * 1.5, 10);
-    setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY);
+    const zoom = instance.state.zoom;
+    const newLevel = Math.min(zoom.level * 1.5, 10);
+    setZoom(instance, newLevel, zoom.centerX, zoom.centerY);
   }
   function zoomOut(instance) {
-    const currentLevel = instance.state.zoom.level;
-    const newLevel = Math.max(currentLevel / 1.5, 1);
-    setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY);
+    const zoom = instance.state.zoom;
+    const newLevel = Math.max(zoom.level / 1.5, 1);
+    setZoom(instance, newLevel, zoom.centerX, zoom.centerY);
   }
   function zoomReset(instance) {
     setZoom(instance, 1, 0.5, 0.5);
   }
   function setZoom(instance, level, centerX, centerY) {
-    instance.state.zoom.level = level;
-    instance.state.zoom.centerX = centerX;
-    instance.state.zoom.centerY = centerY;
-    if (instance.svg) {
+    const zoom = instance.state.zoom;
+    zoom.level = level;
+    zoom.centerX = centerX;
+    zoom.centerY = centerY;
+    if (instance.ui.svg) {
       applyZoomTransform(instance);
     }
     updateZoomControlStates(instance);
     dispatch(instance, { frame: true });
   }
   function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-    const origin = screenToSVG(0, 0, instance.svg);
-    const shifted = screenToSVG(dxPx, dyPx, instance.svg);
+    const imageDetails = instance.state.imageDetails;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const origin = screenToSVG(0, 0, instance.ui.svg);
+    const shifted = screenToSVG(dxPx, dyPx, instance.ui.svg);
     const svgDeltaX = shifted.x - origin.x;
     const svgDeltaY = shifted.y - origin.y;
+    const zoomLevel = instance.state.zoom.level;
     return {
-      normalizedDeltaX: -(svgDeltaX / renderWidth) / instance.state.zoom.level,
-      normalizedDeltaY: -(svgDeltaY / renderHeight) / instance.state.zoom.level
+      normalizedDeltaX: -(svgDeltaX / renderWidth) / zoomLevel,
+      normalizedDeltaY: -(svgDeltaY / renderHeight) / zoomLevel
     };
   }
   function panByNormalized(instance, deltaX, deltaY) {
-    if (instance.state.zoom.level <= 1) {
+    const zoom = instance.state.zoom;
+    if (zoom.level <= 1) {
       return;
     }
-    const newCenterX = Math.max(0, Math.min(1, instance.state.zoom.centerX + deltaX));
-    const newCenterY = Math.max(0, Math.min(1, instance.state.zoom.centerY + deltaY));
-    setZoom(instance, instance.state.zoom.level, newCenterX, newCenterY);
+    const newCenterX = Math.max(0, Math.min(1, zoom.centerX + deltaX));
+    const newCenterY = Math.max(0, Math.min(1, zoom.centerY + deltaY));
+    setZoom(instance, zoom.level, newCenterX, newCenterY);
   }
   function zoomAtImagePoint(instance, factor, imageX, imageY) {
     const currentLevel = instance.state.zoom.level;
@@ -2578,26 +2593,28 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       zoomReset(instance);
       return;
     }
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
+    const imageDetails = instance.state.imageDetails;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
     const centerX = Math.max(0, Math.min(1, imageX / renderWidth));
     const centerY = Math.max(0, Math.min(1, imageY / renderHeight));
     setZoom(instance, newLevel, centerX, centerY);
   }
   function updateZoomControlStates(instance) {
-    if (instance.commandButtons && instance.modes) {
-      updateCommandButtonStates(instance.commandButtons, instance.modes);
+    if (instance.ui.commandButtons && instance.modes) {
+      updateCommandButtonStates(instance.ui.commandButtons, instance.modes);
     }
-    if (instance.modeButtons && instance.modes) {
-      updateModeButtonStates(instance.modeButtons, instance.modes);
-      if (instance.state.mode === "pan" && instance.modes.pan && !instance.modes.pan.isEnabled() && instance.state.previousMode) {
-        instance._switchMode(instance.state.previousMode);
+    if (instance.ui.modeButtons && instance.modes) {
+      updateModeButtonStates(instance.ui.modeButtons, instance.modes);
+      const { mode, previousMode } = instance.state;
+      if (mode === "pan" && instance.modes.pan && !instance.modes.pan.isEnabled() && previousMode) {
+        instance._switchMode(previousMode);
       }
     }
   }
   function handleResize(instance) {
-    if (instance.svg) {
+    if (instance.ui.svg) {
       refreshExpandedLayout(instance);
       updateSVGLayout(instance);
       renderAxes(instance);
@@ -2607,7 +2624,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function updateAxes(instance) {
-    if (instance.axesGroup) {
+    if (instance.ui.axesGroup) {
       renderAxes(instance);
     }
   }
@@ -2616,11 +2633,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const point = screenToData(
       event.clientX,
       event.clientY,
-      instance.svg,
+      instance.ui.svg,
       instance.state,
-      instance.spectrogramImage
+      instance.ui.spectrogramImage
     );
-    if (!isWithinImage(point.svg, instance.state, instance.spectrogramImage)) {
+    if (!isWithinImage(point.svg, instance.state, instance.ui.spectrogramImage)) {
       return null;
     }
     return {
@@ -2646,40 +2663,40 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function wheelPanHandler(instance) {
-    if (!instance._wheelPanHandler) {
+    if (!instance.interaction._wheelPanHandler) {
       let previousCursor = "";
-      instance._wheelPanHandler = new BaseDragHandler(instance, {
+      instance.interaction._wheelPanHandler = new BaseDragHandler(instance, {
         resolveTarget: () => instance.state.zoom.level > 1 ? { kind: "pan", id: null, type: null } : null,
         onDragStart: (_target, _position, event) => {
-          previousCursor = instance.svg ? instance.svg.style.cursor : "";
+          previousCursor = instance.ui.svg ? instance.ui.svg.style.cursor : "";
           if (event) {
-            instance._wheelPanLast = { x: event.clientX, y: event.clientY };
+            instance.interaction._wheelPanLast = { x: event.clientX, y: event.clientY };
           }
         },
         onDragMove: (_target, _position, _startPosition, event) => {
-          if (!event || !instance._wheelPanLast) return;
-          const dx = event.clientX - instance._wheelPanLast.x;
-          const dy = event.clientY - instance._wheelPanLast.y;
+          if (!event || !instance.interaction._wheelPanLast) return;
+          const dx = event.clientX - instance.interaction._wheelPanLast.x;
+          const dy = event.clientY - instance.interaction._wheelPanLast.y;
           const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy);
           panByNormalized(instance, normalizedDeltaX, normalizedDeltaY);
-          instance._wheelPanLast = { x: event.clientX, y: event.clientY };
+          instance.interaction._wheelPanLast = { x: event.clientX, y: event.clientY };
         },
         onDragEnd: () => {
-          instance._wheelPanLast = null;
+          instance.interaction._wheelPanLast = null;
         },
         onDragCancel: () => {
-          instance._wheelPanLast = null;
+          instance.interaction._wheelPanLast = null;
         },
         updateCursor: (style) => {
-          if (instance.svg) {
-            instance.svg.style.cursor = style;
+          if (instance.ui.svg) {
+            instance.ui.svg.style.cursor = style;
           }
         },
         // Restore whatever cursor the mode had, rather than forcing a crosshair
         cursorFor: (_kind, fallback) => fallback === "grabbing" ? "grabbing" : previousCursor || "crosshair"
       }, null);
     }
-    return instance._wheelPanHandler;
+    return instance.interaction._wheelPanHandler;
   }
   function setupEventListeners(instance) {
     const registered = [];
@@ -2687,39 +2704,39 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       target.addEventListener(type, handler, options);
       registered.push({ target, type, handler, options });
     };
-    if (instance.svg) {
-      listen(instance.svg, "mousemove", (event) => {
+    if (instance.ui.svg) {
+      listen(instance.ui.svg, "mousemove", (event) => {
         handleMouseMove(
           instance,
           /** @type {MouseEvent} */
           event
         );
       });
-      listen(instance.svg, "mousedown", (event) => {
+      listen(instance.ui.svg, "mousedown", (event) => {
         handleMouseDown(
           instance,
           /** @type {MouseEvent} */
           event
         );
       });
-      listen(instance.svg, "mouseup", (event) => {
+      listen(instance.ui.svg, "mouseup", (event) => {
         handleMouseUp(
           instance,
           /** @type {MouseEvent} */
           event
         );
       });
-      listen(instance.svg, "mouseleave", () => {
+      listen(instance.ui.svg, "mouseleave", () => {
         handleMouseLeave(instance);
       });
-      listen(instance.svg, "contextmenu", (event) => {
+      listen(instance.ui.svg, "contextmenu", (event) => {
         handleContextMenu(
           instance,
           /** @type {MouseEvent} */
           event
         );
       });
-      listen(instance.svg, "wheel", (event) => {
+      listen(instance.ui.svg, "wheel", (event) => {
         handleWheel(
           instance,
           /** @type {WheelEvent} */
@@ -2727,13 +2744,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         );
       }, { passive: false });
     }
-    instance._boundHandleResize = () => {
+    instance.viewport._boundHandleResize = () => {
       if (instance._handleResize) {
         instance._handleResize();
       }
     };
-    Object.keys(instance.modeButtons || {}).forEach((mode) => {
-      const button = instance.modeButtons[mode];
+    Object.keys(instance.ui.modeButtons || {}).forEach((mode) => {
+      const button = instance.ui.modeButtons[mode];
       if (button) {
         listen(button, "click", () => {
           instance._switchMode(
@@ -2743,17 +2760,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         });
       }
     });
-    listen(window, "resize", instance._boundHandleResize);
-    instance._registeredListeners = registered;
+    listen(window, "resize", instance.viewport._boundHandleResize);
+    instance.interaction._registeredListeners = registered;
   }
   function setupResizeObserver(instance) {
     if (typeof ResizeObserver !== "undefined") {
-      instance.resizeObserver = new ResizeObserver((_entries) => {
+      instance.viewport.resizeObserver = new ResizeObserver((_entries) => {
         if (instance._handleResize) {
           instance._handleResize();
         }
       });
-      instance.resizeObserver.observe(instance.container);
+      instance.viewport.resizeObserver.observe(instance.ui.container);
     }
   }
   function handleMouseMove(instance, event) {
@@ -2766,8 +2783,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (result) {
       const { svgCoords, imageX, imageY, dataCoords } = result;
       instance.state.cursorPosition = {
-        x: event.clientX - instance.svg.getBoundingClientRect().left,
-        y: event.clientY - instance.svg.getBoundingClientRect().top,
+        x: event.clientX - instance.ui.svg.getBoundingClientRect().left,
+        y: event.clientY - instance.ui.svg.getBoundingClientRect().top,
         svgX: svgCoords.x,
         svgY: svgCoords.y,
         imageX,
@@ -2833,14 +2850,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function cleanupEventListeners(instance) {
-    const registered = instance._registeredListeners || [];
+    const registered = instance.interaction._registeredListeners || [];
     registered.forEach(({ target, type, handler, options }) => {
       target.removeEventListener(type, handler, options);
     });
-    instance._registeredListeners = [];
-    if (instance.resizeObserver) {
-      instance.resizeObserver.disconnect();
-      instance.resizeObserver = null;
+    instance.interaction._registeredListeners = [];
+    if (instance.viewport.resizeObserver) {
+      instance.viewport.resizeObserver.disconnect();
+      instance.viewport.resizeObserver = null;
     }
   }
   function setupAllEventListeners(instance) {
@@ -3014,8 +3031,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
      */
     updateCursorStyle(style) {
-      if (this.instance.spectrogramImage) {
-        this.instance.spectrogramImage.style.cursor = style;
+      if (this.instance.ui.spectrogramImage) {
+        this.instance.ui.spectrogramImage.style.cursor = style;
       }
     }
   }
@@ -3143,10 +3160,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} position - Start position
      */
     onMarkerDragStart(target, position) {
-      const marker = this.instance.state.analysis.markers.find((m) => m.id === target.id);
+      const markers = this.instance.state.analysis.markers;
+      const marker = markers.find((m) => m.id === target.id);
       if (marker) {
-        const index = this.instance.state.analysis.markers.findIndex((m) => m.id === target.id);
-        this.instance.setSelection(
+        const index = markers.findIndex((m) => m.id === target.id);
+        this.instance.interaction.setSelection(
           "marker",
           /** @type {string} */
           target.id,
@@ -3191,8 +3209,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
      */
     updateCursorStyle(style) {
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = style;
+      if (this.instance.ui.svg) {
+        this.instance.ui.svg.style.cursor = style;
       }
     }
     /**
@@ -3271,8 +3289,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
      */
     createMarkerAtPosition(dataCoords) {
-      const color = this.instance.state.selectedColor || "#ff6b6b";
-      const symbol = this.instance.state.selectedSymbol || "cross";
+      const { selectedColor, selectedSymbol, largeSymbols } = this.instance.state;
+      const color = selectedColor || "#ff6b6b";
+      const symbol = selectedSymbol || "cross";
       const marker = {
         id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         color,
@@ -3281,7 +3300,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         symbol,
         // EXPERIMENT (temporary): symbol size is carried per marker, seeded from
         // the toggle's next-feature default, so both sizes can coexist.
-        largeSymbols: !!this.instance.state.largeSymbols
+        largeSymbols: !!largeSymbols
       };
       this.addMarker(marker);
     }
@@ -3302,10 +3321,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     renderPersistentFeatures() {
       var _a;
-      if (!this.instance.cursorGroup || !((_a = this.instance.state.analysis) == null ? void 0 : _a.markers)) {
+      if (!this.instance.ui.cursorGroup || !((_a = this.instance.state.analysis) == null ? void 0 : _a.markers)) {
         return;
       }
-      const existingMarkers = this.instance.cursorGroup.querySelectorAll(".gram-frame-analysis-marker");
+      const existingMarkers = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-analysis-marker");
       existingMarkers.forEach((marker) => marker.remove());
       this.instance.state.analysis.markers.forEach((marker) => {
         this.renderMarker(marker);
@@ -3316,11 +3335,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {AnalysisMarker} marker - Marker object
      */
     renderMarker(marker) {
-      if (!this.instance.cursorGroup) {
+      if (!this.instance.ui.cursorGroup) {
         return;
       }
       const markerPoint = { freq: marker.freq, time: marker.time };
-      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage);
+      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage);
       const currentX = markerSVG.x;
       const currentY = markerSVG.y;
       const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -3361,7 +3380,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         markerGroup.appendChild(vLine);
         markerGroup.appendChild(circle);
       }
-      this.instance.cursorGroup.appendChild(markerGroup);
+      this.instance.ui.cursorGroup.appendChild(markerGroup);
     }
     /**
      * Create UI elements for analysis mode
@@ -3372,9 +3391,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.uiElements.markersContainer = markersContainer;
       this.createMarkersTable(markersContainer);
       this.uiElements.markersTable = markersContainer.querySelector(".gram-frame-table");
-      this.instance.colorPicker = this.instance.colorPicker || null;
-      this.instance.timeLED = this.instance.timeLED || null;
-      this.instance.freqLED = this.instance.freqLED || null;
+      this.instance.ui.colorPicker = this.instance.ui.colorPicker || null;
+      this.instance.ui.timeLED = this.instance.ui.timeLED || null;
+      this.instance.ui.freqLED = this.instance.ui.freqLED || null;
     }
     /**
      * Create markers table for displaying active markers
@@ -3409,10 +3428,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         ],
         deleteSelector: ".gram-frame-marker-delete-btn",
         onSelect: (markerId, _marker, index) => {
-          if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId) {
-            this.instance.clearSelection();
+          const selection = this.instance.state.selection;
+          if (selection.selectedType === "marker" && selection.selectedId === markerId) {
+            this.instance.interaction.clearSelection();
           } else {
-            this.instance.setSelection("marker", markerId, index);
+            this.instance.interaction.setSelection("marker", markerId, index);
           }
         },
         onDelete: (markerId) => this.removeMarker(markerId),
@@ -3436,7 +3456,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     updateMarkersTable() {
       if (!this.markersTable) return;
-      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
+      const analysis = this.instance.state.analysis;
+      if (!analysis || !analysis.markers) return;
       this.markersTable.update(this.instance.state.analysis.markers);
     }
     /**
@@ -3467,7 +3488,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.instance.state.analysis.markers.push(marker);
       markAnnotationsChanged(this.instance);
       const index = this.instance.state.analysis.markers.length - 1;
-      this.instance.setSelection("marker", marker.id, index);
+      this.instance.interaction.setSelection("marker", marker.id, index);
       this.updateMarkersTable();
       if (this.instance.featureRenderer) {
         this.instance.featureRenderer.renderAllPersistentFeatures();
@@ -3483,7 +3504,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const index = this.instance.state.analysis.markers.findIndex((m) => m.id === markerId);
       if (index !== -1) {
         if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId) {
-          this.instance.clearSelection();
+          this.instance.interaction.clearSelection();
         }
         this.instance.state.analysis.markers.splice(index, 1);
         markAnnotationsChanged(this.instance);
@@ -3502,7 +3523,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     findMarkerAtPosition(position) {
       if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null;
-      const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
+      const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
       const marker = this.instance.state.analysis.markers.find((marker2) => {
         if (isWithinToleranceRadius(
           position,
@@ -3512,8 +3533,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           return true;
         }
         const markerPoint = { freq: marker2.freq, time: marker2.time };
-        const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage);
-        const clickSVG = dataToSVG(position, this.getViewport(), this.instance.spectrogramImage);
+        const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage);
+        const clickSVG = dataToSVG(position, this.getViewport(), this.instance.ui.spectrogramImage);
         const crosshairSize = 15;
         const lineThickness = 3;
         const onHorizontalLine = Math.abs(clickSVG.y - markerSVG.y) <= lineThickness && Math.abs(clickSVG.x - markerSVG.x) <= crosshairSize;
@@ -3566,7 +3587,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (Math.abs(state.zoom.level - 1) < ZOOM_EPSILON) {
       return (state.config.timeMin + state.config.timeMax) / 2;
     }
-    const visibleRange = calculateVisibleDataRange(instance.state, instance.spectrogramImage);
+    const visibleRange = calculateVisibleDataRange(instance.state, instance.ui.spectrogramImage);
     return (visibleRange.timeMin + visibleRange.timeMax) / 2;
   }
   function showManualHarmonicModal(state, addHarmonicSet, instance) {
@@ -3772,7 +3793,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const harmonicSet = target.data.harmonicSet;
       const index = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSet.id);
       if (index !== -1) {
-        this.instance.setSelection("harmonicSet", harmonicSet.id, index);
+        this.instance.interaction.setSelection("harmonicSet", harmonicSet.id, index);
       }
     }
     /**
@@ -3807,8 +3828,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
      */
     updateCursorStyle(style) {
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = style;
+      if (this.instance.ui.svg) {
+        this.instance.ui.svg.style.cursor = style;
       }
     }
     /**
@@ -3871,7 +3892,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (buttonContainer && buttonContainer.querySelector(".gram-frame-manual-button")) {
         this.uiElements.manualButton = buttonContainer.querySelector(".gram-frame-manual-button");
         this.uiElements.harmonicPanel = harmonicsContainer.querySelector(".gram-frame-harmonic-panel");
-        this.instance.harmonicPanel = this.uiElements.harmonicPanel;
+        this.instance.ui.harmonicPanel = this.uiElements.harmonicPanel;
         return;
       }
       this.uiElements.manualButton = this.createManualButton();
@@ -3879,8 +3900,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         buttonContainer.appendChild(this.uiElements.manualButton);
       }
       this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer, this.instance);
-      this.instance.harmonicPanel = this.uiElements.harmonicPanel;
-      this.instance.colorPicker = this.instance.colorPicker || null;
+      this.instance.ui.harmonicPanel = this.uiElements.harmonicPanel;
+      this.instance.ui.colorPicker = this.instance.ui.colorPicker || null;
       this.updateHarmonicPanel();
     }
     /**
@@ -3946,9 +3967,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.instance.state.harmonics.harmonicSets.push(harmonicSet);
       markAnnotationsChanged(this.instance);
       const index = this.instance.state.harmonics.harmonicSets.length - 1;
-      this.instance.setSelection("harmonicSet", harmonicSet.id, index);
-      if (this.instance.harmonicPanel) {
-        updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
+      this.instance.interaction.setSelection("harmonicSet", harmonicSet.id, index);
+      if (this.instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
       }
       if (this.instance.featureRenderer) {
         this.instance.featureRenderer.renderAllPersistentFeatures();
@@ -3966,8 +3987,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (setIndex !== -1) {
         Object.assign(this.instance.state.harmonics.harmonicSets[setIndex], updates);
         markAnnotationsChanged(this.instance);
-        if (this.instance.harmonicPanel) {
-          updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
+        if (this.instance.ui.harmonicPanel) {
+          updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
         }
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
@@ -3983,12 +4004,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
       if (setIndex !== -1) {
         if (this.instance.state.selection.selectedType === "harmonicSet" && this.instance.state.selection.selectedId === id) {
-          this.instance.clearSelection();
+          this.instance.interaction.clearSelection();
         }
         this.instance.state.harmonics.harmonicSets.splice(setIndex, 1);
         markAnnotationsChanged(this.instance);
-        if (this.instance.harmonicPanel) {
-          updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
+        if (this.instance.ui.harmonicPanel) {
+          updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
         }
         if (this.instance.featureRenderer) {
           this.instance.featureRenderer.renderAllPersistentFeatures();
@@ -4021,11 +4042,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const stack = this.calculateLabelStackBounds(lineTop, harmonicSet);
           const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic));
           const pinDrawn = harmonicSet.showPin !== false;
-          const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
+          const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
           const cursorSVG = dataToSVG(
             { freq, time: cursorTime },
             this.getViewport(),
-            this.instance.spectrogramImage
+            this.instance.ui.spectrogramImage
           );
           for (let h = minHarmonic; h <= maxHarmonic; h++) {
             const expectedFreq = h * harmonicSet.spacing;
@@ -4120,8 +4141,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Update harmonic management panel
      */
     updateHarmonicPanel() {
-      if (this.instance.harmonicPanel) {
-        updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
+      if (this.instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
       }
     }
     /**
@@ -4154,13 +4175,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * (spec 167, FR-006, AS-4.2).
      */
     refreshPanel() {
-      if (!this.instance.harmonicPanel && this.instance.harmonicsContainer) {
+      if (!this.instance.ui.harmonicPanel && this.instance.ui.harmonicsContainer) {
         const existingPanel = (
           /** @type {HTMLElement|null} */
-          this.instance.harmonicsContainer.querySelector(".gram-frame-harmonic-panel")
+          this.instance.ui.harmonicsContainer.querySelector(".gram-frame-harmonic-panel")
         );
         if (existingPanel) {
-          this.instance.harmonicPanel = existingPanel;
+          this.instance.ui.harmonicPanel = existingPanel;
         }
       }
       this.updateHarmonicPanel();
@@ -4182,12 +4203,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     renderPersistentFeatures() {
       var _a;
-      if (!this.instance.cursorGroup || !((_a = this.instance.state.harmonics) == null ? void 0 : _a.harmonicSets)) {
+      if (!this.instance.ui.cursorGroup || !((_a = this.instance.state.harmonics) == null ? void 0 : _a.harmonicSets)) {
         return;
       }
-      const existingHarmonics = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-line");
+      const existingHarmonics = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-harmonic-line");
       existingHarmonics.forEach((line) => line.remove());
-      const existingSymbols = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol[data-harmonic-set-id]");
+      const existingSymbols = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol[data-harmonic-set-id]");
       existingSymbols.forEach((symbol) => symbol.remove());
       this.instance.state.harmonics.harmonicSets.forEach((harmonicSet) => {
         this.renderHarmonicSet(harmonicSet);
@@ -4210,7 +4231,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {{minHarmonic: number, maxHarmonic: number}} Inclusive harmonic range
      */
     getVisibleHarmonicRange(harmonicSet) {
-      const { freqMin, freqMax } = calculateVisibleDataRange(this.instance.state, this.instance.spectrogramImage);
+      const { freqMin, freqMax } = calculateVisibleDataRange(this.instance.state, this.instance.ui.spectrogramImage);
       const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
       const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
       return { minHarmonic, maxHarmonic };
@@ -4248,7 +4269,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const { renderHeight } = getRenderDimensions(this.instance.state);
       const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
       const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
-      const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
+      const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.ui.spectrogramImage);
       const lineTop = anchorSVG.y - lineHeight / 2;
       return { lineHeight, lineTop };
     }
@@ -4393,7 +4414,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
      */
     calculateLabelStackBounds(lineTop, harmonicSet) {
-      const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top;
+      const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
       const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
       const r = this.symbolSize(harmonicSet) / 2;
       return {
@@ -4427,7 +4448,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     harmonicLineX(harmonicSet, harmonicNumber) {
       const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime };
-      return dataToSVG(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x;
+      return dataToSVG(harmonicPoint, this.getViewport(), this.instance.ui.spectrogramImage).x;
     }
     /**
      * Render a single harmonic set as vertical pin lines.
@@ -4446,7 +4467,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {HarmonicSet} harmonicSet - Harmonic set to render
      */
     renderHarmonicSet(harmonicSet) {
-      if (!this.instance.cursorGroup) {
+      if (!this.instance.ui.cursorGroup) {
         return;
       }
       const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet);
@@ -4454,12 +4475,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         return;
       }
       const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
-      const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top;
+      const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
       if (harmonicSet.showPin !== false) {
         for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
           const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
           const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight);
-          this.instance.cursorGroup.appendChild(line);
+          this.instance.ui.cursorGroup.appendChild(line);
         }
       }
       const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic);
@@ -4469,9 +4490,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy);
         const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY);
         if (symbol) {
-          this.instance.cursorGroup.appendChild(symbol);
+          this.instance.ui.cursorGroup.appendChild(symbol);
         }
-        this.instance.cursorGroup.appendChild(label);
+        this.instance.ui.cursorGroup.appendChild(label);
       });
     }
     /**
@@ -4593,7 +4614,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     findDopplerMarkerAtPosition(position) {
       const doppler = this.instance.state.doppler;
       if (!doppler) return null;
-      const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
+      const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
       const targets = [];
       for (const markerType of [
         DopplerDraggedMarker.fPlus,
@@ -4802,7 +4823,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     createUI(_leftColumn) {
       this.uiElements = {};
-      this.instance.speedLED = this.instance.speedLED || null;
+      this.instance.ui.speedLED = this.instance.ui.speedLED || null;
     }
     /**
      * Update LED displays for doppler mode
@@ -4886,11 +4907,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Update the speed LED display with current speed value
      */
     updateSpeedLED() {
-      if (this.instance.speedLED && this.instance.state.doppler.speed !== null) {
+      if (this.instance.ui.speedLED && this.instance.state.doppler.speed !== null) {
         const speedInKnots = this.instance.state.doppler.speed * MS_TO_KNOTS_CONVERSION;
-        setLEDValue(this.instance.speedLED, speedInKnots.toFixed(1));
-      } else if (this.instance.speedLED) {
-        setLEDValue(this.instance.speedLED, "0.0");
+        setLEDValue(this.instance.ui.speedLED, speedInKnots.toFixed(1));
+      } else if (this.instance.ui.speedLED) {
+        setLEDValue(this.instance.ui.speedLED, "0.0");
       }
     }
     /**
@@ -4917,15 +4938,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Render all doppler features (markers and curves)
      */
     renderDopplerFeatures() {
-      if (!this.instance.cursorGroup) return;
-      const existingFeatures = this.instance.cursorGroup.querySelectorAll(".doppler-feature, .gram-frame-doppler-preview, .gram-frame-doppler-curve, .gram-frame-doppler-extension, .gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-crosshair");
+      if (!this.instance.ui.cursorGroup) return;
+      const existingFeatures = this.instance.ui.cursorGroup.querySelectorAll(".doppler-feature, .gram-frame-doppler-preview, .gram-frame-doppler-curve, .gram-frame-doppler-extension, .gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-crosshair");
       existingFeatures.forEach((element) => element.remove());
       const doppler = this.instance.state.doppler;
       if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
         this.renderMarkers();
         this.renderDopplerCurve();
         if (doppler.tempFirst) {
-          const elements = this.instance.cursorGroup.querySelectorAll(".gram-frame-doppler-curve, .gram-frame-doppler-extension");
+          const elements = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-doppler-curve, .gram-frame-doppler-extension");
           elements.forEach((element) => {
             element.setAttribute("opacity", "0.8");
             element.setAttribute("stroke-dasharray", "5,5");
@@ -4942,7 +4963,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const isInDopplerMode = this.instance.state.mode === "doppler";
       const pointerEvents = isInDopplerMode ? "auto" : "none";
       if (doppler.fPlus) {
-        const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage);
+        const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.ui.spectrogramImage);
         const fPlusMarker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         fPlusMarker.setAttribute("class", "gram-frame-doppler-fPlus");
         fPlusMarker.setAttribute("cx", fPlusSVG.x.toString());
@@ -4952,10 +4973,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         fPlusMarker.setAttribute("stroke", "#ffffff");
         fPlusMarker.setAttribute("stroke-width", "1");
         fPlusMarker.setAttribute("pointer-events", pointerEvents);
-        this.instance.cursorGroup.appendChild(fPlusMarker);
+        this.instance.ui.cursorGroup.appendChild(fPlusMarker);
       }
       if (doppler.fMinus) {
-        const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage);
+        const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.ui.spectrogramImage);
         const fMinusMarker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         fMinusMarker.setAttribute("class", "gram-frame-doppler-fMinus");
         fMinusMarker.setAttribute("cx", fMinusSVG.x.toString());
@@ -4965,10 +4986,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         fMinusMarker.setAttribute("stroke", "#ffffff");
         fMinusMarker.setAttribute("stroke-width", "1");
         fMinusMarker.setAttribute("pointer-events", pointerEvents);
-        this.instance.cursorGroup.appendChild(fMinusMarker);
+        this.instance.ui.cursorGroup.appendChild(fMinusMarker);
       }
       if (doppler.fZero) {
-        const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage);
+        const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.ui.spectrogramImage);
         const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
         hLine.setAttribute("class", "gram-frame-doppler-crosshair");
         hLine.setAttribute("x1", (fZeroSVG.x - 8).toString());
@@ -4978,7 +4999,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         hLine.setAttribute("stroke", "#00ff00");
         hLine.setAttribute("stroke-width", "2");
         hLine.setAttribute("pointer-events", pointerEvents);
-        this.instance.cursorGroup.appendChild(hLine);
+        this.instance.ui.cursorGroup.appendChild(hLine);
         const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
         vLine.setAttribute("class", "gram-frame-doppler-crosshair");
         vLine.setAttribute("x1", fZeroSVG.x.toString());
@@ -4988,7 +5009,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         vLine.setAttribute("stroke", "#00ff00");
         vLine.setAttribute("stroke-width", "2");
         vLine.setAttribute("pointer-events", pointerEvents);
-        this.instance.cursorGroup.appendChild(vLine);
+        this.instance.ui.cursorGroup.appendChild(vLine);
       }
     }
     /**
@@ -4998,9 +5019,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const doppler = this.instance.state.doppler;
       if (!doppler.fPlus || !doppler.fMinus || !doppler.fZero) return;
       const color = doppler.color || this.instance.state.selectedColor || "#ff0000";
-      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage);
-      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage);
-      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage);
+      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.ui.spectrogramImage);
+      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.ui.spectrogramImage);
+      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.ui.spectrogramImage);
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("class", "gram-frame-doppler-curve");
       const controlPoint1X = fMinusSVG.x;
@@ -5012,7 +5033,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       path.setAttribute("stroke", color);
       path.setAttribute("stroke-width", "2");
       path.setAttribute("fill", "none");
-      this.instance.cursorGroup.appendChild(path);
+      this.instance.ui.cursorGroup.appendChild(path);
       const margins = this.instance.state.margins;
       const { naturalHeight } = this.instance.state.imageDetails;
       const renderHeight = this.instance.state.imageDetails.renderHeight || naturalHeight;
@@ -5020,9 +5041,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const spectrogramBottom = margins.top + renderHeight;
       let zoomedTop = spectrogramTop;
       let zoomedBottom = spectrogramBottom;
-      if (this.instance.spectrogramImage) {
-        const zoomedImageTop = parseFloat(this.instance.spectrogramImage.getAttribute("y") || String(margins.top));
-        const zoomedImageHeight = parseFloat(this.instance.spectrogramImage.getAttribute("height") || String(renderHeight));
+      if (this.instance.ui.spectrogramImage) {
+        const zoomedImageTop = parseFloat(this.instance.ui.spectrogramImage.getAttribute("y") || String(margins.top));
+        const zoomedImageHeight = parseFloat(this.instance.ui.spectrogramImage.getAttribute("height") || String(renderHeight));
         zoomedTop = zoomedImageTop;
         zoomedBottom = zoomedImageTop + zoomedImageHeight;
       }
@@ -5037,7 +5058,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         fPlusExtension.setAttribute("y2", clippedTop.toString());
         fPlusExtension.setAttribute("stroke", color);
         fPlusExtension.setAttribute("stroke-width", "2");
-        this.instance.cursorGroup.appendChild(fPlusExtension);
+        this.instance.ui.cursorGroup.appendChild(fPlusExtension);
       }
       if (fMinusSVG.y < clippedBottom) {
         const fMinusExtension = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -5048,7 +5069,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         fMinusExtension.setAttribute("y2", clippedBottom.toString());
         fMinusExtension.setAttribute("stroke", color);
         fMinusExtension.setAttribute("stroke-width", "2");
-        this.instance.cursorGroup.appendChild(fMinusExtension);
+        this.instance.ui.cursorGroup.appendChild(fMinusExtension);
       }
     }
     /**
@@ -5121,8 +5142,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {string} style - Cursor style
      */
     applyCursor(style) {
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = style;
+      if (this.instance.ui.svg) {
+        this.instance.ui.svg.style.cursor = style;
       }
     }
     /**
@@ -5461,10 +5482,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * (spec 167, FR-006, AS-4.2, SC-003).
      */
     renderAllPersistentFeatures() {
-      if (!this.instance.cursorGroup) {
+      if (!this.instance.ui.cursorGroup) {
         return;
       }
-      this.instance.cursorGroup.innerHTML = "";
+      this.instance.ui.cursorGroup.innerHTML = "";
       Object.values(this.instance.modes).filter(isPersistentFeatureProvider).filter((mode) => mode.hasPersistentFeatures()).forEach((mode) => mode.renderPersistentFeatures());
     }
   }
@@ -5522,14 +5543,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const MAX_IMAGE_WIDTH = 1200;
   function setupSpectrogramImage(instance, imageUrl) {
-    if (!instance.spectrogramImage || !imageUrl) {
+    if (!instance.ui.spectrogramImage || !imageUrl) {
       return;
     }
-    instance.spectrogramImage.setAttributeNS("http://www.w3.org/1999/xlink", "href", imageUrl);
+    instance.ui.spectrogramImage.setAttributeNS("http://www.w3.org/1999/xlink", "href", imageUrl);
     instance.state.imageDetails.url = imageUrl;
     const tempImg = new Image();
     tempImg.onload = function() {
-      instance.container.classList.remove("gram-frame-loading");
+      instance.ui.container.classList.remove("gram-frame-loading");
       let imageWidth = tempImg.naturalWidth;
       let imageHeight = tempImg.naturalHeight;
       if (imageWidth > MAX_IMAGE_WIDTH) {
@@ -5550,8 +5571,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     };
     tempImg.onerror = function() {
       console.error(`GramFrame: Failed to load spectrogram image: ${imageUrl}`);
-      instance.container.classList.remove("gram-frame-loading");
-      instance.container.classList.add("gram-frame-image-error");
+      instance.ui.container.classList.remove("gram-frame-loading");
+      instance.ui.container.classList.add("gram-frame-image-error");
     };
     tempImg.src = imageUrl;
   }
@@ -5684,7 +5705,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
        */
       _getInstances() {
         const live = (this._instances || []).filter(
-          (instance) => instance && instance.container && instance.container.isConnected
+          (instance) => instance && instance.ui.container && instance.ui.container.isConnected
         );
         this._instances = live;
         return live;
@@ -5857,6 +5878,54 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {HTMLTableElement} configTable - Configuration table element to replace
      */
     constructor(configTable) {
+      /**
+       * Every DOM element handle this component owns.
+       *
+       * Grouped rather than kept as 28 flat fields (spec 167, US5): they share a
+       * lifetime — built during construction, torn down together — and reading
+       * `instance.ui.svg` says which of the instance's concerns you are reaching
+       * into, where `instance.svg` said only that you were reaching.
+       * @type {GramFrameUI}
+       */
+      __publicField(this, "ui");
+      /**
+       * Selection, restyling and the transient pointer state behind them.
+       * @type {GramFrameInteraction}
+       */
+      __publicField(this, "interaction", {
+        setSelection: () => {
+        },
+        clearSelection: () => {
+        },
+        updateSelectionVisuals: () => {
+        },
+        applyColorToSelectedFeature: () => false,
+        applySymbolToSelectedFeature: () => false,
+        applyPinToSelectedFeature: () => false,
+        applyLargeSymbolsToSelectedFeature: () => false,
+        removeHarmonicSet: () => {
+        },
+        // Replaced by the colour picker when it mounts; a no-op until then, so a
+        // caller arriving early does nothing rather than throwing.
+        syncStyleControls: () => {
+        },
+        _symbolControl: null,
+        _pinControl: null,
+        _largeSymbolsControl: null,
+        _registeredListeners: [],
+        _wheelPanHandler: null,
+        _wheelPanLast: null
+      });
+      /**
+       * How the component watches for size changes.
+       * @type {GramFrameViewport}
+       */
+      __publicField(this, "viewport", { resizeObserver: null, _boundHandleResize: null });
+      /**
+       * Where this instance's annotations are saved, and under which context.
+       * @type {GramFramePersistence}
+       */
+      __publicField(this, "persistence", { _storageInstanceIndex: 0, _isTrainerContext: false });
       // Core properties
       /** @type {GramFrameState} */
       __publicField(this, "state");
@@ -5866,72 +5935,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "stateListeners");
       /** @type {string} */
       __publicField(this, "instanceId");
-      // DOM element properties
-      /** @type {HTMLDivElement} */
-      __publicField(this, "container");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "table");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "modeRow");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "mainRow");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "readoutPanel");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "modeCell");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "mainCell");
-      /** @type {HTMLElement|null} */
-      __publicField(this, "modeLED", null);
-      /** @type {HTMLElement|null} */
-      __publicField(this, "rateLED", null);
-      /** @type {HTMLElement} */
-      __publicField(this, "colorPicker");
-      /** @type {SVGSVGElement} */
-      __publicField(this, "svg");
-      /** @type {SVGGElement} */
-      __publicField(this, "cursorGroup");
-      /** @type {SVGGElement} */
-      __publicField(this, "axesGroup");
-      /** @type {SVGRectElement} */
-      __publicField(this, "imageClipRect");
-      /** @type {SVGRectElement} */
-      __publicField(this, "cursorClipRect");
-      // The one layout column read back off the instance: the trainer-only
-      // "Clear gram" button is appended to it after construction. The other six
-      // columns were copied here and never read again — `createUnifiedLayout`
-      // assembles them itself and hands the panel-mounting ones straight to the
-      // steps that need them — so they are no longer kept (spec 167, US5).
-      /** @type {HTMLDivElement} */
-      __publicField(this, "modeColumn");
-      /** @type {HTMLElement} */
-      __publicField(this, "timeLED");
-      /** @type {HTMLElement} */
-      __publicField(this, "freqLED");
-      /** @type {HTMLElement} */
-      __publicField(this, "speedLED");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "markersContainer");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "harmonicsContainer");
-      // The harmonics panel, mounted by HarmonicsMode when its UI is created
-      /** @type {HTMLElement|null} */
-      __publicField(this, "harmonicPanel", null);
-      // Spectrogram image
-      /** @type {SVGImageElement} */
-      __publicField(this, "spectrogramImage");
-      // Expand/collapse toggle button (landscape images only)
-      /** @type {HTMLButtonElement|null} */
-      __publicField(this, "expandToggleButton", null);
-      // Mode switching UI
-      /** @type {HTMLDivElement} */
-      __publicField(this, "modesContainer");
-      /** @type {Object<string, HTMLButtonElement>} */
-      __publicField(this, "modeButtons");
-      /** @type {Object<string, HTMLButtonElement[]>} */
-      __publicField(this, "commandButtons");
-      /** @type {HTMLDivElement} */
-      __publicField(this, "guidancePanel");
       // Mode system
       /** @type {Object<string, BaseMode>} */
       __publicField(this, "modes");
@@ -5939,67 +5942,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "currentMode");
       /** @type {FeatureRenderer} */
       __publicField(this, "featureRenderer");
-      // Keyboard control functions
-      /** @type {function(string, string, number): void} */
-      __publicField(this, "setSelection");
-      /** @type {function(): void} */
-      __publicField(this, "clearSelection");
-      /** @type {function(): void} */
-      __publicField(this, "updateSelectionVisuals");
-      // Reformatting (feature 161): restyle the selected feature in place
-      /** @type {function(string): boolean} */
-      __publicField(this, "applyColorToSelectedFeature");
-      /** @type {function(SymbolType): boolean} */
-      __publicField(this, "applySymbolToSelectedFeature");
-      // Show/hide the selected harmonic set's pin lines
-      /** @type {function(boolean): boolean} */
-      __publicField(this, "applyPinToSelectedFeature");
-      // EXPERIMENT (temporary): resize the selected feature's symbols
-      /** @type {function(boolean): boolean} */
-      __publicField(this, "applyLargeSymbolsToSelectedFeature");
-      /** @type {function(string): void} */
-      __publicField(this, "removeHarmonicSet");
-      // Sync the colour/symbol/pin controls to the current selection. Replaced by
-      // the colour picker when it mounts; a no-op until then, so a caller that runs
-      // before the controls exist does nothing rather than throwing.
-      /** @type {function(): void} */
-      __publicField(this, "syncStyleControls", () => {
-      });
-      // Symbol drop-down control handle (registered by the symbol picker)
-      /** @type {any} */
-      __publicField(this, "_symbolControl");
-      // Pin toggle control handle (registered by the pin toggle)
-      /** @type {any} */
-      __publicField(this, "_pinControl");
-      // EXPERIMENT (temporary): "Large symbols" checkbox handle
-      /** @type {any} */
-      __publicField(this, "_largeSymbolsControl");
-      // ResizeObserver
-      /** @type {ResizeObserver|null} */
-      __publicField(this, "resizeObserver", null);
-      // Bound event handlers
-      /** @type {(function(Event): void)|null} */
-      __publicField(this, "_boundHandleResize", null);
-      /**
-       * Every listener attached by setupEventListeners, kept so destroy() can
-       * remove them (they used to be anonymous and therefore unremovable).
-       * @type {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>}
-       */
-      __publicField(this, "_registeredListeners", []);
-      /**
-       * The drag engine driving a wheel-button (middle) pan, created lazily on the
-       * first such drag. Not part of the broadcast state.
-       * @type {import('./modes/shared/BaseDragHandler.js').BaseDragHandler|null}
-       */
-      __publicField(this, "_wheelPanHandler", null);
-      /** @type {{x: number, y: number}|null} */
-      __publicField(this, "_wheelPanLast", null);
-      // Storage instance index for multi-instance pages
-      /** @type {number} */
-      __publicField(this, "_storageInstanceIndex");
-      // Whether this instance is a trainer context
-      /** @type {boolean} */
-      __publicField(this, "_isTrainerContext");
       this.configTable = configTable;
       if (!isBrowserSupported()) {
         showCompatibilityWarning(configTable);
@@ -6009,31 +5951,44 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.state.showHarmonicPin = loadPinPreference();
       this.stateListeners = [];
       this.instanceId = "";
-      this._storageInstanceIndex = document.querySelectorAll(".gram-frame-container").length;
-      this._isTrainerContext = detectUserContext() === "trainer";
+      this.persistence._storageInstanceIndex = document.querySelectorAll(".gram-frame-container").length;
+      this.persistence._isTrainerContext = detectUserContext() === "trainer";
       const dom = setupSpectrogramComponents(this, configTable);
-      this.container = dom.container;
-      this.table = dom.table;
-      this.modeRow = dom.modeRow;
-      this.mainRow = dom.mainRow;
-      this.modeCell = dom.modeCell;
-      this.mainCell = dom.mainCell;
-      this.readoutPanel = dom.readoutPanel;
-      this.svg = dom.svg;
-      this.spectrogramImage = dom.spectrogramImage;
-      this.cursorGroup = dom.cursorGroup;
-      this.axesGroup = dom.axesGroup;
-      this.imageClipRect = dom.imageClipRect;
-      this.cursorClipRect = dom.cursorClipRect;
       const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell);
-      this.modeColumn = layout.modeColumn;
-      this.markersContainer = layout.markersContainer;
-      this.harmonicsContainer = layout.harmonicsContainer;
-      this.timeLED = layout.timeLED;
-      this.freqLED = layout.freqLED;
-      this.speedLED = layout.speedLED;
-      this.colorPicker = layout.colorPicker;
       const initialModeUI = setupPersistentContainers(this, layout.modeColumn, layout.guidanceColumn);
+      this.ui = {
+        container: dom.container,
+        table: dom.table,
+        modeRow: dom.modeRow,
+        mainRow: dom.mainRow,
+        readoutPanel: dom.readoutPanel,
+        modeCell: dom.modeCell,
+        mainCell: dom.mainCell,
+        svg: dom.svg,
+        spectrogramImage: dom.spectrogramImage,
+        cursorGroup: dom.cursorGroup,
+        axesGroup: dom.axesGroup,
+        imageClipRect: dom.imageClipRect,
+        cursorClipRect: dom.cursorClipRect,
+        modeColumn: layout.modeColumn,
+        markersContainer: layout.markersContainer,
+        harmonicsContainer: layout.harmonicsContainer,
+        timeLED: layout.timeLED,
+        freqLED: layout.freqLED,
+        speedLED: layout.speedLED,
+        colorPicker: layout.colorPicker,
+        modesContainer: initialModeUI.modesContainer,
+        modeButtons: initialModeUI.modeButtons,
+        commandButtons: initialModeUI.commandButtons,
+        guidancePanel: initialModeUI.guidancePanel,
+        // Mounted later, or not at all: the harmonics panel arrives with that
+        // mode's UI, the expand toggle only for a landscape image, and nothing
+        // assigns the mode/rate LEDs at all — every read of them is guarded.
+        harmonicPanel: null,
+        expandToggleButton: null,
+        modeLED: null,
+        rateLED: null
+      };
       setupSpectrogramIfAvailable(this);
       const { modes, featureRenderer } = initializeModeInfrastructure(this);
       this.modes = modes;
@@ -6047,20 +6002,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         layout.modeColumn,
         layout.guidanceColumn
       );
-      this.modesContainer = modeUI.modesContainer;
-      this.modeButtons = modeUI.modeButtons;
-      this.commandButtons = modeUI.commandButtons;
-      this.guidancePanel = modeUI.guidancePanel;
+      this.ui.modesContainer = modeUI.modesContainer;
+      this.ui.modeButtons = modeUI.modeButtons;
+      this.ui.commandButtons = modeUI.commandButtons;
+      this.ui.guidancePanel = modeUI.guidancePanel;
       const controls = setupAllEventListeners(this);
-      this.removeHarmonicSet = controls.removeHarmonicSet;
-      this.setSelection = controls.setSelection;
-      this.clearSelection = controls.clearSelection;
-      this.updateSelectionVisuals = controls.updateSelectionVisuals;
-      this.applyColorToSelectedFeature = controls.applyColorToSelectedFeature;
-      this.applySymbolToSelectedFeature = controls.applySymbolToSelectedFeature;
-      this.applyPinToSelectedFeature = controls.applyPinToSelectedFeature;
-      this.applyLargeSymbolsToSelectedFeature = controls.applyLargeSymbolsToSelectedFeature;
-      if (this._isTrainerContext) {
+      this.interaction.removeHarmonicSet = controls.removeHarmonicSet;
+      this.interaction.setSelection = controls.setSelection;
+      this.interaction.clearSelection = controls.clearSelection;
+      this.interaction.updateSelectionVisuals = controls.updateSelectionVisuals;
+      this.interaction.applyColorToSelectedFeature = controls.applyColorToSelectedFeature;
+      this.interaction.applySymbolToSelectedFeature = controls.applySymbolToSelectedFeature;
+      this.interaction.applyPinToSelectedFeature = controls.applyPinToSelectedFeature;
+      this.interaction.applyLargeSymbolsToSelectedFeature = controls.applyLargeSymbolsToSelectedFeature;
+      if (this.persistence._isTrainerContext) {
         this._addClearGramButton();
       }
       this._restoreAnnotations();
@@ -6121,8 +6076,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         e.preventDefault();
         this._clearGram();
       });
-      if (this.modeColumn) {
-        this.modeColumn.appendChild(btn);
+      if (this.ui.modeColumn) {
+        this.ui.modeColumn.appendChild(btn);
       }
     }
     /**
@@ -6136,7 +6091,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.state.selection = fresh.selection;
       this.state.drag = fresh.drag;
       this.state.cursors = fresh.cursors;
-      if (clearAnnotations(this._storageInstanceIndex)) {
+      if (clearAnnotations(this.persistence._storageInstanceIndex)) {
         clearStorageWarning(this);
       } else {
         showStorageWarning(this, "Saved annotations could not be removed from browser storage — they may reappear when this page is reloaded.");
@@ -6156,7 +6111,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Restore saved annotations from browser storage into state
      */
     _restoreAnnotations() {
-      const saved = loadAnnotations(this._storageInstanceIndex);
+      const saved = loadAnnotations(this.persistence._storageInstanceIndex);
       if (!saved) return;
       markAnnotationsChanged(this);
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
@@ -6201,7 +6156,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         ].join("|");
         if (signature !== lastSignature) {
           lastSignature = signature;
-          if (saveAnnotations(this.state, this._storageInstanceIndex)) {
+          if (saveAnnotations(this.state, this.persistence._storageInstanceIndex)) {
             clearStorageWarning(this);
           } else if (hasPersistableAnnotations(state)) {
             showStorageWarning(this, "Annotations could not be saved — they will be lost when this page is reloaded.");
@@ -6226,8 +6181,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       flushDispatch(this);
       cleanupEventListeners(this);
       cleanupKeyboardControl(this);
-      if (this.container && this.container.parentNode) {
-        this.container.parentNode.removeChild(this.container);
+      if (this.ui.container && this.ui.container.parentNode) {
+        this.ui.container.parentNode.removeChild(this.ui.container);
       }
     }
     /**
@@ -6245,12 +6200,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           modeInstance.dragHandler.cancelDrag();
         }
       });
-      if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
-        this.clearSelection();
+      if (this.state.selection && this.state.selection.selectedType && this.interaction.clearSelection) {
+        this.interaction.clearSelection();
       }
-      if (this.modeButtons) {
-        Object.keys(this.modeButtons).forEach((m) => {
-          const button = this.modeButtons[m];
+      if (this.ui.modeButtons) {
+        Object.keys(this.ui.modeButtons).forEach((m) => {
+          const button = this.ui.modeButtons[m];
           if (button) {
             if (m === mode) {
               button.classList.add("active");
@@ -6260,9 +6215,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           }
         });
       }
-      if (this.container) {
-        this.container.classList.remove("gram-frame-analysis-mode", "gram-frame-harmonics-mode");
-        this.container.classList.add(`gram-frame-${mode}-mode`);
+      if (this.ui.container) {
+        this.ui.container.classList.remove("gram-frame-analysis-mode", "gram-frame-harmonics-mode");
+        this.ui.container.classList.add(`gram-frame-${mode}-mode`);
       }
       if (this.currentMode) {
         this.currentMode.cleanup();
@@ -6270,14 +6225,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       this.currentMode = this.modes[mode];
       this.currentMode.activate();
-      if (this.guidancePanel) {
+      if (this.ui.guidancePanel) {
         const guidanceContent = this.currentMode.getGuidanceText();
-        updateGuidancePanel(this.guidancePanel, guidanceContent);
+        updateGuidancePanel(this.ui.guidancePanel, guidanceContent);
       }
       this.currentMode.updateLEDs(this.state.cursorPosition);
       updateLEDDisplays(this, this.state);
-      if (this.modeLED) {
-        setLEDValue(this.modeLED, getModeDisplayName(mode));
+      if (this.ui.modeLED) {
+        setLEDValue(this.ui.modeLED, getModeDisplayName(mode));
       }
       updatePersistentPanels(this);
       if (this.featureRenderer) {
