@@ -478,12 +478,12 @@ export class GramFrame {
     this.state.dragState.originalAnchorTime = null
     this.state.dragState.clickedHarmonicNumber = null
 
-    // Changing mode signals the analyst is about to add something new, so drop
+    // Choosing a mode signals the analyst is about to add something new, so drop
     // any selected marker/harmonic. This returns the colour/symbol controls to
     // targeting the NEXT created feature instead of restyling the previously
-    // selected one (feature 161).
-    const modeChanged = this.state.previousMode !== mode
-    if (modeChanged && this.state.selection && this.state.selection.selectedType && this.clearSelection) {
+    // selected one (feature 161). Re-clicking the already-active mode counts too:
+    // it is the natural gesture for "deselect and start fresh".
+    if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
       this.clearSelection()
     }
 
