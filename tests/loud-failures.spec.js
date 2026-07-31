@@ -22,18 +22,15 @@ function readSource(relativePath) {
  *      ignored. Now a failed save/clear raises a non-blocking banner while the
  *      session keeps working in memory.
  *
- * The mode-construction cases deliberately load over `http://127.0.0.1:5173`
- * rather than the `localhost` baseURL: that is the origin where the old
- * hostname special case took the silent branch, so testing there is what
- * proves the branch is gone.
+ * Hostname independence is asserted against the factory source rather than by
+ * loading a second origin: the dev server binds only the baseURL host, so a
+ * `http://127.0.0.1:5173` navigation is refused on CI. With the branch gone from
+ * the source, the behavioural tests below prove the same thing from any origin.
  */
 
-/** Non-localhost origin serving the same Vite dev server as the baseURL. */
-const NON_LOCALHOST = 'http://127.0.0.1:5173'
-
 test.describe('Mode construction fails loudly (GF-04)', () => {
-  test('a throwing mode surfaces the error indicator on a non-localhost host', async ({ page }) => {
-    await page.goto(`${NON_LOCALHOST}/tests/fixtures/mode-failure-page.html`)
+  test('a throwing mode surfaces the error indicator', async ({ page }) => {
+    await page.goto('/tests/fixtures/mode-failure-page.html')
 
     // The failure is reported where the component would have been...
     await expect(page.locator('.gramframe-error-indicator')).toHaveCount(1)
@@ -53,7 +50,7 @@ test.describe('Mode construction fails loudly (GF-04)', () => {
       if (msg.type() === 'error') errors.push(msg.text())
     })
 
-    await page.goto(`${NON_LOCALHOST}/tests/fixtures/mode-failure-page.html`)
+    await page.goto('/tests/fixtures/mode-failure-page.html')
     await expect(page.locator('.gramframe-error-indicator')).toHaveCount(1)
 
     expect(errors.some(text => text.includes('Failed to create mode'))).toBe(true)
@@ -64,7 +61,7 @@ test.describe('Mode construction fails loudly (GF-04)', () => {
     // A page where the component is already loaded: importing ModeFactory into
     // a bare page would trip the state ⇄ modes import cycle (GF-03) instead of
     // testing anything about the factory.
-    await page.goto(`${NON_LOCALHOST}/debug.html`)
+    await page.goto('/debug.html')
     await page.locator('.gram-frame-container').first().waitFor()
 
     const result = await page.evaluate(async () => {
@@ -88,9 +85,11 @@ test.describe('Mode construction fails loudly (GF-04)', () => {
   })
 
   test('no hostname special case remains in the factory source', () => {
+    // The old code threw only on localhost and fell back to a no-op BaseMode
+    // everywhere else. Both halves of that branch must be absent, which is what
+    // makes the behaviour above hold on every host rather than only under test.
     const source = readSource('src/modes/ModeFactory.js')
     expect(source).not.toMatch(/location\??\.hostname/)
-    // And no silent fallback to a no-op mode.
     expect(source).not.toContain('new BaseMode')
   })
 })
