@@ -2,6 +2,90 @@
  * GramFrame Component Styles - Military/Industrial Theme
  */
 
+/* ---------------------------------------------------------------------------
+ * Pre-conversion placeholder
+ *
+ * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a
+ * cold load (large spectrogram, slow network, unbundled dev modules) the raw
+ * table is painted first: a stretched image followed by the time/freq parameter
+ * rows in whatever table styling the host page uses. These rules dress that
+ * intermediate state as a loading placeholder in the component's own dark
+ * styling - the parameter rows are hidden, the image is dimmed back, and a
+ * "Loading spectrogram" caption sits over the top. They stop applying the
+ * moment the table is swapped for .gram-frame-container.
+ *
+ * Selectors are deliberately more specific than a bare `table.gram-config td`
+ * so host-page table styling (borders, padding, stretched images) does not show
+ * through the placeholder.
+ * ------------------------------------------------------------------------- */
+table.gram-config {
+  border-collapse: collapse;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  border: 3px solid #444;
+  border-radius: 8px;
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,0.1),
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    0 4px 8px rgba(0,0,0,0.5);
+}
+
+/* Per the config format, the first row holds the image and every later row is a
+   parameter definition - configuration, not content, so hide those rows */
+table.gram-config tr:not(:first-child) {
+  display: none;
+}
+
+table.gram-config tr:first-child td {
+  position: relative;
+  padding: 15px;
+  border: 0;
+  background: none;
+}
+
+table.gram-config tr:first-child img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  opacity: 0.25;
+}
+
+table.gram-config tr:first-child td::after {
+  content: 'Loading spectrogram';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #00ff00;
+  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Initialisation failed: the table is kept in place beside the error message,
+   so drop the placeholder styling and show the config as plain content again */
+table.gram-config.gram-frame-config-error {
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+table.gram-config.gram-frame-config-error tr:not(:first-child) {
+  display: table-row;
+}
+
+table.gram-config.gram-frame-config-error tr:first-child img {
+  opacity: 1;
+}
+
+table.gram-config.gram-frame-config-error tr:first-child td::after {
+  content: none;
+}
+
 /* Container that replaces the config table */
 .gram-frame-container {
   position: relative;
@@ -74,6 +158,38 @@
   border: 1px solid #666;
   border-radius: 4px;
   pointer-events: none;
+}
+
+/* The SVG has no size until the spectrogram's natural dimensions are known, so
+   the panel is an empty black rectangle between the table being replaced and
+   the image arriving. Caption that gap, and say so plainly if the image never
+   arrives, rather than leaving the analyst looking at a silent black box. */
+.gram-frame-container.gram-frame-loading .gram-frame-main-panel,
+.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {
+  min-height: 120px;
+}
+
+.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,
+.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {
+  content: 'Loading spectrogram';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #00ff00;
+  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {
+  content: 'Spectrogram image could not be loaded';
+  color: #ff6b6b;
+  text-shadow: none;
 }
 
 /* Expand/collapse image toggle — floats at the top-left of the image region,
