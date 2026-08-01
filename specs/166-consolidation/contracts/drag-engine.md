@@ -34,6 +34,17 @@ new BaseDragHandler(instance, {
    */
   resolveTarget(position, event),
 
+  /**
+   * Side-effect-free finder used for hover cursor feedback (grab vs
+   * crosshair). REQUIRED when resolveTarget creates a feature on mousedown
+   * (harmonics `create`, doppler `place`) — hover otherwise falls back to
+   * resolveTarget, and a resolver that mints would create a feature per
+   * mousemove.
+   * @param {DataCoordinates} position
+   * @returns {DragTarget|null}
+   */
+  resolveHoverTarget(position),
+
   /** Called once, after the threshold is crossed. */
   onDragStart(target, position),
 
