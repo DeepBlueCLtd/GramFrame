@@ -8,7 +8,8 @@
 
 /// <reference path="../types.js" />
 
-import { updateSVGLayout, renderAxes } from './table.js'
+import { updateSVGLayout } from './svgLayout.js'
+import { renderAxes } from '../rendering/axes.js'
 import { dispatch } from '../core/state.js'
 
 // Small gap left between the expanded image and the viewport bottom (px).
@@ -40,8 +41,8 @@ function computeAvailableRenderSize(instance) {
   const margins = instance.state.margins
   const { naturalWidth, naturalHeight } = instance.state.imageDetails
 
-  const cell = instance.mainCell
-  const svg = instance.svg
+  const cell = instance.ui.mainCell
+  const svg = instance.ui.svg
   if (!cell || !svg) {
     return { width: naturalWidth, height: naturalHeight }
   }
@@ -76,23 +77,24 @@ function computeAvailableRenderSize(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 function applyExpandLayout(instance) {
+  const imageDetails = instance.state.imageDetails
   if (instance.state.imageExpanded) {
     // Two-pass: expanding a tall image can introduce a page scrollbar which
     // narrows the available width. Lay out once, then recompute against the
     // settled layout so the final fill is accurate (SC-001/SC-002).
     const { width, height } = computeAvailableRenderSize(instance)
-    instance.state.imageDetails.renderWidth = width
-    instance.state.imageDetails.renderHeight = height
+    imageDetails.renderWidth = width
+    imageDetails.renderHeight = height
     updateSVGLayout(instance)
 
     const settled = computeAvailableRenderSize(instance)
     if (Math.abs(settled.width - width) > 1 || Math.abs(settled.height - height) > 1) {
-      instance.state.imageDetails.renderWidth = settled.width
-      instance.state.imageDetails.renderHeight = settled.height
+      imageDetails.renderWidth = settled.width
+      imageDetails.renderHeight = settled.height
     }
   } else {
-    instance.state.imageDetails.renderWidth = instance.state.imageDetails.naturalWidth
-    instance.state.imageDetails.renderHeight = instance.state.imageDetails.naturalHeight
+    imageDetails.renderWidth = imageDetails.naturalWidth
+    imageDetails.renderHeight = imageDetails.naturalHeight
   }
 
   updateSVGLayout(instance)
@@ -130,9 +132,10 @@ export function setImageExpanded(instance, expanded) {
     return
   }
   instance.state.imageExpanded = !!expanded
+  const expandedNow = instance.state.imageExpanded
   applyExpandLayout(instance)
-  if (instance.expandToggleButton) {
-    updateToggleButton(instance.expandToggleButton, instance.state.imageExpanded)
+  if (instance.ui.expandToggleButton) {
+    updateToggleButton(instance.ui.expandToggleButton, expandedNow)
   }
 }
 
@@ -146,8 +149,9 @@ export function refreshExpandedLayout(instance) {
     return
   }
   const { width, height } = computeAvailableRenderSize(instance)
-  instance.state.imageDetails.renderWidth = width
-  instance.state.imageDetails.renderHeight = height
+  const imageDetails = instance.state.imageDetails
+  imageDetails.renderWidth = width
+  imageDetails.renderHeight = height
 }
 
 /**
@@ -164,7 +168,7 @@ export function createExpandToggle(instance) {
   const button = document.createElement('button')
   button.className = 'gram-frame-expand-toggle'
   button.type = 'button'
-  updateToggleButton(button, instance.state.imageExpanded)
+  updateToggleButton(button, instance.state.imageExpanded === true)
 
   button.addEventListener('click', (e) => {
     e.preventDefault()
@@ -173,7 +177,7 @@ export function createExpandToggle(instance) {
   })
 
   // The main panel is position: relative, so the button positions relative to it.
-  instance.mainCell.appendChild(button)
-  instance.expandToggleButton = button
+  instance.ui.mainCell.appendChild(button)
+  instance.ui.expandToggleButton = button
   return button
 }

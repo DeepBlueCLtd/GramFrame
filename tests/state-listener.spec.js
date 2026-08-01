@@ -386,3 +386,104 @@ test.describe('HMR listener preservation survives the dispatcher (spec 166, T063
     expect(result.calls).toBeGreaterThan(0)
   })
 })
+
+test.describe('One listener registry (spec 167, AS-2.3)', () => {
+  test('add-then-remove through the public API leaves nothing behind on any instance', async ({ page }) => {
+    // A multi-instance page is what makes "no copy on *any* instance" a
+    // meaningful assertion rather than a single-instance one.
+    await page.goto('/debug-multiple.html')
+    await page.waitForSelector('.gram-frame-container')
+
+    const result = await page.evaluate(async () => {
+      const listener = () => {}
+
+      // @ts-ignore - module import in the page
+      const state = await import('/src/core/state.js')
+      const instances = window.GramFrame.__test__getInstances()
+
+      window.GramFrame.addStateListener(listener)
+      const afterAdd = {
+        global: state.getGlobalStateListeners().filter((l) => l === listener).length,
+        // Instances used to receive a *copy* of every global listener, so this
+        // was one per instance. The whole point of the change is that it is 0.
+        perInstance: instances.map((i) => i.stateListeners.filter((l) => l === listener).length)
+      }
+
+      const removed = window.GramFrame.removeStateListener(listener)
+      const afterRemove = {
+        global: state.getGlobalStateListeners().filter((l) => l === listener).length,
+        perInstance: instances.map((i) => i.stateListeners.filter((l) => l === listener).length)
+      }
+
+      return { afterAdd, afterRemove, removed, instanceCount: instances.length }
+    })
+
+    expect(result.instanceCount).toBeGreaterThan(1)
+    expect(result.afterAdd.global).toBe(1)
+    expect(result.afterAdd.perInstance.every((n) => n === 0)).toBe(true)
+    expect(result.removed).toBe(true)
+    expect(result.afterRemove.global).toBe(0)
+    expect(result.afterRemove.perInstance.every((n) => n === 0)).toBe(true)
+  })
+
+  test('a global listener is delivered exactly once per notification, on every instance', async ({ page }) => {
+    await page.goto('/debug-multiple.html')
+    await page.waitForSelector('.gram-frame-container')
+
+    const result = await page.evaluate(async () => {
+      /** @type {string[]} */
+      const seen = []
+      const listener = (/** @type {any} */ s) => { seen.push(s.instanceId) }
+
+      window.GramFrame.addStateListener(listener)
+      seen.length = 0 // registration fires once per instance; count from after
+
+      const instances = window.GramFrame.__test__getInstances()
+      instances.forEach((i) => i.notifyStateListeners())
+      await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))
+
+      window.GramFrame.removeStateListener(listener)
+      return { deliveries: seen.length, instanceCount: instances.length }
+    })
+
+    // One delivery per instance — not one per instance per registry copy.
+    expect(result.deliveries).toBe(result.instanceCount)
+  })
+
+  test('a listener registered before an instance exists still reaches it', async ({ gramFramePage }) => {
+    const page = gramFramePage.page
+
+    const result = await page.evaluate(async () => {
+      let calls = 0
+      const listener = () => { calls++ }
+      window.GramFrame.addStateListener(listener)
+      calls = 0
+
+      // A table added after registration: no copy step runs for it, so this is
+      // the case the union-at-delivery change has to carry.
+      const table = document.createElement('table')
+      table.className = 'gram-config'
+      table.innerHTML =
+        '<tr><td colspan="2"><img src="/sample/mock-gram.png"></td></tr>' +
+        '<tr><td>time-start</td><td>0</td></tr>' +
+        '<tr><td>time-end</td><td>60</td></tr>' +
+        '<tr><td>freq-start</td><td>0</td></tr>' +
+        '<tr><td>freq-end</td><td>100</td></tr>'
+      document.body.appendChild(table)
+
+      const before = window.GramFrame.__test__getInstances().length
+      window.GramFrame.detectAndReplaceConfigTables(document.body)
+      const instances = window.GramFrame.__test__getInstances()
+      const created = instances.length > before
+
+      instances[instances.length - 1].notifyStateListeners()
+      await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))
+
+      window.GramFrame.removeStateListener(listener)
+      return { created, calls }
+    })
+
+    expect(result.created).toBe(true)
+    expect(result.calls).toBeGreaterThan(0)
+  })
+})

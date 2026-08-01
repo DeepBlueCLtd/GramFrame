@@ -50,7 +50,7 @@ export function createPinToggle(instance) {
     // Route to the selected harmonic set when one is selected (restyle in
     // place), otherwise set the style for the next created set and remember it
     // for the rest of the session.
-    if (!instance.applyPinToSelectedFeature || !instance.applyPinToSelectedFeature(showPin)) {
+    if (!instance.interaction.applyPinToSelectedFeature || !instance.interaction.applyPinToSelectedFeature(showPin)) {
       state.showHarmonicPin = showPin
       // The choice applies immediately either way; the warning only says it
       // will not survive the next page load (GF-16).
@@ -64,7 +64,7 @@ export function createPinToggle(instance) {
 
   // Expose a control handle so selection changes can reflect the selected
   // set's pin state back into the checkbox.
-  instance._pinControl = {
+  instance.interaction._pinControl = {
     /** @param {boolean} showPin */
     setValue(showPin) {
       checkbox.checked = showPin

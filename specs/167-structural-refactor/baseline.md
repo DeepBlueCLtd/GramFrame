@@ -4,6 +4,23 @@ Every number below was measured at commit `7115a8a` (post-Phase-2 `main`,
 PR #223 merged), not carried over from the audit. Commands are given so each
 can be re-run and disputed.
 
+## Phase-start reference (T001)
+
+The phase started at commit **`b98d3f2`**. Every measurement in this file was
+re-run there before any source change and reproduced exactly:
+
+| Measurement | This file | Re-measured at `b98d3f2` |
+|---|---|---|
+| Strict-flag errors (all three flags) | 540 | **540** ✔ |
+| madge circular dependencies | 11 | **11** ✔ |
+| `instance.state` reach-ins | 243 | **243** ✔ |
+| `main.js` class fields | 56 | **56** ✔ |
+
+The standing gate (`yarn typecheck && yarn lint && yarn test:unit &&
+yarn hygiene && yarn build && yarn test`) was green at that commit, with the
+Playwright suite at **240 passed**. That is the reference every later task is
+measured against.
+
 The register's figures were taken at `edfc549`, before Phase 2 landed. Where
 the two disagree, **the measurement here is authoritative** and the difference
 is explained.

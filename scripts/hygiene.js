@@ -2,12 +2,14 @@
 /**
  * Debt-ratchet hygiene check (specs/164-quality-ratchets).
  *
- * Compares three measured counts against the committed baselines in
+ * Compares the measured counts against the committed baselines in
  * hygiene-baseline.json and exits non-zero on any regression:
  *
  *   1. Circular dependencies in src/ (madge)
  *   2. Modules with unused exports (ts-unused-exports)
  *   3. `waitForTimeout` occurrences in tests/ (containment until Phase 2)
+ *   4. `instance.state` reach-ins under src/ (spec 167 Story 5)
+ *   5. Class-field declarations on GramFrame (spec 167 Story 5)
  *
  * A count below its baseline passes with a reminder to lower the baseline in
  * the same PR, so improvements get locked in as ordinary reviewed diffs.
@@ -103,6 +105,67 @@ results.push({
   baseline: baseline.waitForTimeoutOccurrences,
   current: timeoutTotal,
   detail: timeoutCounts,
+})
+
+/**
+ * Recursively collect every `.js` file under `src/`.
+ * @param {string} dir
+ * @returns {string[]}
+ */
+function collectSourceFiles(dir) {
+  const files = []
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry)
+    if (statSync(full).isDirectory()) {
+      files.push(...collectSourceFiles(full))
+    } else if (full.endsWith('.js')) {
+      files.push(full)
+    }
+  }
+  return files
+}
+
+// --- 4 & 5. Instance surface (spec 167 Story 5) -----------------------------
+
+const sourceFiles = collectSourceFiles(join(repoRoot, 'src'))
+
+// Lines rather than occurrences, matching the baseline command in
+// specs/167-structural-refactor/quickstart.md (`grep -rn … | wc -l`).
+const reachInCounts = []
+let reachInTotal = 0
+for (const file of sourceFiles) {
+  const count = readFileSync(file, 'utf8')
+    .split('\n')
+    .filter(line => line.includes('instance.state')).length
+  if (count) {
+    reachInCounts.push(`${relative(repoRoot, file)}: ${count}`)
+    reachInTotal += count
+  }
+}
+results.push({
+  name: 'instance.state reach-ins (src/)',
+  baseline: baseline.instanceStateReachIns,
+  current: reachInTotal,
+  detail: reachInCounts.sort((a, b) => Number(b.split(': ')[1]) - Number(a.split(': ')[1])),
+})
+
+// Class-field declarations between `export class GramFrame` and its
+// constructor — the flat instance surface Story 5 groups into sub-objects.
+const mainSource = readFileSync(join(repoRoot, 'src/main.js'), 'utf8').split('\n')
+const classStart = mainSource.findIndex(line => line.startsWith('export class GramFrame'))
+const ctorStart = mainSource.findIndex((line, i) => i > classStart && line.startsWith('  constructor'))
+if (classStart === -1 || ctorStart === -1) {
+  console.error('✖ Could not locate `export class GramFrame` and its constructor in src/main.js — the instanceFields ratchet cannot be measured.')
+  process.exit(1)
+}
+const fieldDeclarations = mainSource
+  .slice(classStart, ctorStart + 1)
+  .filter(line => /^ {2}[a-zA-Z_]\w*\s*(;|=)/.test(line))
+results.push({
+  name: 'GramFrame class fields (src/main.js)',
+  baseline: baseline.instanceFields,
+  current: fieldDeclarations.length,
+  detail: fieldDeclarations.map(line => line.trim()),
 })
 
 // --- Report -----------------------------------------------------------------

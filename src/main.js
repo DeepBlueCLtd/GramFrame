@@ -4,6 +4,9 @@
 
 /// <reference path="./types.js" />
 
+/** @typedef {import('./modes/BaseMode.js').BaseMode} BaseMode */
+/** @typedef {import('./core/FeatureRenderer.js').FeatureRenderer} FeatureRenderer */
+
 import {
   createInitialState,
   dispatch,
@@ -16,12 +19,13 @@ import {
 import {
   updateLEDDisplays
 } from './components/UIComponents.js'
+import { setLEDValue } from './components/LEDDisplay.js'
 import { 
   updatePersistentPanels 
 } from './components/MainUI.js'
 
 // Initialization modules
-import { initializeDOMProperties, setupSpectrogramComponents } from './core/initialization/DOMSetup.js'
+import { setupSpectrogramComponents } from './core/initialization/DOMSetup.js'
 import { setupAllEventListeners, setupStateListeners } from './core/initialization/EventBindings.js'
 import { initializeModeInfrastructure, setupModeUI } from './core/initialization/ModeInitialization.js'
 import { 
@@ -31,9 +35,6 @@ import {
   setupSpectrogramIfAvailable 
 } from './core/initialization/UISetup.js'
 import {
-  zoomIn,
-  zoomOut, 
-  zoomReset,
   setZoom,
   updateZoomControlStates,
   handleResize,
@@ -41,6 +42,8 @@ import {
 } from './core/viewport.js'
 import { getModeDisplayName } from './utils/calculations.js'
 import { updateGuidancePanel } from './utils/secureHTML.js'
+
+import { ModeFactory } from './modes/ModeFactory.js'
 
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
@@ -77,110 +80,85 @@ import {
  * GramFrame class - Main component implementation
  */
 export class GramFrame {
+  /**
+   * Every DOM element handle this component owns.
+   *
+   * Grouped rather than kept as 28 flat fields (spec 167, US5): they share a
+   * lifetime — built during construction, torn down together — and reading
+   * `instance.ui.svg` says which of the instance's concerns you are reaching
+   * into, where `instance.svg` said only that you were reaching.
+   * @type {GramFrameUI}
+   */
+  ui;
+
+  /**
+   * Selection, restyling and the transient pointer state behind them.
+   * @type {GramFrameInteraction}
+   */
+  interaction = {
+    setSelection: () => {},
+    clearSelection: () => {},
+    updateSelectionVisuals: () => {},
+    applyColorToSelectedFeature: () => false,
+    applySymbolToSelectedFeature: () => false,
+    applyPinToSelectedFeature: () => false,
+    applyLargeSymbolsToSelectedFeature: () => false,
+    removeHarmonicSet: () => {},
+    // Replaced by the colour picker when it mounts; a no-op until then, so a
+    // caller arriving early does nothing rather than throwing.
+    syncStyleControls: () => {},
+    _symbolControl: null,
+    _pinControl: null,
+    _largeSymbolsControl: null,
+    _registeredListeners: [],
+    _wheelPanHandler: null,
+    _wheelPanLast: null
+  };
+
+  /**
+   * How the component watches for size changes.
+   * @type {GramFrameViewport}
+   */
+  viewport = { resizeObserver: null, _boundHandleResize: null };
+
+  /**
+   * Where this instance's annotations are saved, and under which context.
+   * @type {GramFramePersistence}
+   */
+  persistence = { _storageInstanceIndex: 0, _isTrainerContext: false };
+
   // Core properties
+  /** @type {GramFrameState} */
   state;
+  /** @type {HTMLTableElement} */
   configTable;
+  /** @type {StateListener[]} */
   stateListeners;
+  /** @type {string} */
   instanceId;
   
-  // DOM element properties
-  container;
-  readoutPanel;
-  modeCell;
-  mainCell;
-  modeLED;
-  rateLED;
-  colorPicker;
-  svg;
-  cursorGroup;
-  axesGroup;
-  imageClipRect;
-  cursorClipRect;
   
-  // Unified layout containers
-  leftColumn;
-  middleColumn;
-  rightColumn;
-  modeColumn;
-  guidanceColumn;
-  controlsColumn;
-  unifiedLayoutContainer;
-  timeLED;
-  freqLED;
-  speedLED;
-  markersContainer;
-  harmonicsContainer;
   
-  // Spectrogram image
-  spectrogramImage;
 
-  // Expand/collapse toggle button (landscape images only)
-  expandToggleButton;
+
   
-  // Mode switching UI
-  modesContainer;
-  modeButtons;
-  commandButtons;
-  guidancePanel;
   
   // Mode system
+  /** @type {Object<string, BaseMode>} */
   modes;
+  /** @type {BaseMode} */
   currentMode;
+  /** @type {FeatureRenderer} */
   featureRenderer;
   
-  // Keyboard control functions
-  setSelection;
-  clearSelection;
-  updateSelectionVisuals;
 
-  // Reformatting (feature 161): restyle the selected feature in place
-  applyColorToSelectedFeature;
-  applySymbolToSelectedFeature;
-  // Show/hide the selected harmonic set's pin lines
-  applyPinToSelectedFeature;
-  // EXPERIMENT (temporary): resize the selected feature's symbols
-  applyLargeSymbolsToSelectedFeature;
-  // Sync the colour/symbol/pin controls to the current selection
-  syncStyleControls;
-  // Symbol drop-down control handle (registered by the symbol picker)
-  _symbolControl;
-  // Pin toggle control handle (registered by the pin toggle)
-  _pinControl;
-  // EXPERIMENT (temporary): "Large symbols" checkbox handle
-  _largeSymbolsControl;
   
-  // ResizeObserver
-  resizeObserver;
   
-  // Bound event handlers
-  _boundHandleResize;
 
-  /**
-   * Every listener attached by setupEventListeners, kept so destroy() can
-   * remove them (they used to be anonymous and therefore unremovable).
-   * @type {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>}
-   */
-  _registeredListeners = [];
 
-  /**
-   * Transient state for a wheel-button (middle) drag pan; null when not dragging.
-   * Not part of the broadcast state.
-   * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
-   */
-  _wheelPanHandler = null;
 
-  /** @type {{x: number, y: number}|null} */
-  _wheelPanLast = null;
 
-  // Storage instance index for multi-instance pages
-  _storageInstanceIndex;
 
-  // Whether this instance is a trainer context
-  _isTrainerContext;
-
-  // Set when the browser lacks a required API; construction is skipped and a
-  // compatibility warning is shown in place of the component.
-  _unsupportedBrowser;
 
   /**
    * Creates a new GramFrame instance
@@ -193,17 +171,22 @@ export class GramFrame {
     // never reaches the modern DOM calls (e.g. Element.replaceChildren) that
     // would throw and fail silently. When the required APIs are missing, show a
     // clear "please update your browser" warning in place of the component and
-    // stop constructing — the rest of the setup (which relies on those APIs) is
-    // skipped. Callers going through GramFrameAPI.init() are already short-
-    // circuited before this point; this covers direct `new GramFrame(table)` use.
+    // stop constructing — the rest of the setup relies on those APIs.
+    //
+    // Throws rather than returning a half-built instance. Callers going through
+    // `GramFrameAPI.init()` are short-circuited well before this point, so the
+    // only way here is a direct `new GramFrame(table)`, and handing that caller
+    // an object whose every field is undefined is the silent failure the
+    // warning exists to prevent. It also means every field below is assigned on
+    // every path that completes, which is what lets them carry non-null types
+    // (spec 167, FR-009).
     if (!isBrowserSupported()) {
-      this._unsupportedBrowser = true
       showCompatibilityWarning(configTable)
-      return
+      throw new Error('GramFrame: this browser is missing APIs the component requires. A compatibility warning has been shown in place of the component.')
     }
 
     // Core state initialization
-    this.state = createInitialState()
+    this.state = createInitialState(ModeFactory.getModeInitialStates())
     // Harmonic-pin visibility is a per-session preference: on at the start of
     // each browser session, then remembered across page loads within it. Read
     // before any UI is built so the toggle renders in the right position.
@@ -212,25 +195,83 @@ export class GramFrame {
     this.instanceId = ''
 
     // Determine storage instance index (count existing containers)
-    this._storageInstanceIndex = document.querySelectorAll('.gram-frame-container').length
+    this.persistence._storageInstanceIndex = document.querySelectorAll('.gram-frame-container').length
 
     // Detect trainer vs student context
-    this._isTrainerContext = detectUserContext() === 'trainer'
+    this.persistence._isTrainerContext = detectUserContext() === 'trainer'
 
-    // Delegate to initialization modules
-    initializeDOMProperties(this)
-    setupSpectrogramComponents(this)
-    createUnifiedLayoutStructure(this)
-    setupPersistentContainers(this)
+    // Initialization, in dependency order. Each step declares what it needs and
+    // returns what it built; the constructor is the only place the results are
+    // adopted onto the instance. Swap two of these and the failure is a missing
+    // argument at check time, not an `undefined` surfacing three steps later
+    // (spec 167, FR-009, AS-5.2).
+    const dom = setupSpectrogramComponents(this, configTable)
+    const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell)
+    const initialModeUI = setupPersistentContainers(this, layout.modeColumn, layout.guidanceColumn)
+
+    this.ui = {
+      container: dom.container,
+      table: dom.table,
+      modeRow: dom.modeRow,
+      mainRow: dom.mainRow,
+      readoutPanel: dom.readoutPanel,
+      modeCell: dom.modeCell,
+      mainCell: dom.mainCell,
+      svg: dom.svg,
+      spectrogramImage: dom.spectrogramImage,
+      cursorGroup: dom.cursorGroup,
+      axesGroup: dom.axesGroup,
+      imageClipRect: dom.imageClipRect,
+      cursorClipRect: dom.cursorClipRect,
+      modeColumn: layout.modeColumn,
+      markersContainer: layout.markersContainer,
+      harmonicsContainer: layout.harmonicsContainer,
+      timeLED: layout.timeLED,
+      freqLED: layout.freqLED,
+      speedLED: layout.speedLED,
+      colorPicker: layout.colorPicker,
+      modesContainer: initialModeUI.modesContainer,
+      modeButtons: initialModeUI.modeButtons,
+      commandButtons: initialModeUI.commandButtons,
+      guidancePanel: initialModeUI.guidancePanel,
+      // Mounted later, or not at all: the harmonics panel arrives with that
+      // mode's UI, the expand toggle only for a landscape image, and nothing
+      // assigns the mode/rate LEDs at all — every read of them is guarded.
+      harmonicPanel: null,
+      expandToggleButton: null,
+      modeLED: null,
+      rateLED: null
+    }
+
     setupSpectrogramIfAvailable(this)
-    initializeModeInfrastructure(this)
-    setupModeUI(this)
-    updateModeUIWithCommands(this)
-    setupAllEventListeners(this)
+
+    const { modes, featureRenderer } = initializeModeInfrastructure(this)
+    this.modes = modes
+    this.featureRenderer = featureRenderer
+    this.currentMode = setupModeUI(this, modes, layout.markersContainer, layout.harmonicsContainer, initialModeUI.guidancePanel)
+
+    const modeUI = updateModeUIWithCommands(
+      this, initialModeUI, modes, this.currentMode, layout.modeColumn, layout.guidanceColumn
+    )
+    this.ui.modesContainer = modeUI.modesContainer
+    this.ui.modeButtons = modeUI.modeButtons
+    this.ui.commandButtons = modeUI.commandButtons
+    this.ui.guidancePanel = modeUI.guidancePanel
+
+    const controls = setupAllEventListeners(this)
+    this.interaction.removeHarmonicSet = controls.removeHarmonicSet
+    this.interaction.setSelection = controls.setSelection
+    this.interaction.clearSelection = controls.clearSelection
+    this.interaction.updateSelectionVisuals = controls.updateSelectionVisuals
+    this.interaction.applyColorToSelectedFeature = controls.applyColorToSelectedFeature
+    this.interaction.applySymbolToSelectedFeature = controls.applySymbolToSelectedFeature
+    this.interaction.applyPinToSelectedFeature = controls.applyPinToSelectedFeature
+    this.interaction.applyLargeSymbolsToSelectedFeature = controls.applyLargeSymbolsToSelectedFeature
+
     setupStateListeners(this)
 
     // Add "Clear gram" button for trainer pages
-    if (this._isTrainerContext) {
+    if (this.persistence._isTrainerContext) {
       this._addClearGramButton()
     }
 
@@ -267,29 +308,14 @@ export class GramFrame {
   // Zoom controls removed - now handled by pan mode command buttons
   
   /**
-   * Zoom in by increasing zoom level
-   */
-  _zoomIn() {
-    zoomIn(this)
-  }
-  
-  /**
-   * Zoom out by decreasing zoom level
-   */
-  _zoomOut() {
-    zoomOut(this)
-  }
-  
-  /**
-   * Reset zoom to 1x
-   */
-  _zoomReset() {
-    zoomReset(this)
-  }
-  
-  
-  /**
-   * Set zoom level and center point
+   * Set zoom level and center point.
+   *
+   * The one surviving instance-level zoom forwarder. `_zoomIn`, `_zoomOut` and
+   * `_zoomReset` were deleted with their last caller when Pan mode's command
+   * buttons started calling `core/viewport.js` directly — zoom has one seam,
+   * and reaching it through an underscore-prefixed instance method was a second
+   * one (spec 167, FR-007, AS-4.3). This remains because the Playwright helper
+   * drives zoom through it from the page.
    * @param {number} level - Zoom level (1.0 = no zoom)
    * @param {number} centerX - Center X (0-1 normalized)
    * @param {number} centerY - Center Y (0-1 normalized)
@@ -334,8 +360,8 @@ export class GramFrame {
     })
 
     // Append to the mode column alongside the mode buttons
-    if (this.modeColumn) {
-      this.modeColumn.appendChild(btn)
+    if (this.ui.modeColumn) {
+      this.ui.modeColumn.appendChild(btn)
     }
   }
 
@@ -348,7 +374,7 @@ export class GramFrame {
     // later cannot survive a "Clear gram" by being forgotten here (GF-12).
     // Everything describing *this* gram — its config, image, viewport, current
     // mode and session-level style choices — is preserved.
-    const fresh = createInitialState()
+    const fresh = createInitialState(ModeFactory.getModeInitialStates())
     this.state.analysis = fresh.analysis
     this.state.harmonics = fresh.harmonics
     this.state.doppler = fresh.doppler
@@ -358,7 +384,7 @@ export class GramFrame {
 
     // Remove from storage. A failure here means the annotations just cleared on
     // screen will reappear on reload, so say so rather than failing silently.
-    if (clearAnnotations(this._storageInstanceIndex)) {
+    if (clearAnnotations(this.persistence._storageInstanceIndex)) {
       clearStorageWarning(this)
     } else {
       showStorageWarning(this, 'Saved annotations could not be removed from browser storage — they may reappear when this page is reloaded.')
@@ -388,7 +414,7 @@ export class GramFrame {
    * Restore saved annotations from browser storage into state
    */
   _restoreAnnotations() {
-    const saved = loadAnnotations(this._storageInstanceIndex)
+    const saved = loadAnnotations(this.persistence._storageInstanceIndex)
     if (!saved) return
 
     markAnnotationsChanged(this)
@@ -433,13 +459,14 @@ export class GramFrame {
     /** @type {string} */
     let lastSignature = ''
 
-    this.stateListeners.push((state) => {
+    this.stateListeners.push((/** @type {GramFrameState} */ state) => {
       // A cheap signature, not a re-serialisation of every annotation. The
       // listener runs on every notification — including pure cursor moves and
       // zoom changes — and stringifying the full annotation set each time is
       // the compounding cost GF-07 records. Counts plus the doppler marker
       // identity, guarded by a counter the annotation-mutating paths bump,
       // catch every change that matters (spec 166, AS-4.3).
+      /** @type {Partial<DopplerState>} */
       const doppler = state.doppler || {}
       const signature = [
         state.annotationRevision || 0,
@@ -458,7 +485,7 @@ export class GramFrame {
         // persisted (quota, private browsing, disabled storage) — GF-16. With
         // nothing annotated there is nothing to lose yet, so an unavailable
         // store stays quiet until the analyst actually creates something.
-        if (saveAnnotations(this.state, this._storageInstanceIndex)) {
+        if (saveAnnotations(this.state, this.persistence._storageInstanceIndex)) {
           clearStorageWarning(this)
         } else if (hasPersistableAnnotations(state)) {
           showStorageWarning(this, 'Annotations could not be saved — they will be lost when this page is reloaded.')
@@ -490,8 +517,8 @@ export class GramFrame {
     cleanupKeyboardControl(this)
     
     // Remove from DOM if still attached
-    if (this.container && this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container)
+    if (this.ui.container && this.ui.container.parentNode) {
+      this.ui.container.parentNode.removeChild(this.ui.container)
     }
   }
   
@@ -532,16 +559,16 @@ export class GramFrame {
     // targeting the NEXT created feature instead of restyling the previously
     // selected one (feature 161). Re-clicking the already-active mode counts too:
     // it is the natural gesture for "deselect and start fresh".
-    if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
-      this.clearSelection()
+    if (this.state.selection && this.state.selection.selectedType && this.interaction.clearSelection) {
+      this.interaction.clearSelection()
     }
 
     // Cursor styling removed - no display element
     
     // Update UI
-    if (this.modeButtons) {
-      Object.keys(this.modeButtons).forEach(m => {
-        const button = this.modeButtons[m]
+    if (this.ui.modeButtons) {
+      Object.keys(this.ui.modeButtons).forEach(m => {
+        const button = this.ui.modeButtons[m]
         if (button) {
           if (m === mode) {
             button.classList.add('active')
@@ -553,11 +580,11 @@ export class GramFrame {
     }
     
     // Update container class for mode-specific styling
-    if (this.container) {
+    if (this.ui.container) {
       // Remove all mode classes
-      this.container.classList.remove('gram-frame-analysis-mode', 'gram-frame-harmonics-mode')
+      this.ui.container.classList.remove('gram-frame-analysis-mode', 'gram-frame-harmonics-mode')
       // Add current mode class
-      this.container.classList.add(`gram-frame-${mode}-mode`)
+      this.ui.container.classList.add(`gram-frame-${mode}-mode`)
     }
     
     // Switch to new mode instance and activate it (all modes now use polymorphic pattern)
@@ -575,9 +602,9 @@ export class GramFrame {
     this.currentMode.activate()
     
     // Update guidance panel using mode's guidance text
-    if (this.guidancePanel) {
+    if (this.ui.guidancePanel) {
       const guidanceContent = this.currentMode.getGuidanceText()
-      updateGuidancePanel(this.guidancePanel, guidanceContent)
+      updateGuidancePanel(this.ui.guidancePanel, guidanceContent)
     }
     
     // Update LED display visibility
@@ -587,8 +614,8 @@ export class GramFrame {
     updateLEDDisplays(this, this.state)
     
     // Update global status LEDs
-    if (this.modeLED) {
-      this.modeLED.querySelector('.gram-frame-led-value').textContent = getModeDisplayName(mode)
+    if (this.ui.modeLED) {
+      setLEDValue(this.ui.modeLED, getModeDisplayName(mode))
     }
     
     // Update persistent panels regardless of active mode

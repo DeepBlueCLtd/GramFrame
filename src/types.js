@@ -186,17 +186,20 @@
  * @property {DragKind} kind - What kind of drag this starts
  * @property {string|null} id - Feature id for move/place; null for create/pan
  * @property {string|null} type - Feature type; null for pan
- * @property {DataCoordinates} [position] - Current position of the target
+ * @property {DataCoordinates|null} [position] - Current position of the target; null for a pixel-space (pan) drag
  * @property {any} [data] - Snapshot the mode needs to compute deltas
  */
 
 /**
  * Lifecycle callbacks a mode supplies to the drag engine.
+ * Positions are nullable throughout: a pan drag works in screen pixels and has
+ * no meaningful data position, so it passes null and its callbacks ignore the
+ * argument. Every feature drag receives a real position.
  * @typedef {Object} DragCallbacks
- * @property {function(DataCoordinates, MouseEvent=): DragTarget|null} resolveTarget - Decide whether this mousedown starts a drag, and of what kind
- * @property {function(DragTarget, DataCoordinates, MouseEvent=): void} onDragStart - Called once, when the drag starts
- * @property {function(DragTarget, DataCoordinates, DataCoordinates, MouseEvent=): void} onDragMove - Called per move
- * @property {function(DragTarget, DataCoordinates, MouseEvent=): void} onDragEnd - Called on mouseup
+ * @property {function(DataCoordinates|null, MouseEvent=): DragTarget|null} resolveTarget - Decide whether this mousedown starts a drag, and of what kind
+ * @property {function(DragTarget, DataCoordinates|null, MouseEvent=): void} onDragStart - Called once, when the drag starts
+ * @property {function(DragTarget, DataCoordinates|null, DataCoordinates|null, MouseEvent=): void} onDragMove - Called per move
+ * @property {function(DragTarget, DataCoordinates|null, MouseEvent=): void} onDragEnd - Called on mouseup, or with a null position when a drag is cancelled
  * @property {function(DragTarget): void} [onDragCancel] - Called on mouseleave / cancel; must restore prior state
  * @property {function(string): void} [updateCursor] - Apply a cursor style
  * @property {function(DragKind|null, string): string|null} [cursorFor] - Optional per-kind cursor
@@ -369,84 +372,16 @@
  */
 
 /**
- * GramFrame class interface for JSDoc type checking
- * Note: This interface may be partially initialized during startup
- * @typedef {Object} GramFrame
- * @property {GramFrameState} [state] - Main state object
- * @property {string} [instanceId] - Unique instance identifier  
- * @property {StateListener[]} [stateListeners] - Array of state listeners
- * @property {HTMLTableElement} [configTable] - Original configuration table
- * @property {HTMLDivElement|null} [table] - Component table element
- * @property {HTMLDivElement|null} [modeRow] - Mode selection row
- * @property {HTMLDivElement|null} [mainRow] - Main display row
- * 
- * @property {HTMLDivElement|null} [container] - Main container element
- * @property {SVGSVGElement|null} [svg] - Main SVG element
- * @property {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
- * @property {HTMLButtonElement|null} [expandToggleButton] - Expand/collapse toggle button (landscape only)
- * @property {SVGGElement|null} [cursorGroup] - SVG group for cursor elements
- * @property {SVGGElement|null} [axesGroup] - SVG group for axes
- * @property {SVGRectElement|null} [imageClipRect] - Clipping rectangle for image
- * @property {SVGRectElement|null} [cursorClipRect] - Clipping rectangle for cursor group
- * @property {HTMLDivElement|null} [readoutPanel] - Container for readouts
- * @property {HTMLDivElement|null} [modeCell] - Mode selection cell
- * @property {HTMLDivElement|null} [mainCell] - Main display cell
- * @property {HTMLElement|null} [colorPicker] - Combined colour/symbol picker component
- * @property {HTMLElement|null} [timeLED] - Time display LED
- * @property {HTMLElement|null} [freqLED] - Frequency display LED
- * @property {HTMLElement|null} [speedLED] - Speed display LED
- * @property {HTMLElement|null} [modeLED] - Mode display LED
- * @property {HTMLElement|null} [rateLED] - Rate display LED
- * @property {HTMLDivElement|null} [markersContainer] - Container for markers
- * @property {HTMLDivElement|null} [harmonicsContainer] - Container for harmonics
- * @property {HTMLDivElement|null} [leftColumn] - Left column layout
- * @property {HTMLDivElement|null} [middleColumn] - Middle column layout
- * @property {HTMLDivElement|null} [rightColumn] - Right column layout
- * @property {HTMLDivElement|null} [modeColumn] - Mode buttons column
- * @property {HTMLDivElement|null} [guidanceColumn] - Guidance text column  
- * @property {HTMLDivElement|null} [controlsColumn] - Controls column
- * @property {HTMLDivElement|null} [unifiedLayoutContainer] - Main layout container
- * @property {HTMLDivElement|null} [modesContainer] - Container for modes
- * @property {Object<string, HTMLButtonElement>|null} [modeButtons] - Mode switching buttons
- * @property {Object<string, HTMLButtonElement[]>|null} [commandButtons] - Command buttons
- * @property {HTMLDivElement|null} [guidancePanel] - Guidance text panel
- * 
- * @property {Object<string, *>|null} [modes] - Available modes
- * @property {*|null} [currentMode] - Current active mode
- * @property {*|null} [featureRenderer] - Feature rendering coordinator
- * 
- * @property {ResizeObserver|null} [resizeObserver] - Resize observer instance
- * @property {(function(Event): void)|null} [_boundHandleResize] - Bound resize handler
- * @property {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} [_registeredListeners] - Listeners attached by setupEventListeners, kept for removal on destroy
- * @property {function(): void} notifyStateListeners - Broadcast this instance's state to its listeners
- * @property {any} [_wheelPanHandler] - Central middle-button pan drag handler
- * @property {{x: number, y: number}|null} [_wheelPanLast] - Last pointer position during a middle-button pan
- * @property {Object|null} [zoomControls] - Zoom control elements
- * @property {HTMLElement|null} [harmonicPanel] - Harmonic panel element
- * 
- * @property {function(DataCoordinates): void} [updateUniversalCursorReadouts] - Update cursor readouts
- * @property {function(): void} [updatePersistentPanels] - Update markers and harmonics panels
- * @property {function(): void} [destroy] - Clean up and destroy instance
- * @property {function(number, number): void} [_panImage] - Pan the image
- * @property {function(number, number, number): void} [_setZoom] - Set zoom level
- * @property {function(): void} [_zoomIn] - Zoom in
- * @property {function(): void} [_zoomOut] - Zoom out
- * @property {function(): void} [_zoomReset] - Reset zoom
- * @property {function(): void} [_handleResize] - Handle resize events
- * @property {function(ModeType): void} [_switchMode] - Switch between modes
- * @property {function(string, string, number): void} [setSelection] - Set selection
- * @property {function(): void} [clearSelection] - Clear selection  
- * @property {function(): void} [updateSelectionVisuals] - Update selection visuals
- * @property {function(string): void} [removeHarmonicSet] - Remove harmonic set by ID
- * @property {function(string): boolean} [applyColorToSelectedFeature] - Restyle the selected feature's colour in place (feature 161)
- * @property {function(SymbolType): boolean} [applySymbolToSelectedFeature] - Restyle the selected feature's symbol in place (feature 161)
- * @property {function(boolean): boolean} [applyPinToSelectedFeature] - Show/hide the selected harmonic set's pin lines in place
- * @property {function(boolean): boolean} [applyLargeSymbolsToSelectedFeature] - EXPERIMENT (temporary): resize the selected feature's symbols in place
- * @property {function(): void} [syncStyleControls] - Sync the colour/symbol/pin controls to the current selection (feature 161)
- * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} [_symbolControl] - Symbol drop-down control handle
- * @property {{setValue: function(boolean): void, setEnabled: function(boolean): void}|null} [_pinControl] - Pin toggle control handle
- * @property {{setValue: function(boolean): void}|null} [_largeSymbolsControl] - EXPERIMENT (temporary): "Large symbols" checkbox handle
- * @property {function(): void} [createUnifiedLayout] - Create unified layout
+ * The GramFrame component itself.
+ *
+ * Resolved from the class rather than restated here. This used to be a
+ * hand-written interface of ~70 optional, nullable members, prefaced with
+ * "this interface may be partially initialized during startup" — which was
+ * true when `initializeDOMProperties` set every field to `null` and later
+ * steps filled them in. It is no longer: the constructor assigns each field
+ * from the step that builds it, so the class declarations are the truth and a
+ * second copy here could only drift from them (spec 167, FR-009).
+ * @typedef {import('./main.js').GramFrame} GramFrame
  */
 
 /**
@@ -480,6 +415,108 @@
  * @property {Object<string, HTMLButtonElement>} modeButtons - Mode switching buttons
  * @property {Object<string, HTMLButtonElement[]>} commandButtons - Command buttons by mode
  * @property {HTMLDivElement} guidancePanel - Guidance text panel
+ */
+
+/**
+ * Selection, restyling and the transient pointer state behind them,
+ * grouped as `instance.interaction`.
+ * @typedef {Object} GramFrameInteraction
+ * @property {function(string, string, number): void} setSelection - Select a feature
+ * @property {function(): void} clearSelection - Clear the selection
+ * @property {function(): void} updateSelectionVisuals - Re-render selection styling
+ * @property {function(string): boolean} applyColorToSelectedFeature - Restyle colour in place
+ * @property {function(SymbolType): boolean} applySymbolToSelectedFeature - Restyle symbol in place
+ * @property {function(boolean): boolean} applyPinToSelectedFeature - Show/hide pin lines
+ * @property {function(boolean): boolean} applyLargeSymbolsToSelectedFeature - Resize symbols
+ * @property {function(string): void} removeHarmonicSet - Delete a harmonic set by id
+ * @property {function(): void} syncStyleControls - Sync the controls to the selection
+ * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} _symbolControl - Symbol drop-down handle
+ * @property {{setValue: function(boolean): void, setEnabled: function(boolean): void}|null} _pinControl - Pin toggle handle
+ * @property {{setValue: function(boolean): void}|null} _largeSymbolsControl - "Large symbols" checkbox handle
+ * @property {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} _registeredListeners - Listeners kept for removal on destroy
+ * @property {import('./modes/shared/BaseDragHandler.js').BaseDragHandler|null} _wheelPanHandler - Drag engine for a middle-button pan
+ * @property {{x: number, y: number}|null} _wheelPanLast - Last pointer position during a middle-button pan
+ */
+
+/**
+ * How the component watches for size changes, grouped as `instance.viewport`.
+ * @typedef {Object} GramFrameViewport
+ * @property {ResizeObserver|null} resizeObserver - Observer on the container
+ * @property {(function(Event): void)|null} _boundHandleResize - Bound window resize handler
+ */
+
+/**
+ * Where this instance's annotations are saved, grouped as `instance.persistence`.
+ * @typedef {Object} GramFramePersistence
+ * @property {number} _storageInstanceIndex - Index distinguishing instances on one page
+ * @property {boolean} _isTrainerContext - Whether this page is trainer material
+ */
+
+/**
+ * Every DOM element handle a GramFrame instance owns, grouped as `instance.ui`.
+ *
+ * Non-null except where noted: the constructor builds all of these before it
+ * returns, and nothing outside `main.js` runs before that finishes.
+ * @typedef {Object} GramFrameUI
+ * @property {HTMLDivElement} container - Root container replacing the config table
+ * @property {HTMLDivElement} table - Layout table
+ * @property {HTMLDivElement} modeRow - Mode header row
+ * @property {HTMLDivElement} mainRow - Main display row
+ * @property {HTMLDivElement} readoutPanel - Readout panel
+ * @property {HTMLDivElement} modeCell - Mode header cell
+ * @property {HTMLDivElement} mainCell - Main display cell
+ * @property {HTMLElement|null} modeLED - Mode LED; never assigned today, so always null
+ * @property {HTMLElement|null} rateLED - Rate LED; never assigned today, so always null
+ * @property {HTMLElement} colorPicker - Combined colour/symbol picker
+ * @property {SVGSVGElement} svg - Root SVG
+ * @property {SVGGElement} cursorGroup - Group holding cursors and persistent features
+ * @property {SVGGElement} axesGroup - Group holding the axes
+ * @property {SVGRectElement} imageClipRect - Clip rect for the image
+ * @property {SVGRectElement} cursorClipRect - Clip rect for the cursor group
+ * @property {HTMLDivElement} modeColumn - Mode buttons column
+ * @property {HTMLElement} timeLED - Time readout
+ * @property {HTMLElement} freqLED - Frequency readout
+ * @property {HTMLElement} speedLED - Speed readout
+ * @property {HTMLDivElement} markersContainer - Markers table container
+ * @property {HTMLDivElement} harmonicsContainer - Harmonics panel container
+ * @property {HTMLElement|null} harmonicPanel - Harmonics panel, mounted by HarmonicsMode
+ * @property {SVGImageElement} spectrogramImage - The spectrogram image element
+ * @property {HTMLButtonElement|null} expandToggleButton - Expand toggle; absent for portrait images
+ * @property {HTMLDivElement} modesContainer - Mode buttons container
+ * @property {Object<string, HTMLButtonElement>} modeButtons - Mode buttons by mode
+ * @property {Object<string, HTMLButtonElement[]>} commandButtons - Command buttons by mode
+ * @property {HTMLDivElement} guidancePanel - Guidance text panel
+ */
+
+/**
+ * The selection and restyle functions bound by `setupAllEventListeners`.
+ * @typedef {Object} SelectionControls
+ * @property {function(string): void} removeHarmonicSet - Delete a harmonic set by id
+ * @property {function(string, string, number): void} setSelection - Select a feature
+ * @property {function(): void} clearSelection - Clear the selection
+ * @property {function(): void} updateSelectionVisuals - Re-render selection styling
+ * @property {function(string): boolean} applyColorToSelectedFeature - Restyle colour in place
+ * @property {function(SymbolType): boolean} applySymbolToSelectedFeature - Restyle symbol in place
+ * @property {function(boolean): boolean} applyPinToSelectedFeature - Show/hide pin lines
+ * @property {function(boolean): boolean} applyLargeSymbolsToSelectedFeature - Resize symbols
+ */
+
+/**
+ * The columns, LED displays and panel containers built by `createUnifiedLayout`.
+ * @typedef {Object} UnifiedLayoutElements
+ * @property {HTMLDivElement} unifiedLayoutContainer - Main layout container
+ * @property {HTMLDivElement} leftColumn - Readout column
+ * @property {HTMLDivElement} middleColumn - Markers column
+ * @property {HTMLDivElement} rightColumn - Harmonics column
+ * @property {HTMLDivElement} modeColumn - Mode buttons column
+ * @property {HTMLDivElement} guidanceColumn - Guidance text column
+ * @property {HTMLDivElement} controlsColumn - Controls column
+ * @property {HTMLDivElement} markersContainer - Markers table container
+ * @property {HTMLDivElement} harmonicsContainer - Harmonics panel container
+ * @property {HTMLElement} timeLED - Time readout
+ * @property {HTMLElement} freqLED - Frequency readout
+ * @property {HTMLElement} speedLED - Speed readout
+ * @property {HTMLElement} colorPicker - Colour picker control
  */
 
 /**

@@ -9,7 +9,7 @@ import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
 import { createSymbolMark, resolveSymbolScale } from '../../rendering/symbols.js'
 import { applyTextHalo } from '../../utils/svg.js'
-import { calculateVisibleDataRange, getRenderDimensions } from '../../components/table.js'
+import { calculateVisibleDataRange, getRenderDimensions } from '../../utils/coordinates.js'
 
 /**
  * Harmonics mode implementation
@@ -18,7 +18,7 @@ import { calculateVisibleDataRange, getRenderDimensions } from '../../components
 export class HarmonicsMode extends BaseMode {
   /**
    * Initialize HarmonicsMode with drag handler
-   * @param {Object} instance - GramFrame instance
+   * @param {GramFrame} instance - GramFrame instance
    */
   constructor(instance) {
     super(instance)
@@ -28,9 +28,11 @@ export class HarmonicsMode extends BaseMode {
     // is resolved — a create mints its set on mousedown — and share every
     // subsequent step (spec 166, FR-004).
     this.dragHandler = new BaseDragHandler(instance, {
-      resolveTarget: (position) => this.resolveHarmonicDrag(position),
-      onDragStart: (target, position) => this.onHarmonicSetDragStart(target, position),
-      onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
+      // A feature drag always carries a data position. Only the pan drag passes
+      // null, and it runs on its own handler in `core/events.js`.
+      resolveTarget: (position) => this.resolveHarmonicDrag(/** @type {DataCoordinates} */ (position)),
+      onDragStart: (target, position) => this.onHarmonicSetDragStart(target, /** @type {DataCoordinates} */ (position)),
+      onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, /** @type {DataCoordinates} */ (currentPos), /** @type {DataCoordinates} */ (startPos)),
       onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
       onDragCancel: (target) => this.onHarmonicSetDragEnd(target, null),
       updateCursor: (style) => this.updateCursorStyle(style)
@@ -40,7 +42,7 @@ export class HarmonicsMode extends BaseMode {
   /**
    * Find harmonic set target for drag handler
    * @param {DataCoordinates} position - Position to check
-   * @returns {Object|null} Drag target if found, null otherwise
+   * @returns {DragTarget|null} Drag target if found, null otherwise
    */
   findHarmonicSetTarget(position) {
     const harmonicSet = this.findHarmonicSetAtFrequency(position.freq)
@@ -79,7 +81,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Start dragging a harmonic set
-   * @param {Object} target - Drag target with id and type
+   * @param {DragTarget} target - Drag target with id and type
    * @param {DataCoordinates} position - Start position
    */
   onHarmonicSetDragStart(target, position) {
@@ -89,7 +91,7 @@ export class HarmonicsMode extends BaseMode {
     // Auto-select the harmonic set being dragged (consistent with analysis markers)
     const index = this.instance.state.harmonics.harmonicSets.findIndex(set => set.id === harmonicSet.id)
     if (index !== -1) {
-      this.instance.setSelection('harmonicSet', harmonicSet.id, index)
+      this.instance.interaction.setSelection('harmonicSet', harmonicSet.id, index)
     }
     // Drag bookkeeping belongs to the engine (state.drag) — nothing to mirror.
   }
@@ -114,7 +116,7 @@ export class HarmonicsMode extends BaseMode {
   /**
    * End dragging a harmonic set
    * @param {Object} _target - Drag target with id and type (unused)
-   * @param {DataCoordinates} _position - End position (unused)
+   * @param {DataCoordinates|null} _position - End position (unused)
    */
   onHarmonicSetDragEnd(_target, _position) {
     // Nothing to unwind: the engine clears the drag record itself.
@@ -125,8 +127,8 @@ export class HarmonicsMode extends BaseMode {
    * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
    */
   updateCursorStyle(style) {
-    if (this.instance.svg) {
-      this.instance.svg.style.cursor = style
+    if (this.instance.ui.svg) {
+      this.instance.ui.svg.style.cursor = style
     }
   }
 
@@ -275,7 +277,7 @@ export class HarmonicsMode extends BaseMode {
       this.uiElements.manualButton = buttonContainer.querySelector('.gram-frame-manual-button')
       this.uiElements.harmonicPanel = harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
 
-      this.instance.harmonicPanel = this.uiElements.harmonicPanel
+      this.instance.ui.harmonicPanel = this.uiElements.harmonicPanel
       return
     }
     
@@ -290,10 +292,10 @@ export class HarmonicsMode extends BaseMode {
     
     // Store references on instance for compatibility
 
-    this.instance.harmonicPanel = this.uiElements.harmonicPanel
+    this.instance.ui.harmonicPanel = this.uiElements.harmonicPanel
     
     // Central color picker is managed by unified layout
-    this.instance.colorPicker = this.instance.colorPicker || null
+    this.instance.ui.colorPicker = this.instance.ui.colorPicker || null
     
     // Populate panel with existing harmonic sets when UI is created
     this.updateHarmonicPanel()
@@ -394,11 +396,11 @@ export class HarmonicsMode extends BaseMode {
     
     // Auto-select the newly created harmonic set
     const index = this.instance.state.harmonics.harmonicSets.length - 1
-    this.instance.setSelection('harmonicSet', harmonicSet.id, index)
+    this.instance.interaction.setSelection('harmonicSet', harmonicSet.id, index)
     
     // Update visual elements
-    if (this.instance.harmonicPanel) {
-      updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
+    if (this.instance.ui.harmonicPanel) {
+      updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance)
     }
     
     // Trigger re-render of persistent features to show the new harmonic set
@@ -423,8 +425,8 @@ export class HarmonicsMode extends BaseMode {
       markAnnotationsChanged(this.instance)
 
       // Update visual elements
-      if (this.instance.harmonicPanel) {
-        updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
+      if (this.instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance)
       }
       
       // Trigger re-render of persistent features to show updated harmonic set
@@ -446,15 +448,15 @@ export class HarmonicsMode extends BaseMode {
       // Clear selection if removing the selected harmonic set
       if (this.instance.state.selection.selectedType === 'harmonicSet' && 
           this.instance.state.selection.selectedId === id) {
-        this.instance.clearSelection()
+        this.instance.interaction.clearSelection()
       }
       
       this.instance.state.harmonics.harmonicSets.splice(setIndex, 1)
       markAnnotationsChanged(this.instance)
 
       // Update visual elements
-      if (this.instance.harmonicPanel) {
-        updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
+      if (this.instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance)
       }
       
       // Trigger re-render of persistent features to remove the harmonic set
@@ -502,11 +504,11 @@ export class HarmonicsMode extends BaseMode {
         // A hidden pin draws no lines, so its line span is not a grab region.
         const pinDrawn = harmonicSet.showPin !== false
 
-        const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
+        const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage)
         const cursorSVG = dataToSVG(
           { freq, time: cursorTime },
           this.getViewport(),
-          this.instance.spectrogramImage
+          this.instance.ui.spectrogramImage
         )
 
         for (let h = minHarmonic; h <= maxHarmonic; h++) {
@@ -642,8 +644,8 @@ export class HarmonicsMode extends BaseMode {
    */
   updateHarmonicPanel() {
 
-    if (this.instance.harmonicPanel) {
-      updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance)
+    if (this.instance.ui.harmonicPanel) {
+      updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance)
     } else {
 
     }
@@ -674,19 +676,55 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
+   * Re-render this mode's persistent panel from current state.
+   *
+   * The `PanelOwner` capability. `MainUI` used to reach in by name, resolve the
+   * panel element on this mode's behalf, and call `updateHarmonicPanel` through
+   * an `any` cast. Resolving the panel reference belongs here — it is this
+   * mode's own UI element — so it is absorbed rather than left outside
+   * (spec 167, FR-006, AS-4.2).
+   */
+  refreshPanel() {
+    // The panel may have been created by a previous instance of this mode's UI
+    // (mode switches destroy and rebuild it), so re-resolve it when missing.
+    if (!this.instance.ui.harmonicPanel && this.instance.ui.harmonicsContainer) {
+      const existingPanel = /** @type {HTMLElement|null} */ (
+        this.instance.ui.harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
+      )
+      if (existingPanel) {
+        this.instance.ui.harmonicPanel = existingPanel
+      }
+    }
+    this.updateHarmonicPanel()
+  }
+
+  /**
+   * Whether this mode currently owns any persistent feature.
+   *
+   * Half of the `PersistentFeatureProvider` capability. Lived on
+   * `FeatureRenderer` as `hasHarmonicFeatures()` until spec 167 moved it onto
+   * the mode that owns the state it reads.
+   * @returns {boolean} True if at least one harmonic set exists
+   */
+  hasPersistentFeatures() {
+    const harmonics = this.instance.state.harmonics
+    return !!(harmonics && harmonics.harmonicSets && harmonics.harmonicSets.length > 0)
+  }
+
+  /**
    * Render persistent features for harmonics mode
    */
   renderPersistentFeatures() {
-    if (!this.instance.cursorGroup || !this.instance.state.harmonics?.harmonicSets) {
+    if (!this.instance.ui.cursorGroup || !this.instance.state.harmonics?.harmonicSets) {
       return
     }
     
     // Clear existing harmonic lines and their symbol marks. Scope the symbol
     // cleanup to harmonic pin symbols (which carry data-harmonic-set-id) so it
     // never removes analysis-marker symbols that share the base symbol class.
-    const existingHarmonics = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-line')
+    const existingHarmonics = this.instance.ui.cursorGroup.querySelectorAll('.gram-frame-harmonic-line')
     existingHarmonics.forEach(line => line.remove())
-    const existingSymbols = this.instance.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol[data-harmonic-set-id]')
+    const existingSymbols = this.instance.ui.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol[data-harmonic-set-id]')
     existingSymbols.forEach(symbol => symbol.remove())
     
     // Render all harmonic sets
@@ -699,7 +737,7 @@ export class HarmonicsMode extends BaseMode {
    * Get the inclusive harmonic-number range of a set that falls within the
    * currently visible frequency span.
    *
-   * The visible range comes from `calculateVisibleDataRange(instance)` (the same
+   * The visible range comes from `calculateVisibleDataRange` (the same
    * source the frequency axis uses), so it is viewport-aware: zooming in narrows
    * the span (fewer harmonics), zooming out / panning widens it. At zoom 1.0 the
    * visible range equals the full data range.
@@ -712,7 +750,7 @@ export class HarmonicsMode extends BaseMode {
    * @returns {{minHarmonic: number, maxHarmonic: number}} Inclusive harmonic range
    */
   getVisibleHarmonicRange(harmonicSet) {
-    const { freqMin, freqMax } = calculateVisibleDataRange(this.instance)
+    const { freqMin, freqMax } = calculateVisibleDataRange(this.instance.state, this.instance.ui.spectrogramImage)
     const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
     const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
     return { minHarmonic, maxHarmonic }
@@ -749,10 +787,10 @@ export class HarmonicsMode extends BaseMode {
    * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
    */
   calculateHarmonicLineDimensions(harmonicSet) {
-    const { renderHeight } = getRenderDimensions(this.instance)
+    const { renderHeight } = getRenderDimensions(this.instance.state)
     const lineHeight = renderHeight * HarmonicsMode.PIN_HEIGHT_RATIO
     const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime }
-    const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.spectrogramImage)
+    const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.ui.spectrogramImage)
     const lineTop = anchorSVG.y - lineHeight / 2
 
     return { lineHeight, lineTop }
@@ -903,7 +941,7 @@ export class HarmonicsMode extends BaseMode {
    * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
    */
   calculateLabelStackBounds(lineTop, harmonicSet) {
-    const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top
+    const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top
     const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet)
     const r = this.symbolSize(harmonicSet) / 2
 
@@ -941,7 +979,7 @@ export class HarmonicsMode extends BaseMode {
    */
   harmonicLineX(harmonicSet, harmonicNumber) {
     const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime }
-    return dataToSVG(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x
+    return dataToSVG(harmonicPoint, this.getViewport(), this.instance.ui.spectrogramImage).x
   }
 
   /**
@@ -961,7 +999,7 @@ export class HarmonicsMode extends BaseMode {
    * @param {HarmonicSet} harmonicSet - Harmonic set to render
    */
   renderHarmonicSet(harmonicSet) {
-    if (!this.instance.cursorGroup) {
+    if (!this.instance.ui.cursorGroup) {
       return
     }
 
@@ -971,7 +1009,7 @@ export class HarmonicsMode extends BaseMode {
     }
 
     const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
-    const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top
+    const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top
 
     // Draw every pin line in the visible span (FR-001) — unless this set is set
     // to hide its pin. Sets restored from storage without the flag are pinned.
@@ -979,7 +1017,7 @@ export class HarmonicsMode extends BaseMode {
       for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
         const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
         const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
-        this.instance.cursorGroup.appendChild(line)
+        this.instance.ui.cursorGroup.appendChild(line)
       }
     }
 
@@ -994,9 +1032,9 @@ export class HarmonicsMode extends BaseMode {
       const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY)
       // `cross` sets have no symbol mark; the number label is still drawn.
       if (symbol) {
-        this.instance.cursorGroup.appendChild(symbol)
+        this.instance.ui.cursorGroup.appendChild(symbol)
       }
-      this.instance.cursorGroup.appendChild(label)
+      this.instance.ui.cursorGroup.appendChild(label)
     })
   }
 

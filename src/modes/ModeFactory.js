@@ -3,6 +3,7 @@ import { HarmonicsMode } from './harmonics/HarmonicsMode.js'
 import { DopplerMode } from './doppler/DopplerMode.js'
 import { PanMode } from './pan/PanMode.js'
 import { looksLikeMissingApiError } from '../core/browserCompatibility.js'
+import { createInitialState } from '../core/state.js'
 
 /** @typedef {import('./BaseMode.js').BaseMode} BaseMode */
 
@@ -70,6 +71,28 @@ export class ModeFactory {
   }
 
   /**
+   * Compose the initial-state slices contributed by every registered mode.
+   *
+   * The single place that knows the mode roster for state purposes, mirroring
+   * `createMode`'s role for instantiation. `core/state.js` receives the result
+   * rather than importing the mode classes itself, which is what breaks the
+   * state ⇄ modes cycle (spec 167, FR-002, ADR-014).
+   *
+   * Merge order is fixed and explicit: analysis, harmonics, doppler, pan.
+   * @returns {Partial<GramFrameState>} Merged mode slices
+   */
+  static getModeInitialStates() {
+    const slices = Object.assign({},
+      AnalysisMode.getInitialState(),
+      HarmonicsMode.getInitialState(),
+      DopplerMode.getInitialState(),
+      PanMode.getInitialState()
+    )
+    assertNoCoreKeyCollision(slices)
+    return slices
+  }
+
+  /**
    * Get list of available mode names
    * @returns {ModeType[]} Array of mode names
    */
@@ -84,5 +107,28 @@ export class ModeFactory {
    */
   static isValidMode(modeName) {
     return this.getAvailableModes().includes(modeName)
+  }
+}
+
+/**
+ * Report any mode slice key that collides with a core state key.
+ *
+ * `createInitialState` treats core keys as authoritative, so a collision does
+ * not corrupt the state — it silently drops the mode's value instead, which is
+ * the harder failure to find. Name it here, where the mode roster is known.
+ *
+ * Left on in production rather than gated behind a build flag: it runs once per
+ * instance construction and costs one copy of a small object, which is not
+ * worth a second code path to avoid.
+ * @param {Partial<GramFrameState>} slices - The merged mode slices
+ */
+function assertNoCoreKeyCollision(slices) {
+  const coreKeys = Object.keys(createInitialState())
+  const collisions = Object.keys(slices).filter(key => coreKeys.includes(key))
+  if (collisions.length > 0) {
+    console.error(
+      `GramFrame: mode initial state collides with core state key(s): ${collisions.join(', ')}. ` +
+      'The core value wins and the mode\'s is discarded. Rename the key in the mode that contributes it.'
+    )
   }
 }

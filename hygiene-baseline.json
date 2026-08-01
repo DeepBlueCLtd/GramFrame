@@ -1,6 +1,10 @@
 {
   "_comment": "Debt ratchet baselines (specs/164-quality-ratchets). `yarn hygiene` fails any change that raises a count above its baseline. When your change lowers a count, lower the baseline here in the same PR so the improvement is locked in.",
-  "circularDependencies": 11,
+  "_comment_sc004_exceptions": "spec 167 SC-004 asks that no source module exceed ~350 lines except by documented exception. It is a review heuristic, not a gate \u2014 nothing here enforces it. Modules over the line that no story in spec 167 touched, with why: HarmonicsMode.js (1054), DopplerMode.js (685) and AnalysisMode.js (640) are the three feature modes, flagged as candidates for a later phase; keyboardControl.js (565) and events.js (395) are input handling; GramFrameAPI.js (399) is the public surface plus its failure handling; types.js (583) is exempt as declarations. main.js is over the line too, and is the one module here that a later phase should split. table.js came down from 713 to 151 and is scaffold-only.",
+  "circularDependencies": 0,
   "unusedExportModules": 5,
-  "waitForTimeoutOccurrences": 1
+  "waitForTimeoutOccurrences": 1,
+  "_comment_instanceSurface": "specs/167-structural-refactor Story 5. instanceStateReachIns counts lines containing `instance.state` under src/; instanceFields counts class-field declarations between `export class GramFrame` and its constructor in src/main.js.",
+  "instanceStateReachIns": 183,
+  "instanceFields": 11
 }

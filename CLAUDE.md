@@ -96,6 +96,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog
   - `doppler/DopplerMode.js` - Doppler speed calculation mode
   - `pan/PanMode.js` - Pan mode (the default mode)
+  - `capabilities.js` - Duck-typed mode capabilities (`PersistentFeatureProvider`,
+    `PanelOwner`) and their predicates. How `FeatureRenderer` and `MainUI` find
+    what a mode can do without naming it (ADR-017)
   - `shared/BaseDragHandler.js` - The shared drag engine: every pointer drag (move, create, place, pan) and the single `state.drag` projection
 - `src/components/` - UI component modules:
   - `UIComponents.js` - LED displays, colour picker and layout helpers
@@ -109,12 +112,20 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `ExpandToggle.js` - Expand/collapse the image to fill the space
   - `StorageWarning.js` - Non-blocking banner when a save fails
   - `LEDDisplay.js` - Digital display component
-  - `table.js` - Component scaffold, image setup, layout and axes
-- `src/rendering/` - Rendering system:
+  - `table.js` - Component scaffold: builds the DOM structure and replaces the
+    config table. Nothing else — its five other responsibilities were split out
+    (ADR-018), and it is imported by exactly one module, `DOMSetup.js`
+  - `spectrogramImage.js` - Spectrogram image load and scaling
+  - `svgLayout.js` - SVG layout, viewBox and zoom-transform application
+- `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
+  - `axes.js` - The axis engine: `renderAxes` and its private tick/label helpers
   - `cursors.js` - Cursor indicator refresh
   - `symbols.js` - Marker/harmonic symbol shapes
 - `src/utils/` - Utility modules:
-  - `coordinates.js` - The canonical coordinate module: every screen/SVG/image/data conversion, zoom-, expand-, render-size- and margin-aware
+  - `coordinates.js` - The canonical coordinate module: every screen/SVG/image/data
+    conversion, zoom-, expand-, render-size- and margin-aware. Also owns
+    `getRenderDimensions` and `calculateVisibleDataRange`, which live here rather
+    than in a component so `rendering/` and `core/` can use them without a cycle
   - `calculations.js` - Mathematical calculations
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
@@ -152,6 +163,9 @@ Example configuration:
 ### Test Architecture
 
 - **Playwright-based**: End-to-end tests covering all user interactions (`yarn test`)
+- **Public API**: `tests/public-api.spec.js` exercises every documented API method
+  behaviourally against a fixture that does **not** set `window.GRAMFRAME_DEBUG`,
+  so it also catches the `__test__` hooks leaking onto a published page
 - **Unit lane**: Vitest over pure-JS modules in `tests/unit/` (`yarn test:unit`)
 - **Helper Classes**: `GramFramePage` class provides reusable test utilities
 - **State Assertions**: Comprehensive state validation helpers
@@ -190,12 +204,28 @@ There is no visual/screenshot regression testing — see
   per delivery, and not at all when no listener is registered
 - HMR preserves state listeners across hot reloads
 - Build output is unminified for field debugging (`minify: false` in vite.config.js)
-- TypeScript checking with JSDoc annotations (no TypeScript compilation)
+- TypeScript checking with JSDoc annotations (no TypeScript compilation).
+  `strict: true` with **no** per-flag disables since spec 167 — `noImplicitAny`,
+  `strictNullChecks` and `strictPropertyInitialization` are all in force, so an
+  unguarded `querySelector(...).classList` fails `yarn typecheck` (ADR-007)
 - The version is injected from package.json by a Vite define; no build or test
   run writes to a tracked file
 - Zoom resizes the image element (viewBox stays fixed) — see ADR-015
 - Drag state has one owner (`BaseDragHandler`) and one read-only projection
   (`state.drag`); modes never write drag fields into state
+- `core/state.js` imports no mode. `ModeFactory.getModeInitialStates()` composes
+  the initial-state slices and `createInitialState(modeStates)` receives them;
+  mode slices are additive and can never overwrite a core key (ADR-014)
+- Cross-module collaborators find modes by capability, never by name.
+  Adding a mode touches `src/modes/` and `ModeFactory` — not `state.js`,
+  `MainUI` or `FeatureRenderer` (ADR-017)
+- Each initialization step declares what it needs and returns what it built; the
+  constructor is the only place results are adopted onto the instance
+- The instance surface is grouped: `instance.ui` (DOM handles), `instance.interaction`
+  (selection and restyling), `instance.viewport` (resize watching) and
+  `instance.persistence` (storage context). `state`, `configTable`,
+  `stateListeners`, `instanceId`, `modes`, `currentMode` and `featureRenderer`
+  stay flat — `state` deliberately so, since it is the broadcast state
 
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything

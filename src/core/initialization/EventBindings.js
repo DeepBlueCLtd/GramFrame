@@ -10,11 +10,11 @@
 
 import { setupEventListeners, setupResizeObserver } from '../events.js'
 import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../keyboardControl.js'
-import { getGlobalStateListeners } from '../state.js'
 
 /**
- * Set up all event listeners for the GramFrame instance
+ * Set up all event listeners for the GramFrame instance.
  * @param {GramFrame} instance - GramFrame instance
+ * @returns {SelectionControls} The bound selection and restyle functions
  */
 export function setupAllEventListeners(instance) {
   // Setup mouse and SVG event listeners
@@ -26,26 +26,29 @@ export function setupAllEventListeners(instance) {
   // Initialize keyboard control for fine positioning
   initializeKeyboardControl(instance)
   
-  // Store keyboard control functions on instance for easy access
-  instance.setSelection = (type, id, index) => setSelection(instance, type, id, index)
-  instance.clearSelection = () => clearSelection(instance)
-  instance.updateSelectionVisuals = () => updateSelectionVisuals(instance)
-  instance.removeHarmonicSet = (id) => removeHarmonicSet(instance, id)
-  instance.applyColorToSelectedFeature = (color) => applyColorToSelectedFeature(instance, color)
-  instance.applySymbolToSelectedFeature = (symbol) => applySymbolToSelectedFeature(instance, symbol)
-  instance.applyPinToSelectedFeature = (showPin) => applyPinToSelectedFeature(instance, showPin)
-  instance.applyLargeSymbolsToSelectedFeature = (large) => applyLargeSymbolsToSelectedFeature(instance, large)
+  // Returned for the constructor to adopt, so they are definitely assigned
+  // rather than appearing on the instance from inside a helper (FR-009).
+  return {
+    removeHarmonicSet: (/** @type {string} */ id) => removeHarmonicSet(instance, id),
+    setSelection: (/** @type {string} */ type, /** @type {string} */ id, /** @type {number} */ index) =>
+      setSelection(instance, type, id, index),
+    clearSelection: () => clearSelection(instance),
+    updateSelectionVisuals: () => updateSelectionVisuals(instance),
+    applyColorToSelectedFeature: (/** @type {string} */ color) => applyColorToSelectedFeature(instance, color),
+    applySymbolToSelectedFeature: (/** @type {SymbolType} */ symbol) => applySymbolToSelectedFeature(instance, symbol),
+    applyPinToSelectedFeature: (/** @type {boolean} */ showPin) => applyPinToSelectedFeature(instance, showPin),
+    applyLargeSymbolsToSelectedFeature: (/** @type {boolean} */ large) => applyLargeSymbolsToSelectedFeature(instance, large)
+  }
 }
 
 /**
- * Set up state listeners for the GramFrame instance
- * @param {GramFrame} instance - GramFrame instance
+ * Set up state listeners for the GramFrame instance.
+ *
+ * Nothing to copy: global listeners are unioned in at delivery time by
+ * `deliverToListeners`, so a new instance is already reachable by every
+ * listener registered before it existed. This step remains as the named
+ * initialization point for per-instance listeners (spec 167, FR-003).
+ * @param {GramFrame} _instance - GramFrame instance
  */
-export function setupStateListeners(instance) {
-  // Apply any globally registered listeners to this new instance
-  getGlobalStateListeners().forEach(listener => {
-    if (!instance.stateListeners.includes(listener)) {
-      instance.stateListeners.push(listener)
-    }
-  })
+export function setupStateListeners(_instance) {
 }

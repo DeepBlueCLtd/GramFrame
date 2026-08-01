@@ -79,6 +79,16 @@ function publishDragProjection(instance) {
 }
 
 /**
+ * A drag in progress, as reported by `getDraggedTarget`.
+ * @typedef {Object} DraggedTargetInfo
+ * @property {DragKind|null} kind - What kind of drag is running
+ * @property {string|null} id - Feature id being dragged
+ * @property {string|null} type - Feature type being dragged
+ * @property {DataCoordinates|null} startPosition - Where the drag began
+ * @property {any} originalData - Snapshot taken at drag start
+ */
+
+/**
  * Base drag handler class for managing drag operations
  */
 export class BaseDragHandler {
@@ -121,8 +131,12 @@ export class BaseDragHandler {
   }
 
   /**
-   * Get the current dragged target information
-   * @returns {Object|null} Drag target info or null if not dragging
+   * Get the current dragged target information.
+   *
+   * Deliberately not a `DragTarget`: this carries the drag's *start* position
+   * and the snapshot taken at that moment, where `DragTarget` carries the
+   * current position. See {@link BaseDragHandler#currentTarget} for the latter.
+   * @returns {DraggedTargetInfo|null} Drag target info or null if not dragging
    */
   getDraggedTarget() {
     if (!this.dragState.isDragging) return null
@@ -138,12 +152,16 @@ export class BaseDragHandler {
 
   /**
    * The target descriptor handed back to the mode's callbacks.
-   * @param {DataCoordinates} position - Current position
+   * @param {DataCoordinates|null} position - Current position; null for a
+   *   pixel-space (pan) drag, which has no data position
    * @returns {DragTarget} Target descriptor
    */
   currentTarget(position) {
     return {
-      kind: this.dragState.kind,
+      // Non-null while a drag is running, which is the only time this is
+      // called: `handleMouseMove`, `handleMouseUp` and `cancelDrag` all return
+      // early when `isDragging` is false.
+      kind: /** @type {DragKind} */ (this.dragState.kind),
       id: this.dragState.draggedTargetId,
       type: this.dragState.draggedTargetType,
       position,
@@ -153,7 +171,7 @@ export class BaseDragHandler {
 
   /**
    * Handle mouse move events for drag operations
-   * @param {DataCoordinates} currentPosition - Current mouse position in data coordinates
+   * @param {DataCoordinates|null} currentPosition - Current mouse position in data coordinates
    * @param {MouseEvent} [event] - Originating event, for drags that work in screen pixels
    */
   handleMouseMove(currentPosition, event) {
@@ -169,7 +187,7 @@ export class BaseDragHandler {
 
   /**
    * Start a drag operation
-   * @param {DataCoordinates} position - Position where drag started
+   * @param {DataCoordinates|null} position - Position where drag started
    * @param {MouseEvent} [event] - Originating mousedown, passed to the resolver
    * @returns {boolean} True if drag started successfully, false otherwise
    */
@@ -202,7 +220,7 @@ export class BaseDragHandler {
 
   /**
    * End the current drag operation
-   * @param {DataCoordinates} position - Position where drag ended
+   * @param {DataCoordinates|null} position - Position where drag ended
    * @param {MouseEvent} [event] - Originating mouseup
    */
   endDrag(position, event) {

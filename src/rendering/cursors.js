@@ -10,8 +10,8 @@
  */
 export function updateCursorIndicators(instance) {
   // Clear any existing cursor visuals
-  if (instance.cursorGroup) {
-    instance.cursorGroup.innerHTML = ''
+  if (instance.ui.cursorGroup) {
+    instance.ui.cursorGroup.innerHTML = ''
   }
   
   // Only render persistent features and mode-specific elements (no cursor crosshairs)

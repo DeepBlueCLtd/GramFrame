@@ -14,44 +14,50 @@ import { BaseMode } from '../../modes/BaseMode.js'
 import { updateGuidancePanel } from '../../utils/secureHTML.js'
 
 /**
- * Initialize mode infrastructure including feature renderer and mode instances
+ * Construct the feature renderer and every registered mode.
  * @param {GramFrame} instance - GramFrame instance
+ * @returns {{modes: Object<string, BaseMode>, featureRenderer: FeatureRenderer}} The mode infrastructure
  */
 export function initializeModeInfrastructure(instance) {
-  // Initialize mode infrastructure
   /** @type {Object<string, BaseMode>} */
-  instance.modes = {}
-  /** @type {BaseMode} */
-  instance.currentMode = null
-  
+  const modes = {}
+
   // Initialize centralized feature renderer
-  instance.featureRenderer = new FeatureRenderer(instance)
-  
+  const featureRenderer = new FeatureRenderer(instance)
+
   // Initialize all modes using factory
-  const availableModes = ModeFactory.getAvailableModes()
-  availableModes.forEach(modeName => {
-    instance.modes[modeName] = ModeFactory.createMode(modeName, instance)
+  ModeFactory.getAvailableModes().forEach(modeName => {
+    modes[modeName] = ModeFactory.createMode(modeName, instance)
   })
+
+  return { modes, featureRenderer }
 }
 
 /**
- * Set up mode UI including persistent containers and initial mode selection
+ * Mount each panel-owning mode's UI and pick the starting mode.
+ *
+ * The per-mode container is why this names modes rather than using a
+ * capability: analysis and harmonics mount into *different* columns, which no
+ * capability expresses. Recorded as a documented exception in ADR-017.
  * @param {GramFrame} instance - GramFrame instance
+ * @param {Object<string, BaseMode>} modes - Constructed modes
+ * @param {HTMLDivElement} markersContainer - Middle column, for the markers table
+ * @param {HTMLDivElement} harmonicsContainer - Right column, for the harmonics panel
+ * @param {HTMLDivElement} guidancePanel - Panel the starting mode's guidance is written into
+ * @returns {BaseMode} The starting mode
  */
-export function setupModeUI(instance) {
-  // Initialize all persistent containers with their respective content
+export function setupModeUI(instance, modes, markersContainer, harmonicsContainer, guidancePanel) {
   // Analysis markers in middle column (always visible)
-  instance.modes['analysis'].createUI(instance.markersContainer)
-  
-  // Harmonics sets in right column (always visible)  
-  instance.modes['harmonics'].createUI(instance.harmonicsContainer)
-  
+  modes['analysis'].createUI(markersContainer)
+
+  // Harmonics sets in right column (always visible)
+  modes['harmonics'].createUI(harmonicsContainer)
+
   // Set initial mode from state (pan by default)
-  instance.currentMode = instance.modes[instance.state.mode] || instance.modes['pan']
+  const currentMode = modes[instance.state.mode] || modes['pan']
 
   // Initialize guidance panel with the initial mode's guidance
-  if (instance.guidancePanel) {
-    const guidanceContent = instance.currentMode.getGuidanceText()
-    updateGuidancePanel(instance.guidancePanel, guidanceContent)
-  }
+  updateGuidancePanel(guidancePanel, currentMode.getGuidanceText())
+
+  return currentMode
 }

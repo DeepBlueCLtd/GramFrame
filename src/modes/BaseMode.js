@@ -2,6 +2,21 @@
  * Base interface for GramFrame analysis modes
  * Provides common lifecycle methods and event handling interface
  * All mode implementations should extend this base class
+ *
+ * Two kinds of member live here, and the distinction matters (spec 167, FR-005):
+ *
+ * - **Hooks** — empty here, meant to be overridden. Every one has at least one
+ *   real override in a mode. A hook with none is a no-op dressed up as a
+ *   contract: a cursor-render hook and a state-snapshot hook were exactly that,
+ *   and were deleted along with the coordinator method whose only job was
+ *   calling the first of them.
+ * - **Concrete helpers** — `getViewport` and `updateCursorStyle`. Zero
+ *   overrides, but 17 and 3 callers: the base implementation *is* the whole
+ *   contract, so they stay.
+ *
+ * `renderPersistentFeatures` remains declared here for modes that inherit the
+ * no-op, but cross-module callers reach it through the `PersistentFeatureProvider`
+ * capability in `modes/capabilities.js` rather than through this base class.
  */
 export class BaseMode {
   /**
@@ -10,6 +25,20 @@ export class BaseMode {
    */
   constructor(instance) {
     this.instance = instance
+
+    /**
+     * This mode's drag handler, when it has one. Pan, Analysis, Harmonics and
+     * Doppler each construct one; a mode with no drag interaction leaves it null.
+     * @type {import('./shared/BaseDragHandler.js').BaseDragHandler|null}
+     */
+    this.dragHandler = null
+
+    /**
+     * DOM elements this mode created, kept so `destroyUI` can remove them.
+     * Populated by `createUI`; the keys are mode-specific.
+     * @type {Object<string, HTMLElement|null>}
+     */
+    this.uiElements = {}
   }
 
   /**
@@ -63,6 +92,15 @@ export class BaseMode {
   }
 
   /**
+   * Handle a right-click within the image.
+   * @param {MouseEvent} _event - Context-menu event (unused in base implementation)
+   * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+   */
+  handleContextMenu(_event, _dataCoords) {
+    // Default implementation - override in subclasses
+  }
+
+  /**
    * Render persistent features for this mode
    * Override in subclasses to render mode-specific persistent features
    */
@@ -71,16 +109,9 @@ export class BaseMode {
   }
 
   /**
-   * Render current cursor for this mode
-   * Override in subclasses to render mode-specific cursor indicators
-   */
-  renderCursor() {
-    // Default implementation - override in subclasses
-  }
-
-  /**
    * Update LED displays with mode-specific values
-   * @param {CursorPosition} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
+   * @param {CursorPosition|null} _coords - Current cursor coordinates, or null
+   *   when the pointer is not over the image
    */
   updateLEDs(_coords) {
     // Default implementation - override in subclasses
@@ -160,15 +191,6 @@ export class BaseMode {
   }
 
   /**
-   * Get a snapshot of current mode-specific state
-   * @returns {*} Mode-specific state snapshot
-   */
-  getStateSnapshot() {
-    // Default implementation - override in subclasses
-    return {}
-  }
-
-  /**
    * Get initial state for this mode
    * Override in subclasses to provide mode-specific initial state
    * @returns {*} Mode-specific initial state object
@@ -197,8 +219,8 @@ export class BaseMode {
    * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
    */
   updateCursorStyle(style) {
-    if (this.instance.spectrogramImage) {
-      this.instance.spectrogramImage.style.cursor = style
+    if (this.instance.ui.spectrogramImage) {
+      this.instance.ui.spectrogramImage.style.cursor = style
     }
   }
 }

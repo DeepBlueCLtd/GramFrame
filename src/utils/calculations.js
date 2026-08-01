@@ -23,6 +23,7 @@ function capitalizeFirstLetter(string) {
  * @returns {string} User-friendly display name
  */
 export function getModeDisplayName(mode) {
+  /** @type {Object<string, string>} */
   const displayNames = {
     'analysis': 'Cross Cursor',
     'harmonics': 'Harmonics', 
