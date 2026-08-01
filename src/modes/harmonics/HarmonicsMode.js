@@ -31,6 +31,10 @@ export class HarmonicsMode extends BaseMode {
       // A feature drag always carries a data position. Only the pan drag passes
       // null, and it runs on its own handler in `core/events.js`.
       resolveTarget: (position) => this.resolveHarmonicDrag(/** @type {DataCoordinates} */ (position)),
+      // Hover only ever *finds* — resolveHarmonicDrag mints a new set when the
+      // cursor is over empty gram, which is right for a mousedown and wrong for
+      // a hover (a hover that creates features floods the gram with sets).
+      resolveHoverTarget: (position) => this.findHarmonicSetTarget(/** @type {DataCoordinates} */ (position)),
       onDragStart: (target, position) => this.onHarmonicSetDragStart(target, /** @type {DataCoordinates} */ (position)),
       onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, /** @type {DataCoordinates} */ (currentPos), /** @type {DataCoordinates} */ (startPos)),
       onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),

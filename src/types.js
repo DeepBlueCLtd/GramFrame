@@ -197,6 +197,7 @@
  * argument. Every feature drag receives a real position.
  * @typedef {Object} DragCallbacks
  * @property {function(DataCoordinates|null, MouseEvent=): DragTarget|null} resolveTarget - Decide whether this mousedown starts a drag, and of what kind
+ * @property {function(DataCoordinates|null): DragTarget|null} [resolveHoverTarget] - Side-effect-free finder used for hover cursor feedback. REQUIRED when resolveTarget creates a feature (harmonics `create`, doppler `place`); without it hover falls back to resolveTarget
  * @property {function(DragTarget, DataCoordinates|null, MouseEvent=): void} onDragStart - Called once, when the drag starts
  * @property {function(DragTarget, DataCoordinates|null, DataCoordinates|null, MouseEvent=): void} onDragMove - Called per move
  * @property {function(DragTarget, DataCoordinates|null, MouseEvent=): void} onDragEnd - Called on mouseup, or with a null position when a drag is cancelled

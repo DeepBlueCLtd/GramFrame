@@ -282,13 +282,20 @@ export class BaseDragHandler {
   }
 
   /**
-   * Update cursor style based on proximity to drag targets
+   * Update cursor style based on proximity to drag targets.
+   *
+   * Hover must never change state, so this uses the mode's side-effect-free
+   * `resolveHoverTarget` when one is supplied. `resolveTarget` is only a safe
+   * fallback for modes whose resolver is pure — a mode whose resolver mints a
+   * feature on mousedown (harmonics `create`, doppler `place`) MUST supply
+   * `resolveHoverTarget`, or every hover would create a feature.
    * @param {DataCoordinates} position - Current mouse position
    */
   updateCursorForHover(position) {
     if (this.dragState.isDragging) return
 
-    const target = this.callbacks.resolveTarget(position)
+    const resolve = this.callbacks.resolveHoverTarget || this.callbacks.resolveTarget
+    const target = resolve(position)
     const cursorStyle = target ? 'grab' : 'crosshair'
 
     if (this.callbacks.updateCursor) {
