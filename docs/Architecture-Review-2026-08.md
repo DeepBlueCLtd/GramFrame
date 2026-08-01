@@ -184,3 +184,5 @@ In priority order. The first tier is small, behaviour-fixing, and each item is o
 ---
 
 *Review artefacts: four subsystem reports synthesized into this document; overlapping findings de-duplicated with both attributions noted. All file:line references are against commit `91656a5`.*
+
+*See also [Bug-Hunt-2026-08.md](Bug-Hunt-2026-08.md) — a follow-up hunt with four cross-cutting lenses (event sequences, data lifecycle, numeric boundaries, sibling asymmetry) that found a further 33 defects this subsystem-sliced review did not.*
