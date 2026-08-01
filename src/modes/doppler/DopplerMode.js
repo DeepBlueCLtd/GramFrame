@@ -38,6 +38,9 @@ export class DopplerMode extends BaseMode {
       // A feature drag always carries a data position. Only the pan drag passes
       // null, and it runs on its own handler in `core/events.js`.
       resolveTarget: (position) => this.resolveDopplerDrag(/** @type {DataCoordinates} */ (position)),
+      // Hover only ever *finds* — resolveDopplerDrag seeds f+ when no markers
+      // exist, which is right for a mousedown and wrong for a hover.
+      resolveHoverTarget: (position) => this.findDopplerMarkerAtPosition(/** @type {DataCoordinates} */ (position)),
       onDragStart: (target, position) => this.onMarkerDragStart(target, /** @type {DataCoordinates} */ (position)),
       onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, /** @type {DataCoordinates} */ (currentPos), /** @type {DataCoordinates} */ (startPos)),
       onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),

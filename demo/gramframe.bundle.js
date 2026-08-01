@@ -2054,12 +2054,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.callbacks.updateCursor(style);
     }
     /**
-     * Update cursor style based on proximity to drag targets
+     * Update cursor style based on proximity to drag targets.
+     *
+     * Hover must never change state, so this uses the mode's side-effect-free
+     * `resolveHoverTarget` when one is supplied. `resolveTarget` is only a safe
+     * fallback for modes whose resolver is pure — a mode whose resolver mints a
+     * feature on mousedown (harmonics `create`, doppler `place`) MUST supply
+     * `resolveHoverTarget`, or every hover would create a feature.
      * @param {DataCoordinates} position - Current mouse position
      */
     updateCursorForHover(position) {
       if (this.dragState.isDragging) return;
-      const target = this.callbacks.resolveTarget(position);
+      const resolve = this.callbacks.resolveHoverTarget || this.callbacks.resolveTarget;
+      const target = resolve(position);
       const cursorStyle = target ? "grab" : "crosshair";
       if (this.callbacks.updateCursor) {
         this.callbacks.updateCursor(cursorStyle);
@@ -3729,6 +3736,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           /** @type {DataCoordinates} */
           position
         ),
+        // Hover only ever *finds* — resolveHarmonicDrag mints a new set when the
+        // cursor is over empty gram, which is right for a mousedown and wrong for
+        // a hover (a hover that creates features floods the gram with sets).
+        resolveHoverTarget: (position) => this.findHarmonicSetTarget(
+          /** @type {DataCoordinates} */
+          position
+        ),
         onDragStart: (target, position) => this.onHarmonicSetDragStart(
           target,
           /** @type {DataCoordinates} */
@@ -4585,6 +4599,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         // A feature drag always carries a data position. Only the pan drag passes
         // null, and it runs on its own handler in `core/events.js`.
         resolveTarget: (position) => this.resolveDopplerDrag(
+          /** @type {DataCoordinates} */
+          position
+        ),
+        // Hover only ever *finds* — resolveDopplerDrag seeds f+ when no markers
+        // exist, which is right for a mousedown and wrong for a hover.
+        resolveHoverTarget: (position) => this.findDopplerMarkerAtPosition(
           /** @type {DataCoordinates} */
           position
         ),
