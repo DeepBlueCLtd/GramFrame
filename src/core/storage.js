@@ -68,14 +68,25 @@ const PIN_PREF_KEY = `${KEY_PREFIX}pref::harmonicPin`
 export const TRAINER_FLAG_SELECTOR = '#gf-persistent, .gf-persistent, [data-gf-persistent]'
 
 /**
+ * How far in the future a `savedAt` may sit before the record is treated as
+ * tampered-with rather than the product of ordinary clock adjustment. A strict
+ * `age < 0` check meant an NTP correction stepping the clock back one
+ * millisecond deleted fresh student work (BH-33); five minutes absorbs any
+ * realistic correction while still expiring hand-edited future timestamps.
+ * @type {number}
+ */
+export const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000
+
+/**
  * Determine whether a student-context annotation record has expired.
  *
  * A record is treated as expired (and therefore discarded on load) when its
  * `savedAt` timestamp cannot be proven fresh. This is deliberately fail-safe
  * toward clearing student data:
  *   - missing / unparseable `savedAt` (`Date.parse` → `NaN`) → expired,
- *   - a `savedAt` in the future (`nowMs - t < 0`) → expired (guards clock skew
- *     and hand-edited records),
+ *   - a `savedAt` more than {@link CLOCK_SKEW_TOLERANCE_MS} in the future →
+ *     expired (guards hand-edited records, while tolerating small backwards
+ *     clock steps such as NTP corrections — BH-33),
  *   - a `savedAt` older than {@link STUDENT_TTL_MS} → expired.
  * Otherwise the record is within the 24-hour window and is NOT expired.
  *
@@ -93,7 +104,7 @@ export function isAnnotationExpired(savedAt, nowMs) {
     return true
   }
   const age = nowMs - t
-  if (age < 0) {
+  if (age < -CLOCK_SKEW_TOLERANCE_MS) {
     return true
   }
   return age > STUDENT_TTL_MS
@@ -204,14 +215,164 @@ export function savePinPreference(showPin) {
  * Used both to decide what to write and — by callers — to decide whether a
  * failed write is worth telling the analyst about: with nothing annotated,
  * there is nothing to lose yet.
+ *
+ * Checks all three doppler markers, matching the mode's own
+ * `hasPersistentFeatures` predicate: an fZero-only state renders, so it must
+ * also persist rather than deleting the storage key on save (BH-32).
  * @param {GramFrameState} state - Current component state
  * @returns {boolean} True when at least one annotation exists
  */
 export function hasPersistableAnnotations(state) {
   const hasMarkers = !!(state.analysis && state.analysis.markers && state.analysis.markers.length > 0)
   const hasHarmonics = !!(state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0)
-  const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null))
+  const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null || state.doppler.fZero !== null))
   return hasMarkers || hasHarmonics || hasDoppler
+}
+
+/**
+ * A finite number — the only kind a stored coordinate is allowed to be.
+ * Strings ("12k"), NaN and ±Infinity all fail.
+ * @param {any} value - Candidate value
+ * @returns {boolean} True when the value is a finite number
+ */
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+/**
+ * A non-empty string, for stored ids and colours.
+ * @param {any} value - Candidate value
+ * @returns {boolean} True when the value is a non-empty string
+ */
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.length > 0
+}
+
+/**
+ * A stored doppler point: null, or an object with finite time and freq.
+ * @param {any} point - Candidate point
+ * @returns {boolean} True when the point is null or a valid coordinate pair
+ */
+function isValidStoredPoint(point) {
+  if (point === null || point === undefined) return true
+  return !!point && isFiniteNumber(point.time) && isFiniteNumber(point.freq)
+}
+
+/**
+ * Validate a stored record field by field, returning a cleaned copy.
+ *
+ * Restore used to spread records into state unvalidated, so a corrupt or
+ * hand-edited record half-applied silently — and a harmonic set with
+ * `spacing: 0` hard-hung the page at every load (the pin loop runs
+ * `h = Infinity; h <= Infinity; h++` forever). Every entry is now proven
+ * usable before it reaches state: finite numbers where numbers are expected,
+ * ids present, harmonic spacing strictly positive. Invalid entries are
+ * discarded and counted; the valid remainder still restores (BH-1, BH-16).
+ *
+ * Pure and side-effect-free, exported as a test seam for the unit lane.
+ * @param {any} data - Parsed record of unknown integrity
+ * @returns {{annotations: StoredAnnotations, dropped: number}} Cleaned record and how many entries were discarded
+ */
+export function sanitizeStoredAnnotations(data) {
+  let dropped = 0
+
+  /** @type {StoredMarker[]} */
+  let markers = []
+  if (data && data.analysis && Array.isArray(data.analysis.markers)) {
+    markers = data.analysis.markers.filter((/** @type {any} */ m) => {
+      const valid = !!m && isNonEmptyString(m.id) && isNonEmptyString(m.color) &&
+        isFiniteNumber(m.time) && isFiniteNumber(m.freq)
+      if (!valid) dropped++
+      return valid
+    })
+  } else if (data && data.analysis && data.analysis.markers != null) {
+    dropped++ // markers present but not an array
+  }
+
+  /** @type {StoredHarmonicSet[]} */
+  let harmonicSets = []
+  if (data && data.harmonics && Array.isArray(data.harmonics.harmonicSets)) {
+    harmonicSets = data.harmonics.harmonicSets.filter((/** @type {any} */ hs) => {
+      const valid = !!hs && isNonEmptyString(hs.id) && isNonEmptyString(hs.color) &&
+        isFiniteNumber(hs.anchorTime) &&
+        // Strictly positive: spacing 0 makes the harmonic range infinite.
+        isFiniteNumber(hs.spacing) && hs.spacing > 0
+      if (!valid) dropped++
+      return valid
+    })
+  } else if (data && data.harmonics && data.harmonics.harmonicSets != null) {
+    dropped++ // harmonicSets present but not an array
+  }
+
+  const rawDoppler = (data && data.doppler) || {}
+  /** @type {StoredDopplerData} */
+  const doppler = { fPlus: null, fMinus: null, fZero: null, color: null }
+  for (const key of /** @type {const} */ (['fPlus', 'fMinus', 'fZero'])) {
+    if (isValidStoredPoint(rawDoppler[key])) {
+      doppler[key] = rawDoppler[key] || null
+    } else {
+      dropped++
+    }
+  }
+  doppler.color = isNonEmptyString(rawDoppler.color) ? rawDoppler.color : null
+
+  /** @type {StoredAnnotations} */
+  const annotations = {
+    version: data && data.version,
+    savedAt: data && data.savedAt,
+    gram: data && data.gram,
+    analysis: { markers },
+    harmonics: { harmonicSets },
+    doppler
+  }
+  return { annotations, dropped }
+}
+
+/**
+ * Identify which gram a record belongs to: the image file plus the configured
+ * axis ranges.
+ *
+ * Storage keys are positional (pathname + instance index), so a reordered or
+ * failed-to-init config table shifts every later instance's index and restores
+ * one gram's annotations onto another's spectrogram — and republished content
+ * at the same path inherits stale annotations whose coordinates meant
+ * something else (BH-6, BH-23). The fingerprint travels inside the record
+ * (an ADDITIVE field — no SCHEMA_VERSION bump; legacy records simply lack it)
+ * and restore refuses on mismatch.
+ *
+ * The image is identified by its URL basename rather than the full URL, so
+ * moving a published package between hosts does not orphan its annotations.
+ * @param {GramFrameState} state - Current component state
+ * @returns {StoredGramFingerprint} Fingerprint of the current gram
+ */
+export function buildGramFingerprint(state) {
+  const url = (state.imageDetails && state.imageDetails.url) || ''
+  const config = state.config || { timeMin: 0, timeMax: 0, freqMin: 0, freqMax: 0 }
+  return {
+    image: url.split('/').pop() || '',
+    timeMin: config.timeMin,
+    timeMax: config.timeMax,
+    freqMin: config.freqMin,
+    freqMax: config.freqMax
+  }
+}
+
+/**
+ * Whether a stored fingerprint matches the current gram's.
+ * @param {StoredGramFingerprint|undefined} stored - Fingerprint from the record (absent in legacy records)
+ * @param {StoredGramFingerprint} expected - Fingerprint of the gram doing the restoring
+ * @returns {boolean} True when the record may be restored onto this gram
+ */
+function fingerprintMatches(stored, expected) {
+  if (!stored) {
+    // Legacy record from before fingerprinting: nothing to check against.
+    return true
+  }
+  return stored.image === expected.image &&
+    stored.timeMin === expected.timeMin &&
+    stored.timeMax === expected.timeMax &&
+    stored.freqMin === expected.freqMin &&
+    stored.freqMax === expected.freqMax
 }
 
 /**
@@ -219,12 +380,15 @@ export function hasPersistableAnnotations(state) {
  * Only writes when there is at least one annotation present.
  * @param {GramFrameState} state - Current component state
  * @param {number} [instanceIndex] - Instance index for multi-instance pages
+ * @param {'trainer' | 'student'} [context] - Caller-supplied storage context.
+ *   Instances detect it once at construction and pass it in, so save and load
+ *   can never disagree about which storage to use after the DOM changes (M3);
+ *   omitted, it is re-detected for callers without one.
  * @returns {boolean} True if saved successfully
  */
-export function saveAnnotations(state, instanceIndex) {
+export function saveAnnotations(state, instanceIndex, context) {
   try {
-    const context = detectUserContext()
-    const storage = getStorage(context)
+    const storage = getStorage(context || detectUserContext())
     if (!storage) return false
 
     if (!hasPersistableAnnotations(state)) {
@@ -238,6 +402,10 @@ export function saveAnnotations(state, instanceIndex) {
     const data = {
       version: SCHEMA_VERSION,
       savedAt: new Date().toISOString(),
+      // `gram` is an ADDITIVE field (which gram this record belongs to). It
+      // MUST NOT trigger a SCHEMA_VERSION bump: legacy records simply lack it
+      // and restore without the identity check (BH-6, BH-23).
+      gram: buildGramFingerprint(state),
       analysis: {
         markers: (state.analysis && state.analysis.markers || []).map(m => ({
           id: m.id,
@@ -287,14 +455,20 @@ export function saveAnnotations(state, instanceIndex) {
 
 /**
  * Load and validate stored annotations from browser storage.
- * Returns null if no data exists, parsing fails, or version is unrecognised.
+ * Returns null if no data exists, parsing fails, the version is unrecognised,
+ * or the record belongs to a different gram than the caller's.
  * @param {number} [instanceIndex] - Instance index for multi-instance pages
+ * @param {'trainer' | 'student'} [context] - Caller-supplied storage context (see saveAnnotations)
+ * @param {StoredGramFingerprint} [expectedGram] - Fingerprint of the gram doing
+ *   the restoring. A fingerprinted record for a different gram is refused —
+ *   left in place, never restored — so annotations cannot migrate onto the
+ *   wrong spectrogram when instance indices shift or content is republished.
  * @returns {StoredAnnotations | null}
  */
-export function loadAnnotations(instanceIndex) {
+export function loadAnnotations(instanceIndex, context, expectedGram) {
   try {
-    const context = detectUserContext()
-    const storage = getStorage(context)
+    const resolvedContext = context || detectUserContext()
+    const storage = getStorage(resolvedContext)
     if (!storage) return null
 
     const key = buildStorageKey(instanceIndex)
@@ -304,21 +478,36 @@ export function loadAnnotations(instanceIndex) {
     const data = JSON.parse(raw)
 
     if (!data || data.version !== SCHEMA_VERSION) {
-      console.warn('GramFrame: Discarding stored annotations — unrecognised schema version:', data && data.version)
-      storage.removeItem(key)
+      // Not restorable by THIS build — but deliberately left in place. Deleting
+      // on read meant one visit from an older build permanently destroyed a
+      // newer build's data (BH-21); an unrecognised record is someone else's,
+      // not garbage.
+      console.warn('GramFrame: Ignoring stored annotations — unrecognised schema version:', data && data.version)
       return null
     }
 
     // Student 24-hour expiry gate (feature 157). Trainer context is permanent
     // and bypasses this entirely. A student record that cannot be proven fresh
     // (missing/unparseable/future/older-than-24h savedAt) is discarded.
-    if (context === 'student' && isAnnotationExpired(data.savedAt, Date.now())) {
+    if (resolvedContext === 'student' && isAnnotationExpired(data.savedAt, Date.now())) {
       console.info('GramFrame: Discarding student annotations — older than the 24-hour persistence limit')
       storage.removeItem(key)
       return null
     }
 
-    return /** @type {StoredAnnotations} */ (data)
+    // Gram identity gate (BH-6, BH-23): a record fingerprinted for a different
+    // image or axis configuration is refused, not restored — its coordinates
+    // mean something else on this gram. The record itself is left alone.
+    if (expectedGram && !fingerprintMatches(data.gram, expectedGram)) {
+      console.warn('GramFrame: Ignoring stored annotations — they belong to a different spectrogram (image or axis ranges differ).')
+      return null
+    }
+
+    const { annotations, dropped } = sanitizeStoredAnnotations(data)
+    if (dropped > 0) {
+      console.warn(`GramFrame: Discarded ${dropped} invalid stored annotation entr${dropped === 1 ? 'y' : 'ies'} — restoring the rest.`)
+    }
+    return annotations
   } catch (error) {
     console.warn('GramFrame: Failed to load stored annotations — data discarded:', error)
     return null
@@ -328,12 +517,12 @@ export function loadAnnotations(instanceIndex) {
 /**
  * Remove stored annotations for the current page.
  * @param {number} [instanceIndex] - Instance index for multi-instance pages
+ * @param {'trainer' | 'student'} [context] - Caller-supplied storage context (see saveAnnotations)
  * @returns {boolean} True if cleared successfully
  */
-export function clearAnnotations(instanceIndex) {
+export function clearAnnotations(instanceIndex, context) {
   try {
-    const context = detectUserContext()
-    const storage = getStorage(context)
+    const storage = getStorage(context || detectUserContext())
     if (!storage) return false
 
     const key = buildStorageKey(instanceIndex)

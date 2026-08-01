@@ -715,8 +715,10 @@ test.describe('Edge cases', () => {
     expect(stateAfter.analysis.markers.length).toBeGreaterThan(0)
   })
 
-  // T028
-  test('stored data with unrecognised schema version is discarded', async ({ page }) => {
+  // T028 — updated for BH-21: an unrecognised version is IGNORED, not deleted.
+  // Deleting on read meant one visit from an older build permanently destroyed
+  // a newer build's data; the record now stays in storage, unrestored.
+  test('stored data with unrecognised schema version is ignored but not deleted', async ({ page }) => {
     await page.goto('/tests/fixtures/trainer-page.html')
     await page.evaluate(() => localStorage.clear())
 
@@ -732,18 +734,19 @@ test.describe('Edge cases', () => {
       }))
     })
 
-    // Reload — should discard bad data
+    // Reload — the record must not restore into state...
     await reloadAndWait(page)
 
     const state = await getStateFromPage(page)
     expect(state.analysis.markers.length).toBe(0)
 
-    // Verify bad data was removed from storage
+    // ...but it must still be in storage: it may belong to a newer build.
     const raw = await page.evaluate(() => {
       const key = 'gramframe::' + window.location.pathname
       return localStorage.getItem(key)
     })
-    expect(raw).toBeNull()
+    expect(raw).not.toBeNull()
+    expect(JSON.parse(/** @type {string} */ (raw)).version).toBe(999)
   })
 
   // T029
@@ -762,5 +765,143 @@ test.describe('Edge cases', () => {
     await addAnalysisMarker(gfp, 200, 150)
 
     await expect.poll(async () => (await gfp.getStorageKeys('local')).length).toBeGreaterThan(0)
+  })
+})
+
+// ──────────────────────────────────────────────────────────────
+// August 2026 bug-hunt regressions (docs/Bug-Hunt-2026-08.md)
+// ──────────────────────────────────────────────────────────────
+
+test.describe('Bug-hunt regressions: restore validation and save hygiene', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/tests/fixtures/trainer-page.html')
+    await page.evaluate(() => localStorage.clear())
+  })
+
+  // BH-1 — a stored spacing:0 harmonic set used to hard-hang the page at load
+  test('a stored harmonic set with spacing 0 is discarded instead of hanging the page', async ({ page }) => {
+    await page.evaluate(() => {
+      const key = 'gramframe::' + window.location.pathname
+      localStorage.setItem(key, JSON.stringify({
+        version: 1,
+        savedAt: new Date().toISOString(),
+        analysis: { markers: [{ id: 'ok', color: '#ff0000', time: 10, freq: 50 }] },
+        harmonics: { harmonicSets: [{ id: 'brick', color: '#00ff00', anchorTime: 30, spacing: 0 }] },
+        doppler: { fPlus: null, fMinus: null, fZero: null, color: null }
+      }))
+    })
+
+    // Without field validation this reload never completes: the pin loop runs
+    // h = Infinity; h <= Infinity; h++ forever during init.
+    await reloadAndWait(page)
+
+    const state = await getStateFromPage(page)
+    expect(state.harmonics.harmonicSets.length).toBe(0)
+    // The valid marker in the same record still restores.
+    expect(state.analysis.markers.length).toBe(1)
+  })
+
+  // BH-5 — merely viewing a gram used to restamp savedAt on every load,
+  // resetting the student 24h expiry window indefinitely
+  test('loading a page without changing anything does not restamp savedAt', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    const savedAtBefore = await page.evaluate(() => {
+      const key = 'gramframe::' + window.location.pathname
+      return JSON.parse(/** @type {string} */ (localStorage.getItem(key))).savedAt
+    })
+    expect(savedAtBefore).toBeTruthy()
+
+    // A view-only reload: restore runs, nothing is edited.
+    await reloadAndWait(page)
+
+    const savedAtAfter = await page.evaluate(() => {
+      const key = 'gramframe::' + window.location.pathname
+      return JSON.parse(/** @type {string} */ (localStorage.getItem(key))).savedAt
+    })
+    expect(savedAtAfter).toBe(savedAtBefore)
+  })
+
+  // BH-6 / BH-23 — records fingerprinted for a different gram must not restore
+  test('a record fingerprinted for a different spectrogram is refused, not restored', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    // Repoint the stored record at a different image, as republishing the
+    // lesson with a new recording at the same path would.
+    const mutated = await mutateStoredRecord(page, 'local', (rec) => {
+      rec.gram = { ...(rec.gram || {}), image: 'a-different-recording.png' }
+    })
+    expect(mutated).toBeGreaterThan(0)
+
+    await reloadAndWait(page)
+
+    const state = await getStateFromPage(page)
+    expect(state.analysis.markers.length).toBe(0)
+
+    // Refused means left alone: the record still exists for whichever page it
+    // belongs to.
+    const gfp2 = new GramFramePage(page)
+    expect((await gfp2.getStorageKeys('local')).length).toBeGreaterThan(0)
+    void gfp
+  })
+
+  // H1 — the pin toggle is a persisted restyle and must survive a reload
+  test('hiding the pin of a selected harmonic set survives a reload', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+    await addHarmonicSet(gfp, 200, 150, 250, 150)
+
+    // The freshly created set is auto-selected; restyle it through the same
+    // seam the Symbol panel's pin toggle uses.
+    const applied = await page.evaluate(() => {
+      // @ts-ignore test-only global
+      const instance = window.GramFrame.__test__getInstances()[0]
+      return instance.interaction.applyPinToSelectedFeature(false)
+    })
+    expect(applied).toBe(true)
+
+    await expect.poll(async () => page.evaluate(() => {
+      const key = 'gramframe::' + window.location.pathname
+      const raw = localStorage.getItem(key)
+      if (!raw) return null
+      return JSON.parse(raw).harmonics.harmonicSets[0]?.showPin
+    })).toBe(false)
+
+    await reloadAndWait(page)
+
+    const state = await getStateFromPage(page)
+    expect(state.harmonics.harmonicSets.length).toBe(1)
+    expect(state.harmonics.harmonicSets[0].showPin).toBe(false)
+  })
+
+  // BH-15 — a restored doppler curve used to read speed 0.0 until nudged
+  test('a restored doppler curve has its speed recomputed on load', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+
+    await page.locator('.gram-frame-mode-btn:text("Doppler")').click()
+    await waitForPageState(page, (s) => s.mode === 'doppler', 'doppler mode')
+
+    // Place a real curve with distinct f+/f- frequencies (diagonal drag).
+    const svgBox = await gfp.svg.boundingBox()
+    if (!svgBox) throw new Error('SVG not found')
+    await page.mouse.move(svgBox.x + 150, svgBox.y + 100)
+    await page.mouse.down()
+    await page.mouse.move(svgBox.x + 250, svgBox.y + 200, { steps: 5 })
+    await page.mouse.up()
+    await waitForPageState(
+      page,
+      (s) => s.doppler.fPlus !== null && s.doppler.fMinus !== null && s.doppler.fZero !== null,
+      'a complete doppler curve'
+    )
+
+    const stateBefore = await getStateFromPage(page)
+    expect(typeof stateBefore.doppler.speed).toBe('number')
+
+    await reloadAndWait(page)
+
+    const stateAfter = await getStateFromPage(page)
+    expect(typeof stateAfter.doppler.speed).toBe('number')
+    expect(stateAfter.doppler.speed).toBeCloseTo(stateBefore.doppler.speed, 3)
   })
 })

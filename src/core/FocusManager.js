@@ -16,12 +16,33 @@ let currentFocusedInstance = null
 const registeredInstances = new Set()
 
 /**
+ * Drop registered instances whose container has left the document.
+ *
+ * The registry is a strong Set that used to shrink only via `destroy()`, so a
+ * host page swapping `innerHTML` stranded the instance — and its whole DOM
+ * subtree via the `ui.*` handles — forever (M2). Pruning on every read keeps
+ * this registry's liveness model consistent with the API's `_getInstances()`,
+ * which also drops disconnected instances on read.
+ */
+function pruneDisconnectedInstances() {
+  for (const instance of Array.from(registeredInstances)) {
+    if (!instance.ui || !instance.ui.container || !instance.ui.container.isConnected) {
+      registeredInstances.delete(instance)
+      if (currentFocusedInstance === instance) {
+        currentFocusedInstance = null
+      }
+    }
+  }
+}
+
+/**
  * Register a GramFrame instance for focus management
  * @param {GramFrame} instance - GramFrame instance to register
  */
 export function registerInstance(instance) {
+  pruneDisconnectedInstances()
   registeredInstances.add(instance)
-  
+
   // Don't auto-focus the first instance - let user explicitly interact to focus
   // This prevents unwanted focus behavior when multiple instances exist on a page
 }
@@ -54,6 +75,7 @@ export function unregisterInstance(instance) {
  * @returns {number} Registered instance count
  */
 export function getRegisteredInstanceCount() {
+  pruneDisconnectedInstances()
   return registeredInstances.size
 }
 
@@ -79,7 +101,40 @@ export function setFocusedInstance(instance) {
  * @returns {GramFrame|null} Currently focused instance or null
  */
 export function getFocusedInstance() {
+  pruneDisconnectedInstances()
   return currentFocusedInstance
+}
+
+/**
+ * Clear keyboard focus entirely, so no instance receives keyboard input.
+ *
+ * Focus used to be set on every SVG mousedown and never cleared, which left
+ * one click on a gram permanently swallowing Tab and arrow keys page-wide
+ * (BH-3). Called when the user clicks outside every registered instance.
+ */
+export function clearFocusedInstance() {
+  if (currentFocusedInstance) {
+    removeFocusIndicator(currentFocusedInstance)
+  }
+  currentFocusedInstance = null
+}
+
+/**
+ * Whether a DOM node sits inside any registered instance's container.
+ * Used to decide if a click landed outside every GramFrame.
+ * @param {EventTarget|null} node - Event target to test
+ * @returns {boolean} True when the node is inside a registered instance
+ */
+export function isNodeInsideAnyInstance(node) {
+  if (!(node instanceof Node)) {
+    return false
+  }
+  pruneDisconnectedInstances()
+  // Array.from rather than for-of over the Set: the tsc target predates
+  // downlevelIteration (same note as core/state.js).
+  return Array.from(registeredInstances).some(
+    instance => !!(instance.ui && instance.ui.container && instance.ui.container.contains(node))
+  )
 }
 
 /**
@@ -106,6 +161,7 @@ function removeFocusIndicator(instance) {
  * Focus on the next instance in sequence (for Tab navigation)
  */
 export function focusNextInstance() {
+  pruneDisconnectedInstances()
   if (registeredInstances.size <= 1) return
   
   const instancesArray = Array.from(registeredInstances)
@@ -124,6 +180,7 @@ export function focusNextInstance() {
  * Focus on the previous instance in sequence (for Shift+Tab navigation)
  */
 export function focusPreviousInstance() {
+  pruneDisconnectedInstances()
   if (registeredInstances.size <= 1) return
   
   const instancesArray = Array.from(registeredInstances)

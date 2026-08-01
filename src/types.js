@@ -310,9 +310,22 @@
  * @typedef {Object} StoredAnnotations
  * @property {number} version - Schema version (currently 1)
  * @property {string} savedAt - ISO 8601 timestamp of last save
+ * @property {StoredGramFingerprint} [gram] - Which gram this record belongs to; ABSENT in legacy records (restores without the identity check)
  * @property {StoredAnalysisData} analysis - Stored analysis mode annotations
  * @property {StoredHarmonicsData} harmonics - Stored harmonics mode annotations
  * @property {StoredDopplerData} doppler - Stored doppler mode annotations
+ */
+
+/**
+ * Identity of the gram a stored record belongs to: the spectrogram image (URL
+ * basename) plus the configured axis ranges. Restore refuses a record whose
+ * fingerprint does not match the restoring gram's (BH-6, BH-23).
+ * @typedef {Object} StoredGramFingerprint
+ * @property {string} image - Basename of the spectrogram image URL
+ * @property {number} timeMin - Configured time-start
+ * @property {number} timeMax - Configured time-end
+ * @property {number} freqMin - Configured freq-start
+ * @property {number} freqMax - Configured freq-end
  */
 
 /**
