@@ -7,32 +7,19 @@
 
 /// <reference path="../types.js" />
 
-import { AnalysisMode } from '../modes/analysis/AnalysisMode.js'
-import { HarmonicsMode } from '../modes/harmonics/HarmonicsMode.js'
-import { DopplerMode } from '../modes/doppler/DopplerMode.js'
-import { PanMode } from '../modes/pan/PanMode.js'
 import { getVersion } from '../utils/version.js'
 
 /**
- * Build mode-specific initial state by collecting from all mode classes
- * @returns {GramFrameState} Combined initial state from all modes
- */
-function buildModeInitialState() {
-  // Get initial state from static methods (no need for temporary instances)
-  const modeStates = [
-    AnalysisMode.getInitialState(),
-    HarmonicsMode.getInitialState(),
-    DopplerMode.getInitialState(),
-    PanMode.getInitialState()
-  ]
-  
-  // Merge all mode states
-  return Object.assign({}, ...modeStates)
-}
-
-/**
- * Initial state object for GramFrame component
- * @type {GramFrameState}
+ * The core initial state — everything that is not contributed by a mode.
+ *
+ * This module deliberately imports no mode. Mode slices arrive as an argument
+ * to {@link createInitialState}, composed by `ModeFactory.getModeInitialStates()`,
+ * which is what breaks the state ⇄ modes cycle (spec 167, FR-002, ADR-014).
+ *
+ * Typed as `GramFrameState` minus the three mode slices, because that is
+ * exactly what it is: the mode keys are no longer written here, so claiming
+ * them would be a lie tsc happens not to check.
+ * @type {Omit<GramFrameState, 'analysis'|'harmonics'|'doppler'>}
  */
 const initialState = {
   version: getVersion(),
@@ -107,22 +94,43 @@ const initialState = {
     selectedId: null,    // ID of selected item
     selectedIndex: null  // Index in table for display purposes
   },
-  // Add mode-specific state from mode classes
-  ...buildModeInitialState()
 }
 
 /**
- * Global registry of listeners that should be applied to all instances
+ * Global registry of listeners delivered to every instance.
+ *
+ * The only registry `GramFrame.addStateListener` writes to. Instances no longer
+ * hold copies; {@link deliverToListeners} unions the two at delivery time.
  * @type {StateListener[]}
  */
 const globalStateListeners = []
 
 /**
- * Create a deep copy of the initial state for new instances
- * @returns {GramFrameState} Deep copy of initial state
+ * Create a deep copy of the initial state for a new instance.
+ *
+ * Mode slices are **additive**: a mode can contribute new keys but can never
+ * overwrite a core one. That rule is what fixes the `version`/`timestamp`
+ * clobbering the old `...buildModeInitialState()` spread allowed — a mode
+ * returning either key used to win silently. A collision is a bug in the mode,
+ * and `ModeFactory.getModeInitialStates()` reports it rather than resolving it.
+ *
+ * Written as an append rather than `{...modeStates, ...initialState}` so the
+ * core keys keep their declared order and mode slices land after them, which
+ * is the layout `tests/unit/mode-registration.test.js` pins.
+ * @param {Partial<GramFrameState>} [modeStates={}] - Mode slices from
+ *   `ModeFactory.getModeInitialStates()`. Defaults to none, so this module can
+ *   be loaded and exercised without any mode being imported (spec 167, AS-2.2).
+ * @returns {GramFrameState} Deep copy of the composed initial state
  */
-export function createInitialState() {
-  return JSON.parse(JSON.stringify(initialState))
+export function createInitialState(modeStates = {}) {
+  /** @type {Record<string, any>} */
+  const composed = { ...initialState }
+  for (const [key, slice] of Object.entries(modeStates)) {
+    if (!(key in composed)) {
+      composed[key] = slice
+    }
+  }
+  return JSON.parse(JSON.stringify(composed))
 }
 
 /**
@@ -136,25 +144,39 @@ export function createInitialState() {
  * Not exported to modes. Everything in `src/` reaches this through
  * {@link dispatch}, which coalesces; see the ESLint `no-restricted-imports`
  * rule that enforces it (N1, FR-005).
+ *
+ * Delivery walks the union of the instance's own listeners and the global
+ * registry, de-duplicated. Instances used to *copy* the global list into their
+ * own at construction, which meant a global listener lived in as many arrays as
+ * there were instances and removal had to scrub every one of them. The fan-in
+ * happens here instead, so each registry has exactly one write path (spec 167,
+ * FR-003, data-model §2).
  * @param {GramFrameState} state - Current state object
- * @param {StateListener[]} listeners - Array of listener functions
+ * @param {StateListener[]} listeners - This instance's own listeners
  */
 function deliverToListeners(state, listeners) {
-  if (!listeners || listeners.length === 0) {
+  // An array rather than a Set: the project's tsc target predates
+  // downlevelIteration, and these lists are a handful of entries at most.
+  const recipients = (listeners || []).slice()
+  globalStateListeners.forEach(listener => {
+    if (!recipients.includes(listener)) {
+      recipients.push(listener)
+    }
+  })
+  if (recipients.length === 0) {
     return
   }
 
   // Create a deep copy of the state to prevent direct modification
   const stateCopy = JSON.parse(JSON.stringify(state))
 
-  // Notify all registered state listeners for this instance
-  listeners.forEach(listener => {
+  for (const listener of recipients) {
     try {
       listener(stateCopy)
     } catch (error) {
       console.error('Error in state listener:', error)
     }
-  })
+  }
 }
 
 /**

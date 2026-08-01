@@ -107,12 +107,12 @@ export function createHarmonicPanel(container, instance) {
       // Toggle selection
       if (instance.state.selection.selectedType === 'harmonicSet' &&
           instance.state.selection.selectedId === harmonicSetId) {
-        instance.clearSelection()
+        instance.interaction.clearSelection()
       } else {
-        instance.setSelection('harmonicSet', harmonicSetId, index)
+        instance.interaction.setSelection('harmonicSet', harmonicSetId, index)
       }
     },
-    onDelete: (harmonicSetId) => instance.removeHarmonicSet(harmonicSetId),
+    onDelete: (harmonicSetId) => instance.interaction.removeHarmonicSet(harmonicSetId),
     isSelected: (harmonicSetId) => (
       instance.state.selection.selectedType === 'harmonicSet' &&
       instance.state.selection.selectedId === harmonicSetId

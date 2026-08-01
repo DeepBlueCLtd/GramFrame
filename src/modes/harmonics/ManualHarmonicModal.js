@@ -1,4 +1,4 @@
-import { calculateVisibleDataRange } from '../../components/table.js'
+import { calculateVisibleDataRange } from '../../utils/coordinates.js'
 
 /**
  * Calculate the center of the visible time period based on current zoom state
@@ -15,7 +15,7 @@ function calculateVisibleTimePeriodCenter(state, instance) {
   }
   
   // Zoomed - calculate visible time range center
-  const visibleRange = calculateVisibleDataRange(instance)
+  const visibleRange = calculateVisibleDataRange(instance.state, instance.ui.spectrogramImage)
   return (visibleRange.timeMin + visibleRange.timeMax) / 2
 }
 

@@ -21,7 +21,7 @@ export function calculateMidpoint(fPlus, fMinus) {
  * Calculate speed using Doppler formula
  * @param {DataCoordinates} fPlus - f+ point with time and frequency
  * @param {DataCoordinates} fMinus - f- point with time and frequency
- * @param {DataCoordinates} fZero - f₀ point with time and frequency (optional, uses midpoint if not provided)
+ * @param {DataCoordinates|null} [fZero] - f₀ point with time and frequency (optional, uses midpoint if not provided)
  * @param {number} speedOfSound - Speed of sound in water (default: 1500 m/s)
  * @returns {number} Calculated speed in m/s
  */

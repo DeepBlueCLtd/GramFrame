@@ -7,6 +7,7 @@
 
 /// <reference path="../types.js" />
 
+import { isPanelOwner } from '../modes/capabilities.js'
 import {
   createLEDDisplay,
   createColorPicker,
@@ -16,9 +17,12 @@ import {
 import { formatTime } from '../utils/timeFormatter.js'
 
 /**
- * Create unified 3-column layout for readouts
+ * Create unified 3-column layout for readouts.
+ *
+ * Returns the handles rather than writing them onto the instance, so the
+ * constructor is the one place they are adopted (spec 167, FR-009).
  * @param {GramFrame} instance - GramFrame instance
- * @returns {HTMLDivElement} The unified layout container
+ * @returns {UnifiedLayoutElements} The columns, LEDs and containers just built
  */
 export function createUnifiedLayout(instance) {
   // Create main container for unified layout
@@ -103,22 +107,21 @@ export function createUnifiedLayout(instance) {
   unifiedLayoutContainer.appendChild(middleColumn)
   unifiedLayoutContainer.appendChild(rightColumn)
   
-  // Store references on instance for easy access
-  instance.unifiedLayoutContainer = unifiedLayoutContainer
-  instance.leftColumn = leftColumn
-  instance.middleColumn = middleColumn
-  instance.rightColumn = rightColumn
-  instance.modeColumn = modeColumn
-  instance.guidanceColumn = guidanceColumn
-  instance.controlsColumn = controlsColumn
-  instance.markersContainer = markersContainer
-  instance.harmonicsContainer = harmonicsContainer
-  instance.timeLED = timeLED
-  instance.freqLED = freqLED
-  instance.speedLED = speedLED
-  instance.colorPicker = colorPicker
-
-  return unifiedLayoutContainer
+  return {
+    unifiedLayoutContainer,
+    leftColumn,
+    middleColumn,
+    rightColumn,
+    modeColumn,
+    guidanceColumn,
+    controlsColumn,
+    markersContainer,
+    harmonicsContainer,
+    timeLED,
+    freqLED,
+    speedLED,
+    colorPicker
+  }
 }
 
 /**
@@ -187,15 +190,15 @@ function createHarmonicsContainer() {
  * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
  */
 export function updateUniversalCursorReadouts(instance, dataCoords) {
-  if (instance.timeLED) {
-    const timeValue = instance.timeLED.querySelector('.gram-frame-led-value')
+  if (instance.ui.timeLED) {
+    const timeValue = instance.ui.timeLED.querySelector('.gram-frame-led-value')
     if (timeValue) {
       timeValue.textContent = formatTime(dataCoords.time)
     }
   }
   
-  if (instance.freqLED) {
-    const freqValue = instance.freqLED.querySelector('.gram-frame-led-value')
+  if (instance.ui.freqLED) {
+    const freqValue = instance.ui.freqLED.querySelector('.gram-frame-led-value')
     if (freqValue) {
       freqValue.textContent = dataCoords.freq.toFixed(2)
     }
@@ -203,29 +206,17 @@ export function updateUniversalCursorReadouts(instance, dataCoords) {
 }
 
 /**
- * Update persistent panels (markers and harmonics) regardless of active mode
+ * Refresh every persistent panel, regardless of which mode is active.
+ *
+ * Modes are discovered by capability, not by name. This function used to name
+ * `analysis` and `harmonics`, cast both to `any` to reach methods the mode
+ * interface did not declare, and resolve the harmonics panel element on that
+ * mode's behalf. A fifth mode owning a panel now refreshes here with no edit to
+ * this file (spec 167, FR-006, AS-4.2, SC-003).
  * @param {GramFrame} instance - GramFrame instance
  */
 export function updatePersistentPanels(instance) {
-  // Update analysis markers table
-  const analysisMode = /** @type {any} */ (instance.modes['analysis'])
-  if (analysisMode && typeof analysisMode.updateMarkersTable === 'function') {
-    analysisMode.updateMarkersTable()
-  }
-  
-  // Update harmonics panel - ensure panel reference is always available
-  const harmonicsMode = /** @type {any} */ (instance.modes['harmonics'])
-  if (harmonicsMode) {
-    // Make sure the panel reference is set
-    if (!harmonicsMode.instance.harmonicPanel && instance.harmonicsContainer) {
-      const existingPanel = instance.harmonicsContainer.querySelector('.gram-frame-harmonic-panel')
-      if (existingPanel) {
-        harmonicsMode.instance.harmonicPanel = existingPanel
-      }
-    }
-    
-    if (typeof harmonicsMode.updateHarmonicPanel === 'function') {
-      harmonicsMode.updateHarmonicPanel()
-    }
-  }
+  Object.values(instance.modes)
+    .filter(isPanelOwner)
+    .forEach(mode => mode.refreshPanel())
 }

@@ -10,7 +10,9 @@
 /**
  * Global focus tracking
  */
+/** @type {GramFrame|null} */
 let currentFocusedInstance = null
+/** @type {Set<GramFrame>} */
 const registeredInstances = new Set()
 
 /**
@@ -36,7 +38,9 @@ export function unregisterInstance(instance) {
     if (registeredInstances.size > 0) {
       // Focus on the first remaining instance
       const firstInstance = registeredInstances.values().next().value
-      setFocusedInstance(firstInstance)
+      if (firstInstance) {
+        setFocusedInstance(firstInstance)
+      }
     } else {
       currentFocusedInstance = null
     }
@@ -83,8 +87,8 @@ export function getFocusedInstance() {
  * @param {GramFrame} instance - Instance to add indicator to
  */
 function addFocusIndicator(instance) {
-  if (instance.container) {
-    instance.container.classList.add('gram-frame-focused')
+  if (instance.ui.container) {
+    instance.ui.container.classList.add('gram-frame-focused')
   }
 }
 
@@ -93,8 +97,8 @@ function addFocusIndicator(instance) {
  * @param {GramFrame} instance - Instance to remove indicator from
  */
 function removeFocusIndicator(instance) {
-  if (instance.container) {
-    instance.container.classList.remove('gram-frame-focused')
+  if (instance.ui.container) {
+    instance.ui.container.classList.remove('gram-frame-focused')
   }
 }
 
@@ -105,10 +109,15 @@ export function focusNextInstance() {
   if (registeredInstances.size <= 1) return
   
   const instancesArray = Array.from(registeredInstances)
-  const currentIndex = instancesArray.indexOf(currentFocusedInstance)
+  // -1 when nothing is focused, which the arithmetic below already handles:
+  // it lands on the first instance.
+  const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1
   const nextIndex = (currentIndex + 1) % instancesArray.length
   
-  setFocusedInstance(instancesArray[nextIndex])
+  const next = instancesArray[nextIndex]
+  if (next) {
+    setFocusedInstance(next)
+  }
 }
 
 /**
@@ -118,8 +127,12 @@ export function focusPreviousInstance() {
   if (registeredInstances.size <= 1) return
   
   const instancesArray = Array.from(registeredInstances)
-  const currentIndex = instancesArray.indexOf(currentFocusedInstance)
+  // -1 when nothing is focused, so this wraps to the last instance.
+  const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1
   const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1
   
-  setFocusedInstance(instancesArray[prevIndex])
+  const next = instancesArray[prevIndex]
+  if (next) {
+    setFocusedInstance(next)
+  }
 }

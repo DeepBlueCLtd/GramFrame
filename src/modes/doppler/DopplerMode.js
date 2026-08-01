@@ -1,4 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
+import { setLEDValue } from '../../components/LEDDisplay.js'
 import { updateLEDDisplays } from '../../components/UIComponents.js'
 import { dispatch, markAnnotationsChanged } from '../../core/state.js'
 // Rendering imports removed - no display element
@@ -11,6 +12,7 @@ import { getUniformTolerance, isWithinDataTolerance, findClosestTarget } from '.
 const MS_TO_KNOTS_CONVERSION = 1.94384
 
 // Doppler marker types
+/** @type {Record<DopplerDraggedMarker, DopplerDraggedMarker>} */
 const DopplerDraggedMarker = {
   fPlus: 'fPlus',
   fMinus: 'fMinus', 
@@ -24,7 +26,7 @@ const DopplerDraggedMarker = {
 export class DopplerMode extends BaseMode {
   /**
    * Initialize DopplerMode with drag handler
-   * @param {Object} instance - GramFrame instance
+   * @param {GramFrame} instance - GramFrame instance
    */
   constructor(instance) {
     super(instance)
@@ -33,9 +35,11 @@ export class DopplerMode extends BaseMode {
     // laying down f+/f- by dragging (`place`). They differ only in how the
     // target is resolved (spec 166, FR-004).
     this.dragHandler = new BaseDragHandler(instance, {
-      resolveTarget: (position) => this.resolveDopplerDrag(position),
-      onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
+      // A feature drag always carries a data position. Only the pan drag passes
+      // null, and it runs on its own handler in `core/events.js`.
+      resolveTarget: (position) => this.resolveDopplerDrag(/** @type {DataCoordinates} */ (position)),
+      onDragStart: (target, position) => this.onMarkerDragStart(target, /** @type {DataCoordinates} */ (position)),
+      onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, /** @type {DataCoordinates} */ (currentPos), /** @type {DataCoordinates} */ (startPos)),
       onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
       onDragCancel: (target) => this.onMarkerDragEnd(target, null),
       updateCursor: (style) => this.updateCursorStyle(style)
@@ -46,39 +50,46 @@ export class DopplerMode extends BaseMode {
    * Find doppler marker at given position
    * Returns a drag target object compatible with BaseDragHandler
    * @param {DataCoordinates} position - Position to check
-   * @returns {Object|null} Drag target if found, null otherwise
+   * @returns {DragTarget|null} Drag target if found, null otherwise
    */
   findDopplerMarkerAtPosition(position) {
     const doppler = this.instance.state.doppler
     if (!doppler) return null
 
-    const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage)
+    const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage)
 
     // Grab region: the same per-axis tolerance box as before. Among the markers
     // inside it (they overlap when the curve is short) take the closest, falling
     // back to the first match for a position inside the box but outside the
     // tolerance circle — so the region an analyst can grab is unchanged.
-    const targets = [
+    /** @type {Array<DragTarget & {position: DataCoordinates, id: string}>} */
+    const targets = []
+    for (const markerType of [
       DopplerDraggedMarker.fPlus,
       DopplerDraggedMarker.fMinus,
       DopplerDraggedMarker.fZero
-    ]
-      .filter(markerType => doppler[markerType])
-      .map(markerType => ({
+    ]) {
+      // A loop rather than filter-then-map: `.filter` does not narrow the
+      // element type, so the mapped `position` stayed nullable and the list
+      // stopped being a list of `DragTarget`s.
+      const markerPosition = doppler[markerType]
+      if (!markerPosition) continue
+      if (!isWithinDataTolerance(position, markerPosition, tolerance)) continue
+      targets.push({
         kind: 'move',
         id: markerType,
         type: 'dopplerMarker',
-        position: doppler[markerType],
+        position: markerPosition,
         data: { markerType }
-      }))
-      .filter(target => isWithinDataTolerance(position, target.position, tolerance))
+      })
+    }
 
     return findClosestTarget(position, targets, tolerance) || targets[0] || null
   }
 
   /**
    * Start dragging a doppler marker
-   * @param {Object} target - Drag target with id and type
+   * @param {DragTarget} target - Drag target with id and type
    * @param {DataCoordinates} _position - Start position (unused)
    */
   onMarkerDragStart(target, _position) {
@@ -108,7 +119,7 @@ export class DopplerMode extends BaseMode {
   /**
    * End dragging a doppler marker
    * @param {DragTarget} target - Drag target
-   * @param {DataCoordinates} _position - End position (unused)
+   * @param {DataCoordinates|null} _position - End position (unused)
    */
   onMarkerDragEnd(target, _position) {
     if (target && target.kind === 'place') {
@@ -230,8 +241,12 @@ export class DopplerMode extends BaseMode {
       freq: dataCoords.freq
     }
     
-    // Calculate f₀ as midpoint for preview
-    doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus)
+    // Calculate f₀ as midpoint for preview. f+ is placed before any preview
+    // drag can start, and f- was assigned two lines above.
+    doppler.fZero = this.calculateMidpoint(
+      /** @type {DataCoordinates} */ (doppler.fPlus),
+      doppler.fMinus
+    )
 
     // Published for listeners watching an in-progress placement
     doppler.previewEnd = doppler.fMinus
@@ -331,7 +346,7 @@ export class DopplerMode extends BaseMode {
     
     // Speed LED is now managed centrally in the unified layout and always visible
     // Store references for central speed LED
-    this.instance.speedLED = this.instance.speedLED || null
+    this.instance.ui.speedLED = this.instance.ui.speedLED || null
   }
 
   /**
@@ -430,12 +445,12 @@ export class DopplerMode extends BaseMode {
    * Update the speed LED display with current speed value
    */
   updateSpeedLED() {
-    if (this.instance.speedLED && this.instance.state.doppler.speed !== null) {
+    if (this.instance.ui.speedLED && this.instance.state.doppler.speed !== null) {
       // Convert m/s to knots: 1 m/s = 1.94384 knots
       const speedInKnots = this.instance.state.doppler.speed * MS_TO_KNOTS_CONVERSION
-      this.instance.speedLED.querySelector('.gram-frame-led-value').textContent = speedInKnots.toFixed(1)
-    } else if (this.instance.speedLED) {
-      this.instance.speedLED.querySelector('.gram-frame-led-value').textContent = '0.0'
+      setLEDValue(this.instance.ui.speedLED, speedInKnots.toFixed(1))
+    } else if (this.instance.ui.speedLED) {
+      setLEDValue(this.instance.ui.speedLED, '0.0')
     }
   }
 
@@ -465,10 +480,10 @@ export class DopplerMode extends BaseMode {
    * Render all doppler features (markers and curves)
    */
   renderDopplerFeatures() {
-    if (!this.instance.cursorGroup) return
+    if (!this.instance.ui.cursorGroup) return
     
     // Clear existing doppler features
-    const existingFeatures = this.instance.cursorGroup.querySelectorAll('.doppler-feature, .gram-frame-doppler-preview, .gram-frame-doppler-curve, .gram-frame-doppler-extension, .gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-crosshair')
+    const existingFeatures = this.instance.ui.cursorGroup.querySelectorAll('.doppler-feature, .gram-frame-doppler-preview, .gram-frame-doppler-curve, .gram-frame-doppler-extension, .gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-crosshair')
     existingFeatures.forEach(element => element.remove())
     
     const doppler = this.instance.state.doppler
@@ -481,7 +496,7 @@ export class DopplerMode extends BaseMode {
       // If in preview mode, render with preview styling
       if (doppler.tempFirst) {
         // Add preview styling to indicate this is temporary
-        const elements = this.instance.cursorGroup.querySelectorAll('.gram-frame-doppler-curve, .gram-frame-doppler-extension')
+        const elements = this.instance.ui.cursorGroup.querySelectorAll('.gram-frame-doppler-curve, .gram-frame-doppler-extension')
         elements.forEach(element => {
           element.setAttribute('opacity', '0.8')
           element.setAttribute('stroke-dasharray', '5,5')
@@ -505,7 +520,7 @@ export class DopplerMode extends BaseMode {
     
     // f+ marker (colored dot)
     if (doppler.fPlus) {
-      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
+      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.ui.spectrogramImage)
       const fPlusMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
       fPlusMarker.setAttribute('class', 'gram-frame-doppler-fPlus')
       fPlusMarker.setAttribute('cx', fPlusSVG.x.toString())
@@ -515,12 +530,12 @@ export class DopplerMode extends BaseMode {
       fPlusMarker.setAttribute('stroke', '#ffffff')
       fPlusMarker.setAttribute('stroke-width', '1')
       fPlusMarker.setAttribute('pointer-events', pointerEvents)
-      this.instance.cursorGroup.appendChild(fPlusMarker)
+      this.instance.ui.cursorGroup.appendChild(fPlusMarker)
     }
     
     // f- marker (colored dot)
     if (doppler.fMinus) {
-      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage)
+      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.ui.spectrogramImage)
       const fMinusMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
       fMinusMarker.setAttribute('class', 'gram-frame-doppler-fMinus')
       fMinusMarker.setAttribute('cx', fMinusSVG.x.toString())
@@ -530,12 +545,12 @@ export class DopplerMode extends BaseMode {
       fMinusMarker.setAttribute('stroke', '#ffffff')
       fMinusMarker.setAttribute('stroke-width', '1')
       fMinusMarker.setAttribute('pointer-events', pointerEvents)
-      this.instance.cursorGroup.appendChild(fMinusMarker)
+      this.instance.ui.cursorGroup.appendChild(fMinusMarker)
     }
     
     // f₀ marker (green crosshair) - keep green as it's the midpoint indicator
     if (doppler.fZero) {
-      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage)
+      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.ui.spectrogramImage)
       
       // Horizontal line
       const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
@@ -547,7 +562,7 @@ export class DopplerMode extends BaseMode {
       hLine.setAttribute('stroke', '#00ff00')
       hLine.setAttribute('stroke-width', '2')
       hLine.setAttribute('pointer-events', pointerEvents)
-      this.instance.cursorGroup.appendChild(hLine)
+      this.instance.ui.cursorGroup.appendChild(hLine)
       
       // Vertical line
       const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
@@ -559,7 +574,7 @@ export class DopplerMode extends BaseMode {
       vLine.setAttribute('stroke', '#00ff00')
       vLine.setAttribute('stroke-width', '2')
       vLine.setAttribute('pointer-events', pointerEvents)
-      this.instance.cursorGroup.appendChild(vLine)
+      this.instance.ui.cursorGroup.appendChild(vLine)
     }
   }
 
@@ -573,9 +588,9 @@ export class DopplerMode extends BaseMode {
     // Use stored color for existing curve, or global selectedColor for new curves
     const color = doppler.color || this.instance.state.selectedColor || '#ff0000'
     
-    const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage)
-    const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage)
-    const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage)
+    const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.ui.spectrogramImage)
+    const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.ui.spectrogramImage)
+    const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.ui.spectrogramImage)
     
     // Create S-curve path
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
@@ -594,7 +609,7 @@ export class DopplerMode extends BaseMode {
     path.setAttribute('stroke-width', '2')
     path.setAttribute('fill', 'none')
     
-    this.instance.cursorGroup.appendChild(path)
+    this.instance.ui.cursorGroup.appendChild(path)
     
     // Vertical extensions - clip to intersection of zoomed view and spectrogram data area
     const margins = this.instance.state.margins
@@ -610,9 +625,9 @@ export class DopplerMode extends BaseMode {
     let zoomedTop = spectrogramTop
     let zoomedBottom = spectrogramBottom
 
-    if (this.instance.spectrogramImage) {
-      const zoomedImageTop = parseFloat(this.instance.spectrogramImage.getAttribute('y') || String(margins.top))
-      const zoomedImageHeight = parseFloat(this.instance.spectrogramImage.getAttribute('height') || String(renderHeight))
+    if (this.instance.ui.spectrogramImage) {
+      const zoomedImageTop = parseFloat(this.instance.ui.spectrogramImage.getAttribute('y') || String(margins.top))
+      const zoomedImageHeight = parseFloat(this.instance.ui.spectrogramImage.getAttribute('height') || String(renderHeight))
       zoomedTop = zoomedImageTop
       zoomedBottom = zoomedImageTop + zoomedImageHeight
     }
@@ -631,7 +646,7 @@ export class DopplerMode extends BaseMode {
       fPlusExtension.setAttribute('y2', clippedTop.toString())
       fPlusExtension.setAttribute('stroke', color)
       fPlusExtension.setAttribute('stroke-width', '2')
-      this.instance.cursorGroup.appendChild(fPlusExtension)
+      this.instance.ui.cursorGroup.appendChild(fPlusExtension)
     }
     
     // Extension from f- downward - only if f- is above the clipped bottom
@@ -644,10 +659,23 @@ export class DopplerMode extends BaseMode {
       fMinusExtension.setAttribute('y2', clippedBottom.toString())
       fMinusExtension.setAttribute('stroke', color)
       fMinusExtension.setAttribute('stroke-width', '2')
-      this.instance.cursorGroup.appendChild(fMinusExtension)
+      this.instance.ui.cursorGroup.appendChild(fMinusExtension)
     }
   }
 
+
+  /**
+   * Whether this mode currently owns any persistent feature.
+   *
+   * Half of the `PersistentFeatureProvider` capability. Lived on
+   * `FeatureRenderer` as `hasDopplerFeatures()` until spec 167 moved it onto
+   * the mode that owns the state it reads.
+   * @returns {boolean} True if any doppler marker has been placed
+   */
+  hasPersistentFeatures() {
+    const doppler = this.instance.state.doppler
+    return !!(doppler && (doppler.fPlus || doppler.fMinus || doppler.fZero))
+  }
 
   /**
    * Render persistent features (for FeatureRenderer)

@@ -8,681 +8,191 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   document.head.appendChild(style);
 
   "use strict";
-  class BaseMode {
-    /**
-     * Constructor for base mode
-     * @param {GramFrame} instance - GramFrame instance
-     */
-    constructor(instance) {
-      this.instance = instance;
-    }
-    /**
-     * Activate this mode - called when switching to this mode
-     * Override in subclasses to perform mode-specific initialization
-     */
-    activate() {
-    }
-    /**
-     * Deactivate this mode - called when switching away from this mode
-     * Override in subclasses to perform mode-specific cleanup
-     */
-    deactivate() {
-    }
-    /**
-     * Handle mouse move events
-     * @param {MouseEvent} _event - Mouse event (unused in base implementation)
-     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
-     */
-    handleMouseMove(_event, _dataCoords) {
-    }
-    /**
-     * Handle mouse down events
-     * @param {MouseEvent} _event - Mouse event (unused in base implementation)
-     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
-     */
-    handleMouseDown(_event, _dataCoords) {
-    }
-    /**
-     * Handle mouse up events
-     * @param {MouseEvent} _event - Mouse event (unused in base implementation)
-     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
-     */
-    handleMouseUp(_event, _dataCoords) {
-    }
-    /**
-     * Handle mouse leave events
-     */
-    handleMouseLeave() {
-    }
-    /**
-     * Render persistent features for this mode
-     * Override in subclasses to render mode-specific persistent features
-     */
-    renderPersistentFeatures() {
-    }
-    /**
-     * Render current cursor for this mode
-     * Override in subclasses to render mode-specific cursor indicators
-     */
-    renderCursor() {
-    }
-    /**
-     * Update LED displays with mode-specific values
-     * @param {CursorPosition} _coords - Current cursor coordinates {svgCoords, dataCoords, imageCoords}
-     */
-    updateLEDs(_coords) {
-    }
-    /**
-     * Get guidance content for this mode
-     * @returns {Object} Structured guidance content
-     */
-    getGuidanceText() {
-      return {
-        title: "Base Mode",
-        items: [
-          "No specific guidance available"
-        ]
-      };
-    }
-    /**
-     * Get command buttons for this mode
-     * Override in subclasses to provide mode-specific command buttons
-     * @returns {Array<CommandButton>} Array of command button definitions
-     */
-    getCommandButtons() {
-      return [];
-    }
-    /**
-     * Check if this mode is currently enabled
-     * Override in subclasses to provide mode-specific enable/disable logic
-     * @returns {boolean} True if mode is enabled, false if disabled
-     */
-    isEnabled() {
-      return true;
-    }
-    /**
-     * Reset mode-specific state
-     * Override in subclasses to clear mode-specific state properties
-     */
-    resetState() {
-    }
-    /**
-     * Clean up mode-specific state when switching away from this mode
-     * Override in subclasses to perform mode-specific state cleanup
-     */
-    cleanup() {
-    }
-    /**
-     * Create mode-specific UI elements when entering this mode
-     * Override in subclasses to create mode-specific UI elements
-     * @param {HTMLElement} _readoutPanel - Container for UI elements (unused in base implementation)
-     */
-    createUI(_readoutPanel) {
-      this.uiElements = {};
-    }
-    /**
-     * Destroy mode-specific UI elements when leaving this mode
-     * Override in subclasses to clean up mode-specific UI elements
-     */
-    destroyUI() {
-      if (this.uiElements) {
-        Object.values(this.uiElements).forEach((element) => {
-          if (element && element.parentNode) {
-            element.parentNode.removeChild(element);
-          }
-        });
-        this.uiElements = {};
-      }
-    }
-    /**
-     * Get a snapshot of current mode-specific state
-     * @returns {*} Mode-specific state snapshot
-     */
-    getStateSnapshot() {
-      return {};
-    }
-    /**
-     * Get initial state for this mode
-     * Override in subclasses to provide mode-specific initial state
-     * @returns {*} Mode-specific initial state object
-     */
-    static getInitialState() {
-      return {};
-    }
-    /**
-     * Get viewport configuration for coordinate transformations
-     * @returns {ViewportConfig} Viewport configuration object
-     */
-    getViewport() {
-      return {
-        margins: this.instance.state.margins,
-        imageDetails: this.instance.state.imageDetails,
-        config: this.instance.state.config,
-        zoom: this.instance.state.zoom,
-        rate: this.instance.state.rate
-      };
-    }
-    /**
-     * Update cursor style for drag operations
-     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
-     */
-    updateCursorStyle(style) {
-      if (this.instance.spectrogramImage) {
-        this.instance.spectrogramImage.style.cursor = style;
-      }
-    }
+  const VERSION = "0.1.15";
+  function getVersion() {
+    return VERSION;
   }
-  function createDiffingTable(container, spec) {
-    const area = document.createElement("div");
-    area.className = "gram-frame-table-area";
-    const wrapper = document.createElement("div");
-    wrapper.className = "gram-frame-table-container";
-    const table = document.createElement("table");
-    table.className = "gram-frame-table";
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    spec.columns.forEach((column) => {
-      const th = document.createElement("th");
-      th.textContent = column.label || "";
-      if (column.width) {
-        th.style.width = column.width;
-      }
-      headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-    const tbody = document.createElement("tbody");
-    table.appendChild(tbody);
-    wrapper.appendChild(table);
-    area.appendChild(wrapper);
-    container.appendChild(area);
-    let currentRows = [];
-    function setCellContent(cell, content) {
-      if (content instanceof Node) {
-        cell.replaceChildren(content);
-      } else if (cell.textContent !== content) {
-        cell.textContent = content;
-      }
-    }
-    function applySelection(tr, key) {
-      const selected = spec.isSelected ? spec.isSelected(key) : false;
-      tr.classList.toggle("gram-frame-selected-row", selected);
-    }
-    function buildRow(row, index) {
-      const key = spec.rowKey(row, index);
-      const tr = document.createElement("tr");
-      tr.setAttribute(spec.rowAttribute, key);
-      if (spec.rowClassName) {
-        tr.className = spec.rowClassName;
-      }
-      applySelection(tr, key);
-      spec.cells(row, index).forEach((content, column) => {
-        const td = document.createElement("td");
-        const className = spec.columns[column] && spec.columns[column].cellClassName;
-        if (className) {
-          td.className = className;
-        }
-        setCellContent(td, content);
-        tr.appendChild(td);
-      });
-      return tr;
-    }
-    function updateRow(tr, row, index) {
-      applySelection(tr, spec.rowKey(row, index));
-      spec.cells(row, index).forEach((content, column) => {
-        const cell = tr.cells[column];
-        if (cell) {
-          setCellContent(cell, content);
-        }
-      });
-    }
-    function rebuildFrom(rows, startIndex) {
-      const existing = tbody.querySelectorAll("tr");
-      for (let i = startIndex; i < existing.length; i++) {
-        existing[i].remove();
-      }
-      for (let i = startIndex; i < rows.length; i++) {
-        tbody.appendChild(buildRow(rows[i], i));
-      }
-    }
-    function handleClick(event) {
-      const target = (
-        /** @type {Element|null} */
-        event.target
-      );
-      if (!target) return;
-      const tr = (
-        /** @type {HTMLTableRowElement|null} */
-        target.closest("tr")
-      );
-      if (!tr || !tbody.contains(tr)) return;
-      const key = tr.getAttribute(spec.rowAttribute);
-      if (key === null) return;
-      const index = Array.prototype.indexOf.call(tbody.children, tr);
-      const row = currentRows[index];
-      if (spec.deleteSelector && target.closest(spec.deleteSelector)) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (spec.onDelete) {
-          spec.onDelete(key, row, index);
-        }
-        return;
-      }
-      if (spec.onSelect) {
-        spec.onSelect(key, row, index);
-      }
-    }
-    tbody.addEventListener("click", handleClick);
-    return {
-      element: table,
-      /**
-       * Diff `rows` against what is rendered and apply the difference.
-       *
-       * Idempotent: calling it twice with equal input performs no DOM writes.
-       * @param {any[]} rows - The rows to render
-       */
-      update(rows) {
-        currentRows = rows || [];
-        const existing = tbody.querySelectorAll("tr");
-        for (let index = 0; index < currentRows.length; index++) {
-          const tr = (
-            /** @type {HTMLTableRowElement} */
-            existing[index]
-          );
-          const key = spec.rowKey(currentRows[index], index);
-          if (tr && tr.getAttribute(spec.rowAttribute) === key) {
-            updateRow(tr, currentRows[index], index);
-          } else {
-            rebuildFrom(currentRows, index);
-            return;
-          }
-        }
-        for (let i = currentRows.length; i < existing.length; i++) {
-          existing[i].remove();
-        }
-      },
-      /**
-       * Remove the table and its listener.
-       */
-      destroy() {
-        tbody.removeEventListener("click", handleClick);
-        if (area.parentNode) {
-          area.parentNode.removeChild(area);
-        }
-      }
-    };
-  }
-  function formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    const paddedMinutes = minutes.toString().padStart(2, "0");
-    const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
-    return `${paddedMinutes}:${paddedSeconds}`;
-  }
-  function renderSize(imageDetails) {
-    return {
-      width: imageDetails.renderWidth || imageDetails.naturalWidth,
-      height: imageDetails.renderHeight || imageDetails.naturalHeight
-    };
-  }
-  function getImageBounds(viewport, spectrogramImage = null) {
-    const { margins, imageDetails } = viewport;
-    const { width, height } = renderSize(imageDetails);
-    if (spectrogramImage) {
-      return {
-        left: parseFloat(spectrogramImage.getAttribute("x") || String(margins.left)),
-        top: parseFloat(spectrogramImage.getAttribute("y") || String(margins.top)),
-        width: parseFloat(spectrogramImage.getAttribute("width") || String(width)),
-        height: parseFloat(spectrogramImage.getAttribute("height") || String(height))
-      };
-    }
-    return { left: margins.left, top: margins.top, width, height };
-  }
-  function screenToSVG(screenX, screenY, svg) {
-    const svgRect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
-    if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
-      const scaleX = viewBox.width / svgRect.width;
-      const scaleY = viewBox.height / svgRect.height;
-      return {
-        x: screenX * scaleX + viewBox.x,
-        y: screenY * scaleY + viewBox.y
-      };
-    }
-    return { x: screenX, y: screenY };
-  }
-  function svgToImage(svgX, svgY, viewport, spectrogramImage = null) {
-    const bounds = getImageBounds(viewport, spectrogramImage);
-    const { width, height } = renderSize(viewport.imageDetails);
-    return {
-      x: (svgX - bounds.left) * (width / bounds.width),
-      y: (svgY - bounds.top) * (height / bounds.height)
-    };
-  }
-  function imageToData(imageX, imageY, viewport) {
-    const { config, imageDetails, rate } = viewport;
-    const { freqMin, freqMax, timeMin, timeMax } = config;
-    const { width, height } = renderSize(imageDetails);
-    const rawFreq = freqMin + imageX / width * (freqMax - freqMin);
-    const time = timeMax - imageY / height * (timeMax - timeMin);
-    return { freq: rawFreq / rate, time };
-  }
-  function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
-    const { config } = viewport;
-    const { timeMin, timeMax, freqMin, freqMax } = config;
-    const bounds = getImageBounds(viewport, spectrogramImage);
-    const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin);
-    const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin);
-    return {
-      x: bounds.left + freqRatio * bounds.width,
-      y: bounds.top + (1 - timeRatio) * bounds.height
-      // Invert Y
-    };
-  }
-  function isWithinImage(svgPoint, viewport, spectrogramImage = null) {
-    const bounds = getImageBounds(viewport, spectrogramImage);
-    const { width, height } = renderSize(viewport.imageDetails);
-    const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage);
-    return svgPoint.x >= bounds.left && svgPoint.x <= bounds.left + bounds.width && svgPoint.y >= bounds.top && svgPoint.y <= bounds.top + bounds.height && image.x >= 0 && image.x <= width && image.y >= 0 && image.y <= height;
-  }
-  function clampToImage(imageX, imageY, viewport) {
-    const { width, height } = renderSize(viewport.imageDetails);
-    return {
-      x: Math.max(0, Math.min(imageX, width)),
-      y: Math.max(0, Math.min(imageY, height))
-    };
-  }
-  function screenToData(clientX, clientY, svg, viewport, spectrogramImage = null) {
-    const svgRect = svg.getBoundingClientRect();
-    const svgPoint = screenToSVG(clientX - svgRect.left, clientY - svgRect.top, svg);
-    const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage);
-    return {
-      svg: svgPoint,
-      image,
-      data: imageToData(image.x, image.y, viewport)
-    };
-  }
-  const activeDragOwners = /* @__PURE__ */ new WeakMap();
-  function idleProjection() {
-    return {
+  const initialState = {
+    version: getVersion(),
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    instanceId: "",
+    mode: "pan",
+    // 'analysis', 'harmonics', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
+    previousMode: null,
+    // Previous mode for switching back
+    rate: 1,
+    selectedColor: "#ff6b6b",
+    // Currently selected color for new features across all modes
+    selectedSymbol: "cross",
+    // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
+    // Whether the NEXT created harmonic set draws its vertical pin lines. Shown
+    // as a toggle in the Symbol panel; on by default at the start of a browser
+    // session and remembered (sessionStorage) for the rest of it.
+    showHarmonicPin: true,
+    // EXPERIMENT (temporary): large-symbol size for the NEXT created feature, set
+    // from the Symbol panel's toggle when nothing is selected (with a feature
+    // selected, the toggle resizes that feature instead). In-memory only, default
+    // off, never persisted — it exists to gather feedback on the preferred size.
+    largeSymbols: false,
+    cursorPosition: null,
+    cursors: [],
+    // Bumped by every path that mutates an annotation, so the storage listener
+    // can tell an annotation change from a cursor move without re-serialising
+    // the annotations on each notification (spec 166, AS-4.3).
+    annotationRevision: 0,
+    imageDetails: {
+      url: "",
+      naturalWidth: 0,
+      // Original dimensions of the image
+      naturalHeight: 0,
+      renderWidth: 0,
+      // Base render width (defaults to naturalWidth on load)
+      renderHeight: 0
+      // Base render height (defaults to naturalHeight on load)
+    },
+    // Whether the image is currently expanded to fill available space.
+    // In-memory only, default false, never persisted (independent of feature 155).
+    imageExpanded: false,
+    config: {
+      timeMin: 0,
+      timeMax: 0,
+      freqMin: 0,
+      freqMax: 0
+    },
+    displayDimensions: {
+      // Current display dimensions (responsive)
+      width: 0,
+      height: 0
+    },
+    margins: {
+      left: 60,
+      // Space for time axis labels
+      bottom: 50,
+      // Space for frequency axis labels  
+      right: 15,
+      // Small right margin
+      top: 15
+      // Small top margin
+    },
+    // Simple zoom state for transform-based zoom
+    zoom: {
+      level: 1,
+      // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
+      centerX: 0.5,
+      // Center point X (0-1 normalized)
+      centerY: 0.5
+      // Center point Y (0-1 normalized)
+    },
+    // Read-only projection of the active drag, rebuilt by the drag engine on each
+    // transition. Modes never write it; it is always present, reading
+    // `active: false` when idle (spec 166, FR-004 / data-model.md §2).
+    drag: {
       active: false,
       kind: null,
       mode: null,
       targetId: null,
       targetType: null,
       startPosition: null
-    };
-  }
-  function publishDragProjection(instance) {
-    if (!instance || !instance.state) {
-      return;
-    }
-    const owner = activeDragOwners.get(instance);
-    if (!owner || !owner.dragState.isDragging) {
-      instance.state.drag = idleProjection();
-    } else {
-      instance.state.drag = {
-        active: true,
-        kind: owner.dragState.kind,
-        mode: owner.modeName,
-        targetId: owner.dragState.draggedTargetId,
-        targetType: owner.dragState.draggedTargetType,
-        startPosition: owner.dragState.dragStartPosition ? { ...owner.dragState.dragStartPosition } : null
-      };
-    }
-    if (typeof instance.notifyStateListeners === "function") {
-      instance.notifyStateListeners();
-    }
-  }
-  class BaseDragHandler {
-    /**
-     * Create a new BaseDragHandler
-     * @param {GramFrame} instance - GramFrame instance
-     * @param {DragCallbacks} callbacks - Drag lifecycle callbacks
-     * @param {ModeType|null} [modeName] - Mode that owns this handler, for the projection
-     */
-    constructor(instance, callbacks, modeName = null) {
-      this.instance = instance;
-      this.callbacks = callbacks;
-      this.modeName = modeName;
-      this.dragState = {
-        isDragging: false,
-        kind: null,
-        draggedTargetId: null,
-        draggedTargetType: null,
-        dragStartPosition: null,
-        originalData: null
-      };
-    }
-    /**
-     * Check if currently dragging
-     * @returns {boolean} True if drag operation is active
-     */
-    isDragging() {
-      return this.dragState.isDragging;
-    }
-    /**
-     * The kind of drag in progress, if any.
-     * @returns {DragKind|null} Drag kind or null when idle
-     */
-    dragKind() {
-      return this.dragState.isDragging ? this.dragState.kind : null;
-    }
-    /**
-     * Get the current dragged target information
-     * @returns {Object|null} Drag target info or null if not dragging
-     */
-    getDraggedTarget() {
-      if (!this.dragState.isDragging) return null;
-      return {
-        kind: this.dragState.kind,
-        id: this.dragState.draggedTargetId,
-        type: this.dragState.draggedTargetType,
-        startPosition: this.dragState.dragStartPosition,
-        originalData: this.dragState.originalData
-      };
-    }
-    /**
-     * The target descriptor handed back to the mode's callbacks.
-     * @param {DataCoordinates} position - Current position
-     * @returns {DragTarget} Target descriptor
-     */
-    currentTarget(position) {
-      return {
-        kind: this.dragState.kind,
-        id: this.dragState.draggedTargetId,
-        type: this.dragState.draggedTargetType,
-        position,
-        data: this.dragState.originalData
-      };
-    }
-    /**
-     * Handle mouse move events for drag operations
-     * @param {DataCoordinates} currentPosition - Current mouse position in data coordinates
-     * @param {MouseEvent} [event] - Originating event, for drags that work in screen pixels
-     */
-    handleMouseMove(currentPosition, event) {
-      if (!this.dragState.isDragging) return;
-      this.callbacks.onDragMove(
-        this.currentTarget(currentPosition),
-        currentPosition,
-        this.dragState.dragStartPosition,
-        event
-      );
-    }
-    /**
-     * Start a drag operation
-     * @param {DataCoordinates} position - Position where drag started
-     * @param {MouseEvent} [event] - Originating mousedown, passed to the resolver
-     * @returns {boolean} True if drag started successfully, false otherwise
-     */
-    startDrag(position, event) {
-      if (this.dragState.isDragging) return false;
-      const owner = activeDragOwners.get(this.instance);
-      if (owner && owner !== this && owner.dragState.isDragging) return false;
-      const target = this.callbacks.resolveTarget(position, event);
-      if (!target) return false;
-      this.dragState.isDragging = true;
-      this.dragState.kind = target.kind || "move";
-      this.dragState.draggedTargetId = target.id ?? null;
-      this.dragState.draggedTargetType = target.type ?? null;
-      this.dragState.dragStartPosition = position ? { ...position } : null;
-      this.dragState.originalData = target.data ? { ...target.data } : null;
-      activeDragOwners.set(this.instance, this);
-      publishDragProjection(this.instance);
-      this.applyCursor(this.dragState.kind, "grabbing");
-      this.callbacks.onDragStart(this.currentTarget(position), position, event);
-      return true;
-    }
-    /**
-     * End the current drag operation
-     * @param {DataCoordinates} position - Position where drag ended
-     * @param {MouseEvent} [event] - Originating mouseup
-     */
-    endDrag(position, event) {
-      if (!this.dragState.isDragging) return;
-      const target = this.currentTarget(position);
-      this.callbacks.onDragEnd(target, position, event);
-      this.applyCursor(this.dragState.kind, "crosshair");
-      this.clearDragState();
-    }
-    /**
-     * Cancel the current drag operation without applying changes
-     */
-    cancelDrag() {
-      if (!this.dragState.isDragging) return;
-      const target = this.currentTarget(this.dragState.dragStartPosition);
-      if (this.callbacks.onDragCancel) {
-        this.callbacks.onDragCancel(target);
-      }
-      this.applyCursor(this.dragState.kind, "crosshair");
-      this.clearDragState();
-    }
-    /**
-     * Clear drag bookkeeping and republish the projection.
-     */
-    clearDragState() {
-      this.dragState.isDragging = false;
-      this.dragState.kind = null;
-      this.dragState.draggedTargetId = null;
-      this.dragState.draggedTargetType = null;
-      this.dragState.dragStartPosition = null;
-      this.dragState.originalData = null;
-      if (activeDragOwners.get(this.instance) === this) {
-        activeDragOwners.delete(this.instance);
-      }
-      publishDragProjection(this.instance);
-    }
-    /**
-     * Apply the cursor for a drag kind, falling back to the generic style.
-     * @param {DragKind|null} kind - Drag kind
-     * @param {string} fallback - Cursor to use when the mode has no per-kind opinion
-     */
-    applyCursor(kind, fallback) {
-      if (!this.callbacks.updateCursor) return;
-      const style = this.callbacks.cursorFor ? this.callbacks.cursorFor(kind, fallback) || fallback : fallback;
-      this.callbacks.updateCursor(style);
-    }
-    /**
-     * Update cursor style based on proximity to drag targets
-     * @param {DataCoordinates} position - Current mouse position
-     */
-    updateCursorForHover(position) {
-      if (this.dragState.isDragging) return;
-      const target = this.callbacks.resolveTarget(position);
-      const cursorStyle = target ? "grab" : "crosshair";
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor(cursorStyle);
-      }
-    }
-    /**
-     * Reset drag handler state
-     */
-    reset() {
-      this.cancelDrag();
-    }
-    /**
-     * Clean up drag handler resources
-     */
-    cleanup() {
-      this.reset();
-    }
-  }
-  const DEFAULT_TOLERANCE = {
-    // Pixel tolerance for drag/click detection (in SVG coordinate space)
-    pixelRadius: 8,
-    // Minimum data space tolerance (prevents overly sensitive interactions at high zoom)
-    minDataTolerance: {
-      time: 0.01,
-      // 0.01 seconds minimum
-      freq: 1
-      // 1 Hz minimum
     },
-    // Maximum data space tolerance (prevents insensitive interactions at low zoom)
-    maxDataTolerance: {
-      time: 0.5,
-      // 0.5 seconds maximum
-      freq: 50
-      // 50 Hz maximum
+    // Selection state for keyboard fine control
+    selection: {
+      selectedType: null,
+      // 'marker' | 'harmonicSet' | null
+      selectedId: null,
+      // ID of selected item
+      selectedIndex: null
+      // Index in table for display purposes
     }
   };
-  function calculateDataTolerance(viewport, spectrogramImage, customTolerance = {}) {
-    const config = { ...DEFAULT_TOLERANCE, ...customTolerance };
-    if (!viewport || !spectrogramImage) {
-      return config.minDataTolerance;
-    }
-    const { config: dataConfig, imageDetails, zoom } = viewport;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
-    if (!dataConfig || !renderWidth || !renderHeight) {
-      return config.minDataTolerance;
-    }
-    const timeRange = dataConfig.timeMax - dataConfig.timeMin;
-    const freqRange = dataConfig.freqMax - dataConfig.freqMin;
-    const effectiveZoom = (zoom == null ? void 0 : zoom.level) || 1;
-    const timeToleranceFromPixels = config.pixelRadius / renderHeight * timeRange / effectiveZoom;
-    const freqToleranceFromPixels = config.pixelRadius / renderWidth * freqRange / effectiveZoom;
-    const timeTolerance = Math.max(
-      config.minDataTolerance.time,
-      Math.min(config.maxDataTolerance.time, timeToleranceFromPixels)
-    );
-    const freqTolerance = Math.max(
-      config.minDataTolerance.freq,
-      Math.min(config.maxDataTolerance.freq, freqToleranceFromPixels)
-    );
-    return {
-      time: timeTolerance,
-      freq: freqTolerance
-    };
-  }
-  function isWithinDataTolerance(position, targetPosition, tolerance) {
-    const timeDiff = Math.abs(position.time - targetPosition.time);
-    const freqDiff = Math.abs(position.freq - targetPosition.freq);
-    return timeDiff <= tolerance.time && freqDiff <= tolerance.freq;
-  }
-  function calculateNormalizedDistance(pos1, pos2, tolerance) {
-    const timeDiff = Math.abs(pos1.time - pos2.time) / tolerance.time;
-    const freqDiff = Math.abs(pos1.freq - pos2.freq) / tolerance.freq;
-    return Math.sqrt(timeDiff * timeDiff + freqDiff * freqDiff);
-  }
-  function isWithinToleranceRadius(position, targetPosition, tolerance) {
-    return calculateNormalizedDistance(position, targetPosition, tolerance) <= 1;
-  }
-  function findClosestTarget(position, targets, tolerance) {
-    let closestTarget = null;
-    let closestDistance = Infinity;
-    for (const target of targets) {
-      const distance = calculateNormalizedDistance(position, target.position, tolerance);
-      if (distance <= 1 && distance < closestDistance) {
-        closestDistance = distance;
-        closestTarget = target;
+  const globalStateListeners = [];
+  function createInitialState(modeStates = {}) {
+    const composed = { ...initialState };
+    for (const [key, slice] of Object.entries(modeStates)) {
+      if (!(key in composed)) {
+        composed[key] = slice;
       }
     }
-    return closestTarget;
+    return JSON.parse(JSON.stringify(composed));
   }
-  function getUniformTolerance(viewport, spectrogramImage) {
-    return calculateDataTolerance(viewport, spectrogramImage, DEFAULT_TOLERANCE);
+  function deliverToListeners(state, listeners) {
+    const recipients = (listeners || []).slice();
+    globalStateListeners.forEach((listener) => {
+      if (!recipients.includes(listener)) {
+        recipients.push(listener);
+      }
+    });
+    if (recipients.length === 0) {
+      return;
+    }
+    const stateCopy = JSON.parse(JSON.stringify(state));
+    for (const listener of recipients) {
+      try {
+        listener(stateCopy);
+      } catch (error) {
+        console.error("Error in state listener:", error);
+      }
+    }
+  }
+  function markAnnotationsChanged(instance) {
+    if (instance && instance.state) {
+      instance.state.annotationRevision = (instance.state.annotationRevision || 0) + 1;
+    }
+  }
+  const pendingDispatches = /* @__PURE__ */ new WeakMap();
+  function dispatch(instance, options = {}) {
+    if (!instance) {
+      return;
+    }
+    const wantsFrame = options.frame === true;
+    const pending = pendingDispatches.get(instance);
+    if (pending) {
+      if (!wantsFrame && pending.tier === "frame") {
+        if (pending.frameHandle !== null && typeof cancelAnimationFrame === "function") {
+          cancelAnimationFrame(pending.frameHandle);
+        }
+        pending.tier = "microtask";
+        pending.frameHandle = null;
+        queueMicrotask(() => flushDispatch(instance));
+      }
+      return;
+    }
+    const record = { tier: wantsFrame ? "frame" : "microtask", frameHandle: null };
+    pendingDispatches.set(instance, record);
+    if (wantsFrame && typeof requestAnimationFrame === "function") {
+      record.frameHandle = requestAnimationFrame(() => flushDispatch(instance));
+    } else {
+      record.tier = "microtask";
+      queueMicrotask(() => flushDispatch(instance));
+    }
+  }
+  function flushDispatch(instance) {
+    if (!instance) {
+      return;
+    }
+    const pending = pendingDispatches.get(instance);
+    if (!pending) {
+      return;
+    }
+    if (pending.frameHandle !== null && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(pending.frameHandle);
+    }
+    pendingDispatches.delete(instance);
+    deliverToListeners(instance.state, instance.stateListeners);
+  }
+  function addGlobalStateListener(callback) {
+    if (!globalStateListeners.includes(callback)) {
+      globalStateListeners.push(callback);
+      return true;
+    }
+    return false;
+  }
+  function removeGlobalStateListener(callback) {
+    const index = globalStateListeners.indexOf(callback);
+    if (index !== -1) {
+      globalStateListeners.splice(index, 1);
+      return true;
+    }
+    return false;
   }
   const SVG_NS = "http://www.w3.org/2000/svg";
   const DEFAULT_SYMBOL = "cross";
@@ -801,1914 +311,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     div.style.border = "1px solid #ccc";
     return div;
   }
-  function createMarkerDeleteButton() {
-    const button = document.createElement("button");
-    button.textContent = "×";
-    button.className = "gram-frame-marker-delete-btn";
-    button.style.background = "none";
-    button.style.border = "none";
-    button.style.color = "#ff4444";
-    button.style.cursor = "pointer";
-    button.style.fontSize = "16px";
-    button.style.fontWeight = "bold";
-    return button;
-  }
-  const _AnalysisMode = class _AnalysisMode extends BaseMode {
-    /**
-     * Initialize AnalysisMode with drag handler
-     * @param {Object} instance - GramFrame instance
-     */
-    constructor(instance) {
-      super(instance);
-      this.dragHandler = new BaseDragHandler(instance, {
-        resolveTarget: (position) => this.findMarkerAtPosition(position),
-        onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-        onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
-        onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
-        updateCursor: (style) => this.updateCursorStyle(style)
-      }, "analysis");
-    }
-    /**
-     * Start dragging a marker
-     * @param {Object} target - Drag target with id and type
-     * @param {DataCoordinates} position - Start position
-     */
-    onMarkerDragStart(target, position) {
-      const marker = this.instance.state.analysis.markers.find((m) => m.id === target.id);
-      if (marker) {
-        const index = this.instance.state.analysis.markers.findIndex((m) => m.id === target.id);
-        this.instance.setSelection("marker", target.id, index);
-      }
-    }
-    /**
-     * Update marker position during drag
-     * @param {Object} target - Drag target with id and type
-     * @param {DataCoordinates} currentPos - Current position
-     * @param {DataCoordinates} _startPos - Start position (unused)
-     */
-    onMarkerDragUpdate(target, currentPos, _startPos) {
-      const marker = this.instance.state.analysis.markers.find((m) => m.id === target.id);
-      if (marker) {
-        marker.freq = currentPos.freq;
-        marker.time = currentPos.time;
-        markAnnotationsChanged(this.instance);
-        if (this.instance.featureRenderer) {
-          this.instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        if (!this.updateTableScheduled) {
-          this.updateTableScheduled = true;
-          requestAnimationFrame(() => {
-            this.updateMarkersTable();
-            this.updateTableScheduled = false;
-          });
-        }
-        dispatch(this.instance, { frame: true });
-      }
-    }
-    /**
-     * End dragging a marker
-     * @param {Object} _target - Drag target with id and type (unused)
-     * @param {DataCoordinates} _position - End position (unused)
-     */
-    onMarkerDragEnd(_target, _position) {
-    }
-    /**
-     * Update cursor style for drag operations
-     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
-     */
-    updateCursorStyle(style) {
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = style;
-      }
-    }
-    /**
-     * Get guidance content for analysis mode
-     * @returns {Object} Structured guidance content
-     */
-    getGuidanceText() {
-      return {
-        title: "Cross Cursor Mode",
-        items: [
-          "Click to place persistent markers",
-          "Drag existing markers to reposition them",
-          "Right-click markers to delete them",
-          "Click table row + arrow keys (Shift for larger steps)"
-        ]
-      };
-    }
-    /**
-     * Handle mouse move events in analysis mode
-     * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseMove(_event, dataCoords) {
-      if (this.dragHandler.isDragging()) {
-        this.dragHandler.handleMouseMove(dataCoords);
-      } else {
-        this.dragHandler.updateCursorForHover(dataCoords);
-      }
-    }
-    /**
-     * Handle mouse down events in analysis mode
-     * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseDown(event, dataCoords) {
-      if (event.button !== 0) {
-        return;
-      }
-      const dragStarted = this.dragHandler.startDrag(dataCoords);
-      if (!dragStarted) {
-        this.createMarkerAtPosition(dataCoords);
-      }
-    }
-    /**
-     * Handle mouse up events in analysis mode
-     * @param {MouseEvent} _event - Mouse event (unused in current implementation)
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseUp(_event, dataCoords) {
-      this.dragHandler.endDrag(dataCoords);
-    }
-    /**
-     * Handle mouse leave events in analysis mode
-     */
-    handleMouseLeave() {
-    }
-    /**
-     * Handle context menu (right-click) events in analysis mode
-     * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleContextMenu(event, dataCoords) {
-      event.preventDefault();
-      const target = this.findMarkerAtPosition(dataCoords);
-      if (target) {
-        this.removeMarker(target.id);
-      }
-    }
-    // Cursor position updates are now handled universally in main.js
-    // No need for mode-specific cursor position management
-    /**
-     * Create a marker at the specified position
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    createMarkerAtPosition(dataCoords) {
-      const color = this.instance.state.selectedColor || "#ff6b6b";
-      const symbol = this.instance.state.selectedSymbol || "cross";
-      const marker = {
-        id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-        color,
-        time: dataCoords.time,
-        freq: dataCoords.freq,
-        symbol,
-        // EXPERIMENT (temporary): symbol size is carried per marker, seeded from
-        // the toggle's next-feature default, so both sizes can coexist.
-        largeSymbols: !!this.instance.state.largeSymbols
-      };
-      this.addMarker(marker);
-    }
-    /**
-     * Render persistent features for analysis mode
-     */
-    renderPersistentFeatures() {
-      var _a;
-      if (!this.instance.cursorGroup || !((_a = this.instance.state.analysis) == null ? void 0 : _a.markers)) {
-        return;
-      }
-      const existingMarkers = this.instance.cursorGroup.querySelectorAll(".gram-frame-analysis-marker");
-      existingMarkers.forEach((marker) => marker.remove());
-      this.instance.state.analysis.markers.forEach((marker) => {
-        this.renderMarker(marker);
-      });
-    }
-    /**
-     * Render a single marker as a crosshair
-     * @param {AnalysisMarker} marker - Marker object
-     */
-    renderMarker(marker) {
-      if (!this.instance.cursorGroup) {
-        return;
-      }
-      const markerPoint = { freq: marker.freq, time: marker.time };
-      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage);
-      const currentX = markerSVG.x;
-      const currentY = markerSVG.y;
-      const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      markerGroup.setAttribute("class", "gram-frame-analysis-marker");
-      markerGroup.setAttribute("data-marker-id", marker.id);
-      const symbolSize = _AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker);
-      const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color);
-      if (symbolMark) {
-        symbolMark.setAttribute("class", "gram-frame-marker-symbol");
-        symbolMark.setAttribute("data-marker-id", marker.id);
-        markerGroup.appendChild(symbolMark);
-      } else {
-        const crosshairSize = 15;
-        const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        hLine.setAttribute("x1", String(currentX - crosshairSize));
-        hLine.setAttribute("y1", String(currentY));
-        hLine.setAttribute("x2", String(currentX + crosshairSize));
-        hLine.setAttribute("y2", String(currentY));
-        hLine.setAttribute("stroke", marker.color);
-        hLine.setAttribute("stroke-width", "2");
-        hLine.setAttribute("stroke-linecap", "round");
-        const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        vLine.setAttribute("x1", String(currentX));
-        vLine.setAttribute("y1", String(currentY - crosshairSize));
-        vLine.setAttribute("x2", String(currentX));
-        vLine.setAttribute("y2", String(currentY + crosshairSize));
-        vLine.setAttribute("stroke", marker.color);
-        vLine.setAttribute("stroke-width", "2");
-        vLine.setAttribute("stroke-linecap", "round");
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("cx", String(currentX));
-        circle.setAttribute("cy", String(currentY));
-        circle.setAttribute("r", "3");
-        circle.setAttribute("fill", marker.color);
-        circle.setAttribute("stroke", "#fff");
-        circle.setAttribute("stroke-width", "1");
-        markerGroup.appendChild(hLine);
-        markerGroup.appendChild(vLine);
-        markerGroup.appendChild(circle);
-      }
-      this.instance.cursorGroup.appendChild(markerGroup);
-    }
-    /**
-     * Create UI elements for analysis mode
-     * @param {HTMLElement} markersContainer - Persistent container for markers table
-     */
-    createUI(markersContainer) {
-      this.uiElements = {};
-      this.uiElements.markersContainer = markersContainer;
-      this.createMarkersTable(markersContainer);
-      this.uiElements.markersTable = markersContainer.querySelector(".gram-frame-table");
-      this.instance.colorPicker = this.instance.colorPicker || null;
-      this.instance.timeLED = this.instance.timeLED || null;
-      this.instance.freqLED = this.instance.freqLED || null;
-    }
-    /**
-     * Create markers table for displaying active markers
-     *
-     * The table wrapper sits inside a `gram-frame-table-area` element that claims
-     * the column's remaining height; the wrapper fills it absolutely and scrolls,
-     * so adding markers never grows the surrounding layout (the header row stays
-     * pinned via sticky `th`).
-     *
-     * @param {HTMLElement} markersContainer - Persistent container for markers (already has label)
-     */
-    createMarkersTable(markersContainer) {
-      if (markersContainer.querySelector(".gram-frame-table")) {
-        return;
-      }
-      this.markersTable = createDiffingTable(markersContainer, {
-        columns: [
-          { label: "", width: "15%", cellClassName: "gram-frame-marker-color" },
-          { label: "Time (mm:ss)", width: "35%" },
-          { label: "Freq (Hz)", width: "35%" },
-          { label: "", width: "15%" }
-        ],
-        rowAttribute: "data-marker-id",
-        rowKey: (marker) => marker.id,
-        cells: (marker) => [
-          // Colour/symbol cell — a shaped symbol shows the colour-coded symbol;
-          // the cross (symbol-less) style shows a filled colour rectangle (FR-010).
-          createColorIndicator(marker.symbol, marker.color, 20),
-          formatTime(marker.time),
-          marker.freq.toFixed(2),
-          createMarkerDeleteButton()
-        ],
-        deleteSelector: ".gram-frame-marker-delete-btn",
-        onSelect: (markerId, _marker, index) => {
-          if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId) {
-            this.instance.clearSelection();
-          } else {
-            this.instance.setSelection("marker", markerId, index);
-          }
-        },
-        onDelete: (markerId) => this.removeMarker(markerId),
-        isSelected: (markerId) => this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId
-      });
-      this.uiElements.markersTable = this.markersTable.element;
-      this.updateMarkersTable();
-    }
-    /**
-     * Update markers table with current markers
-     */
-    updateMarkersTable() {
-      if (!this.markersTable) return;
-      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
-      this.markersTable.update(this.instance.state.analysis.markers);
-    }
-    /**
-     * Update LED displays for analysis mode
-     * @param {CursorPosition} _coords - Current cursor coordinates
-     */
-    updateLEDs(_coords) {
-    }
-    /**
-     * Get initial state for analysis mode
-     * @returns {AnalysisInitialState} Analysis mode state including markers
-     */
-    static getInitialState() {
-      return {
-        analysis: {
-          markers: []
-        }
-      };
-    }
-    /**
-     * Add a new persistent marker
-     * @param {AnalysisMarker} marker - Marker object with all properties
-     */
-    addMarker(marker) {
-      if (!this.instance.state.analysis) {
-        this.instance.state.analysis = { markers: [] };
-      }
-      this.instance.state.analysis.markers.push(marker);
-      markAnnotationsChanged(this.instance);
-      const index = this.instance.state.analysis.markers.length - 1;
-      this.instance.setSelection("marker", marker.id, index);
-      this.updateMarkersTable();
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(this.instance, { frame: true });
-    }
-    /**
-     * Remove a marker by ID
-     * @param {string} markerId - ID of marker to remove
-     */
-    removeMarker(markerId) {
-      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
-      const index = this.instance.state.analysis.markers.findIndex((m) => m.id === markerId);
-      if (index !== -1) {
-        if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId) {
-          this.instance.clearSelection();
-        }
-        this.instance.state.analysis.markers.splice(index, 1);
-        markAnnotationsChanged(this.instance);
-        this.updateMarkersTable();
-        if (this.instance.featureRenderer) {
-          this.instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        dispatch(this.instance, { frame: true });
-      }
-    }
-    /**
-     * Find marker at given position (with tolerance)
-     * Returns a drag target object compatible with BaseDragHandler
-     * @param {DataCoordinates} position - Position to check
-     * @returns {Object|null} Drag target if found, null otherwise
-     */
-    findMarkerAtPosition(position) {
-      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null;
-      const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
-      const marker = this.instance.state.analysis.markers.find((marker2) => {
-        if (isWithinToleranceRadius(
-          position,
-          { freq: marker2.freq, time: marker2.time },
-          tolerance
-        )) {
-          return true;
-        }
-        const markerPoint = { freq: marker2.freq, time: marker2.time };
-        const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.spectrogramImage);
-        const clickSVG = dataToSVG(position, this.getViewport(), this.instance.spectrogramImage);
-        const crosshairSize = 15;
-        const lineThickness = 3;
-        const onHorizontalLine = Math.abs(clickSVG.y - markerSVG.y) <= lineThickness && Math.abs(clickSVG.x - markerSVG.x) <= crosshairSize;
-        const onVerticalLine = Math.abs(clickSVG.x - markerSVG.x) <= lineThickness && Math.abs(clickSVG.y - markerSVG.y) <= crosshairSize;
-        return onHorizontalLine || onVerticalLine;
-      });
-      if (marker) {
-        return {
-          kind: "move",
-          id: marker.id,
-          type: "marker",
-          position: { freq: marker.freq, time: marker.time },
-          data: marker
-        };
-      }
-      return null;
-    }
-    /**
-     * Update mode-specific LED values based on cursor position
-     */
-    updateModeSpecificLEDs() {
-    }
-    /**
-     * Clean up analysis mode state
-     */
-    cleanup() {
-    }
-    /**
-     * Destroy mode-specific UI elements when leaving this mode
-     */
-    destroyUI() {
-    }
-    /**
-     * Reset analysis mode state
-     */
-    resetState() {
-    }
-  };
-  /**
-   * Base pixel size (width/height) of a marker's symbol mark when it carries a
-   * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
-   * The drawn size is this scaled by the temporary "Large symbols" toggle, so a
-   * marker's symbol tracks the harmonic pins' symbols.
-   * @type {number}
-   */
-  __publicField(_AnalysisMode, "MARKER_SYMBOL_SIZE", 14);
-  let AnalysisMode = _AnalysisMode;
-  const panelTables = /* @__PURE__ */ new WeakMap();
-  function createSymbolSwatch(harmonicSet) {
-    return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
-  }
-  function createColorCellContent(harmonicSet) {
-    const colorDiv = document.createElement("div");
-    colorDiv.className = "gram-frame-harmonic-color";
-    colorDiv.style.color = harmonicSet.color;
-    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
-    return colorDiv;
-  }
-  function formatRatio(harmonicSet, instance) {
-    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-      return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
-    }
-    return "5.000";
-  }
-  function createHarmonicDeleteButton(harmonicSet) {
-    const button = document.createElement("button");
-    button.className = "gram-frame-harmonic-delete";
-    button.setAttribute("data-harmonic-id", harmonicSet.id);
-    button.title = "Delete harmonic set";
-    button.textContent = "×";
-    return button;
-  }
-  function createHarmonicPanel(container, instance) {
-    const table = createDiffingTable(container, {
-      columns: [
-        { label: "", width: "15%" },
-        { label: "Spacing (Hz)", width: "35%", cellClassName: "gram-frame-harmonic-spacing" },
-        { label: "Ratio", width: "35%", cellClassName: "gram-frame-harmonic-rate" },
-        { label: "", width: "15%" }
-      ],
-      rowAttribute: "data-harmonic-id",
-      rowClassName: "gram-frame-harmonic-row",
-      rowKey: (harmonicSet) => harmonicSet.id,
-      cells: (harmonicSet) => [
-        createColorCellContent(harmonicSet),
-        harmonicSet.spacing.toFixed(2),
-        formatRatio(harmonicSet, instance),
-        createHarmonicDeleteButton(harmonicSet)
-      ],
-      deleteSelector: ".gram-frame-harmonic-delete",
-      onSelect: (harmonicSetId, _harmonicSet, index) => {
-        if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId) {
-          instance.clearSelection();
-        } else {
-          instance.setSelection("harmonicSet", harmonicSetId, index);
-        }
-      },
-      onDelete: (harmonicSetId) => instance.removeHarmonicSet(harmonicSetId),
-      isSelected: (harmonicSetId) => instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId
-    });
-    const panel = (
-      /** @type {HTMLElement} */
-      table.element.parentElement
-    );
-    panelTables.set(panel, table);
-    return panel;
-  }
-  function updateHarmonicPanelContent(panel, instance) {
-    if (!panel) {
-      return;
-    }
-    const table = panelTables.get(panel);
-    if (!table) {
-      return;
-    }
-    table.update(instance.state.harmonics.harmonicSets);
-  }
-  const BOTTOM_GAP = 16;
-  function isLandscape(instance) {
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    return naturalWidth > 0 && naturalHeight > 0 && naturalWidth > naturalHeight;
-  }
-  function computeAvailableRenderSize(instance) {
-    const margins = instance.state.margins;
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const cell = instance.mainCell;
-    const svg = instance.svg;
-    if (!cell || !svg) {
-      return { width: naturalWidth, height: naturalHeight };
-    }
-    const cellStyle = window.getComputedStyle(cell);
-    const padL = parseFloat(cellStyle.paddingLeft) || 0;
-    const padR = parseFloat(cellStyle.paddingRight) || 0;
-    const svgStyle = window.getComputedStyle(svg);
-    const svgBorderX = (parseFloat(svgStyle.borderLeftWidth) || 0) + (parseFloat(svgStyle.borderRightWidth) || 0);
-    const width = cell.clientWidth - padL - padR - svgBorderX - margins.left - margins.right;
-    const svgRect = svg.getBoundingClientRect();
-    const imageTopViewport = svgRect.top + margins.top;
-    const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP;
-    return {
-      width: Math.max(naturalWidth, Math.round(width)),
-      height: Math.max(naturalHeight, Math.round(height))
-    };
-  }
-  function applyExpandLayout(instance) {
-    if (instance.state.imageExpanded) {
-      const { width, height } = computeAvailableRenderSize(instance);
-      instance.state.imageDetails.renderWidth = width;
-      instance.state.imageDetails.renderHeight = height;
-      updateSVGLayout(instance);
-      const settled = computeAvailableRenderSize(instance);
-      if (Math.abs(settled.width - width) > 1 || Math.abs(settled.height - height) > 1) {
-        instance.state.imageDetails.renderWidth = settled.width;
-        instance.state.imageDetails.renderHeight = settled.height;
-      }
-    } else {
-      instance.state.imageDetails.renderWidth = instance.state.imageDetails.naturalWidth;
-      instance.state.imageDetails.renderHeight = instance.state.imageDetails.naturalHeight;
-    }
-    updateSVGLayout(instance);
-    renderAxes(instance);
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
-    dispatch(instance);
-  }
-  function updateToggleButton(button, expanded) {
-    button.setAttribute("aria-pressed", expanded ? "true" : "false");
-    button.setAttribute("aria-label", expanded ? "Collapse image" : "Expand image");
-    button.title = expanded ? "Collapse image" : "Expand image";
-    button.textContent = expanded ? "⤢" : "⤡";
-  }
-  function setImageExpanded(instance, expanded) {
-    if (!isLandscape(instance)) {
-      return;
-    }
-    instance.state.imageExpanded = !!expanded;
-    applyExpandLayout(instance);
-    if (instance.expandToggleButton) {
-      updateToggleButton(instance.expandToggleButton, instance.state.imageExpanded);
-    }
-  }
-  function refreshExpandedLayout(instance) {
-    if (!instance.state.imageExpanded) {
-      return;
-    }
-    const { width, height } = computeAvailableRenderSize(instance);
-    instance.state.imageDetails.renderWidth = width;
-    instance.state.imageDetails.renderHeight = height;
-  }
-  function createExpandToggle(instance) {
-    if (!isLandscape(instance)) {
-      return null;
-    }
-    const button = document.createElement("button");
-    button.className = "gram-frame-expand-toggle";
-    button.type = "button";
-    updateToggleButton(button, instance.state.imageExpanded);
-    button.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setImageExpanded(instance, !instance.state.imageExpanded);
-    });
-    instance.mainCell.appendChild(button);
-    instance.expandToggleButton = button;
-    return button;
-  }
-  const MAX_IMAGE_WIDTH = 1200;
-  function getRenderDimensions(instance) {
-    const { naturalWidth, naturalHeight, renderWidth, renderHeight } = instance.state.imageDetails;
-    return {
-      renderWidth: renderWidth || naturalWidth,
-      renderHeight: renderHeight || naturalHeight
-    };
-  }
-  function createComponentStructure(instance) {
-    instance.container = document.createElement("div");
-    instance.container.className = "gram-frame-container gram-frame-loading";
-    instance.table = document.createElement("div");
-    instance.table.className = "gram-frame-table";
-    instance.container.appendChild(instance.table);
-    instance.modeRow = document.createElement("div");
-    instance.modeRow.className = "gram-frame-row";
-    instance.table.appendChild(instance.modeRow);
-    instance.modeCell = document.createElement("div");
-    instance.modeCell.className = "gram-frame-cell gram-frame-mode-header";
-    instance.modeRow.appendChild(instance.modeCell);
-    instance.mainRow = document.createElement("div");
-    instance.mainRow.className = "gram-frame-row";
-    instance.mainRow.style.height = "100%";
-    instance.table.appendChild(instance.mainRow);
-    instance.mainCell = document.createElement("div");
-    instance.mainCell.className = "gram-frame-cell gram-frame-main-panel";
-    instance.mainRow.appendChild(instance.mainCell);
-    instance.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    instance.svg.setAttribute("class", "gram-frame-svg");
-    instance.svg.style.width = "100%";
-    instance.svg.style.height = "100%";
-    instance.svg.style.display = "block";
-    instance.mainCell.appendChild(instance.svg);
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    instance.svg.appendChild(defs);
-    const clipPathId = `imageClip-${instance.instanceId || Date.now()}`;
-    const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
-    clipPath.setAttribute("id", clipPathId);
-    defs.appendChild(clipPath);
-    instance.imageClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    clipPath.appendChild(instance.imageClipRect);
-    const cursorClipPathId = `cursorClip-${instance.instanceId || Date.now()}`;
-    const cursorClipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
-    cursorClipPath.setAttribute("id", cursorClipPathId);
-    defs.appendChild(cursorClipPath);
-    instance.cursorClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    cursorClipPath.appendChild(instance.cursorClipRect);
-    instance.spectrogramImage = document.createElementNS("http://www.w3.org/2000/svg", "image");
-    instance.spectrogramImage.setAttribute("class", "gram-frame-spectrogram-image");
-    instance.spectrogramImage.setAttribute("clip-path", `url(#${clipPathId})`);
-    instance.spectrogramImage.setAttribute("preserveAspectRatio", "none");
-    instance.svg.appendChild(instance.spectrogramImage);
-    instance.cursorGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    instance.cursorGroup.setAttribute("class", "gram-frame-cursors");
-    instance.cursorGroup.setAttribute("clip-path", `url(#${cursorClipPathId})`);
-    instance.svg.appendChild(instance.cursorGroup);
-    instance.axesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    instance.axesGroup.setAttribute("class", "gram-frame-axes");
-    instance.svg.appendChild(instance.axesGroup);
-    instance.readoutPanel = document.createElement("div");
-    instance.readoutPanel.className = "gram-frame-readout";
-    return {
-      container: instance.container,
-      table: instance.table,
-      modeRow: instance.modeRow,
-      modeCell: instance.modeCell,
-      mainRow: instance.mainRow,
-      mainCell: instance.mainCell,
-      readoutPanel: instance.readoutPanel,
-      svg: instance.svg,
-      spectrogramImage: instance.spectrogramImage,
-      cursorGroup: instance.cursorGroup,
-      axesGroup: instance.axesGroup,
-      imageClipRect: instance.imageClipRect,
-      cursorClipRect: instance.cursorClipRect
-    };
-  }
-  function setupSpectrogramImage(instance, imageUrl) {
-    if (!instance.spectrogramImage || !imageUrl) {
-      return;
-    }
-    instance.spectrogramImage.setAttributeNS("http://www.w3.org/1999/xlink", "href", imageUrl);
-    instance.state.imageDetails.url = imageUrl;
-    const tempImg = new Image();
-    tempImg.onload = function() {
-      instance.container.classList.remove("gram-frame-loading");
-      let imageWidth = tempImg.naturalWidth;
-      let imageHeight = tempImg.naturalHeight;
-      if (imageWidth > MAX_IMAGE_WIDTH) {
-        const scaleFactor = MAX_IMAGE_WIDTH / imageWidth;
-        imageWidth = MAX_IMAGE_WIDTH;
-        imageHeight = Math.round(imageHeight * scaleFactor);
-        console.log(`GramFrame: Scaling down large image from ${tempImg.naturalWidth}x${tempImg.naturalHeight} to ${imageWidth}x${imageHeight} (scale factor: ${scaleFactor.toFixed(3)})`);
-      }
-      instance.state.imageDetails.naturalWidth = imageWidth;
-      instance.state.imageDetails.naturalHeight = imageHeight;
-      instance.state.imageDetails.renderWidth = imageWidth;
-      instance.state.imageDetails.renderHeight = imageHeight;
-      updateSVGLayout(instance);
-      renderAxes(instance);
-      createExpandToggle(instance);
-      dispatch(instance);
-    };
-    tempImg.onerror = function() {
-      console.error(`GramFrame: Failed to load spectrogram image: ${imageUrl}`);
-      instance.container.classList.remove("gram-frame-loading");
-      instance.container.classList.add("gram-frame-image-error");
-    };
-    tempImg.src = imageUrl;
-  }
-  function updateSVGLayout(instance) {
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const margins = instance.state.margins;
-    if (!naturalWidth || !naturalHeight) {
-      return;
-    }
-    const { renderWidth, renderHeight } = getRenderDimensions(instance);
-    const axesWidth = renderWidth;
-    const axesHeight = renderHeight;
-    const totalWidth = axesWidth + margins.left + margins.right;
-    const totalHeight = axesHeight + margins.top + margins.bottom;
-    instance.container.style.width = "auto";
-    instance.container.style.height = "auto";
-    instance.container.style.aspectRatio = "unset";
-    instance.svg.style.width = `${totalWidth}px`;
-    instance.svg.style.height = `${totalHeight}px`;
-    instance.svg.setAttribute("viewBox", `0 0 ${totalWidth} ${totalHeight}`);
-    instance.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-    instance.spectrogramImage.setAttribute("x", String(margins.left));
-    instance.spectrogramImage.setAttribute("y", String(margins.top));
-    instance.spectrogramImage.setAttribute("width", String(axesWidth));
-    instance.spectrogramImage.setAttribute("height", String(axesHeight));
-    if (instance.imageClipRect) {
-      instance.imageClipRect.setAttribute("x", String(margins.left));
-      instance.imageClipRect.setAttribute("y", String(margins.top));
-      instance.imageClipRect.setAttribute("width", String(axesWidth));
-      instance.imageClipRect.setAttribute("height", String(axesHeight));
-    }
-    if (instance.cursorClipRect) {
-      instance.cursorClipRect.setAttribute("x", String(margins.left));
-      instance.cursorClipRect.setAttribute("y", String(margins.top));
-      instance.cursorClipRect.setAttribute("width", String(axesWidth));
-      instance.cursorClipRect.setAttribute("height", String(axesHeight));
-    }
-    applyZoomTransform(instance);
-  }
-  function applyZoomTransform(instance) {
-    const { level, centerX, centerY } = instance.state.zoom;
-    const margins = instance.state.margins;
-    const { renderWidth, renderHeight } = getRenderDimensions(instance);
-    if (!instance.spectrogramImage) {
-      return;
-    }
-    if (level === 1) {
-      instance.spectrogramImage.setAttribute("x", String(margins.left));
-      instance.spectrogramImage.setAttribute("y", String(margins.top));
-      instance.spectrogramImage.setAttribute("width", String(renderWidth));
-      instance.spectrogramImage.setAttribute("height", String(renderHeight));
-      instance.spectrogramImage.removeAttribute("transform");
-      renderAxes(instance);
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      return;
-    }
-    const centerImageX = centerX * renderWidth;
-    const centerImageY = centerY * renderHeight;
-    const zoomedWidth = renderWidth * level;
-    const zoomedHeight = renderHeight * level;
-    const newX = margins.left + centerImageX - centerImageX * level;
-    const newY = margins.top + centerImageY - centerImageY * level;
-    instance.spectrogramImage.setAttribute("x", String(newX));
-    instance.spectrogramImage.setAttribute("y", String(newY));
-    instance.spectrogramImage.setAttribute("width", String(zoomedWidth));
-    instance.spectrogramImage.setAttribute("height", String(zoomedHeight));
-    renderAxes(instance);
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
-  }
-  function renderAxes(instance) {
-    if (!instance.axesGroup) {
-      return;
-    }
-    instance.axesGroup.innerHTML = "";
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const margins = instance.state.margins;
-    if (!naturalWidth || !naturalHeight) {
-      return;
-    }
-    const { renderWidth, renderHeight } = getRenderDimensions(instance);
-    const visibleRange = calculateVisibleDataRange(instance);
-    renderFrequencyAxis(instance, margins, renderWidth, renderHeight, visibleRange.freqMin, visibleRange.freqMax);
-    renderTimeAxis(instance, margins, renderWidth, renderHeight, visibleRange.timeMin, visibleRange.timeMax);
-  }
-  function calculateVisibleDataRange(instance) {
-    const { timeMin, timeMax, freqMin, freqMax } = instance.state.config;
-    const margins = instance.state.margins;
-    const zoomLevel = instance.state.zoom.level;
-    const { renderWidth, renderHeight } = getRenderDimensions(instance);
-    if (zoomLevel === 1) {
-      return { timeMin, timeMax, freqMin, freqMax };
-    }
-    const {
-      left: imageLeft,
-      top: imageTop,
-      width: imageWidth,
-      height: imageHeight
-    } = getImageBounds(instance.state, instance.spectrogramImage);
-    const visibleLeft = Math.max(0, margins.left - imageLeft);
-    const visibleRight = Math.min(imageWidth, margins.left + renderWidth - imageLeft);
-    const visibleTop = Math.max(0, margins.top - imageTop);
-    const visibleBottom = Math.min(imageHeight, margins.top + renderHeight - imageTop);
-    const freqRange = freqMax - freqMin;
-    const timeRange = timeMax - timeMin;
-    const visibleFreqMin = freqMin + visibleLeft / imageWidth * freqRange;
-    const visibleFreqMax = freqMin + visibleRight / imageWidth * freqRange;
-    const visibleTimeMax = timeMax - visibleTop / imageHeight * timeRange;
-    const visibleTimeMin = timeMax - visibleBottom / imageHeight * timeRange;
-    return {
-      freqMin: visibleFreqMin,
-      freqMax: visibleFreqMax,
-      timeMin: visibleTimeMin,
-      timeMax: visibleTimeMax
-    };
-  }
-  function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin, timeMax) {
-    const axisX = margins.left;
-    const axisStartY = margins.top;
-    const axisEndY = margins.top + naturalHeight;
-    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    axisLine.setAttribute("x1", String(axisX));
-    axisLine.setAttribute("y1", String(axisStartY));
-    axisLine.setAttribute("x2", String(axisX));
-    axisLine.setAttribute("y2", String(axisEndY));
-    axisLine.setAttribute("class", "gram-frame-axis-line");
-    instance.axesGroup.appendChild(axisLine);
-    const timeRange = timeMax - timeMin;
-    const tickCount = 5;
-    const tickInterval = timeRange / (tickCount - 1);
-    for (let i = 0; i < tickCount; i++) {
-      const time = timeMin + i * tickInterval;
-      const y = axisEndY - i / (tickCount - 1) * naturalHeight;
-      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      tick.setAttribute("x1", String(axisX - 8));
-      tick.setAttribute("y1", String(y));
-      tick.setAttribute("x2", String(axisX));
-      tick.setAttribute("y2", String(y));
-      tick.setAttribute("class", "gram-frame-axis-tick");
-      instance.axesGroup.appendChild(tick);
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("x", String(axisX - 12));
-      label.setAttribute("y", String(y + 4));
-      label.setAttribute("text-anchor", "end");
-      label.setAttribute("class", "gram-frame-axis-label");
-      label.textContent = formatTime(time);
-      instance.axesGroup.appendChild(label);
-    }
-  }
-  function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
-    const range = max - min;
-    const targetMajorTicks = Math.max(2, Math.floor(containerSize / targetSpacing));
-    const rawMajorInterval = range / (targetMajorTicks - 1);
-    function niceNum(value, round) {
-      const exponent = Math.floor(Math.log10(value));
-      const fraction = value / Math.pow(10, exponent);
-      let niceFraction;
-      {
-        if (fraction <= 1) niceFraction = 1;
-        else if (fraction <= 2) niceFraction = 2;
-        else if (fraction <= 5) niceFraction = 5;
-        else niceFraction = 10;
-      }
-      return niceFraction * Math.pow(10, exponent);
-    }
-    const majorInterval = niceNum(rawMajorInterval);
-    let minorInterval;
-    const majorFraction = majorInterval / Math.pow(10, Math.floor(Math.log10(majorInterval)));
-    if (majorFraction === 1) {
-      minorInterval = majorInterval / 5;
-    } else if (majorFraction === 2) {
-      minorInterval = majorInterval / 2;
-    } else if (majorFraction === 5) {
-      minorInterval = majorInterval / 5;
-    } else {
-      minorInterval = majorInterval / 2;
-    }
-    const majorStart = Math.ceil(min / majorInterval) * majorInterval;
-    const minorStart = Math.ceil(min / minorInterval) * minorInterval;
-    const expectedMajorTicks = Math.ceil(range / majorInterval) + 2;
-    const expectedMinorTicks = Math.ceil(range / minorInterval) + 2;
-    const maxTicks = Math.max(200, expectedMajorTicks + expectedMinorTicks);
-    return {
-      majorInterval,
-      minorInterval,
-      majorStart,
-      minorStart,
-      expectedMajorTicks,
-      expectedMinorTicks,
-      maxTicks
-    };
-  }
-  function formatFrequencyLabels(frequency) {
-    return Math.round(frequency) + "Hz";
-  }
-  function renderAxisLine(instance, axisConfig) {
-    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    axisLine.setAttribute("x1", String(axisConfig.startX));
-    axisLine.setAttribute("y1", String(axisConfig.y));
-    axisLine.setAttribute("x2", String(axisConfig.endX));
-    axisLine.setAttribute("y2", String(axisConfig.y));
-    axisLine.setAttribute("class", "gram-frame-axis-line");
-    instance.axesGroup.appendChild(axisLine);
-  }
-  function renderAxisTicks(instance, tickData, axisConfig) {
-    tickData.forEach((tickInfo) => {
-      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      tick.setAttribute("x1", String(tickInfo.x));
-      tick.setAttribute("y1", String(axisConfig.y));
-      tick.setAttribute("x2", String(tickInfo.x));
-      tick.setAttribute("y2", String(axisConfig.y + tickInfo.height));
-      tick.setAttribute("class", tickInfo.className);
-      instance.axesGroup.appendChild(tick);
-    });
-  }
-  function renderAxisLabels(instance, labelData, axisConfig) {
-    labelData.forEach((labelInfo) => {
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("x", String(labelInfo.x));
-      label.setAttribute("y", String(axisConfig.y + 25));
-      label.setAttribute("text-anchor", "middle");
-      label.setAttribute("class", labelInfo.className);
-      label.textContent = labelInfo.text;
-      instance.axesGroup.appendChild(label);
-    });
-  }
-  function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
-    const axisY = margins.top + _naturalHeight;
-    const axisStartX = margins.left;
-    const axisEndX = margins.left + naturalWidth;
-    const rate = instance.state.rate;
-    const displayFreqMin = freqMin / rate;
-    const displayFreqMax = freqMax / rate;
-    const freqRange = displayFreqMax - displayFreqMin;
-    const axisConfig = { y: axisY, startX: axisStartX, endX: axisEndX };
-    renderAxisLine(instance, axisConfig);
-    const tickCalculation = calculateAxisTicks(displayFreqMin, displayFreqMax, naturalWidth);
-    const minorTickData = [];
-    const majorTickData = [];
-    const labelData = [];
-    const numMinorTicks = Math.floor((displayFreqMax - tickCalculation.minorStart) / tickCalculation.minorInterval) + 1;
-    if (numMinorTicks <= tickCalculation.maxTicks) {
-      for (let i = 0; i < numMinorTicks; i++) {
-        const freq = tickCalculation.minorStart + i * tickCalculation.minorInterval;
-        if (freq > displayFreqMax) break;
-        if (Math.abs(freq % tickCalculation.majorInterval) < 0.01) continue;
-        const x = axisStartX + (freq - displayFreqMin) / freqRange * naturalWidth;
-        minorTickData.push({ x, height: 4, className: "gram-frame-axis-tick-minor" });
-      }
-    }
-    const numMajorTicks = Math.floor((displayFreqMax - tickCalculation.majorStart) / tickCalculation.majorInterval) + 1;
-    if (numMajorTicks <= tickCalculation.maxTicks) {
-      for (let i = 0; i < numMajorTicks; i++) {
-        const freq = tickCalculation.majorStart + i * tickCalculation.majorInterval;
-        if (freq > displayFreqMax) break;
-        const x = axisStartX + (freq - displayFreqMin) / freqRange * naturalWidth;
-        majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick-major" });
-        labelData.push({
-          x,
-          text: formatFrequencyLabels(freq),
-          className: "gram-frame-axis-label-major"
-        });
-      }
-    } else {
-      const tickCount = 5;
-      for (let i = 0; i < tickCount; i++) {
-        const freq = displayFreqMin + i * freqRange / (tickCount - 1);
-        const x = axisStartX + i / (tickCount - 1) * naturalWidth;
-        majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick" });
-        labelData.push({
-          x,
-          text: formatFrequencyLabels(freq),
-          className: "gram-frame-axis-label"
-        });
-      }
-    }
-    renderAxisTicks(instance, minorTickData, axisConfig);
-    renderAxisTicks(instance, majorTickData, axisConfig);
-    renderAxisLabels(instance, labelData, axisConfig);
-  }
-  function replaceConfigTable(instance, configTable) {
-    if (configTable && configTable.parentNode) {
-      configTable.parentNode.replaceChild(instance.container, configTable);
-      instance.container.__gramFrameInstance = instance;
-    }
-  }
-  function setupComponentTable(instance, configTable) {
-    const domElements = createComponentStructure(instance);
-    replaceConfigTable(instance, configTable);
-    return domElements;
-  }
-  function calculateVisibleTimePeriodCenter(state, instance) {
-    const ZOOM_EPSILON = 1e-3;
-    if (Math.abs(state.zoom.level - 1) < ZOOM_EPSILON) {
-      return (state.config.timeMin + state.config.timeMax) / 2;
-    }
-    const visibleRange = calculateVisibleDataRange(instance);
-    return (visibleRange.timeMin + visibleRange.timeMax) / 2;
-  }
-  function showManualHarmonicModal(state, addHarmonicSet, instance) {
-    const overlay = document.createElement("div");
-    overlay.className = "gram-frame-modal-overlay";
-    const modal = document.createElement("div");
-    modal.className = "gram-frame-modal";
-    modal.innerHTML = `
-    <div class="gram-frame-modal-header">
-      <h3>Add Manual Harmonics</h3>
-    </div>
-    <div class="gram-frame-modal-body">
-      <label for="harmonic-spacing-input">Harmonic spacing (Hz):</label>
-      <input type="number" id="harmonic-spacing-input" min="0.1" step="0.1" placeholder="Enter spacing in Hz">
-      <div class="gram-frame-modal-error" id="spacing-error" style="display: none; color: red; font-size: 12px; margin-top: 5px;">
-        Please enter a number ≥ 0.1
-      </div>
-    </div>
-    <div class="gram-frame-modal-footer">
-      <button class="gram-frame-modal-cancel" id="cancel-button">Cancel</button>
-      <button class="gram-frame-modal-add" id="add-button" disabled>Add</button>
-    </div>
-  `;
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    const spacingInput = (
-      /** @type {HTMLInputElement} */
-      modal.querySelector("#harmonic-spacing-input")
-    );
-    const errorDiv = (
-      /** @type {HTMLDivElement} */
-      modal.querySelector("#spacing-error")
-    );
-    const cancelButton = (
-      /** @type {HTMLButtonElement} */
-      modal.querySelector("#cancel-button")
-    );
-    const addButton = (
-      /** @type {HTMLButtonElement} */
-      modal.querySelector("#add-button")
-    );
-    const validateInput = () => {
-      const value = parseFloat(spacingInput.value);
-      const isValid = !isNaN(value) && value >= 0.1;
-      if (spacingInput.value.trim() === "") {
-        errorDiv.style.display = "none";
-        addButton.disabled = true;
-      } else if (!isValid) {
-        errorDiv.style.display = "block";
-        addButton.disabled = true;
-      } else {
-        errorDiv.style.display = "none";
-        addButton.disabled = false;
-      }
-    };
-    spacingInput.addEventListener("input", validateInput);
-    spacingInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !addButton.disabled) {
-        addHarmonic();
-      } else if (e.key === "Escape") {
-        closeModal();
-      }
-    });
-    function closeModal() {
-      document.body.removeChild(overlay);
-    }
-    function addHarmonic() {
-      const spacing = parseFloat(spacingInput.value);
-      if (!isNaN(spacing) && spacing >= 0.1) {
-        let anchorTime;
-        if (state.cursorPosition) {
-          anchorTime = state.cursorPosition.time;
-        } else {
-          anchorTime = calculateVisibleTimePeriodCenter(state, instance);
-        }
-        addHarmonicSet(anchorTime, spacing);
-        closeModal();
-      }
-    }
-    cancelButton.addEventListener("click", closeModal);
-    addButton.addEventListener("click", addHarmonic);
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) {
-        closeModal();
-      }
-    });
-    spacingInput.focus();
-  }
-  const MAX_VISIBLE_PINS = 25;
-  const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1e3, 2500, 5e3];
-  function countMultiples(minHarmonic, maxHarmonic, step) {
-    return Math.floor(maxHarmonic / step) - Math.floor((minHarmonic - 1) / step);
-  }
-  function chooseSamplingStep(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
-    for (const step of NICE_STEPS) {
-      if (countMultiples(minHarmonic, maxHarmonic, step) <= max) {
-        return step;
-      }
-    }
-    return NICE_STEPS[NICE_STEPS.length - 1];
-  }
-  function sampledHarmonics(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
-    if (maxHarmonic < minHarmonic) {
-      return { step: 1, harmonics: [] };
-    }
-    const step = chooseSamplingStep(minHarmonic, maxHarmonic, max);
-    const first = Math.ceil(minHarmonic / step) * step;
-    const harmonics = [];
-    for (let h = first; h <= maxHarmonic && harmonics.length < max; h += step) {
-      harmonics.push(h);
-    }
-    return { step, harmonics };
-  }
-  const TEXT_HALO = {
-    fill: "#000",
-    haloColor: "#fff",
-    width: 3
-  };
-  function applyTextHalo(text, options = {}) {
-    const { fill = TEXT_HALO.fill, haloColor = TEXT_HALO.haloColor, width = TEXT_HALO.width } = options;
-    text.setAttribute("fill", fill);
-    text.setAttribute("stroke", haloColor);
-    text.setAttribute("stroke-width", String(width));
-    text.setAttribute("stroke-linejoin", "round");
-    text.setAttribute("paint-order", "stroke fill");
-    return text;
-  }
-  const _HarmonicsMode = class _HarmonicsMode extends BaseMode {
-    /**
-     * Initialize HarmonicsMode with drag handler
-     * @param {Object} instance - GramFrame instance
-     */
-    constructor(instance) {
-      super(instance);
-      this.dragHandler = new BaseDragHandler(instance, {
-        resolveTarget: (position) => this.resolveHarmonicDrag(position),
-        onDragStart: (target, position) => this.onHarmonicSetDragStart(target, position),
-        onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(target, currentPos, startPos),
-        onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
-        onDragCancel: (target) => this.onHarmonicSetDragEnd(target, null),
-        updateCursor: (style) => this.updateCursorStyle(style)
-      }, "harmonics");
-    }
-    /**
-     * Find harmonic set target for drag handler
-     * @param {DataCoordinates} position - Position to check
-     * @returns {Object|null} Drag target if found, null otherwise
-     */
-    findHarmonicSetTarget(position) {
-      const harmonicSet = this.findHarmonicSetAtFrequency(position.freq);
-      if (harmonicSet) {
-        return {
-          kind: "move",
-          id: harmonicSet.id,
-          type: "harmonicSet",
-          position,
-          data: {
-            harmonicSet,
-            clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq),
-            originalAnchorTime: harmonicSet.anchorTime
-          }
-        };
-      }
-      return null;
-    }
-    /**
-     * Resolve what a mousedown in harmonics mode starts.
-     *
-     * Landing on an existing set moves it; landing anywhere else creates one and
-     * drags it out from there. The new set is minted here, on mousedown, so the
-     * engine has a target id for the whole gesture (contract: drag-engine.md).
-     * @param {DataCoordinates} position - Position of the mousedown
-     * @returns {DragTarget|null} A move- or create-kind target
-     */
-    resolveHarmonicDrag(position) {
-      const existing = this.findHarmonicSetTarget(position);
-      if (existing) {
-        return existing;
-      }
-      return this.createHarmonicSetTarget(position);
-    }
-    /**
-     * Start dragging a harmonic set
-     * @param {Object} target - Drag target with id and type
-     * @param {DataCoordinates} position - Start position
-     */
-    onHarmonicSetDragStart(target, position) {
-      const harmonicSet = target.data.harmonicSet;
-      const index = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSet.id);
-      if (index !== -1) {
-        this.instance.setSelection("harmonicSet", harmonicSet.id, index);
-      }
-    }
-    /**
-     * Update harmonic set during drag
-     * @param {DragTarget} target - Drag target
-     * @param {DataCoordinates} currentPos - Current position
-     * @param {DataCoordinates} startPos - Start position
-     */
-    onHarmonicSetDragUpdate(target, currentPos, startPos) {
-      this.instance.state.cursorPosition = {
-        freq: currentPos.freq,
-        time: currentPos.time,
-        x: 0,
-        y: 0,
-        svgX: 0,
-        svgY: 0,
-        imageX: 0,
-        imageY: 0
-        // Minimal values for compatibility
-      };
-      this.applyHarmonicSetDrag(target, currentPos, startPos);
-    }
-    /**
-     * End dragging a harmonic set
-     * @param {Object} _target - Drag target with id and type (unused)
-     * @param {DataCoordinates} _position - End position (unused)
-     */
-    onHarmonicSetDragEnd(_target, _position) {
-    }
-    /**
-     * Update cursor style for drag operations
-     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
-     */
-    updateCursorStyle(style) {
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = style;
-      }
-    }
-    /**
-     * Get guidance content for harmonics mode
-     * @returns {Object} Structured guidance content
-     */
-    getGuidanceText() {
-      return {
-        title: "Harmonics Mode",
-        items: [
-          "Click & drag to generate harmonic lines",
-          "Drag existing harmonic lines to adjust spacing intervals",
-          "Manually add harmonic lines using [+ Manual] button",
-          "Click table row + arrow keys (Shift for larger steps)"
-        ]
-      };
-    }
-    /**
-     * Handle mouse move events in harmonics mode
-     * @param {MouseEvent} _event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseMove(_event, dataCoords) {
-      if (this.dragHandler.isDragging()) {
-        this.dragHandler.handleMouseMove(dataCoords);
-      } else {
-        this.dragHandler.updateCursorForHover(dataCoords);
-      }
-      if (this.instance.state.harmonics.harmonicSets.length > 0) {
-        this.updateHarmonicPanel();
-      }
-    }
-    /**
-     * Handle mouse down events in harmonics mode
-     * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseDown(event, dataCoords) {
-      if (event.button !== 0) {
-        return;
-      }
-      this.dragHandler.startDrag(dataCoords, event);
-    }
-    /**
-     * Handle mouse up events in harmonics mode
-     * @param {MouseEvent} _event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseUp(_event, dataCoords) {
-      this.dragHandler.endDrag(dataCoords);
-    }
-    /**
-     * Create UI elements for harmonics mode
-     * @param {HTMLElement} harmonicsContainer - Persistent container for harmonics table
-     */
-    createUI(harmonicsContainer) {
-      this.uiElements = {};
-      this.uiElements.harmonicsContainer = harmonicsContainer;
-      const buttonContainer = harmonicsContainer.querySelector(".gram-frame-harmonics-button-container");
-      if (buttonContainer && buttonContainer.querySelector(".gram-frame-manual-button")) {
-        this.uiElements.manualButton = buttonContainer.querySelector(".gram-frame-manual-button");
-        this.uiElements.harmonicPanel = harmonicsContainer.querySelector(".gram-frame-harmonic-panel");
-        this.instance.harmonicPanel = this.uiElements.harmonicPanel;
-        return;
-      }
-      this.uiElements.manualButton = this.createManualButton();
-      if (buttonContainer) {
-        buttonContainer.appendChild(this.uiElements.manualButton);
-      }
-      this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer, this.instance);
-      this.instance.harmonicPanel = this.uiElements.harmonicPanel;
-      this.instance.colorPicker = this.instance.colorPicker || null;
-      this.updateHarmonicPanel();
-    }
-    /**
-     * Update LED displays for harmonics mode
-     * @param {CursorPosition} _coords - Current cursor coordinates
-     */
-    updateLEDs(_coords) {
-      this.updateModeSpecificLEDs();
-    }
-    /**
-     * Update mode-specific LED values and labels based on current state
-     */
-    updateModeSpecificLEDs() {
-      this.updateHarmonicPanel();
-    }
-    /**
-     * Reset harmonics-specific state
-     */
-    resetState() {
-      this.instance.state.harmonics.baseFrequency = null;
-      this.instance.state.harmonics.harmonicData = [];
-    }
-    /**
-     * Clean up harmonics-specific state when switching away from harmonics mode
-     */
-    cleanup() {
-      this.instance.state.harmonics.baseFrequency = null;
-      this.instance.state.harmonics.harmonicData = [];
-    }
-    /**
-     * Destroy mode-specific UI elements when leaving this mode
-     */
-    destroyUI() {
-    }
-    /**
-     * Add a new harmonic set
-     * @param {number} anchorTime - Time position in seconds
-     * @param {number} spacing - Frequency spacing in Hz
-     * @returns {HarmonicSet} The created harmonic set
-     */
-    addHarmonicSet(anchorTime, spacing) {
-      const id = `harmonic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      let color;
-      if (this.instance.state.selectedColor) {
-        color = this.instance.state.selectedColor;
-      } else {
-        const colorIndex = this.instance.state.harmonics.harmonicSets.length % _HarmonicsMode.harmonicColors.length;
-        color = _HarmonicsMode.harmonicColors[colorIndex];
-      }
-      const symbol = this.instance.state.selectedSymbol || "cross";
-      const showPin = this.instance.state.showHarmonicPin !== false;
-      const harmonicSet = {
-        id,
-        color,
-        anchorTime,
-        spacing,
-        symbol,
-        showPin,
-        // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
-        // toggle's next-feature default, so sets at both sizes can coexist.
-        largeSymbols: !!this.instance.state.largeSymbols
-      };
-      this.instance.state.harmonics.harmonicSets.push(harmonicSet);
-      markAnnotationsChanged(this.instance);
-      const index = this.instance.state.harmonics.harmonicSets.length - 1;
-      this.instance.setSelection("harmonicSet", harmonicSet.id, index);
-      if (this.instance.harmonicPanel) {
-        updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
-      }
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(this.instance, { frame: true });
-      return harmonicSet;
-    }
-    /**
-     * Update an existing harmonic set
-     * @param {string} id - Harmonic set ID
-     * @param {Partial<HarmonicSet>} updates - Properties to update
-     */
-    updateHarmonicSet(id, updates) {
-      const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
-      if (setIndex !== -1) {
-        Object.assign(this.instance.state.harmonics.harmonicSets[setIndex], updates);
-        markAnnotationsChanged(this.instance);
-        if (this.instance.harmonicPanel) {
-          updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
-        }
-        if (this.instance.featureRenderer) {
-          this.instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        dispatch(this.instance, { frame: true });
-      }
-    }
-    /**
-     * Remove a harmonic set
-     * @param {string} id - Harmonic set ID
-     */
-    removeHarmonicSet(id) {
-      const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
-      if (setIndex !== -1) {
-        if (this.instance.state.selection.selectedType === "harmonicSet" && this.instance.state.selection.selectedId === id) {
-          this.instance.clearSelection();
-        }
-        this.instance.state.harmonics.harmonicSets.splice(setIndex, 1);
-        markAnnotationsChanged(this.instance);
-        if (this.instance.harmonicPanel) {
-          updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
-        }
-        if (this.instance.featureRenderer) {
-          this.instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        dispatch(this.instance, { frame: true });
-      }
-    }
-    /**
-     * Find harmonic set containing given frequency coordinate.
-     *
-     * Hit-testing follows exactly what is drawn — nothing more, nothing less.
-     * Every visible part of a pin grabs it: the pin line's fixed-pixel span AND
-     * the number label + symbol stacked above it. A set with its pin hidden is
-     * grabbable by its label/symbol stack alone; the span where its line would
-     * have been is empty on screen, so it is empty to the mouse too.
-     *
-     * @param {number} freq - Frequency in Hz to check
-     * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
-     */
-    findHarmonicSetAtFrequency(freq) {
-      if (!this.instance.state.cursorPosition) return null;
-      const cursorTime = this.instance.state.cursorPosition.time;
-      for (const harmonicSet of this.instance.state.harmonics.harmonicSets) {
-        if (harmonicSet.spacing > 0) {
-          const freqMin = this.instance.state.config.freqMin;
-          const freqMax = this.instance.state.config.freqMax;
-          const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
-          const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
-          const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
-          const stack = this.calculateLabelStackBounds(lineTop, harmonicSet);
-          const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic));
-          const pinDrawn = harmonicSet.showPin !== false;
-          const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
-          const cursorSVG = dataToSVG(
-            { freq, time: cursorTime },
-            this.getViewport(),
-            this.instance.spectrogramImage
-          );
-          for (let h = minHarmonic; h <= maxHarmonic; h++) {
-            const expectedFreq = h * harmonicSet.spacing;
-            if (pinDrawn && Math.abs(freq - expectedFreq) < tolerance.freq && cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
-              return harmonicSet;
-            }
-            if (labelled.has(h) && cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom && Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
-              return harmonicSet;
-            }
-          }
-        }
-      }
-      return null;
-    }
-    /**
-     * Mint a new harmonic set at the mousedown position and return it as a
-     * `create`-kind drag target, so the rest of the gesture is an ordinary drag.
-     *
-     * The initial spacing places the cursor on a sensible harmonic — the 10th
-     * when the frequency axis starts above zero, the 5th when it starts at zero —
-     * which is what keeps the first drawn set legible.
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
-     */
-    createHarmonicSetTarget(dataCoords) {
-      const { freqMin } = this.instance.state.config;
-      let initialSpacing;
-      let clickedHarmonicNumber;
-      if (freqMin > 0) {
-        clickedHarmonicNumber = 10;
-        initialSpacing = dataCoords.freq / clickedHarmonicNumber;
-      } else {
-        clickedHarmonicNumber = 5;
-        initialSpacing = dataCoords.freq / clickedHarmonicNumber;
-      }
-      initialSpacing = Math.max(initialSpacing, 0.1);
-      const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing);
-      if (!harmonicSet) {
-        return null;
-      }
-      return {
-        kind: "create",
-        id: harmonicSet.id,
-        type: "harmonicSet",
-        position: dataCoords,
-        data: {
-          harmonicSet,
-          clickedHarmonicNumber,
-          originalAnchorTime: dataCoords.time
-        }
-      };
-    }
-    /**
-     * Find which harmonic number was clicked
-     * @param {HarmonicSet} harmonicSet - The harmonic set
-     * @param {number} freq - The clicked frequency
-     * @returns {number} The harmonic number (1, 2, 3, etc.)
-     */
-    findClickedHarmonicNumber(harmonicSet, freq) {
-      const harmonicNumber = Math.round(freq / harmonicSet.spacing);
-      return Math.max(1, harmonicNumber);
-    }
-    /**
-     * Apply a harmonic-set drag — the shared step for both the `move` and
-     * `create` kinds, which differ only in how their target was resolved.
-     * @param {DragTarget} target - The drag target from the engine
-     * @param {DataCoordinates} currentPos - Current pointer position
-     * @param {DataCoordinates} startPos - Where the drag began
-     */
-    applyHarmonicSetDrag(target, currentPos, startPos) {
-      if (!target || !currentPos || !startPos) return;
-      const setId = target.id;
-      if (!setId) return;
-      const harmonicSet = this.instance.state.harmonics.harmonicSets.find((set) => set.id === setId);
-      if (!harmonicSet) return;
-      let newSpacing, newAnchorTime;
-      const clickedHarmonicNumber = target.data && target.data.clickedHarmonicNumber || 1;
-      newSpacing = currentPos.freq / clickedHarmonicNumber;
-      newSpacing = Math.max(newSpacing, 0.1);
-      const originalAnchorTime = target.data && target.data.originalAnchorTime !== void 0 ? target.data.originalAnchorTime : harmonicSet.anchorTime;
-      const deltaTime = currentPos.time - startPos.time;
-      newAnchorTime = originalAnchorTime + deltaTime;
-      const updates = {};
-      if (newSpacing > 0) {
-        updates.spacing = newSpacing;
-      }
-      updates.anchorTime = newAnchorTime;
-      this.updateHarmonicSet(setId, updates);
-      this.updateHarmonicPanel();
-    }
-    /**
-     * Update harmonic management panel
-     */
-    updateHarmonicPanel() {
-      if (this.instance.harmonicPanel) {
-        updateHarmonicPanelContent(this.instance.harmonicPanel, this.instance);
-      }
-    }
-    /**
-     * Create manual harmonic button
-     * @returns {HTMLElement} The manual button element
-     */
-    createManualButton() {
-      const button = document.createElement("button");
-      button.className = "gram-frame-manual-button";
-      button.textContent = "+ Manual";
-      button.title = "Manually add a set of harmonics at a specific spacing";
-      button.addEventListener("click", () => {
-        this.showManualHarmonicModal();
-      });
-      return button;
-    }
-    /**
-     * Show manual harmonic modal dialog
-     */
-    showManualHarmonicModal() {
-      showManualHarmonicModal(this.instance.state, this.addHarmonicSet.bind(this), this.instance);
-    }
-    /**
-     * Render persistent features for harmonics mode
-     */
-    renderPersistentFeatures() {
-      var _a;
-      if (!this.instance.cursorGroup || !((_a = this.instance.state.harmonics) == null ? void 0 : _a.harmonicSets)) {
-        return;
-      }
-      const existingHarmonics = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-line");
-      existingHarmonics.forEach((line) => line.remove());
-      const existingSymbols = this.instance.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol[data-harmonic-set-id]");
-      existingSymbols.forEach((symbol) => symbol.remove());
-      this.instance.state.harmonics.harmonicSets.forEach((harmonicSet) => {
-        this.renderHarmonicSet(harmonicSet);
-      });
-    }
-    /**
-     * Get the inclusive harmonic-number range of a set that falls within the
-     * currently visible frequency span.
-     *
-     * The visible range comes from `calculateVisibleDataRange(instance)` (the same
-     * source the frequency axis uses), so it is viewport-aware: zooming in narrows
-     * the span (fewer harmonics), zooming out / panning widens it. At zoom 1.0 the
-     * visible range equals the full data range.
-     *
-     * Every harmonic in this range is drawn as a pin line (spec 159, FR-001); the
-     * label/symbol subset is a regularly-sampled slice of it (see
-     * {@link getLabelledHarmonics}).
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {{minHarmonic: number, maxHarmonic: number}} Inclusive harmonic range
-     */
-    getVisibleHarmonicRange(harmonicSet) {
-      const { freqMin, freqMax } = calculateVisibleDataRange(this.instance);
-      const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
-      const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
-      return { minHarmonic, maxHarmonic };
-    }
-    /**
-     * Get the "major" subset of harmonic numbers that receive a number label and
-     * symbol, thinned to at most the label limit (default 25) by regular sampling.
-     *
-     * Reuses the spec-158 sampling maths, but that limit now governs
-     * labels/symbols only — every pin line is still drawn (spec 159). When the
-     * visible range already fits under the limit the subset is the whole range, so
-     * every drawn pin is labelled (FR-005).
-     *
-     * @param {number} minHarmonic - Lowest visible harmonic number (>= 1)
-     * @param {number} maxHarmonic - Highest visible harmonic number
-     * @returns {number[]} Ascending harmonic numbers to label/symbol (length <= cap)
-     */
-    getLabelledHarmonics(minHarmonic, maxHarmonic) {
-      return sampledHarmonics(minHarmonic, maxHarmonic).harmonics;
-    }
-    /**
-     * Calculate harmonic line dimensions and positions.
-     *
-     * The height is a fixed pixel length taken from the *base* (unzoomed) render
-     * height, so a pin covers the same number of screen pixels no matter how far
-     * the user has zoomed in — it is not a span of time that stretches with the
-     * image. Only the centre is zoom-aware: the pin stays centred on the set's
-     * anchor time (the original click location), so it tracks the feature while
-     * keeping a constant height.
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
-     */
-    calculateHarmonicLineDimensions(harmonicSet) {
-      const { renderHeight } = getRenderDimensions(this.instance);
-      const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
-      const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
-      const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.spectrogramImage);
-      const lineTop = anchorSVG.y - lineHeight / 2;
-      return { lineHeight, lineTop };
-    }
-    /**
-     * Create SVG line element for a harmonic
-     * @param {number} harmonicNumber - Harmonic number
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} lineX - X position for the line
-     * @param {number} lineTop - Top Y position for the line
-     * @param {number} lineHeight - Height of the line
-     * @returns {SVGLineElement} SVG line element
-     */
-    createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight) {
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("class", "gram-frame-harmonic-line");
-      line.setAttribute("data-harmonic-set-id", harmonicSet.id);
-      line.setAttribute("data-harmonic-number", String(harmonicNumber));
-      line.setAttribute("x1", String(lineX));
-      line.setAttribute("y1", String(lineTop));
-      line.setAttribute("x2", String(lineX));
-      line.setAttribute("y2", String(lineTop + lineHeight));
-      line.setAttribute("stroke", harmonicSet.color);
-      line.setAttribute("stroke-width", "2");
-      line.setAttribute("stroke-linecap", "round");
-      line.setAttribute("opacity", "0.9");
-      return line;
-    }
-    /**
-     * Create SVG text label for a harmonic number.
-     *
-     * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
-     * positioned above the pin's symbol (baseline at `labelY`), so the vertical
-     * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
-     *
-     * The digits are drawn black inside a white halo rather than in the set's
-     * colour: a single colour is only legible over part of a gram, whereas the
-     * halo reads over both dark and light backgrounds. Set identity is still
-     * carried by the pin's line and symbol colour.
-     *
-     * @param {number} harmonicNumber - Harmonic number
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} lineX - X position of the pin line (label is centred on it)
-     * @param {number} labelY - Baseline Y position for the label text
-     * @returns {SVGTextElement} SVG text element
-     */
-    createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY) {
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("class", "gram-frame-harmonic-number");
-      label.setAttribute("data-harmonic-set-id", harmonicSet.id);
-      label.setAttribute("data-harmonic-number", String(harmonicNumber));
-      label.setAttribute("x", String(lineX));
-      label.setAttribute("y", String(labelY));
-      label.setAttribute("text-anchor", "middle");
-      applyTextHalo(
-        /** @type {SVGTextElement} */
-        label
-      );
-      label.setAttribute("font-size", String(_HarmonicsMode.LABEL_FONT_SIZE));
-      label.setAttribute("font-weight", "bold");
-      label.setAttribute("font-family", "Arial, sans-serif");
-      label.textContent = String(harmonicNumber);
-      return label;
-    }
-    /**
-     * Effective pixel size of a set's symbol marks: the base size scaled by that
-     * set's own "Large symbols" flag, so sets at both sizes can share a gram. The
-     * whole label/symbol stack layout derives from this, so the label spacing and
-     * top-edge clamping follow the set's chosen size.
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {number} Symbol diameter in px
-     */
-    symbolSize(harmonicSet) {
-      return _HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(harmonicSet);
-    }
-    /**
-     * Create the filled symbol mark drawn between a pin's number label and the top
-     * of its line.
-     *
-     * The vertical position (`symbolCy`) is computed once per set by
-     * {@link calculateLabelStackPositions} so the whole label/symbol stack shares a
-     * consistent, on-screen layout.
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} lineX - X position of the pin line (symbol is centred on it)
-     * @param {number} symbolCy - Centre Y position for the symbol
-     * @returns {SVGElement|null} SVG symbol element, or null for the `cross` (symbol-less) style
-     */
-    createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
-      const symbol = createSymbolMark(
-        harmonicSet.symbol,
-        lineX,
-        symbolCy,
-        this.symbolSize(harmonicSet),
-        harmonicSet.color
-      );
-      if (!symbol) {
-        return null;
-      }
-      symbol.setAttribute("data-harmonic-set-id", harmonicSet.id);
-      return symbol;
-    }
-    /**
-     * Compute the shared vertical layout of a pin's label/symbol stack.
-     *
-     * Ideal (top-to-bottom): label baseline, then symbol, then the pin line top,
-     * so the symbol caps the line and the label sits above the symbol. When the
-     * stack's top would clip above the spectrogram's top edge, the whole stack
-     * (label + symbol) is nudged down by the overflow so it stays legible
-     * (spec 159, FR-011).
-     *
-     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
-     * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
-     * @param {HarmonicSet} harmonicSet - Harmonic set being laid out (its symbol size drives the stack)
-     * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
-     */
-    calculateLabelStackPositions(lineTop, imageTop, harmonicSet) {
-      const r = this.symbolSize(harmonicSet) / 2;
-      const gap = _HarmonicsMode.LABEL_GAP;
-      const fontSize = _HarmonicsMode.LABEL_FONT_SIZE;
-      let symbolCy = lineTop - r;
-      let labelY = symbolCy - r - gap;
-      const labelTop = labelY - fontSize;
-      const minTop = imageTop + _HarmonicsMode.STACK_TOP_PAD;
-      if (labelTop < minTop) {
-        const shift = minTop - labelTop;
-        symbolCy += shift;
-        labelY += shift;
-      }
-      return { symbolCy, labelY };
-    }
-    /**
-     * Vertical extent (SVG coords) of a pin's label/symbol stack, for hit-testing.
-     *
-     * Derived from the same {@link calculateLabelStackPositions} layout the
-     * renderer uses, so the grab region tracks the drawn stack — including the
-     * downward nudge applied near the image's top edge. The bottom is clamped to
-     * the pin line's top so the stack region and the line region always meet with
-     * no dead gap between them.
-     *
-     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
-     * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
-     * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
-     */
-    calculateLabelStackBounds(lineTop, harmonicSet) {
-      const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top;
-      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
-      const r = this.symbolSize(harmonicSet) / 2;
-      return {
-        // One ascent above the label's baseline is the top of the digits.
-        top: labelY - _HarmonicsMode.LABEL_FONT_SIZE,
-        bottom: Math.max(lineTop, symbolCy + r)
-      };
-    }
-    /**
-     * Half-width (SVG px) of a pin's label/symbol stack, for hit-testing.
-     *
-     * The wider of the symbol mark and the number label, so both are grabbable:
-     * a `cross` set has no symbol but still shows its digits, and a "Large
-     * symbols" set's mark is wider than its digits. Label width is estimated from
-     * the digit count rather than measured, which is ample for a grab region.
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
-     * @param {number} harmonicNumber - Harmonic number whose label is drawn
-     * @returns {number} Half-width in SVG pixels
-     */
-    labelStackHalfWidth(harmonicSet, harmonicNumber) {
-      const digits = String(harmonicNumber).length;
-      const labelHalfWidth = digits * _HarmonicsMode.LABEL_FONT_SIZE * _HarmonicsMode.LABEL_CHAR_WIDTH_RATIO / 2;
-      return Math.max(this.symbolSize(harmonicSet) / 2, labelHalfWidth);
-    }
-    /**
-     * Compute the SVG x-coordinate of a harmonic's vertical pin line.
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} harmonicNumber - Harmonic number
-     * @returns {number} SVG x-coordinate of the pin line
-     */
-    harmonicLineX(harmonicSet, harmonicNumber) {
-      const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime };
-      return dataToSVG(harmonicPoint, this.getViewport(), this.instance.spectrogramImage).x;
-    }
-    /**
-     * Render a single harmonic set as vertical pin lines.
-     *
-     * Spec 159: draw a pin line for EVERY harmonic in the visible span (no pins are
-     * dropped, even if they merge into a solid block), then draw a number label and
-     * symbol only for the thinned "major" subset so the overlay stays readable.
-     * Lines are appended first so the labels/symbols paint on top of them.
-     *
-     * A set with `showPin === false` skips the lines entirely and renders as its
-     * symbols and numbers alone — the low-clutter style for stacking many sets over
-     * dense data. The label/symbol geometry is unchanged, so toggling the pin adds
-     * or removes the lines without moving anything else; the set is then grabbed
-     * by its label/symbol stack, since hit-testing only covers what is drawn.
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set to render
-     */
-    renderHarmonicSet(harmonicSet) {
-      if (!this.instance.cursorGroup) {
-        return;
-      }
-      const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet);
-      if (maxHarmonic < minHarmonic) {
-        return;
-      }
-      const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
-      const imageTop = getImageBounds(this.getViewport(), this.instance.spectrogramImage).top;
-      if (harmonicSet.showPin !== false) {
-        for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
-          const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
-          const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight);
-          this.instance.cursorGroup.appendChild(line);
-        }
-      }
-      const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic);
-      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
-      labelledHarmonics.forEach((harmonicNumber) => {
-        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
-        const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy);
-        const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY);
-        if (symbol) {
-          this.instance.cursorGroup.appendChild(symbol);
-        }
-        this.instance.cursorGroup.appendChild(label);
-      });
-    }
-    /**
-     * Get initial state for harmonics mode
-     * @returns {HarmonicsInitialState} Harmonics-specific initial state
-     */
-    static getInitialState() {
-      return {
-        harmonics: {
-          baseFrequency: null,
-          harmonicData: [],
-          harmonicSets: []
-        }
-      };
-    }
-  };
-  /**
-   * Color palette for harmonic sets
-   * @type {string[]}
-   */
-  __publicField(_HarmonicsMode, "harmonicColors", ["#ff6b6b", "#2ecc71", "#f39c12", "#9b59b6", "#ffc93c", "#ff9ff3", "#45b7d1", "#e67e22"]);
-  /**
-   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
-   * this scaled by the "Large symbols" experiment toggle — use
-   * {@link HarmonicsMode#symbolSize} rather than reading this directly.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "SYMBOL_SIZE", 10);
-  /**
-   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
-   *
-   * The resulting height is a fixed pixel length, not a span of time: it is
-   * derived from the viewport's base render size (which tracks expand, not zoom)
-   * rather than from the zoomed image element. Pins therefore keep the same
-   * on-screen height at every zoom level, growing/shrinking only when the
-   * component itself is resized.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "PIN_HEIGHT_RATIO", 0.2);
-  /**
-   * Font size (px) of a pin's number label; also used as its approximate ascent
-   * when clamping the label/symbol stack to the image's top edge.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "LABEL_FONT_SIZE", 12);
-  /**
-   * Approximate width of one label digit as a fraction of the label font size,
-   * used to size the label's grab region (bold Arial digits are ~0.6 em wide).
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "LABEL_CHAR_WIDTH_RATIO", 0.6);
-  /**
-   * Vertical gap (px) between the pin's number label and its symbol.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "LABEL_GAP", 3);
-  /**
-   * Minimum padding (px) kept between the top of a pin's label and the top edge
-   * of the spectrogram image.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "STACK_TOP_PAD", 1);
-  let HarmonicsMode = _HarmonicsMode;
   const SYMBOL_GLYPHS = {
     "cross": "✕",
     "circle": "●",
@@ -2743,11 +345,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         /** @type {SymbolType} */
         select.value
       );
-      if (!instance.applySymbolToSelectedFeature || !instance.applySymbolToSelectedFeature(symbol)) {
+      if (!instance.interaction.applySymbolToSelectedFeature || !instance.interaction.applySymbolToSelectedFeature(symbol)) {
         state.selectedSymbol = symbol;
       }
     });
-    instance._symbolControl = {
+    instance.interaction._symbolControl = {
       /** @param {SymbolType} symbol */
       setValue(symbol) {
         select.value = symbol;
@@ -2768,12 +370,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     checkbox.className = "gram-frame-large-symbols-checkbox";
     checkbox.checked = !!instance.state.largeSymbols;
     checkbox.addEventListener("change", () => {
-      if (!instance.applyLargeSymbolsToSelectedFeature || !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
+      if (!instance.interaction.applyLargeSymbolsToSelectedFeature || !instance.interaction.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
         instance.state.largeSymbols = checkbox.checked;
         dispatch(instance);
       }
     });
-    instance._largeSymbolsControl = {
+    instance.interaction._largeSymbolsControl = {
       /** @param {boolean} large */
       setValue(large) {
         checkbox.checked = large;
@@ -2811,7 +413,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     const anchors = document.querySelectorAll("a");
     for (let i = 0; i < anchors.length; i++) {
-      if (anchors[i].textContent && anchors[i].textContent.trim() === "ANALYSIS") {
+      const text = anchors[i].textContent;
+      if (text && text.trim() === "ANALYSIS") {
         return "trainer";
       }
     }
@@ -2962,12 +565,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const WARNING_CLASS = "gram-frame-storage-warning";
   function showStorageWarning(instance, message) {
-    if (!instance || !instance.container) {
+    if (!instance || !instance.ui.container) {
       return null;
     }
     const existing = (
       /** @type {HTMLElement|null} */
-      instance.container.querySelector(`.${WARNING_CLASS}`)
+      instance.ui.container.querySelector(`.${WARNING_CLASS}`)
     );
     if (existing) {
       const text2 = existing.querySelector(`.${WARNING_CLASS}-message`);
@@ -2992,14 +595,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     dismiss.addEventListener("click", () => banner.remove());
     banner.appendChild(text);
     banner.appendChild(dismiss);
-    instance.container.insertBefore(banner, instance.container.firstChild);
+    instance.ui.container.insertBefore(banner, instance.ui.container.firstChild);
     return banner;
   }
   function clearStorageWarning(instance) {
-    if (!instance || !instance.container) {
+    if (!instance || !instance.ui.container) {
       return;
     }
-    const existing = instance.container.querySelector(`.${WARNING_CLASS}`);
+    const existing = instance.ui.container.querySelector(`.${WARNING_CLASS}`);
     if (existing) {
       existing.remove();
     }
@@ -3021,7 +624,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     row.appendChild(text);
     checkbox.addEventListener("change", () => {
       const showPin = checkbox.checked;
-      if (!instance.applyPinToSelectedFeature || !instance.applyPinToSelectedFeature(showPin)) {
+      if (!instance.interaction.applyPinToSelectedFeature || !instance.interaction.applyPinToSelectedFeature(showPin)) {
         state.showHarmonicPin = showPin;
         if (savePinPreference(showPin)) {
           clearStorageWarning(instance);
@@ -3030,7 +633,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         }
       }
     });
-    instance._pinControl = {
+    instance.interaction._pinControl = {
       /** @param {boolean} showPin */
       setValue(showPin) {
         checkbox.checked = showPin;
@@ -3044,6 +647,348 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     };
     return row;
   }
+  function renderSize(imageDetails) {
+    return {
+      width: imageDetails.renderWidth || imageDetails.naturalWidth,
+      height: imageDetails.renderHeight || imageDetails.naturalHeight
+    };
+  }
+  function getImageBounds(viewport, spectrogramImage = null) {
+    const { margins, imageDetails } = viewport;
+    const { width, height } = renderSize(imageDetails);
+    if (spectrogramImage) {
+      return {
+        left: parseFloat(spectrogramImage.getAttribute("x") || String(margins.left)),
+        top: parseFloat(spectrogramImage.getAttribute("y") || String(margins.top)),
+        width: parseFloat(spectrogramImage.getAttribute("width") || String(width)),
+        height: parseFloat(spectrogramImage.getAttribute("height") || String(height))
+      };
+    }
+    return { left: margins.left, top: margins.top, width, height };
+  }
+  function getRenderDimensions(viewport) {
+    const { width, height } = renderSize(viewport.imageDetails);
+    return { renderWidth: width, renderHeight: height };
+  }
+  function calculateVisibleDataRange(viewport, spectrogramImage = null) {
+    const { timeMin, timeMax, freqMin, freqMax } = viewport.config;
+    const margins = viewport.margins;
+    const zoomLevel = viewport.zoom.level;
+    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
+    if (zoomLevel === 1) {
+      return { timeMin, timeMax, freqMin, freqMax };
+    }
+    const {
+      left: imageLeft,
+      top: imageTop,
+      width: imageWidth,
+      height: imageHeight
+    } = getImageBounds(viewport, spectrogramImage);
+    const visibleLeft = Math.max(0, margins.left - imageLeft);
+    const visibleRight = Math.min(imageWidth, margins.left + renderWidth - imageLeft);
+    const visibleTop = Math.max(0, margins.top - imageTop);
+    const visibleBottom = Math.min(imageHeight, margins.top + renderHeight - imageTop);
+    const freqRange = freqMax - freqMin;
+    const timeRange = timeMax - timeMin;
+    const visibleFreqMin = freqMin + visibleLeft / imageWidth * freqRange;
+    const visibleFreqMax = freqMin + visibleRight / imageWidth * freqRange;
+    const visibleTimeMax = timeMax - visibleTop / imageHeight * timeRange;
+    const visibleTimeMin = timeMax - visibleBottom / imageHeight * timeRange;
+    return {
+      freqMin: visibleFreqMin,
+      freqMax: visibleFreqMax,
+      timeMin: visibleTimeMin,
+      timeMax: visibleTimeMax
+    };
+  }
+  function screenToSVG(screenX, screenY, svg) {
+    const svgRect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox.baseVal;
+    if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+      const scaleX = viewBox.width / svgRect.width;
+      const scaleY = viewBox.height / svgRect.height;
+      return {
+        x: screenX * scaleX + viewBox.x,
+        y: screenY * scaleY + viewBox.y
+      };
+    }
+    return { x: screenX, y: screenY };
+  }
+  function svgToImage(svgX, svgY, viewport, spectrogramImage = null) {
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const { width, height } = renderSize(viewport.imageDetails);
+    return {
+      x: (svgX - bounds.left) * (width / bounds.width),
+      y: (svgY - bounds.top) * (height / bounds.height)
+    };
+  }
+  function imageToData(imageX, imageY, viewport) {
+    const { config, imageDetails, rate } = viewport;
+    const { freqMin, freqMax, timeMin, timeMax } = config;
+    const { width, height } = renderSize(imageDetails);
+    const rawFreq = freqMin + imageX / width * (freqMax - freqMin);
+    const time = timeMax - imageY / height * (timeMax - timeMin);
+    return { freq: rawFreq / rate, time };
+  }
+  function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
+    const { config } = viewport;
+    const { timeMin, timeMax, freqMin, freqMax } = config;
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin);
+    const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin);
+    return {
+      x: bounds.left + freqRatio * bounds.width,
+      y: bounds.top + (1 - timeRatio) * bounds.height
+      // Invert Y
+    };
+  }
+  function isWithinImage(svgPoint, viewport, spectrogramImage = null) {
+    const bounds = getImageBounds(viewport, spectrogramImage);
+    const { width, height } = renderSize(viewport.imageDetails);
+    const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage);
+    return svgPoint.x >= bounds.left && svgPoint.x <= bounds.left + bounds.width && svgPoint.y >= bounds.top && svgPoint.y <= bounds.top + bounds.height && image.x >= 0 && image.x <= width && image.y >= 0 && image.y <= height;
+  }
+  function clampToImage(imageX, imageY, viewport) {
+    const { width, height } = renderSize(viewport.imageDetails);
+    return {
+      x: Math.max(0, Math.min(imageX, width)),
+      y: Math.max(0, Math.min(imageY, height))
+    };
+  }
+  function screenToData(clientX, clientY, svg, viewport, spectrogramImage = null) {
+    const svgRect = svg.getBoundingClientRect();
+    const svgPoint = screenToSVG(clientX - svgRect.left, clientY - svgRect.top, svg);
+    const image = svgToImage(svgPoint.x, svgPoint.y, viewport, spectrogramImage);
+    return {
+      svg: svgPoint,
+      image,
+      data: imageToData(image.x, image.y, viewport)
+    };
+  }
+  function createDiffingTable(container, spec) {
+    const area = document.createElement("div");
+    area.className = "gram-frame-table-area";
+    const wrapper = document.createElement("div");
+    wrapper.className = "gram-frame-table-container";
+    const table = document.createElement("table");
+    table.className = "gram-frame-table";
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    spec.columns.forEach((column) => {
+      const th = document.createElement("th");
+      th.textContent = column.label || "";
+      if (column.width) {
+        th.style.width = column.width;
+      }
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    area.appendChild(wrapper);
+    container.appendChild(area);
+    let currentRows = [];
+    function setCellContent(cell, content) {
+      if (content instanceof Node) {
+        cell.replaceChildren(content);
+      } else if (cell.textContent !== content) {
+        cell.textContent = content;
+      }
+    }
+    function applySelection(tr, key) {
+      const selected = spec.isSelected ? spec.isSelected(key) : false;
+      tr.classList.toggle("gram-frame-selected-row", selected);
+    }
+    function buildRow(row, index) {
+      const key = spec.rowKey(row, index);
+      const tr = document.createElement("tr");
+      tr.setAttribute(spec.rowAttribute, key);
+      if (spec.rowClassName) {
+        tr.className = spec.rowClassName;
+      }
+      applySelection(tr, key);
+      spec.cells(row, index).forEach((content, column) => {
+        const td = document.createElement("td");
+        const className = spec.columns[column] && spec.columns[column].cellClassName;
+        if (className) {
+          td.className = className;
+        }
+        setCellContent(td, content);
+        tr.appendChild(td);
+      });
+      return tr;
+    }
+    function updateRow(tr, row, index) {
+      applySelection(tr, spec.rowKey(row, index));
+      spec.cells(row, index).forEach((content, column) => {
+        const cell = tr.cells[column];
+        if (cell) {
+          setCellContent(cell, content);
+        }
+      });
+    }
+    function rebuildFrom(rows, startIndex) {
+      const existing = tbody.querySelectorAll("tr");
+      for (let i = startIndex; i < existing.length; i++) {
+        existing[i].remove();
+      }
+      for (let i = startIndex; i < rows.length; i++) {
+        tbody.appendChild(buildRow(rows[i], i));
+      }
+    }
+    function handleClick(event) {
+      const target = (
+        /** @type {Element|null} */
+        event.target
+      );
+      if (!target) return;
+      const tr = (
+        /** @type {HTMLTableRowElement|null} */
+        target.closest("tr")
+      );
+      if (!tr || !tbody.contains(tr)) return;
+      const key = tr.getAttribute(spec.rowAttribute);
+      if (key === null) return;
+      const index = Array.prototype.indexOf.call(tbody.children, tr);
+      const row = currentRows[index];
+      if (spec.deleteSelector && target.closest(spec.deleteSelector)) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (spec.onDelete) {
+          spec.onDelete(key, row, index);
+        }
+        return;
+      }
+      if (spec.onSelect) {
+        spec.onSelect(key, row, index);
+      }
+    }
+    tbody.addEventListener("click", handleClick);
+    return {
+      element: table,
+      /**
+       * Diff `rows` against what is rendered and apply the difference.
+       *
+       * Idempotent: calling it twice with equal input performs no DOM writes.
+       * @param {any[]} rows - The rows to render
+       */
+      update(rows) {
+        currentRows = rows || [];
+        const existing = tbody.querySelectorAll("tr");
+        for (let index = 0; index < currentRows.length; index++) {
+          const tr = (
+            /** @type {HTMLTableRowElement} */
+            existing[index]
+          );
+          const key = spec.rowKey(currentRows[index], index);
+          if (tr && tr.getAttribute(spec.rowAttribute) === key) {
+            updateRow(tr, currentRows[index], index);
+          } else {
+            rebuildFrom(currentRows, index);
+            return;
+          }
+        }
+        for (let i = currentRows.length; i < existing.length; i++) {
+          existing[i].remove();
+        }
+      },
+      /**
+       * Remove the table and its listener.
+       */
+      destroy() {
+        tbody.removeEventListener("click", handleClick);
+        if (area.parentNode) {
+          area.parentNode.removeChild(area);
+        }
+      }
+    };
+  }
+  const panelTables = /* @__PURE__ */ new WeakMap();
+  function createSymbolSwatch(harmonicSet) {
+    return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
+  }
+  function createColorCellContent(harmonicSet) {
+    const colorDiv = document.createElement("div");
+    colorDiv.className = "gram-frame-harmonic-color";
+    colorDiv.style.color = harmonicSet.color;
+    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
+    return colorDiv;
+  }
+  function formatRatio(harmonicSet, instance) {
+    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
+      return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
+    }
+    return "5.000";
+  }
+  function createHarmonicDeleteButton(harmonicSet) {
+    const button = document.createElement("button");
+    button.className = "gram-frame-harmonic-delete";
+    button.setAttribute("data-harmonic-id", harmonicSet.id);
+    button.title = "Delete harmonic set";
+    button.textContent = "×";
+    return button;
+  }
+  function createHarmonicPanel(container, instance) {
+    const table = createDiffingTable(container, {
+      columns: [
+        { label: "", width: "15%" },
+        { label: "Spacing (Hz)", width: "35%", cellClassName: "gram-frame-harmonic-spacing" },
+        { label: "Ratio", width: "35%", cellClassName: "gram-frame-harmonic-rate" },
+        { label: "", width: "15%" }
+      ],
+      rowAttribute: "data-harmonic-id",
+      rowClassName: "gram-frame-harmonic-row",
+      rowKey: (harmonicSet) => harmonicSet.id,
+      cells: (harmonicSet) => [
+        createColorCellContent(harmonicSet),
+        harmonicSet.spacing.toFixed(2),
+        formatRatio(harmonicSet, instance),
+        createHarmonicDeleteButton(harmonicSet)
+      ],
+      deleteSelector: ".gram-frame-harmonic-delete",
+      onSelect: (harmonicSetId, _harmonicSet, index) => {
+        if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId) {
+          instance.interaction.clearSelection();
+        } else {
+          instance.interaction.setSelection("harmonicSet", harmonicSetId, index);
+        }
+      },
+      onDelete: (harmonicSetId) => instance.interaction.removeHarmonicSet(harmonicSetId),
+      isSelected: (harmonicSetId) => instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId
+    });
+    const panel = (
+      /** @type {HTMLElement} */
+      table.element.parentElement
+    );
+    panelTables.set(panel, table);
+    return panel;
+  }
+  function updateHarmonicPanelContent(panel, instance) {
+    if (!panel) {
+      return;
+    }
+    const table = panelTables.get(panel);
+    if (!table) {
+      return;
+    }
+    table.update(instance.state.harmonics.harmonicSets);
+  }
+  function isPersistentFeatureProvider(mode) {
+    const candidate = (
+      /** @type {Partial<PersistentFeatureProvider>} */
+      mode
+    );
+    return typeof (candidate == null ? void 0 : candidate.hasPersistentFeatures) === "function" && typeof (candidate == null ? void 0 : candidate.renderPersistentFeatures) === "function";
+  }
+  function isPanelOwner(mode) {
+    const candidate = (
+      /** @type {Partial<PanelOwner>} */
+      mode
+    );
+    return typeof (candidate == null ? void 0 : candidate.refreshPanel) === "function";
+  }
   let currentFocusedInstance = null;
   const registeredInstances = /* @__PURE__ */ new Set();
   function registerInstance(instance) {
@@ -3054,7 +999,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (currentFocusedInstance === instance) {
       if (registeredInstances.size > 0) {
         const firstInstance = registeredInstances.values().next().value;
-        setFocusedInstance(firstInstance);
+        if (firstInstance) {
+          setFocusedInstance(firstInstance);
+        }
       } else {
         currentFocusedInstance = null;
       }
@@ -3076,28 +1023,34 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return currentFocusedInstance;
   }
   function addFocusIndicator(instance) {
-    if (instance.container) {
-      instance.container.classList.add("gram-frame-focused");
+    if (instance.ui.container) {
+      instance.ui.container.classList.add("gram-frame-focused");
     }
   }
   function removeFocusIndicator(instance) {
-    if (instance.container) {
-      instance.container.classList.remove("gram-frame-focused");
+    if (instance.ui.container) {
+      instance.ui.container.classList.remove("gram-frame-focused");
     }
   }
   function focusNextInstance() {
     if (registeredInstances.size <= 1) return;
     const instancesArray = Array.from(registeredInstances);
-    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
+    const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1;
     const nextIndex = (currentIndex + 1) % instancesArray.length;
-    setFocusedInstance(instancesArray[nextIndex]);
+    const next = instancesArray[nextIndex];
+    if (next) {
+      setFocusedInstance(next);
+    }
   }
   function focusPreviousInstance() {
     if (registeredInstances.size <= 1) return;
     const instancesArray = Array.from(registeredInstances);
-    const currentIndex = instancesArray.indexOf(currentFocusedInstance);
+    const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1;
     const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1;
-    setFocusedInstance(instancesArray[prevIndex]);
+    const next = instancesArray[prevIndex];
+    if (next) {
+      setFocusedInstance(next);
+    }
   }
   const MOVEMENT_INCREMENTS = {
     normal: 1,
@@ -3173,23 +1126,24 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function moveSelectedMarker(instance, markerId, movement) {
-    if (!instance.state.analysis || !instance.state.analysis.markers) {
+    const analysis = instance.state.analysis;
+    if (!analysis || !analysis.markers) {
       return;
     }
-    const marker = instance.state.analysis.markers.find((m) => m.id === markerId);
+    const marker = analysis.markers.find((m) => m.id === markerId);
     if (!marker) {
       return;
     }
     const currentSVG = dataToSVG(
       { freq: marker.freq * instance.state.rate, time: marker.time },
       instance.state,
-      instance.spectrogramImage
+      instance.ui.spectrogramImage
     );
     const newSVG = {
       x: currentSVG.x + movement.dx,
       y: currentSVG.y + movement.dy
     };
-    const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.spectrogramImage);
+    const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.ui.spectrogramImage);
     const clamped = clampToImage(image.x, image.y, instance.state);
     const newData = imageToData(clamped.x, clamped.y, instance.state);
     marker.freq = newData.freq;
@@ -3198,23 +1152,22 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
     }
-    if (instance.currentMode && instance.currentMode.updateMarkersTable) {
-      instance.currentMode.updateMarkersTable();
-    }
+    refreshPanels(instance);
     dispatch(instance);
   }
   function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
-    if (!instance.state.harmonics || !instance.state.harmonics.harmonicSets) {
+    const harmonics = instance.state.harmonics;
+    if (!harmonics || !harmonics.harmonicSets) {
       return;
     }
-    const harmonicSet = instance.state.harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
+    const harmonicSet = harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
     if (!harmonicSet) {
       return;
     }
     const updates = {};
     const { timeMin, timeMax } = instance.state.config;
     const viewport = instance.state;
-    const image = instance.spectrogramImage;
+    const image = instance.ui.spectrogramImage;
     const svgPointToData = (svgX, svgY) => {
       const imagePoint = svgToImage(svgX, svgY, viewport, image);
       return imageToData(imagePoint.x, imagePoint.y, viewport);
@@ -3240,12 +1193,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       updates.anchorTime = Math.max(timeMin, Math.min(timeMax, moved.time));
     }
     if (Object.keys(updates).length > 0) {
-      const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
+      const setIndex = harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
       if (setIndex !== -1) {
-        Object.assign(instance.state.harmonics.harmonicSets[setIndex], updates);
+        Object.assign(harmonics.harmonicSets[setIndex], updates);
         markAnnotationsChanged(instance);
-        if (instance.harmonicPanel) {
-          updateHarmonicPanelContent(instance.harmonicPanel, instance);
+        if (instance.ui.harmonicPanel) {
+          updateHarmonicPanelContent(instance.ui.harmonicPanel, instance);
         }
         if (instance.featureRenderer) {
           instance.featureRenderer.renderAllPersistentFeatures();
@@ -3256,22 +1209,24 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function setSelection(instance, type, id, index) {
     setFocusedInstance(instance);
-    instance.state.selection.selectedType = type;
-    instance.state.selection.selectedId = id;
-    instance.state.selection.selectedIndex = index;
+    const selection = instance.state.selection;
+    selection.selectedType = type;
+    selection.selectedId = id;
+    selection.selectedIndex = index;
     updateSelectionVisuals(instance);
-    if (instance.syncStyleControls) {
-      instance.syncStyleControls();
+    if (instance.interaction.syncStyleControls) {
+      instance.interaction.syncStyleControls();
     }
     dispatch(instance);
   }
   function clearSelection(instance) {
-    instance.state.selection.selectedType = null;
-    instance.state.selection.selectedId = null;
-    instance.state.selection.selectedIndex = null;
+    const selection = instance.state.selection;
+    selection.selectedType = null;
+    selection.selectedId = null;
+    selection.selectedIndex = null;
     updateSelectionVisuals(instance);
-    if (instance.syncStyleControls) {
-      instance.syncStyleControls();
+    if (instance.interaction.syncStyleControls) {
+      instance.interaction.syncStyleControls();
     }
     dispatch(instance);
   }
@@ -3281,11 +1236,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return null;
     }
     if (sel.selectedType === "marker") {
-      const feature = instance.state.analysis && instance.state.analysis.markers ? instance.state.analysis.markers.find((m) => m.id === sel.selectedId) : null;
+      const analysis = instance.state.analysis;
+      const feature = analysis && analysis.markers ? analysis.markers.find((m) => m.id === sel.selectedId) : null;
       return feature ? { type: "marker", feature } : null;
     }
     if (sel.selectedType === "harmonicSet") {
-      const feature = instance.state.harmonics && instance.state.harmonics.harmonicSets ? instance.state.harmonics.harmonicSets.find((h) => h.id === sel.selectedId) : null;
+      const harmonics = instance.state.harmonics;
+      const feature = harmonics && harmonics.harmonicSets ? harmonics.harmonicSets.find((h) => h.id === sel.selectedId) : null;
       return feature ? { type: "harmonicSet", feature } : null;
     }
     return null;
@@ -3309,27 +1266,21 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         largeSymbols: !!selected.feature.largeSymbols
       };
     }
+    const { selectedColor, selectedSymbol, showHarmonicPin, largeSymbols } = instance.state;
     return {
-      color: instance.state.selectedColor,
-      symbol: instance.state.selectedSymbol,
-      showPin: instance.state.showHarmonicPin !== false,
+      color: selectedColor,
+      symbol: selectedSymbol,
+      showPin: showHarmonicPin !== false,
       pinApplies: true,
-      largeSymbols: !!instance.state.largeSymbols
+      largeSymbols: !!largeSymbols
     };
   }
   function refreshFeatureVisuals(instance, type) {
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
     }
-    if (type === "marker") {
-      const analysisMode = instance.modes && instance.modes["analysis"];
-      if (analysisMode && typeof analysisMode.updateMarkersTable === "function") {
-        analysisMode.updateMarkersTable();
-      }
-    } else if (type === "harmonicSet") {
-      if (instance.harmonicPanel) {
-        updateHarmonicPanelContent(instance.harmonicPanel, instance);
-      }
+    if (type === "marker" || type === "harmonicSet") {
+      refreshPanels(instance);
     }
     dispatch(instance);
   }
@@ -3372,14 +1323,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return true;
   }
   function removeHarmonicSet(instance, id) {
-    const setIndex = instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
+    const { harmonics, selection } = instance.state;
+    const setIndex = harmonics.harmonicSets.findIndex((set) => set.id === id);
     if (setIndex !== -1) {
-      if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === id) {
+      if (selection.selectedType === "harmonicSet" && selection.selectedId === id) {
         clearSelection(instance);
       }
-      instance.state.harmonics.harmonicSets.splice(setIndex, 1);
-      if (instance.harmonicPanel) {
-        updateHarmonicPanelContent(instance.harmonicPanel, instance);
+      harmonics.harmonicSets.splice(setIndex, 1);
+      if (instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(instance.ui.harmonicPanel, instance);
       }
       if (instance.featureRenderer) {
         instance.featureRenderer.renderAllPersistentFeatures();
@@ -3388,13 +1340,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function updateSelectionVisuals(instance) {
-    const analysisMode = instance.modes && instance.modes["analysis"];
-    if (analysisMode && typeof analysisMode.updateMarkersTable === "function") {
-      analysisMode.updateMarkersTable();
-    }
-    if (instance.harmonicPanel) {
-      updateHarmonicPanelContent(instance.harmonicPanel, instance);
-    }
+    refreshPanels(instance);
+  }
+  function refreshPanels(instance) {
+    Object.values(instance.modes).filter(isPanelOwner).forEach((mode) => mode.refreshPanel());
   }
   const COLOR_PALETTE = [
     "#ff0000",
@@ -3464,7 +1413,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const scaleX = canvas.width / rect.width;
       const canvasX = x * scaleX;
       const color = getColorFromPosition(canvasX, canvas.width);
-      if (!instance.applyColorToSelectedFeature || !instance.applyColorToSelectedFeature(color)) {
+      if (!instance.interaction.applyColorToSelectedFeature || !instance.interaction.applyColorToSelectedFeature(color)) {
         state.selectedColor = color;
       }
       symbolSelect.style.color = color;
@@ -3475,19 +1424,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       updateIndicatorPosition(indicator, position, canvas.width);
       symbolSelect.style.color = color;
     };
-    instance.syncStyleControls = () => {
+    instance.interaction.syncStyleControls = () => {
       const { color, symbol, showPin, pinApplies, largeSymbols } = getActiveStyle(instance);
       showColor(color);
-      if (instance._symbolControl) {
-        instance._symbolControl.setValue(symbol);
-        instance._symbolControl.setTint(color);
+      if (instance.interaction._symbolControl) {
+        instance.interaction._symbolControl.setValue(symbol);
+        instance.interaction._symbolControl.setTint(color);
       }
-      if (instance._pinControl) {
-        instance._pinControl.setValue(showPin);
-        instance._pinControl.setEnabled(pinApplies);
+      if (instance.interaction._pinControl) {
+        instance.interaction._pinControl.setValue(showPin);
+        instance.interaction._pinControl.setEnabled(pinApplies);
       }
-      if (instance._largeSymbolsControl) {
-        instance._largeSymbolsControl.setValue(largeSymbols);
+      if (instance.interaction._largeSymbolsControl) {
+        instance.interaction._largeSymbolsControl.setValue(largeSymbols);
       }
     };
     const initialPosition = getPositionFromColor(state.selectedColor, canvas.width);
@@ -3496,6 +1445,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function drawColorPalette(canvas) {
     const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
     const width = canvas.width;
     const height = canvas.height;
     const gradient = ctx.createLinearGradient(0, 0, width, 0);
@@ -3575,12 +1527,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     led.appendChild(valueDiv);
     return led;
   }
-  function updateLEDDisplays(instance, state) {
-    if (instance.modeLED) {
-      instance.modeLED.querySelector(".gram-frame-led-value").textContent = getModeDisplayName(state.mode);
+  function setLEDValue(led, value) {
+    const valueDiv = led.querySelector(".gram-frame-led-value");
+    if (valueDiv) {
+      valueDiv.textContent = value;
     }
-    if (instance.rateLED) {
-      instance.rateLED.querySelector(".gram-frame-led-value").textContent = `${state.rate}`;
+  }
+  function updateLEDDisplays(instance, state) {
+    if (instance.ui.modeLED) {
+      setLEDValue(instance.ui.modeLED, getModeDisplayName(state.mode));
+    }
+    if (instance.ui.rateLED) {
+      setLEDValue(instance.ui.rateLED, `${state.rate}`);
     }
   }
   function createFlexLayout(className, gap = "10px", direction = "row") {
@@ -3600,507 +1558,785 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function createFlexColumn(className, gap = "10px") {
     return createFlexLayout(className, gap, "column");
   }
-  function calculateMidpoint(fPlus, fMinus) {
+  function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    const paddedMinutes = minutes.toString().padStart(2, "0");
+    const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
+    return `${paddedMinutes}:${paddedSeconds}`;
+  }
+  function createUnifiedLayout(instance) {
+    const unifiedLayoutContainer = (
+      /** @type {HTMLDivElement} */
+      createFullFlexLayout("gram-frame-unified-layout", "2px")
+    );
+    unifiedLayoutContainer.style.flexDirection = "row";
+    unifiedLayoutContainer.style.flexWrap = "nowrap";
+    const leftColumn = (
+      /** @type {HTMLDivElement} */
+      createFullFlexLayout("gram-frame-left-column", "4px")
+    );
+    leftColumn.style.flex = "0 1 750px";
+    leftColumn.style.width = "auto";
+    leftColumn.style.minWidth = "0";
+    leftColumn.style.flexDirection = "row";
+    const modeColumn = (
+      /** @type {HTMLDivElement} */
+      createFlexColumn("gram-frame-mode-column", "8px")
+    );
+    modeColumn.style.flex = "0 0 130px";
+    modeColumn.style.width = "130px";
+    const guidanceColumn = (
+      /** @type {HTMLDivElement} */
+      createFlexColumn("gram-frame-guidance-column", "8px")
+    );
+    guidanceColumn.style.flex = "1";
+    guidanceColumn.style.minWidth = "150px";
+    const controlsColumn = (
+      /** @type {HTMLDivElement} */
+      createFlexColumn("gram-frame-controls-column", "1px")
+    );
+    controlsColumn.style.flex = "0 0 220px";
+    controlsColumn.style.width = "220px";
+    const cursorContainer = document.createElement("div");
+    cursorContainer.className = "gram-frame-cursor-leds";
+    const timeLED = createLEDDisplay("Time (mm:ss)", formatTime(0));
+    cursorContainer.appendChild(timeLED);
+    const freqLED = createLEDDisplay("Frequency (Hz)", "0.0");
+    cursorContainer.appendChild(freqLED);
+    const speedLED = createLEDDisplay("Doppler Speed (knots)", "0.0");
+    speedLED.style.gridColumn = "1 / -1";
+    cursorContainer.appendChild(speedLED);
+    controlsColumn.appendChild(cursorContainer);
+    const colorPicker = createColorPicker(instance);
+    controlsColumn.appendChild(colorPicker);
+    leftColumn.appendChild(modeColumn);
+    leftColumn.appendChild(guidanceColumn);
+    leftColumn.appendChild(controlsColumn);
+    const middleColumn = (
+      /** @type {HTMLDivElement} */
+      createFlexColumn("gram-frame-middle-column")
+    );
+    middleColumn.style.flex = "0 0 160px";
+    middleColumn.style.width = "160px";
+    const markersContainer = createMarkersContainer();
+    middleColumn.appendChild(markersContainer);
+    const rightColumn = (
+      /** @type {HTMLDivElement} */
+      createFlexColumn("gram-frame-right-column")
+    );
+    rightColumn.style.flex = "0 0 200px";
+    rightColumn.style.minWidth = "200px";
+    rightColumn.style.width = "200px";
+    const harmonicsContainer = createHarmonicsContainer();
+    rightColumn.appendChild(harmonicsContainer);
+    unifiedLayoutContainer.appendChild(leftColumn);
+    unifiedLayoutContainer.appendChild(middleColumn);
+    unifiedLayoutContainer.appendChild(rightColumn);
     return {
-      time: (fPlus.time + fMinus.time) / 2,
-      freq: (fPlus.freq + fMinus.freq) / 2
+      unifiedLayoutContainer,
+      leftColumn,
+      middleColumn,
+      rightColumn,
+      modeColumn,
+      guidanceColumn,
+      controlsColumn,
+      markersContainer,
+      harmonicsContainer,
+      timeLED,
+      freqLED,
+      speedLED,
+      colorPicker
     };
   }
-  function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1481) {
-    const f0 = fZero ? fZero.freq : calculateMidpoint(fPlus, fMinus).freq;
-    const deltaF = (fPlus.freq - fMinus.freq) / 2;
-    const speed = speedOfSound / f0 * deltaF;
-    return Math.abs(speed);
+  function createMarkersContainer() {
+    const markersContainer = document.createElement("div");
+    markersContainer.className = "gram-frame-markers-persistent-container";
+    markersContainer.style.flex = "1";
+    markersContainer.style.display = "flex";
+    markersContainer.style.flexDirection = "column";
+    markersContainer.style.minHeight = "0";
+    const markersLabel = document.createElement("h4");
+    markersLabel.textContent = "Markers";
+    markersLabel.style.margin = "0 0 8px 0";
+    markersLabel.style.textAlign = "left";
+    markersLabel.style.flexShrink = "0";
+    markersContainer.appendChild(markersLabel);
+    return markersContainer;
   }
-  const MS_TO_KNOTS_CONVERSION = 1.94384;
-  const DopplerDraggedMarker = {
-    fPlus: "fPlus",
-    fMinus: "fMinus",
-    fZero: "fZero"
-  };
-  class DopplerMode extends BaseMode {
-    /**
-     * Initialize DopplerMode with drag handler
-     * @param {Object} instance - GramFrame instance
-     */
-    constructor(instance) {
-      super(instance);
-      this.dragHandler = new BaseDragHandler(instance, {
-        resolveTarget: (position) => this.resolveDopplerDrag(position),
-        onDragStart: (target, position) => this.onMarkerDragStart(target, position),
-        onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, currentPos, startPos),
-        onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
-        onDragCancel: (target) => this.onMarkerDragEnd(target, null),
-        updateCursor: (style) => this.updateCursorStyle(style)
-      }, "doppler");
-    }
-    /**
-     * Find doppler marker at given position
-     * Returns a drag target object compatible with BaseDragHandler
-     * @param {DataCoordinates} position - Position to check
-     * @returns {Object|null} Drag target if found, null otherwise
-     */
-    findDopplerMarkerAtPosition(position) {
-      const doppler = this.instance.state.doppler;
-      if (!doppler) return null;
-      const tolerance = getUniformTolerance(this.getViewport(), this.instance.spectrogramImage);
-      const targets = [
-        DopplerDraggedMarker.fPlus,
-        DopplerDraggedMarker.fMinus,
-        DopplerDraggedMarker.fZero
-      ].filter((markerType) => doppler[markerType]).map((markerType) => ({
-        kind: "move",
-        id: markerType,
-        type: "dopplerMarker",
-        position: doppler[markerType],
-        data: { markerType }
-      })).filter((target) => isWithinDataTolerance(position, target.position, tolerance));
-      return findClosestTarget(position, targets, tolerance) || targets[0] || null;
-    }
-    /**
-     * Start dragging a doppler marker
-     * @param {Object} target - Drag target with id and type
-     * @param {DataCoordinates} _position - Start position (unused)
-     */
-    onMarkerDragStart(target, _position) {
-    }
-    /**
-     * Update doppler marker position during drag
-     * @param {DragTarget} target - Drag target
-     * @param {DataCoordinates} currentPos - Current position
-     * @param {DataCoordinates} _startPos - Start position (unused)
-     */
-    onMarkerDragUpdate(target, currentPos, _startPos) {
-      const doppler = this.instance.state.doppler;
-      if (target.kind === "place") {
-        this.handlePreviewDrag(currentPos, doppler);
-        return;
-      }
-      this.handleMarkerDrag(currentPos, doppler, target.id);
-    }
-    /**
-     * End dragging a doppler marker
-     * @param {DragTarget} target - Drag target
-     * @param {DataCoordinates} _position - End position (unused)
-     */
-    onMarkerDragEnd(target, _position) {
-      if (target && target.kind === "place") {
-        this.completeMarkerPlacement();
+  function createHarmonicsContainer() {
+    const harmonicsContainer = document.createElement("div");
+    harmonicsContainer.className = "gram-frame-harmonics-persistent-container";
+    harmonicsContainer.style.flex = "1";
+    harmonicsContainer.style.display = "flex";
+    harmonicsContainer.style.flexDirection = "column";
+    harmonicsContainer.style.minHeight = "0";
+    const harmonicsHeader = document.createElement("div");
+    harmonicsHeader.className = "gram-frame-harmonics-header";
+    harmonicsHeader.style.display = "flex";
+    harmonicsHeader.style.justifyContent = "space-between";
+    harmonicsHeader.style.alignItems = "center";
+    harmonicsHeader.style.margin = "0 0 8px 0";
+    harmonicsHeader.style.flexShrink = "0";
+    const harmonicsLabel = document.createElement("h4");
+    harmonicsLabel.textContent = "Harmonics";
+    harmonicsLabel.style.margin = "0";
+    harmonicsLabel.style.textAlign = "left";
+    harmonicsLabel.style.flexShrink = "0";
+    const harmonicsButtonContainer = document.createElement("div");
+    harmonicsButtonContainer.className = "gram-frame-harmonics-button-container";
+    harmonicsButtonContainer.style.flexShrink = "0";
+    harmonicsHeader.appendChild(harmonicsLabel);
+    harmonicsHeader.appendChild(harmonicsButtonContainer);
+    harmonicsContainer.appendChild(harmonicsHeader);
+    return harmonicsContainer;
+  }
+  function updateUniversalCursorReadouts(instance, dataCoords) {
+    if (instance.ui.timeLED) {
+      const timeValue = instance.ui.timeLED.querySelector(".gram-frame-led-value");
+      if (timeValue) {
+        timeValue.textContent = formatTime(dataCoords.time);
       }
     }
-    /**
-     * Resolve what a mousedown in doppler mode starts: moving one of the placed
-     * markers, or — with nothing placed yet — laying down f+ and dragging out f-.
-     * @param {DataCoordinates} position - Position of the mousedown
-     * @returns {DragTarget|null} A move- or place-kind target
-     */
-    resolveDopplerDrag(position) {
-      const doppler = this.instance.state.doppler;
-      if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-        return this.findDopplerMarkerAtPosition(position);
+    if (instance.ui.freqLED) {
+      const freqValue = instance.ui.freqLED.querySelector(".gram-frame-led-value");
+      if (freqValue) {
+        freqValue.textContent = dataCoords.freq.toFixed(2);
       }
-      return this.startMarkerPlacement(position);
+    }
+  }
+  function updatePersistentPanels(instance) {
+    Object.values(instance.modes).filter(isPanelOwner).forEach((mode) => mode.refreshPanel());
+  }
+  function extractConfigData(instance) {
+    if (!instance.configTable) {
+      console.warn("GramFrame: No config table provided for configuration extraction");
+      return;
+    }
+    try {
+      const imgElement = instance.configTable.querySelector("img");
+      if (!imgElement) {
+        throw new Error("No image element found in config table");
+      }
+      if (!imgElement.src) {
+        throw new Error("Image element has no src attribute");
+      }
+      instance.state.imageDetails.url = imgElement.src;
+    } catch (error) {
+      console.error("GramFrame: Error setting up image:", error instanceof Error ? error.message : String(error));
+    }
+    try {
+      const rows = instance.configTable.querySelectorAll("tr");
+      let timeStart = null;
+      let timeEnd = null;
+      let freqStart = null;
+      let freqEnd = null;
+      rows.forEach((row, index) => {
+        var _a, _b;
+        try {
+          const cells = row.querySelectorAll("td");
+          if (cells.length === 2) {
+            const param = ((_a = cells[0].textContent) == null ? void 0 : _a.trim()) || "";
+            const valueText = ((_b = cells[1].textContent) == null ? void 0 : _b.trim()) || "0";
+            const value = parseFloat(valueText);
+            if (isNaN(value)) {
+              console.warn(`GramFrame: Invalid numeric value in row ${index + 1}: value="${valueText}"`);
+              return;
+            }
+            if (param === "time-start") {
+              timeStart = value;
+            } else if (param === "time-end") {
+              timeEnd = value;
+            } else if (param === "freq-start") {
+              freqStart = value;
+            } else if (param === "freq-end") {
+              freqEnd = value;
+            }
+          }
+        } catch (error) {
+          console.warn(`GramFrame: Error parsing row ${index + 1}:`, error instanceof Error ? error.message : String(error));
+        }
+      });
+      if (timeStart === null || timeEnd === null) {
+        throw new Error("Missing required time configuration: both time-start and time-end must be present with valid numeric values");
+      }
+      if (timeStart >= timeEnd) {
+        throw new Error(`Invalid time range: start (${timeStart}) must be less than end (${timeEnd})`);
+      }
+      instance.state.config.timeMin = timeStart;
+      instance.state.config.timeMax = timeEnd;
+      if (freqStart === null || freqEnd === null) {
+        throw new Error("Missing required frequency configuration: both freq-start and freq-end must be present with valid numeric values");
+      }
+      if (freqStart >= freqEnd) {
+        throw new Error(`Invalid frequency range: start (${freqStart}) must be less than end (${freqEnd})`);
+      }
+      instance.state.config.freqMin = freqStart;
+      instance.state.config.freqMax = freqEnd;
+    } catch (error) {
+      throw error;
+    }
+  }
+  function createComponentStructure(instanceId) {
+    const container = document.createElement("div");
+    container.className = "gram-frame-container gram-frame-loading";
+    const table = document.createElement("div");
+    table.className = "gram-frame-table";
+    container.appendChild(table);
+    const modeRow = document.createElement("div");
+    modeRow.className = "gram-frame-row";
+    table.appendChild(modeRow);
+    const modeCell = document.createElement("div");
+    modeCell.className = "gram-frame-cell gram-frame-mode-header";
+    modeRow.appendChild(modeCell);
+    const mainRow = document.createElement("div");
+    mainRow.className = "gram-frame-row";
+    mainRow.style.height = "100%";
+    table.appendChild(mainRow);
+    const mainCell = document.createElement("div");
+    mainCell.className = "gram-frame-cell gram-frame-main-panel";
+    mainRow.appendChild(mainCell);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "gram-frame-svg");
+    svg.style.width = "100%";
+    svg.style.height = "100%";
+    svg.style.display = "block";
+    mainCell.appendChild(svg);
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    svg.appendChild(defs);
+    const clipPathId = `imageClip-${instanceId || Date.now()}`;
+    const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+    clipPath.setAttribute("id", clipPathId);
+    defs.appendChild(clipPath);
+    const imageClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    clipPath.appendChild(imageClipRect);
+    const cursorClipPathId = `cursorClip-${instanceId || Date.now()}`;
+    const cursorClipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+    cursorClipPath.setAttribute("id", cursorClipPathId);
+    defs.appendChild(cursorClipPath);
+    const cursorClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    cursorClipPath.appendChild(cursorClipRect);
+    const spectrogramImage = document.createElementNS("http://www.w3.org/2000/svg", "image");
+    spectrogramImage.setAttribute("class", "gram-frame-spectrogram-image");
+    spectrogramImage.setAttribute("clip-path", `url(#${clipPathId})`);
+    spectrogramImage.setAttribute("preserveAspectRatio", "none");
+    svg.appendChild(spectrogramImage);
+    const cursorGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    cursorGroup.setAttribute("class", "gram-frame-cursors");
+    cursorGroup.setAttribute("clip-path", `url(#${cursorClipPathId})`);
+    svg.appendChild(cursorGroup);
+    const axesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    axesGroup.setAttribute("class", "gram-frame-axes");
+    svg.appendChild(axesGroup);
+    const readoutPanel = document.createElement("div");
+    readoutPanel.className = "gram-frame-readout";
+    return {
+      container,
+      table,
+      modeRow,
+      modeCell,
+      mainRow,
+      mainCell,
+      readoutPanel,
+      svg,
+      spectrogramImage,
+      cursorGroup,
+      axesGroup,
+      imageClipRect,
+      cursorClipRect
+    };
+  }
+  function replaceConfigTable(instance, container, configTable) {
+    if (configTable && configTable.parentNode) {
+      configTable.parentNode.replaceChild(container, configTable);
+      container.__gramFrameInstance = instance;
+    }
+  }
+  function setupComponentTable(instance, configTable) {
+    const domElements = createComponentStructure(instance.instanceId);
+    replaceConfigTable(instance, domElements.container, configTable);
+    return domElements;
+  }
+  function setupSpectrogramComponents(instance, configTable) {
+    extractConfigData(instance);
+    return setupComponentTable(instance, configTable);
+  }
+  const activeDragOwners = /* @__PURE__ */ new WeakMap();
+  function idleProjection() {
+    return {
+      active: false,
+      kind: null,
+      mode: null,
+      targetId: null,
+      targetType: null,
+      startPosition: null
+    };
+  }
+  function publishDragProjection(instance) {
+    if (!instance || !instance.state) {
+      return;
+    }
+    const owner = activeDragOwners.get(instance);
+    if (!owner || !owner.dragState.isDragging) {
+      instance.state.drag = idleProjection();
+    } else {
+      instance.state.drag = {
+        active: true,
+        kind: owner.dragState.kind,
+        mode: owner.modeName,
+        targetId: owner.dragState.draggedTargetId,
+        targetType: owner.dragState.draggedTargetType,
+        startPosition: owner.dragState.dragStartPosition ? { ...owner.dragState.dragStartPosition } : null
+      };
+    }
+    if (typeof instance.notifyStateListeners === "function") {
+      instance.notifyStateListeners();
+    }
+  }
+  class BaseDragHandler {
+    /**
+     * Create a new BaseDragHandler
+     * @param {GramFrame} instance - GramFrame instance
+     * @param {DragCallbacks} callbacks - Drag lifecycle callbacks
+     * @param {ModeType|null} [modeName] - Mode that owns this handler, for the projection
+     */
+    constructor(instance, callbacks, modeName = null) {
+      this.instance = instance;
+      this.callbacks = callbacks;
+      this.modeName = modeName;
+      this.dragState = {
+        isDragging: false,
+        kind: null,
+        draggedTargetId: null,
+        draggedTargetType: null,
+        dragStartPosition: null,
+        originalData: null
+      };
     }
     /**
-     * Seed f+ at the mousedown position and return a `place`-kind target, so the
-     * rest of the placement is an ordinary drag with f- following the pointer.
+     * Check if currently dragging
+     * @returns {boolean} True if drag operation is active
+     */
+    isDragging() {
+      return this.dragState.isDragging;
+    }
+    /**
+     * The kind of drag in progress, if any.
+     * @returns {DragKind|null} Drag kind or null when idle
+     */
+    dragKind() {
+      return this.dragState.isDragging ? this.dragState.kind : null;
+    }
+    /**
+     * Get the current dragged target information.
      *
-     * `tempFirst` and `previewEnd` stay on state.doppler: they are placement
-     * geometry the renderer needs, not drag bookkeeping (data-model.md §2).
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     * @returns {DragTarget} A place-kind target
+     * Deliberately not a `DragTarget`: this carries the drag's *start* position
+     * and the snapshot taken at that moment, where `DragTarget` carries the
+     * current position. See {@link BaseDragHandler#currentTarget} for the latter.
+     * @returns {DraggedTargetInfo|null} Drag target info or null if not dragging
      */
-    startMarkerPlacement(dataCoords) {
-      const doppler = this.instance.state.doppler;
-      doppler.fPlus = { time: dataCoords.time, freq: dataCoords.freq };
-      doppler.tempFirst = doppler.fPlus;
-      doppler.previewEnd = { time: dataCoords.time, freq: dataCoords.freq };
-      this.renderDopplerFeatures();
+    getDraggedTarget() {
+      if (!this.dragState.isDragging) return null;
       return {
-        kind: "place",
-        id: DopplerDraggedMarker.fMinus,
-        type: "dopplerMarker",
-        position: dataCoords,
-        data: { markerType: DopplerDraggedMarker.fMinus }
+        kind: this.dragState.kind,
+        id: this.dragState.draggedTargetId,
+        type: this.dragState.draggedTargetType,
+        startPosition: this.dragState.dragStartPosition,
+        originalData: this.dragState.originalData
       };
     }
     /**
-     * Finalise a placement drag: order the markers, derive f₀, and clear the
-     * placement geometry.
+     * The target descriptor handed back to the mode's callbacks.
+     * @param {DataCoordinates|null} position - Current position; null for a
+     *   pixel-space (pan) drag, which has no data position
+     * @returns {DragTarget} Target descriptor
      */
-    completeMarkerPlacement() {
-      const doppler = this.instance.state.doppler;
-      if (!doppler.tempFirst || !doppler.fPlus || !doppler.fMinus) {
-        doppler.tempFirst = null;
-        doppler.previewEnd = null;
-        return;
-      }
-      if (doppler.fPlus.time <= doppler.fMinus.time) {
-        const temp = doppler.fPlus;
-        doppler.fPlus = doppler.fMinus;
-        doppler.fMinus = temp;
-      }
-      doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus);
-      if (!doppler.color) {
-        doppler.color = this.instance.state.selectedColor || "#ff0000";
-      }
-      doppler.tempFirst = null;
-      doppler.previewEnd = null;
-      markAnnotationsChanged(this.instance);
-      this.calculateAndUpdateDopplerSpeed();
-      this.renderDopplerFeatures();
-    }
-    /**
-     * Get guidance content for doppler mode
-     * @returns {Object} Structured guidance content
-     */
-    getGuidanceText() {
+    currentTarget(position) {
       return {
-        title: "Doppler Mode",
-        items: [
-          "Click & drag to place markers for f+ and f-",
-          "Drag markers to adjust positions",
-          "f₀ marker shows automatically at the midpoint",
-          "Right-click to reset all markers"
-        ]
+        // Non-null while a drag is running, which is the only time this is
+        // called: `handleMouseMove`, `handleMouseUp` and `cancelDrag` all return
+        // early when `isDragging` is false.
+        kind: (
+          /** @type {DragKind} */
+          this.dragState.kind
+        ),
+        id: this.dragState.draggedTargetId,
+        type: this.dragState.draggedTargetType,
+        position,
+        data: this.dragState.originalData
       };
     }
     /**
-     * Handle preview drag when placing markers
-     * @param {DataCoordinates} dataCoords - Data coordinates
-     * @param {DopplerState} doppler - Doppler state
+     * Handle mouse move events for drag operations
+     * @param {DataCoordinates|null} currentPosition - Current mouse position in data coordinates
+     * @param {MouseEvent} [event] - Originating event, for drags that work in screen pixels
      */
-    handlePreviewDrag(dataCoords, doppler) {
-      doppler.fMinus = {
-        time: dataCoords.time,
-        freq: dataCoords.freq
-      };
-      doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus);
-      doppler.previewEnd = doppler.fMinus;
-      this.renderDopplerFeatures();
+    handleMouseMove(currentPosition, event) {
+      if (!this.dragState.isDragging) return;
+      this.callbacks.onDragMove(
+        this.currentTarget(currentPosition),
+        currentPosition,
+        this.dragState.dragStartPosition,
+        event
+      );
     }
     /**
-     * Handle marker dragging
-     * @param {DataCoordinates} dataCoords - Data coordinates
-     * @param {DopplerState} doppler - Doppler state
-     * @param {string|null} markerType - Which marker is being dragged
+     * Start a drag operation
+     * @param {DataCoordinates|null} position - Position where drag started
+     * @param {MouseEvent} [event] - Originating mousedown, passed to the resolver
+     * @returns {boolean} True if drag started successfully, false otherwise
      */
-    handleMarkerDrag(dataCoords, doppler, markerType) {
-      const newPoint = {
-        time: dataCoords.time,
-        freq: dataCoords.freq
-      };
-      if (markerType === DopplerDraggedMarker.fPlus) {
-        doppler.fPlus = newPoint;
-      } else if (markerType === DopplerDraggedMarker.fMinus) {
-        doppler.fMinus = newPoint;
-      } else if (markerType === DopplerDraggedMarker.fZero) {
-        doppler.fZero = newPoint;
+    startDrag(position, event) {
+      if (this.dragState.isDragging) return false;
+      const owner = activeDragOwners.get(this.instance);
+      if (owner && owner !== this && owner.dragState.isDragging) return false;
+      const target = this.callbacks.resolveTarget(position, event);
+      if (!target) return false;
+      this.dragState.isDragging = true;
+      this.dragState.kind = target.kind || "move";
+      this.dragState.draggedTargetId = target.id ?? null;
+      this.dragState.draggedTargetType = target.type ?? null;
+      this.dragState.dragStartPosition = position ? { ...position } : null;
+      this.dragState.originalData = target.data ? { ...target.data } : null;
+      activeDragOwners.set(this.instance, this);
+      publishDragProjection(this.instance);
+      this.applyCursor(this.dragState.kind, "grabbing");
+      this.callbacks.onDragStart(this.currentTarget(position), position, event);
+      return true;
+    }
+    /**
+     * End the current drag operation
+     * @param {DataCoordinates|null} position - Position where drag ended
+     * @param {MouseEvent} [event] - Originating mouseup
+     */
+    endDrag(position, event) {
+      if (!this.dragState.isDragging) return;
+      const target = this.currentTarget(position);
+      this.callbacks.onDragEnd(target, position, event);
+      this.applyCursor(this.dragState.kind, "crosshair");
+      this.clearDragState();
+    }
+    /**
+     * Cancel the current drag operation without applying changes
+     */
+    cancelDrag() {
+      if (!this.dragState.isDragging) return;
+      const target = this.currentTarget(this.dragState.dragStartPosition);
+      if (this.callbacks.onDragCancel) {
+        this.callbacks.onDragCancel(target);
       }
-      markAnnotationsChanged(this.instance);
-      this.calculateAndUpdateDopplerSpeed();
-      this.renderDopplerFeatures();
-      dispatch(this.instance, { frame: true });
+      this.applyCursor(this.dragState.kind, "crosshair");
+      this.clearDragState();
     }
     /**
-     * Handle mouse move events in doppler mode
-     * @param {MouseEvent} _event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * Clear drag bookkeeping and republish the projection.
      */
-    handleMouseMove(_event, dataCoords) {
-      const doppler = this.instance.state.doppler;
-      if (this.dragHandler.isDragging()) {
-        this.dragHandler.handleMouseMove(dataCoords);
-      } else if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-        this.dragHandler.updateCursorForHover(dataCoords);
+    clearDragState() {
+      this.dragState.isDragging = false;
+      this.dragState.kind = null;
+      this.dragState.draggedTargetId = null;
+      this.dragState.draggedTargetType = null;
+      this.dragState.dragStartPosition = null;
+      this.dragState.originalData = null;
+      if (activeDragOwners.get(this.instance) === this) {
+        activeDragOwners.delete(this.instance);
+      }
+      publishDragProjection(this.instance);
+    }
+    /**
+     * Apply the cursor for a drag kind, falling back to the generic style.
+     * @param {DragKind|null} kind - Drag kind
+     * @param {string} fallback - Cursor to use when the mode has no per-kind opinion
+     */
+    applyCursor(kind, fallback) {
+      if (!this.callbacks.updateCursor) return;
+      const style = this.callbacks.cursorFor ? this.callbacks.cursorFor(kind, fallback) || fallback : fallback;
+      this.callbacks.updateCursor(style);
+    }
+    /**
+     * Update cursor style based on proximity to drag targets
+     * @param {DataCoordinates} position - Current mouse position
+     */
+    updateCursorForHover(position) {
+      if (this.dragState.isDragging) return;
+      const target = this.callbacks.resolveTarget(position);
+      const cursorStyle = target ? "grab" : "crosshair";
+      if (this.callbacks.updateCursor) {
+        this.callbacks.updateCursor(cursorStyle);
       }
     }
     /**
-     * Handle mouse down events in doppler mode
-     * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * Reset drag handler state
      */
-    handleMouseDown(event, dataCoords) {
-      if (this.dragHandler.startDrag(dataCoords, event)) {
-        dispatch(this.instance, { frame: true });
-      }
+    reset() {
+      this.cancelDrag();
     }
     /**
-     * Handle mouse up events in doppler mode
-     * @param {MouseEvent} _event - Mouse event (unused)
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseUp(_event, dataCoords) {
-      if (this.dragHandler.isDragging()) {
-        this.dragHandler.endDrag(dataCoords);
-        dispatch(this.instance, { frame: true });
-      }
-    }
-    /**
-     * Create UI elements for doppler mode
-     * @param {HTMLElement} _leftColumn - Container for UI elements (unused)
-     */
-    createUI(_leftColumn) {
-      this.uiElements = {};
-      this.instance.speedLED = this.instance.speedLED || null;
-    }
-    /**
-     * Update LED displays for doppler mode
-     * @param {CursorPosition} _coords - Current cursor coordinates
-     */
-    updateLEDs(_coords) {
-      this.updateModeSpecificLEDs();
-    }
-    /**
-     * Update mode-specific LED values based on current state
-     */
-    updateModeSpecificLEDs() {
-    }
-    /**
-     * Reset doppler-specific state
-     */
-    resetState() {
-      this.instance.state.doppler.fPlus = null;
-      this.instance.state.doppler.fMinus = null;
-      this.instance.state.doppler.fZero = null;
-      this.instance.state.doppler.speed = null;
-      this.instance.state.doppler.color = null;
-      this.instance.state.doppler.tempFirst = null;
-      this.instance.state.doppler.previewEnd = null;
-      this.dragHandler.reset();
-      dispatch(this.instance, { frame: true });
-    }
-    /**
-     * Clean up doppler-specific state when switching away from doppler mode
+     * Clean up drag handler resources
      */
     cleanup() {
-      this.instance.state.doppler.tempFirst = null;
-      this.instance.state.doppler.previewEnd = null;
-      this.dragHandler.reset();
-    }
-    /**
-     * Deactivate doppler mode - hide speed LED
-     */
-    deactivate() {
-    }
-    /**
-     * Calculate and update Doppler speed
-     */
-    calculateAndUpdateDopplerSpeed() {
-      const doppler = this.instance.state.doppler;
-      if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
-        const speed = calculateDopplerSpeed(doppler.fPlus, doppler.fMinus, doppler.fZero);
-        this.instance.state.doppler.speed = speed;
-        this.updateSpeedLED();
-        updateLEDDisplays(this.instance, this.instance.state);
-        dispatch(this.instance, { frame: true });
-      }
-    }
-    /**
-     * Get initial state for doppler mode
-     * @returns {DopplerInitialState} Doppler-specific initial state
-     */
-    static getInitialState() {
-      return {
-        doppler: {
-          fPlus: null,
-          // DataCoordinates: { time, frequency }
-          fMinus: null,
-          // DataCoordinates: { time, frequency }
-          fZero: null,
-          // DataCoordinates: { time, frequency }
-          speed: null,
-          // calculated speed in m/s
-          color: null,
-          // color used for this doppler curve
-          // Placement geometry the renderer needs. Drag bookkeeping lives on
-          // state.drag, owned by the drag engine.
-          tempFirst: null,
-          // temporary storage for first marker during placement
-          previewEnd: null
-          // end point for preview drag
-        }
-      };
-    }
-    /**
-     * Update the speed LED display with current speed value
-     */
-    updateSpeedLED() {
-      if (this.instance.speedLED && this.instance.state.doppler.speed !== null) {
-        const speedInKnots = this.instance.state.doppler.speed * MS_TO_KNOTS_CONVERSION;
-        this.instance.speedLED.querySelector(".gram-frame-led-value").textContent = speedInKnots.toFixed(1);
-      } else if (this.instance.speedLED) {
-        this.instance.speedLED.querySelector(".gram-frame-led-value").textContent = "0.0";
-      }
-    }
-    /**
-     * Calculate midpoint between two markers
-     * @param {DataCoordinates} fPlus - f+ marker
-     * @param {DataCoordinates} fMinus - f- marker
-     * @returns {DataCoordinates} Midpoint coordinates
-     */
-    calculateMidpoint(fPlus, fMinus) {
-      return calculateMidpoint(fPlus, fMinus);
-    }
-    /**
-     * Handle context menu (right-click) events in doppler mode
-     * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused)
-     */
-    handleContextMenu(event, _dataCoords) {
-      event.preventDefault();
-      this.resetState();
-      this.updateSpeedLED();
-      this.renderDopplerFeatures();
-    }
-    /**
-     * Render all doppler features (markers and curves)
-     */
-    renderDopplerFeatures() {
-      if (!this.instance.cursorGroup) return;
-      const existingFeatures = this.instance.cursorGroup.querySelectorAll(".doppler-feature, .gram-frame-doppler-preview, .gram-frame-doppler-curve, .gram-frame-doppler-extension, .gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-crosshair");
-      existingFeatures.forEach((element) => element.remove());
-      const doppler = this.instance.state.doppler;
-      if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
-        this.renderMarkers();
-        this.renderDopplerCurve();
-        if (doppler.tempFirst) {
-          const elements = this.instance.cursorGroup.querySelectorAll(".gram-frame-doppler-curve, .gram-frame-doppler-extension");
-          elements.forEach((element) => {
-            element.setAttribute("opacity", "0.8");
-            element.setAttribute("stroke-dasharray", "5,5");
-          });
-        }
-      }
-    }
-    /**
-     * Render doppler markers (f+, f-, f₀) with zoom awareness
-     */
-    renderMarkers() {
-      const doppler = this.instance.state.doppler;
-      const color = doppler.color || this.instance.state.selectedColor || "#ff0000";
-      const isInDopplerMode = this.instance.state.mode === "doppler";
-      const pointerEvents = isInDopplerMode ? "auto" : "none";
-      if (doppler.fPlus) {
-        const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage);
-        const fPlusMarker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        fPlusMarker.setAttribute("class", "gram-frame-doppler-fPlus");
-        fPlusMarker.setAttribute("cx", fPlusSVG.x.toString());
-        fPlusMarker.setAttribute("cy", fPlusSVG.y.toString());
-        fPlusMarker.setAttribute("r", "4");
-        fPlusMarker.setAttribute("fill", color);
-        fPlusMarker.setAttribute("stroke", "#ffffff");
-        fPlusMarker.setAttribute("stroke-width", "1");
-        fPlusMarker.setAttribute("pointer-events", pointerEvents);
-        this.instance.cursorGroup.appendChild(fPlusMarker);
-      }
-      if (doppler.fMinus) {
-        const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage);
-        const fMinusMarker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        fMinusMarker.setAttribute("class", "gram-frame-doppler-fMinus");
-        fMinusMarker.setAttribute("cx", fMinusSVG.x.toString());
-        fMinusMarker.setAttribute("cy", fMinusSVG.y.toString());
-        fMinusMarker.setAttribute("r", "4");
-        fMinusMarker.setAttribute("fill", color);
-        fMinusMarker.setAttribute("stroke", "#ffffff");
-        fMinusMarker.setAttribute("stroke-width", "1");
-        fMinusMarker.setAttribute("pointer-events", pointerEvents);
-        this.instance.cursorGroup.appendChild(fMinusMarker);
-      }
-      if (doppler.fZero) {
-        const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage);
-        const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        hLine.setAttribute("class", "gram-frame-doppler-crosshair");
-        hLine.setAttribute("x1", (fZeroSVG.x - 8).toString());
-        hLine.setAttribute("y1", fZeroSVG.y.toString());
-        hLine.setAttribute("x2", (fZeroSVG.x + 8).toString());
-        hLine.setAttribute("y2", fZeroSVG.y.toString());
-        hLine.setAttribute("stroke", "#00ff00");
-        hLine.setAttribute("stroke-width", "2");
-        hLine.setAttribute("pointer-events", pointerEvents);
-        this.instance.cursorGroup.appendChild(hLine);
-        const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        vLine.setAttribute("class", "gram-frame-doppler-crosshair");
-        vLine.setAttribute("x1", fZeroSVG.x.toString());
-        vLine.setAttribute("y1", (fZeroSVG.y - 8).toString());
-        vLine.setAttribute("x2", fZeroSVG.x.toString());
-        vLine.setAttribute("y2", (fZeroSVG.y + 8).toString());
-        vLine.setAttribute("stroke", "#00ff00");
-        vLine.setAttribute("stroke-width", "2");
-        vLine.setAttribute("pointer-events", pointerEvents);
-        this.instance.cursorGroup.appendChild(vLine);
-      }
-    }
-    /**
-     * Render Doppler curve between markers with vertical extensions (zoom-aware)
-     */
-    renderDopplerCurve() {
-      const doppler = this.instance.state.doppler;
-      if (!doppler.fPlus || !doppler.fMinus || !doppler.fZero) return;
-      const color = doppler.color || this.instance.state.selectedColor || "#ff0000";
-      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.spectrogramImage);
-      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.spectrogramImage);
-      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.spectrogramImage);
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("class", "gram-frame-doppler-curve");
-      const controlPoint1X = fMinusSVG.x;
-      const controlPoint1Y = fMinusSVG.y + (fZeroSVG.y - fMinusSVG.y) * 0.7;
-      const controlPoint2X = fPlusSVG.x;
-      const controlPoint2Y = fPlusSVG.y + (fZeroSVG.y - fPlusSVG.y) * 0.7;
-      const pathData = `M ${fMinusSVG.x} ${fMinusSVG.y} C ${controlPoint1X} ${controlPoint1Y} ${controlPoint2X} ${controlPoint2Y} ${fPlusSVG.x} ${fPlusSVG.y}`;
-      path.setAttribute("d", pathData);
-      path.setAttribute("stroke", color);
-      path.setAttribute("stroke-width", "2");
-      path.setAttribute("fill", "none");
-      this.instance.cursorGroup.appendChild(path);
-      const margins = this.instance.state.margins;
-      const { naturalHeight } = this.instance.state.imageDetails;
-      const renderHeight = this.instance.state.imageDetails.renderHeight || naturalHeight;
-      const spectrogramTop = margins.top;
-      const spectrogramBottom = margins.top + renderHeight;
-      let zoomedTop = spectrogramTop;
-      let zoomedBottom = spectrogramBottom;
-      if (this.instance.spectrogramImage) {
-        const zoomedImageTop = parseFloat(this.instance.spectrogramImage.getAttribute("y") || String(margins.top));
-        const zoomedImageHeight = parseFloat(this.instance.spectrogramImage.getAttribute("height") || String(renderHeight));
-        zoomedTop = zoomedImageTop;
-        zoomedBottom = zoomedImageTop + zoomedImageHeight;
-      }
-      const clippedTop = Math.max(spectrogramTop, zoomedTop);
-      const clippedBottom = Math.min(spectrogramBottom, zoomedBottom);
-      if (fPlusSVG.y > clippedTop) {
-        const fPlusExtension = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        fPlusExtension.setAttribute("class", "gram-frame-doppler-extension");
-        fPlusExtension.setAttribute("x1", fPlusSVG.x.toString());
-        fPlusExtension.setAttribute("y1", fPlusSVG.y.toString());
-        fPlusExtension.setAttribute("x2", fPlusSVG.x.toString());
-        fPlusExtension.setAttribute("y2", clippedTop.toString());
-        fPlusExtension.setAttribute("stroke", color);
-        fPlusExtension.setAttribute("stroke-width", "2");
-        this.instance.cursorGroup.appendChild(fPlusExtension);
-      }
-      if (fMinusSVG.y < clippedBottom) {
-        const fMinusExtension = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        fMinusExtension.setAttribute("class", "gram-frame-doppler-extension");
-        fMinusExtension.setAttribute("x1", fMinusSVG.x.toString());
-        fMinusExtension.setAttribute("y1", fMinusSVG.y.toString());
-        fMinusExtension.setAttribute("x2", fMinusSVG.x.toString());
-        fMinusExtension.setAttribute("y2", clippedBottom.toString());
-        fMinusExtension.setAttribute("stroke", color);
-        fMinusExtension.setAttribute("stroke-width", "2");
-        this.instance.cursorGroup.appendChild(fMinusExtension);
-      }
-    }
-    /**
-     * Render persistent features (for FeatureRenderer)
-     */
-    renderPersistentFeatures() {
-      this.renderDopplerFeatures();
+      this.reset();
     }
   }
-  const VERSION = "0.1.15";
-  function getVersion() {
-    return VERSION;
+  function updateCursorIndicators(instance) {
+    if (instance.ui.cursorGroup) {
+      instance.ui.cursorGroup.innerHTML = "";
+    }
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+  }
+  function renderAxes(instance) {
+    if (!instance.ui.axesGroup) {
+      return;
+    }
+    instance.ui.axesGroup.innerHTML = "";
+    const viewport = instance.state;
+    const { naturalWidth, naturalHeight } = viewport.imageDetails;
+    const margins = viewport.margins;
+    if (!naturalWidth || !naturalHeight) {
+      return;
+    }
+    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
+    const visibleRange = calculateVisibleDataRange(viewport, instance.ui.spectrogramImage);
+    renderFrequencyAxis(instance, margins, renderWidth, renderHeight, visibleRange.freqMin, visibleRange.freqMax);
+    renderTimeAxis(instance, margins, renderWidth, renderHeight, visibleRange.timeMin, visibleRange.timeMax);
+  }
+  function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin, timeMax) {
+    const axisX = margins.left;
+    const axisStartY = margins.top;
+    const axisEndY = margins.top + naturalHeight;
+    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    axisLine.setAttribute("x1", String(axisX));
+    axisLine.setAttribute("y1", String(axisStartY));
+    axisLine.setAttribute("x2", String(axisX));
+    axisLine.setAttribute("y2", String(axisEndY));
+    axisLine.setAttribute("class", "gram-frame-axis-line");
+    instance.ui.axesGroup.appendChild(axisLine);
+    const timeRange = timeMax - timeMin;
+    const tickCount = 5;
+    const tickInterval = timeRange / (tickCount - 1);
+    for (let i = 0; i < tickCount; i++) {
+      const time = timeMin + i * tickInterval;
+      const y = axisEndY - i / (tickCount - 1) * naturalHeight;
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("x1", String(axisX - 8));
+      tick.setAttribute("y1", String(y));
+      tick.setAttribute("x2", String(axisX));
+      tick.setAttribute("y2", String(y));
+      tick.setAttribute("class", "gram-frame-axis-tick");
+      instance.ui.axesGroup.appendChild(tick);
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", String(axisX - 12));
+      label.setAttribute("y", String(y + 4));
+      label.setAttribute("text-anchor", "end");
+      label.setAttribute("class", "gram-frame-axis-label");
+      label.textContent = formatTime(time);
+      instance.ui.axesGroup.appendChild(label);
+    }
+  }
+  function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
+    const range = max - min;
+    const targetMajorTicks = Math.max(2, Math.floor(containerSize / targetSpacing));
+    const rawMajorInterval = range / (targetMajorTicks - 1);
+    function niceNum(value, round) {
+      const exponent = Math.floor(Math.log10(value));
+      const fraction = value / Math.pow(10, exponent);
+      let niceFraction;
+      {
+        if (fraction <= 1) niceFraction = 1;
+        else if (fraction <= 2) niceFraction = 2;
+        else if (fraction <= 5) niceFraction = 5;
+        else niceFraction = 10;
+      }
+      return niceFraction * Math.pow(10, exponent);
+    }
+    const majorInterval = niceNum(rawMajorInterval);
+    let minorInterval;
+    const majorFraction = majorInterval / Math.pow(10, Math.floor(Math.log10(majorInterval)));
+    if (majorFraction === 1) {
+      minorInterval = majorInterval / 5;
+    } else if (majorFraction === 2) {
+      minorInterval = majorInterval / 2;
+    } else if (majorFraction === 5) {
+      minorInterval = majorInterval / 5;
+    } else {
+      minorInterval = majorInterval / 2;
+    }
+    const majorStart = Math.ceil(min / majorInterval) * majorInterval;
+    const minorStart = Math.ceil(min / minorInterval) * minorInterval;
+    const expectedMajorTicks = Math.ceil(range / majorInterval) + 2;
+    const expectedMinorTicks = Math.ceil(range / minorInterval) + 2;
+    const maxTicks = Math.max(200, expectedMajorTicks + expectedMinorTicks);
+    return {
+      majorInterval,
+      minorInterval,
+      majorStart,
+      minorStart,
+      expectedMajorTicks,
+      expectedMinorTicks,
+      maxTicks
+    };
+  }
+  function formatFrequencyLabels(frequency) {
+    return Math.round(frequency) + "Hz";
+  }
+  function renderAxisLine(instance, axisConfig) {
+    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    axisLine.setAttribute("x1", String(axisConfig.startX));
+    axisLine.setAttribute("y1", String(axisConfig.y));
+    axisLine.setAttribute("x2", String(axisConfig.endX));
+    axisLine.setAttribute("y2", String(axisConfig.y));
+    axisLine.setAttribute("class", "gram-frame-axis-line");
+    instance.ui.axesGroup.appendChild(axisLine);
+  }
+  function renderAxisTicks(instance, tickData, axisConfig) {
+    tickData.forEach((tickInfo) => {
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("x1", String(tickInfo.x));
+      tick.setAttribute("y1", String(axisConfig.y));
+      tick.setAttribute("x2", String(tickInfo.x));
+      tick.setAttribute("y2", String(axisConfig.y + tickInfo.height));
+      tick.setAttribute("class", tickInfo.className);
+      instance.ui.axesGroup.appendChild(tick);
+    });
+  }
+  function renderAxisLabels(instance, labelData, axisConfig) {
+    labelData.forEach((labelInfo) => {
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", String(labelInfo.x));
+      label.setAttribute("y", String(axisConfig.y + 25));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", labelInfo.className);
+      label.textContent = labelInfo.text;
+      instance.ui.axesGroup.appendChild(label);
+    });
+  }
+  function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
+    const axisY = margins.top + _naturalHeight;
+    const axisStartX = margins.left;
+    const axisEndX = margins.left + naturalWidth;
+    const rate = instance.state.rate;
+    const displayFreqMin = freqMin / rate;
+    const displayFreqMax = freqMax / rate;
+    const freqRange = displayFreqMax - displayFreqMin;
+    const axisConfig = { y: axisY, startX: axisStartX, endX: axisEndX };
+    renderAxisLine(instance, axisConfig);
+    const tickCalculation = calculateAxisTicks(displayFreqMin, displayFreqMax, naturalWidth);
+    const minorTickData = [];
+    const majorTickData = [];
+    const labelData = [];
+    const numMinorTicks = Math.floor((displayFreqMax - tickCalculation.minorStart) / tickCalculation.minorInterval) + 1;
+    if (numMinorTicks <= tickCalculation.maxTicks) {
+      for (let i = 0; i < numMinorTicks; i++) {
+        const freq = tickCalculation.minorStart + i * tickCalculation.minorInterval;
+        if (freq > displayFreqMax) break;
+        if (Math.abs(freq % tickCalculation.majorInterval) < 0.01) continue;
+        const x = axisStartX + (freq - displayFreqMin) / freqRange * naturalWidth;
+        minorTickData.push({ x, height: 4, className: "gram-frame-axis-tick-minor" });
+      }
+    }
+    const numMajorTicks = Math.floor((displayFreqMax - tickCalculation.majorStart) / tickCalculation.majorInterval) + 1;
+    if (numMajorTicks <= tickCalculation.maxTicks) {
+      for (let i = 0; i < numMajorTicks; i++) {
+        const freq = tickCalculation.majorStart + i * tickCalculation.majorInterval;
+        if (freq > displayFreqMax) break;
+        const x = axisStartX + (freq - displayFreqMin) / freqRange * naturalWidth;
+        majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick-major" });
+        labelData.push({
+          x,
+          text: formatFrequencyLabels(freq),
+          className: "gram-frame-axis-label-major"
+        });
+      }
+    } else {
+      const tickCount = 5;
+      for (let i = 0; i < tickCount; i++) {
+        const freq = displayFreqMin + i * freqRange / (tickCount - 1);
+        const x = axisStartX + i / (tickCount - 1) * naturalWidth;
+        majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick" });
+        labelData.push({
+          x,
+          text: formatFrequencyLabels(freq),
+          className: "gram-frame-axis-label"
+        });
+      }
+    }
+    renderAxisTicks(instance, minorTickData, axisConfig);
+    renderAxisTicks(instance, majorTickData, axisConfig);
+    renderAxisLabels(instance, labelData, axisConfig);
+  }
+  function updateSVGLayout(instance) {
+    const viewport = instance.state;
+    const { naturalWidth, naturalHeight } = viewport.imageDetails;
+    const margins = viewport.margins;
+    if (!naturalWidth || !naturalHeight) {
+      return;
+    }
+    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
+    const axesWidth = renderWidth;
+    const axesHeight = renderHeight;
+    const totalWidth = axesWidth + margins.left + margins.right;
+    const totalHeight = axesHeight + margins.top + margins.bottom;
+    instance.ui.container.style.width = "auto";
+    instance.ui.container.style.height = "auto";
+    instance.ui.container.style.aspectRatio = "unset";
+    instance.ui.svg.style.width = `${totalWidth}px`;
+    instance.ui.svg.style.height = `${totalHeight}px`;
+    instance.ui.svg.setAttribute("viewBox", `0 0 ${totalWidth} ${totalHeight}`);
+    instance.ui.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    instance.ui.spectrogramImage.setAttribute("x", String(margins.left));
+    instance.ui.spectrogramImage.setAttribute("y", String(margins.top));
+    instance.ui.spectrogramImage.setAttribute("width", String(axesWidth));
+    instance.ui.spectrogramImage.setAttribute("height", String(axesHeight));
+    if (instance.ui.imageClipRect) {
+      instance.ui.imageClipRect.setAttribute("x", String(margins.left));
+      instance.ui.imageClipRect.setAttribute("y", String(margins.top));
+      instance.ui.imageClipRect.setAttribute("width", String(axesWidth));
+      instance.ui.imageClipRect.setAttribute("height", String(axesHeight));
+    }
+    if (instance.ui.cursorClipRect) {
+      instance.ui.cursorClipRect.setAttribute("x", String(margins.left));
+      instance.ui.cursorClipRect.setAttribute("y", String(margins.top));
+      instance.ui.cursorClipRect.setAttribute("width", String(axesWidth));
+      instance.ui.cursorClipRect.setAttribute("height", String(axesHeight));
+    }
+    applyZoomTransform(instance);
+  }
+  function applyZoomTransform(instance) {
+    const viewport = instance.state;
+    const { level, centerX, centerY } = viewport.zoom;
+    const margins = viewport.margins;
+    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
+    if (!instance.ui.spectrogramImage) {
+      return;
+    }
+    if (level === 1) {
+      instance.ui.spectrogramImage.setAttribute("x", String(margins.left));
+      instance.ui.spectrogramImage.setAttribute("y", String(margins.top));
+      instance.ui.spectrogramImage.setAttribute("width", String(renderWidth));
+      instance.ui.spectrogramImage.setAttribute("height", String(renderHeight));
+      instance.ui.spectrogramImage.removeAttribute("transform");
+      renderAxes(instance);
+      if (instance.featureRenderer) {
+        instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      return;
+    }
+    const centerImageX = centerX * renderWidth;
+    const centerImageY = centerY * renderHeight;
+    const zoomedWidth = renderWidth * level;
+    const zoomedHeight = renderHeight * level;
+    const newX = margins.left + centerImageX - centerImageX * level;
+    const newY = margins.top + centerImageY - centerImageY * level;
+    instance.ui.spectrogramImage.setAttribute("x", String(newX));
+    instance.ui.spectrogramImage.setAttribute("y", String(newY));
+    instance.ui.spectrogramImage.setAttribute("width", String(zoomedWidth));
+    instance.ui.spectrogramImage.setAttribute("height", String(zoomedHeight));
+    renderAxes(instance);
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
   }
   function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes = {}) {
     const modesContainer = document.createElement("div");
@@ -4206,49 +2442,146 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     });
   }
+  const BOTTOM_GAP = 16;
+  function isLandscape(instance) {
+    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
+    return naturalWidth > 0 && naturalHeight > 0 && naturalWidth > naturalHeight;
+  }
+  function computeAvailableRenderSize(instance) {
+    const margins = instance.state.margins;
+    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
+    const cell = instance.ui.mainCell;
+    const svg = instance.ui.svg;
+    if (!cell || !svg) {
+      return { width: naturalWidth, height: naturalHeight };
+    }
+    const cellStyle = window.getComputedStyle(cell);
+    const padL = parseFloat(cellStyle.paddingLeft) || 0;
+    const padR = parseFloat(cellStyle.paddingRight) || 0;
+    const svgStyle = window.getComputedStyle(svg);
+    const svgBorderX = (parseFloat(svgStyle.borderLeftWidth) || 0) + (parseFloat(svgStyle.borderRightWidth) || 0);
+    const width = cell.clientWidth - padL - padR - svgBorderX - margins.left - margins.right;
+    const svgRect = svg.getBoundingClientRect();
+    const imageTopViewport = svgRect.top + margins.top;
+    const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP;
+    return {
+      width: Math.max(naturalWidth, Math.round(width)),
+      height: Math.max(naturalHeight, Math.round(height))
+    };
+  }
+  function applyExpandLayout(instance) {
+    const imageDetails = instance.state.imageDetails;
+    if (instance.state.imageExpanded) {
+      const { width, height } = computeAvailableRenderSize(instance);
+      imageDetails.renderWidth = width;
+      imageDetails.renderHeight = height;
+      updateSVGLayout(instance);
+      const settled = computeAvailableRenderSize(instance);
+      if (Math.abs(settled.width - width) > 1 || Math.abs(settled.height - height) > 1) {
+        imageDetails.renderWidth = settled.width;
+        imageDetails.renderHeight = settled.height;
+      }
+    } else {
+      imageDetails.renderWidth = imageDetails.naturalWidth;
+      imageDetails.renderHeight = imageDetails.naturalHeight;
+    }
+    updateSVGLayout(instance);
+    renderAxes(instance);
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+    dispatch(instance);
+  }
+  function updateToggleButton(button, expanded) {
+    button.setAttribute("aria-pressed", expanded ? "true" : "false");
+    button.setAttribute("aria-label", expanded ? "Collapse image" : "Expand image");
+    button.title = expanded ? "Collapse image" : "Expand image";
+    button.textContent = expanded ? "⤢" : "⤡";
+  }
+  function setImageExpanded(instance, expanded) {
+    if (!isLandscape(instance)) {
+      return;
+    }
+    instance.state.imageExpanded = !!expanded;
+    const expandedNow = instance.state.imageExpanded;
+    applyExpandLayout(instance);
+    if (instance.ui.expandToggleButton) {
+      updateToggleButton(instance.ui.expandToggleButton, expandedNow);
+    }
+  }
+  function refreshExpandedLayout(instance) {
+    if (!instance.state.imageExpanded) {
+      return;
+    }
+    const { width, height } = computeAvailableRenderSize(instance);
+    const imageDetails = instance.state.imageDetails;
+    imageDetails.renderWidth = width;
+    imageDetails.renderHeight = height;
+  }
+  function createExpandToggle(instance) {
+    if (!isLandscape(instance)) {
+      return null;
+    }
+    const button = document.createElement("button");
+    button.className = "gram-frame-expand-toggle";
+    button.type = "button";
+    updateToggleButton(button, instance.state.imageExpanded === true);
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setImageExpanded(instance, !instance.state.imageExpanded);
+    });
+    instance.ui.mainCell.appendChild(button);
+    instance.ui.expandToggleButton = button;
+    return button;
+  }
   function zoomIn(instance) {
-    const currentLevel = instance.state.zoom.level;
-    const newLevel = Math.min(currentLevel * 1.5, 10);
-    setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY);
+    const zoom = instance.state.zoom;
+    const newLevel = Math.min(zoom.level * 1.5, 10);
+    setZoom(instance, newLevel, zoom.centerX, zoom.centerY);
   }
   function zoomOut(instance) {
-    const currentLevel = instance.state.zoom.level;
-    const newLevel = Math.max(currentLevel / 1.5, 1);
-    setZoom(instance, newLevel, instance.state.zoom.centerX, instance.state.zoom.centerY);
+    const zoom = instance.state.zoom;
+    const newLevel = Math.max(zoom.level / 1.5, 1);
+    setZoom(instance, newLevel, zoom.centerX, zoom.centerY);
   }
   function zoomReset(instance) {
     setZoom(instance, 1, 0.5, 0.5);
   }
   function setZoom(instance, level, centerX, centerY) {
-    instance.state.zoom.level = level;
-    instance.state.zoom.centerX = centerX;
-    instance.state.zoom.centerY = centerY;
-    if (instance.svg) {
+    const zoom = instance.state.zoom;
+    zoom.level = level;
+    zoom.centerX = centerX;
+    zoom.centerY = centerY;
+    if (instance.ui.svg) {
       applyZoomTransform(instance);
     }
     updateZoomControlStates(instance);
     dispatch(instance, { frame: true });
   }
   function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
-    const origin = screenToSVG(0, 0, instance.svg);
-    const shifted = screenToSVG(dxPx, dyPx, instance.svg);
+    const imageDetails = instance.state.imageDetails;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const origin = screenToSVG(0, 0, instance.ui.svg);
+    const shifted = screenToSVG(dxPx, dyPx, instance.ui.svg);
     const svgDeltaX = shifted.x - origin.x;
     const svgDeltaY = shifted.y - origin.y;
+    const zoomLevel = instance.state.zoom.level;
     return {
-      normalizedDeltaX: -(svgDeltaX / renderWidth) / instance.state.zoom.level,
-      normalizedDeltaY: -(svgDeltaY / renderHeight) / instance.state.zoom.level
+      normalizedDeltaX: -(svgDeltaX / renderWidth) / zoomLevel,
+      normalizedDeltaY: -(svgDeltaY / renderHeight) / zoomLevel
     };
   }
   function panByNormalized(instance, deltaX, deltaY) {
-    if (instance.state.zoom.level <= 1) {
+    const zoom = instance.state.zoom;
+    if (zoom.level <= 1) {
       return;
     }
-    const newCenterX = Math.max(0, Math.min(1, instance.state.zoom.centerX + deltaX));
-    const newCenterY = Math.max(0, Math.min(1, instance.state.zoom.centerY + deltaY));
-    setZoom(instance, instance.state.zoom.level, newCenterX, newCenterY);
+    const newCenterX = Math.max(0, Math.min(1, zoom.centerX + deltaX));
+    const newCenterY = Math.max(0, Math.min(1, zoom.centerY + deltaY));
+    setZoom(instance, zoom.level, newCenterX, newCenterY);
   }
   function zoomAtImagePoint(instance, factor, imageX, imageY) {
     const currentLevel = instance.state.zoom.level;
@@ -4260,26 +2593,28 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       zoomReset(instance);
       return;
     }
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    const renderWidth = instance.state.imageDetails.renderWidth || naturalWidth;
-    const renderHeight = instance.state.imageDetails.renderHeight || naturalHeight;
+    const imageDetails = instance.state.imageDetails;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
     const centerX = Math.max(0, Math.min(1, imageX / renderWidth));
     const centerY = Math.max(0, Math.min(1, imageY / renderHeight));
     setZoom(instance, newLevel, centerX, centerY);
   }
   function updateZoomControlStates(instance) {
-    if (instance.commandButtons && instance.modes) {
-      updateCommandButtonStates(instance.commandButtons, instance.modes);
+    if (instance.ui.commandButtons && instance.modes) {
+      updateCommandButtonStates(instance.ui.commandButtons, instance.modes);
     }
-    if (instance.modeButtons && instance.modes) {
-      updateModeButtonStates(instance.modeButtons, instance.modes);
-      if (instance.state.mode === "pan" && instance.modes.pan && !instance.modes.pan.isEnabled() && instance.state.previousMode) {
-        instance._switchMode(instance.state.previousMode);
+    if (instance.ui.modeButtons && instance.modes) {
+      updateModeButtonStates(instance.ui.modeButtons, instance.modes);
+      const { mode, previousMode } = instance.state;
+      if (mode === "pan" && instance.modes.pan && !instance.modes.pan.isEnabled() && previousMode) {
+        instance._switchMode(previousMode);
       }
     }
   }
   function handleResize(instance) {
-    if (instance.svg) {
+    if (instance.ui.svg) {
       refreshExpandedLayout(instance);
       updateSVGLayout(instance);
       renderAxes(instance);
@@ -4289,8 +2624,2471 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function updateAxes(instance) {
-    if (instance.axesGroup) {
+    if (instance.ui.axesGroup) {
       renderAxes(instance);
+    }
+  }
+  const WHEEL_ZOOM_STEP = 1.2;
+  function screenToDataWithZoom(instance, event) {
+    const point = screenToData(
+      event.clientX,
+      event.clientY,
+      instance.ui.svg,
+      instance.state,
+      instance.ui.spectrogramImage
+    );
+    if (!isWithinImage(point.svg, instance.state, instance.ui.spectrogramImage)) {
+      return null;
+    }
+    return {
+      svgCoords: point.svg,
+      imageX: point.image.x,
+      imageY: point.image.y,
+      dataCoords: point.data
+    };
+  }
+  function handleWheel(instance, event) {
+    const result = screenToDataWithZoom(instance, event);
+    if (!result) {
+      return;
+    }
+    if (event.ctrlKey) {
+      const factor = event.deltaY < 0 ? WHEEL_ZOOM_STEP : 1 / WHEEL_ZOOM_STEP;
+      zoomAtImagePoint(instance, factor, result.imageX, result.imageY);
+      event.preventDefault();
+    } else if (instance.state.zoom.level > 1) {
+      const { normalizedDeltaX } = pixelDeltaToNormalizedPan(instance, -event.deltaY, 0);
+      panByNormalized(instance, normalizedDeltaX, 0);
+      event.preventDefault();
+    }
+  }
+  function wheelPanHandler(instance) {
+    if (!instance.interaction._wheelPanHandler) {
+      let previousCursor = "";
+      instance.interaction._wheelPanHandler = new BaseDragHandler(instance, {
+        resolveTarget: () => instance.state.zoom.level > 1 ? { kind: "pan", id: null, type: null } : null,
+        onDragStart: (_target, _position, event) => {
+          previousCursor = instance.ui.svg ? instance.ui.svg.style.cursor : "";
+          if (event) {
+            instance.interaction._wheelPanLast = { x: event.clientX, y: event.clientY };
+          }
+        },
+        onDragMove: (_target, _position, _startPosition, event) => {
+          if (!event || !instance.interaction._wheelPanLast) return;
+          const dx = event.clientX - instance.interaction._wheelPanLast.x;
+          const dy = event.clientY - instance.interaction._wheelPanLast.y;
+          const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy);
+          panByNormalized(instance, normalizedDeltaX, normalizedDeltaY);
+          instance.interaction._wheelPanLast = { x: event.clientX, y: event.clientY };
+        },
+        onDragEnd: () => {
+          instance.interaction._wheelPanLast = null;
+        },
+        onDragCancel: () => {
+          instance.interaction._wheelPanLast = null;
+        },
+        updateCursor: (style) => {
+          if (instance.ui.svg) {
+            instance.ui.svg.style.cursor = style;
+          }
+        },
+        // Restore whatever cursor the mode had, rather than forcing a crosshair
+        cursorFor: (_kind, fallback) => fallback === "grabbing" ? "grabbing" : previousCursor || "crosshair"
+      }, null);
+    }
+    return instance.interaction._wheelPanHandler;
+  }
+  function setupEventListeners(instance) {
+    const registered = [];
+    const listen = (target, type, handler, options) => {
+      target.addEventListener(type, handler, options);
+      registered.push({ target, type, handler, options });
+    };
+    if (instance.ui.svg) {
+      listen(instance.ui.svg, "mousemove", (event) => {
+        handleMouseMove(
+          instance,
+          /** @type {MouseEvent} */
+          event
+        );
+      });
+      listen(instance.ui.svg, "mousedown", (event) => {
+        handleMouseDown(
+          instance,
+          /** @type {MouseEvent} */
+          event
+        );
+      });
+      listen(instance.ui.svg, "mouseup", (event) => {
+        handleMouseUp(
+          instance,
+          /** @type {MouseEvent} */
+          event
+        );
+      });
+      listen(instance.ui.svg, "mouseleave", () => {
+        handleMouseLeave(instance);
+      });
+      listen(instance.ui.svg, "contextmenu", (event) => {
+        handleContextMenu(
+          instance,
+          /** @type {MouseEvent} */
+          event
+        );
+      });
+      listen(instance.ui.svg, "wheel", (event) => {
+        handleWheel(
+          instance,
+          /** @type {WheelEvent} */
+          event
+        );
+      }, { passive: false });
+    }
+    instance.viewport._boundHandleResize = () => {
+      if (instance._handleResize) {
+        instance._handleResize();
+      }
+    };
+    Object.keys(instance.ui.modeButtons || {}).forEach((mode) => {
+      const button = instance.ui.modeButtons[mode];
+      if (button) {
+        listen(button, "click", () => {
+          instance._switchMode(
+            /** @type {ModeType} */
+            mode
+          );
+        });
+      }
+    });
+    listen(window, "resize", instance.viewport._boundHandleResize);
+    instance.interaction._registeredListeners = registered;
+  }
+  function setupResizeObserver(instance) {
+    if (typeof ResizeObserver !== "undefined") {
+      instance.viewport.resizeObserver = new ResizeObserver((_entries) => {
+        if (instance._handleResize) {
+          instance._handleResize();
+        }
+      });
+      instance.viewport.resizeObserver.observe(instance.ui.container);
+    }
+  }
+  function handleMouseMove(instance, event) {
+    const wheelPan = wheelPanHandler(instance);
+    if (wheelPan.isDragging()) {
+      wheelPan.handleMouseMove(null, event);
+      return;
+    }
+    const result = screenToDataWithZoom(instance, event);
+    if (result) {
+      const { svgCoords, imageX, imageY, dataCoords } = result;
+      instance.state.cursorPosition = {
+        x: event.clientX - instance.ui.svg.getBoundingClientRect().left,
+        y: event.clientY - instance.ui.svg.getBoundingClientRect().top,
+        svgX: svgCoords.x,
+        svgY: svgCoords.y,
+        imageX,
+        imageY,
+        freq: dataCoords.freq,
+        time: dataCoords.time
+      };
+      updateUniversalCursorReadouts(instance, dataCoords);
+      if (instance.currentMode && typeof instance.currentMode.handleMouseMove === "function") {
+        instance.currentMode.handleMouseMove(event, dataCoords);
+      }
+    } else {
+      instance.state.cursorPosition = null;
+    }
+    updateCursorIndicators(instance);
+    dispatch(instance, { frame: true });
+  }
+  function handleMouseDown(instance, event) {
+    setFocusedInstance(instance);
+    if (event.button === 1) {
+      event.preventDefault();
+      wheelPanHandler(instance).startDrag(null, event);
+      return;
+    }
+    const result = screenToDataWithZoom(instance, event);
+    if (result) {
+      const { dataCoords } = result;
+      if (instance.currentMode && typeof instance.currentMode.handleMouseDown === "function") {
+        instance.currentMode.handleMouseDown(event, dataCoords);
+      }
+    }
+  }
+  function handleMouseUp(instance, event) {
+    const wheelPan = wheelPanHandler(instance);
+    if (wheelPan.isDragging()) {
+      wheelPan.endDrag(null, event);
+      return;
+    }
+    const result = screenToDataWithZoom(instance, event);
+    if (result) {
+      const { dataCoords } = result;
+      if (instance.currentMode && typeof instance.currentMode.handleMouseUp === "function") {
+        instance.currentMode.handleMouseUp(event, dataCoords);
+      }
+    }
+  }
+  function handleMouseLeave(instance) {
+    wheelPanHandler(instance).cancelDrag();
+    instance.state.cursorPosition = null;
+    updateCursorIndicators(instance);
+    if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === "function") {
+      instance.currentMode.handleMouseLeave();
+    }
+    dispatch(instance, { frame: true });
+  }
+  function handleContextMenu(instance, event) {
+    const result = screenToDataWithZoom(instance, event);
+    if (result) {
+      const { dataCoords } = result;
+      if (instance.currentMode && typeof instance.currentMode.handleContextMenu === "function") {
+        instance.currentMode.handleContextMenu(event, dataCoords);
+      }
+    }
+  }
+  function cleanupEventListeners(instance) {
+    const registered = instance.interaction._registeredListeners || [];
+    registered.forEach(({ target, type, handler, options }) => {
+      target.removeEventListener(type, handler, options);
+    });
+    instance.interaction._registeredListeners = [];
+    if (instance.viewport.resizeObserver) {
+      instance.viewport.resizeObserver.disconnect();
+      instance.viewport.resizeObserver = null;
+    }
+  }
+  function setupAllEventListeners(instance) {
+    setupEventListeners(instance);
+    setupResizeObserver(instance);
+    initializeKeyboardControl(instance);
+    return {
+      removeHarmonicSet: (id) => removeHarmonicSet(instance, id),
+      setSelection: (type, id, index) => setSelection(instance, type, id, index),
+      clearSelection: () => clearSelection(instance),
+      updateSelectionVisuals: () => updateSelectionVisuals(instance),
+      applyColorToSelectedFeature: (color) => applyColorToSelectedFeature(instance, color),
+      applySymbolToSelectedFeature: (symbol) => applySymbolToSelectedFeature(instance, symbol),
+      applyPinToSelectedFeature: (showPin) => applyPinToSelectedFeature(instance, showPin),
+      applyLargeSymbolsToSelectedFeature: (large) => applyLargeSymbolsToSelectedFeature(instance, large)
+    };
+  }
+  class BaseMode {
+    /**
+     * Constructor for base mode
+     * @param {GramFrame} instance - GramFrame instance
+     */
+    constructor(instance) {
+      this.instance = instance;
+      this.dragHandler = null;
+      this.uiElements = {};
+    }
+    /**
+     * Activate this mode - called when switching to this mode
+     * Override in subclasses to perform mode-specific initialization
+     */
+    activate() {
+    }
+    /**
+     * Deactivate this mode - called when switching away from this mode
+     * Override in subclasses to perform mode-specific cleanup
+     */
+    deactivate() {
+    }
+    /**
+     * Handle mouse move events
+     * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+     */
+    handleMouseMove(_event, _dataCoords) {
+    }
+    /**
+     * Handle mouse down events
+     * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+     */
+    handleMouseDown(_event, _dataCoords) {
+    }
+    /**
+     * Handle mouse up events
+     * @param {MouseEvent} _event - Mouse event (unused in base implementation)
+     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+     */
+    handleMouseUp(_event, _dataCoords) {
+    }
+    /**
+     * Handle mouse leave events
+     */
+    handleMouseLeave() {
+    }
+    /**
+     * Handle a right-click within the image.
+     * @param {MouseEvent} _event - Context-menu event (unused in base implementation)
+     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused in base implementation)
+     */
+    handleContextMenu(_event, _dataCoords) {
+    }
+    /**
+     * Render persistent features for this mode
+     * Override in subclasses to render mode-specific persistent features
+     */
+    renderPersistentFeatures() {
+    }
+    /**
+     * Update LED displays with mode-specific values
+     * @param {CursorPosition|null} _coords - Current cursor coordinates, or null
+     *   when the pointer is not over the image
+     */
+    updateLEDs(_coords) {
+    }
+    /**
+     * Get guidance content for this mode
+     * @returns {Object} Structured guidance content
+     */
+    getGuidanceText() {
+      return {
+        title: "Base Mode",
+        items: [
+          "No specific guidance available"
+        ]
+      };
+    }
+    /**
+     * Get command buttons for this mode
+     * Override in subclasses to provide mode-specific command buttons
+     * @returns {Array<CommandButton>} Array of command button definitions
+     */
+    getCommandButtons() {
+      return [];
+    }
+    /**
+     * Check if this mode is currently enabled
+     * Override in subclasses to provide mode-specific enable/disable logic
+     * @returns {boolean} True if mode is enabled, false if disabled
+     */
+    isEnabled() {
+      return true;
+    }
+    /**
+     * Reset mode-specific state
+     * Override in subclasses to clear mode-specific state properties
+     */
+    resetState() {
+    }
+    /**
+     * Clean up mode-specific state when switching away from this mode
+     * Override in subclasses to perform mode-specific state cleanup
+     */
+    cleanup() {
+    }
+    /**
+     * Create mode-specific UI elements when entering this mode
+     * Override in subclasses to create mode-specific UI elements
+     * @param {HTMLElement} _readoutPanel - Container for UI elements (unused in base implementation)
+     */
+    createUI(_readoutPanel) {
+      this.uiElements = {};
+    }
+    /**
+     * Destroy mode-specific UI elements when leaving this mode
+     * Override in subclasses to clean up mode-specific UI elements
+     */
+    destroyUI() {
+      if (this.uiElements) {
+        Object.values(this.uiElements).forEach((element) => {
+          if (element && element.parentNode) {
+            element.parentNode.removeChild(element);
+          }
+        });
+        this.uiElements = {};
+      }
+    }
+    /**
+     * Get initial state for this mode
+     * Override in subclasses to provide mode-specific initial state
+     * @returns {*} Mode-specific initial state object
+     */
+    static getInitialState() {
+      return {};
+    }
+    /**
+     * Get viewport configuration for coordinate transformations
+     * @returns {ViewportConfig} Viewport configuration object
+     */
+    getViewport() {
+      return {
+        margins: this.instance.state.margins,
+        imageDetails: this.instance.state.imageDetails,
+        config: this.instance.state.config,
+        zoom: this.instance.state.zoom,
+        rate: this.instance.state.rate
+      };
+    }
+    /**
+     * Update cursor style for drag operations
+     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+     */
+    updateCursorStyle(style) {
+      if (this.instance.ui.spectrogramImage) {
+        this.instance.ui.spectrogramImage.style.cursor = style;
+      }
+    }
+  }
+  const DEFAULT_TOLERANCE = {
+    // Pixel tolerance for drag/click detection (in SVG coordinate space)
+    pixelRadius: 8,
+    // Minimum data space tolerance (prevents overly sensitive interactions at high zoom)
+    minDataTolerance: {
+      time: 0.01,
+      // 0.01 seconds minimum
+      freq: 1
+      // 1 Hz minimum
+    },
+    // Maximum data space tolerance (prevents insensitive interactions at low zoom)
+    maxDataTolerance: {
+      time: 0.5,
+      // 0.5 seconds maximum
+      freq: 50
+      // 50 Hz maximum
+    }
+  };
+  function calculateDataTolerance(viewport, spectrogramImage, customTolerance = {}) {
+    const config = { ...DEFAULT_TOLERANCE, ...customTolerance };
+    if (!viewport || !spectrogramImage) {
+      return config.minDataTolerance;
+    }
+    const { config: dataConfig, imageDetails, zoom } = viewport;
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    if (!dataConfig || !renderWidth || !renderHeight) {
+      return config.minDataTolerance;
+    }
+    const timeRange = dataConfig.timeMax - dataConfig.timeMin;
+    const freqRange = dataConfig.freqMax - dataConfig.freqMin;
+    const effectiveZoom = (zoom == null ? void 0 : zoom.level) || 1;
+    const timeToleranceFromPixels = config.pixelRadius / renderHeight * timeRange / effectiveZoom;
+    const freqToleranceFromPixels = config.pixelRadius / renderWidth * freqRange / effectiveZoom;
+    const timeTolerance = Math.max(
+      config.minDataTolerance.time,
+      Math.min(config.maxDataTolerance.time, timeToleranceFromPixels)
+    );
+    const freqTolerance = Math.max(
+      config.minDataTolerance.freq,
+      Math.min(config.maxDataTolerance.freq, freqToleranceFromPixels)
+    );
+    return {
+      time: timeTolerance,
+      freq: freqTolerance
+    };
+  }
+  function isWithinDataTolerance(position, targetPosition, tolerance) {
+    const timeDiff = Math.abs(position.time - targetPosition.time);
+    const freqDiff = Math.abs(position.freq - targetPosition.freq);
+    return timeDiff <= tolerance.time && freqDiff <= tolerance.freq;
+  }
+  function calculateNormalizedDistance(pos1, pos2, tolerance) {
+    const timeDiff = Math.abs(pos1.time - pos2.time) / tolerance.time;
+    const freqDiff = Math.abs(pos1.freq - pos2.freq) / tolerance.freq;
+    return Math.sqrt(timeDiff * timeDiff + freqDiff * freqDiff);
+  }
+  function isWithinToleranceRadius(position, targetPosition, tolerance) {
+    return calculateNormalizedDistance(position, targetPosition, tolerance) <= 1;
+  }
+  function findClosestTarget(position, targets, tolerance) {
+    let closestTarget = null;
+    let closestDistance = Infinity;
+    for (const target of targets) {
+      const distance = calculateNormalizedDistance(position, target.position, tolerance);
+      if (distance <= 1 && distance < closestDistance) {
+        closestDistance = distance;
+        closestTarget = target;
+      }
+    }
+    return closestTarget;
+  }
+  function getUniformTolerance(viewport, spectrogramImage) {
+    return calculateDataTolerance(viewport, spectrogramImage, DEFAULT_TOLERANCE);
+  }
+  function createMarkerDeleteButton() {
+    const button = document.createElement("button");
+    button.textContent = "×";
+    button.className = "gram-frame-marker-delete-btn";
+    button.style.background = "none";
+    button.style.border = "none";
+    button.style.color = "#ff4444";
+    button.style.cursor = "pointer";
+    button.style.fontSize = "16px";
+    button.style.fontWeight = "bold";
+    return button;
+  }
+  const _AnalysisMode = class _AnalysisMode extends BaseMode {
+    /**
+     * Initialize AnalysisMode with drag handler
+     * @param {GramFrame} instance - GramFrame instance
+     */
+    constructor(instance) {
+      super(instance);
+      this.dragHandler = new BaseDragHandler(instance, {
+        // A feature drag always carries a data position. Only the pan drag passes
+        // null, and it runs on its own handler in `core/events.js`.
+        resolveTarget: (position) => this.findMarkerAtPosition(
+          /** @type {DataCoordinates} */
+          position
+        ),
+        onDragStart: (target, position) => this.onMarkerDragStart(
+          target,
+          /** @type {DataCoordinates} */
+          position
+        ),
+        onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(
+          target,
+          /** @type {DataCoordinates} */
+          currentPos,
+          /** @type {DataCoordinates} */
+          startPos
+        ),
+        onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
+        updateCursor: (style) => this.updateCursorStyle(style)
+      }, "analysis");
+    }
+    /**
+     * Start dragging a marker
+     * @param {DragTarget} target - Drag target with id and type
+     * @param {DataCoordinates} position - Start position
+     */
+    onMarkerDragStart(target, position) {
+      const markers = this.instance.state.analysis.markers;
+      const marker = markers.find((m) => m.id === target.id);
+      if (marker) {
+        const index = markers.findIndex((m) => m.id === target.id);
+        this.instance.interaction.setSelection(
+          "marker",
+          /** @type {string} */
+          target.id,
+          index
+        );
+      }
+    }
+    /**
+     * Update marker position during drag
+     * @param {DragTarget} target - Drag target with id and type
+     * @param {DataCoordinates} currentPos - Current position
+     * @param {DataCoordinates} _startPos - Start position (unused)
+     */
+    onMarkerDragUpdate(target, currentPos, _startPos) {
+      const marker = this.instance.state.analysis.markers.find((m) => m.id === target.id);
+      if (marker) {
+        marker.freq = currentPos.freq;
+        marker.time = currentPos.time;
+        markAnnotationsChanged(this.instance);
+        if (this.instance.featureRenderer) {
+          this.instance.featureRenderer.renderAllPersistentFeatures();
+        }
+        if (!this.updateTableScheduled) {
+          this.updateTableScheduled = true;
+          requestAnimationFrame(() => {
+            this.updateMarkersTable();
+            this.updateTableScheduled = false;
+          });
+        }
+        dispatch(this.instance, { frame: true });
+      }
+    }
+    /**
+     * End dragging a marker
+     * @param {Object} _target - Drag target with id and type (unused)
+     * @param {DataCoordinates|null} _position - End position (unused)
+     */
+    onMarkerDragEnd(_target, _position) {
+    }
+    /**
+     * Update cursor style for drag operations
+     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+     */
+    updateCursorStyle(style) {
+      if (this.instance.ui.svg) {
+        this.instance.ui.svg.style.cursor = style;
+      }
+    }
+    /**
+     * Get guidance content for analysis mode
+     * @returns {Object} Structured guidance content
+     */
+    getGuidanceText() {
+      return {
+        title: "Cross Cursor Mode",
+        items: [
+          "Click to place persistent markers",
+          "Drag existing markers to reposition them",
+          "Right-click markers to delete them",
+          "Click table row + arrow keys (Shift for larger steps)"
+        ]
+      };
+    }
+    /**
+     * Handle mouse move events in analysis mode
+     * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseMove(_event, dataCoords) {
+      if (this.dragHandler.isDragging()) {
+        this.dragHandler.handleMouseMove(dataCoords);
+      } else {
+        this.dragHandler.updateCursorForHover(dataCoords);
+      }
+    }
+    /**
+     * Handle mouse down events in analysis mode
+     * @param {MouseEvent} event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseDown(event, dataCoords) {
+      if (event.button !== 0) {
+        return;
+      }
+      const dragStarted = this.dragHandler.startDrag(dataCoords);
+      if (!dragStarted) {
+        this.createMarkerAtPosition(dataCoords);
+      }
+    }
+    /**
+     * Handle mouse up events in analysis mode
+     * @param {MouseEvent} _event - Mouse event (unused in current implementation)
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseUp(_event, dataCoords) {
+      this.dragHandler.endDrag(dataCoords);
+    }
+    /**
+     * Handle mouse leave events in analysis mode
+     */
+    handleMouseLeave() {
+    }
+    /**
+     * Handle context menu (right-click) events in analysis mode
+     * @param {MouseEvent} event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleContextMenu(event, dataCoords) {
+      event.preventDefault();
+      const target = this.findMarkerAtPosition(dataCoords);
+      if (target) {
+        this.removeMarker(
+          /** @type {string} */
+          target.id
+        );
+      }
+    }
+    // Cursor position updates are now handled universally in main.js
+    // No need for mode-specific cursor position management
+    /**
+     * Create a marker at the specified position
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    createMarkerAtPosition(dataCoords) {
+      const { selectedColor, selectedSymbol, largeSymbols } = this.instance.state;
+      const color = selectedColor || "#ff6b6b";
+      const symbol = selectedSymbol || "cross";
+      const marker = {
+        id: `marker-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        color,
+        time: dataCoords.time,
+        freq: dataCoords.freq,
+        symbol,
+        // EXPERIMENT (temporary): symbol size is carried per marker, seeded from
+        // the toggle's next-feature default, so both sizes can coexist.
+        largeSymbols: !!largeSymbols
+      };
+      this.addMarker(marker);
+    }
+    /**
+     * Whether this mode currently owns any persistent feature.
+     *
+     * Half of the `PersistentFeatureProvider` capability. Lived on
+     * `FeatureRenderer` as `hasAnalysisFeatures()` until spec 167 moved it onto
+     * the mode that owns the state it reads.
+     * @returns {boolean} True if at least one marker exists
+     */
+    hasPersistentFeatures() {
+      const analysis = this.instance.state.analysis;
+      return !!(analysis && analysis.markers && analysis.markers.length > 0);
+    }
+    /**
+     * Render persistent features for analysis mode
+     */
+    renderPersistentFeatures() {
+      var _a;
+      if (!this.instance.ui.cursorGroup || !((_a = this.instance.state.analysis) == null ? void 0 : _a.markers)) {
+        return;
+      }
+      const existingMarkers = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-analysis-marker");
+      existingMarkers.forEach((marker) => marker.remove());
+      this.instance.state.analysis.markers.forEach((marker) => {
+        this.renderMarker(marker);
+      });
+    }
+    /**
+     * Render a single marker as a crosshair
+     * @param {AnalysisMarker} marker - Marker object
+     */
+    renderMarker(marker) {
+      if (!this.instance.ui.cursorGroup) {
+        return;
+      }
+      const markerPoint = { freq: marker.freq, time: marker.time };
+      const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage);
+      const currentX = markerSVG.x;
+      const currentY = markerSVG.y;
+      const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      markerGroup.setAttribute("class", "gram-frame-analysis-marker");
+      markerGroup.setAttribute("data-marker-id", marker.id);
+      const symbolSize = _AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker);
+      const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color);
+      if (symbolMark) {
+        symbolMark.setAttribute("class", "gram-frame-marker-symbol");
+        symbolMark.setAttribute("data-marker-id", marker.id);
+        markerGroup.appendChild(symbolMark);
+      } else {
+        const crosshairSize = 15;
+        const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        hLine.setAttribute("x1", String(currentX - crosshairSize));
+        hLine.setAttribute("y1", String(currentY));
+        hLine.setAttribute("x2", String(currentX + crosshairSize));
+        hLine.setAttribute("y2", String(currentY));
+        hLine.setAttribute("stroke", marker.color);
+        hLine.setAttribute("stroke-width", "2");
+        hLine.setAttribute("stroke-linecap", "round");
+        const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        vLine.setAttribute("x1", String(currentX));
+        vLine.setAttribute("y1", String(currentY - crosshairSize));
+        vLine.setAttribute("x2", String(currentX));
+        vLine.setAttribute("y2", String(currentY + crosshairSize));
+        vLine.setAttribute("stroke", marker.color);
+        vLine.setAttribute("stroke-width", "2");
+        vLine.setAttribute("stroke-linecap", "round");
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", String(currentX));
+        circle.setAttribute("cy", String(currentY));
+        circle.setAttribute("r", "3");
+        circle.setAttribute("fill", marker.color);
+        circle.setAttribute("stroke", "#fff");
+        circle.setAttribute("stroke-width", "1");
+        markerGroup.appendChild(hLine);
+        markerGroup.appendChild(vLine);
+        markerGroup.appendChild(circle);
+      }
+      this.instance.ui.cursorGroup.appendChild(markerGroup);
+    }
+    /**
+     * Create UI elements for analysis mode
+     * @param {HTMLElement} markersContainer - Persistent container for markers table
+     */
+    createUI(markersContainer) {
+      this.uiElements = {};
+      this.uiElements.markersContainer = markersContainer;
+      this.createMarkersTable(markersContainer);
+      this.uiElements.markersTable = markersContainer.querySelector(".gram-frame-table");
+      this.instance.ui.colorPicker = this.instance.ui.colorPicker || null;
+      this.instance.ui.timeLED = this.instance.ui.timeLED || null;
+      this.instance.ui.freqLED = this.instance.ui.freqLED || null;
+    }
+    /**
+     * Create markers table for displaying active markers
+     *
+     * The table wrapper sits inside a `gram-frame-table-area` element that claims
+     * the column's remaining height; the wrapper fills it absolutely and scrolls,
+     * so adding markers never grows the surrounding layout (the header row stays
+     * pinned via sticky `th`).
+     *
+     * @param {HTMLElement} markersContainer - Persistent container for markers (already has label)
+     */
+    createMarkersTable(markersContainer) {
+      if (markersContainer.querySelector(".gram-frame-table")) {
+        return;
+      }
+      this.markersTable = createDiffingTable(markersContainer, {
+        columns: [
+          { label: "", width: "15%", cellClassName: "gram-frame-marker-color" },
+          { label: "Time (mm:ss)", width: "35%" },
+          { label: "Freq (Hz)", width: "35%" },
+          { label: "", width: "15%" }
+        ],
+        rowAttribute: "data-marker-id",
+        rowKey: (marker) => marker.id,
+        cells: (marker) => [
+          // Colour/symbol cell — a shaped symbol shows the colour-coded symbol;
+          // the cross (symbol-less) style shows a filled colour rectangle (FR-010).
+          createColorIndicator(marker.symbol, marker.color, 20),
+          formatTime(marker.time),
+          marker.freq.toFixed(2),
+          createMarkerDeleteButton()
+        ],
+        deleteSelector: ".gram-frame-marker-delete-btn",
+        onSelect: (markerId, _marker, index) => {
+          const selection = this.instance.state.selection;
+          if (selection.selectedType === "marker" && selection.selectedId === markerId) {
+            this.instance.interaction.clearSelection();
+          } else {
+            this.instance.interaction.setSelection("marker", markerId, index);
+          }
+        },
+        onDelete: (markerId) => this.removeMarker(markerId),
+        isSelected: (markerId) => this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId
+      });
+      this.uiElements.markersTable = this.markersTable.element;
+      this.updateMarkersTable();
+    }
+    /**
+     * Re-render this mode's persistent panel from current state.
+     *
+     * The `PanelOwner` capability. `MainUI` used to reach in by name and call
+     * `updateMarkersTable` through an `any` cast; it now asks every mode that
+     * owns a panel to refresh it (spec 167, FR-006, AS-4.2).
+     */
+    refreshPanel() {
+      this.updateMarkersTable();
+    }
+    /**
+     * Update markers table with current markers
+     */
+    updateMarkersTable() {
+      if (!this.markersTable) return;
+      const analysis = this.instance.state.analysis;
+      if (!analysis || !analysis.markers) return;
+      this.markersTable.update(this.instance.state.analysis.markers);
+    }
+    /**
+     * Update LED displays for analysis mode
+     * @param {CursorPosition} _coords - Current cursor coordinates
+     */
+    updateLEDs(_coords) {
+    }
+    /**
+     * Get initial state for analysis mode
+     * @returns {AnalysisInitialState} Analysis mode state including markers
+     */
+    static getInitialState() {
+      return {
+        analysis: {
+          markers: []
+        }
+      };
+    }
+    /**
+     * Add a new persistent marker
+     * @param {AnalysisMarker} marker - Marker object with all properties
+     */
+    addMarker(marker) {
+      if (!this.instance.state.analysis) {
+        this.instance.state.analysis = { markers: [] };
+      }
+      this.instance.state.analysis.markers.push(marker);
+      markAnnotationsChanged(this.instance);
+      const index = this.instance.state.analysis.markers.length - 1;
+      this.instance.interaction.setSelection("marker", marker.id, index);
+      this.updateMarkersTable();
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      dispatch(this.instance, { frame: true });
+    }
+    /**
+     * Remove a marker by ID
+     * @param {string} markerId - ID of marker to remove
+     */
+    removeMarker(markerId) {
+      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
+      const index = this.instance.state.analysis.markers.findIndex((m) => m.id === markerId);
+      if (index !== -1) {
+        if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId) {
+          this.instance.interaction.clearSelection();
+        }
+        this.instance.state.analysis.markers.splice(index, 1);
+        markAnnotationsChanged(this.instance);
+        this.updateMarkersTable();
+        if (this.instance.featureRenderer) {
+          this.instance.featureRenderer.renderAllPersistentFeatures();
+        }
+        dispatch(this.instance, { frame: true });
+      }
+    }
+    /**
+     * Find marker at given position (with tolerance)
+     * Returns a drag target object compatible with BaseDragHandler
+     * @param {DataCoordinates} position - Position to check
+     * @returns {DragTarget|null} Drag target if found, null otherwise
+     */
+    findMarkerAtPosition(position) {
+      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null;
+      const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
+      const marker = this.instance.state.analysis.markers.find((marker2) => {
+        if (isWithinToleranceRadius(
+          position,
+          { freq: marker2.freq, time: marker2.time },
+          tolerance
+        )) {
+          return true;
+        }
+        const markerPoint = { freq: marker2.freq, time: marker2.time };
+        const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage);
+        const clickSVG = dataToSVG(position, this.getViewport(), this.instance.ui.spectrogramImage);
+        const crosshairSize = 15;
+        const lineThickness = 3;
+        const onHorizontalLine = Math.abs(clickSVG.y - markerSVG.y) <= lineThickness && Math.abs(clickSVG.x - markerSVG.x) <= crosshairSize;
+        const onVerticalLine = Math.abs(clickSVG.x - markerSVG.x) <= lineThickness && Math.abs(clickSVG.y - markerSVG.y) <= crosshairSize;
+        return onHorizontalLine || onVerticalLine;
+      });
+      if (marker) {
+        return {
+          kind: "move",
+          id: marker.id,
+          type: "marker",
+          position: { freq: marker.freq, time: marker.time },
+          data: marker
+        };
+      }
+      return null;
+    }
+    /**
+     * Update mode-specific LED values based on cursor position
+     */
+    updateModeSpecificLEDs() {
+    }
+    /**
+     * Clean up analysis mode state
+     */
+    cleanup() {
+    }
+    /**
+     * Destroy mode-specific UI elements when leaving this mode
+     */
+    destroyUI() {
+    }
+    /**
+     * Reset analysis mode state
+     */
+    resetState() {
+    }
+  };
+  /**
+   * Base pixel size (width/height) of a marker's symbol mark when it carries a
+   * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
+   * The drawn size is this scaled by the temporary "Large symbols" toggle, so a
+   * marker's symbol tracks the harmonic pins' symbols.
+   * @type {number}
+   */
+  __publicField(_AnalysisMode, "MARKER_SYMBOL_SIZE", 14);
+  let AnalysisMode = _AnalysisMode;
+  function calculateVisibleTimePeriodCenter(state, instance) {
+    const ZOOM_EPSILON = 1e-3;
+    if (Math.abs(state.zoom.level - 1) < ZOOM_EPSILON) {
+      return (state.config.timeMin + state.config.timeMax) / 2;
+    }
+    const visibleRange = calculateVisibleDataRange(instance.state, instance.ui.spectrogramImage);
+    return (visibleRange.timeMin + visibleRange.timeMax) / 2;
+  }
+  function showManualHarmonicModal(state, addHarmonicSet, instance) {
+    const overlay = document.createElement("div");
+    overlay.className = "gram-frame-modal-overlay";
+    const modal = document.createElement("div");
+    modal.className = "gram-frame-modal";
+    modal.innerHTML = `
+    <div class="gram-frame-modal-header">
+      <h3>Add Manual Harmonics</h3>
+    </div>
+    <div class="gram-frame-modal-body">
+      <label for="harmonic-spacing-input">Harmonic spacing (Hz):</label>
+      <input type="number" id="harmonic-spacing-input" min="0.1" step="0.1" placeholder="Enter spacing in Hz">
+      <div class="gram-frame-modal-error" id="spacing-error" style="display: none; color: red; font-size: 12px; margin-top: 5px;">
+        Please enter a number ≥ 0.1
+      </div>
+    </div>
+    <div class="gram-frame-modal-footer">
+      <button class="gram-frame-modal-cancel" id="cancel-button">Cancel</button>
+      <button class="gram-frame-modal-add" id="add-button" disabled>Add</button>
+    </div>
+  `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    const spacingInput = (
+      /** @type {HTMLInputElement} */
+      modal.querySelector("#harmonic-spacing-input")
+    );
+    const errorDiv = (
+      /** @type {HTMLDivElement} */
+      modal.querySelector("#spacing-error")
+    );
+    const cancelButton = (
+      /** @type {HTMLButtonElement} */
+      modal.querySelector("#cancel-button")
+    );
+    const addButton = (
+      /** @type {HTMLButtonElement} */
+      modal.querySelector("#add-button")
+    );
+    const validateInput = () => {
+      const value = parseFloat(spacingInput.value);
+      const isValid = !isNaN(value) && value >= 0.1;
+      if (spacingInput.value.trim() === "") {
+        errorDiv.style.display = "none";
+        addButton.disabled = true;
+      } else if (!isValid) {
+        errorDiv.style.display = "block";
+        addButton.disabled = true;
+      } else {
+        errorDiv.style.display = "none";
+        addButton.disabled = false;
+      }
+    };
+    spacingInput.addEventListener("input", validateInput);
+    spacingInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !addButton.disabled) {
+        addHarmonic();
+      } else if (e.key === "Escape") {
+        closeModal();
+      }
+    });
+    function closeModal() {
+      document.body.removeChild(overlay);
+    }
+    function addHarmonic() {
+      const spacing = parseFloat(spacingInput.value);
+      if (!isNaN(spacing) && spacing >= 0.1) {
+        let anchorTime;
+        if (state.cursorPosition) {
+          anchorTime = state.cursorPosition.time;
+        } else {
+          anchorTime = calculateVisibleTimePeriodCenter(state, instance);
+        }
+        addHarmonicSet(anchorTime, spacing);
+        closeModal();
+      }
+    }
+    cancelButton.addEventListener("click", closeModal);
+    addButton.addEventListener("click", addHarmonic);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        closeModal();
+      }
+    });
+    spacingInput.focus();
+  }
+  const MAX_VISIBLE_PINS = 25;
+  const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1e3, 2500, 5e3];
+  function countMultiples(minHarmonic, maxHarmonic, step) {
+    return Math.floor(maxHarmonic / step) - Math.floor((minHarmonic - 1) / step);
+  }
+  function chooseSamplingStep(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
+    for (const step of NICE_STEPS) {
+      if (countMultiples(minHarmonic, maxHarmonic, step) <= max) {
+        return step;
+      }
+    }
+    return NICE_STEPS[NICE_STEPS.length - 1];
+  }
+  function sampledHarmonics(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
+    if (maxHarmonic < minHarmonic) {
+      return { step: 1, harmonics: [] };
+    }
+    const step = chooseSamplingStep(minHarmonic, maxHarmonic, max);
+    const first = Math.ceil(minHarmonic / step) * step;
+    const harmonics = [];
+    for (let h = first; h <= maxHarmonic && harmonics.length < max; h += step) {
+      harmonics.push(h);
+    }
+    return { step, harmonics };
+  }
+  const TEXT_HALO = {
+    fill: "#000",
+    haloColor: "#fff",
+    width: 3
+  };
+  function applyTextHalo(text, options = {}) {
+    const { fill = TEXT_HALO.fill, haloColor = TEXT_HALO.haloColor, width = TEXT_HALO.width } = options;
+    text.setAttribute("fill", fill);
+    text.setAttribute("stroke", haloColor);
+    text.setAttribute("stroke-width", String(width));
+    text.setAttribute("stroke-linejoin", "round");
+    text.setAttribute("paint-order", "stroke fill");
+    return text;
+  }
+  const _HarmonicsMode = class _HarmonicsMode extends BaseMode {
+    /**
+     * Initialize HarmonicsMode with drag handler
+     * @param {GramFrame} instance - GramFrame instance
+     */
+    constructor(instance) {
+      super(instance);
+      this.dragHandler = new BaseDragHandler(instance, {
+        // A feature drag always carries a data position. Only the pan drag passes
+        // null, and it runs on its own handler in `core/events.js`.
+        resolveTarget: (position) => this.resolveHarmonicDrag(
+          /** @type {DataCoordinates} */
+          position
+        ),
+        onDragStart: (target, position) => this.onHarmonicSetDragStart(
+          target,
+          /** @type {DataCoordinates} */
+          position
+        ),
+        onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(
+          target,
+          /** @type {DataCoordinates} */
+          currentPos,
+          /** @type {DataCoordinates} */
+          startPos
+        ),
+        onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
+        onDragCancel: (target) => this.onHarmonicSetDragEnd(target, null),
+        updateCursor: (style) => this.updateCursorStyle(style)
+      }, "harmonics");
+    }
+    /**
+     * Find harmonic set target for drag handler
+     * @param {DataCoordinates} position - Position to check
+     * @returns {DragTarget|null} Drag target if found, null otherwise
+     */
+    findHarmonicSetTarget(position) {
+      const harmonicSet = this.findHarmonicSetAtFrequency(position.freq);
+      if (harmonicSet) {
+        return {
+          kind: "move",
+          id: harmonicSet.id,
+          type: "harmonicSet",
+          position,
+          data: {
+            harmonicSet,
+            clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq),
+            originalAnchorTime: harmonicSet.anchorTime
+          }
+        };
+      }
+      return null;
+    }
+    /**
+     * Resolve what a mousedown in harmonics mode starts.
+     *
+     * Landing on an existing set moves it; landing anywhere else creates one and
+     * drags it out from there. The new set is minted here, on mousedown, so the
+     * engine has a target id for the whole gesture (contract: drag-engine.md).
+     * @param {DataCoordinates} position - Position of the mousedown
+     * @returns {DragTarget|null} A move- or create-kind target
+     */
+    resolveHarmonicDrag(position) {
+      const existing = this.findHarmonicSetTarget(position);
+      if (existing) {
+        return existing;
+      }
+      return this.createHarmonicSetTarget(position);
+    }
+    /**
+     * Start dragging a harmonic set
+     * @param {DragTarget} target - Drag target with id and type
+     * @param {DataCoordinates} position - Start position
+     */
+    onHarmonicSetDragStart(target, position) {
+      const harmonicSet = target.data.harmonicSet;
+      const index = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSet.id);
+      if (index !== -1) {
+        this.instance.interaction.setSelection("harmonicSet", harmonicSet.id, index);
+      }
+    }
+    /**
+     * Update harmonic set during drag
+     * @param {DragTarget} target - Drag target
+     * @param {DataCoordinates} currentPos - Current position
+     * @param {DataCoordinates} startPos - Start position
+     */
+    onHarmonicSetDragUpdate(target, currentPos, startPos) {
+      this.instance.state.cursorPosition = {
+        freq: currentPos.freq,
+        time: currentPos.time,
+        x: 0,
+        y: 0,
+        svgX: 0,
+        svgY: 0,
+        imageX: 0,
+        imageY: 0
+        // Minimal values for compatibility
+      };
+      this.applyHarmonicSetDrag(target, currentPos, startPos);
+    }
+    /**
+     * End dragging a harmonic set
+     * @param {Object} _target - Drag target with id and type (unused)
+     * @param {DataCoordinates|null} _position - End position (unused)
+     */
+    onHarmonicSetDragEnd(_target, _position) {
+    }
+    /**
+     * Update cursor style for drag operations
+     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+     */
+    updateCursorStyle(style) {
+      if (this.instance.ui.svg) {
+        this.instance.ui.svg.style.cursor = style;
+      }
+    }
+    /**
+     * Get guidance content for harmonics mode
+     * @returns {Object} Structured guidance content
+     */
+    getGuidanceText() {
+      return {
+        title: "Harmonics Mode",
+        items: [
+          "Click & drag to generate harmonic lines",
+          "Drag existing harmonic lines to adjust spacing intervals",
+          "Manually add harmonic lines using [+ Manual] button",
+          "Click table row + arrow keys (Shift for larger steps)"
+        ]
+      };
+    }
+    /**
+     * Handle mouse move events in harmonics mode
+     * @param {MouseEvent} _event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseMove(_event, dataCoords) {
+      if (this.dragHandler.isDragging()) {
+        this.dragHandler.handleMouseMove(dataCoords);
+      } else {
+        this.dragHandler.updateCursorForHover(dataCoords);
+      }
+      if (this.instance.state.harmonics.harmonicSets.length > 0) {
+        this.updateHarmonicPanel();
+      }
+    }
+    /**
+     * Handle mouse down events in harmonics mode
+     * @param {MouseEvent} event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseDown(event, dataCoords) {
+      if (event.button !== 0) {
+        return;
+      }
+      this.dragHandler.startDrag(dataCoords, event);
+    }
+    /**
+     * Handle mouse up events in harmonics mode
+     * @param {MouseEvent} _event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseUp(_event, dataCoords) {
+      this.dragHandler.endDrag(dataCoords);
+    }
+    /**
+     * Create UI elements for harmonics mode
+     * @param {HTMLElement} harmonicsContainer - Persistent container for harmonics table
+     */
+    createUI(harmonicsContainer) {
+      this.uiElements = {};
+      this.uiElements.harmonicsContainer = harmonicsContainer;
+      const buttonContainer = harmonicsContainer.querySelector(".gram-frame-harmonics-button-container");
+      if (buttonContainer && buttonContainer.querySelector(".gram-frame-manual-button")) {
+        this.uiElements.manualButton = buttonContainer.querySelector(".gram-frame-manual-button");
+        this.uiElements.harmonicPanel = harmonicsContainer.querySelector(".gram-frame-harmonic-panel");
+        this.instance.ui.harmonicPanel = this.uiElements.harmonicPanel;
+        return;
+      }
+      this.uiElements.manualButton = this.createManualButton();
+      if (buttonContainer) {
+        buttonContainer.appendChild(this.uiElements.manualButton);
+      }
+      this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer, this.instance);
+      this.instance.ui.harmonicPanel = this.uiElements.harmonicPanel;
+      this.instance.ui.colorPicker = this.instance.ui.colorPicker || null;
+      this.updateHarmonicPanel();
+    }
+    /**
+     * Update LED displays for harmonics mode
+     * @param {CursorPosition} _coords - Current cursor coordinates
+     */
+    updateLEDs(_coords) {
+      this.updateModeSpecificLEDs();
+    }
+    /**
+     * Update mode-specific LED values and labels based on current state
+     */
+    updateModeSpecificLEDs() {
+      this.updateHarmonicPanel();
+    }
+    /**
+     * Reset harmonics-specific state
+     */
+    resetState() {
+      this.instance.state.harmonics.baseFrequency = null;
+      this.instance.state.harmonics.harmonicData = [];
+    }
+    /**
+     * Clean up harmonics-specific state when switching away from harmonics mode
+     */
+    cleanup() {
+      this.instance.state.harmonics.baseFrequency = null;
+      this.instance.state.harmonics.harmonicData = [];
+    }
+    /**
+     * Destroy mode-specific UI elements when leaving this mode
+     */
+    destroyUI() {
+    }
+    /**
+     * Add a new harmonic set
+     * @param {number} anchorTime - Time position in seconds
+     * @param {number} spacing - Frequency spacing in Hz
+     * @returns {HarmonicSet} The created harmonic set
+     */
+    addHarmonicSet(anchorTime, spacing) {
+      const id = `harmonic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      let color;
+      if (this.instance.state.selectedColor) {
+        color = this.instance.state.selectedColor;
+      } else {
+        const colorIndex = this.instance.state.harmonics.harmonicSets.length % _HarmonicsMode.harmonicColors.length;
+        color = _HarmonicsMode.harmonicColors[colorIndex];
+      }
+      const symbol = this.instance.state.selectedSymbol || "cross";
+      const showPin = this.instance.state.showHarmonicPin !== false;
+      const harmonicSet = {
+        id,
+        color,
+        anchorTime,
+        spacing,
+        symbol,
+        showPin,
+        // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
+        // toggle's next-feature default, so sets at both sizes can coexist.
+        largeSymbols: !!this.instance.state.largeSymbols
+      };
+      this.instance.state.harmonics.harmonicSets.push(harmonicSet);
+      markAnnotationsChanged(this.instance);
+      const index = this.instance.state.harmonics.harmonicSets.length - 1;
+      this.instance.interaction.setSelection("harmonicSet", harmonicSet.id, index);
+      if (this.instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
+      }
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      dispatch(this.instance, { frame: true });
+      return harmonicSet;
+    }
+    /**
+     * Update an existing harmonic set
+     * @param {string} id - Harmonic set ID
+     * @param {Partial<HarmonicSet>} updates - Properties to update
+     */
+    updateHarmonicSet(id, updates) {
+      const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
+      if (setIndex !== -1) {
+        Object.assign(this.instance.state.harmonics.harmonicSets[setIndex], updates);
+        markAnnotationsChanged(this.instance);
+        if (this.instance.ui.harmonicPanel) {
+          updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
+        }
+        if (this.instance.featureRenderer) {
+          this.instance.featureRenderer.renderAllPersistentFeatures();
+        }
+        dispatch(this.instance, { frame: true });
+      }
+    }
+    /**
+     * Remove a harmonic set
+     * @param {string} id - Harmonic set ID
+     */
+    removeHarmonicSet(id) {
+      const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
+      if (setIndex !== -1) {
+        if (this.instance.state.selection.selectedType === "harmonicSet" && this.instance.state.selection.selectedId === id) {
+          this.instance.interaction.clearSelection();
+        }
+        this.instance.state.harmonics.harmonicSets.splice(setIndex, 1);
+        markAnnotationsChanged(this.instance);
+        if (this.instance.ui.harmonicPanel) {
+          updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
+        }
+        if (this.instance.featureRenderer) {
+          this.instance.featureRenderer.renderAllPersistentFeatures();
+        }
+        dispatch(this.instance, { frame: true });
+      }
+    }
+    /**
+     * Find harmonic set containing given frequency coordinate.
+     *
+     * Hit-testing follows exactly what is drawn — nothing more, nothing less.
+     * Every visible part of a pin grabs it: the pin line's fixed-pixel span AND
+     * the number label + symbol stacked above it. A set with its pin hidden is
+     * grabbable by its label/symbol stack alone; the span where its line would
+     * have been is empty on screen, so it is empty to the mouse too.
+     *
+     * @param {number} freq - Frequency in Hz to check
+     * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
+     */
+    findHarmonicSetAtFrequency(freq) {
+      if (!this.instance.state.cursorPosition) return null;
+      const cursorTime = this.instance.state.cursorPosition.time;
+      for (const harmonicSet of this.instance.state.harmonics.harmonicSets) {
+        if (harmonicSet.spacing > 0) {
+          const freqMin = this.instance.state.config.freqMin;
+          const freqMax = this.instance.state.config.freqMax;
+          const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
+          const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
+          const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
+          const stack = this.calculateLabelStackBounds(lineTop, harmonicSet);
+          const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic));
+          const pinDrawn = harmonicSet.showPin !== false;
+          const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
+          const cursorSVG = dataToSVG(
+            { freq, time: cursorTime },
+            this.getViewport(),
+            this.instance.ui.spectrogramImage
+          );
+          for (let h = minHarmonic; h <= maxHarmonic; h++) {
+            const expectedFreq = h * harmonicSet.spacing;
+            if (pinDrawn && Math.abs(freq - expectedFreq) < tolerance.freq && cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
+              return harmonicSet;
+            }
+            if (labelled.has(h) && cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom && Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
+              return harmonicSet;
+            }
+          }
+        }
+      }
+      return null;
+    }
+    /**
+     * Mint a new harmonic set at the mousedown position and return it as a
+     * `create`-kind drag target, so the rest of the gesture is an ordinary drag.
+     *
+     * The initial spacing places the cursor on a sensible harmonic — the 10th
+     * when the frequency axis starts above zero, the 5th when it starts at zero —
+     * which is what keeps the first drawn set legible.
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
+     */
+    createHarmonicSetTarget(dataCoords) {
+      const { freqMin } = this.instance.state.config;
+      let initialSpacing;
+      let clickedHarmonicNumber;
+      if (freqMin > 0) {
+        clickedHarmonicNumber = 10;
+        initialSpacing = dataCoords.freq / clickedHarmonicNumber;
+      } else {
+        clickedHarmonicNumber = 5;
+        initialSpacing = dataCoords.freq / clickedHarmonicNumber;
+      }
+      initialSpacing = Math.max(initialSpacing, 0.1);
+      const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing);
+      if (!harmonicSet) {
+        return null;
+      }
+      return {
+        kind: "create",
+        id: harmonicSet.id,
+        type: "harmonicSet",
+        position: dataCoords,
+        data: {
+          harmonicSet,
+          clickedHarmonicNumber,
+          originalAnchorTime: dataCoords.time
+        }
+      };
+    }
+    /**
+     * Find which harmonic number was clicked
+     * @param {HarmonicSet} harmonicSet - The harmonic set
+     * @param {number} freq - The clicked frequency
+     * @returns {number} The harmonic number (1, 2, 3, etc.)
+     */
+    findClickedHarmonicNumber(harmonicSet, freq) {
+      const harmonicNumber = Math.round(freq / harmonicSet.spacing);
+      return Math.max(1, harmonicNumber);
+    }
+    /**
+     * Apply a harmonic-set drag — the shared step for both the `move` and
+     * `create` kinds, which differ only in how their target was resolved.
+     * @param {DragTarget} target - The drag target from the engine
+     * @param {DataCoordinates} currentPos - Current pointer position
+     * @param {DataCoordinates} startPos - Where the drag began
+     */
+    applyHarmonicSetDrag(target, currentPos, startPos) {
+      if (!target || !currentPos || !startPos) return;
+      const setId = target.id;
+      if (!setId) return;
+      const harmonicSet = this.instance.state.harmonics.harmonicSets.find((set) => set.id === setId);
+      if (!harmonicSet) return;
+      let newSpacing, newAnchorTime;
+      const clickedHarmonicNumber = target.data && target.data.clickedHarmonicNumber || 1;
+      newSpacing = currentPos.freq / clickedHarmonicNumber;
+      newSpacing = Math.max(newSpacing, 0.1);
+      const originalAnchorTime = target.data && target.data.originalAnchorTime !== void 0 ? target.data.originalAnchorTime : harmonicSet.anchorTime;
+      const deltaTime = currentPos.time - startPos.time;
+      newAnchorTime = originalAnchorTime + deltaTime;
+      const updates = {};
+      if (newSpacing > 0) {
+        updates.spacing = newSpacing;
+      }
+      updates.anchorTime = newAnchorTime;
+      this.updateHarmonicSet(setId, updates);
+      this.updateHarmonicPanel();
+    }
+    /**
+     * Update harmonic management panel
+     */
+    updateHarmonicPanel() {
+      if (this.instance.ui.harmonicPanel) {
+        updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
+      }
+    }
+    /**
+     * Create manual harmonic button
+     * @returns {HTMLElement} The manual button element
+     */
+    createManualButton() {
+      const button = document.createElement("button");
+      button.className = "gram-frame-manual-button";
+      button.textContent = "+ Manual";
+      button.title = "Manually add a set of harmonics at a specific spacing";
+      button.addEventListener("click", () => {
+        this.showManualHarmonicModal();
+      });
+      return button;
+    }
+    /**
+     * Show manual harmonic modal dialog
+     */
+    showManualHarmonicModal() {
+      showManualHarmonicModal(this.instance.state, this.addHarmonicSet.bind(this), this.instance);
+    }
+    /**
+     * Re-render this mode's persistent panel from current state.
+     *
+     * The `PanelOwner` capability. `MainUI` used to reach in by name, resolve the
+     * panel element on this mode's behalf, and call `updateHarmonicPanel` through
+     * an `any` cast. Resolving the panel reference belongs here — it is this
+     * mode's own UI element — so it is absorbed rather than left outside
+     * (spec 167, FR-006, AS-4.2).
+     */
+    refreshPanel() {
+      if (!this.instance.ui.harmonicPanel && this.instance.ui.harmonicsContainer) {
+        const existingPanel = (
+          /** @type {HTMLElement|null} */
+          this.instance.ui.harmonicsContainer.querySelector(".gram-frame-harmonic-panel")
+        );
+        if (existingPanel) {
+          this.instance.ui.harmonicPanel = existingPanel;
+        }
+      }
+      this.updateHarmonicPanel();
+    }
+    /**
+     * Whether this mode currently owns any persistent feature.
+     *
+     * Half of the `PersistentFeatureProvider` capability. Lived on
+     * `FeatureRenderer` as `hasHarmonicFeatures()` until spec 167 moved it onto
+     * the mode that owns the state it reads.
+     * @returns {boolean} True if at least one harmonic set exists
+     */
+    hasPersistentFeatures() {
+      const harmonics = this.instance.state.harmonics;
+      return !!(harmonics && harmonics.harmonicSets && harmonics.harmonicSets.length > 0);
+    }
+    /**
+     * Render persistent features for harmonics mode
+     */
+    renderPersistentFeatures() {
+      var _a;
+      if (!this.instance.ui.cursorGroup || !((_a = this.instance.state.harmonics) == null ? void 0 : _a.harmonicSets)) {
+        return;
+      }
+      const existingHarmonics = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-harmonic-line");
+      existingHarmonics.forEach((line) => line.remove());
+      const existingSymbols = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol[data-harmonic-set-id]");
+      existingSymbols.forEach((symbol) => symbol.remove());
+      this.instance.state.harmonics.harmonicSets.forEach((harmonicSet) => {
+        this.renderHarmonicSet(harmonicSet);
+      });
+    }
+    /**
+     * Get the inclusive harmonic-number range of a set that falls within the
+     * currently visible frequency span.
+     *
+     * The visible range comes from `calculateVisibleDataRange` (the same
+     * source the frequency axis uses), so it is viewport-aware: zooming in narrows
+     * the span (fewer harmonics), zooming out / panning widens it. At zoom 1.0 the
+     * visible range equals the full data range.
+     *
+     * Every harmonic in this range is drawn as a pin line (spec 159, FR-001); the
+     * label/symbol subset is a regularly-sampled slice of it (see
+     * {@link getLabelledHarmonics}).
+     *
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @returns {{minHarmonic: number, maxHarmonic: number}} Inclusive harmonic range
+     */
+    getVisibleHarmonicRange(harmonicSet) {
+      const { freqMin, freqMax } = calculateVisibleDataRange(this.instance.state, this.instance.ui.spectrogramImage);
+      const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
+      const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
+      return { minHarmonic, maxHarmonic };
+    }
+    /**
+     * Get the "major" subset of harmonic numbers that receive a number label and
+     * symbol, thinned to at most the label limit (default 25) by regular sampling.
+     *
+     * Reuses the spec-158 sampling maths, but that limit now governs
+     * labels/symbols only — every pin line is still drawn (spec 159). When the
+     * visible range already fits under the limit the subset is the whole range, so
+     * every drawn pin is labelled (FR-005).
+     *
+     * @param {number} minHarmonic - Lowest visible harmonic number (>= 1)
+     * @param {number} maxHarmonic - Highest visible harmonic number
+     * @returns {number[]} Ascending harmonic numbers to label/symbol (length <= cap)
+     */
+    getLabelledHarmonics(minHarmonic, maxHarmonic) {
+      return sampledHarmonics(minHarmonic, maxHarmonic).harmonics;
+    }
+    /**
+     * Calculate harmonic line dimensions and positions.
+     *
+     * The height is a fixed pixel length taken from the *base* (unzoomed) render
+     * height, so a pin covers the same number of screen pixels no matter how far
+     * the user has zoomed in — it is not a span of time that stretches with the
+     * image. Only the centre is zoom-aware: the pin stays centred on the set's
+     * anchor time (the original click location), so it tracks the feature while
+     * keeping a constant height.
+     *
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
+     */
+    calculateHarmonicLineDimensions(harmonicSet) {
+      const { renderHeight } = getRenderDimensions(this.instance.state);
+      const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
+      const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
+      const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.ui.spectrogramImage);
+      const lineTop = anchorSVG.y - lineHeight / 2;
+      return { lineHeight, lineTop };
+    }
+    /**
+     * Create SVG line element for a harmonic
+     * @param {number} harmonicNumber - Harmonic number
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @param {number} lineX - X position for the line
+     * @param {number} lineTop - Top Y position for the line
+     * @param {number} lineHeight - Height of the line
+     * @returns {SVGLineElement} SVG line element
+     */
+    createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight) {
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("class", "gram-frame-harmonic-line");
+      line.setAttribute("data-harmonic-set-id", harmonicSet.id);
+      line.setAttribute("data-harmonic-number", String(harmonicNumber));
+      line.setAttribute("x1", String(lineX));
+      line.setAttribute("y1", String(lineTop));
+      line.setAttribute("x2", String(lineX));
+      line.setAttribute("y2", String(lineTop + lineHeight));
+      line.setAttribute("stroke", harmonicSet.color);
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("stroke-linecap", "round");
+      line.setAttribute("opacity", "0.9");
+      return line;
+    }
+    /**
+     * Create SVG text label for a harmonic number.
+     *
+     * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
+     * positioned above the pin's symbol (baseline at `labelY`), so the vertical
+     * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
+     *
+     * The digits are drawn black inside a white halo rather than in the set's
+     * colour: a single colour is only legible over part of a gram, whereas the
+     * halo reads over both dark and light backgrounds. Set identity is still
+     * carried by the pin's line and symbol colour.
+     *
+     * @param {number} harmonicNumber - Harmonic number
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @param {number} lineX - X position of the pin line (label is centred on it)
+     * @param {number} labelY - Baseline Y position for the label text
+     * @returns {SVGTextElement} SVG text element
+     */
+    createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY) {
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("class", "gram-frame-harmonic-number");
+      label.setAttribute("data-harmonic-set-id", harmonicSet.id);
+      label.setAttribute("data-harmonic-number", String(harmonicNumber));
+      label.setAttribute("x", String(lineX));
+      label.setAttribute("y", String(labelY));
+      label.setAttribute("text-anchor", "middle");
+      applyTextHalo(
+        /** @type {SVGTextElement} */
+        label
+      );
+      label.setAttribute("font-size", String(_HarmonicsMode.LABEL_FONT_SIZE));
+      label.setAttribute("font-weight", "bold");
+      label.setAttribute("font-family", "Arial, sans-serif");
+      label.textContent = String(harmonicNumber);
+      return label;
+    }
+    /**
+     * Effective pixel size of a set's symbol marks: the base size scaled by that
+     * set's own "Large symbols" flag, so sets at both sizes can share a gram. The
+     * whole label/symbol stack layout derives from this, so the label spacing and
+     * top-edge clamping follow the set's chosen size.
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @returns {number} Symbol diameter in px
+     */
+    symbolSize(harmonicSet) {
+      return _HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(harmonicSet);
+    }
+    /**
+     * Create the filled symbol mark drawn between a pin's number label and the top
+     * of its line.
+     *
+     * The vertical position (`symbolCy`) is computed once per set by
+     * {@link calculateLabelStackPositions} so the whole label/symbol stack shares a
+     * consistent, on-screen layout.
+     *
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @param {number} lineX - X position of the pin line (symbol is centred on it)
+     * @param {number} symbolCy - Centre Y position for the symbol
+     * @returns {SVGElement|null} SVG symbol element, or null for the `cross` (symbol-less) style
+     */
+    createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
+      const symbol = createSymbolMark(
+        harmonicSet.symbol,
+        lineX,
+        symbolCy,
+        this.symbolSize(harmonicSet),
+        harmonicSet.color
+      );
+      if (!symbol) {
+        return null;
+      }
+      symbol.setAttribute("data-harmonic-set-id", harmonicSet.id);
+      return symbol;
+    }
+    /**
+     * Compute the shared vertical layout of a pin's label/symbol stack.
+     *
+     * Ideal (top-to-bottom): label baseline, then symbol, then the pin line top,
+     * so the symbol caps the line and the label sits above the symbol. When the
+     * stack's top would clip above the spectrogram's top edge, the whole stack
+     * (label + symbol) is nudged down by the overflow so it stays legible
+     * (spec 159, FR-011).
+     *
+     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+     * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
+     * @param {HarmonicSet} harmonicSet - Harmonic set being laid out (its symbol size drives the stack)
+     * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
+     */
+    calculateLabelStackPositions(lineTop, imageTop, harmonicSet) {
+      const r = this.symbolSize(harmonicSet) / 2;
+      const gap = _HarmonicsMode.LABEL_GAP;
+      const fontSize = _HarmonicsMode.LABEL_FONT_SIZE;
+      let symbolCy = lineTop - r;
+      let labelY = symbolCy - r - gap;
+      const labelTop = labelY - fontSize;
+      const minTop = imageTop + _HarmonicsMode.STACK_TOP_PAD;
+      if (labelTop < minTop) {
+        const shift = minTop - labelTop;
+        symbolCy += shift;
+        labelY += shift;
+      }
+      return { symbolCy, labelY };
+    }
+    /**
+     * Vertical extent (SVG coords) of a pin's label/symbol stack, for hit-testing.
+     *
+     * Derived from the same {@link calculateLabelStackPositions} layout the
+     * renderer uses, so the grab region tracks the drawn stack — including the
+     * downward nudge applied near the image's top edge. The bottom is clamped to
+     * the pin line's top so the stack region and the line region always meet with
+     * no dead gap between them.
+     *
+     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+     * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
+     * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
+     */
+    calculateLabelStackBounds(lineTop, harmonicSet) {
+      const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
+      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
+      const r = this.symbolSize(harmonicSet) / 2;
+      return {
+        // One ascent above the label's baseline is the top of the digits.
+        top: labelY - _HarmonicsMode.LABEL_FONT_SIZE,
+        bottom: Math.max(lineTop, symbolCy + r)
+      };
+    }
+    /**
+     * Half-width (SVG px) of a pin's label/symbol stack, for hit-testing.
+     *
+     * The wider of the symbol mark and the number label, so both are grabbable:
+     * a `cross` set has no symbol but still shows its digits, and a "Large
+     * symbols" set's mark is wider than its digits. Label width is estimated from
+     * the digit count rather than measured, which is ample for a grab region.
+     *
+     * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
+     * @param {number} harmonicNumber - Harmonic number whose label is drawn
+     * @returns {number} Half-width in SVG pixels
+     */
+    labelStackHalfWidth(harmonicSet, harmonicNumber) {
+      const digits = String(harmonicNumber).length;
+      const labelHalfWidth = digits * _HarmonicsMode.LABEL_FONT_SIZE * _HarmonicsMode.LABEL_CHAR_WIDTH_RATIO / 2;
+      return Math.max(this.symbolSize(harmonicSet) / 2, labelHalfWidth);
+    }
+    /**
+     * Compute the SVG x-coordinate of a harmonic's vertical pin line.
+     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+     * @param {number} harmonicNumber - Harmonic number
+     * @returns {number} SVG x-coordinate of the pin line
+     */
+    harmonicLineX(harmonicSet, harmonicNumber) {
+      const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime };
+      return dataToSVG(harmonicPoint, this.getViewport(), this.instance.ui.spectrogramImage).x;
+    }
+    /**
+     * Render a single harmonic set as vertical pin lines.
+     *
+     * Spec 159: draw a pin line for EVERY harmonic in the visible span (no pins are
+     * dropped, even if they merge into a solid block), then draw a number label and
+     * symbol only for the thinned "major" subset so the overlay stays readable.
+     * Lines are appended first so the labels/symbols paint on top of them.
+     *
+     * A set with `showPin === false` skips the lines entirely and renders as its
+     * symbols and numbers alone — the low-clutter style for stacking many sets over
+     * dense data. The label/symbol geometry is unchanged, so toggling the pin adds
+     * or removes the lines without moving anything else; the set is then grabbed
+     * by its label/symbol stack, since hit-testing only covers what is drawn.
+     *
+     * @param {HarmonicSet} harmonicSet - Harmonic set to render
+     */
+    renderHarmonicSet(harmonicSet) {
+      if (!this.instance.ui.cursorGroup) {
+        return;
+      }
+      const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet);
+      if (maxHarmonic < minHarmonic) {
+        return;
+      }
+      const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
+      const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
+      if (harmonicSet.showPin !== false) {
+        for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
+          const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
+          const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight);
+          this.instance.ui.cursorGroup.appendChild(line);
+        }
+      }
+      const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic);
+      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
+      labelledHarmonics.forEach((harmonicNumber) => {
+        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
+        const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy);
+        const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY);
+        if (symbol) {
+          this.instance.ui.cursorGroup.appendChild(symbol);
+        }
+        this.instance.ui.cursorGroup.appendChild(label);
+      });
+    }
+    /**
+     * Get initial state for harmonics mode
+     * @returns {HarmonicsInitialState} Harmonics-specific initial state
+     */
+    static getInitialState() {
+      return {
+        harmonics: {
+          baseFrequency: null,
+          harmonicData: [],
+          harmonicSets: []
+        }
+      };
+    }
+  };
+  /**
+   * Color palette for harmonic sets
+   * @type {string[]}
+   */
+  __publicField(_HarmonicsMode, "harmonicColors", ["#ff6b6b", "#2ecc71", "#f39c12", "#9b59b6", "#ffc93c", "#ff9ff3", "#45b7d1", "#e67e22"]);
+  /**
+   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
+   * this scaled by the "Large symbols" experiment toggle — use
+   * {@link HarmonicsMode#symbolSize} rather than reading this directly.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "SYMBOL_SIZE", 10);
+  /**
+   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
+   *
+   * The resulting height is a fixed pixel length, not a span of time: it is
+   * derived from the viewport's base render size (which tracks expand, not zoom)
+   * rather than from the zoomed image element. Pins therefore keep the same
+   * on-screen height at every zoom level, growing/shrinking only when the
+   * component itself is resized.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "PIN_HEIGHT_RATIO", 0.2);
+  /**
+   * Font size (px) of a pin's number label; also used as its approximate ascent
+   * when clamping the label/symbol stack to the image's top edge.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "LABEL_FONT_SIZE", 12);
+  /**
+   * Approximate width of one label digit as a fraction of the label font size,
+   * used to size the label's grab region (bold Arial digits are ~0.6 em wide).
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "LABEL_CHAR_WIDTH_RATIO", 0.6);
+  /**
+   * Vertical gap (px) between the pin's number label and its symbol.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "LABEL_GAP", 3);
+  /**
+   * Minimum padding (px) kept between the top of a pin's label and the top edge
+   * of the spectrogram image.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "STACK_TOP_PAD", 1);
+  let HarmonicsMode = _HarmonicsMode;
+  function calculateMidpoint(fPlus, fMinus) {
+    return {
+      time: (fPlus.time + fMinus.time) / 2,
+      freq: (fPlus.freq + fMinus.freq) / 2
+    };
+  }
+  function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1481) {
+    const f0 = fZero ? fZero.freq : calculateMidpoint(fPlus, fMinus).freq;
+    const deltaF = (fPlus.freq - fMinus.freq) / 2;
+    const speed = speedOfSound / f0 * deltaF;
+    return Math.abs(speed);
+  }
+  const MS_TO_KNOTS_CONVERSION = 1.94384;
+  const DopplerDraggedMarker = {
+    fPlus: "fPlus",
+    fMinus: "fMinus",
+    fZero: "fZero"
+  };
+  class DopplerMode extends BaseMode {
+    /**
+     * Initialize DopplerMode with drag handler
+     * @param {GramFrame} instance - GramFrame instance
+     */
+    constructor(instance) {
+      super(instance);
+      this.dragHandler = new BaseDragHandler(instance, {
+        // A feature drag always carries a data position. Only the pan drag passes
+        // null, and it runs on its own handler in `core/events.js`.
+        resolveTarget: (position) => this.resolveDopplerDrag(
+          /** @type {DataCoordinates} */
+          position
+        ),
+        onDragStart: (target, position) => this.onMarkerDragStart(
+          target,
+          /** @type {DataCoordinates} */
+          position
+        ),
+        onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(
+          target,
+          /** @type {DataCoordinates} */
+          currentPos,
+          /** @type {DataCoordinates} */
+          startPos
+        ),
+        onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
+        onDragCancel: (target) => this.onMarkerDragEnd(target, null),
+        updateCursor: (style) => this.updateCursorStyle(style)
+      }, "doppler");
+    }
+    /**
+     * Find doppler marker at given position
+     * Returns a drag target object compatible with BaseDragHandler
+     * @param {DataCoordinates} position - Position to check
+     * @returns {DragTarget|null} Drag target if found, null otherwise
+     */
+    findDopplerMarkerAtPosition(position) {
+      const doppler = this.instance.state.doppler;
+      if (!doppler) return null;
+      const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
+      const targets = [];
+      for (const markerType of [
+        DopplerDraggedMarker.fPlus,
+        DopplerDraggedMarker.fMinus,
+        DopplerDraggedMarker.fZero
+      ]) {
+        const markerPosition = doppler[markerType];
+        if (!markerPosition) continue;
+        if (!isWithinDataTolerance(position, markerPosition, tolerance)) continue;
+        targets.push({
+          kind: "move",
+          id: markerType,
+          type: "dopplerMarker",
+          position: markerPosition,
+          data: { markerType }
+        });
+      }
+      return findClosestTarget(position, targets, tolerance) || targets[0] || null;
+    }
+    /**
+     * Start dragging a doppler marker
+     * @param {DragTarget} target - Drag target with id and type
+     * @param {DataCoordinates} _position - Start position (unused)
+     */
+    onMarkerDragStart(target, _position) {
+    }
+    /**
+     * Update doppler marker position during drag
+     * @param {DragTarget} target - Drag target
+     * @param {DataCoordinates} currentPos - Current position
+     * @param {DataCoordinates} _startPos - Start position (unused)
+     */
+    onMarkerDragUpdate(target, currentPos, _startPos) {
+      const doppler = this.instance.state.doppler;
+      if (target.kind === "place") {
+        this.handlePreviewDrag(currentPos, doppler);
+        return;
+      }
+      this.handleMarkerDrag(currentPos, doppler, target.id);
+    }
+    /**
+     * End dragging a doppler marker
+     * @param {DragTarget} target - Drag target
+     * @param {DataCoordinates|null} _position - End position (unused)
+     */
+    onMarkerDragEnd(target, _position) {
+      if (target && target.kind === "place") {
+        this.completeMarkerPlacement();
+      }
+    }
+    /**
+     * Resolve what a mousedown in doppler mode starts: moving one of the placed
+     * markers, or — with nothing placed yet — laying down f+ and dragging out f-.
+     * @param {DataCoordinates} position - Position of the mousedown
+     * @returns {DragTarget|null} A move- or place-kind target
+     */
+    resolveDopplerDrag(position) {
+      const doppler = this.instance.state.doppler;
+      if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
+        return this.findDopplerMarkerAtPosition(position);
+      }
+      return this.startMarkerPlacement(position);
+    }
+    /**
+     * Seed f+ at the mousedown position and return a `place`-kind target, so the
+     * rest of the placement is an ordinary drag with f- following the pointer.
+     *
+     * `tempFirst` and `previewEnd` stay on state.doppler: they are placement
+     * geometry the renderer needs, not drag bookkeeping (data-model.md §2).
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * @returns {DragTarget} A place-kind target
+     */
+    startMarkerPlacement(dataCoords) {
+      const doppler = this.instance.state.doppler;
+      doppler.fPlus = { time: dataCoords.time, freq: dataCoords.freq };
+      doppler.tempFirst = doppler.fPlus;
+      doppler.previewEnd = { time: dataCoords.time, freq: dataCoords.freq };
+      this.renderDopplerFeatures();
+      return {
+        kind: "place",
+        id: DopplerDraggedMarker.fMinus,
+        type: "dopplerMarker",
+        position: dataCoords,
+        data: { markerType: DopplerDraggedMarker.fMinus }
+      };
+    }
+    /**
+     * Finalise a placement drag: order the markers, derive f₀, and clear the
+     * placement geometry.
+     */
+    completeMarkerPlacement() {
+      const doppler = this.instance.state.doppler;
+      if (!doppler.tempFirst || !doppler.fPlus || !doppler.fMinus) {
+        doppler.tempFirst = null;
+        doppler.previewEnd = null;
+        return;
+      }
+      if (doppler.fPlus.time <= doppler.fMinus.time) {
+        const temp = doppler.fPlus;
+        doppler.fPlus = doppler.fMinus;
+        doppler.fMinus = temp;
+      }
+      doppler.fZero = this.calculateMidpoint(doppler.fPlus, doppler.fMinus);
+      if (!doppler.color) {
+        doppler.color = this.instance.state.selectedColor || "#ff0000";
+      }
+      doppler.tempFirst = null;
+      doppler.previewEnd = null;
+      markAnnotationsChanged(this.instance);
+      this.calculateAndUpdateDopplerSpeed();
+      this.renderDopplerFeatures();
+    }
+    /**
+     * Get guidance content for doppler mode
+     * @returns {Object} Structured guidance content
+     */
+    getGuidanceText() {
+      return {
+        title: "Doppler Mode",
+        items: [
+          "Click & drag to place markers for f+ and f-",
+          "Drag markers to adjust positions",
+          "f₀ marker shows automatically at the midpoint",
+          "Right-click to reset all markers"
+        ]
+      };
+    }
+    /**
+     * Handle preview drag when placing markers
+     * @param {DataCoordinates} dataCoords - Data coordinates
+     * @param {DopplerState} doppler - Doppler state
+     */
+    handlePreviewDrag(dataCoords, doppler) {
+      doppler.fMinus = {
+        time: dataCoords.time,
+        freq: dataCoords.freq
+      };
+      doppler.fZero = this.calculateMidpoint(
+        /** @type {DataCoordinates} */
+        doppler.fPlus,
+        doppler.fMinus
+      );
+      doppler.previewEnd = doppler.fMinus;
+      this.renderDopplerFeatures();
+    }
+    /**
+     * Handle marker dragging
+     * @param {DataCoordinates} dataCoords - Data coordinates
+     * @param {DopplerState} doppler - Doppler state
+     * @param {string|null} markerType - Which marker is being dragged
+     */
+    handleMarkerDrag(dataCoords, doppler, markerType) {
+      const newPoint = {
+        time: dataCoords.time,
+        freq: dataCoords.freq
+      };
+      if (markerType === DopplerDraggedMarker.fPlus) {
+        doppler.fPlus = newPoint;
+      } else if (markerType === DopplerDraggedMarker.fMinus) {
+        doppler.fMinus = newPoint;
+      } else if (markerType === DopplerDraggedMarker.fZero) {
+        doppler.fZero = newPoint;
+      }
+      markAnnotationsChanged(this.instance);
+      this.calculateAndUpdateDopplerSpeed();
+      this.renderDopplerFeatures();
+      dispatch(this.instance, { frame: true });
+    }
+    /**
+     * Handle mouse move events in doppler mode
+     * @param {MouseEvent} _event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseMove(_event, dataCoords) {
+      const doppler = this.instance.state.doppler;
+      if (this.dragHandler.isDragging()) {
+        this.dragHandler.handleMouseMove(dataCoords);
+      } else if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
+        this.dragHandler.updateCursorForHover(dataCoords);
+      }
+    }
+    /**
+     * Handle mouse down events in doppler mode
+     * @param {MouseEvent} event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseDown(event, dataCoords) {
+      if (this.dragHandler.startDrag(dataCoords, event)) {
+        dispatch(this.instance, { frame: true });
+      }
+    }
+    /**
+     * Handle mouse up events in doppler mode
+     * @param {MouseEvent} _event - Mouse event (unused)
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseUp(_event, dataCoords) {
+      if (this.dragHandler.isDragging()) {
+        this.dragHandler.endDrag(dataCoords);
+        dispatch(this.instance, { frame: true });
+      }
+    }
+    /**
+     * Create UI elements for doppler mode
+     * @param {HTMLElement} _leftColumn - Container for UI elements (unused)
+     */
+    createUI(_leftColumn) {
+      this.uiElements = {};
+      this.instance.ui.speedLED = this.instance.ui.speedLED || null;
+    }
+    /**
+     * Update LED displays for doppler mode
+     * @param {CursorPosition} _coords - Current cursor coordinates
+     */
+    updateLEDs(_coords) {
+      this.updateModeSpecificLEDs();
+    }
+    /**
+     * Update mode-specific LED values based on current state
+     */
+    updateModeSpecificLEDs() {
+    }
+    /**
+     * Reset doppler-specific state
+     */
+    resetState() {
+      this.instance.state.doppler.fPlus = null;
+      this.instance.state.doppler.fMinus = null;
+      this.instance.state.doppler.fZero = null;
+      this.instance.state.doppler.speed = null;
+      this.instance.state.doppler.color = null;
+      this.instance.state.doppler.tempFirst = null;
+      this.instance.state.doppler.previewEnd = null;
+      this.dragHandler.reset();
+      dispatch(this.instance, { frame: true });
+    }
+    /**
+     * Clean up doppler-specific state when switching away from doppler mode
+     */
+    cleanup() {
+      this.instance.state.doppler.tempFirst = null;
+      this.instance.state.doppler.previewEnd = null;
+      this.dragHandler.reset();
+    }
+    /**
+     * Deactivate doppler mode - hide speed LED
+     */
+    deactivate() {
+    }
+    /**
+     * Calculate and update Doppler speed
+     */
+    calculateAndUpdateDopplerSpeed() {
+      const doppler = this.instance.state.doppler;
+      if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
+        const speed = calculateDopplerSpeed(doppler.fPlus, doppler.fMinus, doppler.fZero);
+        this.instance.state.doppler.speed = speed;
+        this.updateSpeedLED();
+        updateLEDDisplays(this.instance, this.instance.state);
+        dispatch(this.instance, { frame: true });
+      }
+    }
+    /**
+     * Get initial state for doppler mode
+     * @returns {DopplerInitialState} Doppler-specific initial state
+     */
+    static getInitialState() {
+      return {
+        doppler: {
+          fPlus: null,
+          // DataCoordinates: { time, frequency }
+          fMinus: null,
+          // DataCoordinates: { time, frequency }
+          fZero: null,
+          // DataCoordinates: { time, frequency }
+          speed: null,
+          // calculated speed in m/s
+          color: null,
+          // color used for this doppler curve
+          // Placement geometry the renderer needs. Drag bookkeeping lives on
+          // state.drag, owned by the drag engine.
+          tempFirst: null,
+          // temporary storage for first marker during placement
+          previewEnd: null
+          // end point for preview drag
+        }
+      };
+    }
+    /**
+     * Update the speed LED display with current speed value
+     */
+    updateSpeedLED() {
+      if (this.instance.ui.speedLED && this.instance.state.doppler.speed !== null) {
+        const speedInKnots = this.instance.state.doppler.speed * MS_TO_KNOTS_CONVERSION;
+        setLEDValue(this.instance.ui.speedLED, speedInKnots.toFixed(1));
+      } else if (this.instance.ui.speedLED) {
+        setLEDValue(this.instance.ui.speedLED, "0.0");
+      }
+    }
+    /**
+     * Calculate midpoint between two markers
+     * @param {DataCoordinates} fPlus - f+ marker
+     * @param {DataCoordinates} fMinus - f- marker
+     * @returns {DataCoordinates} Midpoint coordinates
+     */
+    calculateMidpoint(fPlus, fMinus) {
+      return calculateMidpoint(fPlus, fMinus);
+    }
+    /**
+     * Handle context menu (right-click) events in doppler mode
+     * @param {MouseEvent} event - Mouse event
+     * @param {DataCoordinates} _dataCoords - Data coordinates {freq, time} (unused)
+     */
+    handleContextMenu(event, _dataCoords) {
+      event.preventDefault();
+      this.resetState();
+      this.updateSpeedLED();
+      this.renderDopplerFeatures();
+    }
+    /**
+     * Render all doppler features (markers and curves)
+     */
+    renderDopplerFeatures() {
+      if (!this.instance.ui.cursorGroup) return;
+      const existingFeatures = this.instance.ui.cursorGroup.querySelectorAll(".doppler-feature, .gram-frame-doppler-preview, .gram-frame-doppler-curve, .gram-frame-doppler-extension, .gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-crosshair");
+      existingFeatures.forEach((element) => element.remove());
+      const doppler = this.instance.state.doppler;
+      if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
+        this.renderMarkers();
+        this.renderDopplerCurve();
+        if (doppler.tempFirst) {
+          const elements = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-doppler-curve, .gram-frame-doppler-extension");
+          elements.forEach((element) => {
+            element.setAttribute("opacity", "0.8");
+            element.setAttribute("stroke-dasharray", "5,5");
+          });
+        }
+      }
+    }
+    /**
+     * Render doppler markers (f+, f-, f₀) with zoom awareness
+     */
+    renderMarkers() {
+      const doppler = this.instance.state.doppler;
+      const color = doppler.color || this.instance.state.selectedColor || "#ff0000";
+      const isInDopplerMode = this.instance.state.mode === "doppler";
+      const pointerEvents = isInDopplerMode ? "auto" : "none";
+      if (doppler.fPlus) {
+        const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.ui.spectrogramImage);
+        const fPlusMarker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        fPlusMarker.setAttribute("class", "gram-frame-doppler-fPlus");
+        fPlusMarker.setAttribute("cx", fPlusSVG.x.toString());
+        fPlusMarker.setAttribute("cy", fPlusSVG.y.toString());
+        fPlusMarker.setAttribute("r", "4");
+        fPlusMarker.setAttribute("fill", color);
+        fPlusMarker.setAttribute("stroke", "#ffffff");
+        fPlusMarker.setAttribute("stroke-width", "1");
+        fPlusMarker.setAttribute("pointer-events", pointerEvents);
+        this.instance.ui.cursorGroup.appendChild(fPlusMarker);
+      }
+      if (doppler.fMinus) {
+        const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.ui.spectrogramImage);
+        const fMinusMarker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        fMinusMarker.setAttribute("class", "gram-frame-doppler-fMinus");
+        fMinusMarker.setAttribute("cx", fMinusSVG.x.toString());
+        fMinusMarker.setAttribute("cy", fMinusSVG.y.toString());
+        fMinusMarker.setAttribute("r", "4");
+        fMinusMarker.setAttribute("fill", color);
+        fMinusMarker.setAttribute("stroke", "#ffffff");
+        fMinusMarker.setAttribute("stroke-width", "1");
+        fMinusMarker.setAttribute("pointer-events", pointerEvents);
+        this.instance.ui.cursorGroup.appendChild(fMinusMarker);
+      }
+      if (doppler.fZero) {
+        const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.ui.spectrogramImage);
+        const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        hLine.setAttribute("class", "gram-frame-doppler-crosshair");
+        hLine.setAttribute("x1", (fZeroSVG.x - 8).toString());
+        hLine.setAttribute("y1", fZeroSVG.y.toString());
+        hLine.setAttribute("x2", (fZeroSVG.x + 8).toString());
+        hLine.setAttribute("y2", fZeroSVG.y.toString());
+        hLine.setAttribute("stroke", "#00ff00");
+        hLine.setAttribute("stroke-width", "2");
+        hLine.setAttribute("pointer-events", pointerEvents);
+        this.instance.ui.cursorGroup.appendChild(hLine);
+        const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        vLine.setAttribute("class", "gram-frame-doppler-crosshair");
+        vLine.setAttribute("x1", fZeroSVG.x.toString());
+        vLine.setAttribute("y1", (fZeroSVG.y - 8).toString());
+        vLine.setAttribute("x2", fZeroSVG.x.toString());
+        vLine.setAttribute("y2", (fZeroSVG.y + 8).toString());
+        vLine.setAttribute("stroke", "#00ff00");
+        vLine.setAttribute("stroke-width", "2");
+        vLine.setAttribute("pointer-events", pointerEvents);
+        this.instance.ui.cursorGroup.appendChild(vLine);
+      }
+    }
+    /**
+     * Render Doppler curve between markers with vertical extensions (zoom-aware)
+     */
+    renderDopplerCurve() {
+      const doppler = this.instance.state.doppler;
+      if (!doppler.fPlus || !doppler.fMinus || !doppler.fZero) return;
+      const color = doppler.color || this.instance.state.selectedColor || "#ff0000";
+      const fPlusSVG = dataToSVG(doppler.fPlus, this.getViewport(), this.instance.ui.spectrogramImage);
+      const fMinusSVG = dataToSVG(doppler.fMinus, this.getViewport(), this.instance.ui.spectrogramImage);
+      const fZeroSVG = dataToSVG(doppler.fZero, this.getViewport(), this.instance.ui.spectrogramImage);
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("class", "gram-frame-doppler-curve");
+      const controlPoint1X = fMinusSVG.x;
+      const controlPoint1Y = fMinusSVG.y + (fZeroSVG.y - fMinusSVG.y) * 0.7;
+      const controlPoint2X = fPlusSVG.x;
+      const controlPoint2Y = fPlusSVG.y + (fZeroSVG.y - fPlusSVG.y) * 0.7;
+      const pathData = `M ${fMinusSVG.x} ${fMinusSVG.y} C ${controlPoint1X} ${controlPoint1Y} ${controlPoint2X} ${controlPoint2Y} ${fPlusSVG.x} ${fPlusSVG.y}`;
+      path.setAttribute("d", pathData);
+      path.setAttribute("stroke", color);
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("fill", "none");
+      this.instance.ui.cursorGroup.appendChild(path);
+      const margins = this.instance.state.margins;
+      const { naturalHeight } = this.instance.state.imageDetails;
+      const renderHeight = this.instance.state.imageDetails.renderHeight || naturalHeight;
+      const spectrogramTop = margins.top;
+      const spectrogramBottom = margins.top + renderHeight;
+      let zoomedTop = spectrogramTop;
+      let zoomedBottom = spectrogramBottom;
+      if (this.instance.ui.spectrogramImage) {
+        const zoomedImageTop = parseFloat(this.instance.ui.spectrogramImage.getAttribute("y") || String(margins.top));
+        const zoomedImageHeight = parseFloat(this.instance.ui.spectrogramImage.getAttribute("height") || String(renderHeight));
+        zoomedTop = zoomedImageTop;
+        zoomedBottom = zoomedImageTop + zoomedImageHeight;
+      }
+      const clippedTop = Math.max(spectrogramTop, zoomedTop);
+      const clippedBottom = Math.min(spectrogramBottom, zoomedBottom);
+      if (fPlusSVG.y > clippedTop) {
+        const fPlusExtension = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        fPlusExtension.setAttribute("class", "gram-frame-doppler-extension");
+        fPlusExtension.setAttribute("x1", fPlusSVG.x.toString());
+        fPlusExtension.setAttribute("y1", fPlusSVG.y.toString());
+        fPlusExtension.setAttribute("x2", fPlusSVG.x.toString());
+        fPlusExtension.setAttribute("y2", clippedTop.toString());
+        fPlusExtension.setAttribute("stroke", color);
+        fPlusExtension.setAttribute("stroke-width", "2");
+        this.instance.ui.cursorGroup.appendChild(fPlusExtension);
+      }
+      if (fMinusSVG.y < clippedBottom) {
+        const fMinusExtension = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        fMinusExtension.setAttribute("class", "gram-frame-doppler-extension");
+        fMinusExtension.setAttribute("x1", fMinusSVG.x.toString());
+        fMinusExtension.setAttribute("y1", fMinusSVG.y.toString());
+        fMinusExtension.setAttribute("x2", fMinusSVG.x.toString());
+        fMinusExtension.setAttribute("y2", clippedBottom.toString());
+        fMinusExtension.setAttribute("stroke", color);
+        fMinusExtension.setAttribute("stroke-width", "2");
+        this.instance.ui.cursorGroup.appendChild(fMinusExtension);
+      }
+    }
+    /**
+     * Whether this mode currently owns any persistent feature.
+     *
+     * Half of the `PersistentFeatureProvider` capability. Lived on
+     * `FeatureRenderer` as `hasDopplerFeatures()` until spec 167 moved it onto
+     * the mode that owns the state it reads.
+     * @returns {boolean} True if any doppler marker has been placed
+     */
+    hasPersistentFeatures() {
+      const doppler = this.instance.state.doppler;
+      return !!(doppler && (doppler.fPlus || doppler.fMinus || doppler.fZero));
+    }
+    /**
+     * Render persistent features (for FeatureRenderer)
+     */
+    renderPersistentFeatures() {
+      this.renderDopplerFeatures();
     }
   }
   const WHEEL_NAV_GUIDANCE = [
@@ -4344,8 +5142,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {string} style - Cursor style
      */
     applyCursor(style) {
-      if (this.instance.svg) {
-        this.instance.svg.style.cursor = style;
+      if (this.instance.ui.svg) {
+        this.instance.ui.svg.style.cursor = style;
       }
     }
     /**
@@ -4477,13 +5275,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         {
           label: "−",
           title: "Zoom Out",
-          action: () => this.instance._zoomOut(),
+          action: () => zoomOut(this.instance),
           isEnabled: () => this.instance.state.zoom.level > 1
         },
         {
           label: "+",
           title: "Zoom In",
-          action: () => this.instance._zoomIn(),
+          action: () => zoomIn(this.instance),
           isEnabled: () => this.instance.state.zoom.level < 10
         }
       ];
@@ -4498,781 +5296,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         // Pan position is stored in zoom.centerX/centerY
       };
     }
-  }
-  function buildModeInitialState() {
-    const modeStates = [
-      AnalysisMode.getInitialState(),
-      HarmonicsMode.getInitialState(),
-      DopplerMode.getInitialState(),
-      PanMode.getInitialState()
-    ];
-    return Object.assign({}, ...modeStates);
-  }
-  const initialState = {
-    version: getVersion(),
-    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-    instanceId: "",
-    mode: "pan",
-    // 'analysis', 'harmonics', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
-    previousMode: null,
-    // Previous mode for switching back
-    rate: 1,
-    selectedColor: "#ff6b6b",
-    // Currently selected color for new features across all modes
-    selectedSymbol: "cross",
-    // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
-    // Whether the NEXT created harmonic set draws its vertical pin lines. Shown
-    // as a toggle in the Symbol panel; on by default at the start of a browser
-    // session and remembered (sessionStorage) for the rest of it.
-    showHarmonicPin: true,
-    // EXPERIMENT (temporary): large-symbol size for the NEXT created feature, set
-    // from the Symbol panel's toggle when nothing is selected (with a feature
-    // selected, the toggle resizes that feature instead). In-memory only, default
-    // off, never persisted — it exists to gather feedback on the preferred size.
-    largeSymbols: false,
-    cursorPosition: null,
-    cursors: [],
-    // Bumped by every path that mutates an annotation, so the storage listener
-    // can tell an annotation change from a cursor move without re-serialising
-    // the annotations on each notification (spec 166, AS-4.3).
-    annotationRevision: 0,
-    imageDetails: {
-      url: "",
-      naturalWidth: 0,
-      // Original dimensions of the image
-      naturalHeight: 0,
-      renderWidth: 0,
-      // Base render width (defaults to naturalWidth on load)
-      renderHeight: 0
-      // Base render height (defaults to naturalHeight on load)
-    },
-    // Whether the image is currently expanded to fill available space.
-    // In-memory only, default false, never persisted (independent of feature 155).
-    imageExpanded: false,
-    config: {
-      timeMin: 0,
-      timeMax: 0,
-      freqMin: 0,
-      freqMax: 0
-    },
-    displayDimensions: {
-      // Current display dimensions (responsive)
-      width: 0,
-      height: 0
-    },
-    margins: {
-      left: 60,
-      // Space for time axis labels
-      bottom: 50,
-      // Space for frequency axis labels  
-      right: 15,
-      // Small right margin
-      top: 15
-      // Small top margin
-    },
-    // Simple zoom state for transform-based zoom
-    zoom: {
-      level: 1,
-      // Current zoom level (1.0 = no zoom, 2.0 = 2x zoom)
-      centerX: 0.5,
-      // Center point X (0-1 normalized)
-      centerY: 0.5
-      // Center point Y (0-1 normalized)
-    },
-    // Read-only projection of the active drag, rebuilt by the drag engine on each
-    // transition. Modes never write it; it is always present, reading
-    // `active: false` when idle (spec 166, FR-004 / data-model.md §2).
-    drag: {
-      active: false,
-      kind: null,
-      mode: null,
-      targetId: null,
-      targetType: null,
-      startPosition: null
-    },
-    // Selection state for keyboard fine control
-    selection: {
-      selectedType: null,
-      // 'marker' | 'harmonicSet' | null
-      selectedId: null,
-      // ID of selected item
-      selectedIndex: null
-      // Index in table for display purposes
-    },
-    // Add mode-specific state from mode classes
-    ...buildModeInitialState()
-  };
-  const globalStateListeners = [];
-  function createInitialState() {
-    return JSON.parse(JSON.stringify(initialState));
-  }
-  function deliverToListeners(state, listeners) {
-    if (!listeners || listeners.length === 0) {
-      return;
-    }
-    const stateCopy = JSON.parse(JSON.stringify(state));
-    listeners.forEach((listener) => {
-      try {
-        listener(stateCopy);
-      } catch (error) {
-        console.error("Error in state listener:", error);
-      }
-    });
-  }
-  function markAnnotationsChanged(instance) {
-    if (instance && instance.state) {
-      instance.state.annotationRevision = (instance.state.annotationRevision || 0) + 1;
-    }
-  }
-  const pendingDispatches = /* @__PURE__ */ new WeakMap();
-  function dispatch(instance, options = {}) {
-    if (!instance) {
-      return;
-    }
-    const wantsFrame = options.frame === true;
-    const pending = pendingDispatches.get(instance);
-    if (pending) {
-      if (!wantsFrame && pending.tier === "frame") {
-        if (pending.frameHandle !== null && typeof cancelAnimationFrame === "function") {
-          cancelAnimationFrame(pending.frameHandle);
-        }
-        pending.tier = "microtask";
-        pending.frameHandle = null;
-        queueMicrotask(() => flushDispatch(instance));
-      }
-      return;
-    }
-    const record = { tier: wantsFrame ? "frame" : "microtask", frameHandle: null };
-    pendingDispatches.set(instance, record);
-    if (wantsFrame && typeof requestAnimationFrame === "function") {
-      record.frameHandle = requestAnimationFrame(() => flushDispatch(instance));
-    } else {
-      record.tier = "microtask";
-      queueMicrotask(() => flushDispatch(instance));
-    }
-  }
-  function flushDispatch(instance) {
-    if (!instance) {
-      return;
-    }
-    const pending = pendingDispatches.get(instance);
-    if (!pending) {
-      return;
-    }
-    if (pending.frameHandle !== null && typeof cancelAnimationFrame === "function") {
-      cancelAnimationFrame(pending.frameHandle);
-    }
-    pendingDispatches.delete(instance);
-    deliverToListeners(instance.state, instance.stateListeners);
-  }
-  function addGlobalStateListener(callback) {
-    if (!globalStateListeners.includes(callback)) {
-      globalStateListeners.push(callback);
-      return true;
-    }
-    return false;
-  }
-  function removeGlobalStateListener(callback) {
-    const index = globalStateListeners.indexOf(callback);
-    if (index !== -1) {
-      globalStateListeners.splice(index, 1);
-      return true;
-    }
-    return false;
-  }
-  function getGlobalStateListeners() {
-    return [...globalStateListeners];
-  }
-  function createUnifiedLayout(instance) {
-    const unifiedLayoutContainer = (
-      /** @type {HTMLDivElement} */
-      createFullFlexLayout("gram-frame-unified-layout", "2px")
-    );
-    unifiedLayoutContainer.style.flexDirection = "row";
-    unifiedLayoutContainer.style.flexWrap = "nowrap";
-    const leftColumn = (
-      /** @type {HTMLDivElement} */
-      createFullFlexLayout("gram-frame-left-column", "4px")
-    );
-    leftColumn.style.flex = "0 1 750px";
-    leftColumn.style.width = "auto";
-    leftColumn.style.minWidth = "0";
-    leftColumn.style.flexDirection = "row";
-    const modeColumn = (
-      /** @type {HTMLDivElement} */
-      createFlexColumn("gram-frame-mode-column", "8px")
-    );
-    modeColumn.style.flex = "0 0 130px";
-    modeColumn.style.width = "130px";
-    const guidanceColumn = (
-      /** @type {HTMLDivElement} */
-      createFlexColumn("gram-frame-guidance-column", "8px")
-    );
-    guidanceColumn.style.flex = "1";
-    guidanceColumn.style.minWidth = "150px";
-    const controlsColumn = (
-      /** @type {HTMLDivElement} */
-      createFlexColumn("gram-frame-controls-column", "1px")
-    );
-    controlsColumn.style.flex = "0 0 220px";
-    controlsColumn.style.width = "220px";
-    const cursorContainer = document.createElement("div");
-    cursorContainer.className = "gram-frame-cursor-leds";
-    const timeLED = createLEDDisplay("Time (mm:ss)", formatTime(0));
-    cursorContainer.appendChild(timeLED);
-    const freqLED = createLEDDisplay("Frequency (Hz)", "0.0");
-    cursorContainer.appendChild(freqLED);
-    const speedLED = createLEDDisplay("Doppler Speed (knots)", "0.0");
-    speedLED.style.gridColumn = "1 / -1";
-    cursorContainer.appendChild(speedLED);
-    controlsColumn.appendChild(cursorContainer);
-    const colorPicker = createColorPicker(instance);
-    controlsColumn.appendChild(colorPicker);
-    leftColumn.appendChild(modeColumn);
-    leftColumn.appendChild(guidanceColumn);
-    leftColumn.appendChild(controlsColumn);
-    const middleColumn = (
-      /** @type {HTMLDivElement} */
-      createFlexColumn("gram-frame-middle-column")
-    );
-    middleColumn.style.flex = "0 0 160px";
-    middleColumn.style.width = "160px";
-    const markersContainer = createMarkersContainer();
-    middleColumn.appendChild(markersContainer);
-    const rightColumn = (
-      /** @type {HTMLDivElement} */
-      createFlexColumn("gram-frame-right-column")
-    );
-    rightColumn.style.flex = "0 0 200px";
-    rightColumn.style.minWidth = "200px";
-    rightColumn.style.width = "200px";
-    const harmonicsContainer = createHarmonicsContainer();
-    rightColumn.appendChild(harmonicsContainer);
-    unifiedLayoutContainer.appendChild(leftColumn);
-    unifiedLayoutContainer.appendChild(middleColumn);
-    unifiedLayoutContainer.appendChild(rightColumn);
-    instance.unifiedLayoutContainer = unifiedLayoutContainer;
-    instance.leftColumn = leftColumn;
-    instance.middleColumn = middleColumn;
-    instance.rightColumn = rightColumn;
-    instance.modeColumn = modeColumn;
-    instance.guidanceColumn = guidanceColumn;
-    instance.controlsColumn = controlsColumn;
-    instance.markersContainer = markersContainer;
-    instance.harmonicsContainer = harmonicsContainer;
-    instance.timeLED = timeLED;
-    instance.freqLED = freqLED;
-    instance.speedLED = speedLED;
-    instance.colorPicker = colorPicker;
-    return unifiedLayoutContainer;
-  }
-  function createMarkersContainer() {
-    const markersContainer = document.createElement("div");
-    markersContainer.className = "gram-frame-markers-persistent-container";
-    markersContainer.style.flex = "1";
-    markersContainer.style.display = "flex";
-    markersContainer.style.flexDirection = "column";
-    markersContainer.style.minHeight = "0";
-    const markersLabel = document.createElement("h4");
-    markersLabel.textContent = "Markers";
-    markersLabel.style.margin = "0 0 8px 0";
-    markersLabel.style.textAlign = "left";
-    markersLabel.style.flexShrink = "0";
-    markersContainer.appendChild(markersLabel);
-    return markersContainer;
-  }
-  function createHarmonicsContainer() {
-    const harmonicsContainer = document.createElement("div");
-    harmonicsContainer.className = "gram-frame-harmonics-persistent-container";
-    harmonicsContainer.style.flex = "1";
-    harmonicsContainer.style.display = "flex";
-    harmonicsContainer.style.flexDirection = "column";
-    harmonicsContainer.style.minHeight = "0";
-    const harmonicsHeader = document.createElement("div");
-    harmonicsHeader.className = "gram-frame-harmonics-header";
-    harmonicsHeader.style.display = "flex";
-    harmonicsHeader.style.justifyContent = "space-between";
-    harmonicsHeader.style.alignItems = "center";
-    harmonicsHeader.style.margin = "0 0 8px 0";
-    harmonicsHeader.style.flexShrink = "0";
-    const harmonicsLabel = document.createElement("h4");
-    harmonicsLabel.textContent = "Harmonics";
-    harmonicsLabel.style.margin = "0";
-    harmonicsLabel.style.textAlign = "left";
-    harmonicsLabel.style.flexShrink = "0";
-    const harmonicsButtonContainer = document.createElement("div");
-    harmonicsButtonContainer.className = "gram-frame-harmonics-button-container";
-    harmonicsButtonContainer.style.flexShrink = "0";
-    harmonicsHeader.appendChild(harmonicsLabel);
-    harmonicsHeader.appendChild(harmonicsButtonContainer);
-    harmonicsContainer.appendChild(harmonicsHeader);
-    return harmonicsContainer;
-  }
-  function updateUniversalCursorReadouts(instance, dataCoords) {
-    if (instance.timeLED) {
-      const timeValue = instance.timeLED.querySelector(".gram-frame-led-value");
-      if (timeValue) {
-        timeValue.textContent = formatTime(dataCoords.time);
-      }
-    }
-    if (instance.freqLED) {
-      const freqValue = instance.freqLED.querySelector(".gram-frame-led-value");
-      if (freqValue) {
-        freqValue.textContent = dataCoords.freq.toFixed(2);
-      }
-    }
-  }
-  function updatePersistentPanels(instance) {
-    const analysisMode = (
-      /** @type {any} */
-      instance.modes["analysis"]
-    );
-    if (analysisMode && typeof analysisMode.updateMarkersTable === "function") {
-      analysisMode.updateMarkersTable();
-    }
-    const harmonicsMode = (
-      /** @type {any} */
-      instance.modes["harmonics"]
-    );
-    if (harmonicsMode) {
-      if (!harmonicsMode.instance.harmonicPanel && instance.harmonicsContainer) {
-        const existingPanel = instance.harmonicsContainer.querySelector(".gram-frame-harmonic-panel");
-        if (existingPanel) {
-          harmonicsMode.instance.harmonicPanel = existingPanel;
-        }
-      }
-      if (typeof harmonicsMode.updateHarmonicPanel === "function") {
-        harmonicsMode.updateHarmonicPanel();
-      }
-    }
-  }
-  function extractConfigData(instance) {
-    if (!instance.configTable) {
-      console.warn("GramFrame: No config table provided for configuration extraction");
-      return;
-    }
-    try {
-      const imgElement = instance.configTable.querySelector("img");
-      if (!imgElement) {
-        throw new Error("No image element found in config table");
-      }
-      if (!imgElement.src) {
-        throw new Error("Image element has no src attribute");
-      }
-      instance.state.imageDetails.url = imgElement.src;
-    } catch (error) {
-      console.error("GramFrame: Error setting up image:", error instanceof Error ? error.message : String(error));
-    }
-    try {
-      const rows = instance.configTable.querySelectorAll("tr");
-      let timeStart = null;
-      let timeEnd = null;
-      let freqStart = null;
-      let freqEnd = null;
-      rows.forEach((row, index) => {
-        var _a, _b;
-        try {
-          const cells = row.querySelectorAll("td");
-          if (cells.length === 2) {
-            const param = ((_a = cells[0].textContent) == null ? void 0 : _a.trim()) || "";
-            const valueText = ((_b = cells[1].textContent) == null ? void 0 : _b.trim()) || "0";
-            const value = parseFloat(valueText);
-            if (isNaN(value)) {
-              console.warn(`GramFrame: Invalid numeric value in row ${index + 1}: value="${valueText}"`);
-              return;
-            }
-            if (param === "time-start") {
-              timeStart = value;
-            } else if (param === "time-end") {
-              timeEnd = value;
-            } else if (param === "freq-start") {
-              freqStart = value;
-            } else if (param === "freq-end") {
-              freqEnd = value;
-            }
-          }
-        } catch (error) {
-          console.warn(`GramFrame: Error parsing row ${index + 1}:`, error instanceof Error ? error.message : String(error));
-        }
-      });
-      if (timeStart === null || timeEnd === null) {
-        throw new Error("Missing required time configuration: both time-start and time-end must be present with valid numeric values");
-      }
-      if (timeStart >= timeEnd) {
-        throw new Error(`Invalid time range: start (${timeStart}) must be less than end (${timeEnd})`);
-      }
-      instance.state.config.timeMin = timeStart;
-      instance.state.config.timeMax = timeEnd;
-      if (freqStart === null || freqEnd === null) {
-        throw new Error("Missing required frequency configuration: both freq-start and freq-end must be present with valid numeric values");
-      }
-      if (freqStart >= freqEnd) {
-        throw new Error(`Invalid frequency range: start (${freqStart}) must be less than end (${freqEnd})`);
-      }
-      instance.state.config.freqMin = freqStart;
-      instance.state.config.freqMax = freqEnd;
-    } catch (error) {
-      throw error;
-    }
-  }
-  class FeatureRenderer {
-    /**
-     * Create a new FeatureRenderer
-     * @param {GramFrame} gramFrameInstance - GramFrame instance
-     */
-    constructor(gramFrameInstance) {
-      this.instance = gramFrameInstance;
-    }
-    /**
-     * Render all persistent features across all modes
-     * Delegates to each mode's specialized rendering methods
-     */
-    renderAllPersistentFeatures() {
-      if (!this.instance.cursorGroup) {
-        return;
-      }
-      this.instance.cursorGroup.innerHTML = "";
-      if (this.hasAnalysisFeatures() && this.instance.modes.analysis) {
-        this.instance.modes.analysis.renderPersistentFeatures();
-      }
-      if (this.hasHarmonicFeatures() && this.instance.modes.harmonics) {
-        this.instance.modes.harmonics.renderPersistentFeatures();
-      }
-      if (this.hasDopplerFeatures() && this.instance.modes.doppler) {
-        this.instance.modes.doppler.renderPersistentFeatures();
-      }
-    }
-    /**
-     * Check if analysis features exist
-     * @returns {boolean}
-     */
-    hasAnalysisFeatures() {
-      return this.instance.state.analysis && this.instance.state.analysis.markers && this.instance.state.analysis.markers.length > 0;
-    }
-    /**
-     * Check if harmonic features exist
-     * @returns {boolean}
-     */
-    hasHarmonicFeatures() {
-      return this.instance.state.harmonics && this.instance.state.harmonics.harmonicSets && this.instance.state.harmonics.harmonicSets.length > 0;
-    }
-    /**
-     * Check if doppler features exist
-     * @returns {boolean}
-     */
-    hasDopplerFeatures() {
-      return this.instance.state.doppler && (!!this.instance.state.doppler.fPlus || !!this.instance.state.doppler.fMinus || !!this.instance.state.doppler.fZero);
-    }
-    /**
-     * Render current mode's cursor/temporary indicators
-     * Delegates to the current active mode
-     */
-    renderCurrentModeCursor() {
-      if (!this.instance.cursorGroup || !this.instance.currentMode) {
-        return;
-      }
-      if (typeof this.instance.currentMode.renderCursor === "function") {
-        this.instance.currentMode.renderCursor();
-      }
-    }
-  }
-  function initializeDOMProperties(instance) {
-    instance.container = null;
-    instance.readoutPanel = null;
-    instance.modeCell = null;
-    instance.mainCell = null;
-    instance.modeLED = null;
-    instance.rateLED = null;
-    instance.colorPicker = null;
-    instance.svg = null;
-    instance.cursorGroup = null;
-    instance.axesGroup = null;
-    instance.imageClipRect = null;
-    instance.cursorClipRect = null;
-    instance.leftColumn = null;
-    instance.middleColumn = null;
-    instance.rightColumn = null;
-    instance.modeColumn = null;
-    instance.guidanceColumn = null;
-    instance.controlsColumn = null;
-    instance.unifiedLayoutContainer = null;
-    instance.timeLED = null;
-    instance.freqLED = null;
-    instance.speedLED = null;
-    instance.markersContainer = null;
-    instance.harmonicsContainer = null;
-    instance.spectrogramImage = null;
-    instance.modesContainer = null;
-    instance.modeButtons = null;
-    instance.commandButtons = null;
-    instance.guidancePanel = null;
-    instance.modes = null;
-    instance.currentMode = null;
-    instance.featureRenderer = null;
-  }
-  function setupSpectrogramComponents(instance) {
-    extractConfigData(instance);
-    setupComponentTable(instance, instance.configTable);
-  }
-  function updateCursorIndicators(instance) {
-    if (instance.cursorGroup) {
-      instance.cursorGroup.innerHTML = "";
-    }
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
-  }
-  const WHEEL_ZOOM_STEP = 1.2;
-  function screenToDataWithZoom(instance, event) {
-    const point = screenToData(
-      event.clientX,
-      event.clientY,
-      instance.svg,
-      instance.state,
-      instance.spectrogramImage
-    );
-    if (!isWithinImage(point.svg, instance.state, instance.spectrogramImage)) {
-      return null;
-    }
-    return {
-      svgCoords: point.svg,
-      imageX: point.image.x,
-      imageY: point.image.y,
-      dataCoords: point.data
-    };
-  }
-  function handleWheel(instance, event) {
-    const result = screenToDataWithZoom(instance, event);
-    if (!result) {
-      return;
-    }
-    if (event.ctrlKey) {
-      const factor = event.deltaY < 0 ? WHEEL_ZOOM_STEP : 1 / WHEEL_ZOOM_STEP;
-      zoomAtImagePoint(instance, factor, result.imageX, result.imageY);
-      event.preventDefault();
-    } else if (instance.state.zoom.level > 1) {
-      const { normalizedDeltaX } = pixelDeltaToNormalizedPan(instance, -event.deltaY, 0);
-      panByNormalized(instance, normalizedDeltaX, 0);
-      event.preventDefault();
-    }
-  }
-  function wheelPanHandler(instance) {
-    if (!instance._wheelPanHandler) {
-      let previousCursor = "";
-      instance._wheelPanHandler = new BaseDragHandler(instance, {
-        resolveTarget: () => instance.state.zoom.level > 1 ? { kind: "pan", id: null, type: null } : null,
-        onDragStart: (_target, _position, event) => {
-          previousCursor = instance.svg ? instance.svg.style.cursor : "";
-          if (event) {
-            instance._wheelPanLast = { x: event.clientX, y: event.clientY };
-          }
-        },
-        onDragMove: (_target, _position, _startPosition, event) => {
-          if (!event || !instance._wheelPanLast) return;
-          const dx = event.clientX - instance._wheelPanLast.x;
-          const dy = event.clientY - instance._wheelPanLast.y;
-          const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy);
-          panByNormalized(instance, normalizedDeltaX, normalizedDeltaY);
-          instance._wheelPanLast = { x: event.clientX, y: event.clientY };
-        },
-        onDragEnd: () => {
-          instance._wheelPanLast = null;
-        },
-        onDragCancel: () => {
-          instance._wheelPanLast = null;
-        },
-        updateCursor: (style) => {
-          if (instance.svg) {
-            instance.svg.style.cursor = style;
-          }
-        },
-        // Restore whatever cursor the mode had, rather than forcing a crosshair
-        cursorFor: (_kind, fallback) => fallback === "grabbing" ? "grabbing" : previousCursor || "crosshair"
-      }, null);
-    }
-    return instance._wheelPanHandler;
-  }
-  function setupEventListeners(instance) {
-    const registered = [];
-    const listen = (target, type, handler, options) => {
-      target.addEventListener(type, handler, options);
-      registered.push({ target, type, handler, options });
-    };
-    if (instance.svg) {
-      listen(instance.svg, "mousemove", (event) => {
-        handleMouseMove(
-          instance,
-          /** @type {MouseEvent} */
-          event
-        );
-      });
-      listen(instance.svg, "mousedown", (event) => {
-        handleMouseDown(
-          instance,
-          /** @type {MouseEvent} */
-          event
-        );
-      });
-      listen(instance.svg, "mouseup", (event) => {
-        handleMouseUp(
-          instance,
-          /** @type {MouseEvent} */
-          event
-        );
-      });
-      listen(instance.svg, "mouseleave", () => {
-        handleMouseLeave(instance);
-      });
-      listen(instance.svg, "contextmenu", (event) => {
-        handleContextMenu(
-          instance,
-          /** @type {MouseEvent} */
-          event
-        );
-      });
-      listen(instance.svg, "wheel", (event) => {
-        handleWheel(
-          instance,
-          /** @type {WheelEvent} */
-          event
-        );
-      }, { passive: false });
-    }
-    instance._boundHandleResize = () => {
-      if (instance._handleResize) {
-        instance._handleResize();
-      }
-    };
-    Object.keys(instance.modeButtons || {}).forEach((mode) => {
-      const button = instance.modeButtons[mode];
-      if (button) {
-        listen(button, "click", () => {
-          instance._switchMode(
-            /** @type {ModeType} */
-            mode
-          );
-        });
-      }
-    });
-    listen(window, "resize", instance._boundHandleResize);
-    instance._registeredListeners = registered;
-  }
-  function setupResizeObserver(instance) {
-    if (typeof ResizeObserver !== "undefined") {
-      instance.resizeObserver = new ResizeObserver((_entries) => {
-        if (instance._handleResize) {
-          instance._handleResize();
-        }
-      });
-      instance.resizeObserver.observe(instance.container);
-    }
-  }
-  function handleMouseMove(instance, event) {
-    const wheelPan = wheelPanHandler(instance);
-    if (wheelPan.isDragging()) {
-      wheelPan.handleMouseMove(null, event);
-      return;
-    }
-    const result = screenToDataWithZoom(instance, event);
-    if (result) {
-      const { svgCoords, imageX, imageY, dataCoords } = result;
-      instance.state.cursorPosition = {
-        x: event.clientX - instance.svg.getBoundingClientRect().left,
-        y: event.clientY - instance.svg.getBoundingClientRect().top,
-        svgX: svgCoords.x,
-        svgY: svgCoords.y,
-        imageX,
-        imageY,
-        freq: dataCoords.freq,
-        time: dataCoords.time
-      };
-      updateUniversalCursorReadouts(instance, dataCoords);
-      if (instance.currentMode && typeof instance.currentMode.handleMouseMove === "function") {
-        instance.currentMode.handleMouseMove(event, dataCoords);
-      }
-    } else {
-      instance.state.cursorPosition = null;
-    }
-    updateCursorIndicators(instance);
-    dispatch(instance, { frame: true });
-  }
-  function handleMouseDown(instance, event) {
-    setFocusedInstance(instance);
-    if (event.button === 1) {
-      event.preventDefault();
-      wheelPanHandler(instance).startDrag(null, event);
-      return;
-    }
-    const result = screenToDataWithZoom(instance, event);
-    if (result) {
-      const { dataCoords } = result;
-      if (instance.currentMode && typeof instance.currentMode.handleMouseDown === "function") {
-        instance.currentMode.handleMouseDown(event, dataCoords);
-      }
-    }
-  }
-  function handleMouseUp(instance, event) {
-    const wheelPan = wheelPanHandler(instance);
-    if (wheelPan.isDragging()) {
-      wheelPan.endDrag(null, event);
-      return;
-    }
-    const result = screenToDataWithZoom(instance, event);
-    if (result) {
-      const { dataCoords } = result;
-      if (instance.currentMode && typeof instance.currentMode.handleMouseUp === "function") {
-        instance.currentMode.handleMouseUp(event, dataCoords);
-      }
-    }
-  }
-  function handleMouseLeave(instance) {
-    wheelPanHandler(instance).cancelDrag();
-    instance.state.cursorPosition = null;
-    updateCursorIndicators(instance);
-    if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === "function") {
-      instance.currentMode.handleMouseLeave();
-    }
-    dispatch(instance, { frame: true });
-  }
-  function handleContextMenu(instance, event) {
-    const result = screenToDataWithZoom(instance, event);
-    if (result) {
-      const { dataCoords } = result;
-      if (instance.currentMode && typeof instance.currentMode.handleContextMenu === "function") {
-        instance.currentMode.handleContextMenu(event, dataCoords);
-      }
-    }
-  }
-  function cleanupEventListeners(instance) {
-    const registered = instance._registeredListeners || [];
-    registered.forEach(({ target, type, handler, options }) => {
-      target.removeEventListener(type, handler, options);
-    });
-    instance._registeredListeners = [];
-    if (instance.resizeObserver) {
-      instance.resizeObserver.disconnect();
-      instance.resizeObserver = null;
-    }
-  }
-  function setupAllEventListeners(instance) {
-    setupEventListeners(instance);
-    setupResizeObserver(instance);
-    initializeKeyboardControl(instance);
-    instance.setSelection = (type, id, index) => setSelection(instance, type, id, index);
-    instance.clearSelection = () => clearSelection(instance);
-    instance.updateSelectionVisuals = () => updateSelectionVisuals(instance);
-    instance.removeHarmonicSet = (id) => removeHarmonicSet(instance, id);
-    instance.applyColorToSelectedFeature = (color) => applyColorToSelectedFeature(instance, color);
-    instance.applySymbolToSelectedFeature = (symbol) => applySymbolToSelectedFeature(instance, symbol);
-    instance.applyPinToSelectedFeature = (showPin) => applyPinToSelectedFeature(instance, showPin);
-    instance.applyLargeSymbolsToSelectedFeature = (large) => applyLargeSymbolsToSelectedFeature(instance, large);
-  }
-  function setupStateListeners(instance) {
-    getGlobalStateListeners().forEach((listener) => {
-      if (!instance.stateListeners.includes(listener)) {
-        instance.stateListeners.push(listener);
-      }
-    });
   }
   const REQUIRED_APIS = [
     {
@@ -5394,6 +5417,28 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     /**
+     * Compose the initial-state slices contributed by every registered mode.
+     *
+     * The single place that knows the mode roster for state purposes, mirroring
+     * `createMode`'s role for instantiation. `core/state.js` receives the result
+     * rather than importing the mode classes itself, which is what breaks the
+     * state ⇄ modes cycle (spec 167, FR-002, ADR-014).
+     *
+     * Merge order is fixed and explicit: analysis, harmonics, doppler, pan.
+     * @returns {Partial<GramFrameState>} Merged mode slices
+     */
+    static getModeInitialStates() {
+      const slices = Object.assign(
+        {},
+        AnalysisMode.getInitialState(),
+        HarmonicsMode.getInitialState(),
+        DopplerMode.getInitialState(),
+        PanMode.getInitialState()
+      );
+      assertNoCoreKeyCollision(slices);
+      return slices;
+    }
+    /**
      * Get list of available mode names
      * @returns {ModeType[]} Array of mode names
      */
@@ -5407,6 +5452,41 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     static isValidMode(modeName) {
       return this.getAvailableModes().includes(modeName);
+    }
+  }
+  function assertNoCoreKeyCollision(slices) {
+    const coreKeys = Object.keys(createInitialState());
+    const collisions = Object.keys(slices).filter((key) => coreKeys.includes(key));
+    if (collisions.length > 0) {
+      console.error(
+        `GramFrame: mode initial state collides with core state key(s): ${collisions.join(", ")}. The core value wins and the mode's is discarded. Rename the key in the mode that contributes it.`
+      );
+    }
+  }
+  class FeatureRenderer {
+    /**
+     * Create a new FeatureRenderer
+     * @param {GramFrame} gramFrameInstance - GramFrame instance
+     */
+    constructor(gramFrameInstance) {
+      this.instance = gramFrameInstance;
+    }
+    /**
+     * Render all persistent features across all modes
+     *
+     * Modes are discovered by capability, not by name. This file used to name
+     * `analysis`, `harmonics` and `doppler` and carry a `hasXFeatures()` predicate
+     * for each — eight reads into another mode's state slice. Each predicate now
+     * lives on the mode that owns the state it reads, so a fifth mode with
+     * persistent features renders here with no edit to this file
+     * (spec 167, FR-006, AS-4.2, SC-003).
+     */
+    renderAllPersistentFeatures() {
+      if (!this.instance.ui.cursorGroup) {
+        return;
+      }
+      this.instance.ui.cursorGroup.innerHTML = "";
+      Object.values(this.instance.modes).filter(isPersistentFeatureProvider).filter((mode) => mode.hasPersistentFeatures()).forEach((mode) => mode.renderPersistentFeatures());
     }
   }
   function renderSecureGuidance(container, content) {
@@ -5447,53 +5527,78 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function initializeModeInfrastructure(instance) {
-    instance.modes = {};
-    instance.currentMode = null;
-    instance.featureRenderer = new FeatureRenderer(instance);
-    const availableModes = ModeFactory.getAvailableModes();
-    availableModes.forEach((modeName) => {
-      instance.modes[modeName] = ModeFactory.createMode(modeName, instance);
+    const modes = {};
+    const featureRenderer = new FeatureRenderer(instance);
+    ModeFactory.getAvailableModes().forEach((modeName) => {
+      modes[modeName] = ModeFactory.createMode(modeName, instance);
     });
+    return { modes, featureRenderer };
   }
-  function setupModeUI(instance) {
-    instance.modes["analysis"].createUI(instance.markersContainer);
-    instance.modes["harmonics"].createUI(instance.harmonicsContainer);
-    instance.currentMode = instance.modes[instance.state.mode] || instance.modes["pan"];
-    if (instance.guidancePanel) {
-      const guidanceContent = instance.currentMode.getGuidanceText();
-      updateGuidancePanel(instance.guidancePanel, guidanceContent);
+  function setupModeUI(instance, modes, markersContainer, harmonicsContainer, guidancePanel) {
+    modes["analysis"].createUI(markersContainer);
+    modes["harmonics"].createUI(harmonicsContainer);
+    const currentMode = modes[instance.state.mode] || modes["pan"];
+    updateGuidancePanel(guidancePanel, currentMode.getGuidanceText());
+    return currentMode;
+  }
+  const MAX_IMAGE_WIDTH = 1200;
+  function setupSpectrogramImage(instance, imageUrl) {
+    if (!instance.ui.spectrogramImage || !imageUrl) {
+      return;
     }
+    instance.ui.spectrogramImage.setAttributeNS("http://www.w3.org/1999/xlink", "href", imageUrl);
+    instance.state.imageDetails.url = imageUrl;
+    const tempImg = new Image();
+    tempImg.onload = function() {
+      instance.ui.container.classList.remove("gram-frame-loading");
+      let imageWidth = tempImg.naturalWidth;
+      let imageHeight = tempImg.naturalHeight;
+      if (imageWidth > MAX_IMAGE_WIDTH) {
+        const scaleFactor = MAX_IMAGE_WIDTH / imageWidth;
+        imageWidth = MAX_IMAGE_WIDTH;
+        imageHeight = Math.round(imageHeight * scaleFactor);
+        console.log(`GramFrame: Scaling down large image from ${tempImg.naturalWidth}x${tempImg.naturalHeight} to ${imageWidth}x${imageHeight} (scale factor: ${scaleFactor.toFixed(3)})`);
+      }
+      const imageDetails = instance.state.imageDetails;
+      imageDetails.naturalWidth = imageWidth;
+      imageDetails.naturalHeight = imageHeight;
+      imageDetails.renderWidth = imageWidth;
+      imageDetails.renderHeight = imageHeight;
+      updateSVGLayout(instance);
+      renderAxes(instance);
+      createExpandToggle(instance);
+      dispatch(instance);
+    };
+    tempImg.onerror = function() {
+      console.error(`GramFrame: Failed to load spectrogram image: ${imageUrl}`);
+      instance.ui.container.classList.remove("gram-frame-loading");
+      instance.ui.container.classList.add("gram-frame-image-error");
+    };
+    tempImg.src = imageUrl;
   }
-  function createUnifiedLayoutStructure(instance) {
-    createUnifiedLayout(instance);
-    instance.readoutPanel.appendChild(instance.unifiedLayoutContainer);
-    instance.modeCell.appendChild(instance.readoutPanel);
+  function createUnifiedLayoutStructure(instance, readoutPanel, modeCell) {
+    const layout = createUnifiedLayout(instance);
+    readoutPanel.appendChild(layout.unifiedLayoutContainer);
+    modeCell.appendChild(readoutPanel);
+    return layout;
   }
-  function setupPersistentContainers(instance) {
+  function setupPersistentContainers(instance, modeColumn, guidanceColumn) {
     const tempContainer = document.createElement("div");
     const modeUI = createModeSwitchingUI(tempContainer, instance.state, (mode) => instance._switchMode(mode));
-    instance.modesContainer = modeUI.modesContainer;
-    instance.modeButtons = modeUI.modeButtons;
-    instance.commandButtons = modeUI.commandButtons;
-    instance.guidancePanel = modeUI.guidancePanel;
-    instance.modeColumn.appendChild(instance.modesContainer);
-    instance.guidanceColumn.appendChild(instance.guidancePanel);
+    modeColumn.appendChild(modeUI.modesContainer);
+    guidanceColumn.appendChild(modeUI.guidancePanel);
+    return modeUI;
   }
-  function updateModeUIWithCommands(instance) {
-    instance.modeColumn.removeChild(instance.modesContainer);
-    instance.guidanceColumn.removeChild(instance.guidancePanel);
+  function updateModeUIWithCommands(instance, previous, modes, currentMode, modeColumn, guidanceColumn) {
+    modeColumn.removeChild(previous.modesContainer);
+    guidanceColumn.removeChild(previous.guidancePanel);
     const tempContainer2 = document.createElement("div");
-    const modeUIWithButtons = createModeSwitchingUI(tempContainer2, instance.state, (mode) => instance._switchMode(mode), instance.modes);
-    instance.modesContainer = modeUIWithButtons.modesContainer;
-    instance.modeButtons = modeUIWithButtons.modeButtons;
-    instance.commandButtons = modeUIWithButtons.commandButtons;
-    instance.guidancePanel = modeUIWithButtons.guidancePanel;
-    instance.modeColumn.appendChild(instance.modesContainer);
-    instance.guidanceColumn.appendChild(instance.guidancePanel);
-    if (instance.currentMode && instance.guidancePanel) {
-      const guidanceContent = instance.currentMode.getGuidanceText();
-      updateGuidancePanel(instance.guidancePanel, guidanceContent);
-    }
+    const modeUIWithButtons = createModeSwitchingUI(tempContainer2, instance.state, (mode) => instance._switchMode(mode), modes);
+    modeColumn.appendChild(modeUIWithButtons.modesContainer);
+    guidanceColumn.appendChild(modeUIWithButtons.guidancePanel);
+    const guidanceContent = currentMode.getGuidanceText();
+    updateGuidancePanel(modeUIWithButtons.guidancePanel, guidanceContent);
+    return modeUIWithButtons;
   }
   function setupSpectrogramIfAvailable(instance) {
     if (instance.state.imageDetails.url) {
@@ -5600,7 +5705,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
        */
       _getInstances() {
         const live = (this._instances || []).filter(
-          (instance) => instance && instance.container && instance.container.isConnected
+          (instance) => instance && instance.ui.container && instance.ui.container.isConnected
         );
         this._instances = live;
         return live;
@@ -5634,10 +5739,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if (typeof callback !== "function") {
           throw new Error("State listener must be a function");
         }
-        addGlobalStateListener(callback);
-        this._getInstances().forEach((instance) => {
-          if (!instance.stateListeners.includes(callback)) {
-            instance.stateListeners.push(callback);
+        const isNew = addGlobalStateListener(callback);
+        if (isNew) {
+          this._getInstances().forEach((instance) => {
             if (instance.state) {
               try {
                 const stateCopy = JSON.parse(JSON.stringify(instance.state));
@@ -5646,8 +5750,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
                 console.error("Error calling state listener with initial state:", error);
               }
             }
-          }
-        });
+          });
+        }
         return callback;
       },
       /**
@@ -5672,19 +5776,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if (typeof callback !== "function") {
           throw new Error("Callback must be a function");
         }
-        let removed = false;
-        const wasRemoved = removeGlobalStateListener(callback);
-        if (wasRemoved) {
-          removed = true;
-        }
-        this._getInstances().forEach((instance) => {
-          const index = instance.stateListeners.indexOf(callback);
-          if (index !== -1) {
-            instance.stateListeners.splice(index, 1);
-            removed = true;
-          }
-        });
-        return removed;
+        return removeGlobalStateListener(callback);
       },
       /**
        * Get the current expand state of the first GramFrame instance.
@@ -5786,117 +5878,144 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {HTMLTableElement} configTable - Configuration table element to replace
      */
     constructor(configTable) {
+      /**
+       * Every DOM element handle this component owns.
+       *
+       * Grouped rather than kept as 28 flat fields (spec 167, US5): they share a
+       * lifetime — built during construction, torn down together — and reading
+       * `instance.ui.svg` says which of the instance's concerns you are reaching
+       * into, where `instance.svg` said only that you were reaching.
+       * @type {GramFrameUI}
+       */
+      __publicField(this, "ui");
+      /**
+       * Selection, restyling and the transient pointer state behind them.
+       * @type {GramFrameInteraction}
+       */
+      __publicField(this, "interaction", {
+        setSelection: () => {
+        },
+        clearSelection: () => {
+        },
+        updateSelectionVisuals: () => {
+        },
+        applyColorToSelectedFeature: () => false,
+        applySymbolToSelectedFeature: () => false,
+        applyPinToSelectedFeature: () => false,
+        applyLargeSymbolsToSelectedFeature: () => false,
+        removeHarmonicSet: () => {
+        },
+        // Replaced by the colour picker when it mounts; a no-op until then, so a
+        // caller arriving early does nothing rather than throwing.
+        syncStyleControls: () => {
+        },
+        _symbolControl: null,
+        _pinControl: null,
+        _largeSymbolsControl: null,
+        _registeredListeners: [],
+        _wheelPanHandler: null,
+        _wheelPanLast: null
+      });
+      /**
+       * How the component watches for size changes.
+       * @type {GramFrameViewport}
+       */
+      __publicField(this, "viewport", { resizeObserver: null, _boundHandleResize: null });
+      /**
+       * Where this instance's annotations are saved, and under which context.
+       * @type {GramFramePersistence}
+       */
+      __publicField(this, "persistence", { _storageInstanceIndex: 0, _isTrainerContext: false });
       // Core properties
+      /** @type {GramFrameState} */
       __publicField(this, "state");
+      /** @type {HTMLTableElement} */
       __publicField(this, "configTable");
+      /** @type {StateListener[]} */
       __publicField(this, "stateListeners");
+      /** @type {string} */
       __publicField(this, "instanceId");
-      // DOM element properties
-      __publicField(this, "container");
-      __publicField(this, "readoutPanel");
-      __publicField(this, "modeCell");
-      __publicField(this, "mainCell");
-      __publicField(this, "modeLED");
-      __publicField(this, "rateLED");
-      __publicField(this, "colorPicker");
-      __publicField(this, "svg");
-      __publicField(this, "cursorGroup");
-      __publicField(this, "axesGroup");
-      __publicField(this, "imageClipRect");
-      __publicField(this, "cursorClipRect");
-      // Unified layout containers
-      __publicField(this, "leftColumn");
-      __publicField(this, "middleColumn");
-      __publicField(this, "rightColumn");
-      __publicField(this, "modeColumn");
-      __publicField(this, "guidanceColumn");
-      __publicField(this, "controlsColumn");
-      __publicField(this, "unifiedLayoutContainer");
-      __publicField(this, "timeLED");
-      __publicField(this, "freqLED");
-      __publicField(this, "speedLED");
-      __publicField(this, "markersContainer");
-      __publicField(this, "harmonicsContainer");
-      // Spectrogram image
-      __publicField(this, "spectrogramImage");
-      // Expand/collapse toggle button (landscape images only)
-      __publicField(this, "expandToggleButton");
-      // Mode switching UI
-      __publicField(this, "modesContainer");
-      __publicField(this, "modeButtons");
-      __publicField(this, "commandButtons");
-      __publicField(this, "guidancePanel");
       // Mode system
+      /** @type {Object<string, BaseMode>} */
       __publicField(this, "modes");
+      /** @type {BaseMode} */
       __publicField(this, "currentMode");
+      /** @type {FeatureRenderer} */
       __publicField(this, "featureRenderer");
-      // Keyboard control functions
-      __publicField(this, "setSelection");
-      __publicField(this, "clearSelection");
-      __publicField(this, "updateSelectionVisuals");
-      // Reformatting (feature 161): restyle the selected feature in place
-      __publicField(this, "applyColorToSelectedFeature");
-      __publicField(this, "applySymbolToSelectedFeature");
-      // Show/hide the selected harmonic set's pin lines
-      __publicField(this, "applyPinToSelectedFeature");
-      // EXPERIMENT (temporary): resize the selected feature's symbols
-      __publicField(this, "applyLargeSymbolsToSelectedFeature");
-      // Sync the colour/symbol/pin controls to the current selection
-      __publicField(this, "syncStyleControls");
-      // Symbol drop-down control handle (registered by the symbol picker)
-      __publicField(this, "_symbolControl");
-      // Pin toggle control handle (registered by the pin toggle)
-      __publicField(this, "_pinControl");
-      // EXPERIMENT (temporary): "Large symbols" checkbox handle
-      __publicField(this, "_largeSymbolsControl");
-      // ResizeObserver
-      __publicField(this, "resizeObserver");
-      // Bound event handlers
-      __publicField(this, "_boundHandleResize");
-      /**
-       * Every listener attached by setupEventListeners, kept so destroy() can
-       * remove them (they used to be anonymous and therefore unremovable).
-       * @type {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>}
-       */
-      __publicField(this, "_registeredListeners", []);
-      /**
-       * Transient state for a wheel-button (middle) drag pan; null when not dragging.
-       * Not part of the broadcast state.
-       * @type {{active: boolean, lastX: number, lastY: number, prevCursor: string}|null}
-       */
-      __publicField(this, "_wheelPanHandler", null);
-      /** @type {{x: number, y: number}|null} */
-      __publicField(this, "_wheelPanLast", null);
-      // Storage instance index for multi-instance pages
-      __publicField(this, "_storageInstanceIndex");
-      // Whether this instance is a trainer context
-      __publicField(this, "_isTrainerContext");
-      // Set when the browser lacks a required API; construction is skipped and a
-      // compatibility warning is shown in place of the component.
-      __publicField(this, "_unsupportedBrowser");
       this.configTable = configTable;
       if (!isBrowserSupported()) {
-        this._unsupportedBrowser = true;
         showCompatibilityWarning(configTable);
-        return;
+        throw new Error("GramFrame: this browser is missing APIs the component requires. A compatibility warning has been shown in place of the component.");
       }
-      this.state = createInitialState();
+      this.state = createInitialState(ModeFactory.getModeInitialStates());
       this.state.showHarmonicPin = loadPinPreference();
       this.stateListeners = [];
       this.instanceId = "";
-      this._storageInstanceIndex = document.querySelectorAll(".gram-frame-container").length;
-      this._isTrainerContext = detectUserContext() === "trainer";
-      initializeDOMProperties(this);
-      setupSpectrogramComponents(this);
-      createUnifiedLayoutStructure(this);
-      setupPersistentContainers(this);
+      this.persistence._storageInstanceIndex = document.querySelectorAll(".gram-frame-container").length;
+      this.persistence._isTrainerContext = detectUserContext() === "trainer";
+      const dom = setupSpectrogramComponents(this, configTable);
+      const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell);
+      const initialModeUI = setupPersistentContainers(this, layout.modeColumn, layout.guidanceColumn);
+      this.ui = {
+        container: dom.container,
+        table: dom.table,
+        modeRow: dom.modeRow,
+        mainRow: dom.mainRow,
+        readoutPanel: dom.readoutPanel,
+        modeCell: dom.modeCell,
+        mainCell: dom.mainCell,
+        svg: dom.svg,
+        spectrogramImage: dom.spectrogramImage,
+        cursorGroup: dom.cursorGroup,
+        axesGroup: dom.axesGroup,
+        imageClipRect: dom.imageClipRect,
+        cursorClipRect: dom.cursorClipRect,
+        modeColumn: layout.modeColumn,
+        markersContainer: layout.markersContainer,
+        harmonicsContainer: layout.harmonicsContainer,
+        timeLED: layout.timeLED,
+        freqLED: layout.freqLED,
+        speedLED: layout.speedLED,
+        colorPicker: layout.colorPicker,
+        modesContainer: initialModeUI.modesContainer,
+        modeButtons: initialModeUI.modeButtons,
+        commandButtons: initialModeUI.commandButtons,
+        guidancePanel: initialModeUI.guidancePanel,
+        // Mounted later, or not at all: the harmonics panel arrives with that
+        // mode's UI, the expand toggle only for a landscape image, and nothing
+        // assigns the mode/rate LEDs at all — every read of them is guarded.
+        harmonicPanel: null,
+        expandToggleButton: null,
+        modeLED: null,
+        rateLED: null
+      };
       setupSpectrogramIfAvailable(this);
-      initializeModeInfrastructure(this);
-      setupModeUI(this);
-      updateModeUIWithCommands(this);
-      setupAllEventListeners(this);
-      setupStateListeners(this);
-      if (this._isTrainerContext) {
+      const { modes, featureRenderer } = initializeModeInfrastructure(this);
+      this.modes = modes;
+      this.featureRenderer = featureRenderer;
+      this.currentMode = setupModeUI(this, modes, layout.markersContainer, layout.harmonicsContainer, initialModeUI.guidancePanel);
+      const modeUI = updateModeUIWithCommands(
+        this,
+        initialModeUI,
+        modes,
+        this.currentMode,
+        layout.modeColumn,
+        layout.guidanceColumn
+      );
+      this.ui.modesContainer = modeUI.modesContainer;
+      this.ui.modeButtons = modeUI.modeButtons;
+      this.ui.commandButtons = modeUI.commandButtons;
+      this.ui.guidancePanel = modeUI.guidancePanel;
+      const controls = setupAllEventListeners(this);
+      this.interaction.removeHarmonicSet = controls.removeHarmonicSet;
+      this.interaction.setSelection = controls.setSelection;
+      this.interaction.clearSelection = controls.clearSelection;
+      this.interaction.updateSelectionVisuals = controls.updateSelectionVisuals;
+      this.interaction.applyColorToSelectedFeature = controls.applyColorToSelectedFeature;
+      this.interaction.applySymbolToSelectedFeature = controls.applySymbolToSelectedFeature;
+      this.interaction.applyPinToSelectedFeature = controls.applyPinToSelectedFeature;
+      this.interaction.applyLargeSymbolsToSelectedFeature = controls.applyLargeSymbolsToSelectedFeature;
+      if (this.persistence._isTrainerContext) {
         this._addClearGramButton();
       }
       this._restoreAnnotations();
@@ -5912,25 +6031,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     // Zoom controls removed - now handled by pan mode command buttons
     /**
-     * Zoom in by increasing zoom level
-     */
-    _zoomIn() {
-      zoomIn(this);
-    }
-    /**
-     * Zoom out by decreasing zoom level
-     */
-    _zoomOut() {
-      zoomOut(this);
-    }
-    /**
-     * Reset zoom to 1x
-     */
-    _zoomReset() {
-      zoomReset(this);
-    }
-    /**
-     * Set zoom level and center point
+     * Set zoom level and center point.
+     *
+     * The one surviving instance-level zoom forwarder. `_zoomIn`, `_zoomOut` and
+     * `_zoomReset` were deleted with their last caller when Pan mode's command
+     * buttons started calling `core/viewport.js` directly — zoom has one seam,
+     * and reaching it through an underscore-prefixed instance method was a second
+     * one (spec 167, FR-007, AS-4.3). This remains because the Playwright helper
+     * drives zoom through it from the page.
      * @param {number} level - Zoom level (1.0 = no zoom)
      * @param {number} centerX - Center X (0-1 normalized)
      * @param {number} centerY - Center Y (0-1 normalized)
@@ -5968,22 +6076,22 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         e.preventDefault();
         this._clearGram();
       });
-      if (this.modeColumn) {
-        this.modeColumn.appendChild(btn);
+      if (this.ui.modeColumn) {
+        this.ui.modeColumn.appendChild(btn);
       }
     }
     /**
      * Clear all annotations from state and storage
      */
     _clearGram() {
-      const fresh = createInitialState();
+      const fresh = createInitialState(ModeFactory.getModeInitialStates());
       this.state.analysis = fresh.analysis;
       this.state.harmonics = fresh.harmonics;
       this.state.doppler = fresh.doppler;
       this.state.selection = fresh.selection;
       this.state.drag = fresh.drag;
       this.state.cursors = fresh.cursors;
-      if (clearAnnotations(this._storageInstanceIndex)) {
+      if (clearAnnotations(this.persistence._storageInstanceIndex)) {
         clearStorageWarning(this);
       } else {
         showStorageWarning(this, "Saved annotations could not be removed from browser storage — they may reappear when this page is reloaded.");
@@ -6003,7 +6111,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Restore saved annotations from browser storage into state
      */
     _restoreAnnotations() {
-      const saved = loadAnnotations(this._storageInstanceIndex);
+      const saved = loadAnnotations(this.persistence._storageInstanceIndex);
       if (!saved) return;
       markAnnotationsChanged(this);
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
@@ -6048,7 +6156,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         ].join("|");
         if (signature !== lastSignature) {
           lastSignature = signature;
-          if (saveAnnotations(this.state, this._storageInstanceIndex)) {
+          if (saveAnnotations(this.state, this.persistence._storageInstanceIndex)) {
             clearStorageWarning(this);
           } else if (hasPersistableAnnotations(state)) {
             showStorageWarning(this, "Annotations could not be saved — they will be lost when this page is reloaded.");
@@ -6073,8 +6181,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       flushDispatch(this);
       cleanupEventListeners(this);
       cleanupKeyboardControl(this);
-      if (this.container && this.container.parentNode) {
-        this.container.parentNode.removeChild(this.container);
+      if (this.ui.container && this.ui.container.parentNode) {
+        this.ui.container.parentNode.removeChild(this.ui.container);
       }
     }
     /**
@@ -6092,12 +6200,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           modeInstance.dragHandler.cancelDrag();
         }
       });
-      if (this.state.selection && this.state.selection.selectedType && this.clearSelection) {
-        this.clearSelection();
+      if (this.state.selection && this.state.selection.selectedType && this.interaction.clearSelection) {
+        this.interaction.clearSelection();
       }
-      if (this.modeButtons) {
-        Object.keys(this.modeButtons).forEach((m) => {
-          const button = this.modeButtons[m];
+      if (this.ui.modeButtons) {
+        Object.keys(this.ui.modeButtons).forEach((m) => {
+          const button = this.ui.modeButtons[m];
           if (button) {
             if (m === mode) {
               button.classList.add("active");
@@ -6107,9 +6215,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           }
         });
       }
-      if (this.container) {
-        this.container.classList.remove("gram-frame-analysis-mode", "gram-frame-harmonics-mode");
-        this.container.classList.add(`gram-frame-${mode}-mode`);
+      if (this.ui.container) {
+        this.ui.container.classList.remove("gram-frame-analysis-mode", "gram-frame-harmonics-mode");
+        this.ui.container.classList.add(`gram-frame-${mode}-mode`);
       }
       if (this.currentMode) {
         this.currentMode.cleanup();
@@ -6117,14 +6225,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       this.currentMode = this.modes[mode];
       this.currentMode.activate();
-      if (this.guidancePanel) {
+      if (this.ui.guidancePanel) {
         const guidanceContent = this.currentMode.getGuidanceText();
-        updateGuidancePanel(this.guidancePanel, guidanceContent);
+        updateGuidancePanel(this.ui.guidancePanel, guidanceContent);
       }
       this.currentMode.updateLEDs(this.state.cursorPosition);
       updateLEDDisplays(this, this.state);
-      if (this.modeLED) {
-        this.modeLED.querySelector(".gram-frame-led-value").textContent = getModeDisplayName(mode);
+      if (this.ui.modeLED) {
+        setLEDValue(this.ui.modeLED, getModeDisplayName(mode));
       }
       updatePersistentPanels(this);
       if (this.featureRenderer) {

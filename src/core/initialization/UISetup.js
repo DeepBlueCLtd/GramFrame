@@ -10,67 +10,80 @@
 
 import { createUnifiedLayout } from '../../components/MainUI.js'
 import { createModeSwitchingUI } from '../../components/ModeButtons.js'
-import { setupSpectrogramImage } from '../../components/table.js'
+import { setupSpectrogramImage } from '../../components/spectrogramImage.js'
 import { updateGuidancePanel } from '../../utils/secureHTML.js'
 
+/** @typedef {import('../../modes/BaseMode.js').BaseMode} BaseMode */
+
 /**
- * Create unified layout structure for the GramFrame instance
+ * Create unified layout structure for the GramFrame instance.
  * @param {GramFrame} instance - GramFrame instance
+ * @param {HTMLDivElement} readoutPanel - Panel the layout is mounted into
+ * @param {HTMLDivElement} modeCell - Cell the readout panel is mounted into
+ * @returns {UnifiedLayoutElements} The columns, LEDs and containers just built
  */
-export function createUnifiedLayoutStructure(instance) {
-  // Create unified layout
-  createUnifiedLayout(instance)
-  
+export function createUnifiedLayoutStructure(instance, readoutPanel, modeCell) {
+  const layout = createUnifiedLayout(instance)
+
   // Append unified layout to readout panel
-  instance.readoutPanel.appendChild(instance.unifiedLayoutContainer)
-  
+  readoutPanel.appendChild(layout.unifiedLayoutContainer)
+
   // Append readout panel to mode cell
-  instance.modeCell.appendChild(instance.readoutPanel)
+  modeCell.appendChild(readoutPanel)
+
+  return layout
 }
 
 /**
- * Set up persistent containers and mode switching UI
+ * Set up the mode switching UI, before the modes themselves exist.
+ *
+ * Built twice by design: this pass has no command buttons because no mode has
+ * been constructed yet to declare any. `updateModeUIWithCommands` replaces it
+ * once they have.
  * @param {GramFrame} instance - GramFrame instance
+ * @param {HTMLDivElement} modeColumn - Column the mode buttons mount into
+ * @param {HTMLDivElement} guidanceColumn - Column the guidance panel mounts into
+ * @returns {ModeUIElements} The mode UI just built
  */
-export function setupPersistentContainers(instance) {
+export function setupPersistentContainers(instance, modeColumn, guidanceColumn) {
   // Create mode switching UI initially (will be updated after modes are initialized)
   const tempContainer = document.createElement('div')
-  const modeUI = createModeSwitchingUI(tempContainer, instance.state, (mode) => instance._switchMode(mode))
-  instance.modesContainer = modeUI.modesContainer
-  instance.modeButtons = modeUI.modeButtons
-  instance.commandButtons = modeUI.commandButtons
-  instance.guidancePanel = modeUI.guidancePanel
-  
+  const modeUI = createModeSwitchingUI(tempContainer, instance.state, (/** @type {ModeType} */ mode) => instance._switchMode(mode))
+
   // Add mode UI to appropriate columns
-  instance.modeColumn.appendChild(instance.modesContainer)
-  instance.guidanceColumn.appendChild(instance.guidancePanel)
+  modeColumn.appendChild(modeUI.modesContainer)
+  guidanceColumn.appendChild(modeUI.guidancePanel)
+
+  return modeUI
 }
 
 /**
- * Update mode UI with command buttons after modes are initialized
+ * Rebuild the mode UI with command buttons, now that the modes exist.
  * @param {GramFrame} instance - GramFrame instance
+ * @param {ModeUIElements} previous - The mode UI to replace
+ * @param {Object<string, BaseMode>} modes - Constructed modes, for their command buttons
+ * @param {BaseMode} currentMode - Mode whose guidance text is shown first
+ * @param {HTMLDivElement} modeColumn - Column the mode buttons mount into
+ * @param {HTMLDivElement} guidanceColumn - Column the guidance panel mounts into
+ * @returns {ModeUIElements} The replacement mode UI
  */
-export function updateModeUIWithCommands(instance) {
+export function updateModeUIWithCommands(instance, previous, modes, currentMode, modeColumn, guidanceColumn) {
   // Recreate mode UI with command buttons now that modes are available
-  instance.modeColumn.removeChild(instance.modesContainer)
-  instance.guidanceColumn.removeChild(instance.guidancePanel)
-  
+  modeColumn.removeChild(previous.modesContainer)
+  guidanceColumn.removeChild(previous.guidancePanel)
+
   const tempContainer2 = document.createElement('div')
-  const modeUIWithButtons = createModeSwitchingUI(tempContainer2, instance.state, (mode) => instance._switchMode(mode), instance.modes)
-  instance.modesContainer = modeUIWithButtons.modesContainer
-  instance.modeButtons = modeUIWithButtons.modeButtons
-  instance.commandButtons = modeUIWithButtons.commandButtons
-  instance.guidancePanel = modeUIWithButtons.guidancePanel
-  
+  const modeUIWithButtons = createModeSwitchingUI(tempContainer2, instance.state, (/** @type {ModeType} */ mode) => instance._switchMode(mode), modes)
+
   // Add updated mode UI back to appropriate columns
-  instance.modeColumn.appendChild(instance.modesContainer)
-  instance.guidanceColumn.appendChild(instance.guidancePanel)
-  
+  modeColumn.appendChild(modeUIWithButtons.modesContainer)
+  guidanceColumn.appendChild(modeUIWithButtons.guidancePanel)
+
   // Set initial guidance content after recreating the panel
-  if (instance.currentMode && instance.guidancePanel) {
-    const guidanceContent = instance.currentMode.getGuidanceText()
-    updateGuidancePanel(instance.guidancePanel, guidanceContent)
-  }
+  const guidanceContent = currentMode.getGuidanceText()
+  updateGuidancePanel(modeUIWithButtons.guidancePanel, guidanceContent)
+
+  return modeUIWithButtons
 }
 
 /**

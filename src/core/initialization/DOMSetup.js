@@ -1,106 +1,31 @@
 /**
  * DOM Setup module for GramFrame initialization
- * 
- * This module handles DOM element creation and property setup during GramFrame
- * initialization. It extracts DOM-related initialization logic from the main
- * constructor to improve maintainability and testability.
+ *
+ * Builds the component's DOM structure and hands it back. It assigns nothing to
+ * the instance: the constructor does that, which is what lets the fields carry
+ * non-null types and what makes a reordered step a missing-argument error
+ * rather than a silent `undefined` (spec 167, FR-009).
+ *
+ * The module used to open with `initializeDOMProperties`, which set 33 fields
+ * to `null` — including `modes`, `currentMode` and `featureRenderer`, which
+ * `initializeModeInfrastructure` then re-created. That double-nulling is gone.
  */
 
 /// <reference path="../../types.js" />
 
 import { extractConfigData } from '../configuration.js'
 import { setupComponentTable } from '../../components/table.js'
-import { BaseMode } from '../../modes/BaseMode.js'
-import { FeatureRenderer } from '../FeatureRenderer.js'
 
 /**
- * Initialize DOM properties and set them on the instance
+ * Extract the config data and build the component's DOM and SVG structure.
  * @param {GramFrame} instance - GramFrame instance
+ * @param {HTMLTableElement} configTable - Configuration table to read and replace
+ * @returns {TableElements} The elements just created
  */
-export function initializeDOMProperties(instance) {
-  // Initialize DOM element properties (will be populated by setupComponentTable)
-  /** @type {HTMLDivElement} */
-  instance.container = null
-  /** @type {HTMLDivElement} */
-  instance.readoutPanel = null
-  /** @type {HTMLDivElement} */
-  instance.modeCell = null
-  /** @type {HTMLDivElement} */
-  instance.mainCell = null
-  /** @type {HTMLElement} */
-  instance.modeLED = null
-  /** @type {HTMLElement} */
-  instance.rateLED = null
-  /** @type {HTMLElement} */
-  instance.colorPicker = null
-  /** @type {SVGSVGElement} */
-  instance.svg = null
-  /** @type {SVGGElement} */
-  instance.cursorGroup = null
-  /** @type {SVGGElement} */
-  instance.axesGroup = null
-  /** @type {SVGRectElement} */
-  instance.imageClipRect = null
-  /** @type {SVGRectElement} */
-  instance.cursorClipRect = null
-  
-  // Unified layout containers
-  /** @type {HTMLDivElement} */
-  instance.leftColumn = null
-  /** @type {HTMLDivElement} */
-  instance.middleColumn = null
-  /** @type {HTMLDivElement} */
-  instance.rightColumn = null
-  /** @type {HTMLDivElement} */
-  instance.modeColumn = null
-  /** @type {HTMLDivElement} */
-  instance.guidanceColumn = null
-  /** @type {HTMLDivElement} */
-  instance.controlsColumn = null
-  /** @type {HTMLDivElement} */
-  instance.unifiedLayoutContainer = null
-  /** @type {HTMLElement} */
-  instance.timeLED = null
-  /** @type {HTMLElement} */
-  instance.freqLED = null
-  /** @type {HTMLElement} */
-  instance.speedLED = null
-  /** @type {HTMLDivElement} */
-  instance.markersContainer = null
-  /** @type {HTMLDivElement} */
-  instance.harmonicsContainer = null
-  
-  // Initialize spectrogram image property
-  /** @type {SVGImageElement} */
-  instance.spectrogramImage = null
-  
-  // Initialize mode switching UI properties
-  /** @type {HTMLDivElement} */
-  instance.modesContainer = null
-  /** @type {Object<string, HTMLButtonElement>} */
-  instance.modeButtons = null
-  /** @type {Object<string, HTMLButtonElement>} */
-  instance.commandButtons = null
-  /** @type {HTMLDivElement} */
-  instance.guidancePanel = null
-  
-  // Initialize mode system properties
-  /** @type {Object<string, BaseMode>} */
-  instance.modes = null
-  /** @type {BaseMode} */
-  instance.currentMode = null
-  /** @type {FeatureRenderer} */
-  instance.featureRenderer = null
-}
-
-/**
- * Set up spectrogram components including config extraction and table setup
- * @param {GramFrame} instance - GramFrame instance
- */
-export function setupSpectrogramComponents(instance) {
+export function setupSpectrogramComponents(instance, configTable) {
   // Extract config data from table BEFORE replacing it
   extractConfigData(instance)
-  
+
   // Create complete component table structure including DOM and SVG
-  setupComponentTable(instance, instance.configTable)
+  return setupComponentTable(instance, configTable)
 }

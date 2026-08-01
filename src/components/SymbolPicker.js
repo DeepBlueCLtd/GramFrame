@@ -68,14 +68,14 @@ export function createSymbolSelect(instance) {
     const symbol = /** @type {SymbolType} */ (select.value)
     // Route to the selected feature when one is selected (restyle in place),
     // otherwise set the style for the next created feature.
-    if (!instance.applySymbolToSelectedFeature || !instance.applySymbolToSelectedFeature(symbol)) {
+    if (!instance.interaction.applySymbolToSelectedFeature || !instance.interaction.applySymbolToSelectedFeature(symbol)) {
       state.selectedSymbol = symbol
     }
   })
 
   // Expose a control handle so selection changes can reflect the selected
   // feature's symbol back into this drop-down (feature 161, FR-004).
-  instance._symbolControl = {
+  instance.interaction._symbolControl = {
     /** @param {SymbolType} symbol */
     setValue(symbol) {
       select.value = symbol
@@ -120,8 +120,8 @@ export function createLargeSymbolToggle(instance) {
   checkbox.addEventListener('change', () => {
     // Resize the selected feature when one is selected, otherwise set the size
     // for the next created feature.
-    if (!instance.applyLargeSymbolsToSelectedFeature ||
-        !instance.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
+    if (!instance.interaction.applyLargeSymbolsToSelectedFeature ||
+        !instance.interaction.applyLargeSymbolsToSelectedFeature(checkbox.checked)) {
       instance.state.largeSymbols = checkbox.checked
       dispatch(instance)
     }
@@ -129,7 +129,7 @@ export function createLargeSymbolToggle(instance) {
 
   // Expose a handle so selection changes reflect the selected feature's size
   // back into the checkbox (mirrors the symbol drop-down's control handle).
-  instance._largeSymbolsControl = {
+  instance.interaction._largeSymbolsControl = {
     /** @param {boolean} large */
     setValue(large) {
       checkbox.checked = large

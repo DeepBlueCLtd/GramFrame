@@ -116,7 +116,8 @@ export function detectUserContext() {
   // Legacy detection: an anchor whose exact text is "ANALYSIS"
   const anchors = document.querySelectorAll('a')
   for (let i = 0; i < anchors.length; i++) {
-    if (anchors[i].textContent && anchors[i].textContent.trim() === 'ANALYSIS') {
+    const text = anchors[i].textContent
+    if (text && text.trim() === 'ANALYSIS') {
       return 'trainer'
     }
   }
