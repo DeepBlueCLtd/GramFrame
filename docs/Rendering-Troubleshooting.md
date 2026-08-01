@@ -10,7 +10,7 @@ Understanding which files handle what is the first step in narrowing down a rend
 
 | Subsystem | File | Handles |
 |-----------|------|---------|
-| Render entry point | `src/rendering/cursors.js` | `updateCursorIndicators()` — clears and redraws all features |
+| Render entry point | `src/core/FeatureRenderer.js` | `renderAllPersistentFeatures()` — clears and redraws all features |
 | Feature coordination | `src/core/FeatureRenderer.js` | Cross-mode visibility; delegates to each mode's renderer |
 | SVG element creation | `src/utils/svg.js` | `createSVGLine`, `createSVGText`, `createSVGCircle` |
 | Coordinate transforms | `src/utils/coordinates.js` | `screenToSVGCoordinates`, `imageToDataCoordinates` |
@@ -28,7 +28,7 @@ Every mouse event or mode switch triggers this sequence:
 Mouse event / mode switch
     │
     ▼
-updateCursorIndicators(instance)
+featureRenderer.renderAllPersistentFeatures()
     │
     ├─ cursorGroup.innerHTML = ''    (clear all SVG features)
     │
@@ -84,7 +84,7 @@ updateCursorIndicators(instance)
 **Likely causes**:
 
 - **State modified but `notifyStateListeners` not called**: After changing state, you must call `notifyStateListeners(instance.state, instance.stateListeners)` to broadcast the change.
-- **State modified after render**: If state is updated after `updateCursorIndicators` runs, the rendered SVG won't reflect the new state until the next render cycle.
+- **State modified after render**: If state is updated after `renderAllPersistentFeatures` runs, the rendered SVG won't reflect the new state until the next render cycle.
 - **Deep-copy timing**: Listeners receive a deep copy of state. If a listener triggers further state changes, those happen on the copy, not on the real state.
 
 ### 5. Feature Not Visible Across Modes

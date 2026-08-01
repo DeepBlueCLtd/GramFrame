@@ -1,5 +1,12 @@
 # Architecture Review — August 2026
 
+> **Fix status (added after the fix pass on this branch).** Tiers 1 and 2 of
+> the recommendations were implemented in full: H1–H4, M1–M4, M10, M11, plus
+> L1, L2, L6, L15 and parts of L10 (deprecated `substr`, the doppler cursor
+> reset, the stale `cursors.js` comment) are **fixed**. `rendering/cursors.js`
+> itself is gone — the H3 split left it with no caller. Tier 3 (M5–M9, M12 and
+> the remaining lows) is deliberately left for the next consolidation round.
+
 **Reviewed at**: commit `91656a5` (post spec 167, including the harmonic-hover fix from PR #226)
 **Scope**: all of `src/`, plus tests, build tooling and documentation accuracy
 **Method**: four independent subsystem reviews (core layer; mode system; rendering/components/utils; tests/build/docs), each verifying claimed invariants against code rather than comments, then synthesized and de-duplicated. Findings independently reported by more than one reviewer are noted as such.

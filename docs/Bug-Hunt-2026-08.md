@@ -1,5 +1,15 @@
 # Bug Hunt — August 2026
 
+> **Fix status (added after the fix pass on this branch).** The suggested fix
+> order below was implemented in full: BH-1 – BH-13, BH-15 – BH-19, BH-21,
+> BH-23 – BH-25 and BH-31 – BH-33 are **fixed**, with regression tests for the
+> headliners in `tests/storage.spec.js` ("Bug-hunt regressions") and
+> `tests/unit/storage-validation.test.js`. Still open, deliberately: BH-14
+> (multi-tab last-writer-wins — needs a `storage`-event merge design), BH-20
+> (config coercions), BH-22 (tolerance vs axis span — needs a fixture), BH-26
+> (rate ≠ 1, latent by agreement), BH-27/BH-28 (formatTime/axis label polish),
+> BH-29 (button zoom-out centre) and BH-30 (style-picker default dispatches).
+
 **Companion to** [Architecture-Review-2026-08.md](Architecture-Review-2026-08.md). That review sliced the codebase by subsystem; every bug it confirmed lived in a *seam* between subsystems, so this hunt deliberately used four cross-cutting lenses instead:
 
 1. **Adversarial event sequences** — unusual orderings/interleavings of user events
