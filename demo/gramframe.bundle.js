@@ -402,7 +402,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return true;
     }
     const age = nowMs - t;
-    if (age < 0) {
+    if (age < -3e5) {
       return true;
     }
     return age > STUDENT_TTL_MS;
@@ -461,13 +461,86 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function hasPersistableAnnotations(state) {
     const hasMarkers = !!(state.analysis && state.analysis.markers && state.analysis.markers.length > 0);
     const hasHarmonics = !!(state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0);
-    const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null));
+    const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null || state.doppler.fZero !== null));
     return hasMarkers || hasHarmonics || hasDoppler;
   }
-  function saveAnnotations(state, instanceIndex) {
+  function isFiniteNumber(value) {
+    return typeof value === "number" && Number.isFinite(value);
+  }
+  function isNonEmptyString(value) {
+    return typeof value === "string" && value.length > 0;
+  }
+  function isValidStoredPoint(point) {
+    if (point === null || point === void 0) return true;
+    return !!point && isFiniteNumber(point.time) && isFiniteNumber(point.freq);
+  }
+  function sanitizeStoredAnnotations(data) {
+    let dropped = 0;
+    let markers = [];
+    if (data && data.analysis && Array.isArray(data.analysis.markers)) {
+      markers = data.analysis.markers.filter((m) => {
+        const valid = !!m && isNonEmptyString(m.id) && isNonEmptyString(m.color) && isFiniteNumber(m.time) && isFiniteNumber(m.freq);
+        if (!valid) dropped++;
+        return valid;
+      });
+    } else if (data && data.analysis && data.analysis.markers != null) {
+      dropped++;
+    }
+    let harmonicSets = [];
+    if (data && data.harmonics && Array.isArray(data.harmonics.harmonicSets)) {
+      harmonicSets = data.harmonics.harmonicSets.filter((hs) => {
+        const valid = !!hs && isNonEmptyString(hs.id) && isNonEmptyString(hs.color) && isFiniteNumber(hs.anchorTime) && // Strictly positive: spacing 0 makes the harmonic range infinite.
+        isFiniteNumber(hs.spacing) && hs.spacing > 0;
+        if (!valid) dropped++;
+        return valid;
+      });
+    } else if (data && data.harmonics && data.harmonics.harmonicSets != null) {
+      dropped++;
+    }
+    const rawDoppler = data && data.doppler || {};
+    const doppler = { fPlus: null, fMinus: null, fZero: null, color: null };
+    for (
+      const key of
+      /** @type {const} */
+      ["fPlus", "fMinus", "fZero"]
+    ) {
+      if (isValidStoredPoint(rawDoppler[key])) {
+        doppler[key] = rawDoppler[key] || null;
+      } else {
+        dropped++;
+      }
+    }
+    doppler.color = isNonEmptyString(rawDoppler.color) ? rawDoppler.color : null;
+    const annotations = {
+      version: data && data.version,
+      savedAt: data && data.savedAt,
+      gram: data && data.gram,
+      analysis: { markers },
+      harmonics: { harmonicSets },
+      doppler
+    };
+    return { annotations, dropped };
+  }
+  function buildGramFingerprint(state) {
+    const url = state.imageDetails && state.imageDetails.url || "";
+    const config = state.config || { timeMin: 0, timeMax: 0, freqMin: 0, freqMax: 0 };
+    return {
+      image: url.split("/").pop() || "",
+      timeMin: config.timeMin,
+      timeMax: config.timeMax,
+      freqMin: config.freqMin,
+      freqMax: config.freqMax
+    };
+  }
+  function fingerprintMatches(stored, expected) {
+    if (!stored) {
+      return true;
+    }
+    return stored.image === expected.image && stored.timeMin === expected.timeMin && stored.timeMax === expected.timeMax && stored.freqMin === expected.freqMin && stored.freqMax === expected.freqMax;
+  }
+  function saveAnnotations(state, instanceIndex, context) {
     try {
-      const context = detectUserContext();
-      const storage = getStorage(context);
+      const storage = getStorage(context || detectUserContext());
       if (!storage) return false;
       if (!hasPersistableAnnotations(state)) {
         const key2 = buildStorageKey(instanceIndex);
@@ -477,6 +550,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const data = {
         version: SCHEMA_VERSION,
         savedAt: (/* @__PURE__ */ new Date()).toISOString(),
+        // `gram` is an ADDITIVE field (which gram this record belongs to). It
+        // MUST NOT trigger a SCHEMA_VERSION bump: legacy records simply lack it
+        // and restore without the identity check (BH-6, BH-23).
+        gram: buildGramFingerprint(state),
         analysis: {
           markers: (state.analysis && state.analysis.markers || []).map((m) => ({
             id: m.id,
@@ -522,38 +599,41 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return false;
     }
   }
-  function loadAnnotations(instanceIndex) {
+  function loadAnnotations(instanceIndex, context, expectedGram) {
     try {
-      const context = detectUserContext();
-      const storage = getStorage(context);
+      const resolvedContext = context || detectUserContext();
+      const storage = getStorage(resolvedContext);
       if (!storage) return null;
       const key = buildStorageKey(instanceIndex);
       const raw = storage.getItem(key);
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (!data || data.version !== SCHEMA_VERSION) {
-        console.warn("GramFrame: Discarding stored annotations — unrecognised schema version:", data && data.version);
-        storage.removeItem(key);
+        console.warn("GramFrame: Ignoring stored annotations — unrecognised schema version:", data && data.version);
         return null;
       }
-      if (context === "student" && isAnnotationExpired(data.savedAt, Date.now())) {
+      if (resolvedContext === "student" && isAnnotationExpired(data.savedAt, Date.now())) {
         console.info("GramFrame: Discarding student annotations — older than the 24-hour persistence limit");
         storage.removeItem(key);
         return null;
       }
-      return (
-        /** @type {StoredAnnotations} */
-        data
-      );
+      if (expectedGram && !fingerprintMatches(data.gram, expectedGram)) {
+        console.warn("GramFrame: Ignoring stored annotations — they belong to a different spectrogram (image or axis ranges differ).");
+        return null;
+      }
+      const { annotations, dropped } = sanitizeStoredAnnotations(data);
+      if (dropped > 0) {
+        console.warn(`GramFrame: Discarded ${dropped} invalid stored annotation entr${dropped === 1 ? "y" : "ies"} — restoring the rest.`);
+      }
+      return annotations;
     } catch (error) {
       console.warn("GramFrame: Failed to load stored annotations — data discarded:", error);
       return null;
     }
   }
-  function clearAnnotations(instanceIndex) {
+  function clearAnnotations(instanceIndex, context) {
     try {
-      const context = detectUserContext();
-      const storage = getStorage(context);
+      const storage = getStorage(context || detectUserContext());
       if (!storage) return false;
       const key = buildStorageKey(instanceIndex);
       storage.removeItem(key);
@@ -991,7 +1071,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   let currentFocusedInstance = null;
   const registeredInstances = /* @__PURE__ */ new Set();
+  function pruneDisconnectedInstances() {
+    for (const instance of Array.from(registeredInstances)) {
+      if (!instance.ui || !instance.ui.container || !instance.ui.container.isConnected) {
+        registeredInstances.delete(instance);
+        if (currentFocusedInstance === instance) {
+          currentFocusedInstance = null;
+        }
+      }
+    }
+  }
   function registerInstance(instance) {
+    pruneDisconnectedInstances();
     registeredInstances.add(instance);
   }
   function unregisterInstance(instance) {
@@ -1008,6 +1099,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function getRegisteredInstanceCount() {
+    pruneDisconnectedInstances();
     return registeredInstances.size;
   }
   function setFocusedInstance(instance) {
@@ -1020,7 +1112,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function getFocusedInstance() {
+    pruneDisconnectedInstances();
     return currentFocusedInstance;
+  }
+  function clearFocusedInstance() {
+    if (currentFocusedInstance) {
+      removeFocusIndicator(currentFocusedInstance);
+    }
+    currentFocusedInstance = null;
+  }
+  function isNodeInsideAnyInstance(node) {
+    if (!(node instanceof Node)) {
+      return false;
+    }
+    pruneDisconnectedInstances();
+    return Array.from(registeredInstances).some(
+      (instance) => !!(instance.ui && instance.ui.container && instance.ui.container.contains(node))
+    );
   }
   function addFocusIndicator(instance) {
     if (instance.ui.container) {
@@ -1033,6 +1141,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function focusNextInstance() {
+    pruneDisconnectedInstances();
     if (registeredInstances.size <= 1) return;
     const instancesArray = Array.from(registeredInstances);
     const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1;
@@ -1043,6 +1152,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
   }
   function focusPreviousInstance() {
+    pruneDisconnectedInstances();
     if (registeredInstances.size <= 1) return;
     const instancesArray = Array.from(registeredInstances);
     const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1;
@@ -1052,6 +1162,240 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       setFocusedInstance(next);
     }
   }
+  const activeDragOwners = /* @__PURE__ */ new WeakMap();
+  function hasActiveDrag(instance) {
+    const owner = activeDragOwners.get(instance);
+    return !!(owner && owner.dragState.isDragging);
+  }
+  function cancelActiveDrag(instance) {
+    const owner = activeDragOwners.get(instance);
+    if (owner && owner.dragState.isDragging) {
+      owner.cancelDrag();
+      return true;
+    }
+    return false;
+  }
+  function idleProjection() {
+    return {
+      active: false,
+      kind: null,
+      mode: null,
+      targetId: null,
+      targetType: null,
+      startPosition: null
+    };
+  }
+  function publishDragProjection(instance) {
+    if (!instance || !instance.state) {
+      return;
+    }
+    const owner = activeDragOwners.get(instance);
+    if (!owner || !owner.dragState.isDragging) {
+      instance.state.drag = idleProjection();
+    } else {
+      instance.state.drag = {
+        active: true,
+        kind: owner.dragState.kind,
+        mode: owner.modeName,
+        targetId: owner.dragState.draggedTargetId,
+        targetType: owner.dragState.draggedTargetType,
+        startPosition: owner.dragState.dragStartPosition ? { ...owner.dragState.dragStartPosition } : null
+      };
+    }
+    dispatch(instance);
+  }
+  class BaseDragHandler {
+    /**
+     * Create a new BaseDragHandler
+     * @param {GramFrame} instance - GramFrame instance
+     * @param {DragCallbacks} callbacks - Drag lifecycle callbacks
+     * @param {ModeType|null} [modeName] - Mode that owns this handler, for the projection
+     */
+    constructor(instance, callbacks, modeName = null) {
+      this.instance = instance;
+      this.callbacks = callbacks;
+      this.modeName = modeName;
+      this.dragState = {
+        isDragging: false,
+        kind: null,
+        draggedTargetId: null,
+        draggedTargetType: null,
+        dragStartPosition: null,
+        originalData: null
+      };
+    }
+    /**
+     * Check if currently dragging
+     * @returns {boolean} True if drag operation is active
+     */
+    isDragging() {
+      return this.dragState.isDragging;
+    }
+    /**
+     * The kind of drag in progress, if any.
+     * @returns {DragKind|null} Drag kind or null when idle
+     */
+    dragKind() {
+      return this.dragState.isDragging ? this.dragState.kind : null;
+    }
+    /**
+     * Get the current dragged target information.
+     *
+     * Deliberately not a `DragTarget`: this carries the drag's *start* position
+     * and the snapshot taken at that moment, where `DragTarget` carries the
+     * current position. See {@link BaseDragHandler#currentTarget} for the latter.
+     * @returns {DraggedTargetInfo|null} Drag target info or null if not dragging
+     */
+    getDraggedTarget() {
+      if (!this.dragState.isDragging) return null;
+      return {
+        kind: this.dragState.kind,
+        id: this.dragState.draggedTargetId,
+        type: this.dragState.draggedTargetType,
+        startPosition: this.dragState.dragStartPosition,
+        originalData: this.dragState.originalData
+      };
+    }
+    /**
+     * The target descriptor handed back to the mode's callbacks.
+     * @param {DataCoordinates|null} position - Current position; null for a
+     *   pixel-space (pan) drag, which has no data position
+     * @returns {DragTarget} Target descriptor
+     */
+    currentTarget(position) {
+      return {
+        // Non-null while a drag is running, which is the only time this is
+        // called: `handleMouseMove`, `handleMouseUp` and `cancelDrag` all return
+        // early when `isDragging` is false.
+        kind: (
+          /** @type {DragKind} */
+          this.dragState.kind
+        ),
+        id: this.dragState.draggedTargetId,
+        type: this.dragState.draggedTargetType,
+        position,
+        data: this.dragState.originalData
+      };
+    }
+    /**
+     * Handle mouse move events for drag operations
+     * @param {DataCoordinates|null} currentPosition - Current mouse position in data coordinates
+     * @param {MouseEvent} [event] - Originating event, for drags that work in screen pixels
+     */
+    handleMouseMove(currentPosition, event) {
+      if (!this.dragState.isDragging) return;
+      this.callbacks.onDragMove(
+        this.currentTarget(currentPosition),
+        currentPosition,
+        this.dragState.dragStartPosition,
+        event
+      );
+    }
+    /**
+     * Start a drag operation
+     * @param {DataCoordinates|null} position - Position where drag started
+     * @param {MouseEvent} [event] - Originating mousedown, passed to the resolver
+     * @returns {boolean} True if drag started successfully, false otherwise
+     */
+    startDrag(position, event) {
+      if (this.dragState.isDragging) return false;
+      const owner = activeDragOwners.get(this.instance);
+      if (owner && owner !== this && owner.dragState.isDragging) return false;
+      const target = this.callbacks.resolveTarget(position, event);
+      if (!target) return false;
+      this.dragState.isDragging = true;
+      this.dragState.kind = target.kind || "move";
+      this.dragState.draggedTargetId = target.id ?? null;
+      this.dragState.draggedTargetType = target.type ?? null;
+      this.dragState.dragStartPosition = position ? { ...position } : null;
+      this.dragState.originalData = target.data ? { ...target.data } : null;
+      activeDragOwners.set(this.instance, this);
+      publishDragProjection(this.instance);
+      this.applyCursor(this.dragState.kind, "grabbing");
+      this.callbacks.onDragStart(this.currentTarget(position), position, event);
+      return true;
+    }
+    /**
+     * End the current drag operation
+     * @param {DataCoordinates|null} position - Position where drag ended
+     * @param {MouseEvent} [event] - Originating mouseup
+     */
+    endDrag(position, event) {
+      if (!this.dragState.isDragging) return;
+      const target = this.currentTarget(position);
+      this.callbacks.onDragEnd(target, position, event);
+      this.applyCursor(this.dragState.kind, "crosshair");
+      this.clearDragState();
+    }
+    /**
+     * Cancel the current drag operation without applying changes
+     */
+    cancelDrag() {
+      if (!this.dragState.isDragging) return;
+      const target = this.currentTarget(this.dragState.dragStartPosition);
+      if (this.callbacks.onDragCancel) {
+        this.callbacks.onDragCancel(target);
+      }
+      this.applyCursor(this.dragState.kind, "crosshair");
+      this.clearDragState();
+    }
+    /**
+     * Clear drag bookkeeping and republish the projection.
+     */
+    clearDragState() {
+      this.dragState.isDragging = false;
+      this.dragState.kind = null;
+      this.dragState.draggedTargetId = null;
+      this.dragState.draggedTargetType = null;
+      this.dragState.dragStartPosition = null;
+      this.dragState.originalData = null;
+      if (activeDragOwners.get(this.instance) === this) {
+        activeDragOwners.delete(this.instance);
+      }
+      publishDragProjection(this.instance);
+    }
+    /**
+     * Apply the cursor for a drag kind, falling back to the generic style.
+     * @param {DragKind|null} kind - Drag kind
+     * @param {string} fallback - Cursor to use when the mode has no per-kind opinion
+     */
+    applyCursor(kind, fallback) {
+      if (!this.callbacks.updateCursor) return;
+      const style = this.callbacks.cursorFor ? this.callbacks.cursorFor(kind, fallback) || fallback : fallback;
+      this.callbacks.updateCursor(style);
+    }
+    /**
+     * Update cursor style based on proximity to drag targets.
+     *
+     * Hover must never change state, so this uses the mode's side-effect-free
+     * `resolveHoverTarget` when one is supplied. `resolveTarget` is only a safe
+     * fallback for modes whose resolver is pure — a mode whose resolver mints a
+     * feature on mousedown (harmonics `create`, doppler `place`) MUST supply
+     * `resolveHoverTarget`, or every hover would create a feature.
+     * @param {DataCoordinates} position - Current mouse position
+     */
+    updateCursorForHover(position) {
+      if (this.dragState.isDragging) return;
+      const resolve = this.callbacks.resolveHoverTarget || this.callbacks.resolveTarget;
+      const target = resolve(position);
+      const cursorStyle = target ? "grab" : "crosshair";
+      if (this.callbacks.updateCursor) {
+        this.callbacks.updateCursor(cursorStyle);
+      }
+    }
+    /**
+     * Reset drag handler state
+     */
+    reset() {
+      this.cancelDrag();
+    }
+    /**
+     * Clean up drag handler resources
+     */
+    cleanup() {
+      this.reset();
+    }
+  }
   const MOVEMENT_INCREMENTS = {
     normal: 1,
     // Arrow keys alone: 1-pixel increments
@@ -1059,27 +1403,55 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     // Shift + Arrow keys: 5-pixel increments
   };
   let globalKeyboardHandler = null;
+  let globalMousedownHandler = null;
   let keyboardHandlerInitialized = false;
   function initializeKeyboardControl(instance) {
     registerInstance(instance);
     if (!keyboardHandlerInitialized) {
       globalKeyboardHandler = (event) => handleGlobalKeyboardEvent(event);
       document.addEventListener("keydown", globalKeyboardHandler);
+      globalMousedownHandler = (event) => {
+        if (!isNodeInsideAnyInstance(event.target)) {
+          clearFocusedInstance();
+        }
+      };
+      document.addEventListener("mousedown", globalMousedownHandler);
       keyboardHandlerInitialized = true;
     }
   }
   function cleanupKeyboardControl(instance) {
     unregisterInstance(instance);
-    if (globalKeyboardHandler && getRegisteredInstanceCount() === 0) {
-      document.removeEventListener("keydown", globalKeyboardHandler);
-      globalKeyboardHandler = null;
+    if (getRegisteredInstanceCount() === 0) {
+      if (globalKeyboardHandler) {
+        document.removeEventListener("keydown", globalKeyboardHandler);
+        globalKeyboardHandler = null;
+      }
+      if (globalMousedownHandler) {
+        document.removeEventListener("mousedown", globalMousedownHandler);
+        globalMousedownHandler = null;
+      }
       keyboardHandlerInitialized = false;
     }
   }
+  function isEditableTarget(target) {
+    if (!(target instanceof Element)) {
+      return false;
+    }
+    const tag = target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+      return true;
+    }
+    return target instanceof HTMLElement && target.isContentEditable;
+  }
   function handleGlobalKeyboardEvent(event) {
+    if (isEditableTarget(event.target)) {
+      return;
+    }
     const focusedInstance = getFocusedInstance();
     if (event.key === "Tab") {
-      if (!focusedInstance) return;
+      if (!focusedInstance || getRegisteredInstanceCount() <= 1) {
+        return;
+      }
       if (event.shiftKey) {
         focusPreviousInstance();
       } else {
@@ -1089,6 +1461,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     if (!focusedInstance) {
+      return;
+    }
+    if (event.key === "Escape") {
+      if (cancelActiveDrag(focusedInstance)) {
+        event.preventDefault();
+      }
       return;
     }
     if (!isArrowKey(event.key)) {
@@ -1310,6 +1688,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return false;
     }
     selected.feature.showPin = !!showPin;
+    markAnnotationsChanged(instance);
     refreshFeatureVisuals(instance, selected.type);
     return true;
   }
@@ -1330,6 +1709,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         clearSelection(instance);
       }
       harmonics.harmonicSets.splice(setIndex, 1);
+      markAnnotationsChanged(instance);
       if (instance.ui.harmonicPanel) {
         updateHarmonicPanelContent(instance.ui.harmonicPanel, instance);
       }
@@ -1860,238 +2240,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function setupSpectrogramComponents(instance, configTable) {
     extractConfigData(instance);
     return setupComponentTable(instance, configTable);
-  }
-  const activeDragOwners = /* @__PURE__ */ new WeakMap();
-  function idleProjection() {
-    return {
-      active: false,
-      kind: null,
-      mode: null,
-      targetId: null,
-      targetType: null,
-      startPosition: null
-    };
-  }
-  function publishDragProjection(instance) {
-    if (!instance || !instance.state) {
-      return;
-    }
-    const owner = activeDragOwners.get(instance);
-    if (!owner || !owner.dragState.isDragging) {
-      instance.state.drag = idleProjection();
-    } else {
-      instance.state.drag = {
-        active: true,
-        kind: owner.dragState.kind,
-        mode: owner.modeName,
-        targetId: owner.dragState.draggedTargetId,
-        targetType: owner.dragState.draggedTargetType,
-        startPosition: owner.dragState.dragStartPosition ? { ...owner.dragState.dragStartPosition } : null
-      };
-    }
-    if (typeof instance.notifyStateListeners === "function") {
-      instance.notifyStateListeners();
-    }
-  }
-  class BaseDragHandler {
-    /**
-     * Create a new BaseDragHandler
-     * @param {GramFrame} instance - GramFrame instance
-     * @param {DragCallbacks} callbacks - Drag lifecycle callbacks
-     * @param {ModeType|null} [modeName] - Mode that owns this handler, for the projection
-     */
-    constructor(instance, callbacks, modeName = null) {
-      this.instance = instance;
-      this.callbacks = callbacks;
-      this.modeName = modeName;
-      this.dragState = {
-        isDragging: false,
-        kind: null,
-        draggedTargetId: null,
-        draggedTargetType: null,
-        dragStartPosition: null,
-        originalData: null
-      };
-    }
-    /**
-     * Check if currently dragging
-     * @returns {boolean} True if drag operation is active
-     */
-    isDragging() {
-      return this.dragState.isDragging;
-    }
-    /**
-     * The kind of drag in progress, if any.
-     * @returns {DragKind|null} Drag kind or null when idle
-     */
-    dragKind() {
-      return this.dragState.isDragging ? this.dragState.kind : null;
-    }
-    /**
-     * Get the current dragged target information.
-     *
-     * Deliberately not a `DragTarget`: this carries the drag's *start* position
-     * and the snapshot taken at that moment, where `DragTarget` carries the
-     * current position. See {@link BaseDragHandler#currentTarget} for the latter.
-     * @returns {DraggedTargetInfo|null} Drag target info or null if not dragging
-     */
-    getDraggedTarget() {
-      if (!this.dragState.isDragging) return null;
-      return {
-        kind: this.dragState.kind,
-        id: this.dragState.draggedTargetId,
-        type: this.dragState.draggedTargetType,
-        startPosition: this.dragState.dragStartPosition,
-        originalData: this.dragState.originalData
-      };
-    }
-    /**
-     * The target descriptor handed back to the mode's callbacks.
-     * @param {DataCoordinates|null} position - Current position; null for a
-     *   pixel-space (pan) drag, which has no data position
-     * @returns {DragTarget} Target descriptor
-     */
-    currentTarget(position) {
-      return {
-        // Non-null while a drag is running, which is the only time this is
-        // called: `handleMouseMove`, `handleMouseUp` and `cancelDrag` all return
-        // early when `isDragging` is false.
-        kind: (
-          /** @type {DragKind} */
-          this.dragState.kind
-        ),
-        id: this.dragState.draggedTargetId,
-        type: this.dragState.draggedTargetType,
-        position,
-        data: this.dragState.originalData
-      };
-    }
-    /**
-     * Handle mouse move events for drag operations
-     * @param {DataCoordinates|null} currentPosition - Current mouse position in data coordinates
-     * @param {MouseEvent} [event] - Originating event, for drags that work in screen pixels
-     */
-    handleMouseMove(currentPosition, event) {
-      if (!this.dragState.isDragging) return;
-      this.callbacks.onDragMove(
-        this.currentTarget(currentPosition),
-        currentPosition,
-        this.dragState.dragStartPosition,
-        event
-      );
-    }
-    /**
-     * Start a drag operation
-     * @param {DataCoordinates|null} position - Position where drag started
-     * @param {MouseEvent} [event] - Originating mousedown, passed to the resolver
-     * @returns {boolean} True if drag started successfully, false otherwise
-     */
-    startDrag(position, event) {
-      if (this.dragState.isDragging) return false;
-      const owner = activeDragOwners.get(this.instance);
-      if (owner && owner !== this && owner.dragState.isDragging) return false;
-      const target = this.callbacks.resolveTarget(position, event);
-      if (!target) return false;
-      this.dragState.isDragging = true;
-      this.dragState.kind = target.kind || "move";
-      this.dragState.draggedTargetId = target.id ?? null;
-      this.dragState.draggedTargetType = target.type ?? null;
-      this.dragState.dragStartPosition = position ? { ...position } : null;
-      this.dragState.originalData = target.data ? { ...target.data } : null;
-      activeDragOwners.set(this.instance, this);
-      publishDragProjection(this.instance);
-      this.applyCursor(this.dragState.kind, "grabbing");
-      this.callbacks.onDragStart(this.currentTarget(position), position, event);
-      return true;
-    }
-    /**
-     * End the current drag operation
-     * @param {DataCoordinates|null} position - Position where drag ended
-     * @param {MouseEvent} [event] - Originating mouseup
-     */
-    endDrag(position, event) {
-      if (!this.dragState.isDragging) return;
-      const target = this.currentTarget(position);
-      this.callbacks.onDragEnd(target, position, event);
-      this.applyCursor(this.dragState.kind, "crosshair");
-      this.clearDragState();
-    }
-    /**
-     * Cancel the current drag operation without applying changes
-     */
-    cancelDrag() {
-      if (!this.dragState.isDragging) return;
-      const target = this.currentTarget(this.dragState.dragStartPosition);
-      if (this.callbacks.onDragCancel) {
-        this.callbacks.onDragCancel(target);
-      }
-      this.applyCursor(this.dragState.kind, "crosshair");
-      this.clearDragState();
-    }
-    /**
-     * Clear drag bookkeeping and republish the projection.
-     */
-    clearDragState() {
-      this.dragState.isDragging = false;
-      this.dragState.kind = null;
-      this.dragState.draggedTargetId = null;
-      this.dragState.draggedTargetType = null;
-      this.dragState.dragStartPosition = null;
-      this.dragState.originalData = null;
-      if (activeDragOwners.get(this.instance) === this) {
-        activeDragOwners.delete(this.instance);
-      }
-      publishDragProjection(this.instance);
-    }
-    /**
-     * Apply the cursor for a drag kind, falling back to the generic style.
-     * @param {DragKind|null} kind - Drag kind
-     * @param {string} fallback - Cursor to use when the mode has no per-kind opinion
-     */
-    applyCursor(kind, fallback) {
-      if (!this.callbacks.updateCursor) return;
-      const style = this.callbacks.cursorFor ? this.callbacks.cursorFor(kind, fallback) || fallback : fallback;
-      this.callbacks.updateCursor(style);
-    }
-    /**
-     * Update cursor style based on proximity to drag targets.
-     *
-     * Hover must never change state, so this uses the mode's side-effect-free
-     * `resolveHoverTarget` when one is supplied. `resolveTarget` is only a safe
-     * fallback for modes whose resolver is pure — a mode whose resolver mints a
-     * feature on mousedown (harmonics `create`, doppler `place`) MUST supply
-     * `resolveHoverTarget`, or every hover would create a feature.
-     * @param {DataCoordinates} position - Current mouse position
-     */
-    updateCursorForHover(position) {
-      if (this.dragState.isDragging) return;
-      const resolve = this.callbacks.resolveHoverTarget || this.callbacks.resolveTarget;
-      const target = resolve(position);
-      const cursorStyle = target ? "grab" : "crosshair";
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor(cursorStyle);
-      }
-    }
-    /**
-     * Reset drag handler state
-     */
-    reset() {
-      this.cancelDrag();
-    }
-    /**
-     * Clean up drag handler resources
-     */
-    cleanup() {
-      this.reset();
-    }
-  }
-  function updateCursorIndicators(instance) {
-    if (instance.ui.cursorGroup) {
-      instance.ui.cursorGroup.innerHTML = "";
-    }
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
   }
   function renderAxes(instance) {
     if (!instance.ui.axesGroup) {
@@ -2630,11 +2778,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
   }
-  function updateAxes(instance) {
-    if (instance.ui.axesGroup) {
-      renderAxes(instance);
-    }
-  }
   const WHEEL_ZOOM_STEP = 1.2;
   function screenToDataWithZoom(instance, event) {
     const point = screenToData(
@@ -2789,9 +2932,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const result = screenToDataWithZoom(instance, event);
     if (result) {
       const { svgCoords, imageX, imageY, dataCoords } = result;
+      const svgRect = instance.ui.svg.getBoundingClientRect();
       instance.state.cursorPosition = {
-        x: event.clientX - instance.ui.svg.getBoundingClientRect().left,
-        y: event.clientY - instance.ui.svg.getBoundingClientRect().top,
+        x: event.clientX - svgRect.left,
+        y: event.clientY - svgRect.top,
         svgX: svgCoords.x,
         svgY: svgCoords.y,
         imageX,
@@ -2806,7 +2950,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     } else {
       instance.state.cursorPosition = null;
     }
-    updateCursorIndicators(instance);
     dispatch(instance, { frame: true });
   }
   function handleMouseDown(instance, event) {
@@ -2814,6 +2957,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (event.button === 1) {
       event.preventDefault();
       wheelPanHandler(instance).startDrag(null, event);
+      return;
+    }
+    if (event.button !== 0) {
+      return;
+    }
+    if (hasActiveDrag(instance)) {
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -2827,7 +2976,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function handleMouseUp(instance, event) {
     const wheelPan = wheelPanHandler(instance);
     if (wheelPan.isDragging()) {
-      wheelPan.endDrag(null, event);
+      if (event.button === 1) {
+        wheelPan.endDrag(null, event);
+      }
+      return;
+    }
+    if (event.button !== 0) {
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -2836,18 +2990,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (instance.currentMode && typeof instance.currentMode.handleMouseUp === "function") {
         instance.currentMode.handleMouseUp(event, dataCoords);
       }
+    } else if (hasActiveDrag(instance)) {
+      cancelActiveDrag(instance);
     }
   }
   function handleMouseLeave(instance) {
-    wheelPanHandler(instance).cancelDrag();
+    cancelActiveDrag(instance);
     instance.state.cursorPosition = null;
-    updateCursorIndicators(instance);
     if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === "function") {
       instance.currentMode.handleMouseLeave();
     }
     dispatch(instance, { frame: true });
   }
   function handleContextMenu(instance, event) {
+    if (hasActiveDrag(instance)) {
+      event.preventDefault();
+      return;
+    }
     const result = screenToDataWithZoom(instance, event);
     if (result) {
       const { dataCoords } = result;
@@ -3766,7 +3925,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {DragTarget|null} Drag target if found, null otherwise
      */
     findHarmonicSetTarget(position) {
-      const harmonicSet = this.findHarmonicSetAtFrequency(position.freq);
+      const harmonicSet = this.findHarmonicSetAt(position);
       if (harmonicSet) {
         return {
           kind: "move",
@@ -3957,7 +4116,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {HarmonicSet} The created harmonic set
      */
     addHarmonicSet(anchorTime, spacing) {
-      const id = `harmonic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const id = `harmonic-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
       let color;
       if (this.instance.state.selectedColor) {
         color = this.instance.state.selectedColor;
@@ -4032,7 +4191,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     /**
-     * Find harmonic set containing given frequency coordinate.
+     * Find the harmonic set whose drawn geometry contains the given position.
      *
      * Hit-testing follows exactly what is drawn — nothing more, nothing less.
      * Every visible part of a pin grabs it: the pin line's fixed-pixel span AND
@@ -4040,35 +4199,53 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * grabbable by its label/symbol stack alone; the span where its line would
      * have been is empty on screen, so it is empty to the mouse too.
      *
-     * @param {number} freq - Frequency in Hz to check
+     * Takes the probe position as a parameter rather than reading
+     * `state.cursorPosition`: the stored cursor goes stale during pans (wheel-pan
+     * suppresses mousemove), and a click tested against the pre-pan time missed
+     * the pin and minted a duplicate set on top of it (BH-13).
+     *
+     * Bounded work per set (BH-2): the range is the VISIBLE one (zoom-aware, the
+     * same source the renderer uses), only the harmonic nearest the probe
+     * frequency (±1) is line-tested — no other line can be within frequency
+     * tolerance — and the stack test walks just the thinned labelled subset.
+     * The full-range loop this replaces iterated 200,000 harmonics per hover at
+     * the minimum spacing on a standard config.
+     *
+     * @param {DataCoordinates} position - Probe position {freq, time}
      * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
      */
-    findHarmonicSetAtFrequency(freq) {
-      if (!this.instance.state.cursorPosition) return null;
-      const cursorTime = this.instance.state.cursorPosition.time;
+    findHarmonicSetAt(position) {
+      if (!position) return null;
+      const { freq, time } = position;
       for (const harmonicSet of this.instance.state.harmonics.harmonicSets) {
         if (harmonicSet.spacing > 0) {
-          const freqMin = this.instance.state.config.freqMin;
-          const freqMax = this.instance.state.config.freqMax;
-          const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
-          const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
+          const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet);
+          if (maxHarmonic < minHarmonic) continue;
           const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
           const stack = this.calculateLabelStackBounds(lineTop, harmonicSet);
-          const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic));
+          const labelled = this.getLabelledHarmonics(minHarmonic, maxHarmonic);
           const pinDrawn = harmonicSet.showPin !== false;
           const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
           const cursorSVG = dataToSVG(
-            { freq, time: cursorTime },
+            { freq, time },
             this.getViewport(),
             this.instance.ui.spectrogramImage
           );
-          for (let h = minHarmonic; h <= maxHarmonic; h++) {
-            const expectedFreq = h * harmonicSet.spacing;
-            if (pinDrawn && Math.abs(freq - expectedFreq) < tolerance.freq && cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
-              return harmonicSet;
+          if (pinDrawn && cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
+            const nearest = Math.round(freq / harmonicSet.spacing);
+            const from = Math.max(minHarmonic, nearest - 1);
+            const to = Math.min(maxHarmonic, nearest + 1);
+            for (let h = from; h <= to; h++) {
+              if (Math.abs(freq - h * harmonicSet.spacing) < tolerance.freq) {
+                return harmonicSet;
+              }
             }
-            if (labelled.has(h) && cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom && Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
-              return harmonicSet;
+          }
+          if (cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom) {
+            for (const h of labelled) {
+              if (Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
+                return harmonicSet;
+              }
             }
           }
         }
@@ -4142,7 +4319,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       newSpacing = Math.max(newSpacing, 0.1);
       const originalAnchorTime = target.data && target.data.originalAnchorTime !== void 0 ? target.data.originalAnchorTime : harmonicSet.anchorTime;
       const deltaTime = currentPos.time - startPos.time;
-      newAnchorTime = originalAnchorTime + deltaTime;
+      const { timeMin, timeMax } = this.instance.state.config;
+      newAnchorTime = Math.max(timeMin, Math.min(timeMax, originalAnchorTime + deltaTime));
       const updates = {};
       if (newSpacing > 0) {
         updates.spacing = newSpacing;
@@ -4491,7 +4669,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
       const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
       if (harmonicSet.showPin !== false) {
-        for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
+        const visibleCount = maxHarmonic - minHarmonic + 1;
+        const stride = Math.max(1, Math.ceil(visibleCount / _HarmonicsMode.MAX_PIN_LINES));
+        for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber += stride) {
           const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
           const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight);
           this.instance.ui.cursorGroup.appendChild(line);
@@ -4547,6 +4727,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
    */
   __publicField(_HarmonicsMode, "PIN_HEIGHT_RATIO", 0.2);
   /**
+   * Maximum pin lines rendered per harmonic set. At the 0.1 Hz minimum spacing
+   * a standard 0–20 kHz config has 200,000 visible harmonics; drawing an SVG
+   * line for each — rebuilt on every drag frame — locked the browser (BH-2).
+   * Past this cap the drawn lines are a regular sample of the range; well
+   * beyond typical screen widths, adjacent pins merge on screen anyway, so the
+   * thinning is invisible until the set is already a solid block.
+   * @type {number}
+   */
+  __publicField(_HarmonicsMode, "MAX_PIN_LINES", 1e3);
+  /**
    * Font size (px) of a pin's number label; also used as its approximate ascent
    * when clamping the label/symbol stack to the image's top edge.
    * @type {number}
@@ -4570,6 +4760,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
    */
   __publicField(_HarmonicsMode, "STACK_TOP_PAD", 1);
   let HarmonicsMode = _HarmonicsMode;
+  const MS_TO_KNOTS = 1.94384;
   function calculateMidpoint(fPlus, fMinus) {
     return {
       time: (fPlus.time + fMinus.time) / 2,
@@ -4582,7 +4773,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const speed = speedOfSound / f0 * deltaF;
     return Math.abs(speed);
   }
-  const MS_TO_KNOTS_CONVERSION = 1.94384;
   const DopplerDraggedMarker = {
     fPlus: "fPlus",
     fMinus: "fMinus",
@@ -4621,7 +4811,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           startPos
         ),
         onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
-        onDragCancel: (target) => this.onMarkerDragEnd(target, null),
+        onDragCancel: (target) => this.onMarkerDragCancel(target),
         updateCursor: (style) => this.updateCursorStyle(style)
       }, "doppler");
     }
@@ -4683,6 +4873,30 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     onMarkerDragEnd(target, _position) {
       if (target && target.kind === "place") {
         this.completeMarkerPlacement();
+      }
+    }
+    /**
+     * Cancel a doppler drag without applying it.
+     *
+     * Cancel and end used to share one callback, so a cancelled placement —
+     * mode switch or Escape mid-gesture — *committed* the half-placed f⁺/f⁻
+     * curve the user thought was discarded (BH-9). A cancelled placement now
+     * discards the markers it seeded; a cancelled move leaves the marker at its
+     * last position, like the other modes.
+     * @param {DragTarget} target - Drag target from the engine
+     */
+    onMarkerDragCancel(target) {
+      if (target && target.kind === "place") {
+        const doppler = this.instance.state.doppler;
+        doppler.fPlus = null;
+        doppler.fMinus = null;
+        doppler.fZero = null;
+        doppler.speed = null;
+        doppler.tempFirst = null;
+        doppler.previewEnd = null;
+        this.updateSpeedLED();
+        this.renderDopplerFeatures();
+        dispatch(this.instance, { frame: true });
       }
     }
     /**
@@ -4869,6 +5083,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.instance.state.doppler.tempFirst = null;
       this.instance.state.doppler.previewEnd = null;
       this.dragHandler.reset();
+      markAnnotationsChanged(this.instance);
       dispatch(this.instance, { frame: true });
     }
     /**
@@ -4891,7 +5106,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const doppler = this.instance.state.doppler;
       if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
         const speed = calculateDopplerSpeed(doppler.fPlus, doppler.fMinus, doppler.fZero);
-        this.instance.state.doppler.speed = speed;
+        this.instance.state.doppler.speed = Number.isFinite(speed) ? speed : null;
         this.updateSpeedLED();
         updateLEDDisplays(this.instance, this.instance.state);
         dispatch(this.instance, { frame: true });
@@ -4927,8 +5142,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Update the speed LED display with current speed value
      */
     updateSpeedLED() {
-      if (this.instance.ui.speedLED && this.instance.state.doppler.speed !== null) {
-        const speedInKnots = this.instance.state.doppler.speed * MS_TO_KNOTS_CONVERSION;
+      const speed = this.instance.state.doppler.speed;
+      if (this.instance.ui.speedLED && speed !== null && Number.isFinite(speed)) {
+        const speedInKnots = speed * MS_TO_KNOTS;
         setLEDValue(this.instance.ui.speedLED, speedInKnots.toFixed(1));
       } else if (this.instance.ui.speedLED) {
         setLEDValue(this.instance.ui.speedLED, "0.0");
@@ -4953,6 +5169,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.resetState();
       this.updateSpeedLED();
       this.renderDopplerFeatures();
+      this.updateCursorStyle("crosshair");
     }
     /**
      * Render all doppler features (markers and curves)
@@ -6047,10 +6264,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       dispatch(this);
     }
     /**
-     * Creates LED display elements for showing measurement values
-     */
-    // Zoom controls removed - now handled by pan mode command buttons
-    /**
      * Set zoom level and center point.
      *
      * The one surviving instance-level zoom forwarder. `_zoomIn`, `_zoomOut` and
@@ -6065,18 +6278,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     _setZoom(level, centerX, centerY) {
       setZoom(this, level, centerX, centerY);
-    }
-    /**
-     * Update zoom control button states based on current zoom level
-     */
-    _updateZoomControlStates() {
-      updateZoomControlStates(this);
-    }
-    /**
-     * Update axes when rate changes
-     */
-    _updateAxes() {
-      updateAxes(this);
     }
     /**
      * Handle resize events
@@ -6104,14 +6305,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Clear all annotations from state and storage
      */
     _clearGram() {
+      Object.values(this.modes || {}).forEach((modeInstance) => {
+        if (modeInstance && modeInstance.dragHandler) {
+          modeInstance.dragHandler.cancelDrag();
+        }
+      });
+      if (this.interaction._wheelPanHandler) {
+        this.interaction._wheelPanHandler.cancelDrag();
+      }
+      if (this.interaction.clearSelection) {
+        this.interaction.clearSelection();
+      }
       const fresh = createInitialState(ModeFactory.getModeInitialStates());
       this.state.analysis = fresh.analysis;
       this.state.harmonics = fresh.harmonics;
       this.state.doppler = fresh.doppler;
-      this.state.selection = fresh.selection;
-      this.state.drag = fresh.drag;
       this.state.cursors = fresh.cursors;
-      if (clearAnnotations(this.persistence._storageInstanceIndex)) {
+      if (clearAnnotations(this.persistence._storageInstanceIndex, this._storageContext())) {
         clearStorageWarning(this);
       } else {
         showStorageWarning(this, "Saved annotations could not be removed from browser storage — they may reappear when this page is reloaded.");
@@ -6125,13 +6335,30 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       updatePersistentPanels(this);
       updateLEDDisplays(this, this.state);
+      if (this.ui.speedLED) {
+        setLEDValue(this.ui.speedLED, "0.0");
+      }
       dispatch(this);
+    }
+    /**
+     * The storage context this instance detected at construction, in the form
+     * the storage module takes. Passed into every storage call so save and load
+     * can never disagree about which storage to use (M3).
+     * @returns {'trainer' | 'student'} This instance's storage context
+     */
+    _storageContext() {
+      return this.persistence._isTrainerContext ? "trainer" : "student";
     }
     /**
      * Restore saved annotations from browser storage into state
      */
     _restoreAnnotations() {
-      const saved = loadAnnotations(this.persistence._storageInstanceIndex);
+      const saved = loadAnnotations(
+        this.persistence._storageInstanceIndex,
+        this._storageContext(),
+        // Refuse records fingerprinted for a different gram (BH-6, BH-23)
+        buildGramFingerprint(this.state)
+      );
       if (!saved) return;
       markAnnotationsChanged(this);
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
@@ -6156,16 +6383,23 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if (saved.doppler.color) {
           this.state.doppler.color = saved.doppler.color;
         }
+        const { fPlus, fMinus, fZero } = this.state.doppler;
+        if (fPlus && fMinus && fZero) {
+          const speed = calculateDopplerSpeed(fPlus, fMinus, fZero);
+          this.state.doppler.speed = Number.isFinite(speed) ? speed : null;
+          if (this.ui.speedLED && this.state.doppler.speed !== null) {
+            setLEDValue(this.ui.speedLED, (this.state.doppler.speed * MS_TO_KNOTS).toFixed(1));
+          }
+        }
       }
     }
     /**
      * Set up a state listener that saves annotations on relevant state changes
      */
     _setupStorageSaveListener() {
-      let lastSignature = "";
-      this.stateListeners.push((state) => {
+      const computeSignature = (state) => {
         const doppler = state.doppler || {};
-        const signature = [
+        return [
           state.annotationRevision || 0,
           state.analysis && state.analysis.markers ? state.analysis.markers.length : 0,
           state.harmonics && state.harmonics.harmonicSets ? state.harmonics.harmonicSets.length : 0,
@@ -6174,11 +6408,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           doppler.fZero ? `${doppler.fZero.time}:${doppler.fZero.freq}` : "-",
           doppler.color || "-"
         ].join("|");
+      };
+      let lastSignature = computeSignature(this.state);
+      let lastWarnedSignature = "";
+      this.stateListeners.push((state) => {
+        if (state.drag && state.drag.active) {
+          return;
+        }
+        const signature = computeSignature(state);
         if (signature !== lastSignature) {
-          lastSignature = signature;
-          if (saveAnnotations(this.state, this.persistence._storageInstanceIndex)) {
+          if (saveAnnotations(this.state, this.persistence._storageInstanceIndex, this._storageContext())) {
+            lastSignature = signature;
             clearStorageWarning(this);
-          } else if (hasPersistableAnnotations(state)) {
+          } else if (hasPersistableAnnotations(state) && signature !== lastWarnedSignature) {
+            lastWarnedSignature = signature;
             showStorageWarning(this, "Annotations could not be saved — they will be lost when this page is reloaded.");
           }
         }
@@ -6187,9 +6430,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /**
      * Broadcast this instance's state to its listeners.
      *
-     * An instance-level entry point so collaborators that must not import
-     * core/state.js — the drag engine, which core/state.js already imports
-     * transitively — can still notify without closing an import cycle.
+     * A test seam, like `_setZoom`: the Playwright suite drives notifications
+     * through it from the page. Everything in `src/` — including the drag
+     * engine, since ADR-014 broke the state ⇄ modes cycle — calls `dispatch`
+     * directly.
      */
     notifyStateListeners() {
       dispatch(this);
@@ -6199,15 +6443,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     destroy() {
       flushDispatch(this);
+      Object.values(this.modes || {}).forEach((modeInstance) => {
+        if (modeInstance && typeof modeInstance.cleanup === "function") {
+          modeInstance.cleanup();
+        }
+      });
+      if (this.currentMode && typeof this.currentMode.deactivate === "function") {
+        this.currentMode.deactivate();
+      }
       cleanupEventListeners(this);
       cleanupKeyboardControl(this);
       if (this.ui.container && this.ui.container.parentNode) {
         this.ui.container.parentNode.removeChild(this.ui.container);
       }
     }
-    /**
-     * Draw axes with tick marks and labels
-     */
     /**
      * Switch between analysis modes
      * @param {ModeType} mode - Target mode
@@ -6260,16 +6509,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       dispatch(this);
     }
-    /**
-     * Set the rate value for frequency calculations
-     * @param {number} rate - Rate value in Hz/s
-     */
-    _setRate(rate) {
-      this.state.rate = rate;
-      this._updateAxes();
-      dispatch(this);
-    }
-    // Zoom functionality removed - no display element
   }
   const GramFrameAPI = createGramFrameAPI(GramFrame);
   document.addEventListener("DOMContentLoaded", () => {

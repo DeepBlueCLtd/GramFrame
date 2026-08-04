@@ -3,13 +3,10 @@ import { setLEDValue } from '../../components/LEDDisplay.js'
 import { updateLEDDisplays } from '../../components/UIComponents.js'
 import { dispatch, markAnnotationsChanged } from '../../core/state.js'
 // Rendering imports removed - no display element
-import { calculateDopplerSpeed, calculateMidpoint } from '../../utils/doppler.js'
+import { calculateDopplerSpeed, calculateMidpoint, MS_TO_KNOTS } from '../../utils/doppler.js'
 import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinDataTolerance, findClosestTarget } from '../../utils/tolerance.js'
-
-// Constants
-const MS_TO_KNOTS_CONVERSION = 1.94384
 
 // Doppler marker types
 /** @type {Record<DopplerDraggedMarker, DopplerDraggedMarker>} */
@@ -44,7 +41,7 @@ export class DopplerMode extends BaseMode {
       onDragStart: (target, position) => this.onMarkerDragStart(target, /** @type {DataCoordinates} */ (position)),
       onDragMove: (target, currentPos, startPos) => this.onMarkerDragUpdate(target, /** @type {DataCoordinates} */ (currentPos), /** @type {DataCoordinates} */ (startPos)),
       onDragEnd: (target, position) => this.onMarkerDragEnd(target, position),
-      onDragCancel: (target) => this.onMarkerDragEnd(target, null),
+      onDragCancel: (target) => this.onMarkerDragCancel(target),
       updateCursor: (style) => this.updateCursorStyle(style)
     }, 'doppler')
   }
@@ -129,6 +126,31 @@ export class DopplerMode extends BaseMode {
       this.completeMarkerPlacement()
     }
     // Nothing else to unwind: the engine clears the drag record itself.
+  }
+
+  /**
+   * Cancel a doppler drag without applying it.
+   *
+   * Cancel and end used to share one callback, so a cancelled placement —
+   * mode switch or Escape mid-gesture — *committed* the half-placed f⁺/f⁻
+   * curve the user thought was discarded (BH-9). A cancelled placement now
+   * discards the markers it seeded; a cancelled move leaves the marker at its
+   * last position, like the other modes.
+   * @param {DragTarget} target - Drag target from the engine
+   */
+  onMarkerDragCancel(target) {
+    if (target && target.kind === 'place') {
+      const doppler = this.instance.state.doppler
+      doppler.fPlus = null
+      doppler.fMinus = null
+      doppler.fZero = null
+      doppler.speed = null
+      doppler.tempFirst = null
+      doppler.previewEnd = null
+      this.updateSpeedLED()
+      this.renderDopplerFeatures()
+      dispatch(this.instance, { frame: true })
+    }
   }
 
   /**
@@ -381,8 +403,10 @@ export class DopplerMode extends BaseMode {
     this.instance.state.doppler.tempFirst = null
     this.instance.state.doppler.previewEnd = null
     this.dragHandler.reset()
+    // Deleting the curve is an annotation mutation: masked today by the
+    // signature's doppler identity fields, but the mark is the contract (BH-24).
+    markAnnotationsChanged(this.instance)
 
-    // Visual updates removed - no display element
     dispatch(this.instance, { frame: true })
   }
 
@@ -410,11 +434,14 @@ export class DopplerMode extends BaseMode {
    */
   calculateAndUpdateDopplerSpeed() {
     const doppler = this.instance.state.doppler
-    
+
     if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
       const speed = calculateDopplerSpeed(doppler.fPlus, doppler.fMinus, doppler.fZero)
-      this.instance.state.doppler.speed = speed
-      
+      // With freq-start = 0, f₀ dragged to the exact left edge divides to
+      // Infinity (BH-8). A non-finite speed is meaningless: store null so
+      // neither the LED nor state listeners ever see "Infinity" knots.
+      this.instance.state.doppler.speed = Number.isFinite(speed) ? speed : null
+
       // Update speed LED with calculated value
       this.updateSpeedLED()
       
@@ -448,9 +475,10 @@ export class DopplerMode extends BaseMode {
    * Update the speed LED display with current speed value
    */
   updateSpeedLED() {
-    if (this.instance.ui.speedLED && this.instance.state.doppler.speed !== null) {
+    const speed = this.instance.state.doppler.speed
+    if (this.instance.ui.speedLED && speed !== null && Number.isFinite(speed)) {
       // Convert m/s to knots: 1 m/s = 1.94384 knots
-      const speedInKnots = this.instance.state.doppler.speed * MS_TO_KNOTS_CONVERSION
+      const speedInKnots = speed * MS_TO_KNOTS
       setLEDValue(this.instance.ui.speedLED, speedInKnots.toFixed(1))
     } else if (this.instance.ui.speedLED) {
       setLEDValue(this.instance.ui.speedLED, '0.0')
@@ -477,6 +505,9 @@ export class DopplerMode extends BaseMode {
     this.resetState()
     this.updateSpeedLED() // Reset the speed LED display
     this.renderDopplerFeatures()
+    // With no markers left there is nothing to grab: drop any lingering
+    // hover 'grab' cursor from the marker that was just deleted.
+    this.updateCursorStyle('crosshair')
   }
 
   /**
@@ -599,7 +630,7 @@ export class DopplerMode extends BaseMode {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
     path.setAttribute('class', 'gram-frame-doppler-curve')
     
-    // Simple S-curve with vertical tangents (same logic as cursors.js but zoom-aware)
+    // Simple S-curve with vertical tangents
     const controlPoint1X = fMinusSVG.x
     const controlPoint1Y = fMinusSVG.y + (fZeroSVG.y - fMinusSVG.y) * 0.7
     const controlPoint2X = fPlusSVG.x  

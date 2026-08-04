@@ -36,9 +36,7 @@ import {
 } from './core/initialization/UISetup.js'
 import {
   setZoom,
-  updateZoomControlStates,
-  handleResize,
-  updateAxes
+  handleResize
 } from './core/viewport.js'
 import { getModeDisplayName } from './utils/calculations.js'
 import { updateGuidancePanel } from './utils/secureHTML.js'
@@ -59,8 +57,11 @@ import {
   clearAnnotations,
   detectUserContext,
   loadPinPreference,
-  hasPersistableAnnotations
+  hasPersistableAnnotations,
+  buildGramFingerprint
 } from './core/storage.js'
+
+import { calculateDopplerSpeed, MS_TO_KNOTS } from './utils/doppler.js'
 
 import {
   cleanupKeyboardControl
@@ -136,13 +137,7 @@ export class GramFrame {
   stateListeners;
   /** @type {string} */
   instanceId;
-  
-  
-  
 
-
-  
-  
   // Mode system
   /** @type {Object<string, BaseMode>} */
   modes;
@@ -150,15 +145,6 @@ export class GramFrame {
   currentMode;
   /** @type {FeatureRenderer} */
   featureRenderer;
-  
-
-  
-  
-
-
-
-
-
 
   /**
    * Creates a new GramFrame instance
@@ -294,20 +280,6 @@ export class GramFrame {
   }
   
   /**
-   * Creates LED display elements for showing measurement values
-   */
-  
-
-  
-  
-  
-  
-  
-  
-  
-  // Zoom controls removed - now handled by pan mode command buttons
-  
-  /**
    * Set zoom level and center point.
    *
    * The one surviving instance-level zoom forwarder. `_zoomIn`, `_zoomOut` and
@@ -323,22 +295,7 @@ export class GramFrame {
   _setZoom(level, centerX, centerY) {
     setZoom(this, level, centerX, centerY)
   }
-  
-  
-  /**
-   * Update zoom control button states based on current zoom level
-   */
-  _updateZoomControlStates() {
-    updateZoomControlStates(this)
-  }
-  
-  /**
-   * Update axes when rate changes
-   */
-  _updateAxes() {
-    updateAxes(this)
-  }
-  
+
   /**
    * Handle resize events
    */
@@ -369,22 +326,43 @@ export class GramFrame {
    * Clear all annotations from state and storage
    */
   _clearGram() {
+    // Cancel any drag in progress through the engine — the single owner of the
+    // drag record — exactly as _switchMode does. Writing state.drag directly
+    // here left the engine's private dragState saying *dragging* while the
+    // projection said *idle*, and the next projection publish resurrected the
+    // stale drag (M4).
+    Object.values(this.modes || {}).forEach(modeInstance => {
+      if (modeInstance && modeInstance.dragHandler) {
+        modeInstance.dragHandler.cancelDrag()
+      }
+    })
+    if (this.interaction._wheelPanHandler) {
+      this.interaction._wheelPanHandler.cancelDrag()
+    }
+
+    // Clear the selection through the selection seam rather than replacing the
+    // selection object: this also re-syncs the style controls, so they stop
+    // targeting a feature that no longer exists (BH-19).
+    if (this.interaction.clearSelection) {
+      this.interaction.clearSelection()
+    }
+
     // Rebuild the annotation-bearing parts of state from the initial-state
     // builders rather than resetting fields by hand, so a field added to a mode
     // later cannot survive a "Clear gram" by being forgotten here (GF-12).
     // Everything describing *this* gram — its config, image, viewport, current
-    // mode and session-level style choices — is preserved.
+    // mode and session-level style choices — is preserved. `drag` is not
+    // touched: the engine owns it and the cancel loop above has already
+    // republished it idle.
     const fresh = createInitialState(ModeFactory.getModeInitialStates())
     this.state.analysis = fresh.analysis
     this.state.harmonics = fresh.harmonics
     this.state.doppler = fresh.doppler
-    this.state.selection = fresh.selection
-    this.state.drag = fresh.drag
     this.state.cursors = fresh.cursors
 
     // Remove from storage. A failure here means the annotations just cleared on
     // screen will reappear on reload, so say so rather than failing silently.
-    if (clearAnnotations(this.persistence._storageInstanceIndex)) {
+    if (clearAnnotations(this.persistence._storageInstanceIndex, this._storageContext())) {
       clearStorageWarning(this)
     } else {
       showStorageWarning(this, 'Saved annotations could not be removed from browser storage — they may reappear when this page is reloaded.')
@@ -404,17 +382,37 @@ export class GramFrame {
     // from the tables above the spectrogram, not just the SVG overlay
     updatePersistentPanels(this)
 
-    // Refresh LED displays (e.g. Doppler readouts) to reflect the cleared state
+    // Refresh LED displays to reflect the cleared state. The speed LED is set
+    // directly: updateLEDDisplays covers only the mode/rate LEDs, so the
+    // deleted curve's speed used to survive a "Clear gram" (BH-19).
     updateLEDDisplays(this, this.state)
+    if (this.ui.speedLED) {
+      setLEDValue(this.ui.speedLED, '0.0')
+    }
 
     dispatch(this)
+  }
+
+  /**
+   * The storage context this instance detected at construction, in the form
+   * the storage module takes. Passed into every storage call so save and load
+   * can never disagree about which storage to use (M3).
+   * @returns {'trainer' | 'student'} This instance's storage context
+   */
+  _storageContext() {
+    return this.persistence._isTrainerContext ? 'trainer' : 'student'
   }
 
   /**
    * Restore saved annotations from browser storage into state
    */
   _restoreAnnotations() {
-    const saved = loadAnnotations(this.persistence._storageInstanceIndex)
+    const saved = loadAnnotations(
+      this.persistence._storageInstanceIndex,
+      this._storageContext(),
+      // Refuse records fingerprinted for a different gram (BH-6, BH-23)
+      buildGramFingerprint(this.state)
+    )
     if (!saved) return
 
     markAnnotationsChanged(this)
@@ -449,6 +447,19 @@ export class GramFrame {
       if (saved.doppler.color) {
         this.state.doppler.color = saved.doppler.color
       }
+
+      // Speed is derived, not persisted, so recompute it here: nothing else on
+      // the load path does, and a restored curve otherwise read 0.0 until a
+      // marker was nudged (BH-15). Guarded against f₀ = 0, which divides to
+      // Infinity (BH-8).
+      const { fPlus, fMinus, fZero } = this.state.doppler
+      if (fPlus && fMinus && fZero) {
+        const speed = calculateDopplerSpeed(fPlus, fMinus, fZero)
+        this.state.doppler.speed = Number.isFinite(speed) ? speed : null
+        if (this.ui.speedLED && this.state.doppler.speed !== null) {
+          setLEDValue(this.ui.speedLED, (this.state.doppler.speed * MS_TO_KNOTS).toFixed(1))
+        }
+      }
     }
   }
 
@@ -456,19 +467,20 @@ export class GramFrame {
    * Set up a state listener that saves annotations on relevant state changes
    */
   _setupStorageSaveListener() {
-    /** @type {string} */
-    let lastSignature = ''
-
-    this.stateListeners.push((/** @type {GramFrameState} */ state) => {
-      // A cheap signature, not a re-serialisation of every annotation. The
-      // listener runs on every notification — including pure cursor moves and
-      // zoom changes — and stringifying the full annotation set each time is
-      // the compounding cost GF-07 records. Counts plus the doppler marker
-      // identity, guarded by a counter the annotation-mutating paths bump,
-      // catch every change that matters (spec 166, AS-4.3).
+    /**
+     * A cheap signature, not a re-serialisation of every annotation. The
+     * listener runs on every notification — including pure cursor moves and
+     * zoom changes — and stringifying the full annotation set each time is
+     * the compounding cost GF-07 records. Counts plus the doppler marker
+     * identity, guarded by a counter the annotation-mutating paths bump,
+     * catch every change that matters (spec 166, AS-4.3).
+     * @param {GramFrameState} state - State to fingerprint
+     * @returns {string} Change signature
+     */
+    const computeSignature = (state) => {
       /** @type {Partial<DopplerState>} */
       const doppler = state.doppler || {}
-      const signature = [
+      return [
         state.annotationRevision || 0,
         state.analysis && state.analysis.markers ? state.analysis.markers.length : 0,
         state.harmonics && state.harmonics.harmonicSets ? state.harmonics.harmonicSets.length : 0,
@@ -477,17 +489,46 @@ export class GramFrame {
         doppler.fZero ? `${doppler.fZero.time}:${doppler.fZero.freq}` : '-',
         doppler.color || '-'
       ].join('|')
+    }
 
+    // Seeded from the state as restored, not from ''. An empty seed made the
+    // constructor's final dispatch always save, and every save restamps
+    // `savedAt` — so merely viewing a gram daily kept a student's annotations
+    // alive forever, defeating the 24-hour expiry (BH-5). An unchanged load
+    // now saves nothing.
+    /** @type {string} */
+    let lastSignature = computeSignature(this.state)
+    // The last signature the analyst was warned about, so a repeat failure of
+    // the SAME unsaved state retries silently instead of re-raising a banner
+    // they already dismissed. A fresh change warns anew.
+    /** @type {string} */
+    let lastWarnedSignature = ''
+
+    this.stateListeners.push((/** @type {GramFrameState} */ state) => {
+      // Mid-drag, the state changes at frame cadence; serialising and writing
+      // it to storage on every frame is pure waste (BH-18). The drag's end
+      // republishes the projection, which lands here with `active: false` and
+      // saves the settled state.
+      if (state.drag && state.drag.active) {
+        return
+      }
+
+      const signature = computeSignature(state)
       if (signature !== lastSignature) {
-        lastSignature = signature
         // A failed write must be visible: the analyst keeps working in memory,
         // but would otherwise never learn their annotations are not being
         // persisted (quota, private browsing, disabled storage) — GF-16. With
         // nothing annotated there is nothing to lose yet, so an unavailable
         // store stays quiet until the analyst actually creates something.
-        if (saveAnnotations(this.state, this.persistence._storageInstanceIndex)) {
+        //
+        // The signature only advances on a successful write (BH-17): a failed
+        // save leaves it stale, so the same state is retried on the next
+        // notification instead of being silently dropped.
+        if (saveAnnotations(this.state, this.persistence._storageInstanceIndex, this._storageContext())) {
+          lastSignature = signature
           clearStorageWarning(this)
-        } else if (hasPersistableAnnotations(state)) {
+        } else if (hasPersistableAnnotations(state) && signature !== lastWarnedSignature) {
+          lastWarnedSignature = signature
           showStorageWarning(this, 'Annotations could not be saved — they will be lost when this page is reloaded.')
         }
       }
@@ -497,9 +538,10 @@ export class GramFrame {
   /**
    * Broadcast this instance's state to its listeners.
    *
-   * An instance-level entry point so collaborators that must not import
-   * core/state.js — the drag engine, which core/state.js already imports
-   * transitively — can still notify without closing an import cycle.
+   * A test seam, like `_setZoom`: the Playwright suite drives notifications
+   * through it from the page. Everything in `src/` — including the drag
+   * engine, since ADR-014 broke the state ⇄ modes cycle — calls `dispatch`
+   * directly.
    */
   notifyStateListeners() {
     dispatch(this)
@@ -513,24 +555,27 @@ export class GramFrame {
     // listener never misses the final state (spec 166, N6).
     flushDispatch(this)
 
+    // Give every mode its cleanup: drag handlers reset, transient state
+    // cleared. destroy() used to skip this entirely, so mode-held resources
+    // outlived the instance on SPA-style pages (M1).
+    Object.values(this.modes || {}).forEach(modeInstance => {
+      if (modeInstance && typeof modeInstance.cleanup === 'function') {
+        modeInstance.cleanup()
+      }
+    })
+    if (this.currentMode && typeof this.currentMode.deactivate === 'function') {
+      this.currentMode.deactivate()
+    }
+
     cleanupEventListeners(this)
     cleanupKeyboardControl(this)
-    
+
     // Remove from DOM if still attached
     if (this.ui.container && this.ui.container.parentNode) {
       this.ui.container.parentNode.removeChild(this.ui.container)
     }
   }
-  
-  
-  
-  
-  
-  
-  /**
-   * Draw axes with tick marks and labels
-   */
-  
+
   /**
    * Switch between analysis modes
    * @param {ModeType} mode - Target mode
@@ -633,30 +678,6 @@ export class GramFrame {
     // Notify listeners
     dispatch(this)
   }
-
-
-  
-  /**
-   * Set the rate value for frequency calculations
-   * @param {number} rate - Rate value in Hz/s
-   */
-  _setRate(rate) {
-    // Update state
-    this.state.rate = rate
-    
-    // Update rate LED display (handled by updateLEDDisplays)
-    
-    // Update axes to reflect rate change
-    this._updateAxes()
-    
-    // Notify listeners
-    dispatch(this)
-  }
-
-  // Zoom functionality removed - no display element
-
-  
-  
 }
 
 // Create and setup the GramFrame API

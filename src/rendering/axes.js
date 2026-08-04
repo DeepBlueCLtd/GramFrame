@@ -3,9 +3,9 @@
  *
  * Draws the time (vertical) and frequency (horizontal) axes for the currently
  * visible data range. Extracted from `components/table.js` in the Story 3 split
- * (spec 167, FR-004) into the `rendering/` family beside `cursors.js` and
- * `symbols.js`, where CLAUDE.md had documented it living for some time and
- * where GF-38 recorded it as a phantom module.
+ * (spec 167, FR-004) into the `rendering/` family beside `symbols.js`, where
+ * CLAUDE.md had documented it living for some time and where GF-38 recorded it
+ * as a phantom module.
  *
  * `renderAxes` is the sole entry point; everything else here is private.
  *

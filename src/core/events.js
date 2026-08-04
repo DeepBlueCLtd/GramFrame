@@ -5,8 +5,7 @@
 /// <reference path="../types.js" />
 
 import { screenToData, isWithinImage } from '../utils/coordinates.js'
-import { BaseDragHandler } from '../modes/shared/BaseDragHandler.js'
-import { updateCursorIndicators } from '../rendering/cursors.js'
+import { BaseDragHandler, hasActiveDrag, cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
 import { dispatch } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 import { setFocusedInstance } from './FocusManager.js'
@@ -249,10 +248,11 @@ function handleMouseMove(instance, event) {
   if (result) {
     const { svgCoords, imageX, imageY, dataCoords } = result
 
-    // Update cursor position in state
+    // Update cursor position in state (one rect read — this is the hot path)
+    const svgRect = instance.ui.svg.getBoundingClientRect()
     instance.state.cursorPosition = {
-      x: event.clientX - instance.ui.svg.getBoundingClientRect().left,
-      y: event.clientY - instance.ui.svg.getBoundingClientRect().top,
+      x: event.clientX - svgRect.left,
+      y: event.clientY - svgRect.top,
       svgX: svgCoords.x,
       svgY: svgCoords.y,
       imageX,
@@ -272,10 +272,12 @@ function handleMouseMove(instance, event) {
     // Clear cursor position if outside image bounds
     instance.state.cursorPosition = null
   }
-  
-  // Update cursor indicators
-  updateCursorIndicators(instance)
-  
+
+  // No feature re-render here (H3): persistent features do not change on
+  // hover. Every path that DOES change them — drags, zoom, pan, resize,
+  // add/remove/restyle — re-renders through FeatureRenderer itself, so the
+  // full SVG teardown/rebuild this used to do per mousemove was pure waste.
+
   // Notify listeners of cursor position change
   dispatch(instance, { frame: true })
 }
@@ -297,11 +299,25 @@ function handleMouseDown(instance, event) {
     return
   }
 
+  // Only the left button starts mode interactions. Right mousedown used to
+  // reach the modes — starting a pan the context menu then wedged (BH-7), or a
+  // doppler placement (BH-31); right-click behaviour belongs to contextmenu.
+  if (event.button !== 0) {
+    return
+  }
+
+  // While a drag is active (e.g. a middle-button pan), a second mousedown must
+  // not reach the mode: the engine would refuse it (D4), and a mode that
+  // treats "refused" as "no target here" mints a spurious feature (BH-4).
+  if (hasActiveDrag(instance)) {
+    return
+  }
+
   const result = screenToDataWithZoom(instance, event)
-  
+
   if (result) {
     const { dataCoords } = result
-    
+
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseDown === 'function') {
       instance.currentMode.handleMouseDown(event, dataCoords)
@@ -315,22 +331,39 @@ function handleMouseDown(instance, event) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleMouseUp(instance, event) {
-  // End a wheel-button drag pan without delegating to the mode.
+  // End a wheel-button drag pan without delegating to the mode — but only on
+  // the release of the button that started it. Releasing the LEFT button
+  // mid-pan used to end the pan (and a middle release used to end a left-drag
+  // at the wrong moment): a mouseup only concludes its own button's drag (BH-12).
   const wheelPan = wheelPanHandler(instance)
   if (wheelPan.isDragging()) {
-    wheelPan.endDrag(null, event)
+    if (event.button === 1) {
+      wheelPan.endDrag(null, event)
+    }
+    return
+  }
+
+  // Mode drags are started by the left button only (see handleMouseDown), so
+  // only a left-button release may end one (BH-12).
+  if (event.button !== 0) {
     return
   }
 
   const result = screenToDataWithZoom(instance, event)
-  
+
   if (result) {
     const { dataCoords } = result
-    
+
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseUp === 'function') {
       instance.currentMode.handleMouseUp(event, dataCoords)
     }
+  } else if (hasActiveDrag(instance)) {
+    // Released off-image (over the axis margins or component chrome) while a
+    // drag was running. Without this, the engine still reported `isDragging`
+    // and the feature chased the cursor, buttonless, when the pointer
+    // re-entered — the drag-engine contract promises cancellation here (H2).
+    cancelActiveDrag(instance)
   }
 }
 
@@ -339,20 +372,19 @@ function handleMouseUp(instance, event) {
  * @param {GramFrame} instance - GramFrame instance
  */
 function handleMouseLeave(instance) {
-  // End a wheel-button drag pan cleanly if the pointer leaves the component.
-  wheelPanHandler(instance).cancelDrag()
+  // Cancel whichever drag is running — wheel-pan, feature move, create or
+  // placement alike. Feature drags used to survive the pointer leaving the
+  // SVG, resuming buttonless when it re-entered (H2).
+  cancelActiveDrag(instance)
 
   // Clear cursor position
   instance.state.cursorPosition = null
-  
-  // Update cursor indicators
-  updateCursorIndicators(instance)
-  
+
   // Delegate to current mode
   if (instance.currentMode && typeof instance.currentMode.handleMouseLeave === 'function') {
     instance.currentMode.handleMouseLeave()
   }
-  
+
   // Notify listeners
   dispatch(instance, { frame: true })
 }
@@ -363,11 +395,20 @@ function handleMouseLeave(instance) {
  * @param {MouseEvent} event - Mouse event
  */
 function handleContextMenu(instance, event) {
+  // No context menu during a drag. Letting it open swallowed the mouseup and
+  // left the dragged feature glued to the cursor (BH-11), and Analysis's
+  // delete-on-right-click was a guaranteed hit on the marker being dragged —
+  // deleting it mid-drag (BH-10).
+  if (hasActiveDrag(instance)) {
+    event.preventDefault()
+    return
+  }
+
   const result = screenToDataWithZoom(instance, event)
-  
+
   if (result) {
     const { dataCoords } = result
-    
+
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleContextMenu === 'function') {
       instance.currentMode.handleContextMenu(event, dataCoords)

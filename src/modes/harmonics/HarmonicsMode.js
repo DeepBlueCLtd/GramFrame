@@ -49,7 +49,7 @@ export class HarmonicsMode extends BaseMode {
    * @returns {DragTarget|null} Drag target if found, null otherwise
    */
   findHarmonicSetTarget(position) {
-    const harmonicSet = this.findHarmonicSetAtFrequency(position.freq)
+    const harmonicSet = this.findHarmonicSetAt(position)
     if (harmonicSet) {
       return {
         kind: 'move',
@@ -161,6 +161,17 @@ export class HarmonicsMode extends BaseMode {
    * @type {number}
    */
   static PIN_HEIGHT_RATIO = 0.2
+
+  /**
+   * Maximum pin lines rendered per harmonic set. At the 0.1 Hz minimum spacing
+   * a standard 0–20 kHz config has 200,000 visible harmonics; drawing an SVG
+   * line for each — rebuilt on every drag frame — locked the browser (BH-2).
+   * Past this cap the drawn lines are a regular sample of the range; well
+   * beyond typical screen widths, adjacent pins merge on screen anyway, so the
+   * thinning is invisible until the set is already a solid block.
+   * @type {number}
+   */
+  static MAX_PIN_LINES = 1000
 
   /**
    * Font size (px) of a pin's number label; also used as its approximate ascent
@@ -364,7 +375,7 @@ export class HarmonicsMode extends BaseMode {
    * @returns {HarmonicSet} The created harmonic set
    */
   addHarmonicSet(anchorTime, spacing) {
-    const id = `harmonic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const id = `harmonic-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
     
     // Use selected color from global state, fallback to cycling through predefined colors
     let color
@@ -473,7 +484,7 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Find harmonic set containing given frequency coordinate.
+   * Find the harmonic set whose drawn geometry contains the given position.
    *
    * Hit-testing follows exactly what is drawn — nothing more, nothing less.
    * Every visible part of a pin grabs it: the pin line's fixed-pixel span AND
@@ -481,55 +492,68 @@ export class HarmonicsMode extends BaseMode {
    * grabbable by its label/symbol stack alone; the span where its line would
    * have been is empty on screen, so it is empty to the mouse too.
    *
-   * @param {number} freq - Frequency in Hz to check
+   * Takes the probe position as a parameter rather than reading
+   * `state.cursorPosition`: the stored cursor goes stale during pans (wheel-pan
+   * suppresses mousemove), and a click tested against the pre-pan time missed
+   * the pin and minted a duplicate set on top of it (BH-13).
+   *
+   * Bounded work per set (BH-2): the range is the VISIBLE one (zoom-aware, the
+   * same source the renderer uses), only the harmonic nearest the probe
+   * frequency (±1) is line-tested — no other line can be within frequency
+   * tolerance — and the stack test walks just the thinned labelled subset.
+   * The full-range loop this replaces iterated 200,000 harmonics per hover at
+   * the minimum spacing on a standard config.
+   *
+   * @param {DataCoordinates} position - Probe position {freq, time}
    * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
    */
-  findHarmonicSetAtFrequency(freq) {
-    if (!this.instance.state.cursorPosition) return null
-
-    const cursorTime = this.instance.state.cursorPosition.time
+  findHarmonicSetAt(position) {
+    if (!position) return null
+    const { freq, time } = position
 
     for (const harmonicSet of this.instance.state.harmonics.harmonicSets) {
       // Check if frequency is close to any harmonic line in this set
       if (harmonicSet.spacing > 0) {
-        // Only consider harmonics within the visible frequency range
-        const freqMin = this.instance.state.config.freqMin
-        const freqMax = this.instance.state.config.freqMax
-
-        const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing))
-        const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing)
+        const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet)
+        if (maxHarmonic < minHarmonic) continue
 
         // Pins are a fixed pixel height, so hit-test vertically in SVG pixels
         // against the same geometry the renderer draws.
         const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
         const stack = this.calculateLabelStackBounds(lineTop, harmonicSet)
         // Only the thinned subset is labelled, so only those pins carry a stack.
-        const labelled = new Set(this.getLabelledHarmonics(minHarmonic, maxHarmonic))
+        const labelled = this.getLabelledHarmonics(minHarmonic, maxHarmonic)
         // A hidden pin draws no lines, so its line span is not a grab region.
         const pinDrawn = harmonicSet.showPin !== false
 
         const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage)
         const cursorSVG = dataToSVG(
-          { freq, time: cursorTime },
+          { freq, time },
           this.getViewport(),
           this.instance.ui.spectrogramImage
         )
 
-        for (let h = minHarmonic; h <= maxHarmonic; h++) {
-          const expectedFreq = h * harmonicSet.spacing
-
-          // The pin line: frequency tolerance horizontally, the line span vertically.
-          if (pinDrawn && Math.abs(freq - expectedFreq) < tolerance.freq &&
-              cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
-            return harmonicSet
+        // The pin line: frequency tolerance horizontally, the line span
+        // vertically. Only the harmonic(s) nearest the probe frequency can
+        // pass the horizontal test, so only they are checked.
+        if (pinDrawn && cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
+          const nearest = Math.round(freq / harmonicSet.spacing)
+          const from = Math.max(minHarmonic, nearest - 1)
+          const to = Math.min(maxHarmonic, nearest + 1)
+          for (let h = from; h <= to; h++) {
+            if (Math.abs(freq - h * harmonicSet.spacing) < tolerance.freq) {
+              return harmonicSet
+            }
           }
+        }
 
-          // The label/symbol stack above the line: measured in SVG pixels, since
-          // the digits and symbol are a fixed pixel size regardless of zoom.
-          if (labelled.has(h) &&
-              cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom &&
-              Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
-            return harmonicSet
+        // The label/symbol stack above the line: measured in SVG pixels, since
+        // the digits and symbol are a fixed pixel size regardless of zoom.
+        if (cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom) {
+          for (const h of labelled) {
+            if (Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
+              return harmonicSet
+            }
           }
         }
       }
@@ -623,12 +647,16 @@ export class HarmonicsMode extends BaseMode {
     // Ensure minimum spacing
     newSpacing = Math.max(newSpacing, 0.1)
 
-    // Allow vertical movement for both new creation and existing drags
+    // Allow vertical movement for both new creation and existing drags.
+    // Clamped to the configured time range, matching the keyboard-move path:
+    // an unclamped drag could push the anchor off the gram, store it there
+    // unvalidated, and have the set snap back on the first arrow key (BH-25).
     const originalAnchorTime = target.data && target.data.originalAnchorTime !== undefined
       ? target.data.originalAnchorTime
       : harmonicSet.anchorTime
     const deltaTime = currentPos.time - startPos.time
-    newAnchorTime = originalAnchorTime + deltaTime
+    const { timeMin, timeMax } = this.instance.state.config
+    newAnchorTime = Math.max(timeMin, Math.min(timeMax, originalAnchorTime + deltaTime))
 
     // Apply updates
     const updates = {}
@@ -1017,8 +1045,13 @@ export class HarmonicsMode extends BaseMode {
 
     // Draw every pin line in the visible span (FR-001) — unless this set is set
     // to hide its pin. Sets restored from storage without the flag are pinned.
+    // Beyond MAX_PIN_LINES the lines are a regular sample of the span (BH-2):
+    // by then adjacent pins have long merged on screen, and an uncapped loop
+    // rebuilt hundreds of thousands of SVG elements per drag frame.
     if (harmonicSet.showPin !== false) {
-      for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber++) {
+      const visibleCount = maxHarmonic - minHarmonic + 1
+      const stride = Math.max(1, Math.ceil(visibleCount / HarmonicsMode.MAX_PIN_LINES))
+      for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber += stride) {
         const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
         const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
         this.instance.ui.cursorGroup.appendChild(line)
