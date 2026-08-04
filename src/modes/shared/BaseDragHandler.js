@@ -19,11 +19,46 @@
 
 /// <reference path="../../types.js" />
 
+import { dispatch } from '../../core/state.js'
+
 /**
  * Which handler currently owns the active drag, per GramFrame instance.
  * @type {WeakMap<object, BaseDragHandler>}
  */
 const activeDragOwners = new WeakMap()
+
+/**
+ * Whether any handler currently owns an active drag on this instance.
+ *
+ * The distinguishable form of the engine's D4 refusal: `startDrag` returns
+ * `false` both for "no target here" and for "another handler owns the drag",
+ * and a caller that treats every `false` as "no target" mints a feature during
+ * an unrelated drag (BH-4). Callers that create on miss must check this first.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {boolean} True while a drag is active on the instance
+ */
+export function hasActiveDrag(instance) {
+  const owner = activeDragOwners.get(instance)
+  return !!(owner && owner.dragState.isDragging)
+}
+
+/**
+ * Cancel whichever drag is currently active on this instance, if any.
+ *
+ * The central cancellation point for the gaps the engine's contract promises
+ * to cover — mouseleave, off-image mouseup, Escape (H2). The owning handler
+ * runs its own cancel callback, so each kind unwinds correctly.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {boolean} True if a drag was cancelled
+ */
+export function cancelActiveDrag(instance) {
+  const owner = activeDragOwners.get(instance)
+  if (owner && owner.dragState.isDragging) {
+    owner.cancelDrag()
+    return true
+  }
+  return false
+}
 
 /**
  * The idle projection. Copied, never shared, so a listener cannot mutate it.
@@ -70,12 +105,7 @@ function publishDragProjection(instance) {
     }
   }
 
-  // Notified through the instance rather than by importing the state module:
-  // core/state.js imports every mode to build the initial state, so importing
-  // it back here would close an import cycle (AS-2.3).
-  if (typeof instance.notifyStateListeners === 'function') {
-    instance.notifyStateListeners()
-  }
+  dispatch(instance)
 }
 
 /**

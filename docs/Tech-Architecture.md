@@ -30,7 +30,7 @@ GramFrame is a JavaScript component for interactive spectrogram analysis. It tra
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐  │
 │  │    State     │  │    Events    │  │   Rendering  │  │ Configuration  │  │
 │  │  (core/     │  │  (core/      │  │  (rendering/ │  │  (core/        │  │
-│  │  state.js)  │  │  events.js)  │  │  cursors.js) │  │  configuration │  │
+│  │  state.js)  │  │  events.js)  │  │  + core/Feat-│  │  configuration │  │
 │  │             │  │              │  │              │  │  .js)          │  │
 │  └──────┬──────┘  └──────┬───────┘  └──────┬───────┘  └───────┬────────┘  │
 │         │                │                  │                   │           │
@@ -146,9 +146,9 @@ Axes are rendered by `renderAxes(instance)` in `src/components/table.js`:
 
 `updateSVGLayout(instance)` sets the SVG `width`, `height`, and `viewBox` to the image's natural dimensions plus margins, and positions the `<image>` element at `(margins.left, margins.top)`.
 
-### Cursor and Feature Rendering (`src/rendering/cursors.js`)
+### Feature Rendering (`src/core/FeatureRenderer.js`)
 
-`updateCursorIndicators(instance)` is the main render entry point:
+`featureRenderer.renderAllPersistentFeatures()` is the main render entry point:
 
 1. Clears `cursorGroup`
 2. Calls `featureRenderer.renderAllPersistentFeatures()` to redraw all saved features

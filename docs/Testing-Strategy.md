@@ -16,8 +16,9 @@ aspirational.
 | Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports and `waitForTimeout` counts, each capped at a committed baseline that only ever falls |
 
 Playwright is configured in `playwright.config.ts`: it boots the Vite dev
-server, runs `tests/**` except `tests/unit/` and `tests/smoke/`, and retries
-twice in CI.
+server and runs `tests/**` except `tests/unit/` and `tests/smoke/`, with
+`retries: 0` everywhere — a test that fails once is a bug, locally and in CI
+alike. Only the WebKit smoke lane (`playwright.smoke.config.ts`) retries.
 
 ## What the end-to-end suite covers
 

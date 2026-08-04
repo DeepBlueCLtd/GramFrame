@@ -12,7 +12,8 @@ import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coord
 import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
 import { isPanelOwner } from '../modes/capabilities.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
-import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount } from './FocusManager.js'
+import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount, clearFocusedInstance, isNodeInsideAnyInstance } from './FocusManager.js'
+import { cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
 
 /**
  * Movement increments in pixels
@@ -27,6 +28,8 @@ const MOVEMENT_INCREMENTS = {
  */
 /** @type {((event: KeyboardEvent) => void)|null} */
 let globalKeyboardHandler = null
+/** @type {((event: MouseEvent) => void)|null} */
+let globalMousedownHandler = null
 let keyboardHandlerInitialized = false
 
 /**
@@ -36,11 +39,19 @@ let keyboardHandlerInitialized = false
 export function initializeKeyboardControl(instance) {
   // Register this instance for focus management
   registerInstance(instance)
-  
-  // Only set up the global keyboard handler once
+
+  // Only set up the global handlers once
   if (!keyboardHandlerInitialized) {
     globalKeyboardHandler = (/** @type {KeyboardEvent} */ event) => handleGlobalKeyboardEvent(event)
     document.addEventListener('keydown', globalKeyboardHandler)
+    // A click outside every registered instance releases keyboard focus, so a
+    // gram never permanently captures the page's arrow keys and Tab (BH-3).
+    globalMousedownHandler = (/** @type {MouseEvent} */ event) => {
+      if (!isNodeInsideAnyInstance(event.target)) {
+        clearFocusedInstance()
+      }
+    }
+    document.addEventListener('mousedown', globalMousedownHandler)
     keyboardHandlerInitialized = true
   }
 }
@@ -53,15 +64,40 @@ export function cleanupKeyboardControl(instance) {
   // Unregister this instance from focus management
   unregisterInstance(instance)
 
-  // Uninstall the shared document-level handler once the last instance is gone
-  // (GF-14). While any instance remains it must stay installed — it is shared,
-  // not per-instance — so removal is gated on the registered count, not on this
-  // particular instance. A later instance reinstalls it via initializeKeyboardControl.
-  if (globalKeyboardHandler && getRegisteredInstanceCount() === 0) {
-    document.removeEventListener('keydown', globalKeyboardHandler)
-    globalKeyboardHandler = null
+  // Uninstall the shared document-level handlers once the last instance is gone
+  // (GF-14). While any instance remains they must stay installed — they are
+  // shared, not per-instance — so removal is gated on the registered count, not
+  // on this particular instance. A later instance reinstalls them via
+  // initializeKeyboardControl.
+  if (getRegisteredInstanceCount() === 0) {
+    if (globalKeyboardHandler) {
+      document.removeEventListener('keydown', globalKeyboardHandler)
+      globalKeyboardHandler = null
+    }
+    if (globalMousedownHandler) {
+      document.removeEventListener('mousedown', globalMousedownHandler)
+      globalMousedownHandler = null
+    }
     keyboardHandlerInitialized = false
   }
+}
+
+/**
+ * Whether a keyboard event originated in an editable element — a text input,
+ * textarea, select or contenteditable region, on the host page or in one of
+ * our own dialogs (the Manual Harmonic modal's spacing input).
+ * @param {EventTarget|null} target - The event's target
+ * @returns {boolean} True when the target takes text/keyboard input itself
+ */
+function isEditableTarget(target) {
+  if (!(target instanceof Element)) {
+    return false
+  }
+  const tag = target.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+    return true
+  }
+  return target instanceof HTMLElement && target.isContentEditable
 }
 
 /**
@@ -69,12 +105,23 @@ export function cleanupKeyboardControl(instance) {
  * @param {KeyboardEvent} event - Keyboard event
  */
 function handleGlobalKeyboardEvent(event) {
+  // Typing in an editable element is never ours to intercept: arrows must move
+  // the caret and Tab must move focus — including inside the Manual Harmonic
+  // modal's own spacing input, which this handler used to hijack (BH-3).
+  if (isEditableTarget(event.target)) {
+    return
+  }
+
   // Get the currently focused instance
   const focusedInstance = getFocusedInstance()
 
-  // Handle Tab navigation between instances (only when a GramFrame is focused)
+  // Handle Tab navigation between instances — but only when there is actually
+  // somewhere to cycle to. With one instance, swallowing Tab just breaks the
+  // host page's keyboard navigation (BH-3).
   if (event.key === 'Tab') {
-    if (!focusedInstance) return  // Let Tab work normally for form navigation
+    if (!focusedInstance || getRegisteredInstanceCount() <= 1) {
+      return // Let Tab work normally for form navigation
+    }
 
     if (event.shiftKey) {
       focusPreviousInstance()
@@ -87,19 +134,27 @@ function handleGlobalKeyboardEvent(event) {
   if (!focusedInstance) {
     return // No instance is focused
   }
-  
+
+  // Escape cancels an in-progress drag (the engine's contract promises it; H2)
+  if (event.key === 'Escape') {
+    if (cancelActiveDrag(focusedInstance)) {
+      event.preventDefault()
+    }
+    return
+  }
+
   // Only handle arrow keys for movement
   if (!isArrowKey(event.key)) {
     return
   }
-  
+
   // Check if there's a selected item in the focused instance
   const selection = focusedInstance.state.selection
   if (!selection || !selection.selectedType || !selection.selectedId) {
     return // No selection
   }
-  
-  
+
+
   // Prevent default browser behavior
   event.preventDefault()
   event.stopPropagation()
@@ -484,6 +539,10 @@ export function applyPinToSelectedFeature(instance, showPin) {
     return false
   }
   /** @type {HarmonicSet} */ (selected.feature).showPin = !!showPin
+  // `showPin` is a persisted field, so this restyle must reach storage like its
+  // colour/symbol siblings — without the mark, a pin toggle survived only until
+  // the next reload (H1).
+  markAnnotationsChanged(instance)
   refreshFeatureVisuals(instance, selected.type)
   return true
 }
@@ -524,7 +583,10 @@ export function removeHarmonicSet(instance, id) {
     }
     
     harmonics.harmonicSets.splice(setIndex, 1)
-    
+    // Deleting a set is an annotation mutation: masked today by the signature's
+    // set-count field, but the mark is the contract (BH-24).
+    markAnnotationsChanged(instance)
+
     // Update visual elements
     if (instance.ui.harmonicPanel) {
       updateHarmonicPanelContent(instance.ui.harmonicPanel, instance)

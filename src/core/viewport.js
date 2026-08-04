@@ -157,10 +157,13 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
 }
 
 /**
- * Update zoom control button states based on current zoom level
+ * Update zoom control button states based on current zoom level.
+ *
+ * Module-private since the dead `_setRate`/`_updateAxes`/`_updateZoomControlStates`
+ * forwarder chain in main.js was deleted (L1): its only caller is `setZoom` above.
  * @param {GramFrame} instance - GramFrame instance
  */
-export function updateZoomControlStates(instance) {
+function updateZoomControlStates(instance) {
   // Update command button states for all modes (zoom buttons are now in pan mode)
   if (instance.ui.commandButtons && instance.modes) {
     updateCommandButtonStates(instance.ui.commandButtons, instance.modes)
@@ -192,15 +195,5 @@ export function handleResize(instance) {
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures()
     }
-  }
-}
-
-/**
- * Update axes when rate changes
- * @param {GramFrame} instance - GramFrame instance
- */
-export function updateAxes(instance) {
-  if (instance.ui.axesGroup) {
-    renderAxes(instance)
   }
 }

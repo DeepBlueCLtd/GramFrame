@@ -93,10 +93,7 @@ test.describe('Harmonic pin height', () => {
        * @returns {boolean} Whether a harmonic set is found there
        */
       const probe = (time) => {
-        instance.state.cursorPosition = {
-          x: 0, y: 0, svgX: 0, svgY: 0, imageX: 0, imageY: 0, freq, time
-        }
-        return mode.findHarmonicSetAtFrequency(freq)?.id === id
+        return mode.findHarmonicSetAt({ freq, time })?.id === id
       }
       return { atAnchor: probe(30), farBelow: probe(10) }
     }, [setId, CENTRE_HARMONIC])

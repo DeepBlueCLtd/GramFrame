@@ -119,7 +119,6 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `svgLayout.js` - SVG layout, viewBox and zoom-transform application
 - `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
   - `axes.js` - The axis engine: `renderAxes` and its private tick/label helpers
-  - `cursors.js` - Cursor indicator refresh
   - `symbols.js` - Marker/harmonic symbol shapes
 - `src/utils/` - Utility modules:
   - `coordinates.js` - The canonical coordinate module: every screen/SVG/image/data

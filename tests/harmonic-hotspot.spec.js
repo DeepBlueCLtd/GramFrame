@@ -43,8 +43,7 @@ async function probeAt(gfp, selector, dy = 0) {
 
     // @ts-ignore - test-only global
     const instance = window.GramFrame.__test__getInstances()[0]
-    instance.state.cursorPosition = { freq, time, x: 0, y: 0, svgX: 0, svgY: 0, imageX: 0, imageY: 0 }
-    const found = instance.modes['harmonics'].findHarmonicSetAtFrequency(freq)
+    const found = instance.modes['harmonics'].findHarmonicSetAt({ freq, time })
     return found ? found.id : null
   }, [selector, dy])
 }
@@ -61,8 +60,7 @@ async function probeAtData(gfp, freq, time) {
   return gfp.page.evaluate(([f, t]) => {
     // @ts-ignore - test-only global
     const instance = window.GramFrame.__test__getInstances()[0]
-    instance.state.cursorPosition = { freq: f, time: t, x: 0, y: 0, svgX: 0, svgY: 0, imageX: 0, imageY: 0 }
-    const found = instance.modes['harmonics'].findHarmonicSetAtFrequency(f)
+    const found = instance.modes['harmonics'].findHarmonicSetAt({ freq: f, time: t })
     return found ? found.id : null
   }, [freq, time])
 }

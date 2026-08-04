@@ -5,6 +5,12 @@
 /// <reference path="../types.js" />
 
 /**
+ * Conversion factor from metres per second to knots.
+ * @type {number}
+ */
+export const MS_TO_KNOTS = 1.94384
+
+/**
  * Calculate the midpoint between two Doppler points
  * @param {DataCoordinates} fPlus - f+ point with time and frequency
  * @param {DataCoordinates} fMinus - f- point with time and frequency  

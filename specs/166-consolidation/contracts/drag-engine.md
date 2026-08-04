@@ -45,7 +45,8 @@ new BaseDragHandler(instance, {
    */
   resolveHoverTarget(position),
 
-  /** Called once, after the threshold is crossed. */
+  /** Called once, on the mousedown that starts the drag. There is no movement
+   *  threshold: a drag begins the moment the resolver returns a target. */
   onDragStart(target, position),
 
   /** Called per move, already frame-throttled by the dispatcher. */
@@ -54,7 +55,8 @@ new BaseDragHandler(instance, {
   /** Called on mouseup inside the surface. */
   onDragEnd(target, position),
 
-  /** Called on mouseleave / Escape / mouseup outside — must restore prior state. */
+  /** Called on mouseleave / Escape / off-image mouseup (wired centrally in
+   *  `core/events.js` and the keyboard handler) — must not commit the gesture. */
   onDragCancel(target),
 
   /** Optional per-kind cursor; defaults to the mode's cursor. */

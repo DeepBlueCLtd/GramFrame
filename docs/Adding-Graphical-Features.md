@@ -10,7 +10,7 @@ When adding a new graphical feature, you will likely need to work with these fil
 
 | File | Purpose | When to Touch |
 |------|---------|---------------|
-| `src/rendering/cursors.js` | Main render entry point; clears and redraws all features | Adding a new visual element type |
+| `src/core/FeatureRenderer.js` | Main render entry point; clears and redraws all features | Adding a new visual element type |
 | `src/components/table.js` | SVG layout, axis rendering, zoom transforms | Changing axes or SVG structure |
 | `src/utils/coordinateTransformations.js` | Zoom-aware transforms, `dataToSVG()` | Positioning elements when zoomed |
 | `src/utils/svg.js` | SVG element creation helpers (`createSVGLine`, `createSVGText`, `createSVGCircle`) | Creating new SVG shapes |
@@ -49,7 +49,7 @@ Screen Coords ──→ SVG Coords ──→ Image Coords ──→ Data Coords
 
 ### Converting Data Coords Back to SVG
 
-For rendering, you often need the reverse: data → SVG. This pattern appears in `src/rendering/cursors.js`:
+For rendering, you often need the reverse: data → SVG. This pattern appears in the mode renderers (e.g. `src/modes/analysis/AnalysisMode.js`):
 
 ```javascript
 const margins = instance.state.margins

@@ -9,7 +9,7 @@
     "test": "playwright test",
     "typecheck": "tsc --noEmit",
     "hygiene": "node scripts/hygiene.js",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 44",
     "test:unit": "vitest run"
   },
   "devDependencies": {

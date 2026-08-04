@@ -218,11 +218,8 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
         // @ts-ignore - test-only global
         const instance = window.GramFrame.__test__getInstances()[0]
         const harmonics = instance.modes['harmonics']
-        // Cursor must be within the pin's vertical range (anchorTime = 30)
-        instance.state.cursorPosition = {
-          freq, time: 30, x: 0, y: 0, svgX: 0, svgY: 0, imageX: 0, imageY: 0
-        }
-        const found = harmonics.findHarmonicSetAtFrequency(freq)
+        // Probe within the pin's vertical range (anchorTime = 30)
+        const found = harmonics.findHarmonicSetAt({ freq, time: 30 })
         const target = harmonics.findHarmonicSetTarget({ freq, time: 30 })
 
         // Simulate a spacing adjustment via the drag seam (data coordinates),
