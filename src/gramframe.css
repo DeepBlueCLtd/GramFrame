@@ -422,7 +422,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
     0 1px 2px rgba(0,0,0,0.2);
 }
 
-/* Color picker for harmonics */
+/* Style panel: colour band, symbol band, harmonics band */
 .gram-frame-color-picker {
   margin-top: 0;
   padding: 8px;
@@ -451,6 +451,47 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   position: relative;
 }
 
+/* One band of the style panel, grouping controls that share a scope. */
+.gram-frame-style-group {
+  margin-bottom: 6px;
+}
+
+.gram-frame-style-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Band caption. Same micro-caps treatment as the panel heading, but ranged left
+   so the bands read as a list beneath the centred title. */
+.gram-frame-style-group-label {
+  font-size: 10px;
+  color: #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+/* The Symbol band is a single row, so its caption sits inline with the controls
+   rather than above them. */
+.gram-frame-style-symbol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gram-frame-style-symbol-row .gram-frame-style-group-label {
+  margin-bottom: 0;
+}
+
+/* Fences the harmonics-only band off from the controls above it. Lighter than
+   the panel border (#333), which is invisible against the panel's near-black
+   fill — the rule has to be seen to do its job. */
+.gram-frame-style-divider {
+  border-top: 1px solid #4a4a4a;
+  margin: 8px 0 6px;
+}
+
 /* Symbol drop-down embedded to the right of the colour slider. Its `color` is
    set inline to the selected colour so the glyphs render in that colour. */
 .gram-frame-symbol-select {
@@ -464,18 +505,24 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   cursor: pointer;
 }
 
-/* Harmonic-pin visibility toggle, below the colour slider / symbol row.
-   TEMPORARY (symbol-size experiment): the "Large symbols" toggle sits under the
-   pin toggle and shares its styling. Remove that selector, and the block below,
-   together with the control once a symbol size is agreed. */
+/* Harmonic-pin visibility toggle, in the panel's harmonics band.
+   TEMPORARY (symbol-size experiment): the "Large" toggle sits inline in the
+   symbol row and shares this styling. Remove that selector, the margin-left
+   override and the blocks below, together with the control once a symbol size
+   is agreed. */
 .gram-frame-pin-toggle,
 .gram-frame-large-symbols-toggle {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-top: 6px;
   cursor: pointer;
   user-select: none;
+}
+
+/* Push the size toggle to the far edge of the symbol row, clear of the
+   drop-down. */
+.gram-frame-large-symbols-toggle {
+  margin-left: auto;
 }
 
 .gram-frame-pin-toggle-input,
@@ -503,9 +550,14 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   cursor: default;
 }
 
+/* The slider has the band to itself, so it spans the panel: a wider gradient is
+   an easier target. The canvas keeps its 140px backing store — the click
+   handler rescales by the rendered width, and the indicator is positioned in
+   percent, so both follow the CSS width. */
 .gram-frame-color-canvas {
-  width: 140px;
-  max-width: 140px;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   height: 20px;
   border: 1px solid #555;
   border-radius: 2px;

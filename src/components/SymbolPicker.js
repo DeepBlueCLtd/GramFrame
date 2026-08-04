@@ -1,9 +1,9 @@
 /**
  * Symbol selector for GramFrame overlays.
  *
- * Renders a compact native drop-down of symbol glyphs. It is embedded in the
- * combined "Symbol" panel (see ColorPicker.js) to the right of the colour
- * slider, and its glyphs are tinted with the currently selected colour.
+ * Renders a compact native drop-down of symbol glyphs. It heads the Symbol band
+ * of the style panel (see ColorPicker.js), below the colour slider, and its
+ * glyphs are tinted with the currently selected colour.
  *
  * When a marker or harmonic set is selected, changing the symbol restyles that
  * feature in place (feature 161); otherwise the chosen symbol is written to
@@ -90,7 +90,7 @@ export function createSymbolSelect(instance) {
 }
 
 /**
- * Create the temporary "Large symbols" toggle for the Symbol panel.
+ * Create the temporary "Large" toggle for the style panel's Symbol band.
  *
  * EXPERIMENT: an on/off switch between the current symbol size and
  * {@link LARGE_SYMBOL_SCALE}× that size, so analysts can compare the two on a
@@ -138,7 +138,9 @@ export function createLargeSymbolToggle(instance) {
 
   const text = document.createElement('span')
   text.className = 'gram-frame-large-symbols-label'
-  text.textContent = 'Large symbols'
+  // Short label: the control sits inline beside the symbol drop-down it
+  // modifies, so "Symbols" would be redundant as well as too wide.
+  text.textContent = 'Large'
 
   label.appendChild(checkbox)
   label.appendChild(text)

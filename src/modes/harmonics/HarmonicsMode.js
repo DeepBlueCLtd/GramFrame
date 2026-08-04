@@ -144,7 +144,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Base pixel size (width/height) of a pin's symbol mark. The effective size is
-   * this scaled by the "Large symbols" experiment toggle — use
+   * this scaled by the "Large" symbol-size experiment toggle — use
    * {@link HarmonicsMode#symbolSize} rather than reading this directly.
    * @type {number}
    */
@@ -390,7 +390,7 @@ export class HarmonicsMode extends BaseMode {
     const symbol = this.instance.state.selectedSymbol || 'cross'
 
     // Use the session's pin-visibility preference (on unless the analyst turned
-    // it off via the Symbol panel toggle)
+    // it off via the style panel toggle)
     const showPin = this.instance.state.showHarmonicPin !== false
 
     /** @type {HarmonicSet} */
@@ -889,7 +889,7 @@ export class HarmonicsMode extends BaseMode {
 
   /**
    * Effective pixel size of a set's symbol marks: the base size scaled by that
-   * set's own "Large symbols" flag, so sets at both sizes can share a gram. The
+   * set's own large-symbol flag, so sets at both sizes can share a gram. The
    * whole label/symbol stack layout derives from this, so the label spacing and
    * top-edge clamping follow the set's chosen size.
    * @param {HarmonicSet} harmonicSet - Harmonic set configuration

@@ -48,7 +48,7 @@ export const SYMBOL_DISPLAY_NAMES = {
 
 /**
  * EXPERIMENT (temporary — feature-feedback trial): multiplier applied to the
- * on-image symbol marks when the "Large symbols" toggle in the Symbol panel is
+ * on-image symbol marks when the "Large" toggle in the style panel is
  * on. It exists only so analysts can compare the two sizes and tell us which to
  * keep; once a size is chosen, fold the winner into the base sizes and delete
  * both this constant and the toggle.
