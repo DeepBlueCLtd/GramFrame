@@ -472,15 +472,16 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   margin-bottom: 4px;
 }
 
-/* The Symbol band is a single row, so its caption sits inline with the controls
-   rather than above them. */
-.gram-frame-style-symbol-row {
+/* A band whose controls fit on one line puts its caption inline with them
+   rather than above. Used by the Symbol and Harmonics bands; the Colour band
+   keeps its caption stacked, because the slider spans the panel. */
+.gram-frame-style-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.gram-frame-style-symbol-row .gram-frame-style-group-label {
+.gram-frame-style-row .gram-frame-style-group-label {
   margin-bottom: 0;
 }
 

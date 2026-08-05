@@ -117,7 +117,7 @@ export function createColorPicker(instance) {
   container.appendChild(symbolGroup)
 
   const symbolRow = document.createElement('div')
-  symbolRow.className = 'gram-frame-style-symbol-row'
+  symbolRow.className = 'gram-frame-style-row'
   symbolGroup.appendChild(symbolRow)
 
   symbolRow.appendChild(createGroupLabel('Symbol'))
@@ -139,9 +139,15 @@ export function createColorPicker(instance) {
 
   const harmonicsGroup = document.createElement('div')
   harmonicsGroup.className = 'gram-frame-style-group'
-  harmonicsGroup.appendChild(createGroupLabel('Harmonics'))
-  harmonicsGroup.appendChild(createPinToggle(instance))
   container.appendChild(harmonicsGroup)
+
+  // Caption and control share a row, as in the Symbol band above.
+  const harmonicsRow = document.createElement('div')
+  harmonicsRow.className = 'gram-frame-style-row'
+  harmonicsGroup.appendChild(harmonicsRow)
+
+  harmonicsRow.appendChild(createGroupLabel('Harmonics'))
+  harmonicsRow.appendChild(createPinToggle(instance))
 
   // Add click handler for color selection
   canvas.addEventListener('click', (event) => {
