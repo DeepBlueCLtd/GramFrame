@@ -4,8 +4,9 @@ import { GramFramePage } from './helpers/gram-frame-page.js'
 /**
  * @fileoverview E2E tests for the harmonic-pin visibility toggle in the Symbol
  * panel. Covers the default-on session preference, pin-less creation, editing an
- * existing set in place, persistence within the browser session, and the
- * restore of harmonic sets saved before the toggle existed.
+ * existing set in place, persistence within the browser session, the restore of
+ * harmonic sets saved before the toggle existed, and the mini-pins a pin-less
+ * set draws in place of full pin lines.
  */
 
 /**
@@ -277,5 +278,80 @@ test.describe('US4: Legacy harmonic sets restore with pins shown', () => {
     expect(await gfp.getHarmonicLineCount('legacy-pin-1')).toBeGreaterThan(0)
 
     expect(consoleErrors).toEqual([])
+  })
+})
+
+// ──────────────────────────────────────────────────────────────
+// User Story 5 — Mini-pins keep a pin-less set tied to the data (issue #232)
+// ──────────────────────────────────────────────────────────────
+
+test.describe('US5: Pin-less sets draw mini-pins', () => {
+  // Debug config spans 0-100 Hz, so a 0.5 Hz set has 200 visible harmonics —
+  // far more than the 25-label sampling cap.
+  const SPACING = 0.5
+  const ANCHOR_TIME = 30
+  const MINI_PIN_HEIGHT = 10
+
+  test.beforeEach(async ({ gramFramePage }) => {
+    await gramFramePage.clickMode('Harmonics')
+  })
+
+  test('a mini-pin is drawn for every visible harmonic, not just the labelled ones', async ({ gramFramePage }) => {
+    await gramFramePage.setPinToggle(false)
+    const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+
+    const miniPins = await gramFramePage.getMiniPins(setId)
+    const labels = await gramFramePage.getHarmonicLabelNumbers(setId)
+
+    // Every harmonic in the span gets a mini-pin; only a sampled few are labelled.
+    expect(miniPins.map((p) => p.harmonic)).toEqual(
+      Array.from({ length: 200 }, (_, i) => i + 1)
+    )
+    expect(labels.length).toBeLessThan(miniPins.length)
+
+    // ...and no full-height lines, which is what the toggle turns off.
+    expect(await gramFramePage.getHarmonicLineCount(setId)).toBe(0)
+  })
+
+  test('mini-pins are a fixed short height in the set\'s own colour', async ({ gramFramePage }) => {
+    await gramFramePage.setPinToggle(false)
+    const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+
+    const state = await gramFramePage.getState()
+    const set = state.harmonics.harmonicSets.find((s) => s.id === setId)
+
+    const miniPins = await gramFramePage.getMiniPins(setId)
+    expect(miniPins.length).toBeGreaterThan(0)
+    for (const pin of miniPins) {
+      expect(pin.stroke).toBe(set.color)
+      expect(pin.y2 - pin.y1).toBeCloseTo(MINI_PIN_HEIGHT, 5)
+    }
+  })
+
+  test('mini-pins hang from where the full pin line would start', async ({ gramFramePage }) => {
+    const pinnedId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+    await gramFramePage.page.evaluate(() => {
+      // @ts-ignore - test-only global
+      window.GramFrame.__test__getInstances()[0].interaction.clearSelection()
+    })
+    await gramFramePage.setPinToggle(false)
+    const pinlessId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+
+    // A pinned set draws no mini-pins, and vice versa.
+    expect((await gramFramePage.getMiniPins(pinnedId)).length).toBe(0)
+    expect(await gramFramePage.getHarmonicLineCount(pinlessId)).toBe(0)
+
+    // Same anchor time and spacing, so the mini-pin of a given harmonic starts
+    // exactly where the full line of the same harmonic starts — under the symbol.
+    const fullLine = await gramFramePage.page.evaluate((id) => {
+      const line = document.querySelector(
+        `.gram-frame-harmonic-line[data-harmonic-set-id="${id}"][data-harmonic-number="10"]`
+      )
+      return { x: Number(line.getAttribute('x1')), y1: Number(line.getAttribute('y1')) }
+    }, pinnedId)
+
+    const miniPin = (await gramFramePage.getMiniPins(pinlessId)).find((p) => p.harmonic === 10)
+    expect(miniPin.x).toBeCloseTo(fullLine.x, 5)
+    expect(miniPin.y1).toBeCloseTo(fullLine.y1, 5)
   })
 })

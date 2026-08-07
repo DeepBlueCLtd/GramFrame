@@ -683,6 +683,36 @@ class GramFramePage {
   }
 
   /**
+   * Build a CSS selector for mini-pins (the stubs a pin-less set draws under
+   * each harmonic), optionally scoped to one set.
+   * @param {string} [setId] - Restrict to a single harmonic set's mini-pins
+   * @returns {string} Selector string
+   */
+  miniPinSelector(setId) {
+    return setId
+      ? `.gram-frame-harmonic-mini-pin[data-harmonic-set-id="${setId}"]`
+      : '.gram-frame-harmonic-mini-pin'
+  }
+
+  /**
+   * Read the geometry of each rendered mini-pin, in document order, optionally
+   * for a single set.
+   * @param {string} [setId] - Restrict to one harmonic set
+   * @returns {Promise<Array<{harmonic: number, x: number, y1: number, y2: number, stroke: string}>>} Mini-pin geometry
+   */
+  async getMiniPins(setId) {
+    return this.page.evaluate((selector) => {
+      return Array.from(document.querySelectorAll(selector)).map((pin) => ({
+        harmonic: Number(pin.getAttribute('data-harmonic-number')),
+        x: Number(pin.getAttribute('x1')),
+        y1: Number(pin.getAttribute('y1')),
+        y2: Number(pin.getAttribute('y2')),
+        stroke: String(pin.getAttribute('stroke'))
+      }))
+    }, this.miniPinSelector(setId))
+  }
+
+  /**
    * Read the `data-harmonic-number` of each rendered harmonic line, in document
    * order, optionally for a single set.
    * @param {string} [setId] - Restrict to one harmonic set

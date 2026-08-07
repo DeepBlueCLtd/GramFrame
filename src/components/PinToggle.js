@@ -2,11 +2,15 @@
  * Harmonic-pin visibility toggle for GramFrame overlays.
  *
  * A checkbox in the style panel's Harmonics band (see ColorPicker.js) that
- * controls whether a harmonic set draws its vertical pin lines. Pins are the
- * only style in that panel harmonic sets alone understand, which is why the
- * band is fenced off below a rule. With the pin off, a set
- * renders as its symbols and numbers alone — the style experienced analysts use
- * to stack many harmonic sets over dense data without the lines swamping it.
+ * controls whether a harmonic set draws its full-height vertical pin lines.
+ * Pins are the only style in that panel harmonic sets alone understand, which is
+ * why the band is fenced off below a rule. With the toggle off, a set renders as
+ * its symbols and numbers over short mini-pins — the style experienced analysts
+ * use to stack many harmonic sets over dense data without the lines swamping it.
+ *
+ * It is labelled "Tall Pins" rather than "Pin" because a pin-less set still
+ * draws mini-pins (issue #232): the choice is between tall pins and short ones,
+ * not between pins and none.
  *
  * When a harmonic set is selected, toggling restyles that set in place;
  * otherwise the choice is written to `state.showHarmonicPin` and applied to the
@@ -32,17 +36,17 @@ export function createPinToggle(instance) {
 
   const row = document.createElement('label')
   row.className = 'gram-frame-pin-toggle'
-  row.title = 'Show the vertical pin lines of harmonic sets'
+  row.title = 'Draw harmonic sets with full-height pin lines instead of mini-pins'
 
   const checkbox = document.createElement('input')
   checkbox.type = 'checkbox'
   checkbox.className = 'gram-frame-pin-toggle-input'
   checkbox.checked = state.showHarmonicPin !== false
-  checkbox.setAttribute('aria-label', 'Show harmonic pin')
+  checkbox.setAttribute('aria-label', 'Show tall harmonic pins')
 
   const text = document.createElement('span')
   text.className = 'gram-frame-pin-toggle-label'
-  text.textContent = 'Pin'
+  text.textContent = 'Tall Pins'
 
   row.appendChild(checkbox)
   row.appendChild(text)
@@ -76,8 +80,8 @@ export function createPinToggle(instance) {
       checkbox.disabled = !enabled
       row.classList.toggle('gram-frame-pin-toggle-disabled', !enabled)
       row.title = enabled
-        ? 'Show the vertical pin lines of harmonic sets'
-        : 'Pins apply to harmonic sets only'
+        ? 'Draw harmonic sets with full-height pin lines instead of mini-pins'
+        : 'Tall pins apply to harmonic sets only'
     }
   }
 

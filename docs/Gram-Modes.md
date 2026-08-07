@@ -69,12 +69,13 @@ multiples of a spacing.
 - Click and drag to create a harmonic set; the drag sets the spacing.
 - Drag an existing set to adjust its spacing and anchor time.
 - **+ Manual** opens a dialog for entering a spacing numerically.
-- Each set draws a symbol and harmonic number per harmonic, optionally with
-  vertical pin lines (the **Pin** toggle; on by default for each browser
-  session).
-- Dense sets are sampled: at most a fixed number of pins are drawn within the
-  visible span, at a regular "nice" interval, so a small spacing over a wide span
-  stays legible.
+- Each set draws a vertical pin line per harmonic, capped by the **Tall Pins**
+  toggle (on by default for each browser session): full-height lines when it is
+  on, short mini-pins hanging from the symbols when it is off.
+- Dense sets are sampled: at most a fixed number of symbols and harmonic numbers
+  are drawn within the visible span, at a regular "nice" interval, so a small
+  spacing over a wide span stays legible. The pins themselves are not thinned, so
+  the unlabelled harmonics still show against the data.
 - Sets are listed in the harmonics panel; selecting a row enables arrow-key
   adjustment and in-place restyling, as for markers.
 

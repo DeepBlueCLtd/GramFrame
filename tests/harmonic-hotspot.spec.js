@@ -121,12 +121,21 @@ test.describe('Harmonic set hotspot', () => {
     const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
     await updateSet(gramFramePage, setId, { showPin: false })
 
-    // No lines are drawn, so the label/symbol stack is the whole feature.
+    // No full-height lines are drawn, so the label/symbol stack and the
+    // mini-pin stub beneath it are the whole feature.
     expect(await gramFramePage.page.locator(
       `.gram-frame-harmonic-line[data-harmonic-set-id="${setId}"]`
     ).count()).toBe(0)
 
     expect(await probeAt(gramFramePage, labelSelector(setId, CENTRE_HARMONIC))).toBe(setId)
+  })
+
+  test('with the pin hidden, the mini-pin grabs the set', async ({ gramFramePage }) => {
+    const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+    await updateSet(gramFramePage, setId, { showPin: false })
+
+    const miniPin = `.gram-frame-harmonic-mini-pin[data-harmonic-set-id="${setId}"][data-harmonic-number="${CENTRE_HARMONIC}"]`
+    expect(await probeAt(gramFramePage, miniPin)).toBe(setId)
   })
 
   test('with the pin hidden, the blank span below the label does not grab the set', async ({ gramFramePage }) => {

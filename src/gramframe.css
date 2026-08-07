@@ -1102,7 +1102,8 @@ table.gram-frame-table {
 /* SVG Harmonic line styles */
 
 
-.gram-frame-harmonic-line {
+.gram-frame-harmonic-line,
+.gram-frame-harmonic-mini-pin {
   stroke-width: 2;
   fill: none;
   pointer-events: none;
