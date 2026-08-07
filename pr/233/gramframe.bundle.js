@@ -691,15 +691,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const state = instance.state;
     const row = document.createElement("label");
     row.className = "gram-frame-pin-toggle";
-    row.title = "Show the vertical pin lines of harmonic sets";
+    row.title = "Draw harmonic sets with full-height pin lines instead of mini-pins";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.className = "gram-frame-pin-toggle-input";
     checkbox.checked = state.showHarmonicPin !== false;
-    checkbox.setAttribute("aria-label", "Show harmonic pin");
+    checkbox.setAttribute("aria-label", "Show tall harmonic pins");
     const text = document.createElement("span");
     text.className = "gram-frame-pin-toggle-label";
-    text.textContent = "Pin";
+    text.textContent = "Tall Pins";
     row.appendChild(checkbox);
     row.appendChild(text);
     checkbox.addEventListener("change", () => {
@@ -722,7 +722,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       setEnabled(enabled) {
         checkbox.disabled = !enabled;
         row.classList.toggle("gram-frame-pin-toggle-disabled", !enabled);
-        row.title = enabled ? "Show the vertical pin lines of harmonic sets" : "Pins apply to harmonic sets only";
+        row.title = enabled ? "Draw harmonic sets with full-height pin lines instead of mini-pins" : "Tall pins apply to harmonic sets only";
       }
     };
     return row;
