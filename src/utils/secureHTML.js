@@ -9,8 +9,9 @@
 /**
  * A single titled block of guidance bullet points.
  * @typedef {Object} GuidanceSection
- * @property {string} title - The section heading text
- * @property {string[]} items - Array of guidance items (rendered as bullet points)
+ * @property {string} [title] - The section heading text
+ * @property {string} [qualifier] - Aside appended to the heading, in parentheses
+ * @property {string[]} [items] - Array of guidance items (rendered as bullet points)
  */
 
 /**
@@ -35,7 +36,9 @@ function renderSecureGuidance(container, content) {
   container.replaceChildren()
 
   // Normalise to a list of sections so single- and multi-section content share
-  // one render path.
+  // one render path. The single-section form may omit either field, which is
+  // why GuidanceSection marks both optional and why each is guarded below.
+  /** @type {GuidanceSection[]} */
   const sections = Array.isArray(content.sections)
     ? content.sections
     : [{ title: content.title, items: content.items }]
@@ -45,6 +48,16 @@ function renderSecureGuidance(container, content) {
     if (section.title) {
       const title = document.createElement('h4')
       title.textContent = section.title
+      // A qualifier rides the heading rather than taking a bullet of its own —
+      // it describes the whole section, and a bullet costs the control row a
+      // full line. Its own element so the CSS can drop the heading's uppercase
+      // and letter-spacing for it, which is what keeps the two on one line.
+      if (section.qualifier) {
+        const qualifier = document.createElement('span')
+        qualifier.className = 'gram-frame-guidance-qualifier'
+        qualifier.textContent = ` (${section.qualifier})`
+        title.appendChild(qualifier)
+      }
       container.appendChild(title)
     }
 

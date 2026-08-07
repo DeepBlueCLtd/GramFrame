@@ -390,13 +390,14 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 /* Label-beside-value LED (the doppler speed readout).
  *
  * The default LED stacks its label above its value, which suits the short
- * "Time (mm:ss)" / "Frequency (Hz)" captions. "Doppler Speed (knots)" is long
+ * "Time (mm:ss)" / "Frequency (Hz)" captions. "Doppler Speed (kts)" is long
  * enough to claim a row of its own, so stacking it spent height on a line that
  * was mostly empty either side of the value. Here the label sits to the LEFT of
- * the value and `width: min-content` wraps it at each space — three words, three
- * short lines — filling the width the stacked form wasted.
+ * the value and `width: min-content` wraps it, filling the width the stacked
+ * form wasted. It breaks into two lines rather than three because MainUI.js
+ * joins "Doppler" and "Speed" with a non-breaking space.
  *
- * The label stays ONE text node ("Doppler Speed (knots)"): the wrap is CSS, not
+ * The label stays ONE text node ("Doppler Speed (kts)"): the wrap is CSS, not
  * markup, so `.gram-frame-led-label:text-is(...)` still matches it (the test
  * helpers locate every LED that way). Do not split it into lines in JS. */
 .gram-frame-led-inline {
@@ -494,7 +495,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 
 /* A band whose controls fit on one line puts its caption inline with them
    rather than above. Used by the Symbol and Harmonics bands; the Colour band
-   keeps its caption stacked, because the slider spans the panel. */
+   has no caption at all — the gradient slider needs no naming. */
 .gram-frame-style-row {
   display: flex;
   align-items: center;
@@ -944,6 +945,20 @@ table.gram-frame-table {
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: bold;
+}
+
+/* Aside inside a guidance heading (e.g. Mouse-Wheel "(available in all modes)").
+   Dropping the heading's uppercase and letter-spacing is what lets the qualifier
+   share the heading's line instead of wrapping onto a second one — it was a
+   bullet of its own until it moved up here, and a two-line heading would have
+   given back the height the move was meant to save. Dimmer than the heading so
+   the section still reads by its name first. */
+.gram-frame-guidance h4 .gram-frame-guidance-qualifier {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: normal;
+  font-size: 10px;
+  color: #6a6;
 }
 
 .gram-frame-guidance p {

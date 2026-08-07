@@ -69,9 +69,16 @@ export function createUnifiedLayout(instance) {
   
   // Create doppler speed LED (spans full width). Unlike the time/frequency
   // readouts it lays its label out beside the value rather than above it: the
-  // label wraps to three short lines in the space the stacked form wasted to
-  // its right, so the readout costs the control row less height.
-  const speedLED = createLEDDisplay('Doppler Speed (knots)', '0.0')
+  // label wraps into the space the stacked form wasted to its right, so the
+  // readout costs the control row less height.
+  //
+  // The gap between "Doppler" and "Speed" is a non-breaking space, written as a
+  // \u00a0 escape so it stays visible in the source. The label is sized
+  // `width: min-content`, which breaks at every ordinary space and would stack
+  // three lines; gluing the first two words holds it to two - "Doppler Speed"
+  // over "(kts)". Playwright normalises \u00a0 to a plain space, so the
+  // `:text-is("Doppler Speed (kts)")` locators in tests/helpers still match.
+  const speedLED = createLEDDisplay('Doppler\u00a0Speed (kts)', '0.0')
   speedLED.classList.add('gram-frame-led-inline')
   speedLED.style.gridColumn = '1 / -1' // Span both columns
   cursorContainer.appendChild(speedLED)
