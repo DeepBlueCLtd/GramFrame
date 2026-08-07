@@ -2,6 +2,7 @@ import { BaseMode } from '../BaseMode.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getVersion } from '../../utils/version.js'
 import { pixelDeltaToNormalizedPan, panByNormalized, zoomIn, zoomOut } from '../../core/viewport.js'
+import { IDLE_CURSOR, PAN_IDLE_CURSOR, PAN_DRAG_CURSOR } from '../../utils/cursors.js'
 import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
 
 /**
@@ -27,10 +28,11 @@ export class PanMode extends BaseMode {
       onDragEnd: () => this.onPanEnd(),
       onDragCancel: () => this.onPanEnd(),
       updateCursor: (style) => this.applyCursor(style),
-      // A pan shows the grabbing hand, not the crosshair the other kinds use
-      cursorFor: (kind, fallback) => {
-        if (kind !== 'pan') return fallback
-        return fallback === 'grabbing' ? 'grabbing' : this.idleCursor()
+      // A pan keeps the hand, rather than the hollow brackets feature drags use:
+      // there is no target under the pointer for it to obscure.
+      cursorFor: (kind, phase) => {
+        if (kind !== 'pan') return null
+        return phase === 'drag' ? PAN_DRAG_CURSOR : this.idleCursor()
       }
     }, 'pan')
   }
@@ -52,7 +54,7 @@ export class PanMode extends BaseMode {
    * @returns {string} Cursor style
    */
   idleCursor() {
-    return this.instance.state.zoom.level > 1.0 ? 'grab' : 'crosshair'
+    return this.instance.state.zoom.level > 1.0 ? PAN_IDLE_CURSOR : IDLE_CURSOR
   }
 
   /**
@@ -109,7 +111,7 @@ export class PanMode extends BaseMode {
   activate() {
     // Set cursor to grab if zoomed
     if (this.instance.state.zoom.level > 1.0) {
-      this.applyCursor('grab')
+      this.applyCursor(PAN_IDLE_CURSOR)
     }
 
     // Reset any existing drag state
@@ -122,7 +124,7 @@ export class PanMode extends BaseMode {
   deactivate() {
     // Clear drag state, then reset the cursor
     this.dragHandler.reset()
-    this.applyCursor('crosshair')
+    this.applyCursor(IDLE_CURSOR)
   }
 
   /**

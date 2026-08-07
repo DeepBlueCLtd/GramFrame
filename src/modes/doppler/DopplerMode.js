@@ -7,6 +7,7 @@ import { calculateDopplerSpeed, calculateMidpoint, MS_TO_KNOTS } from '../../uti
 import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinDataTolerance, findClosestTarget } from '../../utils/tolerance.js'
+import { IDLE_CURSOR } from '../../utils/cursors.js'
 
 // Doppler marker types
 /** @type {Record<DopplerDraggedMarker, DopplerDraggedMarker>} */
@@ -506,8 +507,8 @@ export class DopplerMode extends BaseMode {
     this.updateSpeedLED() // Reset the speed LED display
     this.renderDopplerFeatures()
     // With no markers left there is nothing to grab: drop any lingering
-    // hover 'grab' cursor from the marker that was just deleted.
-    this.updateCursorStyle('crosshair')
+    // hover cursor from the marker that was just deleted.
+    this.updateCursorStyle(IDLE_CURSOR)
   }
 
   /**

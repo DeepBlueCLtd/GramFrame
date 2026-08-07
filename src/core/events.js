@@ -10,6 +10,7 @@ import { dispatch } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 import { setFocusedInstance } from './FocusManager.js'
 import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized } from './viewport.js'
+import { IDLE_CURSOR, PAN_DRAG_CURSOR } from '../utils/cursors.js'
 
 /**
  * Per-notch multiplicative zoom factor for Ctrl+wheel zoom (smoother than the
@@ -121,9 +122,10 @@ function wheelPanHandler(instance) {
           instance.ui.svg.style.cursor = style
         }
       },
-      // Restore whatever cursor the mode had, rather than forcing a crosshair
-      cursorFor: (_kind, fallback) => (
-        fallback === 'grabbing' ? 'grabbing' : (previousCursor || 'crosshair')
+      // The middle-button pan is a pan, so it keeps the hand. On release it
+      // restores whatever cursor the mode had, rather than forcing a crosshair.
+      cursorFor: (_kind, phase) => (
+        phase === 'drag' ? PAN_DRAG_CURSOR : (previousCursor || IDLE_CURSOR)
       )
     }, null)
   }
