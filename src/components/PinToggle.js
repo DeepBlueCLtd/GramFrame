@@ -1,8 +1,10 @@
 /**
  * Harmonic-pin visibility toggle for GramFrame overlays.
  *
- * A checkbox in the combined "Symbol" panel (see ColorPicker.js) that controls
- * whether a harmonic set draws its vertical pin lines. With the pin off, a set
+ * A checkbox in the style panel's Harmonics band (see ColorPicker.js) that
+ * controls whether a harmonic set draws its vertical pin lines. Pins are the
+ * only style in that panel harmonic sets alone understand, which is why the
+ * band is fenced off below a rule. With the pin off, a set
  * renders as its symbols and numbers alone — the style experienced analysts use
  * to stack many harmonic sets over dense data without the lines swamping it.
  *
