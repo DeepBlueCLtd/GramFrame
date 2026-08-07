@@ -31,6 +31,8 @@
 
 /// <reference path="../types.js" />
 
+import { normalizeMarkerLabel } from '../utils/markerLabel.js'
+
 /** @type {number} */
 const SCHEMA_VERSION = 1
 
@@ -284,6 +286,14 @@ export function sanitizeStoredAnnotations(data) {
         isFiniteNumber(m.time) && isFiniteNumber(m.freq)
       if (!valid) dropped++
       return valid
+    }).map((/** @type {any} */ m) => {
+      // A hand-edited or corrupt record can carry a label of any type or
+      // length. Normalising here — rather than discarding the whole marker —
+      // keeps a usable position while bounding what reaches the gram; an
+      // unusable label simply leaves the marker unlabelled (feature 231).
+      const label = normalizeMarkerLabel(m.label)
+      const { label: _rawLabel, ...rest } = m
+      return label ? { ...rest, label } : rest
     })
   } else if (data && data.analysis && data.analysis.markers != null) {
     dropped++ // markers present but not an array
@@ -407,16 +417,24 @@ export function saveAnnotations(state, instanceIndex, context) {
       // and restore without the identity check (BH-6, BH-23).
       gram: buildGramFingerprint(state),
       analysis: {
-        markers: (state.analysis && state.analysis.markers || []).map(m => ({
-          id: m.id,
-          color: m.color,
-          time: m.time,
-          freq: m.freq,
-          // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
-          // SCHEMA_VERSION bump: legacy records simply lack it and default to
-          // 'cross' (no drawn symbol) on restore.
-          symbol: m.symbol || 'cross'
-        }))
+        markers: (state.analysis && state.analysis.markers || []).map(m => {
+          const label = normalizeMarkerLabel(m.label)
+          return {
+            id: m.id,
+            color: m.color,
+            time: m.time,
+            freq: m.freq,
+            // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
+            // SCHEMA_VERSION bump: legacy records simply lack it and default to
+            // 'cross' (no drawn symbol) on restore.
+            symbol: m.symbol || 'cross',
+            // `label` is likewise ADDITIVE (feature 231) and MUST NOT bump
+            // SCHEMA_VERSION. Written only when the marker carries one, so an
+            // unlabelled marker's record is identical to what it was before
+            // labels existed, and restores as unlabelled.
+            ...(label ? { label } : {})
+          }
+        })
       },
       harmonics: {
         harmonicSets: (state.harmonics && state.harmonics.harmonicSets || []).map(hs => ({

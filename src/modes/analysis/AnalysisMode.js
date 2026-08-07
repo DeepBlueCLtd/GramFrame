@@ -1,6 +1,10 @@
 import { BaseMode } from '../BaseMode.js'
 import { dispatch, markAnnotationsChanged } from '../../core/state.js'
 import { createDiffingTable } from '../../components/DiffingTable.js'
+import { showMarkerLabelModal } from '../../components/MarkerLabelModal.js'
+
+/** SVG namespace, for the label button's icon */
+const SVG_NS = 'http://www.w3.org/2000/svg'
 
 /**
  * Build a marker row's delete button. Markup unchanged from before the table
@@ -19,11 +23,71 @@ function createMarkerDeleteButton() {
   button.style.fontWeight = 'bold'
   return button
 }
+
+/**
+ * Build a marker row's label button (feature 231) — a luggage-tag icon that
+ * opens the label dialog for that marker.
+ *
+ * Drawn as inline SVG rather than a glyph or an image so it stays crisp, needs
+ * no font or network asset, and inherits the button's colour.
+ *
+ * @param {AnalysisMarker} marker - The row's marker, for the button's title
+ * @returns {HTMLButtonElement} The label button
+ */
+function createMarkerLabelButton(marker) {
+  const button = document.createElement('button')
+  button.className = 'gram-frame-marker-label-btn'
+  button.title = marker.label ? `Edit label: ${marker.label}` : 'Add label'
+  button.setAttribute('aria-label', button.title)
+
+  const icon = document.createElementNS(SVG_NS, 'svg')
+  icon.setAttribute('viewBox', '0 0 16 16')
+  icon.setAttribute('width', '13')
+  icon.setAttribute('height', '13')
+  icon.setAttribute('aria-hidden', 'true')
+
+  // Tag outline: a pentagon-ish body pointing down-left.
+  const body = document.createElementNS(SVG_NS, 'path')
+  body.setAttribute('d', 'M8.5 1H15v6.5L7.5 15 1 8.5 8.5 1z')
+  body.setAttribute('fill', 'none')
+  body.setAttribute('stroke', 'currentColor')
+  body.setAttribute('stroke-width', '1.6')
+  body.setAttribute('stroke-linejoin', 'round')
+
+  // The tag's eyelet.
+  const hole = document.createElementNS(SVG_NS, 'circle')
+  hole.setAttribute('cx', '11.5')
+  hole.setAttribute('cy', '4.5')
+  hole.setAttribute('r', '1.2')
+  hole.setAttribute('fill', 'currentColor')
+
+  icon.appendChild(body)
+  icon.appendChild(hole)
+  button.appendChild(icon)
+  return button
+}
+
+/**
+ * Build the actions cell for a marker row: the label button stacked above the
+ * delete button, in the cell that used to hold the delete button alone
+ * (feature 231).
+ * @param {AnalysisMarker} marker - The row's marker
+ * @returns {HTMLDivElement} Container holding both controls
+ */
+function createMarkerActions(marker) {
+  const actions = document.createElement('div')
+  actions.className = 'gram-frame-marker-actions'
+  actions.appendChild(createMarkerLabelButton(marker))
+  actions.appendChild(createMarkerDeleteButton())
+  return actions
+}
 import { formatTime } from '../../utils/timeFormatter.js'
 import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
 import { createSymbolMark, createColorIndicator, resolveSymbolScale } from '../../rendering/symbols.js'
+import { createMarkerLabel } from '../../rendering/labels.js'
+import { formatMarkerLabelForTable, normalizeMarkerLabel } from '../../utils/markerLabel.js'
 
 /**
  * Analysis mode implementation
@@ -59,6 +123,29 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
+   * This mode's markers, as the live array state holds.
+   *
+   * The single reach-in for marker data (spec 167, Story 5): every read below
+   * goes through here rather than walking `instance.state.analysis.markers`
+   * again. Yields an empty array before the slice exists, which reads the same
+   * as "no markers" for every caller.
+   * @returns {AnalysisMarker[]} The markers
+   */
+  get markers() {
+    const analysis = this.instance.state.analysis
+    return (analysis && analysis.markers) || []
+  }
+
+  /**
+   * Find one of this mode's markers by id.
+   * @param {string|null|undefined} markerId - Marker id to look for
+   * @returns {AnalysisMarker|undefined} The marker, or `undefined` if it has gone
+   */
+  findMarker(markerId) {
+    return this.markers.find(m => m.id === markerId)
+  }
+
+  /**
    * Start dragging a marker
    * @param {DragTarget} target - Drag target with id and type
    * @param {DataCoordinates} position - Start position
@@ -69,7 +156,7 @@ export class AnalysisMode extends BaseMode {
     void position
 
     // Auto-select the marker being dragged
-    const markers = this.instance.state.analysis.markers
+    const markers = this.markers
     const marker = markers.find(m => m.id === target.id)
     if (marker) {
       const index = markers.findIndex(m => m.id === target.id)
@@ -85,7 +172,7 @@ export class AnalysisMode extends BaseMode {
    * @param {DataCoordinates} _startPos - Start position (unused)
    */
   onMarkerDragUpdate(target, currentPos, _startPos) {
-    const marker = this.instance.state.analysis.markers.find(m => m.id === target.id)
+    const marker = this.findMarker(target.id)
     if (marker) {
       // Update marker position
       marker.freq = currentPos.freq
@@ -258,15 +345,14 @@ export class AnalysisMode extends BaseMode {
    * @returns {boolean} True if at least one marker exists
    */
   hasPersistentFeatures() {
-    const analysis = this.instance.state.analysis
-    return !!(analysis && analysis.markers && analysis.markers.length > 0)
+    return this.markers.length > 0
   }
 
   /**
    * Render persistent features for analysis mode
    */
   renderPersistentFeatures() {
-    if (!this.instance.ui.cursorGroup || !this.instance.state.analysis?.markers) {
+    if (!this.instance.ui.cursorGroup) {
       return
     }
     
@@ -275,7 +361,7 @@ export class AnalysisMode extends BaseMode {
     existingMarkers.forEach(marker => marker.remove())
     
     // Render all markers
-    this.instance.state.analysis.markers.forEach(marker => {
+    this.markers.forEach(marker => {
       this.renderMarker(marker)
     })
   }
@@ -352,6 +438,13 @@ export class AnalysisMode extends BaseMode {
       markerGroup.appendChild(circle)
     }
 
+    // The marker's label, if it carries one (feature 231). Appended last so the
+    // haloed text sits above the crosshair or symbol it annotates.
+    const label = createMarkerLabel(marker, currentX, currentY, symbolSize)
+    if (label) {
+      markerGroup.appendChild(label)
+    }
+
     this.instance.ui.cursorGroup.appendChild(markerGroup)
   }
 
@@ -408,9 +501,10 @@ export class AnalysisMode extends BaseMode {
     // makes this the *markers* table (spec 166, FR-009).
     this.markersTable = createDiffingTable(markersContainer, {
       columns: [
-        { label: '', width: '15%', cellClassName: 'gram-frame-marker-color' },
-        { label: 'Time (mm:ss)', width: '35%' },
-        { label: 'Freq (Hz)', width: '35%' },
+        { label: '', width: '13%', cellClassName: 'gram-frame-marker-color' },
+        { label: 'Label', width: '22%', cellClassName: 'gram-frame-marker-label-cell' },
+        { label: 'Time (mm:ss)', width: '25%' },
+        { label: 'Freq (Hz)', width: '25%' },
         { label: '', width: '15%' }
       ],
       rowAttribute: 'data-marker-id',
@@ -419,11 +513,20 @@ export class AnalysisMode extends BaseMode {
         // Colour/symbol cell — a shaped symbol shows the colour-coded symbol;
         // the cross (symbol-less) style shows a filled colour rectangle (FR-010).
         createColorIndicator(marker.symbol, marker.color, 20),
+        // Label cell — abbreviated so the column keeps its width; the full text
+        // stays on the gram and in the edit dialog (feature 231).
+        formatMarkerLabelForTable(marker.label),
         formatTime(marker.time),
         marker.freq.toFixed(2),
-        createMarkerDeleteButton()
+        createMarkerActions(marker)
       ],
       deleteSelector: '.gram-frame-marker-delete-btn',
+      actions: [
+        {
+          selector: '.gram-frame-marker-label-btn',
+          handler: (markerId) => this.editMarkerLabel(markerId)
+        }
+      ],
       onSelect: (markerId, _marker, index) => {
         // Toggle selection
         const selection = this.instance.state.selection
@@ -463,10 +566,8 @@ export class AnalysisMode extends BaseMode {
    */
   updateMarkersTable() {
     if (!this.markersTable) return
-    const analysis = this.instance.state.analysis
-    if (!analysis || !analysis.markers) return
 
-    this.markersTable.update(this.instance.state.analysis.markers)
+    this.markersTable.update(this.markers)
   }
 
   /**
@@ -523,9 +624,8 @@ export class AnalysisMode extends BaseMode {
    * @param {string} markerId - ID of marker to remove
    */
   removeMarker(markerId) {
-    if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return
-    
-    const index = this.instance.state.analysis.markers.findIndex(m => m.id === markerId)
+    const markers = this.markers
+    const index = markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
       // Clear selection if removing the selected marker
       if (this.instance.state.selection.selectedType === 'marker' && 
@@ -533,7 +633,7 @@ export class AnalysisMode extends BaseMode {
         this.instance.interaction.clearSelection()
       }
       
-      this.instance.state.analysis.markers.splice(index, 1)
+      markers.splice(index, 1)
       markAnnotationsChanged(this.instance)
 
       // Update markers table
@@ -550,18 +650,58 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
+   * Open the label dialog for a marker (feature 231).
+   *
+   * Does nothing when the marker has gone — a row's controls are rebuilt from
+   * state, but a click can still race a deletion.
+   * @param {string} markerId - ID of the marker to label
+   */
+  editMarkerLabel(markerId) {
+    const marker = this.findMarker(markerId)
+    if (!marker) return
+
+    showMarkerLabelModal(marker.label, (label) => this.setMarkerLabel(markerId, label))
+  }
+
+  /**
+   * Set (or clear) a marker's label and re-render everything that shows it.
+   *
+   * Passing an empty or whitespace-only label removes it, so "clear the field
+   * and save" is how a label is deleted.
+   * @param {string} markerId - ID of the marker to update
+   * @param {string|undefined} label - New label, or `undefined`/empty to remove it
+   */
+  setMarkerLabel(markerId, label) {
+    const marker = this.findMarker(markerId)
+    if (!marker) return
+
+    const normalized = normalizeMarkerLabel(label)
+    if (normalized) {
+      marker.label = normalized
+    } else {
+      // Absent rather than empty: "no label" has exactly one representation.
+      delete marker.label
+    }
+    markAnnotationsChanged(this.instance)
+
+    this.updateMarkersTable()
+    if (this.instance.featureRenderer) {
+      this.instance.featureRenderer.renderAllPersistentFeatures()
+    }
+    dispatch(this.instance)
+  }
+
+  /**
    * Find marker at given position (with tolerance)
    * Returns a drag target object compatible with BaseDragHandler
    * @param {DataCoordinates} position - Position to check
    * @returns {DragTarget|null} Drag target if found, null otherwise
    */
   findMarkerAtPosition(position) {
-    if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null
-    
     const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage)
     
     // Check each marker to see if position hits the crosshair lines
-    const marker = this.instance.state.analysis.markers.find(marker => {
+    const marker = this.markers.find(marker => {
       // Check if we're close to the marker center (original behavior)
       if (isWithinToleranceRadius(
         position, 

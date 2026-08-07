@@ -107,6 +107,42 @@ describe('sanitizeStoredAnnotations (BH-1, BH-16)', () => {
       expect(annotations.doppler.fPlus).toBeNull()
     }
   })
+
+  // Marker labels (feature 231): an ADDITIVE field, so a record without one is
+  // valid and a bad one costs the label, never the marker.
+  it('restores a marker label unchanged', () => {
+    const rec = validRecord()
+    rec.analysis.markers[0].label = 'Contact A'
+    const { annotations, dropped } = sanitizeStoredAnnotations(rec)
+    expect(dropped).toBe(0)
+    expect(annotations.analysis.markers[0].label).toBe('Contact A')
+  })
+
+  it('leaves a legacy label-less marker unlabelled without dropping it', () => {
+    const { annotations, dropped } = sanitizeStoredAnnotations(validRecord())
+    expect(dropped).toBe(0)
+    expect(annotations.analysis.markers).toHaveLength(1)
+    expect(annotations.analysis.markers[0]).not.toHaveProperty('label')
+  })
+
+  it('strips an unusable label but keeps the marker', () => {
+    for (const label of [42, {}, [], null, '', '   ']) {
+      const rec = validRecord()
+      // @ts-ignore deliberate corruption
+      rec.analysis.markers[0].label = label
+      const { annotations, dropped } = sanitizeStoredAnnotations(rec)
+      expect(annotations.analysis.markers).toHaveLength(1)
+      expect(annotations.analysis.markers[0]).not.toHaveProperty('label')
+      expect(dropped).toBe(0) // the marker itself is still usable
+    }
+  })
+
+  it('trims and caps an over-long stored label', () => {
+    const rec = validRecord()
+    rec.analysis.markers[0].label = `  ${'x'.repeat(200)}  `
+    const { annotations } = sanitizeStoredAnnotations(rec)
+    expect(annotations.analysis.markers[0].label).toHaveLength(32)
+  })
 })
 
 describe('buildGramFingerprint (BH-6, BH-23)', () => {

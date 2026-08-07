@@ -72,6 +72,7 @@
  * @property {number} freq - Frequency coordinate
  * @property {SymbolType} [symbol] - Marker symbol; `cross` (default) draws a crosshair, a shaped symbol draws that mark
  * @property {boolean} [largeSymbols] - EXPERIMENT (temporary): draw this marker's symbol at the large size; not persisted
+ * @property {string} [label] - Optional free-text label drawn beside the marker; ABSENT (never empty) when unlabelled
  */
 
 /**
@@ -129,6 +130,13 @@
  */
 
 /**
+ * A per-row control whose clicks act rather than select the row.
+ * @typedef {Object} TableRowAction
+ * @property {string} selector - Selector matching the control inside a row
+ * @property {function(string, any, number): void} handler - Called with the row key, row data and index
+ */
+
+/**
  * What a consumer supplies to `createDiffingTable`: the meaning, not the
  * mechanism (spec 166, FR-009).
  * @typedef {Object} TableSpec
@@ -138,6 +146,7 @@
  * @property {string} [rowClassName] - Class applied to every row
  * @property {function(any, number): Array<string|Node>} cells - Cell content per column
  * @property {string} [deleteSelector] - Selector for the delete control; clicks on it delete rather than select
+ * @property {Array<TableRowAction>} [actions] - Further per-row controls that act instead of selecting
  * @property {function(string, any, number): void} [onSelect] - Row click
  * @property {function(string, any, number): void} [onDelete] - Delete-control click
  * @property {function(string): boolean} [isSelected] - Whether the row with this key is selected
@@ -342,6 +351,7 @@
  * @property {number} time - Time position in seconds
  * @property {number} freq - Frequency position in Hz
  * @property {SymbolType} [symbol] - Persisted symbol; ABSENT in legacy records (default `cross` on restore)
+ * @property {string} [label] - Persisted label; ABSENT in legacy records and in unlabelled markers
  */
 
 /**
