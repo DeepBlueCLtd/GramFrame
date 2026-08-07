@@ -68,11 +68,9 @@ export function createColorPicker(instance) {
   container.className = 'gram-frame-color-picker'
   container.style.display = 'block'
 
-  // Panel heading
-  const label = document.createElement('div')
-  label.className = 'gram-frame-color-picker-label'
-  label.textContent = 'Style'
-  container.appendChild(label)
+  // No panel heading: each band already labels itself ("Colour", "Symbol",
+  // "Harmonics"), so a "Style" caption above them only cost the control row
+  // height that the host's pages need elsewhere.
 
   // --- Colour band: applies to markers, harmonic sets and doppler curves ---
   const colorGroup = document.createElement('div')

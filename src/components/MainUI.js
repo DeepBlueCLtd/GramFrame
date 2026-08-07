@@ -67,8 +67,12 @@ export function createUnifiedLayout(instance) {
   const freqLED = createLEDDisplay('Frequency (Hz)', '0.0')
   cursorContainer.appendChild(freqLED)
   
-  // Create doppler speed LED (spans full width)
+  // Create doppler speed LED (spans full width). Unlike the time/frequency
+  // readouts it lays its label out beside the value rather than above it: the
+  // label wraps to three short lines in the space the stacked form wasted to
+  // its right, so the readout costs the control row less height.
   const speedLED = createLEDDisplay('Doppler Speed (knots)', '0.0')
+  speedLED.classList.add('gram-frame-led-inline')
   speedLED.style.gridColumn = '1 / -1' // Span both columns
   cursorContainer.appendChild(speedLED)
   

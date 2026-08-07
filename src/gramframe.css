@@ -387,6 +387,33 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   text-shadow: 0 0 4px #00ff00;
 }
 
+/* Label-beside-value LED (the doppler speed readout).
+ *
+ * The default LED stacks its label above its value, which suits the short
+ * "Time (mm:ss)" / "Frequency (Hz)" captions. "Doppler Speed (knots)" is long
+ * enough to claim a row of its own, so stacking it spent height on a line that
+ * was mostly empty either side of the value. Here the label sits to the LEFT of
+ * the value and `width: min-content` wraps it at each space — three words, three
+ * short lines — filling the width the stacked form wasted.
+ *
+ * The label stays ONE text node ("Doppler Speed (knots)"): the wrap is CSS, not
+ * markup, so `.gram-frame-led-label:text-is(...)` still matches it (the test
+ * helpers locate every LED that way). Do not split it into lines in JS. */
+.gram-frame-led-inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 6px;
+}
+
+.gram-frame-led-inline .gram-frame-led-label {
+  margin-bottom: 0;
+  width: min-content;
+  text-align: right;
+  line-height: 1.2;
+}
+
 /* Manual harmonic button */
 .gram-frame-manual-button {
   padding: 6px 12px;
@@ -437,15 +464,8 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   flex-shrink: 0;
 }
 
-.gram-frame-color-picker-label {
-  font-size: 10px;
-  color: #00ff00;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: bold;
-  text-align: center;
-}
+/* No `.gram-frame-color-picker-label` rule: the panel's "Style" heading is
+ * gone (each band labels itself), so the caption it styled no longer exists. */
 
 .gram-frame-color-palette {
   position: relative;
