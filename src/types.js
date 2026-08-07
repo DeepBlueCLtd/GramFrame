@@ -212,7 +212,12 @@
  * @property {function(DragTarget, DataCoordinates|null, MouseEvent=): void} onDragEnd - Called on mouseup, or with a null position when a drag is cancelled
  * @property {function(DragTarget): void} [onDragCancel] - Called on mouseleave / cancel; must restore prior state
  * @property {function(string): void} [updateCursor] - Apply a cursor style
- * @property {function(DragKind|null, string): string|null} [cursorFor] - Optional per-kind cursor
+ * @property {function(DragKind|null, CursorPhase): string|null} [cursorFor] - Optional per-kind cursor for a phase; return null to take the default for that phase
+ */
+
+/**
+ * Which cursor a drag phase calls for. Defined in `utils/cursors.js`.
+ * @typedef {import('./utils/cursors.js').CursorPhase} CursorPhase
  */
 
 /**

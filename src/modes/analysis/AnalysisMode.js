@@ -209,7 +209,7 @@ export class AnalysisMode extends BaseMode {
 
   /**
    * Update cursor style for drag operations
-   * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+   * @param {string} style - A CSS cursor value, as resolved by `utils/cursors.js`
    */
   updateCursorStyle(style) {
     if (this.instance.ui.svg) {

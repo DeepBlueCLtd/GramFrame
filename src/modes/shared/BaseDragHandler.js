@@ -20,6 +20,7 @@
 /// <reference path="../../types.js" />
 
 import { dispatch } from '../../core/state.js'
+import { featureCursor } from '../../utils/cursors.js'
 
 /**
  * Which handler currently owns the active drag, per GramFrame instance.
@@ -241,7 +242,7 @@ export class BaseDragHandler {
     activeDragOwners.set(this.instance, this)
     publishDragProjection(this.instance)
 
-    this.applyCursor(this.dragState.kind, 'grabbing')
+    this.applyCursor(this.dragState.kind, 'drag')
 
     this.callbacks.onDragStart(this.currentTarget(position), position, event)
 
@@ -260,7 +261,7 @@ export class BaseDragHandler {
 
     this.callbacks.onDragEnd(target, position, event)
 
-    this.applyCursor(this.dragState.kind, 'crosshair')
+    this.applyCursor(this.dragState.kind, 'idle')
     this.clearDragState()
   }
 
@@ -276,7 +277,7 @@ export class BaseDragHandler {
       this.callbacks.onDragCancel(target)
     }
 
-    this.applyCursor(this.dragState.kind, 'crosshair')
+    this.applyCursor(this.dragState.kind, 'idle')
     this.clearDragState()
   }
 
@@ -298,16 +299,21 @@ export class BaseDragHandler {
   }
 
   /**
-   * Apply the cursor for a drag kind, falling back to the generic style.
-   * @param {DragKind|null} kind - Drag kind
-   * @param {string} fallback - Cursor to use when the mode has no per-kind opinion
+   * Apply the cursor for a drag kind and phase.
+   *
+   * The phase is passed as a name rather than as a ready-made CSS value so a
+   * mode can decide what "dragging" looks like for its own kind — pan keeps the
+   * hand, everything else takes the hollow brackets. Passing the value and
+   * having modes sniff it (`fallback === 'grabbing'`) tied every mode's cursor
+   * to the exact strings the engine happened to use.
+   * @param {DragKind|null} kind - Drag kind, or null when nothing is targeted
+   * @param {CursorPhase} phase - Which phase the pointer is in
    */
-  applyCursor(kind, fallback) {
+  applyCursor(kind, phase) {
     if (!this.callbacks.updateCursor) return
 
-    const style = this.callbacks.cursorFor
-      ? (this.callbacks.cursorFor(kind, fallback) || fallback)
-      : fallback
+    const style = (this.callbacks.cursorFor && this.callbacks.cursorFor(kind, phase))
+      || featureCursor(phase)
     this.callbacks.updateCursor(style)
   }
 
@@ -319,6 +325,10 @@ export class BaseDragHandler {
    * fallback for modes whose resolver is pure — a mode whose resolver mints a
    * feature on mousedown (harmonics `create`, doppler `place`) MUST supply
    * `resolveHoverTarget`, or every hover would create a feature.
+   *
+   * Routed through `applyCursor` like every other transition, so a mode's
+   * `cursorFor` opinion covers hover too. Calling `updateCursor` directly here
+   * made hover the one transition a mode could not influence.
    * @param {DataCoordinates} position - Current mouse position
    */
   updateCursorForHover(position) {
@@ -326,11 +336,8 @@ export class BaseDragHandler {
 
     const resolve = this.callbacks.resolveHoverTarget || this.callbacks.resolveTarget
     const target = resolve(position)
-    const cursorStyle = target ? 'grab' : 'crosshair'
 
-    if (this.callbacks.updateCursor) {
-      this.callbacks.updateCursor(cursorStyle)
-    }
+    this.applyCursor(target ? (target.kind || 'move') : null, target ? 'hover' : 'idle')
   }
 
   /**

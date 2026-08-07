@@ -132,6 +132,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
   - `markerLabel.js` - Marker label normalisation and table abbreviation
   - `tolerance.js` - Shared hit-test tolerances
+  - `cursors.js` - The pointer's cursors. Feature drags use hollow corner
+    brackets, never the opaque `grab`/`grabbing` hands, so the marker and the
+    gram under the hotspot stay visible; panning keeps the hand
   - `svg.js` - SVG text halo styling
   - `secureHTML.js` - Guidance-panel rendering without innerHTML
   - `timeFormatter.js` - Time formatting utilities
@@ -215,6 +218,11 @@ There is no visual/screenshot regression testing — see
 - Zoom resizes the image element (viewBox stays fixed) — see ADR-015
 - Drag state has one owner (`BaseDragHandler`) and one read-only projection
   (`state.drag`); modes never write drag fields into state
+- The engine hands `cursorFor(kind, phase)` a phase name (`idle`/`hover`/`drag`),
+  not a ready-made CSS value, so a mode decides what its own drag kind looks
+  like — pan keeps the hand, every feature drag takes the hollow brackets from
+  `utils/cursors.js`. Hover goes through `applyCursor` like every other
+  transition, so a mode's opinion covers it too
 - `core/state.js` imports no mode. `ModeFactory.getModeInitialStates()` composes
   the initial-state slices and `createInitialState(modeStates)` receives them;
   mode slices are additive and can never overwrite a core key (ADR-014)
