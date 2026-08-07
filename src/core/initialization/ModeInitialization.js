@@ -10,8 +10,9 @@
 
 import { ModeFactory } from '../../modes/ModeFactory.js'
 import { FeatureRenderer } from '../FeatureRenderer.js'
-import { BaseMode } from '../../modes/BaseMode.js'
 import { updateGuidancePanel } from '../../utils/secureHTML.js'
+
+/** @typedef {import('../../modes/BaseMode.js').BaseMode} BaseMode */
 
 /**
  * Construct the feature renderer and every registered mode.

@@ -1,10 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
-import { 
-  expectValidMetadata, 
-  expectValidMode, 
-  expectValidCursorPosition,
-  expectValidConfig,
-  expectValidImageDetails 
+import {
+  expectValidMetadata,
+  expectValidMode
 } from './helpers/state-assertions.js'
 
 /**
@@ -17,15 +14,6 @@ import {
  * @description Tests mode switching, state persistence, feature visibility, and interaction between modes
  */
 test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
-  /**
-   * Setup before each test
-   * @param {TestParams} params - Test parameters
-   * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-   * @returns {Promise<void>}
-   */
-  test.beforeEach(async ({ gramFramePage }) => {
-  })
-
   /**
    * Mode switching test suite
    */
@@ -232,7 +220,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
               expect(typeof isVisible).toBe('boolean')
             }
           }
-        } catch (error) {
+        } catch (_error) {
           // Markers may not be visible in all modes
         }
       }
@@ -344,7 +332,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
         expectValidMode(state, 'analysis')
         expectValidMetadata(state)
         expect(state.analysis.markers).toBeDefined()
-      } catch (error) {
+      } catch (_error) {
         // Even if errors occur, system should remain in valid state
         /** @type {import('../src/types.js').GramFrameState} */
         const state = await gramFramePage.getState()
@@ -365,9 +353,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
      */
     test('should synchronize state listeners across mode changes', async ({ gramFramePage }) => {
       // Test that state updates are properly broadcast during mode switches
-      /** @type {import('../src/types.js').GramFrameState | null} */
-      let lastNotifiedState = null
-      
+
       // Add state listener via page evaluation
       await gramFramePage.page.evaluate(() => {
         window.testStateHistory = []

@@ -47,21 +47,23 @@ export default [
       'no-implied-eval': 'error',
       'no-new-func': 'error',
 
-      // Warnings — existing occurrences allowed; promote to error once clean.
+      // Formerly warnings with a tolerated backlog. The backlog is now zero, so
+      // these are promoted to errors per the ratchet policy above — a new
+      // occurrence fails the lane rather than eroding a warning ceiling.
       // `_`-prefixed names are the opt-out for a binding that must exist but is
       // deliberately unused — including a caught error the handler ignores on
       // purpose (browserCompatibility.js keeps the binding rather than using
       // optional catch binding, whose ES2019 syntax would fail to parse on the
       // very old browsers that file exists to warn).
-      'no-unused-vars': ['warn', {
+      'no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
         caughtErrorsIgnorePattern: '^_'
       }],
-      'no-shadow': 'warn',
-      'no-unreachable': 'warn',
-      'prefer-const': 'warn',
-      'eqeqeq': ['warn', 'smart'],
+      'no-shadow': 'error',
+      'no-unreachable': 'error',
+      'prefer-const': 'error',
+      'eqeqeq': ['error', 'smart'],
     },
   },
   {
@@ -70,14 +72,6 @@ export default [
     files: ['src/core/browserCompatibility.js'],
     rules: {
       'no-var': 'off',
-    },
-  },
-  {
-    // Pre-existing empty else block; src/ is frozen in Phase 0 (FR-010).
-    // Drop this override when the block is removed in a later phase.
-    files: ['src/modes/harmonics/HarmonicsMode.js'],
-    rules: {
-      'no-empty': 'warn',
     },
   },
   {

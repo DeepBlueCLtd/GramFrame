@@ -142,7 +142,7 @@ test.describe('US2: Toggling restyles the selected harmonic set in place', () =>
     await gramFramePage.setPinToggle(false)
     await waitForSetPin(gramFramePage, setId, false)
 
-    let state = await gramFramePage.getState()
+    const state = await gramFramePage.getState()
     expect(await gramFramePage.getHarmonicLineCount(setId)).toBe(0)
     // Restyling a selected set must not change the session default
     expect(state.showHarmonicPin).toBe(true)

@@ -1,11 +1,4 @@
 import { test, expect } from './helpers/fixtures.js'
-import { 
-  expectValidMetadata, 
-  expectValidMode, 
-  expectValidCursorPosition,
-  expectValidConfig,
-  expectValidImageDetails 
-} from './helpers/state-assertions.js'
 
 /**
  * @fileoverview Comprehensive E2E tests for Advanced Mouse Interactions
@@ -17,15 +10,6 @@ import {
  * @description Tests complex interaction patterns, edge cases, error conditions, and performance
  */
 test.describe('Advanced Mouse Interactions - Comprehensive E2E Tests', () => {
-  /**
-   * Setup before each test
-   * @param {TestParams} params - Test parameters
-   * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-   * @returns {Promise<void>}
-   */
-  test.beforeEach(async ({ gramFramePage }) => {
-  })
-
   /**
    * Complex interaction patterns test suite
    */  
