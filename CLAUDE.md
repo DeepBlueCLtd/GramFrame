@@ -189,6 +189,12 @@ There is no visual/screenshot regression testing — see
 4. Component auto-initializes on page load via `DOMContentLoaded`
 5. Use debug.html for isolated testing and state inspection
 
+### Local environment notes
+
+- **Open GitHub Codespaces in MS Edge, not Chrome.** The Codespace fails to
+  open in Chrome on this machine; Edge opens it fine. Reach for Edge first
+  rather than debugging Chrome.
+
 ## Important Implementation Notes
 
 ### Architecture
