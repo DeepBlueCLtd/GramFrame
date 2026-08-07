@@ -63,19 +63,45 @@ test.describe('Marker labels', () => {
     expect(headers).toContain('Label')
   })
 
-  test('every marker row offers a Label button above its Delete button', async ({ gramFramePage }) => {
+  test('every marker row offers a Label button in the top-right of its Label cell', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
 
     const row = gramFramePage.page.locator(`tr[data-marker-id="${markerId}"]`)
     await expect(row.locator(LABEL_BUTTON)).toBeVisible()
     await expect(row.locator('.gram-frame-marker-delete-btn')).toBeVisible()
 
-    // "Above" is a layout claim, so measure it rather than assume the markup.
+    // "In the Label cell's top-right corner" is a layout claim, so measure it
+    // rather than assume the markup. The button sits out of flow there so it
+    // costs the row no height — it used to stack above Delete, which made every
+    // row tall enough for two controls.
+    const cellBox = await row.locator('.gram-frame-marker-label-cell').boundingBox()
+    const labelBox = await row.locator(LABEL_BUTTON).boundingBox()
+    expect(cellBox).not.toBeNull()
+    expect(labelBox).not.toBeNull()
+
+    // Right-aligned within the cell, and in its top half.
+    expect(cellBox.x + cellBox.width - (labelBox.x + labelBox.width)).toBeLessThanOrEqual(3)
+    expect(labelBox.y).toBeLessThan(cellBox.y + cellBox.height / 2)
+  })
+
+  test('the label button does not make the row taller than the controls beside it', async ({ gramFramePage }) => {
+    // Enough markers to overflow the fixed-height table body. Below that the
+    // rows stretch to fill it, and their height says nothing about what the
+    // content needs — which is the thing under test.
+    let markerId = null
+    for (let i = 0; i < 6; i++) {
+      markerId = await placeMarker(gramFramePage, 150 + i * 20, 120 + i * 15)
+    }
+
+    const row = gramFramePage.page.locator(`tr[data-marker-id="${markerId}"]`)
+    const rowBox = await row.boundingBox()
     const labelBox = await row.locator(LABEL_BUTTON).boundingBox()
     const deleteBox = await row.locator('.gram-frame-marker-delete-btn').boundingBox()
-    expect(labelBox).not.toBeNull()
-    expect(deleteBox).not.toBeNull()
-    expect(labelBox.y + labelBox.height).toBeLessThanOrEqual(deleteBox.y + 1)
+
+    // The row only ever has to be as tall as ONE control plus the cell padding.
+    // Were the label button back in the flow above Delete, the row would need
+    // room for both and this would fail.
+    expect(rowBox.height).toBeLessThan(labelBox.height + deleteBox.height)
   })
 
   // ──────────────────────────────────────────────────────────

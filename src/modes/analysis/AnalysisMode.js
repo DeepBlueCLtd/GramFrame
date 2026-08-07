@@ -68,18 +68,31 @@ function createMarkerLabelButton(marker) {
 }
 
 /**
- * Build the actions cell for a marker row: the label button stacked above the
- * delete button, in the cell that used to hold the delete button alone
- * (feature 231).
+ * Build the Label cell's content: the abbreviated label text, with the label
+ * button floated into the cell's top-right corner.
+ *
+ * The button used to sit above the delete button in the actions cell, which
+ * made every marker row tall enough for two stacked controls (53px against the
+ * harmonics table's 45px). Absolutely positioned here it contributes no height
+ * at all, and it sits beside the thing it edits.
+ *
  * @param {AnalysisMarker} marker - The row's marker
- * @returns {HTMLDivElement} Container holding both controls
+ * @returns {HTMLDivElement} Container holding the label text and its button
  */
-function createMarkerActions(marker) {
-  const actions = document.createElement('div')
-  actions.className = 'gram-frame-marker-actions'
-  actions.appendChild(createMarkerLabelButton(marker))
-  actions.appendChild(createMarkerDeleteButton())
-  return actions
+function createMarkerLabelCell(marker) {
+  const content = document.createElement('div')
+  content.className = 'gram-frame-marker-label-content'
+
+  // The text is its own element so it can be clipped independently of the
+  // button — `getMarkerLabelCell` in the test helpers still reads the cell's
+  // textContent, which the icon-only button leaves untouched.
+  const text = document.createElement('span')
+  text.className = 'gram-frame-marker-label-text'
+  text.textContent = formatMarkerLabelForTable(marker.label)
+
+  content.appendChild(text)
+  content.appendChild(createMarkerLabelButton(marker))
+  return content
 }
 import { formatTime } from '../../utils/timeFormatter.js'
 import { dataToSVG } from '../../utils/coordinates.js'
@@ -500,12 +513,17 @@ export class AnalysisMode extends BaseMode {
     // propagation) comes from the shared component; everything below is what
     // makes this the *markers* table (spec 166, FR-009).
     this.markersTable = createDiffingTable(markersContainer, {
+      // Widths rebalanced when the label button moved into the Label cell: that
+      // column now has to hold an icon as well as the text, and the actions
+      // column no longer stacks two controls, so 3% moves from each of Time,
+      // Freq and actions to Label. Time and Freq both show five characters
+      // ("00:42", "24.71") and still have room for them.
       columns: [
-        { label: '', width: '13%', cellClassName: 'gram-frame-marker-color' },
-        { label: 'Label', width: '22%', cellClassName: 'gram-frame-marker-label-cell' },
-        { label: 'Time (mm:ss)', width: '25%' },
-        { label: 'Freq (Hz)', width: '25%' },
-        { label: '', width: '15%' }
+        { label: '', width: '12%', cellClassName: 'gram-frame-marker-color' },
+        { label: 'Label', width: '30%', cellClassName: 'gram-frame-marker-label-cell' },
+        { label: 'Time (mm:ss)', width: '23%' },
+        { label: 'Freq (Hz)', width: '23%' },
+        { label: '', width: '12%' }
       ],
       rowAttribute: 'data-marker-id',
       rowKey: (marker) => marker.id,
@@ -514,11 +532,12 @@ export class AnalysisMode extends BaseMode {
         // the cross (symbol-less) style shows a filled colour rectangle (FR-010).
         createColorIndicator(marker.symbol, marker.color, 20),
         // Label cell — abbreviated so the column keeps its width; the full text
-        // stays on the gram and in the edit dialog (feature 231).
-        formatMarkerLabelForTable(marker.label),
+        // stays on the gram and in the edit dialog (feature 231). Also carries
+        // the label button, floated top-right.
+        createMarkerLabelCell(marker),
         formatTime(marker.time),
         marker.freq.toFixed(2),
-        createMarkerActions(marker)
+        createMarkerDeleteButton()
       ],
       deleteSelector: '.gram-frame-marker-delete-btn',
       actions: [
