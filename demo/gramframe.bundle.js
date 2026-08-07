@@ -1214,6 +1214,35 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       setFocusedInstance(next);
     }
   }
+  const HOVER_BRACKETS = [
+    "M6 12V6h6",
+    "M26 12V6h-6",
+    "M6 20v6h6",
+    "M26 20v6h-6"
+  ];
+  const DRAG_BRACKETS = [
+    "M9 13V9h4",
+    "M23 13V9h-4",
+    "M9 19v4h4",
+    "M23 19v4h-4"
+  ];
+  function bracketSvg(shapes, coreWidth, haloWidth) {
+    const body = shapes.map((d) => `<path d="${d}"/>`).join("");
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#000000" stroke-opacity="0.9" stroke-width="${haloWidth}">${body}</g><g stroke="#ffffff" stroke-width="${coreWidth}">${body}</g></g></svg>`;
+  }
+  function cursorValue(svg) {
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 16 16, move`;
+  }
+  const IDLE_CURSOR = "crosshair";
+  const FEATURE_HOVER_CURSOR = cursorValue(bracketSvg(HOVER_BRACKETS, 2, 4.4));
+  const FEATURE_DRAG_CURSOR = cursorValue(bracketSvg(DRAG_BRACKETS, 2.6, 5));
+  const PAN_IDLE_CURSOR = "grab";
+  const PAN_DRAG_CURSOR = "grabbing";
+  function featureCursor(phase) {
+    if (phase === "drag") return FEATURE_DRAG_CURSOR;
+    if (phase === "hover") return FEATURE_HOVER_CURSOR;
+    return IDLE_CURSOR;
+  }
   const activeDragOwners = /* @__PURE__ */ new WeakMap();
   function hasActiveDrag(instance) {
     const owner = activeDragOwners.get(instance);
@@ -1363,7 +1392,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.dragState.originalData = target.data ? { ...target.data } : null;
       activeDragOwners.set(this.instance, this);
       publishDragProjection(this.instance);
-      this.applyCursor(this.dragState.kind, "grabbing");
+      this.applyCursor(this.dragState.kind, "drag");
       this.callbacks.onDragStart(this.currentTarget(position), position, event);
       return true;
     }
@@ -1376,7 +1405,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (!this.dragState.isDragging) return;
       const target = this.currentTarget(position);
       this.callbacks.onDragEnd(target, position, event);
-      this.applyCursor(this.dragState.kind, "crosshair");
+      this.applyCursor(this.dragState.kind, "idle");
       this.clearDragState();
     }
     /**
@@ -1388,7 +1417,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.callbacks.onDragCancel) {
         this.callbacks.onDragCancel(target);
       }
-      this.applyCursor(this.dragState.kind, "crosshair");
+      this.applyCursor(this.dragState.kind, "idle");
       this.clearDragState();
     }
     /**
@@ -1407,13 +1436,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       publishDragProjection(this.instance);
     }
     /**
-     * Apply the cursor for a drag kind, falling back to the generic style.
-     * @param {DragKind|null} kind - Drag kind
-     * @param {string} fallback - Cursor to use when the mode has no per-kind opinion
+     * Apply the cursor for a drag kind and phase.
+     *
+     * The phase is passed as a name rather than as a ready-made CSS value so a
+     * mode can decide what "dragging" looks like for its own kind — pan keeps the
+     * hand, everything else takes the hollow brackets. Passing the value and
+     * having modes sniff it (`fallback === 'grabbing'`) tied every mode's cursor
+     * to the exact strings the engine happened to use.
+     * @param {DragKind|null} kind - Drag kind, or null when nothing is targeted
+     * @param {CursorPhase} phase - Which phase the pointer is in
      */
-    applyCursor(kind, fallback) {
+    applyCursor(kind, phase) {
       if (!this.callbacks.updateCursor) return;
-      const style = this.callbacks.cursorFor ? this.callbacks.cursorFor(kind, fallback) || fallback : fallback;
+      const style = this.callbacks.cursorFor && this.callbacks.cursorFor(kind, phase) || featureCursor(phase);
       this.callbacks.updateCursor(style);
     }
     /**
@@ -1424,16 +1459,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * fallback for modes whose resolver is pure — a mode whose resolver mints a
      * feature on mousedown (harmonics `create`, doppler `place`) MUST supply
      * `resolveHoverTarget`, or every hover would create a feature.
+     *
+     * Routed through `applyCursor` like every other transition, so a mode's
+     * `cursorFor` opinion covers hover too. Calling `updateCursor` directly here
+     * made hover the one transition a mode could not influence.
      * @param {DataCoordinates} position - Current mouse position
      */
     updateCursorForHover(position) {
       if (this.dragState.isDragging) return;
       const resolve = this.callbacks.resolveHoverTarget || this.callbacks.resolveTarget;
       const target = resolve(position);
-      const cursorStyle = target ? "grab" : "crosshair";
-      if (this.callbacks.updateCursor) {
-        this.callbacks.updateCursor(cursorStyle);
-      }
+      this.applyCursor(target ? target.kind || "move" : null, target ? "hover" : "idle");
     }
     /**
      * Reset drag handler state
@@ -2917,8 +2953,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             instance.ui.svg.style.cursor = style;
           }
         },
-        // Restore whatever cursor the mode had, rather than forcing a crosshair
-        cursorFor: (_kind, fallback) => fallback === "grabbing" ? "grabbing" : previousCursor || "crosshair"
+        // The middle-button pan is a pan, so it keeps the hand. On release it
+        // restores whatever cursor the mode had, rather than forcing a crosshair.
+        cursorFor: (_kind, phase) => phase === "drag" ? PAN_DRAG_CURSOR : previousCursor || IDLE_CURSOR
       }, null);
     }
     return instance.interaction._wheelPanHandler;
@@ -3269,7 +3306,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /**
      * Update cursor style for drag operations
-     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+     * @param {string} style - A CSS cursor value, as resolved by `utils/cursors.js`
      */
     updateCursorStyle(style) {
       if (this.instance.ui.spectrogramImage) {
@@ -3612,7 +3649,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /**
      * Update cursor style for drag operations
-     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+     * @param {string} style - A CSS cursor value, as resolved by `utils/cursors.js`
      */
     updateCursorStyle(style) {
       if (this.instance.ui.svg) {
@@ -4269,7 +4306,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     /**
      * Update cursor style for drag operations
-     * @param {string} style - Cursor style ('crosshair', 'grab', 'grabbing')
+     * @param {string} style - A CSS cursor value, as resolved by `utils/cursors.js`
      */
     updateCursorStyle(style) {
       if (this.instance.ui.svg) {
@@ -5484,7 +5521,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.resetState();
       this.updateSpeedLED();
       this.renderDopplerFeatures();
-      this.updateCursorStyle("crosshair");
+      this.updateCursorStyle(IDLE_CURSOR);
     }
     /**
      * Render all doppler features (markers and curves)
@@ -5664,10 +5701,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         onDragEnd: () => this.onPanEnd(),
         onDragCancel: () => this.onPanEnd(),
         updateCursor: (style) => this.applyCursor(style),
-        // A pan shows the grabbing hand, not the crosshair the other kinds use
-        cursorFor: (kind, fallback) => {
-          if (kind !== "pan") return fallback;
-          return fallback === "grabbing" ? "grabbing" : this.idleCursor();
+        // A pan keeps the hand, rather than the hollow brackets feature drags use:
+        // there is no target under the pointer for it to obscure.
+        cursorFor: (kind, phase) => {
+          if (kind !== "pan") return null;
+          return phase === "drag" ? PAN_DRAG_CURSOR : this.idleCursor();
         }
       }, "pan");
     }
@@ -5687,7 +5725,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {string} Cursor style
      */
     idleCursor() {
-      return this.instance.state.zoom.level > 1 ? "grab" : "crosshair";
+      return this.instance.state.zoom.level > 1 ? PAN_IDLE_CURSOR : IDLE_CURSOR;
     }
     /**
      * Apply a cursor style to the SVG.
@@ -5733,7 +5771,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     activate() {
       if (this.instance.state.zoom.level > 1) {
-        this.applyCursor("grab");
+        this.applyCursor(PAN_IDLE_CURSOR);
       }
       this.dragHandler.reset();
     }
@@ -5742,7 +5780,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     deactivate() {
       this.dragHandler.reset();
-      this.applyCursor("crosshair");
+      this.applyCursor(IDLE_CURSOR);
     }
     /**
      * Handle mouse down events - start pan drag
