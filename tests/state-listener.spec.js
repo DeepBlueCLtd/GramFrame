@@ -1,5 +1,4 @@
 import { test, expect } from './helpers/fixtures.js'
-import { expectValidMetadata, expectValidMode } from './helpers/state-assertions.js'
 
 /**
  * @fileoverview Tests for the state listener mechanism
@@ -74,7 +73,7 @@ test.describe('State Listener Mechanism', () => {
       
       // Create a listener
       /** @type {import('../src/types.js').StateListener} */
-      const listener = state => {
+      const listener = _state => {
         if (testResult.removalResult) {
           testResult.callbackCalledAfterRemoval = true
         } else {
@@ -124,7 +123,7 @@ test.describe('State Listener Mechanism', () => {
       
       // Create a listener that throws an error
       /** @type {import('../src/types.js').StateListener} */
-      const listener = state => {
+      const listener = _state => {
         throw new Error('Test error in listener')
       }
       

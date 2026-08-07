@@ -1,8 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
 import { 
   expectValidMetadata, 
-  expectValidMode, 
-  expectValidCursorPosition,
+  expectValidMode,
   expectValidConfig,
   expectValidImageDetails 
 } from './helpers/state-assertions.js'
@@ -244,8 +243,6 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         return
       }
       
-      /** @type {number} */
-      const originalRate = state.harmonics.harmonicSets[0].rate
 
       // Click and drag on the harmonic line to adjust spacing
       await gramFramePage.page.mouse.move(200, 200) // Click on harmonic line
@@ -298,7 +295,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         if (groupCount > 0) {
           expect(groupCount).toBeGreaterThan(0)
         }
-      } catch (error) {
+      } catch (_error) {
         // Harmonic rendering may not be visible
       }
     })
@@ -331,7 +328,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         if (count > 0) {
           expect(count).toBeGreaterThan(0)
         }
-      } catch (error) {
+      } catch (_error) {
         // Harmonic lines may not be visible at boundaries
       }
     })
@@ -385,7 +382,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         /** @type {import('../src/types.js').GramFrameState} */
         const state = await gramFramePage.getState()
         expect(state.harmonics.harmonicSets[0].color).toBe('#2ecc71')
-      } catch (error) {
+      } catch (_error) {
         console.log('Color picker not available in harmonics mode')
       }
     })

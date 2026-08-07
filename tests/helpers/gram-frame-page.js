@@ -187,22 +187,22 @@ class GramFramePage {
    * @returns {Promise<void>}
    */
   async wheelAtSVG(x, y, deltaY, ctrl = false) {
-    await this.page.evaluate(({ x, y, deltaY, ctrl }) => {
+    await this.page.evaluate(({ atX, atY, wheelDelta, withCtrl }) => {
       const svg = document.querySelector('.gram-frame-svg')
       if (!svg) {
         return
       }
       const rect = svg.getBoundingClientRect()
       const ev = new WheelEvent('wheel', {
-        clientX: rect.left + x,
-        clientY: rect.top + y,
-        deltaY,
-        ctrlKey: ctrl,
+        clientX: rect.left + atX,
+        clientY: rect.top + atY,
+        deltaY: wheelDelta,
+        ctrlKey: withCtrl,
         bubbles: true,
         cancelable: true
       })
       svg.dispatchEvent(ev)
-    }, { x, y, deltaY, ctrl })
+    }, { atX: x, atY: y, wheelDelta: deltaY, withCtrl: ctrl })
   }
 
   /**
@@ -213,16 +213,16 @@ class GramFramePage {
    * @returns {Promise<{x: number, y: number}>} SVG-relative coordinates
    */
   async imageSVGPoint(fracX, fracY) {
-    return await this.page.evaluate(({ fracX, fracY }) => {
+    return await this.page.evaluate(({ atFracX, atFracY }) => {
       const svg = document.querySelector('.gram-frame-svg')
       const img = document.querySelector('.gram-frame-svg image')
       const svgRect = svg.getBoundingClientRect()
       const imgRect = img.getBoundingClientRect()
       return {
-        x: (imgRect.left - svgRect.left) + fracX * imgRect.width,
-        y: (imgRect.top - svgRect.top) + fracY * imgRect.height
+        x: (imgRect.left - svgRect.left) + atFracX * imgRect.width,
+        y: (imgRect.top - svgRect.top) + atFracY * imgRect.height
       }
-    }, { fracX, fracY })
+    }, { atFracX: fracX, atFracY: fracY })
   }
 
   /**

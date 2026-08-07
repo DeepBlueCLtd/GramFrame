@@ -106,16 +106,16 @@ test.describe('US1: Symbols on harmonic pins', () => {
       const label = document.querySelector(
         `.gram-frame-harmonic-number[data-harmonic-set-id="${setId}"]`
       )
-      const symbols = Array.from(document.querySelectorAll(
+      const pinSymbols = Array.from(document.querySelectorAll(
         `.gram-frame-harmonic-symbol[data-harmonic-set-id="${setId}"]`
       ))
-      if (!label || symbols.length === 0) return null
+      if (!label || pinSymbols.length === 0) return null
       const l = label.getBoundingClientRect()
       const lCx = centreX(l)
       // Pick the symbol on the same pin as this label
-      let symbol = symbols[0]
+      let symbol = pinSymbols[0]
       let best = Infinity
-      for (const s of symbols) {
+      for (const s of pinSymbols) {
         const d = Math.abs(centreX(s.getBoundingClientRect()) - lCx)
         if (d < best) { best = d; symbol = s }
       }

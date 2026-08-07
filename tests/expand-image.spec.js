@@ -45,7 +45,6 @@ async function computeAvailable(page) {
   return page.evaluate(() => {
     const cell = document.querySelector('.gram-frame-main-panel')
     const svg = document.querySelector('.gram-frame-svg')
-    const image = document.querySelector('.gram-frame-spectrogram-image')
     const cs = window.getComputedStyle(cell)
     const ss = window.getComputedStyle(svg)
     const padL = parseFloat(cs.paddingLeft)

@@ -300,9 +300,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       /** @type {import('../src/types.js').GramFrameState} */
       let state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(1)
-      /** @type {string} */
-      const markerId = state.analysis.markers[0].id
-      
+
       // Right-click on the marker position to delete it
       await gramFramePage.svg.click({ 
         button: 'right', 
@@ -577,7 +575,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         // Coordinates should remain the same in data space
         expect(Math.abs(zoomedMarker.time - initialMarker.time)).toBeLessThan(0.01)
         expect(Math.abs(zoomedMarker.freq - initialMarker.freq)).toBeLessThan(1)
-      } catch (error) {
+      } catch (_error) {
         console.log('Zoom functionality not available, skipping zoom coordinate test')
       }
     })

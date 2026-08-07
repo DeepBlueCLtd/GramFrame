@@ -652,7 +652,7 @@ export class HarmonicsMode extends BaseMode {
     const harmonicSet = this.instance.state.harmonics.harmonicSets.find(set => set.id === setId)
     if (!harmonicSet) return
 
-    let newSpacing, newAnchorTime
+    let newSpacing
 
     // For both new creation and existing drags, keep the clicked harmonic under the cursor
     const clickedHarmonicNumber = (target.data && target.data.clickedHarmonicNumber) || 1
@@ -672,7 +672,7 @@ export class HarmonicsMode extends BaseMode {
       : harmonicSet.anchorTime
     const deltaTime = currentPos.time - startPos.time
     const { timeMin, timeMax } = this.instance.state.config
-    newAnchorTime = Math.max(timeMin, Math.min(timeMax, originalAnchorTime + deltaTime))
+    const newAnchorTime = Math.max(timeMin, Math.min(timeMax, originalAnchorTime + deltaTime))
 
     // Apply updates
     const updates = {}
@@ -694,8 +694,6 @@ export class HarmonicsMode extends BaseMode {
 
     if (this.instance.ui.harmonicPanel) {
       updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance)
-    } else {
-
     }
   }
 

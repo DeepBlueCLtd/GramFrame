@@ -1,8 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
 import { 
   expectValidMetadata, 
-  expectValidMode, 
-  expectValidCursorPosition,
+  expectValidMode,
   expectValidConfig,
   expectValidImageDetails 
 } from './helpers/state-assertions.js'
@@ -153,9 +152,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         return
       }
       
-      /** @type {number} */
-      const originalFZeroTime = state.doppler.fZero.time
-      
       // Calculate approximate f₀ position for dragging
       /** @type {number} */
       const fZeroX = (200 + 300) / 2 // Approximate midpoint
@@ -263,9 +259,6 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
       if (!state.doppler.fPlus || !state.doppler.fMinus) {
         return
       }
-      
-      /** @type {number} */
-      const initialFreqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
       
       // Drag one marker to change frequency difference
       await gramFramePage.page.mouse.move(200, 150)
@@ -426,7 +419,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         
         // Verify display updated
         await expect(resultsDisplay).not.toHaveText(initialText ?? '')
-      } catch (error) {
+      } catch (_error) {
         console.log('Real-time display update not testable')
       }
     })
@@ -485,7 +478,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         if (count > 0) {
           expect(count).toBeGreaterThan(0)
         }
-      } catch (error) {
+      } catch (_error) {
         // Markers may not be visible
       }
     })
@@ -534,7 +527,7 @@ test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
         if (dopplerCount > 0) {
           expect(dopplerCount).toBeGreaterThan(0)
         }
-      } catch (error) {
+      } catch (_error) {
         // Some markers may not be visible
       }
     })
