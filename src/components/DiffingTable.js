@@ -150,8 +150,22 @@ export function createDiffingTable(container, spec) {
   }
 
   /**
-   * Row clicks: select, unless the click landed on the delete control.
-   * Delegated from the body so rebuilt rows need no re-wiring.
+   * Per-row controls that act instead of selecting, in match order. Delete is
+   * one of these — the original and, for the harmonics panel, the only one —
+   * so it is folded into the same list rather than special-cased twice.
+   * @type {Array<{selector: string, handler: function(string, any, number): void}>}
+   */
+  const rowActions = []
+  if (spec.deleteSelector && spec.onDelete) {
+    rowActions.push({ selector: spec.deleteSelector, handler: spec.onDelete })
+  }
+  if (spec.actions) {
+    rowActions.push(...spec.actions)
+  }
+
+  /**
+   * Row clicks: select, unless the click landed on one of the row's action
+   * controls. Delegated from the body so rebuilt rows need no re-wiring.
    * @param {MouseEvent} event - Click event
    */
   function handleClick(event) {
@@ -167,12 +181,11 @@ export function createDiffingTable(container, spec) {
     const index = Array.prototype.indexOf.call(tbody.children, tr)
     const row = currentRows[index]
 
-    if (spec.deleteSelector && target.closest(spec.deleteSelector)) {
+    const action = rowActions.find(candidate => target.closest(candidate.selector))
+    if (action) {
       event.preventDefault()
       event.stopPropagation()
-      if (spec.onDelete) {
-        spec.onDelete(key, row, index)
-      }
+      action.handler(key, row, index)
       return
     }
 

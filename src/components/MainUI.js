@@ -83,20 +83,24 @@ export function createUnifiedLayout(instance) {
   leftColumn.appendChild(guidanceColumn)
   leftColumn.appendChild(controlsColumn)
   
-  // Middle Column (160px) - Analysis Markers table
+  // Middle Column (185-235px) - Analysis Markers table. Elastic since the Label
+  // column was added (feature 231): up to 235px where the host has the width,
+  // down to 185px where it does not, so a narrow page keeps the control row the
+  // height it always had. See the note in gramframe.css.
   const middleColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-middle-column'))
-  middleColumn.style.flex = '0 0 160px'
-  middleColumn.style.width = '160px'
+  middleColumn.style.flex = '0 3 235px'
+  middleColumn.style.width = 'auto'
   
   // Create markers container in middle column
   const markersContainer = createMarkersContainer()
   middleColumn.appendChild(markersContainer)
   
-  // Right Column (200px) - Harmonics sets table
+  // Right Column (175px) - Harmonics sets table. Narrowed from 200px to fund
+  // the markers column's Label column (feature 231); its four columns still fit.
   const rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
-  rightColumn.style.flex = '0 0 200px'
-  rightColumn.style.minWidth = '200px'
-  rightColumn.style.width = '200px'
+  rightColumn.style.flex = '0 0 175px'
+  rightColumn.style.minWidth = '175px'
+  rightColumn.style.width = '175px'
   
   // Create harmonics container in right column
   const harmonicsContainer = createHarmonicsContainer()

@@ -4,7 +4,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
 (function() {
   // Inject CSS styles
   const style = document.createElement('style');
-  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #1a1a1a;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* Military-style table layout for proper resizing */\n.gram-frame-table {\n  display: table;\n  width: 100%;\n  height: 100%;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* Main panel with military frame */\n.gram-frame-main-panel {\n  padding: 15px;\n  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border: 3px solid #555;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 3px 6px rgba(0,0,0,0.5),\n    inset 0 -2px 4px rgba(255,255,255,0.1),\n    0 0 10px rgba(0,0,0,0.7);\n  position: relative;\n}\n\n.gram-frame-main-panel:before {\n  content: '';\n  position: absolute;\n  top: 5px;\n  left: 5px;\n  right: 5px;\n  bottom: 5px;\n  border: 1px solid #666;\n  border-radius: 4px;\n  pointer-events: none;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n.gram-frame-display-panel {\n  padding: 10px;\n  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border-top: 2px solid #555;\n}\n\n.gram-frame-readout {\n  flex: 0 1 auto;\n  width: 100%; /* Definite width so the unified layout's flex sizing applies */\n  padding: 0;\n  background: transparent;\n}\n\n/* Harmonics mode CSS removed - now using unified layout */\n\n/* Harmonics layout container - two columns */\n\n/* Left column for controls - 40% width */\n.gram-frame-harmonics-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  flex: 0 0 40%;\n  max-width: 40%;\n}\n\n/* Top row in left column */\n.gram-frame-harmonics-top-row {\n  display: flex;\n  gap: 10px;\n  align-items: stretch;\n}\n\n/* Right column for table - 60% width */\n.gram-frame-harmonics-table-column {\n  flex: 0 0 60%;\n  max-width: 60%;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n}\n\n/* Make color picker more compact in harmonics mode */\n.gram-frame-harmonics-mode .gram-frame-color-picker {\n  margin: 0;\n}\n\n/* Harmonic panel layout - always visible in unified layout */\n\n/* Military-style display windows */\n.gram-frame-led {\n  font-family: 'Courier New', monospace;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  color: #00ff00; /* LED green */\n  padding: 6px 0px;\n  border: 0px solid #333;\n  border-radius: 4px;\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 auto;\n  min-width: 100px;\n  text-align: center;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  position: relative;\n  font-size: 11px;\n  height: fit-content;\n}\n\n.gram-frame-led:before {\n  content: '';\n  position: absolute;\n  top: 2px;\n  left: 2px;\n  right: 2px;\n  bottom: 2px;\n  border: 1px solid #444;\n  border-radius: 2px;\n  pointer-events: none;\n}\n\n/* LED label */\n.gram-frame-led-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 4px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* LED value */\n.gram-frame-led-value {\n  font-size: 14px;\n  font-weight: bold;\n  text-shadow: 0 0 4px #00ff00;\n}\n\n/* Manual harmonic button */\n.gram-frame-manual-button {\n  padding: 6px 12px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-manual-button:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-manual-button:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Style panel: colour band, symbol band, harmonics band */\n.gram-frame-color-picker {\n  margin-top: 0;\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  max-width: 200px;\n  flex-shrink: 0;\n}\n\n.gram-frame-color-picker-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 6px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-color-palette {\n  position: relative;\n}\n\n/* One band of the style panel, grouping controls that share a scope. */\n.gram-frame-style-group {\n  margin-bottom: 6px;\n}\n\n.gram-frame-style-group:last-child {\n  margin-bottom: 0;\n}\n\n/* Band caption. Same micro-caps treatment as the panel heading, but ranged left\n   so the bands read as a list beneath the centred title. */\n.gram-frame-style-group-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: left;\n  margin-bottom: 4px;\n}\n\n/* A band whose controls fit on one line puts its caption inline with them\n   rather than above. Used by the Symbol and Harmonics bands; the Colour band\n   keeps its caption stacked, because the slider spans the panel. */\n.gram-frame-style-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.gram-frame-style-row .gram-frame-style-group-label {\n  margin-bottom: 0;\n}\n\n/* Fences the harmonics-only band off from the controls above it. Lighter than\n   the panel border (#333), which is invisible against the panel's near-black\n   fill — the rule has to be seen to do its job. */\n.gram-frame-style-divider {\n  border-top: 1px solid #4a4a4a;\n  margin: 8px 0 6px;\n}\n\n/* Symbol drop-down embedded to the right of the colour slider. Its `color` is\n   set inline to the selected colour so the glyphs render in that colour. */\n.gram-frame-symbol-select {\n  flex-shrink: 0;\n  padding: 2px 4px;\n  background: #0a0a0a;\n  border: 1px solid #555;\n  border-radius: 2px;\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n/* Harmonic-pin visibility toggle, in the panel's harmonics band.\n   TEMPORARY (symbol-size experiment): the \"Large\" toggle sits inline in the\n   symbol row and shares this styling. Remove that selector, the margin-left\n   override and the blocks below, together with the control once a symbol size\n   is agreed. */\n.gram-frame-pin-toggle,\n.gram-frame-large-symbols-toggle {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n  cursor: pointer;\n  user-select: none;\n}\n\n/* Push the size toggle to the far edge of the symbol row, clear of the\n   drop-down. */\n.gram-frame-large-symbols-toggle {\n  margin-left: auto;\n}\n\n.gram-frame-pin-toggle-input,\n.gram-frame-large-symbols-checkbox {\n  margin: 0;\n  cursor: pointer;\n  accent-color: #00ff00;\n}\n\n.gram-frame-pin-toggle-label,\n.gram-frame-large-symbols-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-pin-toggle-disabled {\n  cursor: default;\n  opacity: 0.45;\n}\n\n.gram-frame-pin-toggle-disabled .gram-frame-pin-toggle-input {\n  cursor: default;\n}\n\n/* The slider has the band to itself, so it spans the panel: a wider gradient is\n   an easier target. The canvas keeps its 140px backing store — the click\n   handler rescales by the rendered width, and the indicator is positioned in\n   percent, so both follow the CSS width. */\n.gram-frame-color-canvas {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  height: 20px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  cursor: pointer;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n.gram-frame-color-indicator {\n  position: absolute;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 3px;\n  height: 26px;\n  background: #fff;\n  border: 1px solid #000;\n  border-radius: 1px;\n  pointer-events: none;\n  box-shadow: 0 0 2px rgba(0,0,0,0.8);\n}\n\n/* Analysis mode layout styles */\n.gram-frame-analysis-layout {\n  height: 100%;\n}\n\n.gram-frame-analysis-controls {\n  align-self: flex-start;\n}\n\n.gram-frame-analysis-leds {\n  /* Side-by-side LEDs container */\n}\n\n.gram-frame-analysis-leds .gram-frame-led {\n  /* Ensure LEDs in the horizontal container are sized properly */\n  font-size: 9px; /* Slightly smaller to fit side-by-side */\n}\n\n.gram-frame-analysis-leds .gram-frame-led-label {\n  font-size: 8px; /* Smaller label text */\n  color: #00ff00;\n}\n\n.gram-frame-analysis-markers {\n  height: 100%;\n}\n\n/* Unified table styles for both markers and harmonics */\n\n/*\n * Fixed-height home for a markers/harmonics table.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the readout row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n.gram-frame-table-container {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  box-sizing: border-box;\n  padding: 0;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow:\n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows\n     are added or removed (no reflow of the table columns). */\n  overflow-y: scroll;\n  overflow-x: hidden;\n  /* Dark-theme scrollbar (Firefox) */\n  scrollbar-width: thin;\n  scrollbar-color: #555 #111;\n}\n\n/* Dark-theme scrollbar (WebKit/Blink) */\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 10px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: #555;\n  border-radius: 5px;\n  border: 2px solid #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: #6a6a6a;\n}\n\n/*\n * Separate (not collapsed) borders: sticky header cells are unreliable with\n * border-collapse, so each cell draws its own right/bottom edge and the first\n * column/header row close the outer edges. Visually identical to the collapsed\n * 1px grid, because border-spacing is zero.\n *\n * Element-qualified because the `gram-frame-table` class is also carried by the\n * component's outer frame <div> (display: table), which must keep its own\n * border. Zeroing the border here matters for the sticky header too — a border\n * on the table box offsets the header cells from the scrollport, which makes\n * them jump when the body first scrolls.\n */\ntable.gram-frame-table {\n  width: 100%;\n  border: 0;\n  border-collapse: separate;\n  border-spacing: 0;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-table th,\n.gram-frame-table td {\n  border: 0;\n  border-right: 1px solid #444;\n  border-bottom: 1px solid #444;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  border-left: 1px solid #444;\n}\n\n.gram-frame-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border-top: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n  /* Header row stays pinned while the body scrolls beneath it. The z-index sits\n     above the positioned body rows, including a selected row's cells (11). */\n  position: sticky;\n  top: 0;\n  z-index: 20;\n}\n\n.gram-frame-table td {\n  padding: 4px;\n  text-align: center;\n  background: #1a1a1a;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n  transition: all 0.2s ease;\n  position: relative;\n}\n\n.gram-frame-table tbody tr:hover {\n  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.05),\n    inset 0 -1px 2px rgba(0,0,0,0.2),\n    0 0 4px rgba(255,255,255,0.1);\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: transparent;\n}\n\n/* Legacy markers styles - kept for compatibility */\n.gram-frame-markers-container {\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-markers-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin: 0 0 8px 0;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-markers-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-markers-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-markers-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-color-swatch {\n  margin: 0 auto;\n  display: block;\n}\n\n.gram-frame-marker-delete-btn {\n  padding: 2px 6px;\n  border-radius: 2px;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-delete-btn:hover {\n  background-color: #ff4444 !important;\n  color: #fff !important;\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/* Military-style mode selection header */\n.gram-frame-mode-header {\n  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border-bottom: 2px solid #555;\n  display: flex;\n  align-items: flex-start;\n  justify-content: flex-start;\n}\n\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  justify-content: center;\n  align-items: stretch;\n  flex: 0 0 auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-mode-group {\n  display: flex;\n  align-items: center;\n  gap: 2px;\n  width: 100%;\n  flex-wrap: nowrap;\n}\n\n/* Simplified left panel - no sub-columns needed */\n\n/* Guidance panel */\n.gram-frame-guidance {\n  flex: 1;\n  padding: 8px 12px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  color: #ccc;\n  font-size: 12px;\n  line-height: 1.4;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-guidance h4 {\n  margin: 0 0 6px 0;\n  font-size: 11px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-guidance p {\n  margin: 0 0 4px 0;\n}\n\n/* Military-style metal buttons */\n.gram-frame-mode-btn {\n  padding: 8px 6px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  flex: 1;\n  min-width: 0;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-command-btn {\n  padding: 8px 10px;\n  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #444;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 14px;\n  line-height: 1;\n  flex: 0 0 auto;\n  min-width: 32px;\n  height: 36px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-mode-btn:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-mode-btn.active {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n  border-color: #4a8a4a;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    inset 0 -1px 2px rgba(255,255,255,0.1),\n    0 0 4px rgba(74, 138, 74, 0.3);\n}\n\n.gram-frame-mode-btn:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  opacity: 0.6;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n.gram-frame-mode-btn:disabled:hover,\n.gram-frame-mode-btn.disabled:hover {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n  transform: none;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-command-btn:active:not(:disabled) {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-command-btn:disabled {\n  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n/* Clear gram button — trainer pages only */\n.gram-frame-clear-btn {\n  margin-top: 8px;\n  padding: 6px 10px;\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #6a3a3a;\n  border-radius: 4px;\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.5px;\n  cursor: pointer;\n  text-transform: uppercase;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.15),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  width: 100%;\n}\n\n.gram-frame-clear-btn:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.25),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-clear-btn:active {\n  transform: translateY(1px);\n  box-shadow:\n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Storage-failure banner — shown inside the component when a save or clear was\n   refused by browser storage (quota, private browsing). Non-blocking: it sits\n   above the controls, wraps rather than clips, and can be dismissed. */\n.gram-frame-storage-warning {\n  box-sizing: border-box;\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  margin: 0 0 8px 0;\n  padding: 8px 10px;\n  background-color: #fff8e1;\n  border: 1px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 13px;\n  line-height: 1.4;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-storage-warning-message {\n  flex: 1 1 auto;\n  min-width: 0;\n}\n\n.gram-frame-storage-warning-dismiss {\n  flex: 0 0 auto;\n  padding: 0 4px;\n  background: none;\n  border: none;\n  color: #663c00;\n  font-size: 16px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-storage-warning-dismiss:hover {\n  color: #a06000;\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Rate input UI styles removed - backend functionality preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line,\n.gram-frame-harmonic-mini-pin {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the halo (black glyphs inside a white outline) set as\n   * presentation attributes by applyTextHalo() in src/utils/svg.js — see the\n   * fill/stroke/paint-order there. No drop-shadow: it only blurred the outline.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* Legacy harmonic panel styles - now using unified table structure */\n\n.gram-frame-harmonic-spacing,\n.gram-frame-harmonic-rate {\n  font-size: 14px;\n  font-weight: bold;\n}\n\n.gram-frame-harmonic-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n.gram-frame-harmonic-delete {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ff6666;\n  border: 1px solid #555;\n  border-radius: 2px;\n  width: 20px;\n  height: 20px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  line-height: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.1s ease;\n}\n\n.gram-frame-harmonic-delete:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  border-color: #777;\n}\n\n.gram-frame-harmonic-delete:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-harmonic-empty {\n  color: #666;\n  font-style: italic;\n  text-align: center;\n  padding: 20px;\n  font-size: 12px;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Cursor position readout styles */\n.gram-frame-cursor-readout {\n  display: flex;\n  gap: 15px;\n  margin-bottom: 10px;\n  padding: 8px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 1px solid #444;\n  border-radius: 4px;\n}\n\n.gram-frame-readout-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  min-width: 80px;\n}\n\n.gram-frame-readout-label {\n  font-size: 10px;\n  color: #aaa;\n  text-transform: uppercase;\n  margin-bottom: 2px;\n  font-weight: bold;\n}\n\n.gram-frame-readout-value {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: bold;\n  color: #00ff00;\n  background: #000;\n  padding: 4px 8px;\n  border: 1px solid #333;\n  border-radius: 2px;\n  text-align: center;\n  min-width: 60px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/* Unified Layout Styles */\n.gram-frame-unified-layout {\n  display: flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  gap: 2px; /* Match JavaScript gap */\n  width: 100%;\n  height: 100%;\n  overflow: hidden; /* Prevent columns from overflowing container */\n}\n\n.gram-frame-left-column {\n  position: relative; /* Enable absolute positioning for child elements */\n  display: flex;\n  flex-direction: row;\n  gap: 4px;\n  flex: 0 0 600px;\n  width: 600px;\n  overflow: hidden;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Left column sub-columns */\n.gram-frame-mode-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 130px;\n  width: 130px;\n  padding: 8px;\n  border: none;\n}\n\n.gram-frame-guidance-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 1;\n  min-width: 150px;\n  border: none;\n}\n\n.gram-frame-controls-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 210px;\n  width: 210px;\n  padding: 0px;\n  border: none;\n}\n\n.gram-frame-middle-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 160px;\n  width: 160px;\n  min-width: 160px;\n  max-width: 160px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-right-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 200px;\n  min-width: 200px;\n  width: 200px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-cursor-leds {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 6px;\n  align-items: flex-start;\n  flex: 0 0 auto;\n  height: fit-content;\n}\n\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n.gram-frame-markers-persistent-container h4,\n.gram-frame-harmonics-persistent-container h4 {\n  margin: 0 0 8px 0;\n  flex-shrink: 0;\n  color: #ddd;\n  font-size: 14px;\n  text-align: center;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  border-bottom: 1px solid #444;\n  padding-bottom: 4px;\n}\n\n.gram-frame-harmonics-button-container {\n  margin-bottom: 8px;\n  display: flex;\n  justify-content: center;\n}\n\n/* Responsive behavior for smaller screens */\n@media (max-width: 1200px) {\n  .gram-frame-unified-layout {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .gram-frame-left-column,\n  .gram-frame-middle-column,\n  .gram-frame-right-column {\n    flex: 0 0 auto;\n    min-height: 200px;\n  }\n}\n\n/* Selection highlighting for keyboard control */\n.gram-frame-selected-row {\n  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;\n  color: #aaffaa !important;\n  outline: 2px solid #4a8a4a !important;\n  outline-offset: -1px;\n  position: relative;\n  z-index: 10;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.15),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 0 8px rgba(74, 138, 74, 0.6),\n    0 0 2px rgba(74, 138, 74, 0.8) !important;\n}\n\n.gram-frame-selected-row td {\n  color: #aaffaa !important;\n  border-color: #4a8a4a !important;\n  position: relative;\n  z-index: 11;\n}\n\n/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n";
+  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #1a1a1a;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* Military-style table layout for proper resizing */\n.gram-frame-table {\n  display: table;\n  width: 100%;\n  height: 100%;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* Main panel with military frame */\n.gram-frame-main-panel {\n  padding: 15px;\n  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border: 3px solid #555;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 3px 6px rgba(0,0,0,0.5),\n    inset 0 -2px 4px rgba(255,255,255,0.1),\n    0 0 10px rgba(0,0,0,0.7);\n  position: relative;\n}\n\n.gram-frame-main-panel:before {\n  content: '';\n  position: absolute;\n  top: 5px;\n  left: 5px;\n  right: 5px;\n  bottom: 5px;\n  border: 1px solid #666;\n  border-radius: 4px;\n  pointer-events: none;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n.gram-frame-display-panel {\n  padding: 10px;\n  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border-top: 2px solid #555;\n}\n\n.gram-frame-readout {\n  flex: 0 1 auto;\n  width: 100%; /* Definite width so the unified layout's flex sizing applies */\n  padding: 0;\n  background: transparent;\n}\n\n/* Harmonics mode CSS removed - now using unified layout */\n\n/* Harmonics layout container - two columns */\n\n/* Left column for controls - 40% width */\n.gram-frame-harmonics-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  flex: 0 0 40%;\n  max-width: 40%;\n}\n\n/* Top row in left column */\n.gram-frame-harmonics-top-row {\n  display: flex;\n  gap: 10px;\n  align-items: stretch;\n}\n\n/* Right column for table - 60% width */\n.gram-frame-harmonics-table-column {\n  flex: 0 0 60%;\n  max-width: 60%;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n}\n\n/* Make color picker more compact in harmonics mode */\n.gram-frame-harmonics-mode .gram-frame-color-picker {\n  margin: 0;\n}\n\n/* Harmonic panel layout - always visible in unified layout */\n\n/* Military-style display windows */\n.gram-frame-led {\n  font-family: 'Courier New', monospace;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  color: #00ff00; /* LED green */\n  padding: 6px 0px;\n  border: 0px solid #333;\n  border-radius: 4px;\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 auto;\n  min-width: 100px;\n  text-align: center;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  position: relative;\n  font-size: 11px;\n  height: fit-content;\n}\n\n.gram-frame-led:before {\n  content: '';\n  position: absolute;\n  top: 2px;\n  left: 2px;\n  right: 2px;\n  bottom: 2px;\n  border: 1px solid #444;\n  border-radius: 2px;\n  pointer-events: none;\n}\n\n/* LED label */\n.gram-frame-led-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 4px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* LED value */\n.gram-frame-led-value {\n  font-size: 14px;\n  font-weight: bold;\n  text-shadow: 0 0 4px #00ff00;\n}\n\n/* Manual harmonic button */\n.gram-frame-manual-button {\n  padding: 6px 12px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 11px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-manual-button:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-manual-button:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Style panel: colour band, symbol band, harmonics band */\n.gram-frame-color-picker {\n  margin-top: 0;\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  max-width: 200px;\n  flex-shrink: 0;\n}\n\n.gram-frame-color-picker-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 6px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-color-palette {\n  position: relative;\n}\n\n/* One band of the style panel, grouping controls that share a scope. */\n.gram-frame-style-group {\n  margin-bottom: 6px;\n}\n\n.gram-frame-style-group:last-child {\n  margin-bottom: 0;\n}\n\n/* Band caption. Same micro-caps treatment as the panel heading, but ranged left\n   so the bands read as a list beneath the centred title. */\n.gram-frame-style-group-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: left;\n  margin-bottom: 4px;\n}\n\n/* A band whose controls fit on one line puts its caption inline with them\n   rather than above. Used by the Symbol and Harmonics bands; the Colour band\n   keeps its caption stacked, because the slider spans the panel. */\n.gram-frame-style-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.gram-frame-style-row .gram-frame-style-group-label {\n  margin-bottom: 0;\n}\n\n/* Fences the harmonics-only band off from the controls above it. Lighter than\n   the panel border (#333), which is invisible against the panel's near-black\n   fill — the rule has to be seen to do its job. */\n.gram-frame-style-divider {\n  border-top: 1px solid #4a4a4a;\n  margin: 8px 0 6px;\n}\n\n/* Symbol drop-down embedded to the right of the colour slider. Its `color` is\n   set inline to the selected colour so the glyphs render in that colour. */\n.gram-frame-symbol-select {\n  flex-shrink: 0;\n  padding: 2px 4px;\n  background: #0a0a0a;\n  border: 1px solid #555;\n  border-radius: 2px;\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n/* Harmonic-pin visibility toggle, in the panel's harmonics band.\n   TEMPORARY (symbol-size experiment): the \"Large\" toggle sits inline in the\n   symbol row and shares this styling. Remove that selector, the margin-left\n   override and the blocks below, together with the control once a symbol size\n   is agreed. */\n.gram-frame-pin-toggle,\n.gram-frame-large-symbols-toggle {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n  cursor: pointer;\n  user-select: none;\n}\n\n/* Push the size toggle to the far edge of the symbol row, clear of the\n   drop-down. */\n.gram-frame-large-symbols-toggle {\n  margin-left: auto;\n}\n\n.gram-frame-pin-toggle-input,\n.gram-frame-large-symbols-checkbox {\n  margin: 0;\n  cursor: pointer;\n  accent-color: #00ff00;\n}\n\n.gram-frame-pin-toggle-label,\n.gram-frame-large-symbols-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-pin-toggle-disabled {\n  cursor: default;\n  opacity: 0.45;\n}\n\n.gram-frame-pin-toggle-disabled .gram-frame-pin-toggle-input {\n  cursor: default;\n}\n\n/* The slider has the band to itself, so it spans the panel: a wider gradient is\n   an easier target. The canvas keeps its 140px backing store — the click\n   handler rescales by the rendered width, and the indicator is positioned in\n   percent, so both follow the CSS width. */\n.gram-frame-color-canvas {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  height: 20px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  cursor: pointer;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n.gram-frame-color-indicator {\n  position: absolute;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 3px;\n  height: 26px;\n  background: #fff;\n  border: 1px solid #000;\n  border-radius: 1px;\n  pointer-events: none;\n  box-shadow: 0 0 2px rgba(0,0,0,0.8);\n}\n\n/* Analysis mode layout styles */\n.gram-frame-analysis-layout {\n  height: 100%;\n}\n\n.gram-frame-analysis-controls {\n  align-self: flex-start;\n}\n\n.gram-frame-analysis-leds {\n  /* Side-by-side LEDs container */\n}\n\n.gram-frame-analysis-leds .gram-frame-led {\n  /* Ensure LEDs in the horizontal container are sized properly */\n  font-size: 9px; /* Slightly smaller to fit side-by-side */\n}\n\n.gram-frame-analysis-leds .gram-frame-led-label {\n  font-size: 8px; /* Smaller label text */\n  color: #00ff00;\n}\n\n.gram-frame-analysis-markers {\n  height: 100%;\n}\n\n/* Unified table styles for both markers and harmonics */\n\n/*\n * Fixed-height home for a markers/harmonics table.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the readout row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n.gram-frame-table-container {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  box-sizing: border-box;\n  padding: 0;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow:\n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows\n     are added or removed (no reflow of the table columns). */\n  overflow-y: scroll;\n  overflow-x: hidden;\n  /* Dark-theme scrollbar (Firefox) */\n  scrollbar-width: thin;\n  scrollbar-color: #555 #111;\n}\n\n/* Dark-theme scrollbar (WebKit/Blink) */\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 10px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: #555;\n  border-radius: 5px;\n  border: 2px solid #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: #6a6a6a;\n}\n\n/*\n * Separate (not collapsed) borders: sticky header cells are unreliable with\n * border-collapse, so each cell draws its own right/bottom edge and the first\n * column/header row close the outer edges. Visually identical to the collapsed\n * 1px grid, because border-spacing is zero.\n *\n * Element-qualified because the `gram-frame-table` class is also carried by the\n * component's outer frame <div> (display: table), which must keep its own\n * border. Zeroing the border here matters for the sticky header too — a border\n * on the table box offsets the header cells from the scrollport, which makes\n * them jump when the body first scrolls.\n */\ntable.gram-frame-table {\n  width: 100%;\n  border: 0;\n  border-collapse: separate;\n  border-spacing: 0;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-table th,\n.gram-frame-table td {\n  border: 0;\n  border-right: 1px solid #444;\n  border-bottom: 1px solid #444;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  border-left: 1px solid #444;\n}\n\n.gram-frame-table th {\n  background: #222;\n  color: #00ff00;\n  /*\n   * Horizontal padding and letter-spacing are deliberately tight (feature 231):\n   * the markers table gained a fifth column in the same 160px, and at 4px/0.5px\n   * the headers no longer fitted their own text. The narrow columns are the\n   * constraint here, not the label copy.\n   */\n  padding: 4px 1px;\n  text-align: center;\n  border-top: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0;\n  /* Header row stays pinned while the body scrolls beneath it. The z-index sits\n     above the positioned body rows, including a selected row's cells (11). */\n  position: sticky;\n  top: 0;\n  z-index: 20;\n}\n\n.gram-frame-table td {\n  /* Matches the header's tight horizontal padding — see the note above. */\n  padding: 4px 1px;\n  text-align: center;\n  background: #1a1a1a;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n  transition: all 0.2s ease;\n  position: relative;\n}\n\n.gram-frame-table tbody tr:hover {\n  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.05),\n    inset 0 -1px 2px rgba(0,0,0,0.2),\n    0 0 4px rgba(255,255,255,0.1);\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: transparent;\n}\n\n/* Legacy markers styles - kept for compatibility */\n.gram-frame-markers-container {\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-markers-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin: 0 0 8px 0;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-markers-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-markers-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-markers-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-color-swatch {\n  margin: 0 auto;\n  display: block;\n}\n\n.gram-frame-marker-delete-btn {\n  padding: 2px 6px;\n  border-radius: 2px;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-delete-btn:hover {\n  background-color: #ff4444 !important;\n  color: #fff !important;\n}\n\n/*\n * Marker row actions (feature 231): the Label button sits above the Delete\n * button in the cell that used to hold Delete alone, so the column keeps its\n * narrow width and the two controls never share a click target.\n */\n.gram-frame-marker-actions {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: 2px;\n}\n\n.gram-frame-marker-label-btn {\n  background: none;\n  border: none;\n  color: #8ab4d8;\n  cursor: pointer;\n  padding: 2px 6px;\n  border-radius: 2px;\n  line-height: 0;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-label-btn:hover {\n  background-color: #8ab4d8;\n  color: #1a1a1a;\n}\n\n/*\n * The Label column shows an abbreviated label (see formatMarkerLabelForTable),\n * so it should never wrap or stretch the row; anything unexpectedly long is\n * clipped rather than allowed to reflow the table.\n */\n.gram-frame-marker-label-cell {\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/*\n * A marker's on-gram label. Legibility comes from the halo (black glyphs in a\n * white outline) set as presentation attributes by applyTextHalo() — see\n * src/utils/svg.js. Never a click target: the marker underneath is.\n */\n.gram-frame-marker-label {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  user-select: none;\n}\n\n/* Military-style mode selection header */\n.gram-frame-mode-header {\n  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border-bottom: 2px solid #555;\n  display: flex;\n  align-items: flex-start;\n  justify-content: flex-start;\n}\n\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  justify-content: center;\n  align-items: stretch;\n  flex: 0 0 auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-mode-group {\n  display: flex;\n  align-items: center;\n  gap: 2px;\n  width: 100%;\n  flex-wrap: nowrap;\n}\n\n/* Simplified left panel - no sub-columns needed */\n\n/* Guidance panel */\n.gram-frame-guidance {\n  flex: 1;\n  padding: 8px 12px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  color: #ccc;\n  font-size: 12px;\n  line-height: 1.4;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-guidance h4 {\n  margin: 0 0 6px 0;\n  font-size: 11px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-guidance p {\n  margin: 0 0 4px 0;\n}\n\n/* Military-style metal buttons */\n.gram-frame-mode-btn {\n  padding: 8px 6px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  flex: 1;\n  min-width: 0;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-command-btn {\n  padding: 8px 10px;\n  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #444;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 14px;\n  line-height: 1;\n  flex: 0 0 auto;\n  min-width: 32px;\n  height: 36px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-mode-btn:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-mode-btn.active {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n  border-color: #4a8a4a;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    inset 0 -1px 2px rgba(255,255,255,0.1),\n    0 0 4px rgba(74, 138, 74, 0.3);\n}\n\n.gram-frame-mode-btn:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  opacity: 0.6;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n.gram-frame-mode-btn:disabled:hover,\n.gram-frame-mode-btn.disabled:hover {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n  transform: none;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-command-btn:active:not(:disabled) {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-command-btn:disabled {\n  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n/* Clear gram button — trainer pages only */\n.gram-frame-clear-btn {\n  margin-top: 8px;\n  padding: 6px 10px;\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #6a3a3a;\n  border-radius: 4px;\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.5px;\n  cursor: pointer;\n  text-transform: uppercase;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.15),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  width: 100%;\n}\n\n.gram-frame-clear-btn:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.25),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-clear-btn:active {\n  transform: translateY(1px);\n  box-shadow:\n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Storage-failure banner — shown inside the component when a save or clear was\n   refused by browser storage (quota, private browsing). Non-blocking: it sits\n   above the controls, wraps rather than clips, and can be dismissed. */\n.gram-frame-storage-warning {\n  box-sizing: border-box;\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  margin: 0 0 8px 0;\n  padding: 8px 10px;\n  background-color: #fff8e1;\n  border: 1px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 13px;\n  line-height: 1.4;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-storage-warning-message {\n  flex: 1 1 auto;\n  min-width: 0;\n}\n\n.gram-frame-storage-warning-dismiss {\n  flex: 0 0 auto;\n  padding: 0 4px;\n  background: none;\n  border: none;\n  color: #663c00;\n  font-size: 16px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-storage-warning-dismiss:hover {\n  color: #a06000;\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Rate input UI styles removed - backend functionality preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line,\n.gram-frame-harmonic-mini-pin {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the halo (black glyphs inside a white outline) set as\n   * presentation attributes by applyTextHalo() in src/utils/svg.js — see the\n   * fill/stroke/paint-order there. No drop-shadow: it only blurred the outline.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* Legacy harmonic panel styles - now using unified table structure */\n\n.gram-frame-harmonic-spacing,\n.gram-frame-harmonic-rate {\n  font-size: 14px;\n  font-weight: bold;\n}\n\n.gram-frame-harmonic-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n.gram-frame-harmonic-delete {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ff6666;\n  border: 1px solid #555;\n  border-radius: 2px;\n  width: 20px;\n  height: 20px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  line-height: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.1s ease;\n}\n\n.gram-frame-harmonic-delete:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  border-color: #777;\n}\n\n.gram-frame-harmonic-delete:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-harmonic-empty {\n  color: #666;\n  font-style: italic;\n  text-align: center;\n  padding: 20px;\n  font-size: 12px;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Cursor position readout styles */\n.gram-frame-cursor-readout {\n  display: flex;\n  gap: 15px;\n  margin-bottom: 10px;\n  padding: 8px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 1px solid #444;\n  border-radius: 4px;\n}\n\n.gram-frame-readout-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  min-width: 80px;\n}\n\n.gram-frame-readout-label {\n  font-size: 10px;\n  color: #aaa;\n  text-transform: uppercase;\n  margin-bottom: 2px;\n  font-weight: bold;\n}\n\n.gram-frame-readout-value {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: bold;\n  color: #00ff00;\n  background: #000;\n  padding: 4px 8px;\n  border: 1px solid #333;\n  border-radius: 2px;\n  text-align: center;\n  min-width: 60px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n/* Supporting note under a modal input (e.g. how to clear a marker label) */\n.gram-frame-modal-hint {\n  color: #999;\n  font-size: 11px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/* Unified Layout Styles */\n.gram-frame-unified-layout {\n  display: flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  gap: 2px; /* Match JavaScript gap */\n  width: 100%;\n  height: 100%;\n  overflow: hidden; /* Prevent columns from overflowing container */\n}\n\n.gram-frame-left-column {\n  position: relative; /* Enable absolute positioning for child elements */\n  display: flex;\n  flex-direction: row;\n  gap: 4px;\n  flex: 0 0 600px;\n  width: 600px;\n  overflow: hidden;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Left column sub-columns */\n.gram-frame-mode-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 130px;\n  width: 130px;\n  padding: 8px;\n  border: none;\n}\n\n.gram-frame-guidance-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 1;\n  min-width: 150px;\n  border: none;\n}\n\n.gram-frame-controls-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 210px;\n  width: 210px;\n  padding: 0px;\n  border: none;\n}\n\n/*\n * Markers column. Widened from a flat 160px when the Label column was added\n * (feature 231), and made elastic rather than fixed: it takes up to 235px where\n * the host has the width, and gives back down to 185px where it does not.\n *\n * The floor matters. Shrinking the LEFT column past ~620px rewraps the guidance\n * text onto extra lines and grows the whole control row ~50px taller, pushing\n * the gram down the page — so the markers column must not simply be pinned\n * wide. 185px is the floor because it is what the five columns need, and it is\n * funded by the harmonics column next door (200 → 175px) rather than by the\n * left column, leaving the narrow-window layout exactly as it was.\n *\n * These values — and the matching inline styles in\n * MainUI.createUnifiedLayout — must agree.\n */\n.gram-frame-middle-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 3 235px;\n  width: auto;\n  min-width: 185px;\n  max-width: 235px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Harmonics column. 200 → 175px; see the markers-column note above. */\n.gram-frame-right-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 175px;\n  min-width: 175px;\n  width: 175px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-cursor-leds {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 6px;\n  align-items: flex-start;\n  flex: 0 0 auto;\n  height: fit-content;\n}\n\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n.gram-frame-markers-persistent-container h4,\n.gram-frame-harmonics-persistent-container h4 {\n  margin: 0 0 8px 0;\n  flex-shrink: 0;\n  color: #ddd;\n  font-size: 14px;\n  text-align: center;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  border-bottom: 1px solid #444;\n  padding-bottom: 4px;\n}\n\n.gram-frame-harmonics-button-container {\n  margin-bottom: 8px;\n  display: flex;\n  justify-content: center;\n}\n\n/* Responsive behavior for smaller screens */\n@media (max-width: 1200px) {\n  .gram-frame-unified-layout {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .gram-frame-left-column,\n  .gram-frame-middle-column,\n  .gram-frame-right-column {\n    flex: 0 0 auto;\n    min-height: 200px;\n  }\n}\n\n/* Selection highlighting for keyboard control */\n.gram-frame-selected-row {\n  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;\n  color: #aaffaa !important;\n  outline: 2px solid #4a8a4a !important;\n  outline-offset: -1px;\n  position: relative;\n  z-index: 10;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.15),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 0 8px rgba(74, 138, 74, 0.6),\n    0 0 2px rgba(74, 138, 74, 0.8) !important;\n}\n\n.gram-frame-selected-row td {\n  color: #aaffaa !important;\n  border-color: #4a8a4a !important;\n  position: relative;\n  z-index: 11;\n}\n\n/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n";
   document.head.appendChild(style);
 
   "use strict";
@@ -194,7 +194,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     return false;
   }
-  const SVG_NS = "http://www.w3.org/2000/svg";
+  const SVG_NS$2 = "http://www.w3.org/2000/svg";
   const DEFAULT_SYMBOL = "cross";
   const SYMBOL_CATALOG = ["cross", "circle", "square", "diamond", "triangle", "triangle-down", "star"];
   const SYMBOL_DISPLAY_NAMES = {
@@ -210,6 +210,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function resolveSymbolScale(source) {
     return source && source.largeSymbols ? LARGE_SYMBOL_SCALE : 1;
   }
+  function resolveSymbolType(symbolType) {
+    return SYMBOL_CATALOG.includes(
+      /** @type {SymbolType} */
+      symbolType
+    ) ? (
+      /** @type {SymbolType} */
+      symbolType
+    ) : DEFAULT_SYMBOL;
+  }
   function toPoints(pts) {
     return pts.map(([x, y]) => `${x},${y}`).join(" ");
   }
@@ -224,20 +233,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function createSymbolMark(symbolType, cx, cy, size, color) {
     const r = size / 2;
-    const resolved = SYMBOL_CATALOG.includes(
-      /** @type {SymbolType} */
-      symbolType
-    ) ? (
-      /** @type {SymbolType} */
-      symbolType
-    ) : DEFAULT_SYMBOL;
+    const resolved = resolveSymbolType(symbolType);
     if (resolved === "cross") {
       return null;
     }
     let el;
     switch (resolved) {
       case "square": {
-        el = document.createElementNS(SVG_NS, "rect");
+        el = document.createElementNS(SVG_NS$2, "rect");
         el.setAttribute("x", String(cx - r));
         el.setAttribute("y", String(cy - r));
         el.setAttribute("width", String(2 * r));
@@ -245,7 +248,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         break;
       }
       case "diamond": {
-        el = document.createElementNS(SVG_NS, "polygon");
+        el = document.createElementNS(SVG_NS$2, "polygon");
         el.setAttribute("points", toPoints([
           [cx, cy - r],
           [cx + r, cy],
@@ -255,7 +258,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         break;
       }
       case "triangle": {
-        el = document.createElementNS(SVG_NS, "polygon");
+        el = document.createElementNS(SVG_NS$2, "polygon");
         el.setAttribute("points", toPoints([
           [cx, cy - r],
           [cx + r, cy + r],
@@ -264,7 +267,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         break;
       }
       case "triangle-down": {
-        el = document.createElementNS(SVG_NS, "polygon");
+        el = document.createElementNS(SVG_NS$2, "polygon");
         el.setAttribute("points", toPoints([
           [cx, cy + r],
           [cx + r, cy - r],
@@ -273,13 +276,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         break;
       }
       case "star": {
-        el = document.createElementNS(SVG_NS, "polygon");
+        el = document.createElementNS(SVG_NS$2, "polygon");
         el.setAttribute("points", toPoints(starPoints(cx, cy, r, r * 0.5)));
         break;
       }
       case "circle":
       default: {
-        el = document.createElementNS(SVG_NS, "circle");
+        el = document.createElementNS(SVG_NS$2, "circle");
         el.setAttribute("cx", String(cx));
         el.setAttribute("cy", String(cy));
         el.setAttribute("r", String(r));
@@ -294,7 +297,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function createColorIndicator(symbol, color, size = 16) {
     const mark = createSymbolMark(symbol, size / 2, size / 2, size * 0.75, color);
     if (mark) {
-      const svg = document.createElementNS(SVG_NS, "svg");
+      const svg = document.createElementNS(SVG_NS$2, "svg");
       svg.setAttribute("class", "gram-frame-symbol-swatch");
       svg.setAttribute("width", String(size));
       svg.setAttribute("height", String(size));
@@ -387,6 +390,37 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     label.appendChild(checkbox);
     label.appendChild(text);
     return label;
+  }
+  const MAX_MARKER_LABEL_LENGTH = 32;
+  const TABLE_LABEL_FULL_LENGTH = 5;
+  const TABLE_LABEL_HEAD_LENGTH = 3;
+  function normalizeMarkerLabel(raw) {
+    if (typeof raw !== "string") {
+      return void 0;
+    }
+    const trimmed = raw.trim();
+    if (trimmed === "") {
+      return void 0;
+    }
+    return trimmed.slice(0, MAX_MARKER_LABEL_LENGTH);
+  }
+  function formatMarkerLabelForTable(label) {
+    const normalized = normalizeMarkerLabel(label);
+    if (!normalized) {
+      return "";
+    }
+    if (normalized.length <= TABLE_LABEL_FULL_LENGTH) {
+      return normalized;
+    }
+    return `${normalized.slice(0, TABLE_LABEL_HEAD_LENGTH)}..`;
+  }
+  const QUADRANT_GAP = 5;
+  const ABOVE_SYMBOL_GAP = 4;
+  function markerLabelPlacement(symbol, cx, cy, symbolSize) {
+    if (resolveSymbolType(symbol) === "cross") {
+      return { x: cx + QUADRANT_GAP, y: cy - QUADRANT_GAP, textAnchor: "start" };
+    }
+    return { x: cx, y: cy - symbolSize / 2 - ABOVE_SYMBOL_GAP, textAnchor: "middle" };
   }
   const SCHEMA_VERSION = 1;
   const STUDENT_TTL_MS = 24 * 60 * 60 * 1e3;
@@ -482,6 +516,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const valid = !!m && isNonEmptyString(m.id) && isNonEmptyString(m.color) && isFiniteNumber(m.time) && isFiniteNumber(m.freq);
         if (!valid) dropped++;
         return valid;
+      }).map((m) => {
+        const label = normalizeMarkerLabel(m.label);
+        const { label: _rawLabel, ...rest } = m;
+        return label ? { ...rest, label } : rest;
       });
     } else if (data && data.analysis && data.analysis.markers != null) {
       dropped++;
@@ -555,16 +593,24 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         // and restore without the identity check (BH-6, BH-23).
         gram: buildGramFingerprint(state),
         analysis: {
-          markers: (state.analysis && state.analysis.markers || []).map((m) => ({
-            id: m.id,
-            color: m.color,
-            time: m.time,
-            freq: m.freq,
-            // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
-            // SCHEMA_VERSION bump: legacy records simply lack it and default to
-            // 'cross' (no drawn symbol) on restore.
-            symbol: m.symbol || "cross"
-          }))
+          markers: (state.analysis && state.analysis.markers || []).map((m) => {
+            const label = normalizeMarkerLabel(m.label);
+            return {
+              id: m.id,
+              color: m.color,
+              time: m.time,
+              freq: m.freq,
+              // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
+              // SCHEMA_VERSION bump: legacy records simply lack it and default to
+              // 'cross' (no drawn symbol) on restore.
+              symbol: m.symbol || "cross",
+              // `label` is likewise ADDITIVE (feature 231) and MUST NOT bump
+              // SCHEMA_VERSION. Written only when the marker carries one, so an
+              // unlabelled marker's record is identical to what it was before
+              // labels existed, and restores as unlabelled.
+              ...label ? { label } : {}
+            };
+          })
         },
         harmonics: {
           harmonicSets: (state.harmonics && state.harmonics.harmonicSets || []).map((hs) => ({
@@ -918,6 +964,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         tbody.appendChild(buildRow(rows[i], i));
       }
     }
+    const rowActions = [];
+    if (spec.deleteSelector && spec.onDelete) {
+      rowActions.push({ selector: spec.deleteSelector, handler: spec.onDelete });
+    }
+    if (spec.actions) {
+      rowActions.push(...spec.actions);
+    }
     function handleClick(event) {
       const target = (
         /** @type {Element|null} */
@@ -933,12 +986,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (key === null) return;
       const index = Array.prototype.indexOf.call(tbody.children, tr);
       const row = currentRows[index];
-      if (spec.deleteSelector && target.closest(spec.deleteSelector)) {
+      const action = rowActions.find((candidate) => target.closest(candidate.selector));
+      if (action) {
         event.preventDefault();
         event.stopPropagation();
-        if (spec.onDelete) {
-          spec.onDelete(key, row, index);
-        }
+        action.handler(key, row, index);
         return;
       }
       if (spec.onSelect) {
@@ -2020,17 +2072,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       /** @type {HTMLDivElement} */
       createFlexColumn("gram-frame-middle-column")
     );
-    middleColumn.style.flex = "0 0 160px";
-    middleColumn.style.width = "160px";
+    middleColumn.style.flex = "0 3 235px";
+    middleColumn.style.width = "auto";
     const markersContainer = createMarkersContainer();
     middleColumn.appendChild(markersContainer);
     const rightColumn = (
       /** @type {HTMLDivElement} */
       createFlexColumn("gram-frame-right-column")
     );
-    rightColumn.style.flex = "0 0 200px";
-    rightColumn.style.minWidth = "200px";
-    rightColumn.style.width = "200px";
+    rightColumn.style.flex = "0 0 175px";
+    rightColumn.style.minWidth = "175px";
+    rightColumn.style.width = "175px";
     const harmonicsContainer = createHarmonicsContainer();
     rightColumn.appendChild(harmonicsContainer);
     unifiedLayoutContainer.appendChild(leftColumn);
@@ -3225,6 +3277,79 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
   }
+  function showMarkerLabelModal(currentLabel, onSave) {
+    const overlay = document.createElement("div");
+    overlay.className = "gram-frame-modal-overlay gram-frame-marker-label-modal";
+    const modal = document.createElement("div");
+    modal.className = "gram-frame-modal";
+    const header = document.createElement("div");
+    header.className = "gram-frame-modal-header";
+    const heading = document.createElement("h3");
+    heading.textContent = currentLabel ? "Edit Marker Label" : "Add Marker Label";
+    header.appendChild(heading);
+    const body = document.createElement("div");
+    body.className = "gram-frame-modal-body";
+    const inputGroup = document.createElement("div");
+    inputGroup.className = "gram-frame-modal-input-group";
+    const inputLabel = document.createElement("label");
+    inputLabel.setAttribute("for", "gram-frame-marker-label-input");
+    inputLabel.textContent = "Label:";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.id = "gram-frame-marker-label-input";
+    input.className = "gram-frame-marker-label-input";
+    input.maxLength = MAX_MARKER_LABEL_LENGTH;
+    input.placeholder = "Enter a label for this marker";
+    input.value = currentLabel || "";
+    const hint = document.createElement("div");
+    hint.className = "gram-frame-modal-hint";
+    hint.textContent = "Leave empty to remove the label.";
+    inputGroup.appendChild(inputLabel);
+    inputGroup.appendChild(input);
+    inputGroup.appendChild(hint);
+    body.appendChild(inputGroup);
+    const footer = document.createElement("div");
+    footer.className = "gram-frame-modal-footer";
+    const cancelButton = document.createElement("button");
+    cancelButton.className = "gram-frame-modal-btn gram-frame-modal-cancel";
+    cancelButton.textContent = "Cancel";
+    const saveButton = document.createElement("button");
+    saveButton.className = "gram-frame-modal-btn gram-frame-modal-add gram-frame-modal-save";
+    saveButton.textContent = "Save";
+    footer.appendChild(cancelButton);
+    footer.appendChild(saveButton);
+    modal.appendChild(header);
+    modal.appendChild(body);
+    modal.appendChild(footer);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    function closeModal() {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    }
+    function save() {
+      onSave(normalizeMarkerLabel(input.value));
+      closeModal();
+    }
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        save();
+      } else if (e.key === "Escape") {
+        closeModal();
+      }
+    });
+    cancelButton.addEventListener("click", closeModal);
+    saveButton.addEventListener("click", save);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        closeModal();
+      }
+    });
+    input.focus();
+    input.select();
+    return overlay;
+  }
   const DEFAULT_TOLERANCE = {
     // Pixel tolerance for drag/click detection (in SVG coordinate space)
     pixelRadius: 8,
@@ -3301,6 +3426,44 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function getUniformTolerance(viewport, spectrogramImage) {
     return calculateDataTolerance(viewport, spectrogramImage, DEFAULT_TOLERANCE);
   }
+  const TEXT_HALO = {
+    fill: "#000",
+    haloColor: "#fff",
+    width: 3
+  };
+  function applyTextHalo(text, options = {}) {
+    const { fill = TEXT_HALO.fill, haloColor = TEXT_HALO.haloColor, width = TEXT_HALO.width } = options;
+    text.setAttribute("fill", fill);
+    text.setAttribute("stroke", haloColor);
+    text.setAttribute("stroke-width", String(width));
+    text.setAttribute("stroke-linejoin", "round");
+    text.setAttribute("paint-order", "stroke fill");
+    return text;
+  }
+  const SVG_NS$1 = "http://www.w3.org/2000/svg";
+  const MARKER_LABEL_FONT_SIZE = 12;
+  function createMarkerLabel(marker, cx, cy, symbolSize) {
+    if (!marker.label) {
+      return null;
+    }
+    const { x, y, textAnchor } = markerLabelPlacement(marker.symbol, cx, cy, symbolSize);
+    const text = (
+      /** @type {SVGTextElement} */
+      document.createElementNS(SVG_NS$1, "text")
+    );
+    text.setAttribute("class", "gram-frame-marker-label");
+    text.setAttribute("data-marker-id", marker.id);
+    text.setAttribute("x", String(x));
+    text.setAttribute("y", String(y));
+    text.setAttribute("text-anchor", textAnchor);
+    text.setAttribute("font-size", String(MARKER_LABEL_FONT_SIZE));
+    text.setAttribute("font-weight", "bold");
+    text.setAttribute("font-family", "Arial, sans-serif");
+    applyTextHalo(text);
+    text.textContent = marker.label;
+    return text;
+  }
+  const SVG_NS = "http://www.w3.org/2000/svg";
   function createMarkerDeleteButton() {
     const button = document.createElement("button");
     button.textContent = "×";
@@ -3312,6 +3475,39 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     button.style.fontSize = "16px";
     button.style.fontWeight = "bold";
     return button;
+  }
+  function createMarkerLabelButton(marker) {
+    const button = document.createElement("button");
+    button.className = "gram-frame-marker-label-btn";
+    button.title = marker.label ? `Edit label: ${marker.label}` : "Add label";
+    button.setAttribute("aria-label", button.title);
+    const icon = document.createElementNS(SVG_NS, "svg");
+    icon.setAttribute("viewBox", "0 0 16 16");
+    icon.setAttribute("width", "13");
+    icon.setAttribute("height", "13");
+    icon.setAttribute("aria-hidden", "true");
+    const body = document.createElementNS(SVG_NS, "path");
+    body.setAttribute("d", "M8.5 1H15v6.5L7.5 15 1 8.5 8.5 1z");
+    body.setAttribute("fill", "none");
+    body.setAttribute("stroke", "currentColor");
+    body.setAttribute("stroke-width", "1.6");
+    body.setAttribute("stroke-linejoin", "round");
+    const hole = document.createElementNS(SVG_NS, "circle");
+    hole.setAttribute("cx", "11.5");
+    hole.setAttribute("cy", "4.5");
+    hole.setAttribute("r", "1.2");
+    hole.setAttribute("fill", "currentColor");
+    icon.appendChild(body);
+    icon.appendChild(hole);
+    button.appendChild(icon);
+    return button;
+  }
+  function createMarkerActions(marker) {
+    const actions = document.createElement("div");
+    actions.className = "gram-frame-marker-actions";
+    actions.appendChild(createMarkerLabelButton(marker));
+    actions.appendChild(createMarkerDeleteButton());
+    return actions;
   }
   const _AnalysisMode = class _AnalysisMode extends BaseMode {
     /**
@@ -3344,12 +3540,33 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }, "analysis");
     }
     /**
+     * This mode's markers, as the live array state holds.
+     *
+     * The single reach-in for marker data (spec 167, Story 5): every read below
+     * goes through here rather than walking `instance.state.analysis.markers`
+     * again. Yields an empty array before the slice exists, which reads the same
+     * as "no markers" for every caller.
+     * @returns {AnalysisMarker[]} The markers
+     */
+    get markers() {
+      const analysis = this.instance.state.analysis;
+      return analysis && analysis.markers || [];
+    }
+    /**
+     * Find one of this mode's markers by id.
+     * @param {string|null|undefined} markerId - Marker id to look for
+     * @returns {AnalysisMarker|undefined} The marker, or `undefined` if it has gone
+     */
+    findMarker(markerId) {
+      return this.markers.find((m) => m.id === markerId);
+    }
+    /**
      * Start dragging a marker
      * @param {DragTarget} target - Drag target with id and type
      * @param {DataCoordinates} position - Start position
      */
     onMarkerDragStart(target, position) {
-      const markers = this.instance.state.analysis.markers;
+      const markers = this.markers;
       const marker = markers.find((m) => m.id === target.id);
       if (marker) {
         const index = markers.findIndex((m) => m.id === target.id);
@@ -3368,7 +3585,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {DataCoordinates} _startPos - Start position (unused)
      */
     onMarkerDragUpdate(target, currentPos, _startPos) {
-      const marker = this.instance.state.analysis.markers.find((m) => m.id === target.id);
+      const marker = this.findMarker(target.id);
       if (marker) {
         marker.freq = currentPos.freq;
         marker.time = currentPos.time;
@@ -3502,20 +3719,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {boolean} True if at least one marker exists
      */
     hasPersistentFeatures() {
-      const analysis = this.instance.state.analysis;
-      return !!(analysis && analysis.markers && analysis.markers.length > 0);
+      return this.markers.length > 0;
     }
     /**
      * Render persistent features for analysis mode
      */
     renderPersistentFeatures() {
-      var _a;
-      if (!this.instance.ui.cursorGroup || !((_a = this.instance.state.analysis) == null ? void 0 : _a.markers)) {
+      if (!this.instance.ui.cursorGroup) {
         return;
       }
       const existingMarkers = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-analysis-marker");
       existingMarkers.forEach((marker) => marker.remove());
-      this.instance.state.analysis.markers.forEach((marker) => {
+      this.markers.forEach((marker) => {
         this.renderMarker(marker);
       });
     }
@@ -3569,6 +3784,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         markerGroup.appendChild(vLine);
         markerGroup.appendChild(circle);
       }
+      const label = createMarkerLabel(marker, currentX, currentY, symbolSize);
+      if (label) {
+        markerGroup.appendChild(label);
+      }
       this.instance.ui.cursorGroup.appendChild(markerGroup);
     }
     /**
@@ -3600,9 +3819,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       this.markersTable = createDiffingTable(markersContainer, {
         columns: [
-          { label: "", width: "15%", cellClassName: "gram-frame-marker-color" },
-          { label: "Time (mm:ss)", width: "35%" },
-          { label: "Freq (Hz)", width: "35%" },
+          { label: "", width: "13%", cellClassName: "gram-frame-marker-color" },
+          { label: "Label", width: "22%", cellClassName: "gram-frame-marker-label-cell" },
+          { label: "Time (mm:ss)", width: "25%" },
+          { label: "Freq (Hz)", width: "25%" },
           { label: "", width: "15%" }
         ],
         rowAttribute: "data-marker-id",
@@ -3611,11 +3831,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           // Colour/symbol cell — a shaped symbol shows the colour-coded symbol;
           // the cross (symbol-less) style shows a filled colour rectangle (FR-010).
           createColorIndicator(marker.symbol, marker.color, 20),
+          // Label cell — abbreviated so the column keeps its width; the full text
+          // stays on the gram and in the edit dialog (feature 231).
+          formatMarkerLabelForTable(marker.label),
           formatTime(marker.time),
           marker.freq.toFixed(2),
-          createMarkerDeleteButton()
+          createMarkerActions(marker)
         ],
         deleteSelector: ".gram-frame-marker-delete-btn",
+        actions: [
+          {
+            selector: ".gram-frame-marker-label-btn",
+            handler: (markerId) => this.editMarkerLabel(markerId)
+          }
+        ],
         onSelect: (markerId, _marker, index) => {
           const selection = this.instance.state.selection;
           if (selection.selectedType === "marker" && selection.selectedId === markerId) {
@@ -3645,9 +3874,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     updateMarkersTable() {
       if (!this.markersTable) return;
-      const analysis = this.instance.state.analysis;
-      if (!analysis || !analysis.markers) return;
-      this.markersTable.update(this.instance.state.analysis.markers);
+      this.markersTable.update(this.markers);
     }
     /**
      * Update LED displays for analysis mode
@@ -3689,13 +3916,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {string} markerId - ID of marker to remove
      */
     removeMarker(markerId) {
-      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return;
-      const index = this.instance.state.analysis.markers.findIndex((m) => m.id === markerId);
+      const markers = this.markers;
+      const index = markers.findIndex((m) => m.id === markerId);
       if (index !== -1) {
         if (this.instance.state.selection.selectedType === "marker" && this.instance.state.selection.selectedId === markerId) {
           this.instance.interaction.clearSelection();
         }
-        this.instance.state.analysis.markers.splice(index, 1);
+        markers.splice(index, 1);
         markAnnotationsChanged(this.instance);
         this.updateMarkersTable();
         if (this.instance.featureRenderer) {
@@ -3705,15 +3932,50 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
     /**
+     * Open the label dialog for a marker (feature 231).
+     *
+     * Does nothing when the marker has gone — a row's controls are rebuilt from
+     * state, but a click can still race a deletion.
+     * @param {string} markerId - ID of the marker to label
+     */
+    editMarkerLabel(markerId) {
+      const marker = this.findMarker(markerId);
+      if (!marker) return;
+      showMarkerLabelModal(marker.label, (label) => this.setMarkerLabel(markerId, label));
+    }
+    /**
+     * Set (or clear) a marker's label and re-render everything that shows it.
+     *
+     * Passing an empty or whitespace-only label removes it, so "clear the field
+     * and save" is how a label is deleted.
+     * @param {string} markerId - ID of the marker to update
+     * @param {string|undefined} label - New label, or `undefined`/empty to remove it
+     */
+    setMarkerLabel(markerId, label) {
+      const marker = this.findMarker(markerId);
+      if (!marker) return;
+      const normalized = normalizeMarkerLabel(label);
+      if (normalized) {
+        marker.label = normalized;
+      } else {
+        delete marker.label;
+      }
+      markAnnotationsChanged(this.instance);
+      this.updateMarkersTable();
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      dispatch(this.instance);
+    }
+    /**
      * Find marker at given position (with tolerance)
      * Returns a drag target object compatible with BaseDragHandler
      * @param {DataCoordinates} position - Position to check
      * @returns {DragTarget|null} Drag target if found, null otherwise
      */
     findMarkerAtPosition(position) {
-      if (!this.instance.state.analysis || !this.instance.state.analysis.markers) return null;
       const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
-      const marker = this.instance.state.analysis.markers.find((marker2) => {
+      const marker = this.markers.find((marker2) => {
         if (isWithinToleranceRadius(
           position,
           { freq: marker2.freq, time: marker2.time },
@@ -3889,20 +4151,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       harmonics.push(h);
     }
     return { step, harmonics };
-  }
-  const TEXT_HALO = {
-    fill: "#000",
-    haloColor: "#fff",
-    width: 3
-  };
-  function applyTextHalo(text, options = {}) {
-    const { fill = TEXT_HALO.fill, haloColor = TEXT_HALO.haloColor, width = TEXT_HALO.width } = options;
-    text.setAttribute("fill", fill);
-    text.setAttribute("stroke", haloColor);
-    text.setAttribute("stroke-width", String(width));
-    text.setAttribute("stroke-linejoin", "round");
-    text.setAttribute("paint-order", "stroke fill");
-    return text;
   }
   const _HarmonicsMode = class _HarmonicsMode extends BaseMode {
     /**
