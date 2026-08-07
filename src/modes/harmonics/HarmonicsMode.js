@@ -163,6 +163,18 @@ export class HarmonicsMode extends BaseMode {
   static PIN_HEIGHT_RATIO = 0.2
 
   /**
+   * Height (px) of a mini-pin: the stub line drawn under each harmonic of a set
+   * whose full pin is hidden.
+   *
+   * Fixed rather than derived, by design (spec: issue #232). It is half the
+   * height of a "Large" symbol mark (SYMBOL_SIZE * LARGE_SYMBOL_SCALE = 20px),
+   * which is enough to tie each harmonic to the data beneath it without
+   * reinstating the clutter the pin toggle exists to remove.
+   * @type {number}
+   */
+  static MINI_PIN_HEIGHT = 10
+
+  /**
    * Maximum pin lines rendered per harmonic set. At the 0.1 Hz minimum spacing
    * a standard 0–20 kHz config has 200,000 visible harmonics; drawing an SVG
    * line for each — rebuilt on every drag frame — locked the browser (BH-2).
@@ -487,10 +499,11 @@ export class HarmonicsMode extends BaseMode {
    * Find the harmonic set whose drawn geometry contains the given position.
    *
    * Hit-testing follows exactly what is drawn — nothing more, nothing less.
-   * Every visible part of a pin grabs it: the pin line's fixed-pixel span AND
-   * the number label + symbol stacked above it. A set with its pin hidden is
-   * grabbable by its label/symbol stack alone; the span where its line would
-   * have been is empty on screen, so it is empty to the mouse too.
+   * Every visible part of a pin grabs it: the line's fixed-pixel span AND the
+   * number label + symbol stacked above it. A set with its pin hidden draws
+   * mini-pins, so its line region shrinks to that stub — the empty span below,
+   * where a full pin would have reached, is blank on screen and blank to the
+   * mouse too.
    *
    * Takes the probe position as a parameter rather than reading
    * `state.cursorPosition`: the stored cursor goes stale during pans (wheel-pan
@@ -523,8 +536,11 @@ export class HarmonicsMode extends BaseMode {
         const stack = this.calculateLabelStackBounds(lineTop, harmonicSet)
         // Only the thinned subset is labelled, so only those pins carry a stack.
         const labelled = this.getLabelledHarmonics(minHarmonic, maxHarmonic)
-        // A hidden pin draws no lines, so its line span is not a grab region.
+        // A hidden pin draws mini-pins instead of full lines, so its line grab
+        // region is the mini-pin stub hanging from the stack's underside.
         const pinDrawn = harmonicSet.showPin !== false
+        const lineFrom = pinDrawn ? lineTop : stack.bottom
+        const lineTo = lineFrom + (pinDrawn ? lineHeight : HarmonicsMode.MINI_PIN_HEIGHT)
 
         const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage)
         const cursorSVG = dataToSVG(
@@ -533,10 +549,10 @@ export class HarmonicsMode extends BaseMode {
           this.instance.ui.spectrogramImage
         )
 
-        // The pin line: frequency tolerance horizontally, the line span
+        // The pin line: frequency tolerance horizontally, the drawn line span
         // vertically. Only the harmonic(s) nearest the probe frequency can
         // pass the horizontal test, so only they are checked.
-        if (pinDrawn && cursorSVG.y >= lineTop && cursorSVG.y <= lineTop + lineHeight) {
+        if (cursorSVG.y >= lineFrom && cursorSVG.y <= lineTo) {
           const nearest = Math.round(freq / harmonicSet.spacing)
           const from = Math.max(minHarmonic, nearest - 1)
           const to = Math.min(maxHarmonic, nearest + 1)
@@ -754,7 +770,9 @@ export class HarmonicsMode extends BaseMode {
     // Clear existing harmonic lines and their symbol marks. Scope the symbol
     // cleanup to harmonic pin symbols (which carry data-harmonic-set-id) so it
     // never removes analysis-marker symbols that share the base symbol class.
-    const existingHarmonics = this.instance.ui.cursorGroup.querySelectorAll('.gram-frame-harmonic-line')
+    const existingHarmonics = this.instance.ui.cursorGroup.querySelectorAll(
+      '.gram-frame-harmonic-line, .gram-frame-harmonic-mini-pin'
+    )
     existingHarmonics.forEach(line => line.remove())
     const existingSymbols = this.instance.ui.cursorGroup.querySelectorAll('.gram-frame-harmonic-symbol[data-harmonic-set-id]')
     existingSymbols.forEach(symbol => symbol.remove())
@@ -851,6 +869,29 @@ export class HarmonicsMode extends BaseMode {
     line.setAttribute('stroke-linecap', 'round')
     line.setAttribute('opacity', '0.9')
     return line
+  }
+
+  /**
+   * Create the short stub line drawn under a harmonic when the set's full pin is
+   * hidden.
+   *
+   * Same colour and stroke as a full pin line, so a mini-pin reads as the same
+   * feature at a smaller scale; only its class and height differ. The distinct
+   * class keeps the two apart for cleanup, hit-testing and tests — a hidden-pin
+   * set still draws no `.gram-frame-harmonic-line`.
+   *
+   * @param {number} harmonicNumber - Harmonic number
+   * @param {HarmonicSet} harmonicSet - Harmonic set configuration
+   * @param {number} lineX - X position of the mini-pin
+   * @param {number} top - Top Y position of the mini-pin (the symbol's underside)
+   * @returns {SVGLineElement} SVG line element
+   */
+  createMiniPin(harmonicNumber, harmonicSet, lineX, top) {
+    const miniPin = this.createHarmonicLine(
+      harmonicNumber, harmonicSet, lineX, top, HarmonicsMode.MINI_PIN_HEIGHT
+    )
+    miniPin.setAttribute('class', 'gram-frame-harmonic-mini-pin')
+    return miniPin
   }
 
   /**
@@ -1022,11 +1063,13 @@ export class HarmonicsMode extends BaseMode {
    * symbol only for the thinned "major" subset so the overlay stays readable.
    * Lines are appended first so the labels/symbols paint on top of them.
    *
-   * A set with `showPin === false` skips the lines entirely and renders as its
-   * symbols and numbers alone — the low-clutter style for stacking many sets over
-   * dense data. The label/symbol geometry is unchanged, so toggling the pin adds
-   * or removes the lines without moving anything else; the set is then grabbed
-   * by its label/symbol stack, since hit-testing only covers what is drawn.
+   * A set with `showPin === false` draws a mini-pin per harmonic instead of a
+   * full-height line: a stub hanging from the symbol's underside, in the set's
+   * colour. Labels and symbols are thinned, so without them a pin-less set gave
+   * no sign of where the harmonics between the labelled ones actually fell
+   * (issue #232); the mini-pins restore that alignment with the data at a
+   * fraction of the ink. The label/symbol geometry is unchanged either way, so
+   * toggling the pin swaps line lengths without moving anything else.
    *
    * @param {HarmonicSet} harmonicSet - Harmonic set to render
    */
@@ -1042,26 +1085,32 @@ export class HarmonicsMode extends BaseMode {
 
     const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet)
     const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top
+    // The label/symbol stack is laid out first: a mini-pin hangs from the
+    // underside of the symbol, so it needs the stack's (possibly clamped)
+    // vertical position.
+    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet)
+    const pinDrawn = harmonicSet.showPin !== false
 
-    // Draw every pin line in the visible span (FR-001) — unless this set is set
-    // to hide its pin. Sets restored from storage without the flag are pinned.
+    // Draw a line for every harmonic in the visible span (FR-001) — full height
+    // when the set is pinned, a mini-pin when it is not. Sets restored from
+    // storage without the flag are pinned.
     // Beyond MAX_PIN_LINES the lines are a regular sample of the span (BH-2):
     // by then adjacent pins have long merged on screen, and an uncapped loop
     // rebuilt hundreds of thousands of SVG elements per drag frame.
-    if (harmonicSet.showPin !== false) {
-      const visibleCount = maxHarmonic - minHarmonic + 1
-      const stride = Math.max(1, Math.ceil(visibleCount / HarmonicsMode.MAX_PIN_LINES))
-      for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber += stride) {
-        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
-        const line = this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
-        this.instance.ui.cursorGroup.appendChild(line)
-      }
+    const visibleCount = maxHarmonic - minHarmonic + 1
+    const stride = Math.max(1, Math.ceil(visibleCount / HarmonicsMode.MAX_PIN_LINES))
+    const miniPinTop = symbolCy + this.symbolSize(harmonicSet) / 2
+    for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber += stride) {
+      const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
+      const line = pinDrawn
+        ? this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight)
+        : this.createMiniPin(harmonicNumber, harmonicSet, lineX, miniPinTop)
+      this.instance.ui.cursorGroup.appendChild(line)
     }
 
     // Draw labels + symbols only on the thinned major subset (FR-002), stacked
     // above each pin line with a shared, on-screen vertical layout.
     const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic)
-    const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet)
 
     labelledHarmonics.forEach(harmonicNumber => {
       const lineX = this.harmonicLineX(harmonicSet, harmonicNumber)
