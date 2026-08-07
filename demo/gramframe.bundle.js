@@ -4012,15 +4012,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     findMarkerAtPosition(position) {
       const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
-      const marker = this.markers.find((marker2) => {
+      const marker = this.markers.find((candidate) => {
         if (isWithinToleranceRadius(
           position,
-          { freq: marker2.freq, time: marker2.time },
+          { freq: candidate.freq, time: candidate.time },
           tolerance
         )) {
           return true;
         }
-        const markerPoint = { freq: marker2.freq, time: marker2.time };
+        const markerPoint = { freq: candidate.freq, time: candidate.time };
         const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage);
         const clickSVG = dataToSVG(position, this.getViewport(), this.instance.ui.spectrogramImage);
         const crosshairSize = 15;
@@ -4624,14 +4624,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (!setId) return;
       const harmonicSet = this.instance.state.harmonics.harmonicSets.find((set) => set.id === setId);
       if (!harmonicSet) return;
-      let newSpacing, newAnchorTime;
+      let newSpacing;
       const clickedHarmonicNumber = target.data && target.data.clickedHarmonicNumber || 1;
       newSpacing = currentPos.freq / clickedHarmonicNumber;
       newSpacing = Math.max(newSpacing, 0.1);
       const originalAnchorTime = target.data && target.data.originalAnchorTime !== void 0 ? target.data.originalAnchorTime : harmonicSet.anchorTime;
       const deltaTime = currentPos.time - startPos.time;
       const { timeMin, timeMax } = this.instance.state.config;
-      newAnchorTime = Math.max(timeMin, Math.min(timeMax, originalAnchorTime + deltaTime));
+      const newAnchorTime = Math.max(timeMin, Math.min(timeMax, originalAnchorTime + deltaTime));
       const updates = {};
       if (newSpacing > 0) {
         updates.spacing = newSpacing;

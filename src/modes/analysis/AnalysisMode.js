@@ -701,11 +701,11 @@ export class AnalysisMode extends BaseMode {
     const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage)
     
     // Check each marker to see if position hits the crosshair lines
-    const marker = this.markers.find(marker => {
+    const marker = this.markers.find(candidate => {
       // Check if we're close to the marker center (original behavior)
       if (isWithinToleranceRadius(
-        position, 
-        { freq: marker.freq, time: marker.time },
+        position,
+        { freq: candidate.freq, time: candidate.time },
         tolerance
       )) {
         return true
@@ -716,7 +716,7 @@ export class AnalysisMode extends BaseMode {
       // We need to convert this to data space for comparison
       
       // Convert marker position to SVG coordinates
-      const markerPoint = { freq: marker.freq, time: marker.time }
+      const markerPoint = { freq: candidate.freq, time: candidate.time }
       const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage)
       
       // Convert click position to SVG coordinates
