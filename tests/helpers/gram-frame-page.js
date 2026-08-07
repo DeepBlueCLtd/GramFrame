@@ -819,6 +819,80 @@ class GramFramePage {
   }
 
   /**
+   * Open the label dialog from a marker row's Label button (feature 231).
+   * @param {string} markerId - Marker whose row's button to click
+   * @returns {Promise<import('@playwright/test').Locator>} Locator for the dialog's text input
+   */
+  async openMarkerLabelDialog(markerId) {
+    await this.page
+      .locator(`tr[data-marker-id="${markerId}"] .gram-frame-marker-label-btn`)
+      .click()
+    const input = this.page.locator('.gram-frame-marker-label-input')
+    await expect(input).toBeVisible()
+    return input
+  }
+
+  /**
+   * Set a marker's label through the dialog, and wait for state to carry it.
+   *
+   * Passing an empty string clears the label, which is how the dialog removes
+   * one. The wait is on broadcast state rather than a delay, so the caller can
+   * read the overlay and the table immediately afterwards.
+   *
+   * @param {string} markerId - Marker to label
+   * @param {string} label - New label text ('' to remove the label)
+   * @returns {Promise<void>}
+   */
+  async setMarkerLabel(markerId, label) {
+    const input = await this.openMarkerLabelDialog(markerId)
+    await input.fill(label)
+    await this.page.locator('.gram-frame-modal-save').click()
+
+    const expected = label.trim() === '' ? undefined : label.trim()
+    await this.waitForState(
+      (state) => state.analysis.markers.find((m) => m.id === markerId)?.label === expected,
+      { message: `marker ${markerId} to carry label ${JSON.stringify(expected)}` }
+    )
+  }
+
+  /**
+   * Read a marker's on-gram label element, if it has one.
+   * @param {string} markerId - Marker to inspect
+   * @returns {Promise<{text: string, x: number, y: number, textAnchor: string, fill: string, stroke: string, paintOrder: string}|null>}
+   */
+  async getMarkerLabelOverlay(markerId) {
+    return this.page.evaluate((id) => {
+      const el = document.querySelector(
+        `.gram-frame-analysis-marker[data-marker-id="${id}"] .gram-frame-marker-label`
+      )
+      if (!el) return null
+      return {
+        text: el.textContent || '',
+        x: parseFloat(el.getAttribute('x') || '0'),
+        y: parseFloat(el.getAttribute('y') || '0'),
+        textAnchor: el.getAttribute('text-anchor') || '',
+        fill: el.getAttribute('fill') || '',
+        stroke: el.getAttribute('stroke') || '',
+        paintOrder: el.getAttribute('paint-order') || ''
+      }
+    }, markerId)
+  }
+
+  /**
+   * Read the Label column's text for a marker row.
+   * @param {string} markerId - Marker to inspect
+   * @returns {Promise<string>} Cell text (empty when the marker has no label)
+   */
+  async getMarkerLabelCell(markerId) {
+    return this.page.evaluate((id) => {
+      const cell = document.querySelector(
+        `tr[data-marker-id="${id}"] .gram-frame-marker-label-cell`
+      )
+      return cell ? (cell.textContent || '') : ''
+    }, markerId)
+  }
+
+  /**
    * Select a symbol from the control-panel symbol drop-down.
    * @param {string} symbolId - One of 'circle','square','diamond','triangle','triangle-down','star'
    * @returns {Promise<void>}

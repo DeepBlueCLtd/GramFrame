@@ -108,6 +108,7 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `DiffingTable.js` - Shared row-diffing table behind the markers table and harmonics panel
   - `ColorPicker.js` - Colour selection component
   - `SymbolPicker.js` - Symbol selection component
+  - `MarkerLabelModal.js` - Add/edit/remove a marker's label
   - `PinToggle.js` - Harmonic-pin visibility toggle
   - `ExpandToggle.js` - Expand/collapse the image to fill the space
   - `StorageWarning.js` - Non-blocking banner when a save fails
@@ -120,6 +121,7 @@ Every path below exists; keep this list in step with `src/` when adding modules.
 - `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
   - `axes.js` - The axis engine: `renderAxes` and its private tick/label helpers
   - `symbols.js` - Marker/harmonic symbol shapes
+  - `labels.js` - Marker label placement and element (feature 231)
 - `src/utils/` - Utility modules:
   - `coordinates.js` - The canonical coordinate module: every screen/SVG/image/data
     conversion, zoom-, expand-, render-size- and margin-aware. Also owns
@@ -128,6 +130,7 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `calculations.js` - Mathematical calculations
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
+  - `markerLabel.js` - Marker label normalisation and table abbreviation
   - `tolerance.js` - Shared hit-test tolerances
   - `svg.js` - SVG text halo styling
   - `secureHTML.js` - Guidance-panel rendering without innerHTML
@@ -228,7 +231,8 @@ There is no visual/screenshot regression testing — see
 
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
-- **Analysis Mode**: Persistent draggable markers with cross-mode visibility
+- **Analysis Mode**: Persistent draggable markers with cross-mode visibility and optional
+  haloed text labels (upper-right of a crosshair, centred above a shaped symbol)
 - **Harmonics Mode**: Real-time harmonic calculation and display
 - **Doppler Mode**: Speed calculation from f+/f-/f₀ markers
 

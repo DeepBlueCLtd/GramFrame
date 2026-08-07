@@ -75,6 +75,24 @@ export function resolveSymbolScale(source) {
 }
 
 /**
+ * Resolve any candidate symbol value to a known symbol id.
+ *
+ * Unknown, null and undefined values all resolve to {@link DEFAULT_SYMBOL} —
+ * the same fallback the mark factory applies — so callers that need to branch
+ * on the *effective* symbol (label placement, for one) agree with what is drawn.
+ *
+ * Pure: no DOM, no state.
+ *
+ * @param {SymbolType|string|null|undefined} symbolType - Candidate symbol id
+ * @returns {SymbolType} A member of {@link SYMBOL_CATALOG}
+ */
+export function resolveSymbolType(symbolType) {
+  return SYMBOL_CATALOG.includes(/** @type {SymbolType} */ (symbolType))
+    ? /** @type {SymbolType} */ (symbolType)
+    : DEFAULT_SYMBOL
+}
+
+/**
  * Build a `points` attribute string from an array of [x, y] pairs.
  * @param {Array<[number, number]>} pts - Point pairs
  * @returns {string} Space-separated "x,y" points
@@ -126,9 +144,7 @@ export function createSymbolMark(symbolType, cx, cy, size, color) {
 
   // Resolve unknown/absent values to the default so both the drawn shape and the
   // recorded `data-symbol` reflect the actual fallback.
-  const resolved = SYMBOL_CATALOG.includes(/** @type {SymbolType} */ (symbolType))
-    ? /** @type {SymbolType} */ (symbolType)
-    : DEFAULT_SYMBOL
+  const resolved = resolveSymbolType(symbolType)
 
   // The symbol-less `cross` style draws nothing.
   if (resolved === 'cross') {

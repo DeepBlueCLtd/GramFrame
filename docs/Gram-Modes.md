@@ -53,6 +53,15 @@ events, broadband pulses or ambient shifts in sonar data.
   that marker, after which the arrow keys nudge it (Shift for larger steps).
 - A marker's colour and symbol come from the style controls; with a marker
   selected, those controls restyle it in place.
+- Each row's **label button** (the tag icon, above the delete ×) opens a dialog
+  for the marker's label. Labels are optional — a marker has none until one is
+  entered — and clearing the field removes the label again.
+- A label is drawn on the gram in black inside a white halo, so it reads over
+  both dark and light pixels: in the upper-right quadrant of a crosshair marker,
+  or centred above a marker that carries a shaped symbol.
+- The table's **Label** column shows labels of five characters or fewer in full,
+  and abbreviates anything longer to its first three characters plus `..`. The
+  full text stays on the gram and in the dialog.
 
 ---
 
