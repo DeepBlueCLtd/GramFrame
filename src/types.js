@@ -446,7 +446,7 @@
  * @property {function(): void} syncStyleControls - Sync the controls to the selection
  * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} _symbolControl - Symbol drop-down handle
  * @property {{setValue: function(boolean): void, setEnabled: function(boolean): void}|null} _pinControl - Pin toggle handle
- * @property {{setValue: function(boolean): void}|null} _largeSymbolsControl - "Large symbols" checkbox handle
+ * @property {{setValue: function(boolean): void}|null} _largeSymbolsControl - "Large" symbol-size checkbox handle
  * @property {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} _registeredListeners - Listeners kept for removal on destroy
  * @property {import('./modes/shared/BaseDragHandler.js').BaseDragHandler|null} _wheelPanHandler - Drag engine for a middle-button pan
  * @property {{x: number, y: number}|null} _wheelPanLast - Last pointer position during a middle-button pan
@@ -481,7 +481,7 @@
  * @property {HTMLDivElement} mainCell - Main display cell
  * @property {HTMLElement|null} modeLED - Mode LED; never assigned today, so always null
  * @property {HTMLElement|null} rateLED - Rate LED; never assigned today, so always null
- * @property {HTMLElement} colorPicker - Combined colour/symbol picker
+ * @property {HTMLElement} colorPicker - Style panel (colour, symbol, size, pin)
  * @property {SVGSVGElement} svg - Root SVG
  * @property {SVGGElement} cursorGroup - Group holding cursors and persistent features
  * @property {SVGGElement} axesGroup - Group holding the axes
@@ -530,7 +530,7 @@
  * @property {HTMLElement} timeLED - Time readout
  * @property {HTMLElement} freqLED - Frequency readout
  * @property {HTMLElement} speedLED - Speed readout
- * @property {HTMLElement} colorPicker - Colour picker control
+ * @property {HTMLElement} colorPicker - Style panel (colour, symbol, size, pin)
  */
 
 /**

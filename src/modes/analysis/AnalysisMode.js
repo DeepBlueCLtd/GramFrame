@@ -33,7 +33,7 @@ export class AnalysisMode extends BaseMode {
   /**
    * Base pixel size (width/height) of a marker's symbol mark when it carries a
    * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
-   * The drawn size is this scaled by the temporary "Large symbols" toggle, so a
+   * The drawn size is this scaled by the temporary "Large" toggle, so a
    * marker's symbol tracks the harmonic pins' symbols.
    * @type {number}
    */

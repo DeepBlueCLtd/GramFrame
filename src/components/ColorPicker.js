@@ -1,9 +1,18 @@
 /**
- * Combined colour + symbol picker for GramFrame
+ * Style panel for GramFrame overlays.
  *
- * Provides colour selection (gradient slider) and, alongside it, the symbol
- * drop-down for harmonic overlays, plus a harmonic-pin visibility toggle, under
- * a single "Symbol" panel.
+ * One panel, three bands, grouped by what each control actually affects:
+ *
+ * - **Colour** — the gradient slider. The widest-reaching control there is: it
+ *   styles analysis markers, harmonic sets AND doppler curves.
+ * - **Symbol** — the symbol drop-down and the (temporary) large-symbol toggle.
+ *   Both apply to markers and harmonic sets; neither applies to doppler.
+ * - **Harmonics** — the pin toggle, fenced off below a rule because it is the
+ *   one control here that harmonic sets alone understand.
+ *
+ * The panel used to be headed "Symbol" with all four controls stacked
+ * undifferentiated, which named the narrowest scope in the panel and left the
+ * rest to guesswork.
  */
 
 /// <reference path="../types.js" />
@@ -32,15 +41,26 @@ const COLOR_PALETTE = [
 ]
 
 /**
- * Create the combined "Symbol" control: a colour slider on the left and a
- * symbol drop-down (tinted with the selected colour) on the right.
+ * Create a band caption ("Colour", "Symbol", "Harmonics") for the style panel.
+ * @param {string} text - Caption text
+ * @returns {HTMLDivElement} The caption element
+ */
+function createGroupLabel(text) {
+  const label = document.createElement('div')
+  label.className = 'gram-frame-style-group-label'
+  label.textContent = text
+  return label
+}
+
+/**
+ * Create the "Style" panel: a colour band, a symbol band and a harmonics band.
  *
  * When a marker or harmonic set is selected, this panel restyles that feature
  * in place; otherwise it sets the colour/symbol for the next created feature
  * (feature 161). The panel also syncs its displayed colour/symbol to whichever
  * feature is selected via `instance.interaction.syncStyleControls`.
  * @param {GramFrame} instance - GramFrame instance
- * @returns {HTMLDivElement} The combined colour/symbol picker element
+ * @returns {HTMLDivElement} The style panel element
  */
 export function createColorPicker(instance) {
   const state = instance.state
@@ -48,25 +68,27 @@ export function createColorPicker(instance) {
   container.className = 'gram-frame-color-picker'
   container.style.display = 'block'
 
-  // Label
+  // Panel heading
   const label = document.createElement('div')
   label.className = 'gram-frame-color-picker-label'
-  label.textContent = 'Symbol'
+  label.textContent = 'Style'
   container.appendChild(label)
 
-  // Palette container - horizontal row with the colour slider and symbol select
+  // --- Colour band: applies to markers, harmonic sets and doppler curves ---
+  const colorGroup = document.createElement('div')
+  colorGroup.className = 'gram-frame-style-group'
+  colorGroup.appendChild(createGroupLabel('Colour'))
+  container.appendChild(colorGroup)
+
+  // Palette container - holds the full-width colour slider
   const paletteContainer = document.createElement('div')
   paletteContainer.className = 'gram-frame-color-palette'
-  paletteContainer.style.display = 'flex'
-  paletteContainer.style.alignItems = 'center'
-  paletteContainer.style.gap = '8px'
-  container.appendChild(paletteContainer)
+  colorGroup.appendChild(paletteContainer)
 
   // Slider container for canvas and indicator
   const sliderContainer = document.createElement('div')
   sliderContainer.className = 'gram-frame-color-slider'
   sliderContainer.style.position = 'relative'
-  sliderContainer.style.flex = '1'
   paletteContainer.appendChild(sliderContainer)
 
   // Create continuous color palette using canvas
@@ -89,18 +111,43 @@ export function createColorPicker(instance) {
   indicator.className = 'gram-frame-color-indicator'
   sliderContainer.appendChild(indicator)
 
-  // Symbol drop-down on the right (where the colour swatch used to be); its
-  // glyphs are tinted with the currently selected colour, so it doubles as the
-  // colour readout.
+  // --- Symbol band: applies to markers and harmonic sets, not to doppler ---
+  const symbolGroup = document.createElement('div')
+  symbolGroup.className = 'gram-frame-style-group'
+  container.appendChild(symbolGroup)
+
+  const symbolRow = document.createElement('div')
+  symbolRow.className = 'gram-frame-style-row'
+  symbolGroup.appendChild(symbolRow)
+
+  symbolRow.appendChild(createGroupLabel('Symbol'))
+
+  // The drop-down's glyphs are tinted with the currently selected colour, so it
+  // doubles as the colour readout.
   const symbolSelect = createSymbolSelect(instance)
-  paletteContainer.appendChild(symbolSelect)
+  symbolRow.appendChild(symbolSelect)
 
-  // Harmonic-pin visibility toggle, below the colour/symbol row.
-  container.appendChild(createPinToggle(instance))
+  // TEMPORARY (size experiment): the size toggle sits alongside the drop-down
+  // it modifies, for feedback on whether larger symbols read better on a real
+  // gram.
+  symbolRow.appendChild(createLargeSymbolToggle(instance))
 
-  // TEMPORARY (size experiment): size toggle beneath the pin toggle, for
-  // feedback on whether the larger symbols read better on a real gram.
-  container.appendChild(createLargeSymbolToggle(instance))
+  // --- Harmonics band: the pin toggle is the one harmonics-only control ---
+  const divider = document.createElement('div')
+  divider.className = 'gram-frame-style-divider'
+  container.appendChild(divider)
+
+  const harmonicsGroup = document.createElement('div')
+  harmonicsGroup.className = 'gram-frame-style-group'
+  container.appendChild(harmonicsGroup)
+
+  // Caption and control share a row, as in the Symbol band above.
+  const harmonicsRow = document.createElement('div')
+  harmonicsRow.className = 'gram-frame-style-row'
+  harmonicsGroup.appendChild(harmonicsRow)
+
+  harmonicsRow.appendChild(createGroupLabel('Harmonics'))
+  harmonicsRow.appendChild(createPinToggle(instance))
 
   // Add click handler for color selection
   canvas.addEventListener('click', (event) => {
