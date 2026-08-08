@@ -62,6 +62,15 @@ export function createDiffingTable(container, spec) {
   let currentRows = []
 
   /**
+   * Row keys rendered by the previous update, so a genuinely new row can be
+   * told apart from one that merely moved or changed. Its emptiness also marks
+   * the first population — a restore from storage, or the initial render — which
+   * is not an "addition" to scroll to.
+   * @type {Set<string>}
+   */
+  let renderedKeys = new Set()
+
+  /**
    * Put one cell's content in place, accepting either a string or a node.
    * @param {HTMLTableCellElement} cell - Cell to fill
    * @param {string|Node} content - New content
@@ -150,6 +159,59 @@ export function createDiffingTable(container, spec) {
   }
 
   /**
+   * Bring the rendered rows into line with `currentRows`.
+   *
+   * Update in place while the keys agree; at the first disagreement rebuild the
+   * tail, because from there on every row would otherwise show another row's
+   * data. Idempotent: an update that changes nothing performs no DOM writes.
+   */
+  function applyDiff() {
+    const existing = tbody.querySelectorAll('tr')
+
+    for (let index = 0; index < currentRows.length; index++) {
+      const tr = /** @type {HTMLTableRowElement} */ (existing[index])
+      const key = spec.rowKey(currentRows[index], index)
+
+      if (tr && tr.getAttribute(spec.rowAttribute) === key) {
+        updateRow(tr, currentRows[index], index)
+      } else {
+        // Keys diverged from here on; rebuild the tail and stop diffing
+        rebuildFrom(currentRows, index)
+        return
+      }
+    }
+
+    // Trailing rows whose data is gone
+    for (let i = currentRows.length; i < existing.length; i++) {
+      existing[i].remove()
+    }
+  }
+
+  /**
+   * Scroll the row at `index` into view, if it is below the fold.
+   *
+   * Sets `scrollTop` on the scroll wrapper rather than calling
+   * `Element.scrollIntoView`, which would also scroll every scrollable ancestor
+   * — including the host page — to bring the table into view. A new marker
+   * should move the table's own scrollbar and nothing else.
+   *
+   * Only ever scrolls DOWN: if the row is already visible the wrapper is left
+   * exactly where the user put it.
+   * @param {number} index - Index of the row to reveal
+   */
+  function revealRow(index) {
+    const tr = /** @type {HTMLElement|undefined} */ (tbody.children[index])
+    if (!tr) return
+
+    // offsetTop is measured against the wrapper, which is the nearest
+    // positioned ancestor (it is absolutely positioned over the table area).
+    const bottom = tr.offsetTop + tr.offsetHeight - wrapper.clientHeight
+    if (bottom > wrapper.scrollTop) {
+      wrapper.scrollTop = bottom
+    }
+  }
+
+  /**
    * Per-row controls that act instead of selecting, in match order. Delete is
    * one of these — the original and, for the harmonics panel, the only one —
    * so it is folded into the same list rather than special-cased twice.
@@ -200,33 +262,33 @@ export function createDiffingTable(container, spec) {
     element: table,
 
     /**
-     * Diff `rows` against what is rendered and apply the difference.
+     * Diff `rows` against what is rendered, apply the difference, and keep any
+     * newly added row in view.
      *
-     * Idempotent: calling it twice with equal input performs no DOM writes.
+     * Idempotent: calling it twice with equal input performs no DOM writes and
+     * no scrolling.
      * @param {any[]} rows - The rows to render
      */
     update(rows) {
       currentRows = rows || []
 
-      const existing = tbody.querySelectorAll('tr')
+      const keys = currentRows.map((row, index) => spec.rowKey(row, index))
+      applyDiff()
 
-      for (let index = 0; index < currentRows.length; index++) {
-        const tr = /** @type {HTMLTableRowElement} */ (existing[index])
-        const key = spec.rowKey(currentRows[index], index)
-
-        if (tr && tr.getAttribute(spec.rowAttribute) === key) {
-          updateRow(tr, currentRows[index], index)
-        } else {
-          // Keys diverged from here on; rebuild the tail and stop diffing
-          rebuildFrom(currentRows, index)
-          return
+      // Keep the last row that wasn't there before in view. Adding a marker
+      // when the list has already overflowed otherwise appends it out of sight,
+      // and the only feedback is a scrollbar that got slightly shorter.
+      let lastAdded = -1
+      for (let index = 0; index < keys.length; index++) {
+        if (!renderedKeys.has(keys[index])) {
+          lastAdded = index
         }
       }
-
-      // Trailing rows whose data is gone
-      for (let i = currentRows.length; i < existing.length; i++) {
-        existing[i].remove()
+      if (renderedKeys.size > 0 && lastAdded !== -1) {
+        revealRow(lastAdded)
       }
+
+      renderedKeys = new Set(keys)
     },
 
     /**

@@ -705,6 +705,14 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
  */
 table.gram-frame-table {
   width: 100%;
+  /*
+   * Natural height, NOT the 100% the shared class sets for the outer frame.
+   * A table told to fill its container distributes the surplus across its rows,
+   * so a two-row table drew 50px rows, a six-row table 31px ones, and every row
+   * visibly shrank as the next was added. Rows now stay the height their
+   * content needs and the leftover space simply sits below them.
+   */
+  height: auto;
   border: 0;
   border-collapse: separate;
   border-spacing: 0;
