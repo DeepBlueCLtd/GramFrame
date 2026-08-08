@@ -126,6 +126,67 @@ test.describe('Markers/harmonics tables: fixed height with a scrolling body', ()
     }
   })
 
+  test('rows keep the height they start with as more are added', async ({ page }) => {
+    const gfp = await gotoDemo(page)
+
+    /** First row's height after each addition. */
+    const heights = []
+    for (let i = 0; i < 6; i++) {
+      await gfp.addMarker(i * 2, 100 + i * 10)
+      await gfp.waitForTableRowCount('markers', i + 1)
+      heights.push(await page.evaluate((sel) => {
+        const row = document.querySelector(`${sel} tbody tr`)
+        return Math.round(row.getBoundingClientRect().height)
+      }, MARKERS_TABLE))
+    }
+
+    // One row and six rows are the same height. They used to shrink with every
+    // addition — the table inherited `height: 100%` from the class the outer
+    // frame also uses, so it shared the container's surplus out across however
+    // many rows there happened to be.
+    expect(new Set(heights).size).toBe(1)
+  })
+
+  test('a newly added row is scrolled into view once the table overflows', async ({ page }) => {
+    const gfp = await gotoDemo(page)
+    await fillBothPanels(gfp, MANY_ROWS)
+
+    for (const selector of [MARKERS_TABLE, HARMONICS_TABLE]) {
+      const metrics = await page.evaluate((sel) => {
+        const container = document.querySelector(sel)
+        const rows = container.querySelectorAll('tbody tr')
+        const last = rows[rows.length - 1]
+        return {
+          overflowing: container.scrollHeight > container.clientHeight,
+          lastRowBottom: last.offsetTop + last.offsetHeight,
+          viewportBottom: container.scrollTop + container.clientHeight
+        }
+      }, selector)
+
+      // There is more content than fits...
+      expect(metrics.overflowing).toBe(true)
+      // ...and the row just added is inside the visible band, not below it.
+      expect(metrics.lastRowBottom).toBeLessThanOrEqual(metrics.viewportBottom + 1)
+    }
+  })
+
+  test('scrolling back up is not undone by an update that adds no rows', async ({ page }) => {
+    const gfp = await gotoDemo(page)
+    await fillBothPanels(gfp, MANY_ROWS)
+
+    // Auto-scroll left both tables at the bottom; the analyst scrolls back up.
+    await page.evaluate((sel) => { document.querySelector(sel).scrollTop = 0 }, MARKERS_TABLE)
+
+    // Selecting a row re-renders the table. Nothing was added, so the scroll
+    // position is the analyst's to keep. The helper waits on the selection
+    // reaching broadcast state, so the re-render has happened by the time the
+    // scroll position is read.
+    const markers = (await gfp.getState()).analysis.markers
+    await gfp.clickTableRow('markers', markers[0].id)
+
+    expect(await page.evaluate((sel) => document.querySelector(sel).scrollTop, MARKERS_TABLE)).toBe(0)
+  })
+
   test('the header row stays pinned while the body scrolls under it', async ({ page }) => {
     const gfp = await gotoDemo(page)
     await fillBothPanels(gfp, MANY_ROWS)
@@ -137,6 +198,10 @@ test.describe('Markers/harmonics tables: fixed height with a scrolling body', ()
         // The sticky boxes are the header cells themselves
         const headerCell = table.tHead.rows[0].cells[1]
         const containerTop = container.getBoundingClientRect().top
+
+        // Start from the top: filling the panels leaves the body auto-scrolled
+        // to the newest row, and this test is about scrolling DOWN from rest.
+        container.scrollTop = 0
         const headerTopBefore = headerCell.getBoundingClientRect().top
         const firstRowBefore = table.tBodies[0].rows[0].getBoundingClientRect().top
 

@@ -3,8 +3,8 @@
  *
  * One panel, three bands, grouped by what each control actually affects:
  *
- * - **Colour** — the gradient slider. The widest-reaching control there is: it
- *   styles analysis markers, harmonic sets AND doppler curves.
+ * - **Colour** — the gradient slider, uncaptioned. The widest-reaching control
+ *   there is: it styles analysis markers, harmonic sets AND doppler curves.
  * - **Symbol** — the symbol drop-down and the (temporary) large-symbol toggle.
  *   Both apply to markers and harmonic sets; neither applies to doppler.
  * - **Harmonics** — the pin toggle, fenced off below a rule because it is the
@@ -41,7 +41,7 @@ const COLOR_PALETTE = [
 ]
 
 /**
- * Create a band caption ("Colour", "Symbol", "Harmonics") for the style panel.
+ * Create a band caption ("Symbol", "Harmonics") for the style panel.
  * @param {string} text - Caption text
  * @returns {HTMLDivElement} The caption element
  */
@@ -68,16 +68,14 @@ export function createColorPicker(instance) {
   container.className = 'gram-frame-color-picker'
   container.style.display = 'block'
 
-  // Panel heading
-  const label = document.createElement('div')
-  label.className = 'gram-frame-color-picker-label'
-  label.textContent = 'Style'
-  container.appendChild(label)
+  // No panel heading, and no caption on the colour band: the gradient slider
+  // announces itself, and the two bands below it are captioned, so every line of
+  // text above the slider only cost the control row height the host's pages need
+  // elsewhere.
 
   // --- Colour band: applies to markers, harmonic sets and doppler curves ---
   const colorGroup = document.createElement('div')
   colorGroup.className = 'gram-frame-style-group'
-  colorGroup.appendChild(createGroupLabel('Colour'))
   container.appendChild(colorGroup)
 
   // Palette container - holds the full-width colour slider
