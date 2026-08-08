@@ -168,6 +168,11 @@ export class PanMode extends BaseMode {
    * Pan is the initial mode, so its guidance carries the global mouse-wheel
    * instructions (which apply in every mode) as their own titled section, plus a
    * section for the pan-specific interactions.
+   *
+   * "available in all modes" is a heading qualifier, not a bullet: it qualifies
+   * the whole section rather than standing beside the individual instructions,
+   * and folding it into the heading buys back a line of the control row's
+   * height.
    * @returns {Object} Structured guidance content (multi-section)
    */
   getGuidanceText() {
@@ -175,6 +180,7 @@ export class PanMode extends BaseMode {
       sections: [
         {
           title: 'Mouse-Wheel',
+          qualifier: 'available in all modes',
           items: WHEEL_NAV_GUIDANCE
         },
         {
