@@ -38,6 +38,56 @@
  */
 
 /**
+ * A mode that owns a family of pin sets — equally-spaced vertical pins the
+ * analyst can select, nudge with the arrow keys, restyle and delete.
+ *
+ * Implemented by Harmonics and Sidebands, both through `PinSetMode`. The
+ * capability is what lets the keyboard/selection layer find "the mode that owns
+ * a `harmonicSet`/`sidebandSet`" without naming either of them — it used to
+ * read `state.harmonics.harmonicSets` directly and had no way to grow.
+ * @typedef {Object} PinSetOwner
+ * @property {SelectedFeatureType} selectionType - What `state.selection.selectedType` reads while one of this mode's sets is selected
+ * @property {PinSet[]} sets - This mode's sets, live
+ * @property {function(string, Partial<PinSet>): void} updateSet - Apply updates to one set by id, re-rendering and notifying
+ * @property {function(string): void} removeSet - Delete one set by id
+ * @property {function(PinSet, number): Partial<PinSet>} nudgeFreqUpdates - What a horizontal keyboard nudge changes
+ */
+
+/**
+ * Whether a mode owns a family of pin sets.
+ *
+ * Not exported: unlike the other two predicates, every caller wants the *one*
+ * owner of a selection type rather than the whole filtered list, so
+ * {@link findPinSetOwner} is the seam and this is its implementation detail.
+ * @template T
+ * @param {T} mode - Mode instance
+ * @returns {mode is T & PinSetOwner} True if the mode implements PinSetOwner
+ */
+function isPinSetOwner(mode) {
+  const candidate = /** @type {Partial<PinSetOwner>} */ (mode)
+  return typeof candidate?.updateSet === 'function'
+      && typeof candidate?.removeSet === 'function'
+      && typeof candidate?.nudgeFreqUpdates === 'function'
+      && Array.isArray(candidate?.sets)
+}
+
+/**
+ * The mode owning a given selection type, if any.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {string|null} selectionType - A `state.selection.selectedType` value
+ * @returns {PinSetOwner|null} The owning mode, or null
+ */
+export function findPinSetOwner(instance, selectionType) {
+  if (!selectionType) {
+    return null
+  }
+  const owner = Object.values(instance.modes || {})
+    .filter(isPinSetOwner)
+    .find(mode => mode.selectionType === selectionType)
+  return owner || null
+}
+
+/**
  * Whether a mode provides persistent features.
  *
  * A type guard, not a boolean check: the point of a capability is that the

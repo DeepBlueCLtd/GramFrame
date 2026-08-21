@@ -9,7 +9,7 @@
 /// <reference path="../../types.js" />
 
 import { setupEventListeners, setupResizeObserver } from '../events.js'
-import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../keyboardControl.js'
+import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, removeSidebandSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../keyboardControl.js'
 
 /**
  * Set up all event listeners for the GramFrame instance.
@@ -30,6 +30,7 @@ export function setupAllEventListeners(instance) {
   // rather than appearing on the instance from inside a helper (FR-009).
   return {
     removeHarmonicSet: (/** @type {string} */ id) => removeHarmonicSet(instance, id),
+    removeSidebandSet: (/** @type {string} */ id) => removeSidebandSet(instance, id),
     setSelection: (/** @type {string} */ type, /** @type {string} */ id, /** @type {number} */ index) =>
       setSelection(instance, type, id, index),
     clearSelection: () => clearSelection(instance),

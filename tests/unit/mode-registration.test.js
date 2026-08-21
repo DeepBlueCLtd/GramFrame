@@ -92,7 +92,7 @@ const FROZEN_INITIAL_STATE = {
     selectedIndex: null
   },
   // --- contributed by the modes, in registration order --------------------
-  // Pan contributes no slice, which is why there are three and not four.
+  // Pan contributes no slice, which is why there are four and not five.
   analysis: {
     markers: []
   },
@@ -100,6 +100,12 @@ const FROZEN_INITIAL_STATE = {
     baseFrequency: null,
     harmonicData: [],
     harmonicSets: []
+  },
+  // Added when Sidebands mode landed (issue #241) — the one edit this frozen
+  // constant takes: a new mode's slice appears here, in registration order,
+  // and nothing else about the shape moves.
+  sidebands: {
+    sidebandSets: []
   },
   doppler: {
     fPlus: null,
@@ -165,12 +171,13 @@ describe('core/state.js stands alone (AS-2.2)', () => {
     expect(withoutVolatileKeys(core)).toEqual(
       Object.fromEntries(
         Object.entries(FROZEN_INITIAL_STATE)
-          .filter(([key]) => !['analysis', 'harmonics', 'doppler'].includes(key))
+          .filter(([key]) => !['analysis', 'harmonics', 'sidebands', 'doppler'].includes(key))
       )
     )
     // ...and no mode slice appears, because no mode was asked for one.
     expect(core.analysis).toBeUndefined()
     expect(core.harmonics).toBeUndefined()
+    expect(core.sidebands).toBeUndefined()
     expect(core.doppler).toBeUndefined()
   })
 

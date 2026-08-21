@@ -2,7 +2,7 @@
  * MainUI module for GramFrame
  * 
  * This module handles the creation and management of the main UI layout
- * including the unified 3-column layout, LED displays, and container setup.
+ * including the unified 4-column layout, LED displays, and container setup.
  */
 
 /// <reference path="../types.js" />
@@ -17,7 +17,8 @@ import {
 import { formatTime } from '../utils/timeFormatter.js'
 
 /**
- * Create unified 3-column layout for readouts.
+ * Create the unified layout for readouts: the left readout column plus the
+ * three persistent feature tables (markers, harmonics, sidebands).
  *
  * Returns the handles rather than writing them onto the instance, so the
  * constructor is the one place they are adopted (spec 167, FR-009).
@@ -106,8 +107,21 @@ export function createUnifiedLayout(instance) {
   const markersContainer = createMarkersContainer()
   middleColumn.appendChild(markersContainer)
   
-  // Right Column (175px) - Harmonics sets table. Narrowed from 200px to fund
-  // the markers column's Label column (feature 231); its four columns still fit.
+  // Right Column (175px) - the pin-set table: Harmonics, or Sidebands while
+  // that mode is active. Narrowed from 200px to fund the markers column's Label
+  // column (feature 231); its four columns still fit.
+  //
+  // Sidebands share this column rather than taking a fourth of their own, and
+  // take turns in it rather than splitting it (issue #241). Both alternatives
+  // were measured at a 1280px viewport, where the control row's width is
+  // already fully spoken for:
+  //   - a fourth fixed column squeezes the guidance column to its 150px
+  //     minimum, where the text wraps to roughly twice the height and pushes
+  //     the whole row — and the spectrogram under it — ~80px down the page;
+  //   - splitting this column in two leaves each table ~45px of body, which is
+  //     less than one row: the sticky header covers whatever you scroll to.
+  // Swapping costs neither. The two tables are mode-specific in a way the
+  // markers table is not: a sideband set is managed from Sidebands mode.
   const rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
   rightColumn.style.flex = '0 0 175px'
   rightColumn.style.minWidth = '175px'
@@ -116,7 +130,11 @@ export function createUnifiedLayout(instance) {
   // Create harmonics container in right column
   const harmonicsContainer = createHarmonicsContainer()
   rightColumn.appendChild(harmonicsContainer)
-  
+
+  // Sideband sets, in the same column, shown while Sidebands mode is active
+  const sidebandsContainer = createSidebandsContainer()
+  rightColumn.appendChild(sidebandsContainer)
+
   // Assemble the unified layout
   unifiedLayoutContainer.appendChild(leftColumn)
   unifiedLayoutContainer.appendChild(middleColumn)
@@ -132,6 +150,7 @@ export function createUnifiedLayout(instance) {
     controlsColumn,
     markersContainer,
     harmonicsContainer,
+    sidebandsContainer,
     timeLED,
     freqLED,
     speedLED,
@@ -140,16 +159,42 @@ export function createUnifiedLayout(instance) {
 }
 
 /**
+ * Create the sidebands container for sidebands mode.
+ *
+ * The same header-plus-table structure as the markers panel (no action slot —
+ * sidebands have no "+ Manual" equivalent), so all three panels carry their
+ * rule, spacing and heading position from the one `gram-frame-panel-header`
+ * rule rather than from per-panel inline styles. It shares the right column
+ * with the harmonics panel, one shown at a time — see the note there — so it is
+ * `flex: 1` like its counterpart and fills the column when it is the one shown.
+ * @returns {HTMLDivElement} The sidebands container
+ */
+function createSidebandsContainer() {
+  const sidebandsContainer = document.createElement('div')
+  sidebandsContainer.className = 'gram-frame-sidebands-persistent-container'
+
+  const header = document.createElement('div')
+  header.className = 'gram-frame-panel-header'
+
+  const label = document.createElement('h4')
+  label.textContent = 'Sidebands'
+  header.appendChild(label)
+  sidebandsContainer.appendChild(header)
+
+  return sidebandsContainer
+}
+
+/**
  * Create markers container for analysis mode
  * @returns {HTMLDivElement} The markers container
  */
 function createMarkersContainer() {
+  // Layout comes from the shared `*-persistent-container` CSS rule, not from
+  // inline styles: they duplicated it exactly, and an inline `display` cannot be
+  // overridden by the stylesheet — which is how the sidebands panel takes its
+  // turn in the right column.
   const markersContainer = document.createElement('div')
   markersContainer.className = 'gram-frame-markers-persistent-container'
-  markersContainer.style.flex = '1'
-  markersContainer.style.display = 'flex'
-  markersContainer.style.flexDirection = 'column'
-  markersContainer.style.minHeight = '0'
   
   // Same header row as the harmonics panel, minus the action slot: both panels
   // then carry their rule, their spacing and their heading position from one
@@ -172,10 +217,6 @@ function createMarkersContainer() {
 function createHarmonicsContainer() {
   const harmonicsContainer = document.createElement('div')
   harmonicsContainer.className = 'gram-frame-harmonics-persistent-container'
-  harmonicsContainer.style.flex = '1'
-  harmonicsContainer.style.display = 'flex'
-  harmonicsContainer.style.flexDirection = 'column'
-  harmonicsContainer.style.minHeight = '0'
   
   // Create header container with title and button area
   const harmonicsHeader = document.createElement('div')

@@ -220,16 +220,16 @@ test.describe('Harmonic Pin Sampling (feature 158)', () => {
         const harmonics = instance.modes['harmonics']
         // Probe within the pin's vertical range (anchorTime = 30)
         const found = harmonics.findHarmonicSetAt({ freq, time: 30 })
-        const target = harmonics.findHarmonicSetTarget({ freq, time: 30 })
+        const target = harmonics.findSetTarget({ freq, time: 30 })
 
         // Simulate a spacing adjustment via the drag seam (data coordinates),
         // exactly as the event layer would drive it.
         let spacingChanged = false
         if (target) {
           const original = instance.state.harmonics.harmonicSets.find((s) => s.id === id).spacing
-          harmonics.onHarmonicSetDragStart(target, { freq, time: 30 })
-          harmonics.onHarmonicSetDragUpdate(target, { freq: freq + 5, time: 30 }, { freq, time: 30 })
-          harmonics.onHarmonicSetDragEnd(target, { freq: freq + 5, time: 30 })
+          harmonics.onSetDragStart(target)
+          harmonics.onSetDragUpdate(target, { freq: freq + 5, time: 30 }, { freq, time: 30 })
+          harmonics.onSetDragEnd()
           const updated = instance.state.harmonics.harmonicSets.find((s) => s.id === id).spacing
           spacingChanged = updated !== original
         }

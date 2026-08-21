@@ -16,16 +16,16 @@ import { getVersion } from '../utils/version.js'
  * to {@link createInitialState}, composed by `ModeFactory.getModeInitialStates()`,
  * which is what breaks the state ⇄ modes cycle (spec 167, FR-002, ADR-014).
  *
- * Typed as `GramFrameState` minus the three mode slices, because that is
+ * Typed as `GramFrameState` minus the four mode slices, because that is
  * exactly what it is: the mode keys are no longer written here, so claiming
  * them would be a lie tsc happens not to check.
- * @type {Omit<GramFrameState, 'analysis'|'harmonics'|'doppler'>}
+ * @type {Omit<GramFrameState, 'analysis'|'harmonics'|'sidebands'|'doppler'>}
  */
 const initialState = {
   version: getVersion(),
   timestamp: new Date().toISOString(),
   instanceId: '',
-  mode: 'pan', // 'analysis', 'harmonics', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
+  mode: 'pan', // 'analysis', 'harmonics', 'sideband', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
   previousMode: null, // Previous mode for switching back
   rate: 1,
   selectedColor: '#ff6b6b', // Currently selected color for new features across all modes
@@ -185,7 +185,7 @@ function deliverToListeners(state, listeners) {
  * The storage listener saves on a change to this counter (plus a few cheap
  * identity fields) rather than by re-serialising every annotation on every
  * notification. Call it from any path that adds, removes, moves or restyles a
- * marker, harmonic set or doppler marker.
+ * marker, harmonic set, sideband set or doppler marker.
  * @param {GramFrame} instance - GramFrame instance
  */
 export function markAnnotationsChanged(instance) {

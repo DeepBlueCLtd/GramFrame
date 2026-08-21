@@ -28,6 +28,11 @@ const validRecord = () => ({
       { id: 'h1', color: '#2ecc71', anchorTime: 30, spacing: 12.5, symbol: 'cross', showPin: true }
     ]
   },
+  sidebands: {
+    sidebandSets: [
+      { id: 's1', color: '#45b7d1', anchorTime: 25, fundamentalFreq: 400, spacing: 12.5, symbol: 'cross', showPin: true }
+    ]
+  },
   doppler: {
     fPlus: { time: 40, freq: 900 },
     fMinus: { time: 20, freq: 880 },
@@ -42,6 +47,7 @@ describe('sanitizeStoredAnnotations (BH-1, BH-16)', () => {
     expect(dropped).toBe(0)
     expect(annotations.analysis.markers).toHaveLength(1)
     expect(annotations.harmonics.harmonicSets).toHaveLength(1)
+    expect(annotations.sidebands.sidebandSets).toHaveLength(1)
     expect(annotations.doppler.fPlus).toEqual({ time: 40, freq: 900 })
   })
 
@@ -145,6 +151,54 @@ describe('sanitizeStoredAnnotations (BH-1, BH-16)', () => {
   })
 })
 
+describe('sanitizeStoredAnnotations: sideband sets (issue #241)', () => {
+  it('discards a sideband set whose spacing is not strictly positive', () => {
+    for (const spacing of [0, -5, NaN, Infinity, '12k']) {
+      const rec = validRecord()
+      // @ts-ignore deliberate corruption
+      rec.sidebands.sidebandSets[0].spacing = spacing
+      const { annotations, dropped } = sanitizeStoredAnnotations(rec)
+      expect(annotations.sidebands.sidebandSets).toHaveLength(0)
+      expect(dropped).toBe(1)
+    }
+  })
+
+  it('discards a sideband set with no fundamental — its pins would have no origin', () => {
+    const rec = validRecord()
+    // @ts-ignore deliberate corruption
+    delete rec.sidebands.sidebandSets[0].fundamentalFreq
+    const { annotations, dropped } = sanitizeStoredAnnotations(rec)
+    expect(annotations.sidebands.sidebandSets).toHaveLength(0)
+    expect(dropped).toBe(1)
+  })
+
+  it('keeps a fundamental of 0 — the origin may legitimately sit at 0 Hz', () => {
+    const rec = validRecord()
+    rec.sidebands.sidebandSets[0].fundamentalFreq = 0
+    const { annotations, dropped } = sanitizeStoredAnnotations(rec)
+    expect(annotations.sidebands.sidebandSets).toHaveLength(1)
+    expect(dropped).toBe(0)
+  })
+
+  it('restores a legacy record that predates sidebands as having none', () => {
+    const rec = validRecord()
+    // @ts-ignore the section simply does not exist in older records
+    delete rec.sidebands
+    const { annotations, dropped } = sanitizeStoredAnnotations(rec)
+    expect(annotations.sidebands.sidebandSets).toEqual([])
+    expect(dropped).toBe(0)
+  })
+
+  it('counts a non-array sidebandSets as one dropped entry', () => {
+    const rec = validRecord()
+    // @ts-ignore deliberate corruption
+    rec.sidebands.sidebandSets = { id: 's1' }
+    const { annotations, dropped } = sanitizeStoredAnnotations(rec)
+    expect(annotations.sidebands.sidebandSets).toEqual([])
+    expect(dropped).toBe(1)
+  })
+})
+
 describe('buildGramFingerprint (BH-6, BH-23)', () => {
   it('uses the image URL basename and the four config ranges', () => {
     const state = /** @type {any} */ ({
@@ -193,7 +247,18 @@ describe('hasPersistableAnnotations covers fZero (BH-32)', () => {
     const state = /** @type {any} */ ({
       analysis: { markers: [] },
       harmonics: { harmonicSets: [] },
+      sidebands: { sidebandSets: [] },
       doppler: { fPlus: null, fMinus: null, fZero: { time: 1, freq: 2 } }
+    })
+    expect(hasPersistableAnnotations(state)).toBe(true)
+  })
+
+  it('a sideband set alone is persistable', () => {
+    const state = /** @type {any} */ ({
+      analysis: { markers: [] },
+      harmonics: { harmonicSets: [] },
+      sidebands: { sidebandSets: [{ id: 's1' }] },
+      doppler: { fPlus: null, fMinus: null, fZero: null }
     })
     expect(hasPersistableAnnotations(state)).toBe(true)
   })
@@ -202,6 +267,7 @@ describe('hasPersistableAnnotations covers fZero (BH-32)', () => {
     const state = /** @type {any} */ ({
       analysis: { markers: [] },
       harmonics: { harmonicSets: [] },
+      sidebands: { sidebandSets: [] },
       doppler: { fPlus: null, fMinus: null, fZero: null }
     })
     expect(hasPersistableAnnotations(state)).toBe(false)

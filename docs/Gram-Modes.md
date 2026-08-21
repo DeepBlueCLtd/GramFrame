@@ -1,15 +1,15 @@
 # Gram Component Interaction Modes
 
-GramFrame has **four** interaction modes: **Pan**, **Cross Cursor** (the
-analysis mode), **Harmonics** and **Doppler**. This document describes what each
-one does for an analyst; for how they are built see
+GramFrame has **five** interaction modes: **Pan**, **Cross Cursor** (the
+analysis mode), **Harmonics**, **Sidebands** and **Doppler**. This document
+describes what each one does for an analyst; for how they are built see
 [Tech-Architecture.md](Tech-Architecture.md).
 
 Behaviour common to every mode:
 
 - The time/frequency readouts follow the cursor regardless of the active mode.
-- Markers, harmonic sets and doppler curves stay visible in all modes once
-  placed — only the mode that *creates* them changes.
+- Markers, harmonic sets, sideband sets and doppler curves stay visible in all
+  modes once placed — only the mode that *creates* them changes.
 - Ctrl+wheel zooms about the pointer, wheel scrolls along frequency when zoomed
   in, and a middle-button drag pans — in every mode.
 - Switching mode clears the current selection, so the colour/symbol controls
@@ -87,6 +87,35 @@ multiples of a spacing.
   the unlabelled harmonics still show against the data.
 - Sets are listed in the harmonics panel; selecting a row enables arrow-key
   adjustment and in-place restyling, as for markers.
+
+---
+
+## 📻 Sidebands Mode
+
+### Purpose
+
+Reveal a modulated tonal: a carrier with equally-spaced sidebands either side of
+it, such as a shaft rate modulating a blade tone. It is Harmonics mode with the
+origin freed — the analyst places the fundamental rather than counting up from
+0 Hz.
+
+### Behaviour
+
+- Click to set the **fundamental** at that frequency. About eight sidebands
+  appear, equally spaced either side of it: an equal count each side when the
+  fundamental sits mid-axis, and more on the roomier side when it does not.
+- The initial spacing is only a starting point — hold the drag on and keep
+  moving, or drag again, to match the spacing to the data underneath.
+- Drag the **0** line to move the fundamental; drag any other line to set the
+  spacing, which holds the line you grabbed under the cursor. Dragging
+  vertically moves the set's anchor time, as in Harmonics mode.
+- Each sideband is labelled by its signed offset from the fundamental — `0`,
+  `+1`, `-1` and so on — and is drawn with the same pins, symbols, colours and
+  **Tall Pins** toggle as a harmonic set. Dense sets are sampled the same way.
+- Sets are listed in the **Sidebands** panel, which shares the right-hand column
+  with the harmonics panel: the column shows the sidebands table while this mode
+  is active and the harmonics table otherwise. Selecting a row enables arrow-key
+  spacing adjustment and in-place restyling, as for harmonic sets.
 
 ---
 

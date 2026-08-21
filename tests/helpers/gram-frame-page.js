@@ -814,6 +814,56 @@ class GramFramePage {
   }
 
   /**
+   * Programmatically add a sideband set via the test instance API.
+   * @param {number} anchorTime - Time position in seconds
+   * @param {number} fundamentalFreq - Fundamental (member 0) frequency in Hz
+   * @param {number} spacing - Frequency spacing between adjacent sidebands in Hz
+   * @returns {Promise<string>} The created sideband set's id
+   */
+  async addSidebandSet(anchorTime, fundamentalFreq, spacing) {
+    const id = await this.page.evaluate(([time, fundamental, space]) => {
+      // @ts-ignore - test-only global
+      const instances = window.GramFrame.__test__getInstances()
+      const set = instances[0].modes['sideband'].addSidebandSet(time, fundamental, space)
+      return set.id
+    }, [anchorTime, fundamentalFreq, spacing])
+    await this.waitForState(
+      (state) => (state.sidebands?.sidebandSets ?? []).some((s) => s.id === id),
+      { message: `sideband set ${id} to appear in state` }
+    )
+    return id
+  }
+
+  /**
+   * Wait until the sidebands state holds exactly `n` sideband sets.
+   * @param {number} n - Expected sideband set count
+   * @param {number|{timeout?: number}} [opts={}] - Timeout in ms, or options
+   * @returns {Promise<void>}
+   */
+  async waitForSidebandSetCount(n, opts = {}) {
+    await this.waitForState(
+      (state) => (state.sidebands?.sidebandSets?.length ?? 0) === n,
+      { ...opts, message: `${n} sideband set(s)` }
+    )
+  }
+
+  /**
+   * Read the `data-sideband-index` of each rendered sideband pin line, in
+   * document order, optionally scoped to one set.
+   * @param {string} [setId] - Restrict to one sideband set
+   * @returns {Promise<number[]>} Sideband indices in order
+   */
+  async getSidebandIndices(setId) {
+    const selector = setId
+      ? `.gram-frame-sideband-line[data-sideband-set-id="${setId}"]`
+      : '.gram-frame-sideband-line'
+    return this.page.evaluate((sel) => {
+      const lines = Array.from(document.querySelectorAll(sel))
+      return lines.map((line) => Number(line.getAttribute('data-sideband-index')))
+    }, selector)
+  }
+
+  /**
    * Programmatically set the zoom level/centre via the test instance API.
    * @param {number} level - Zoom level (1.0 = no zoom)
    * @param {number} [centerX=0.5] - Normalised horizontal centre (0-1)

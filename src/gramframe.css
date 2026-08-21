@@ -929,10 +929,19 @@ table.gram-frame-table {
   justify-content: flex-start;
 }
 
+/*
+ * The mode buttons, stacked one per row.
+ *
+ * The gap and the button paddings below were tightened when Sidebands became a
+ * fifth mode (issue #241): at the old sizes a fifth row made the whole control
+ * panel ~40px taller in every mode whose guidance text is short, which pushed
+ * the spectrogram itself that far down the page. Five rows now occupy what four
+ * did, so adding the mode cost the gram no vertical space.
+ */
 .gram-frame-modes {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   justify-content: center;
   align-items: stretch;
   flex: 0 0 auto;
@@ -994,7 +1003,7 @@ table.gram-frame-table {
 
 /* Military-style metal buttons */
 .gram-frame-mode-btn {
-  padding: 8px 6px;
+  padding: 5px 6px;
   background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);
   color: #ddd;
   border: 2px solid #555;
@@ -1014,7 +1023,7 @@ table.gram-frame-table {
 }
 
 .gram-frame-command-btn {
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);
   color: #ddd;
   border: 2px solid #444;
@@ -1025,7 +1034,7 @@ table.gram-frame-table {
   line-height: 1;
   flex: 0 0 auto;
   min-width: 32px;
-  height: 36px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1224,7 +1233,9 @@ table.gram-frame-table {
 
 
 .gram-frame-harmonic-line,
-.gram-frame-harmonic-mini-pin {
+.gram-frame-harmonic-mini-pin,
+.gram-frame-sideband-line,
+.gram-frame-sideband-mini-pin {
   stroke-width: 2;
   fill: none;
   pointer-events: none;
@@ -1232,7 +1243,8 @@ table.gram-frame-table {
 }
 
 
-.gram-frame-harmonic-number {
+.gram-frame-harmonic-number,
+.gram-frame-sideband-number {
   font-family: Arial, sans-serif;
   font-size: 12px;
   font-weight: bold;
@@ -1292,12 +1304,15 @@ table.gram-frame-table {
 /* Legacy harmonic panel styles - now using unified table structure */
 
 .gram-frame-harmonic-spacing,
-.gram-frame-harmonic-rate {
+.gram-frame-harmonic-rate,
+.gram-frame-sideband-freq,
+.gram-frame-sideband-spacing {
   font-size: 14px;
   font-weight: bold;
 }
 
-.gram-frame-harmonic-color {
+.gram-frame-harmonic-color,
+.gram-frame-sideband-color {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1309,7 +1324,8 @@ table.gram-frame-table {
   display: block;
 }
 
-.gram-frame-harmonic-delete {
+.gram-frame-harmonic-delete,
+.gram-frame-sideband-delete {
   background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);
   color: #ff6666;
   border: 1px solid #555;
@@ -1326,12 +1342,14 @@ table.gram-frame-table {
   transition: all 0.1s ease;
 }
 
-.gram-frame-harmonic-delete:hover {
+.gram-frame-harmonic-delete:hover,
+.gram-frame-sideband-delete:hover {
   background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);
   border-color: #777;
 }
 
-.gram-frame-harmonic-delete:active {
+.gram-frame-harmonic-delete:active,
+.gram-frame-sideband-delete:active {
   transform: translateY(1px);
 }
 
@@ -1660,11 +1678,34 @@ table.gram-frame-table {
 }
 
 .gram-frame-markers-persistent-container,
-.gram-frame-harmonics-persistent-container {
+.gram-frame-harmonics-persistent-container,
+.gram-frame-sidebands-persistent-container {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+}
+
+/*
+ * The right column carries one pin-set table at a time: the harmonics table,
+ * except while Sidebands mode is active (issue #241). Both panels are always in
+ * the DOM — each mode keeps its table up to date whatever mode is active — and
+ * this only chooses which of the two the column shows. See the note in
+ * components/MainUI.js for why they take turns rather than sharing the column.
+ *
+ * Driven entirely by the `gram-frame-<mode>-mode` class the component keeps on
+ * its container, so nothing has to be toggled from JavaScript on every switch.
+ */
+.gram-frame-sidebands-persistent-container {
+  display: none;
+}
+
+.gram-frame-sideband-mode .gram-frame-sidebands-persistent-container {
+  display: flex;
+}
+
+.gram-frame-sideband-mode .gram-frame-harmonics-persistent-container {
+  display: none;
 }
 
 /*
@@ -1691,7 +1732,8 @@ table.gram-frame-table {
 }
 
 .gram-frame-markers-persistent-container h4,
-.gram-frame-harmonics-persistent-container h4 {
+.gram-frame-harmonics-persistent-container h4,
+.gram-frame-sidebands-persistent-container h4 {
   margin: 0;
   padding: 0;
   border: 0;
