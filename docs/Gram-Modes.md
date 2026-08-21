@@ -56,8 +56,8 @@ events, broadband pulses or ambient shifts in sonar data.
 - Each row's **label button** (the tag icon, above the delete ×) opens a dialog
   for the marker's label. Labels are optional — a marker has none until one is
   entered — and clearing the field removes the label again.
-- A label is drawn on the gram in black inside a white halo, so it reads over
-  both dark and light pixels: in the upper-right quadrant of a crosshair marker,
+- A label is drawn on the gram in black on a white rounded plate, so it reads
+  over both dark and light pixels: in the upper-right quadrant of a crosshair marker,
   or centred above a marker that carries a shaped symbol. The one exception is
   the upward-pointing triangle, which is aimed at the gram above it — its label
   is centred *below* the symbol so the data being marked stays visible.

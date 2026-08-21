@@ -16,6 +16,7 @@
 /// <reference path="../types.js" />
 
 import { labelSitsBelowSymbol, resolveSymbolType } from '../rendering/symbols.js'
+import { labelPlateExtents, LABEL_PLATE_PADDING_X } from './labelPlate.js'
 
 /**
  * Longest label accepted. Long enough for a ship name or a contact
@@ -88,22 +89,23 @@ export function formatMarkerLabelForTable(label) {
 /**
  * Gap in px between a crosshair's arms and the label sitting in the upper-right
  * quadrant. Clears the crosshair's 3px centre dot without pushing the text away
- * from the point it annotates.
+ * from the point it annotates. Measured to the edge of the label's plate, not
+ * to the glyphs, so the white rectangle stays out of the crosshair.
  * @type {number}
  */
 const QUADRANT_GAP = 5
 
 /**
- * Gap in px between the top of a shaped symbol and the label's baseline above
- * it. Scales with nothing: the symbol's own size is already in the sum.
+ * Gap in px between a shaped symbol's edge and the nearest edge of the label's
+ * plate. Scales with nothing: the symbol's own size is already in the sum.
  * @type {number}
  */
 const ABOVE_SYMBOL_GAP = 4
 
 /**
- * Label font size in px. Doubles as the approximate ascent when the label hangs
- * BELOW a symbol, where the baseline has to clear the symbol by a whole line of
- * text rather than sit just above it.
+ * Label font size in px. It also fixes how far the label's plate reaches above
+ * and below the baseline, which is what the placement gaps below are measured
+ * to.
  *
  * Lives here rather than in `rendering/labels.js` so the placement rule and the
  * element that obeys it read the same number; the renderer imports it back.
@@ -133,20 +135,27 @@ export const MARKER_LABEL_FONT_SIZE = 12
  * @returns {{x: number, y: number, textAnchor: 'start'|'middle'}} Text position and anchor
  */
 export function markerLabelPlacement(symbol, cx, cy, symbolSize) {
+  // The label sits on a white plate (issue #243), which reaches past the text
+  // on every side; every gap below is measured to the plate's edge so the
+  // rectangle clears the mark by as much as the bare glyphs used to.
+  const plate = labelPlateExtents(MARKER_LABEL_FONT_SIZE)
+
   if (resolveSymbolType(symbol) === 'cross') {
     // Upper-right quadrant of the crosshair: right of the vertical arm, above
     // the horizontal one. `start` anchoring grows the text away from the arms.
-    return { x: cx + QUADRANT_GAP, y: cy - QUADRANT_GAP, textAnchor: 'start' }
+    return {
+      x: cx + QUADRANT_GAP + LABEL_PLATE_PADDING_X,
+      y: cy - QUADRANT_GAP - plate.below,
+      textAnchor: 'start'
+    }
   }
 
   if (labelSitsBelowSymbol(symbol)) {
-    // Centred below the symbol. The baseline drops a whole line of text past
-    // the symbol's bottom edge, so the glyphs — which hang above their baseline
-    // — start clear of it rather than overlapping the mark.
-    const y = cy + symbolSize / 2 + ABOVE_SYMBOL_GAP + MARKER_LABEL_FONT_SIZE
+    // Centred below the symbol, the top of the plate clear of its bottom edge.
+    const y = cy + symbolSize / 2 + ABOVE_SYMBOL_GAP + plate.above
     return { x: cx, y, textAnchor: 'middle' }
   }
 
-  // Centred above the symbol, baseline clear of its top edge.
-  return { x: cx, y: cy - symbolSize / 2 - ABOVE_SYMBOL_GAP, textAnchor: 'middle' }
+  // Centred above the symbol, the bottom of the plate clear of its top edge.
+  return { x: cx, y: cy - symbolSize / 2 - ABOVE_SYMBOL_GAP - plate.below, textAnchor: 'middle' }
 }

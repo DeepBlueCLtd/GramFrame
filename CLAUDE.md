@@ -143,7 +143,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `cursors.js` - The pointer's cursors. Feature drags use hollow corner
     brackets, never the opaque `grab`/`grabbing` hands, so the marker and the
     gram under the hotspot stay visible; panning keeps the hand
-  - `svg.js` - SVG text halo styling
+  - `labelPlate.js` - The white rounded plate every in-gram text label is drawn
+    on, and the geometry the placement rules leave room for it with (issue #243)
   - `secureHTML.js` - Guidance-panel rendering without innerHTML
   - `timeFormatter.js` - Time formatting utilities
   - `wheelGuidance.js` - Wheel navigation guidance text
@@ -263,7 +264,7 @@ There is no visual/screenshot regression testing — see
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
 - **Analysis Mode**: Persistent draggable markers with cross-mode visibility and optional
-  haloed text labels (upper-right of a crosshair, centred above a shaped symbol —
+  plated text labels (upper-right of a crosshair, centred above a shaped symbol —
   below an upward-pointing triangle, whose apex points at the data above it)
 - **Harmonics Mode**: Real-time harmonic calculation and display
 - **Sidebands Mode**: A pin set with a user-placed origin — the fundamental —

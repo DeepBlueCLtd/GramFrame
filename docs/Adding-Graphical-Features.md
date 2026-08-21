@@ -13,7 +13,8 @@ When adding a new graphical feature, you will likely need to work with these fil
 | `src/core/FeatureRenderer.js` | Main render entry point; clears and redraws all features | Adding a new visual element type |
 | `src/components/table.js` | SVG layout, axis rendering, zoom transforms | Changing axes or SVG structure |
 | `src/utils/coordinateTransformations.js` | Zoom-aware transforms, `dataToSVG()` | Positioning elements when zoomed |
-| `src/utils/svg.js` | SVG element creation helpers (`createSVGLine`, `createSVGText`, `createSVGCircle`) | Creating new SVG shapes |
+| `src/rendering/symbols.js` | Marker and pin symbol shapes (`createSymbolMark`) | Drawing a shaped mark |
+| `src/utils/labelPlate.js` | The white rounded plate behind on-gram text (`plateLabel`) | Drawing a text label over the gram |
 | `src/utils/coordinates.js` | Coordinate transforms (screen → SVG → image → data) | Positioning elements on the spectrogram |
 | `src/core/FeatureRenderer.js` | Cross-mode feature visibility coordinator | Feature needs to persist across mode switches |
 | `src/core/events.js` | Mouse event handling and coordinate conversion | Feature responds to mouse interactions |
@@ -72,7 +73,7 @@ If your feature belongs to an existing mode (e.g., a new annotation type in Anal
 1. **Store state** — Add fields to the mode's `static getInitialState()` method
 2. **Handle interaction** — Override `handleMouseDown`/`handleMouseMove`/`handleMouseUp` to capture user input
 3. **Render** — Add drawing logic to `renderPersistentFeatures()` (for saved features) or `renderCursor()` (for live indicators)
-4. **Create SVG elements** using utilities from `src/utils/svg.js`, and append them to `instance.cursorGroup`
+4. **Create SVG elements** — `createSymbolMark()` from `src/rendering/symbols.js` for shapes, `plateLabel()` from `src/utils/labelPlate.js` for text — and append them to `instance.cursorGroup`
 
 ### Example Pattern (from Doppler mode)
 

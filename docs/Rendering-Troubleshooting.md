@@ -12,7 +12,8 @@ Understanding which files handle what is the first step in narrowing down a rend
 |-----------|------|---------|
 | Render entry point | `src/core/FeatureRenderer.js` | `renderAllPersistentFeatures()` — clears and redraws all features |
 | Feature coordination | `src/core/FeatureRenderer.js` | Cross-mode visibility; delegates to each mode's renderer |
-| SVG element creation | `src/utils/svg.js` | `createSVGLine`, `createSVGText`, `createSVGCircle` |
+| Symbols and labels | `src/rendering/symbols.js`, `src/rendering/labels.js` | `createSymbolMark`, `createMarkerLabel` |
+| On-gram text legibility | `src/utils/labelPlate.js` | `plateLabel` — the white rounded plate behind every label |
 | Coordinate transforms | `src/utils/coordinates.js` | `screenToSVGCoordinates`, `imageToDataCoordinates` |
 | Zoom-aware conversion | `src/core/events.js` | `screenToDataWithZoom()` — full pipeline with zoom |
 | SVG layout and axes | `src/components/table.js` | `updateSVGLayout()`, `renderAxes()`, `applyZoomTransform()` |
