@@ -959,8 +959,34 @@ table.gram-frame-table {
 /* Simplified left panel - no sub-columns needed */
 
 /* Guidance panel */
+/*
+ * The guidance panel fills its column and scrolls, rather than growing the
+ * control row to fit its text.
+ *
+ * Same mechanism as the tables beside it (an absolutely positioned child of a
+ * relative column), and for the same reason: the guidance column is what gives
+ * way when a host is too narrow for the whole row, and the narrower it gets the
+ * taller its text wraps. Letting that set the row height pushed the row — and
+ * the spectrogram under it — down the page, by as much as 80px on a 1280px host
+ * once a fourth table joined the row (issue #241).
+ *
+ * The row is now as tall as the readouts and the mode buttons need and no
+ * taller, in every mode. Two things follow: the gram sits at a constant height
+ * instead of moving as the analyst switches mode, and a host too narrow for the
+ * full guidance text costs reading length here rather than gram height.
+ */
+.gram-frame-guidance-column {
+  position: relative;
+}
+
 .gram-frame-guidance {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
   padding: 8px 12px;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
   border: 2px solid #333;
@@ -1654,8 +1680,19 @@ table.gram-frame-table {
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
 }
 
-/* Harmonics column. 200 → 175px; see the markers-column note above. */
-.gram-frame-right-column {
+/*
+ * The two pin-set tables: harmonics (200 → 175px when the markers column gained
+ * its Label column — see the markers-column note above), and sidebands beside
+ * it. Both are always visible (issue #241).
+ *
+ * 175px each — the width the harmonics table has always had — so the two read as
+ * a matched pair. Together with the markers table and the readouts beside them,
+ * the control row now wants ~1090px; a host narrower than that squeezes the
+ * guidance column, which scrolls rather than growing the row taller (see the
+ * note on `.gram-frame-guidance`).
+ */
+.gram-frame-right-column,
+.gram-frame-sidebands-column {
   display: flex;
   flex-direction: column;
   flex: 0 0 175px;
@@ -1684,28 +1721,6 @@ table.gram-frame-table {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-}
-
-/*
- * The right column carries one pin-set table at a time: the harmonics table,
- * except while Sidebands mode is active (issue #241). Both panels are always in
- * the DOM — each mode keeps its table up to date whatever mode is active — and
- * this only chooses which of the two the column shows. See the note in
- * components/MainUI.js for why they take turns rather than sharing the column.
- *
- * Driven entirely by the `gram-frame-<mode>-mode` class the component keeps on
- * its container, so nothing has to be toggled from JavaScript on every switch.
- */
-.gram-frame-sidebands-persistent-container {
-  display: none;
-}
-
-.gram-frame-sideband-mode .gram-frame-sidebands-persistent-container {
-  display: flex;
-}
-
-.gram-frame-sideband-mode .gram-frame-harmonics-persistent-container {
-  display: none;
 }
 
 /*
@@ -1760,7 +1775,8 @@ table.gram-frame-table {
   
   .gram-frame-left-column,
   .gram-frame-middle-column,
-  .gram-frame-right-column {
+  .gram-frame-right-column,
+  .gram-frame-sidebands-column {
     flex: 0 0 auto;
     min-height: 200px;
   }

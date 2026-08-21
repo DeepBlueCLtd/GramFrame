@@ -39,7 +39,15 @@ export function createUnifiedLayout(instance) {
   // (shrink:1, min-width:0) so a narrow host stays clip-free instead of cutting
   // off the tables.
   const leftColumn = /** @type {HTMLDivElement} */ (createFullFlexLayout('gram-frame-left-column', '4px'))
-  leftColumn.style.flex = '0 1 750px'
+  // Grows into whatever the tables leave, but never past its 750px basis, so
+  // the spare width of a wide host reaches the guidance column instead of
+  // pooling at the right-hand edge — while the tables still stay grouped
+  // alongside rather than being pushed away (issue #241). Growing matters now
+  // that the guidance panel is absolutely positioned: it contributes no
+  // intrinsic width of its own, so without this the left column sat at the sum
+  // of its minimums whatever room was going spare.
+  leftColumn.style.flex = '1 1 750px'
+  leftColumn.style.maxWidth = '750px'
   leftColumn.style.width = 'auto'
   leftColumn.style.minWidth = '0'
   leftColumn.style.flexDirection = 'row'
@@ -49,10 +57,10 @@ export function createUnifiedLayout(instance) {
   modeColumn.style.flex = '0 0 130px'
   modeColumn.style.width = '130px'
   
-  // Column 2: Guidance panel  
+  // Column 2: Guidance panel. Its minimum width lives in CSS beside the rest of
+  // the column's styling — an inline one here silently outranked it.
   const guidanceColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-guidance-column', '8px'))
   guidanceColumn.style.flex = '1'
-  guidanceColumn.style.minWidth = '150px'
   
   // Column 3: Controls (time/freq displays, speed, color selector)
   const controlsColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-controls-column', '1px'))
@@ -107,44 +115,36 @@ export function createUnifiedLayout(instance) {
   const markersContainer = createMarkersContainer()
   middleColumn.appendChild(markersContainer)
   
-  // Right Column (175px) - the pin-set table: Harmonics, or Sidebands while
-  // that mode is active. Narrowed from 200px to fund the markers column's Label
-  // column (feature 231); its four columns still fit.
+  // Right column - Harmonics sets table, and beside it the Sidebands table.
+  // Both are always visible: a pin set of either kind is managed from its own
+  // table whatever mode is active, exactly as the markers table is (issue #241).
   //
-  // Sidebands share this column rather than taking a fourth of their own, and
-  // take turns in it rather than splitting it (issue #241). Both alternatives
-  // were measured at a 1280px viewport, where the control row's width is
-  // already fully spoken for:
-  //   - a fourth fixed column squeezes the guidance column to its 150px
-  //     minimum, where the text wraps to roughly twice the height and pushes
-  //     the whole row — and the spectrogram under it — ~80px down the page;
-  //   - splitting this column in two leaves each table ~45px of body, which is
-  //     less than one row: the sticky header covers whatever you scroll to.
-  // Swapping costs neither. The two tables are mode-specific in a way the
-  // markers table is not: a sideband set is managed from Sidebands mode.
+  // Both are 175px, the width the harmonics table has always had, so the pair
+  // reads as a pair. The row is that much wider for it: where a host cannot give
+  // it the room, the guidance column takes the squeeze and its panel scrolls
+  // rather than the row growing taller and pushing the gram down the page — see
+  // the note on `.gram-frame-guidance` in gramframe.css. Widths live in CSS with
+  // the rest of each column's styling.
   const rightColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-right-column'))
-  rightColumn.style.flex = '0 0 175px'
-  rightColumn.style.minWidth = '175px'
-  rightColumn.style.width = '175px'
-  
-  // Create harmonics container in right column
   const harmonicsContainer = createHarmonicsContainer()
   rightColumn.appendChild(harmonicsContainer)
 
-  // Sideband sets, in the same column, shown while Sidebands mode is active
+  const sidebandsColumn = /** @type {HTMLDivElement} */ (createFlexColumn('gram-frame-sidebands-column'))
   const sidebandsContainer = createSidebandsContainer()
-  rightColumn.appendChild(sidebandsContainer)
+  sidebandsColumn.appendChild(sidebandsContainer)
 
   // Assemble the unified layout
   unifiedLayoutContainer.appendChild(leftColumn)
   unifiedLayoutContainer.appendChild(middleColumn)
   unifiedLayoutContainer.appendChild(rightColumn)
-  
+  unifiedLayoutContainer.appendChild(sidebandsColumn)
+
   return {
     unifiedLayoutContainer,
     leftColumn,
     middleColumn,
     rightColumn,
+    sidebandsColumn,
     modeColumn,
     guidanceColumn,
     controlsColumn,

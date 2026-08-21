@@ -613,7 +613,8 @@
  * @property {HTMLDivElement} unifiedLayoutContainer - Main layout container
  * @property {HTMLDivElement} leftColumn - Readout column
  * @property {HTMLDivElement} middleColumn - Markers column
- * @property {HTMLDivElement} rightColumn - Harmonics and sidebands column
+ * @property {HTMLDivElement} rightColumn - Harmonics column
+ * @property {HTMLDivElement} sidebandsColumn - Sidebands column
  * @property {HTMLDivElement} modeColumn - Mode buttons column
  * @property {HTMLDivElement} guidanceColumn - Guidance text column
  * @property {HTMLDivElement} controlsColumn - Controls column

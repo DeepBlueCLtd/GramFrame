@@ -111,8 +111,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `MainUI.js` - Unified layout and persistent panels
   - `ModeButtons.js` - Mode switching interface
   - `HarmonicPanel.js` - Harmonics display panel
-  - `SidebandPanel.js` - Sidebands display panel (shares the right-hand column
-    with the harmonics panel, one shown at a time)
+  - `SidebandPanel.js` - Sidebands display panel (its own column beside the
+    harmonics panel; both are always visible)
   - `DiffingTable.js` - Shared row-diffing table behind the markers table and harmonics panel
   - `ColorPicker.js` - Colour selection component
   - `SymbolPicker.js` - Symbol selection component

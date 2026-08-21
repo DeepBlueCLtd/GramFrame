@@ -112,10 +112,10 @@ origin freed — the analyst places the fundamental rather than counting up from
 - Each sideband is labelled by its signed offset from the fundamental — `0`,
   `+1`, `-1` and so on — and is drawn with the same pins, symbols, colours and
   **Tall Pins** toggle as a harmonic set. Dense sets are sampled the same way.
-- Sets are listed in the **Sidebands** panel, which shares the right-hand column
-  with the harmonics panel: the column shows the sidebands table while this mode
-  is active and the harmonics table otherwise. Selecting a row enables arrow-key
-  spacing adjustment and in-place restyling, as for harmonic sets.
+- Sets are listed in the **Sidebands** panel, which sits beside the harmonics
+  panel and is visible in every mode, as the markers and harmonics tables are.
+  Selecting a row enables arrow-key spacing adjustment and in-place restyling,
+  as for harmonic sets.
 
 ---
 

@@ -6,9 +6,10 @@ import { test, expect } from './helpers/fixtures.js'
  * A sideband set is a harmonic set whose origin the analyst places: pins spread
  * both sides of a fundamental rather than marching up from 0 Hz. These tests
  * cover what makes it a distinct mode — where the pins land, what a drag on the
- * fundamental does versus a drag on a sideband, which table the right column
- * shows — and that the shared pin-set machinery it rides on (cross-mode
- * rendering, selection, deletion, persistence) reaches it too.
+ * fundamental does versus a drag on a sideband, its own always-visible table —
+ * and that the shared pin-set machinery it rides on (cross-mode rendering,
+ * selection, deletion, persistence) reaches it too. The last three guard the
+ * control row itself: a fourth table went into a row that was already full.
  *
  * The debug gram spans 0-60 s and 0-100 Hz, so a set placed by clicking gets a
  * seed spacing of 100 / 8 = 12.5 Hz.
@@ -152,17 +153,48 @@ test.describe('Sidebands mode', () => {
     expect(updated.spacing).toBeCloseTo(10, 5)
   })
 
-  test('the right column shows the sidebands table in this mode, harmonics otherwise', async ({ gramFramePage }) => {
+  test('its table is visible in every mode, alongside the harmonics one', async ({ gramFramePage }) => {
     const page = gramFramePage.page
     const sidebands = page.locator('.gram-frame-sidebands-persistent-container')
     const harmonics = page.locator('.gram-frame-harmonics-persistent-container')
 
-    await expect(sidebands).toBeVisible()
-    await expect(harmonics).toBeHidden()
+    for (const mode of ['Sidebands', 'Harmonics', 'Pan', 'Cross Cursor', 'Doppler']) {
+      await gramFramePage.clickMode(mode)
+      await expect(sidebands, `sidebands table in ${mode} mode`).toBeVisible()
+      await expect(harmonics, `harmonics table in ${mode} mode`).toBeVisible()
+    }
+  })
 
-    await gramFramePage.clickMode('Harmonics')
-    await expect(harmonics).toBeVisible()
-    await expect(sidebands).toBeHidden()
+  test('adding the fourth table left the spectrogram where it was', async ({ gramFramePage }) => {
+    // The control row is a constant height in every mode, so switching mode no
+    // longer moves the gram up or down the page — and the height it settled on
+    // is the smallest it used to take, not the largest.
+    const tops = []
+    for (const mode of ['Pan', 'Cross Cursor', 'Harmonics', 'Sidebands', 'Doppler']) {
+      await gramFramePage.clickMode(mode)
+      tops.push(await gramFramePage.page.evaluate(
+        () => Math.round(document.querySelector('.gram-frame-svg').getBoundingClientRect().top)
+      ))
+    }
+    expect(new Set(tops).size, `svg top per mode: ${tops.join(', ')}`).toBe(1)
+  })
+
+  test('the whole control row fits the component, with nothing cut off', async ({ gramFramePage }) => {
+    // Every column is at or near its minimum now that four tables share the row,
+    // so this is the guard against the next thing added to it silently pushing
+    // the sidebands table off the end.
+    const fits = await gramFramePage.page.evaluate(() => {
+      const layout = document.querySelector('.gram-frame-unified-layout')
+      const probe = document.createElement('div')
+      probe.style.cssText = 'position:absolute;visibility:hidden;left:-9999px;width:min-content'
+      probe.appendChild(layout.cloneNode(true))
+      document.body.appendChild(probe)
+      const minContent = Math.round(probe.firstChild.getBoundingClientRect().width)
+      probe.remove()
+      return { minContent, available: Math.round(layout.getBoundingClientRect().width) }
+    })
+    expect(fits.minContent, `row needs ${fits.minContent}px, has ${fits.available}px`)
+      .toBeLessThanOrEqual(fits.available)
   })
 
   test('a set appears in the table and can be deleted from it', async ({ gramFramePage }) => {
