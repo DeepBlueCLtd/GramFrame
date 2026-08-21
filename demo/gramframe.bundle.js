@@ -8,7 +8,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   document.head.appendChild(style);
 
   "use strict";
-  const VERSION = "0.1.16";
+  const VERSION = "0.1.17";
   function getVersion() {
     return VERSION;
   }
