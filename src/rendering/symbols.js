@@ -93,6 +93,30 @@ export function resolveSymbolType(symbolType) {
 }
 
 /**
+ * Whether a symbol's text label belongs BELOW the mark rather than above it.
+ *
+ * Every other symbol is symmetric about its centre, or points downwards, so the
+ * space above it is free and the label goes there. An upward-pointing triangle
+ * is the exception (issue #242): it is drawn to point AT something above it, so
+ * a label stacked over its apex sits exactly on the data the analyst placed it
+ * against. For that one symbol the label drops to the underside, where the
+ * triangle's own base — and, on a pin, the line hanging from it — already
+ * covers the gram.
+ *
+ * Callers that lay out a label MUST also move the label's grab region to match,
+ * or the hotspot parts company with the drawn text.
+ *
+ * Pure: no DOM, no state. Unknown/absent values resolve through
+ * {@link resolveSymbolType} first, so they follow the default (`cross`, above).
+ *
+ * @param {SymbolType|string|null|undefined} symbolType - Candidate symbol id
+ * @returns {boolean} True when the label is drawn beneath the symbol
+ */
+export function labelSitsBelowSymbol(symbolType) {
+  return resolveSymbolType(symbolType) === 'triangle'
+}
+
+/**
  * Build a `points` attribute string from an array of [x, y] pairs.
  * @param {Array<[number, number]>} pts - Point pairs
  * @returns {string} Space-separated "x,y" points

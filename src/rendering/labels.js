@@ -7,24 +7,19 @@
  * symbol colour; the label text deliberately is not colour-coded.
  *
  * Where the label goes is `markerLabelPlacement`'s decision (see
- * `utils/markerLabel.js`, where it stays pure and unit-testable). This module
- * only builds the element.
+ * `utils/markerLabel.js`, where it stays pure and unit-testable) — including
+ * the drop below an upward-pointing triangle, whose apex points at the data
+ * above it (issue #242). This module only builds the element, at the font size
+ * that rule sizes its gaps from.
  */
 
 /// <reference path="../types.js" />
 
 import { applyTextHalo } from '../utils/svg.js'
-import { markerLabelPlacement } from '../utils/markerLabel.js'
+import { MARKER_LABEL_FONT_SIZE, markerLabelPlacement } from '../utils/markerLabel.js'
 
 /** SVG namespace for element creation */
 const SVG_NS = 'http://www.w3.org/2000/svg'
-
-/**
- * Label font size in px. Matches the harmonic-number labels so all in-gram text
- * reads as one family.
- * @type {number}
- */
-const MARKER_LABEL_FONT_SIZE = 12
 
 /**
  * Build a marker's label as a detached SVG text element.

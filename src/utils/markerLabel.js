@@ -15,7 +15,7 @@
 
 /// <reference path="../types.js" />
 
-import { resolveSymbolType } from '../rendering/symbols.js'
+import { labelSitsBelowSymbol, resolveSymbolType } from '../rendering/symbols.js'
 
 /**
  * Longest label accepted. Long enough for a ship name or a contact
@@ -101,6 +101,17 @@ const QUADRANT_GAP = 5
 const ABOVE_SYMBOL_GAP = 4
 
 /**
+ * Label font size in px. Doubles as the approximate ascent when the label hangs
+ * BELOW a symbol, where the baseline has to clear the symbol by a whole line of
+ * text rather than sit just above it.
+ *
+ * Lives here rather than in `rendering/labels.js` so the placement rule and the
+ * element that obeys it read the same number; the renderer imports it back.
+ * @type {number}
+ */
+export const MARKER_LABEL_FONT_SIZE = 12
+
+/**
  * Where a marker's label goes, given what the marker draws.
  *
  * The legacy system's rule, and the reason placement depends on the symbol:
@@ -108,7 +119,10 @@ const ABOVE_SYMBOL_GAP = 4
  *     empty quadrants — the label goes in the upper-right one, clear of both
  *     arms;
  *   - a marker with a shaped symbol has no free quadrant, so the label is
- *     centred above the symbol.
+ *     centred above the symbol;
+ *   - except an upward-pointing triangle, which is drawn to point at whatever
+ *     sits above it (issue #242). A label there covers the very data the
+ *     analyst aimed the apex at, so it is centred BELOW the symbol instead.
  *
  * Pure: takes numbers, returns numbers.
  *
@@ -123,6 +137,14 @@ export function markerLabelPlacement(symbol, cx, cy, symbolSize) {
     // Upper-right quadrant of the crosshair: right of the vertical arm, above
     // the horizontal one. `start` anchoring grows the text away from the arms.
     return { x: cx + QUADRANT_GAP, y: cy - QUADRANT_GAP, textAnchor: 'start' }
+  }
+
+  if (labelSitsBelowSymbol(symbol)) {
+    // Centred below the symbol. The baseline drops a whole line of text past
+    // the symbol's bottom edge, so the glyphs — which hang above their baseline
+    // — start clear of it rather than overlapping the mark.
+    const y = cy + symbolSize / 2 + ABOVE_SYMBOL_GAP + MARKER_LABEL_FONT_SIZE
+    return { x: cx, y, textAnchor: 'middle' }
   }
 
   // Centred above the symbol, baseline clear of its top edge.

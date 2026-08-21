@@ -287,6 +287,28 @@ test.describe('Marker labels', () => {
     expect(overlay.y).toBeLessThan(symbol.top)
   })
 
+  // Issue #242: an up-pointing triangle is aimed at the gram above it, so its
+  // label goes underneath rather than over the data being marked.
+  test('an up-triangle marker draws its label centred BELOW the symbol', async ({ gramFramePage }) => {
+    await gramFramePage.selectSymbol('triangle')
+    const markerId = await placeMarker(gramFramePage, 220, 160)
+    await gramFramePage.setMarkerLabel(markerId, 'Below')
+
+    const symbol = await gramFramePage.page.evaluate((id) => {
+      const el = document.querySelector(`.gram-frame-marker-symbol[data-marker-id="${id}"]`)
+      if (!el) return null
+      const box = /** @type {SVGGraphicsElement} */ (el).getBBox()
+      return { centreX: box.x + box.width / 2, bottom: box.y + box.height }
+    }, markerId)
+
+    const overlay = await gramFramePage.getMarkerLabelOverlay(markerId)
+    expect(symbol).not.toBeNull()
+    expect(overlay.textAnchor).toBe('middle')
+    expect(overlay.x).toBeCloseTo(symbol.centreX, 1)
+    // The baseline clears the symbol's underside, so the glyphs sit below it.
+    expect(overlay.y).toBeGreaterThan(symbol.bottom)
+  })
+
   test('the label is drawn black inside a white halo, painted behind the glyphs', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
     await gramFramePage.setMarkerLabel(markerId, 'Halo')

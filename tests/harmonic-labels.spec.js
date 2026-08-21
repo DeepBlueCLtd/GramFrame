@@ -200,6 +200,55 @@ test.describe('Harmonic Pin Labels (feature 159)', () => {
       }
     })
 
+    // ────────────────────────────────────────────────────────────
+    // Issue #242 — an up-pointing triangle carries its label underneath
+    // ────────────────────────────────────────────────────────────
+    test('an up-triangle set stacks symbol -> label, keeping the gram above it clear', async ({ gramFramePage }) => {
+      await gramFramePage.selectSymbol('triangle')
+      const setId = await gramFramePage.addHarmonicSet(30, 20)
+
+      const { byNum } = await readStackGeometry(gramFramePage, setId)
+      const entries = Object.values(byNum)
+      expect(entries.length).toBeGreaterThan(0)
+      for (const g of entries) {
+        // Still centred on its pin, and the symbol still caps the line — only
+        // the label has changed sides.
+        expect(Math.abs(g.labelCx - g.lineCx)).toBeLessThanOrEqual(3)
+        expect(g.symbolBottom).toBeLessThanOrEqual(g.lineTop + 2)
+        // The label now hangs under the symbol, over the pin line's own ink,
+        // leaving the gram above the apex unobscured.
+        expect(g.labelTop).toBeGreaterThanOrEqual(g.symbolBottom - 2)
+      }
+    })
+
+    test('a down-pointing triangle keeps its label above the symbol', async ({ gramFramePage }) => {
+      // Only the UP triangle points at the space a label would occupy.
+      await gramFramePage.selectSymbol('triangle-down')
+      const setId = await gramFramePage.addHarmonicSet(30, 20)
+
+      const entries = Object.values((await readStackGeometry(gramFramePage, setId)).byNum)
+      expect(entries.length).toBeGreaterThan(0)
+      for (const g of entries) {
+        expect(g.labelBottom).toBeLessThanOrEqual(g.symbolTop + 2)
+      }
+    })
+
+    test('an up-triangle stack near the top edge stays within the image', async ({ gramFramePage }) => {
+      // The clamp now measures from the symbol, which leads the stack when the
+      // label hangs below it (FR-011 still holds).
+      await gramFramePage.selectSymbol('triangle')
+      for (const anchorTime of [0, 60]) {
+        const setId = await gramFramePage.addHarmonicSet(anchorTime, 20)
+
+        const { image, byNum } = await readStackGeometry(gramFramePage, setId)
+        const entries = Object.values(byNum)
+        expect(entries.length).toBeGreaterThan(0)
+        for (const g of entries) {
+          expect(g.symbolTop).toBeGreaterThanOrEqual(image.top - 1)
+        }
+      }
+    })
+
     test('a label/symbol stack near the top edge stays within the image', async ({ gramFramePage }) => {
       // Place the pin at each time extreme; whichever puts the pin near the top
       // must still keep the label within the image's top edge (FR-011).
