@@ -27,6 +27,7 @@ export function getModeDisplayName(mode) {
   const displayNames = {
     'analysis': 'Cross Cursor',
     'harmonics': 'Harmonics', 
+    'sideband': 'Sidebands',
     'doppler': 'Doppler',
     'pan': 'Pan'
   }

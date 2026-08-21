@@ -9,8 +9,7 @@
 
 import { dispatch, markAnnotationsChanged } from './state.js'
 import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coordinates.js'
-import { updateHarmonicPanelContent } from '../components/HarmonicPanel.js'
-import { isPanelOwner } from '../modes/capabilities.js'
+import { isPanelOwner, findPinSetOwner } from '../modes/capabilities.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
 import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount, clearFocusedInstance, isNodeInsideAnyInstance } from './FocusManager.js'
 import { cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
@@ -171,8 +170,13 @@ function handleGlobalKeyboardEvent(event) {
   // Apply movement based on selected item type
   if (selection.selectedType === 'marker') {
     moveSelectedMarker(focusedInstance, selection.selectedId, movement)
-  } else if (selection.selectedType === 'harmonicSet') {
-    moveSelectedHarmonicSet(focusedInstance, selection.selectedId, movement)
+  } else {
+    // Every other selectable feature is a pin set — a harmonic set or a
+    // sideband set — and the owning mode is found by capability, not by name.
+    const owner = findPinSetOwner(focusedInstance, selection.selectedType)
+    if (owner) {
+      moveSelectedPinSet(focusedInstance, owner, selection.selectedId, movement)
+    }
   }
 }
 
@@ -263,25 +267,25 @@ function moveSelectedMarker(instance, markerId, movement) {
 }
 
 /**
- * Move a selected harmonic set by pixel increments  
+ * Move a selected pin set (harmonic or sideband) by pixel increments.
+ *
+ * Horizontal movement adjusts what the owning mode says an arrow key changes —
+ * the spacing, for both of today's pin-set modes. Vertical movement moves the
+ * set's anchor time, which is the same for every pin set and so lives here.
  * @param {GramFrame} instance - GramFrame instance
- * @param {string} harmonicSetId - ID of harmonic set to move
+ * @param {import('../modes/capabilities.js').PinSetOwner} owner - Mode owning the set
+ * @param {string} setId - ID of the set to move
  * @param {MovementVector} movement - Movement vector {dx, dy}
  */
-function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
-  const harmonics = instance.state.harmonics
-  if (!harmonics || !harmonics.harmonicSets) {
+function moveSelectedPinSet(instance, owner, setId, movement) {
+  const set = owner.sets.find(candidate => candidate.id === setId)
+  if (!set) {
     return
   }
-  
-  const harmonicSet = harmonics.harmonicSets.find(h => h.id === harmonicSetId)
-  if (!harmonicSet) {
-    return
-  }
-  
-  /** @type {Partial<HarmonicSet>} */
-  const updates = {}
-  
+
+  /** @type {Partial<PinSet>} */
+  let updates = {}
+
   // Both branches go through the canonical coordinate module, so the movement
   // is in rendered pixels at any zoom level (FR-002, FR-003).
   const { timeMin, timeMax } = instance.state.config
@@ -299,7 +303,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     return imageToData(imagePoint.x, imagePoint.y, viewport)
   }
 
-  // For horizontal movement (frequency/spacing adjustment)
+  // For horizontal movement (frequency adjustment)
   if (movement.dx !== 0) {
     // Measure what one keypress is worth in frequency rather than re-deriving
     // it: take a reference point and the same point moved by the increment.
@@ -311,15 +315,13 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     const before = svgPointToData(reference.x, reference.y)
     const after = svgPointToData(reference.x + movement.dx, reference.y)
 
-    // Positive dx increases spacing, negative dx decreases spacing
-    const spacingChange = after.freq - before.freq
-    updates.spacing = Math.max(1.0, harmonicSet.spacing + spacingChange)
+    updates = { ...updates, ...owner.nudgeFreqUpdates(set, after.freq - before.freq) }
   }
 
   // For vertical movement (time/anchor position adjustment)
   if (movement.dy !== 0) {
     const anchorSVG = dataToSVG(
-      { freq: instance.state.config.freqMin, time: harmonicSet.anchorTime },
+      { freq: instance.state.config.freqMin, time: set.anchorTime },
       viewport,
       image
     )
@@ -328,30 +330,12 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
     // Clamp to valid time range
     updates.anchorTime = Math.max(timeMin, Math.min(timeMax, moved.time))
   }
-  
-  // Apply updates directly to the harmonic set
+
   if (Object.keys(updates).length > 0) {
-    const setIndex = harmonics.harmonicSets.findIndex(set => set.id === harmonicSetId)
-    if (setIndex !== -1) {
-      Object.assign(harmonics.harmonicSets[setIndex], updates)
-      markAnnotationsChanged(instance)
-      
-      // Update visual elements if harmonic panel exists. This uses the static
-      // import at the top of the file: the dynamic import that used to be here
-      // cited circular dependencies, but the same module is already imported
-      // statically and called synchronously elsewhere in this file — so it only
-      // delayed the panel update by a microtask and swallowed any error.
-      if (instance.ui.harmonicPanel) {
-        updateHarmonicPanelContent(instance.ui.harmonicPanel, instance)
-      }
-      
-      // Trigger re-render of persistent features to show updated harmonic set
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures()
-      }
-      
-      dispatch(instance)
-    }
+    // The mode applies the update, marks the annotation change, refreshes its
+    // table and re-renders. This function used to do all four by hand against
+    // `state.harmonics` (spec 167, FR-006).
+    owner.updateSet(setId, updates)
   }
 }
 
@@ -359,7 +343,7 @@ function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
 /**
  * Set selection state for an item
  * @param {GramFrame} instance - GramFrame instance
- * @param {string} type - Type of item ('marker' | 'harmonicSet')
+ * @param {string} type - Type of item ('marker' | 'harmonicSet' | 'sidebandSet')
  * @param {string} id - ID of selected item
  * @param {number} index - Index in table for display purposes
  */
@@ -409,7 +393,7 @@ export function clearSelection(instance) {
 /**
  * Resolve the currently selected feature (marker or harmonic set).
  * @param {GramFrame} instance - GramFrame instance
- * @returns {{type: 'marker'|'harmonicSet', feature: AnalysisMarker|HarmonicSet}|null} Selected feature or null
+ * @returns {{type: SelectedFeatureType, feature: AnalysisMarker|PinSet}|null} Selected feature or null
  */
 function getSelectedFeature(instance) {
   const sel = instance.state.selection
@@ -423,12 +407,10 @@ function getSelectedFeature(instance) {
       : null
     return feature ? { type: 'marker', feature } : null
   }
-  if (sel.selectedType === 'harmonicSet') {
-    const harmonics = instance.state.harmonics
-    const feature = harmonics && harmonics.harmonicSets
-      ? harmonics.harmonicSets.find(h => h.id === sel.selectedId)
-      : null
-    return feature ? { type: 'harmonicSet', feature } : null
+  const owner = findPinSetOwner(instance, sel.selectedType)
+  if (owner) {
+    const feature = owner.sets.find(set => set.id === sel.selectedId)
+    return feature ? { type: owner.selectionType, feature } : null
   }
   return null
 }
@@ -450,15 +432,16 @@ function getSelectedFeature(instance) {
 export function getActiveStyle(instance) {
   const selected = getSelectedFeature(instance)
   if (selected) {
-    const isHarmonicSet = selected.type === 'harmonicSet'
+    // Markers have no pin; every pin set (harmonic or sideband) does.
+    const isPinSet = selected.type !== 'marker'
     return {
       color: selected.feature.color,
       symbol: /** @type {SymbolType} */ (selected.feature.symbol || DEFAULT_SYMBOL),
-      // A harmonic set without an explicit `showPin` (legacy/restored) is pinned.
-      showPin: isHarmonicSet
-        ? /** @type {HarmonicSet} */ (selected.feature).showPin !== false
+      // A pin set without an explicit `showPin` (legacy/restored) is pinned.
+      showPin: isPinSet
+        ? /** @type {PinSet} */ (selected.feature).showPin !== false
         : instance.state.showHarmonicPin !== false,
-      pinApplies: isHarmonicSet,
+      pinApplies: isPinSet,
       largeSymbols: !!selected.feature.largeSymbols
     }
   }
@@ -476,15 +459,13 @@ export function getActiveStyle(instance) {
  * Re-render the overlay and the affected feature's table after a restyle, then
  * notify listeners (which also triggers persistence).
  * @param {GramFrame} instance - GramFrame instance
- * @param {'marker'|'harmonicSet'} type - Which feature type changed
+ * @param {SelectedFeatureType} _type - Which feature type changed
  */
-function refreshFeatureVisuals(instance, type) {
+function refreshFeatureVisuals(instance, _type) {
   if (instance.featureRenderer) {
     instance.featureRenderer.renderAllPersistentFeatures()
   }
-  if (type === 'marker' || type === 'harmonicSet') {
-    refreshPanels(instance)
-  }
+  refreshPanels(instance)
   dispatch(instance)
 }
 
@@ -525,20 +506,21 @@ export function applySymbolToSelectedFeature(instance, symbol) {
 }
 
 /**
- * Show or hide the vertical pin lines of the currently selected harmonic set,
- * updating the overlay and table instantly. No-op (returns false) when nothing
- * is selected or when the selection is a marker, which has no pin — the caller
- * then treats the change as setting the session default instead.
+ * Show or hide the vertical pin lines of the currently selected pin set —
+ * harmonic or sideband — updating the overlay and table instantly. No-op
+ * (returns false) when nothing is selected or when the selection is a marker,
+ * which has no pin — the caller then treats the change as setting the session
+ * default instead.
  * @param {GramFrame} instance - GramFrame instance
  * @param {boolean} showPin - Whether the set should draw its pin lines
  * @returns {boolean} True if a harmonic set was restyled
  */
 export function applyPinToSelectedFeature(instance, showPin) {
   const selected = getSelectedFeature(instance)
-  if (!selected || selected.type !== 'harmonicSet') {
+  if (!selected || selected.type === 'marker') {
     return false
   }
-  /** @type {HarmonicSet} */ (selected.feature).showPin = !!showPin
+  /** @type {PinSet} */ (selected.feature).showPin = !!showPin
   // `showPin` is a persisted field, so this restyle must reach storage like its
   // colour/symbol siblings — without the mark, a pin toggle survived only until
   // the next reload (H1).
@@ -569,35 +551,40 @@ export function applyLargeSymbolsToSelectedFeature(instance, large) {
 }
 
 /**
- * Remove a harmonic set by ID
+ * Remove a harmonic set by ID.
+ *
+ * A thin alias for {@link removePinSet}: the name is the one the public
+ * `instance.interaction` surface and the harmonics panel already use.
  * @param {GramFrame} instance - GramFrame instance
  * @param {string} id - Harmonic set ID to remove
  */
 export function removeHarmonicSet(instance, id) {
-  const { harmonics, selection } = instance.state
-  const setIndex = harmonics.harmonicSets.findIndex(set => set.id === id)
-  if (setIndex !== -1) {
-    // Clear selection if removing the selected harmonic set
-    if (selection.selectedType === 'harmonicSet' && selection.selectedId === id) {
-      clearSelection(instance)
-    }
-    
-    harmonics.harmonicSets.splice(setIndex, 1)
-    // Deleting a set is an annotation mutation: masked today by the signature's
-    // set-count field, but the mark is the contract (BH-24).
-    markAnnotationsChanged(instance)
+  removePinSet(instance, 'harmonicSet', id)
+}
 
-    // Update visual elements
-    if (instance.ui.harmonicPanel) {
-      updateHarmonicPanelContent(instance.ui.harmonicPanel, instance)
-    }
-    
-    // Trigger re-render of persistent features to remove the harmonic set
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures()
-    }
-    
-    dispatch(instance)
+/**
+ * Remove a sideband set by ID (issue #241).
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {string} id - Sideband set ID to remove
+ */
+export function removeSidebandSet(instance, id) {
+  removePinSet(instance, 'sidebandSet', id)
+}
+
+/**
+ * Delete one of a pin-set mode's sets, through the mode that owns it.
+ *
+ * The removal itself — clearing the selection, splicing the set out, marking
+ * the annotation change, refreshing the table and re-rendering — belongs to the
+ * mode, and used to be written a second time here against `state.harmonics`.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {SelectedFeatureType} selectionType - Which family the id belongs to
+ * @param {string} id - Set ID to remove
+ */
+function removePinSet(instance, selectionType, id) {
+  const owner = findPinSetOwner(instance, selectionType)
+  if (owner) {
+    owner.removeSet(id)
   }
 }
 

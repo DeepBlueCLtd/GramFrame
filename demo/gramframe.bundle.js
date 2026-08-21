@@ -4,7 +4,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
 (function() {
   // Inject CSS styles
   const style = document.createElement('style');
-  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #1a1a1a;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* Military-style table layout for proper resizing */\n.gram-frame-table {\n  display: table;\n  width: 100%;\n  height: 100%;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* Main panel with military frame */\n.gram-frame-main-panel {\n  padding: 15px;\n  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border: 3px solid #555;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 3px 6px rgba(0,0,0,0.5),\n    inset 0 -2px 4px rgba(255,255,255,0.1),\n    0 0 10px rgba(0,0,0,0.7);\n  position: relative;\n}\n\n.gram-frame-main-panel:before {\n  content: '';\n  position: absolute;\n  top: 5px;\n  left: 5px;\n  right: 5px;\n  bottom: 5px;\n  border: 1px solid #666;\n  border-radius: 4px;\n  pointer-events: none;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n.gram-frame-display-panel {\n  padding: 10px;\n  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border-top: 2px solid #555;\n}\n\n.gram-frame-readout {\n  flex: 0 1 auto;\n  width: 100%; /* Definite width so the unified layout's flex sizing applies */\n  padding: 0;\n  background: transparent;\n}\n\n/* Harmonics mode CSS removed - now using unified layout */\n\n/* Harmonics layout container - two columns */\n\n/* Left column for controls - 40% width */\n.gram-frame-harmonics-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  flex: 0 0 40%;\n  max-width: 40%;\n}\n\n/* Top row in left column */\n.gram-frame-harmonics-top-row {\n  display: flex;\n  gap: 10px;\n  align-items: stretch;\n}\n\n/* Right column for table - 60% width */\n.gram-frame-harmonics-table-column {\n  flex: 0 0 60%;\n  max-width: 60%;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n}\n\n/* Make color picker more compact in harmonics mode */\n.gram-frame-harmonics-mode .gram-frame-color-picker {\n  margin: 0;\n}\n\n/* Harmonic panel layout - always visible in unified layout */\n\n/* Military-style display windows */\n.gram-frame-led {\n  font-family: 'Courier New', monospace;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  color: #00ff00; /* LED green */\n  padding: 6px 0px;\n  border: 0px solid #333;\n  border-radius: 4px;\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 auto;\n  min-width: 100px;\n  text-align: center;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  position: relative;\n  font-size: 11px;\n  height: fit-content;\n}\n\n.gram-frame-led:before {\n  content: '';\n  position: absolute;\n  top: 2px;\n  left: 2px;\n  right: 2px;\n  bottom: 2px;\n  border: 1px solid #444;\n  border-radius: 2px;\n  pointer-events: none;\n}\n\n/* LED label */\n.gram-frame-led-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 4px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* LED value */\n.gram-frame-led-value {\n  font-size: 14px;\n  font-weight: bold;\n  text-shadow: 0 0 4px #00ff00;\n}\n\n/* Label-beside-value LED (the doppler speed readout).\n *\n * The default LED stacks its label above its value, which suits the short\n * \"Time (mm:ss)\" / \"Frequency (Hz)\" captions. \"Doppler Speed (kts)\" is long\n * enough to claim a row of its own, so stacking it spent height on a line that\n * was mostly empty either side of the value. Here the label sits to the LEFT of\n * the value and `width: min-content` wraps it, filling the width the stacked\n * form wasted. It breaks into two lines rather than three because MainUI.js\n * joins \"Doppler\" and \"Speed\" with a non-breaking space.\n *\n * The label stays ONE text node (\"Doppler Speed (kts)\"): the wrap is CSS, not\n * markup, so `.gram-frame-led-label:text-is(...)` still matches it (the test\n * helpers locate every LED that way). Do not split it into lines in JS. */\n.gram-frame-led-inline {\n  flex-direction: row;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  padding: 4px 6px;\n}\n\n.gram-frame-led-inline .gram-frame-led-label {\n  margin-bottom: 0;\n  width: min-content;\n  text-align: right;\n  line-height: 1.2;\n}\n\n/* Manual harmonic button. Sized to sit inside the panel header row beside the\n   \"Harmonics\" heading: at its old 6px/12px padding and 80px floor it stood\n   28px tall against the heading's 21px, which both pushed the heading down out\n   of line with the markers panel's and made the pair too wide for the 175px\n   column, so the button overlapped the heading. */\n.gram-frame-manual-button {\n  padding: 3px 6px;\n  min-width: 0;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 10px;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-manual-button:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-manual-button:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Style panel: colour band, symbol band, harmonics band */\n.gram-frame-color-picker {\n  margin-top: 0;\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  max-width: 200px;\n  flex-shrink: 0;\n}\n\n/* No `.gram-frame-color-picker-label` rule: the panel's \"Style\" heading is\n * gone (each band labels itself), so the caption it styled no longer exists. */\n\n.gram-frame-color-palette {\n  position: relative;\n}\n\n/* One band of the style panel, grouping controls that share a scope. */\n.gram-frame-style-group {\n  margin-bottom: 6px;\n}\n\n.gram-frame-style-group:last-child {\n  margin-bottom: 0;\n}\n\n/* Band caption. Same micro-caps treatment as the panel heading, but ranged left\n   so the bands read as a list beneath the centred title. */\n.gram-frame-style-group-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: left;\n  margin-bottom: 4px;\n}\n\n/* A band whose controls fit on one line puts its caption inline with them\n   rather than above. Used by the Symbol and Harmonics bands; the Colour band\n   has no caption at all — the gradient slider needs no naming. */\n.gram-frame-style-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.gram-frame-style-row .gram-frame-style-group-label {\n  margin-bottom: 0;\n}\n\n/* Fences the harmonics-only band off from the controls above it. Lighter than\n   the panel border (#333), which is invisible against the panel's near-black\n   fill — the rule has to be seen to do its job. */\n.gram-frame-style-divider {\n  border-top: 1px solid #4a4a4a;\n  margin: 8px 0 6px;\n}\n\n/* Symbol drop-down embedded to the right of the colour slider. Its `color` is\n   set inline to the selected colour so the glyphs render in that colour. */\n.gram-frame-symbol-select {\n  flex-shrink: 0;\n  padding: 2px 4px;\n  background: #0a0a0a;\n  border: 1px solid #555;\n  border-radius: 2px;\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n/* Harmonic-pin visibility toggle, in the panel's harmonics band.\n   TEMPORARY (symbol-size experiment): the \"Large\" toggle sits inline in the\n   symbol row and shares this styling. Remove that selector, the margin-left\n   override and the blocks below, together with the control once a symbol size\n   is agreed. */\n.gram-frame-pin-toggle,\n.gram-frame-large-symbols-toggle {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n  cursor: pointer;\n  user-select: none;\n}\n\n/* Push the size toggle to the far edge of the symbol row, clear of the\n   drop-down. */\n.gram-frame-large-symbols-toggle {\n  margin-left: auto;\n}\n\n.gram-frame-pin-toggle-input,\n.gram-frame-large-symbols-checkbox {\n  margin: 0;\n  cursor: pointer;\n  accent-color: #00ff00;\n}\n\n.gram-frame-pin-toggle-label,\n.gram-frame-large-symbols-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-pin-toggle-disabled {\n  cursor: default;\n  opacity: 0.45;\n}\n\n.gram-frame-pin-toggle-disabled .gram-frame-pin-toggle-input {\n  cursor: default;\n}\n\n/* The slider has the band to itself, so it spans the panel: a wider gradient is\n   an easier target. The canvas keeps its 140px backing store — the click\n   handler rescales by the rendered width, and the indicator is positioned in\n   percent, so both follow the CSS width. */\n.gram-frame-color-canvas {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  height: 20px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  cursor: pointer;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n.gram-frame-color-indicator {\n  position: absolute;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 3px;\n  height: 26px;\n  background: #fff;\n  border: 1px solid #000;\n  border-radius: 1px;\n  pointer-events: none;\n  box-shadow: 0 0 2px rgba(0,0,0,0.8);\n}\n\n/* Analysis mode layout styles */\n.gram-frame-analysis-layout {\n  height: 100%;\n}\n\n.gram-frame-analysis-controls {\n  align-self: flex-start;\n}\n\n.gram-frame-analysis-leds {\n  /* Side-by-side LEDs container */\n}\n\n.gram-frame-analysis-leds .gram-frame-led {\n  /* Ensure LEDs in the horizontal container are sized properly */\n  font-size: 9px; /* Slightly smaller to fit side-by-side */\n}\n\n.gram-frame-analysis-leds .gram-frame-led-label {\n  font-size: 8px; /* Smaller label text */\n  color: #00ff00;\n}\n\n.gram-frame-analysis-markers {\n  height: 100%;\n}\n\n/* Unified table styles for both markers and harmonics */\n\n/*\n * Fixed-height home for a markers/harmonics table.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the readout row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n.gram-frame-table-container {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  box-sizing: border-box;\n  padding: 0;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow:\n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows\n     are added or removed (no reflow of the table columns). */\n  overflow-y: scroll;\n  overflow-x: hidden;\n  /* Dark-theme scrollbar (Firefox) */\n  scrollbar-width: thin;\n  scrollbar-color: #555 #111;\n}\n\n/* Dark-theme scrollbar (WebKit/Blink) */\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 10px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: #555;\n  border-radius: 5px;\n  border: 2px solid #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: #6a6a6a;\n}\n\n/*\n * Separate (not collapsed) borders: sticky header cells are unreliable with\n * border-collapse, so each cell draws its own right/bottom edge and the first\n * column/header row close the outer edges. Visually identical to the collapsed\n * 1px grid, because border-spacing is zero.\n *\n * Element-qualified because the `gram-frame-table` class is also carried by the\n * component's outer frame <div> (display: table), which must keep its own\n * border. Zeroing the border here matters for the sticky header too — a border\n * on the table box offsets the header cells from the scrollport, which makes\n * them jump when the body first scrolls.\n */\ntable.gram-frame-table {\n  width: 100%;\n  /*\n   * Natural height, NOT the 100% the shared class sets for the outer frame.\n   * A table told to fill its container distributes the surplus across its rows,\n   * so a two-row table drew 50px rows, a six-row table 31px ones, and every row\n   * visibly shrank as the next was added. Rows now stay the height their\n   * content needs and the leftover space simply sits below them.\n   */\n  height: auto;\n  border: 0;\n  border-collapse: separate;\n  border-spacing: 0;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-table th,\n.gram-frame-table td {\n  border: 0;\n  border-right: 1px solid #444;\n  border-bottom: 1px solid #444;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  border-left: 1px solid #444;\n}\n\n.gram-frame-table th {\n  background: #222;\n  color: #00ff00;\n  /*\n   * Horizontal padding and letter-spacing are deliberately tight (feature 231):\n   * the markers table gained a fifth column in the same 160px, and at 4px/0.5px\n   * the headers no longer fitted their own text. The narrow columns are the\n   * constraint here, not the label copy.\n   */\n  padding: 4px 1px;\n  text-align: center;\n  border-top: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0;\n  /* Header row stays pinned while the body scrolls beneath it. The z-index sits\n     above the positioned body rows, including a selected row's cells (11). */\n  position: sticky;\n  top: 0;\n  z-index: 20;\n}\n\n.gram-frame-table td {\n  /* Matches the header's tight horizontal padding — see the note above. */\n  padding: 4px 1px;\n  text-align: center;\n  background: #1a1a1a;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n  transition: all 0.2s ease;\n  position: relative;\n}\n\n.gram-frame-table tbody tr:hover {\n  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.05),\n    inset 0 -1px 2px rgba(0,0,0,0.2),\n    0 0 4px rgba(255,255,255,0.1);\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: transparent;\n}\n\n/* Legacy markers styles - kept for compatibility */\n.gram-frame-markers-container {\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-markers-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin: 0 0 8px 0;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-markers-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-markers-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-markers-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-color-swatch {\n  margin: 0 auto;\n  display: block;\n}\n\n.gram-frame-marker-delete-btn {\n  padding: 2px 6px;\n  border-radius: 2px;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-delete-btn:hover {\n  background-color: #ff4444 !important;\n  color: #fff !important;\n}\n\n/*\n * The Label column shows an abbreviated label (see formatMarkerLabelForTable),\n * so it should never wrap or stretch the row; anything unexpectedly long is\n * clipped rather than allowed to reflow the table.\n *\n * It is also the positioning context for the label button in its top-right\n * corner. The button was stacked above Delete in the actions cell until every\n * marker row had to be tall enough for two controls; out of the flow it costs\n * the row no height, and it now sits in the column it edits.\n */\n.gram-frame-marker-label-cell {\n  position: relative;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n/* Deliberately NOT a positioning context: the button anchors to the CELL, which\n   is the box whose top-right corner it wants. This wrapper is only as tall as\n   the label text and sits vertically centred in the cell, so positioning\n   against it would park the button halfway down instead. */\n.gram-frame-marker-label-content {\n  position: static;\n}\n\n/* Reserves the button's corner so a longer abbreviation is clipped short of it\n   rather than running underneath. */\n.gram-frame-marker-label-text {\n  display: block;\n  padding-right: 14px;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-marker-label-btn {\n  position: absolute;\n  top: 1px;\n  right: 0;\n  background: none;\n  border: none;\n  color: #8ab4d8;\n  cursor: pointer;\n  padding: 1px 2px;\n  border-radius: 2px;\n  line-height: 0;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-label-btn:hover {\n  background-color: #8ab4d8;\n  color: #1a1a1a;\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/*\n * A marker's on-gram label. Legibility comes from the halo (black glyphs in a\n * white outline) set as presentation attributes by applyTextHalo() — see\n * src/utils/svg.js. Never a click target: the marker underneath is.\n */\n.gram-frame-marker-label {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  user-select: none;\n}\n\n/* Military-style mode selection header */\n.gram-frame-mode-header {\n  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border-bottom: 2px solid #555;\n  display: flex;\n  align-items: flex-start;\n  justify-content: flex-start;\n}\n\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  justify-content: center;\n  align-items: stretch;\n  flex: 0 0 auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-mode-group {\n  display: flex;\n  align-items: center;\n  gap: 2px;\n  width: 100%;\n  flex-wrap: nowrap;\n}\n\n/* Simplified left panel - no sub-columns needed */\n\n/* Guidance panel */\n.gram-frame-guidance {\n  flex: 1;\n  padding: 8px 12px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  color: #ccc;\n  font-size: 12px;\n  line-height: 1.4;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-guidance h4 {\n  margin: 0 0 6px 0;\n  font-size: 11px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* Aside inside a guidance heading (e.g. Mouse-Wheel \"(available in all modes)\").\n   Dropping the heading's uppercase and letter-spacing is what lets the qualifier\n   share the heading's line instead of wrapping onto a second one — it was a\n   bullet of its own until it moved up here, and a two-line heading would have\n   given back the height the move was meant to save. Dimmer than the heading so\n   the section still reads by its name first. */\n.gram-frame-guidance h4 .gram-frame-guidance-qualifier {\n  text-transform: none;\n  letter-spacing: 0;\n  font-weight: normal;\n  font-size: 10px;\n  color: #6a6;\n}\n\n.gram-frame-guidance p {\n  margin: 0 0 4px 0;\n}\n\n/* Military-style metal buttons */\n.gram-frame-mode-btn {\n  padding: 8px 6px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  flex: 1;\n  min-width: 0;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-command-btn {\n  padding: 8px 10px;\n  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #444;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 14px;\n  line-height: 1;\n  flex: 0 0 auto;\n  min-width: 32px;\n  height: 36px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-mode-btn:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-mode-btn.active {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n  border-color: #4a8a4a;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    inset 0 -1px 2px rgba(255,255,255,0.1),\n    0 0 4px rgba(74, 138, 74, 0.3);\n}\n\n.gram-frame-mode-btn:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  opacity: 0.6;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n.gram-frame-mode-btn:disabled:hover,\n.gram-frame-mode-btn.disabled:hover {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n  transform: none;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-command-btn:active:not(:disabled) {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-command-btn:disabled {\n  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n/* Clear gram button — trainer pages only */\n.gram-frame-clear-btn {\n  margin-top: 8px;\n  padding: 6px 10px;\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #6a3a3a;\n  border-radius: 4px;\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.5px;\n  cursor: pointer;\n  text-transform: uppercase;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.15),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  width: 100%;\n}\n\n.gram-frame-clear-btn:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.25),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-clear-btn:active {\n  transform: translateY(1px);\n  box-shadow:\n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Storage-failure banner — shown inside the component when a save or clear was\n   refused by browser storage (quota, private browsing). Non-blocking: it sits\n   above the controls, wraps rather than clips, and can be dismissed. */\n.gram-frame-storage-warning {\n  box-sizing: border-box;\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  margin: 0 0 8px 0;\n  padding: 8px 10px;\n  background-color: #fff8e1;\n  border: 1px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 13px;\n  line-height: 1.4;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-storage-warning-message {\n  flex: 1 1 auto;\n  min-width: 0;\n}\n\n.gram-frame-storage-warning-dismiss {\n  flex: 0 0 auto;\n  padding: 0 4px;\n  background: none;\n  border: none;\n  color: #663c00;\n  font-size: 16px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-storage-warning-dismiss:hover {\n  color: #a06000;\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Rate input UI styles removed - backend functionality preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line,\n.gram-frame-harmonic-mini-pin {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the halo (black glyphs inside a white outline) set as\n   * presentation attributes by applyTextHalo() in src/utils/svg.js — see the\n   * fill/stroke/paint-order there. No drop-shadow: it only blurred the outline.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* Legacy harmonic panel styles - now using unified table structure */\n\n.gram-frame-harmonic-spacing,\n.gram-frame-harmonic-rate {\n  font-size: 14px;\n  font-weight: bold;\n}\n\n.gram-frame-harmonic-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n.gram-frame-harmonic-delete {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ff6666;\n  border: 1px solid #555;\n  border-radius: 2px;\n  width: 20px;\n  height: 20px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  line-height: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.1s ease;\n}\n\n.gram-frame-harmonic-delete:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  border-color: #777;\n}\n\n.gram-frame-harmonic-delete:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-harmonic-empty {\n  color: #666;\n  font-style: italic;\n  text-align: center;\n  padding: 20px;\n  font-size: 12px;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n/*\n * The vertical extensions are drawn after the f+/f- dots, so while they were\n * hit-testable they sat on top of the very markers the analyst was aiming at.\n * Doppler hit-testing is done in data space against the marker positions, not\n * by hitting an element, so nothing needs these to be targets.\n */\n.gram-frame-doppler-extension {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Cursor position readout styles */\n.gram-frame-cursor-readout {\n  display: flex;\n  gap: 15px;\n  margin-bottom: 10px;\n  padding: 8px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 1px solid #444;\n  border-radius: 4px;\n}\n\n.gram-frame-readout-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  min-width: 80px;\n}\n\n.gram-frame-readout-label {\n  font-size: 10px;\n  color: #aaa;\n  text-transform: uppercase;\n  margin-bottom: 2px;\n  font-weight: bold;\n}\n\n.gram-frame-readout-value {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: bold;\n  color: #00ff00;\n  background: #000;\n  padding: 4px 8px;\n  border: 1px solid #333;\n  border-radius: 2px;\n  text-align: center;\n  min-width: 60px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n/* Supporting note under a modal input (e.g. how to clear a marker label) */\n.gram-frame-modal-hint {\n  color: #999;\n  font-size: 11px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/* Unified Layout Styles */\n.gram-frame-unified-layout {\n  display: flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  gap: 2px; /* Match JavaScript gap */\n  width: 100%;\n  height: 100%;\n  overflow: hidden; /* Prevent columns from overflowing container */\n}\n\n.gram-frame-left-column {\n  position: relative; /* Enable absolute positioning for child elements */\n  display: flex;\n  flex-direction: row;\n  gap: 4px;\n  flex: 0 0 600px;\n  width: 600px;\n  overflow: hidden;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Left column sub-columns */\n.gram-frame-mode-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 130px;\n  width: 130px;\n  padding: 8px;\n  border: none;\n}\n\n.gram-frame-guidance-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 1;\n  min-width: 150px;\n  border: none;\n}\n\n.gram-frame-controls-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 210px;\n  width: 210px;\n  padding: 0px;\n  border: none;\n}\n\n/*\n * Markers column. Widened from a flat 160px when the Label column was added\n * (feature 231), and made elastic rather than fixed: it takes up to 235px where\n * the host has the width, and gives back down to 185px where it does not.\n *\n * The floor matters. Shrinking the LEFT column past ~620px rewraps the guidance\n * text onto extra lines and grows the whole control row ~50px taller, pushing\n * the gram down the page — so the markers column must not simply be pinned\n * wide. 185px is the floor because it is what the five columns need, and it is\n * funded by the harmonics column next door (200 → 175px) rather than by the\n * left column, leaving the narrow-window layout exactly as it was.\n *\n * These values — and the matching inline styles in\n * MainUI.createUnifiedLayout — must agree.\n */\n.gram-frame-middle-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 3 235px;\n  width: auto;\n  min-width: 185px;\n  max-width: 235px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Harmonics column. 200 → 175px; see the markers-column note above. */\n.gram-frame-right-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 175px;\n  min-width: 175px;\n  width: 175px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-cursor-leds {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 6px;\n  align-items: flex-start;\n  flex: 0 0 auto;\n  height: fit-content;\n}\n\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n/*\n * Panel header: the heading, plus an optional action slot on the right (the\n * harmonics panel's + Manual button).\n *\n * The rule and the spacing live HERE and not on the h4, which is what keeps the\n * two panels consistent. When the underline was on the heading itself, the\n * markers h4 — a block filling its column — drew a full-width rule, while the\n * harmonics h4 — a flex item beside the button — drew one only as wide as the\n * word. `min-height` holds both rows to the same height so the two headings sit\n * on the same line as each other across the panel.\n */\n.gram-frame-panel-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 6px;\n  min-height: 22px;\n  margin: 0 0 8px 0;\n  padding-bottom: 4px;\n  border-bottom: 1px solid #444;\n  flex-shrink: 0;\n}\n\n.gram-frame-markers-persistent-container h4,\n.gram-frame-harmonics-persistent-container h4 {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  flex-shrink: 0;\n  color: #ddd;\n  font-size: 14px;\n  text-align: left;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n}\n\n.gram-frame-harmonics-button-container {\n  display: flex;\n  justify-content: center;\n  flex-shrink: 0;\n}\n\n/* Responsive behavior for smaller screens */\n@media (max-width: 1200px) {\n  .gram-frame-unified-layout {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .gram-frame-left-column,\n  .gram-frame-middle-column,\n  .gram-frame-right-column {\n    flex: 0 0 auto;\n    min-height: 200px;\n  }\n}\n\n/* Selection highlighting for keyboard control */\n.gram-frame-selected-row {\n  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;\n  color: #aaffaa !important;\n  outline: 2px solid #4a8a4a !important;\n  outline-offset: -1px;\n  position: relative;\n  z-index: 10;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.15),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 0 8px rgba(74, 138, 74, 0.6),\n    0 0 2px rgba(74, 138, 74, 0.8) !important;\n}\n\n.gram-frame-selected-row td {\n  color: #aaffaa !important;\n  border-color: #4a8a4a !important;\n  position: relative;\n  z-index: 11;\n}\n\n/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n";
+  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #1a1a1a;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* Military-style table layout for proper resizing */\n.gram-frame-table {\n  display: table;\n  width: 100%;\n  height: 100%;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* Main panel with military frame */\n.gram-frame-main-panel {\n  padding: 15px;\n  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border: 3px solid #555;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 3px 6px rgba(0,0,0,0.5),\n    inset 0 -2px 4px rgba(255,255,255,0.1),\n    0 0 10px rgba(0,0,0,0.7);\n  position: relative;\n}\n\n.gram-frame-main-panel:before {\n  content: '';\n  position: absolute;\n  top: 5px;\n  left: 5px;\n  right: 5px;\n  bottom: 5px;\n  border: 1px solid #666;\n  border-radius: 4px;\n  pointer-events: none;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n.gram-frame-display-panel {\n  padding: 10px;\n  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border-top: 2px solid #555;\n}\n\n.gram-frame-readout {\n  flex: 0 1 auto;\n  width: 100%; /* Definite width so the unified layout's flex sizing applies */\n  padding: 0;\n  background: transparent;\n}\n\n/* Harmonics mode CSS removed - now using unified layout */\n\n/* Harmonics layout container - two columns */\n\n/* Left column for controls - 40% width */\n.gram-frame-harmonics-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  flex: 0 0 40%;\n  max-width: 40%;\n}\n\n/* Top row in left column */\n.gram-frame-harmonics-top-row {\n  display: flex;\n  gap: 10px;\n  align-items: stretch;\n}\n\n/* Right column for table - 60% width */\n.gram-frame-harmonics-table-column {\n  flex: 0 0 60%;\n  max-width: 60%;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n}\n\n/* Make color picker more compact in harmonics mode */\n.gram-frame-harmonics-mode .gram-frame-color-picker {\n  margin: 0;\n}\n\n/* Harmonic panel layout - always visible in unified layout */\n\n/* Military-style display windows */\n.gram-frame-led {\n  font-family: 'Courier New', monospace;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  color: #00ff00; /* LED green */\n  padding: 6px 0px;\n  border: 0px solid #333;\n  border-radius: 4px;\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 auto;\n  min-width: 100px;\n  text-align: center;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  position: relative;\n  font-size: 11px;\n  height: fit-content;\n}\n\n.gram-frame-led:before {\n  content: '';\n  position: absolute;\n  top: 2px;\n  left: 2px;\n  right: 2px;\n  bottom: 2px;\n  border: 1px solid #444;\n  border-radius: 2px;\n  pointer-events: none;\n}\n\n/* LED label */\n.gram-frame-led-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 4px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* LED value */\n.gram-frame-led-value {\n  font-size: 14px;\n  font-weight: bold;\n  text-shadow: 0 0 4px #00ff00;\n}\n\n/* Label-beside-value LED (the doppler speed readout).\n *\n * The default LED stacks its label above its value, which suits the short\n * \"Time (mm:ss)\" / \"Frequency (Hz)\" captions. \"Doppler Speed (kts)\" is long\n * enough to claim a row of its own, so stacking it spent height on a line that\n * was mostly empty either side of the value. Here the label sits to the LEFT of\n * the value and `width: min-content` wraps it, filling the width the stacked\n * form wasted. It breaks into two lines rather than three because MainUI.js\n * joins \"Doppler\" and \"Speed\" with a non-breaking space.\n *\n * The label stays ONE text node (\"Doppler Speed (kts)\"): the wrap is CSS, not\n * markup, so `.gram-frame-led-label:text-is(...)` still matches it (the test\n * helpers locate every LED that way). Do not split it into lines in JS. */\n.gram-frame-led-inline {\n  flex-direction: row;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  padding: 4px 6px;\n}\n\n.gram-frame-led-inline .gram-frame-led-label {\n  margin-bottom: 0;\n  width: min-content;\n  text-align: right;\n  line-height: 1.2;\n}\n\n/* Manual harmonic button. Sized to sit inside the panel header row beside the\n   \"Harmonics\" heading: at its old 6px/12px padding and 80px floor it stood\n   28px tall against the heading's 21px, which both pushed the heading down out\n   of line with the markers panel's and made the pair too wide for the 175px\n   column, so the button overlapped the heading. */\n.gram-frame-manual-button {\n  padding: 3px 6px;\n  min-width: 0;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 10px;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-manual-button:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-manual-button:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Style panel: colour band, symbol band, harmonics band */\n.gram-frame-color-picker {\n  margin-top: 0;\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  max-width: 200px;\n  flex-shrink: 0;\n}\n\n/* No `.gram-frame-color-picker-label` rule: the panel's \"Style\" heading is\n * gone (each band labels itself), so the caption it styled no longer exists. */\n\n.gram-frame-color-palette {\n  position: relative;\n}\n\n/* One band of the style panel, grouping controls that share a scope. */\n.gram-frame-style-group {\n  margin-bottom: 6px;\n}\n\n.gram-frame-style-group:last-child {\n  margin-bottom: 0;\n}\n\n/* Band caption. Same micro-caps treatment as the panel heading, but ranged left\n   so the bands read as a list beneath the centred title. */\n.gram-frame-style-group-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: left;\n  margin-bottom: 4px;\n}\n\n/* A band whose controls fit on one line puts its caption inline with them\n   rather than above. Used by the Symbol and Harmonics bands; the Colour band\n   has no caption at all — the gradient slider needs no naming. */\n.gram-frame-style-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.gram-frame-style-row .gram-frame-style-group-label {\n  margin-bottom: 0;\n}\n\n/* Fences the harmonics-only band off from the controls above it. Lighter than\n   the panel border (#333), which is invisible against the panel's near-black\n   fill — the rule has to be seen to do its job. */\n.gram-frame-style-divider {\n  border-top: 1px solid #4a4a4a;\n  margin: 8px 0 6px;\n}\n\n/* Symbol drop-down embedded to the right of the colour slider. Its `color` is\n   set inline to the selected colour so the glyphs render in that colour. */\n.gram-frame-symbol-select {\n  flex-shrink: 0;\n  padding: 2px 4px;\n  background: #0a0a0a;\n  border: 1px solid #555;\n  border-radius: 2px;\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n/* Harmonic-pin visibility toggle, in the panel's harmonics band.\n   TEMPORARY (symbol-size experiment): the \"Large\" toggle sits inline in the\n   symbol row and shares this styling. Remove that selector, the margin-left\n   override and the blocks below, together with the control once a symbol size\n   is agreed. */\n.gram-frame-pin-toggle,\n.gram-frame-large-symbols-toggle {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n  cursor: pointer;\n  user-select: none;\n}\n\n/* Push the size toggle to the far edge of the symbol row, clear of the\n   drop-down. */\n.gram-frame-large-symbols-toggle {\n  margin-left: auto;\n}\n\n.gram-frame-pin-toggle-input,\n.gram-frame-large-symbols-checkbox {\n  margin: 0;\n  cursor: pointer;\n  accent-color: #00ff00;\n}\n\n.gram-frame-pin-toggle-label,\n.gram-frame-large-symbols-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-pin-toggle-disabled {\n  cursor: default;\n  opacity: 0.45;\n}\n\n.gram-frame-pin-toggle-disabled .gram-frame-pin-toggle-input {\n  cursor: default;\n}\n\n/* The slider has the band to itself, so it spans the panel: a wider gradient is\n   an easier target. The canvas keeps its 140px backing store — the click\n   handler rescales by the rendered width, and the indicator is positioned in\n   percent, so both follow the CSS width. */\n.gram-frame-color-canvas {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  height: 20px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  cursor: pointer;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n.gram-frame-color-indicator {\n  position: absolute;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 3px;\n  height: 26px;\n  background: #fff;\n  border: 1px solid #000;\n  border-radius: 1px;\n  pointer-events: none;\n  box-shadow: 0 0 2px rgba(0,0,0,0.8);\n}\n\n/* Analysis mode layout styles */\n.gram-frame-analysis-layout {\n  height: 100%;\n}\n\n.gram-frame-analysis-controls {\n  align-self: flex-start;\n}\n\n.gram-frame-analysis-leds {\n  /* Side-by-side LEDs container */\n}\n\n.gram-frame-analysis-leds .gram-frame-led {\n  /* Ensure LEDs in the horizontal container are sized properly */\n  font-size: 9px; /* Slightly smaller to fit side-by-side */\n}\n\n.gram-frame-analysis-leds .gram-frame-led-label {\n  font-size: 8px; /* Smaller label text */\n  color: #00ff00;\n}\n\n.gram-frame-analysis-markers {\n  height: 100%;\n}\n\n/* Unified table styles for both markers and harmonics */\n\n/*\n * Fixed-height home for a markers/harmonics table.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the readout row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n.gram-frame-table-container {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  box-sizing: border-box;\n  padding: 0;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow:\n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows\n     are added or removed (no reflow of the table columns). */\n  overflow-y: scroll;\n  overflow-x: hidden;\n  /* Dark-theme scrollbar (Firefox) */\n  scrollbar-width: thin;\n  scrollbar-color: #555 #111;\n}\n\n/* Dark-theme scrollbar (WebKit/Blink) */\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 10px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: #555;\n  border-radius: 5px;\n  border: 2px solid #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: #6a6a6a;\n}\n\n/*\n * Separate (not collapsed) borders: sticky header cells are unreliable with\n * border-collapse, so each cell draws its own right/bottom edge and the first\n * column/header row close the outer edges. Visually identical to the collapsed\n * 1px grid, because border-spacing is zero.\n *\n * Element-qualified because the `gram-frame-table` class is also carried by the\n * component's outer frame <div> (display: table), which must keep its own\n * border. Zeroing the border here matters for the sticky header too — a border\n * on the table box offsets the header cells from the scrollport, which makes\n * them jump when the body first scrolls.\n */\ntable.gram-frame-table {\n  width: 100%;\n  /*\n   * Natural height, NOT the 100% the shared class sets for the outer frame.\n   * A table told to fill its container distributes the surplus across its rows,\n   * so a two-row table drew 50px rows, a six-row table 31px ones, and every row\n   * visibly shrank as the next was added. Rows now stay the height their\n   * content needs and the leftover space simply sits below them.\n   */\n  height: auto;\n  border: 0;\n  border-collapse: separate;\n  border-spacing: 0;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-table th,\n.gram-frame-table td {\n  border: 0;\n  border-right: 1px solid #444;\n  border-bottom: 1px solid #444;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  border-left: 1px solid #444;\n}\n\n.gram-frame-table th {\n  background: #222;\n  color: #00ff00;\n  /*\n   * Horizontal padding and letter-spacing are deliberately tight (feature 231):\n   * the markers table gained a fifth column in the same 160px, and at 4px/0.5px\n   * the headers no longer fitted their own text. The narrow columns are the\n   * constraint here, not the label copy.\n   */\n  padding: 4px 1px;\n  text-align: center;\n  border-top: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0;\n  /* Header row stays pinned while the body scrolls beneath it. The z-index sits\n     above the positioned body rows, including a selected row's cells (11). */\n  position: sticky;\n  top: 0;\n  z-index: 20;\n}\n\n.gram-frame-table td {\n  /* Matches the header's tight horizontal padding — see the note above. */\n  padding: 4px 1px;\n  text-align: center;\n  background: #1a1a1a;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n  transition: all 0.2s ease;\n  position: relative;\n}\n\n.gram-frame-table tbody tr:hover {\n  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.05),\n    inset 0 -1px 2px rgba(0,0,0,0.2),\n    0 0 4px rgba(255,255,255,0.1);\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: transparent;\n}\n\n/* Legacy markers styles - kept for compatibility */\n.gram-frame-markers-container {\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-markers-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin: 0 0 8px 0;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-markers-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-markers-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-markers-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-color-swatch {\n  margin: 0 auto;\n  display: block;\n}\n\n.gram-frame-marker-delete-btn {\n  padding: 2px 6px;\n  border-radius: 2px;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-delete-btn:hover {\n  background-color: #ff4444 !important;\n  color: #fff !important;\n}\n\n/*\n * The Label column shows an abbreviated label (see formatMarkerLabelForTable),\n * so it should never wrap or stretch the row; anything unexpectedly long is\n * clipped rather than allowed to reflow the table.\n *\n * It is also the positioning context for the label button in its top-right\n * corner. The button was stacked above Delete in the actions cell until every\n * marker row had to be tall enough for two controls; out of the flow it costs\n * the row no height, and it now sits in the column it edits.\n */\n.gram-frame-marker-label-cell {\n  position: relative;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n/* Deliberately NOT a positioning context: the button anchors to the CELL, which\n   is the box whose top-right corner it wants. This wrapper is only as tall as\n   the label text and sits vertically centred in the cell, so positioning\n   against it would park the button halfway down instead. */\n.gram-frame-marker-label-content {\n  position: static;\n}\n\n/* Reserves the button's corner so a longer abbreviation is clipped short of it\n   rather than running underneath. */\n.gram-frame-marker-label-text {\n  display: block;\n  padding-right: 14px;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-marker-label-btn {\n  position: absolute;\n  top: 1px;\n  right: 0;\n  background: none;\n  border: none;\n  color: #8ab4d8;\n  cursor: pointer;\n  padding: 1px 2px;\n  border-radius: 2px;\n  line-height: 0;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-label-btn:hover {\n  background-color: #8ab4d8;\n  color: #1a1a1a;\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/*\n * A marker's on-gram label. Legibility comes from the halo (black glyphs in a\n * white outline) set as presentation attributes by applyTextHalo() — see\n * src/utils/svg.js. Never a click target: the marker underneath is.\n */\n.gram-frame-marker-label {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  user-select: none;\n}\n\n/* Military-style mode selection header */\n.gram-frame-mode-header {\n  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border-bottom: 2px solid #555;\n  display: flex;\n  align-items: flex-start;\n  justify-content: flex-start;\n}\n\n/*\n * The mode buttons, stacked one per row.\n *\n * The gap and the button paddings below were tightened when Sidebands became a\n * fifth mode (issue #241): at the old sizes a fifth row made the whole control\n * panel ~40px taller in every mode whose guidance text is short, which pushed\n * the spectrogram itself that far down the page. Five rows now occupy what four\n * did, so adding the mode cost the gram no vertical space.\n */\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  justify-content: center;\n  align-items: stretch;\n  flex: 0 0 auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-mode-group {\n  display: flex;\n  align-items: center;\n  gap: 2px;\n  width: 100%;\n  flex-wrap: nowrap;\n}\n\n/* Simplified left panel - no sub-columns needed */\n\n/* Guidance panel */\n/*\n * The guidance panel fills its column and scrolls, rather than growing the\n * control row to fit its text.\n *\n * Same mechanism as the tables beside it (an absolutely positioned child of a\n * relative column), and for the same reason: the guidance column is what gives\n * way when a host is too narrow for the whole row, and the narrower it gets the\n * taller its text wraps. Letting that set the row height pushed the row — and\n * the spectrogram under it — down the page, by as much as 80px on a 1280px host\n * once a fourth table joined the row (issue #241).\n *\n * The row is now as tall as the readouts and the mode buttons need and no\n * taller, in every mode. Two things follow: the gram sits at a constant height\n * instead of moving as the analyst switches mode, and a host too narrow for the\n * full guidance text costs reading length here rather than gram height.\n */\n.gram-frame-guidance-column {\n  position: relative;\n}\n\n.gram-frame-guidance {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  overflow-y: auto;\n  box-sizing: border-box;\n  padding: 8px 12px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  color: #ccc;\n  font-size: 12px;\n  line-height: 1.4;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-guidance h4 {\n  margin: 0 0 6px 0;\n  font-size: 11px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* Aside inside a guidance heading (e.g. Mouse-Wheel \"(available in all modes)\").\n   Dropping the heading's uppercase and letter-spacing is what lets the qualifier\n   share the heading's line instead of wrapping onto a second one — it was a\n   bullet of its own until it moved up here, and a two-line heading would have\n   given back the height the move was meant to save. Dimmer than the heading so\n   the section still reads by its name first. */\n.gram-frame-guidance h4 .gram-frame-guidance-qualifier {\n  text-transform: none;\n  letter-spacing: 0;\n  font-weight: normal;\n  font-size: 10px;\n  color: #6a6;\n}\n\n.gram-frame-guidance p {\n  margin: 0 0 4px 0;\n}\n\n/* Military-style metal buttons */\n.gram-frame-mode-btn {\n  padding: 5px 6px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  flex: 1;\n  min-width: 0;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-command-btn {\n  padding: 6px 8px;\n  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #444;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 14px;\n  line-height: 1;\n  flex: 0 0 auto;\n  min-width: 32px;\n  height: 32px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-mode-btn:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-mode-btn.active {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n  border-color: #4a8a4a;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    inset 0 -1px 2px rgba(255,255,255,0.1),\n    0 0 4px rgba(74, 138, 74, 0.3);\n}\n\n.gram-frame-mode-btn:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  opacity: 0.6;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n.gram-frame-mode-btn:disabled:hover,\n.gram-frame-mode-btn.disabled:hover {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n  transform: none;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-command-btn:active:not(:disabled) {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-command-btn:disabled {\n  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n/* Clear gram button — trainer pages only */\n.gram-frame-clear-btn {\n  margin-top: 8px;\n  padding: 6px 10px;\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #6a3a3a;\n  border-radius: 4px;\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.5px;\n  cursor: pointer;\n  text-transform: uppercase;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.15),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  width: 100%;\n}\n\n.gram-frame-clear-btn:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.25),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-clear-btn:active {\n  transform: translateY(1px);\n  box-shadow:\n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Storage-failure banner — shown inside the component when a save or clear was\n   refused by browser storage (quota, private browsing). Non-blocking: it sits\n   above the controls, wraps rather than clips, and can be dismissed. */\n.gram-frame-storage-warning {\n  box-sizing: border-box;\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  margin: 0 0 8px 0;\n  padding: 8px 10px;\n  background-color: #fff8e1;\n  border: 1px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 13px;\n  line-height: 1.4;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-storage-warning-message {\n  flex: 1 1 auto;\n  min-width: 0;\n}\n\n.gram-frame-storage-warning-dismiss {\n  flex: 0 0 auto;\n  padding: 0 4px;\n  background: none;\n  border: none;\n  color: #663c00;\n  font-size: 16px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-storage-warning-dismiss:hover {\n  color: #a06000;\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Rate input UI styles removed - backend functionality preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line,\n.gram-frame-harmonic-mini-pin,\n.gram-frame-sideband-line,\n.gram-frame-sideband-mini-pin {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number,\n.gram-frame-sideband-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the halo (black glyphs inside a white outline) set as\n   * presentation attributes by applyTextHalo() in src/utils/svg.js — see the\n   * fill/stroke/paint-order there. No drop-shadow: it only blurred the outline.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* Legacy harmonic panel styles - now using unified table structure */\n\n.gram-frame-harmonic-spacing,\n.gram-frame-harmonic-rate,\n.gram-frame-sideband-freq,\n.gram-frame-sideband-spacing {\n  font-size: 14px;\n  font-weight: bold;\n}\n\n.gram-frame-harmonic-color,\n.gram-frame-sideband-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n.gram-frame-harmonic-delete,\n.gram-frame-sideband-delete {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ff6666;\n  border: 1px solid #555;\n  border-radius: 2px;\n  width: 20px;\n  height: 20px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  line-height: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.1s ease;\n}\n\n.gram-frame-harmonic-delete:hover,\n.gram-frame-sideband-delete:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  border-color: #777;\n}\n\n.gram-frame-harmonic-delete:active,\n.gram-frame-sideband-delete:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-harmonic-empty {\n  color: #666;\n  font-style: italic;\n  text-align: center;\n  padding: 20px;\n  font-size: 12px;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n/*\n * The vertical extensions are drawn after the f+/f- dots, so while they were\n * hit-testable they sat on top of the very markers the analyst was aiming at.\n * Doppler hit-testing is done in data space against the marker positions, not\n * by hitting an element, so nothing needs these to be targets.\n */\n.gram-frame-doppler-extension {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Cursor position readout styles */\n.gram-frame-cursor-readout {\n  display: flex;\n  gap: 15px;\n  margin-bottom: 10px;\n  padding: 8px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 1px solid #444;\n  border-radius: 4px;\n}\n\n.gram-frame-readout-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  min-width: 80px;\n}\n\n.gram-frame-readout-label {\n  font-size: 10px;\n  color: #aaa;\n  text-transform: uppercase;\n  margin-bottom: 2px;\n  font-weight: bold;\n}\n\n.gram-frame-readout-value {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: bold;\n  color: #00ff00;\n  background: #000;\n  padding: 4px 8px;\n  border: 1px solid #333;\n  border-radius: 2px;\n  text-align: center;\n  min-width: 60px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n/* Supporting note under a modal input (e.g. how to clear a marker label) */\n.gram-frame-modal-hint {\n  color: #999;\n  font-size: 11px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/* Unified Layout Styles */\n.gram-frame-unified-layout {\n  display: flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  gap: 2px; /* Match JavaScript gap */\n  width: 100%;\n  height: 100%;\n  overflow: hidden; /* Prevent columns from overflowing container */\n}\n\n.gram-frame-left-column {\n  position: relative; /* Enable absolute positioning for child elements */\n  display: flex;\n  flex-direction: row;\n  gap: 4px;\n  flex: 0 0 600px;\n  width: 600px;\n  overflow: hidden;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Left column sub-columns */\n.gram-frame-mode-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 130px;\n  width: 130px;\n  padding: 8px;\n  border: none;\n}\n\n.gram-frame-guidance-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 1;\n  min-width: 150px;\n  border: none;\n}\n\n.gram-frame-controls-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 210px;\n  width: 210px;\n  padding: 0px;\n  border: none;\n}\n\n/*\n * Markers column. Widened from a flat 160px when the Label column was added\n * (feature 231), and made elastic rather than fixed: it takes up to 235px where\n * the host has the width, and gives back down to 185px where it does not.\n *\n * The floor matters. Shrinking the LEFT column past ~620px rewraps the guidance\n * text onto extra lines and grows the whole control row ~50px taller, pushing\n * the gram down the page — so the markers column must not simply be pinned\n * wide. 185px is the floor because it is what the five columns need, and it is\n * funded by the harmonics column next door (200 → 175px) rather than by the\n * left column, leaving the narrow-window layout exactly as it was.\n *\n * These values — and the matching inline styles in\n * MainUI.createUnifiedLayout — must agree.\n */\n.gram-frame-middle-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 3 235px;\n  width: auto;\n  min-width: 185px;\n  max-width: 235px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/*\n * The two pin-set tables: harmonics (200 → 175px when the markers column gained\n * its Label column — see the markers-column note above), and sidebands beside\n * it. Both are always visible (issue #241).\n *\n * 175px each — the width the harmonics table has always had — so the two read as\n * a matched pair. Together with the markers table and the readouts beside them,\n * the control row now wants ~1090px; a host narrower than that squeezes the\n * guidance column, which scrolls rather than growing the row taller (see the\n * note on `.gram-frame-guidance`).\n */\n.gram-frame-right-column,\n.gram-frame-sidebands-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 175px;\n  min-width: 175px;\n  width: 175px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-cursor-leds {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 6px;\n  align-items: flex-start;\n  flex: 0 0 auto;\n  height: fit-content;\n}\n\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container,\n.gram-frame-sidebands-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n/*\n * Panel header: the heading, plus an optional action slot on the right (the\n * harmonics panel's + Manual button).\n *\n * The rule and the spacing live HERE and not on the h4, which is what keeps the\n * two panels consistent. When the underline was on the heading itself, the\n * markers h4 — a block filling its column — drew a full-width rule, while the\n * harmonics h4 — a flex item beside the button — drew one only as wide as the\n * word. `min-height` holds both rows to the same height so the two headings sit\n * on the same line as each other across the panel.\n */\n.gram-frame-panel-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 6px;\n  min-height: 22px;\n  margin: 0 0 8px 0;\n  padding-bottom: 4px;\n  border-bottom: 1px solid #444;\n  flex-shrink: 0;\n}\n\n.gram-frame-markers-persistent-container h4,\n.gram-frame-harmonics-persistent-container h4,\n.gram-frame-sidebands-persistent-container h4 {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  flex-shrink: 0;\n  color: #ddd;\n  font-size: 14px;\n  text-align: left;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n}\n\n.gram-frame-harmonics-button-container {\n  display: flex;\n  justify-content: center;\n  flex-shrink: 0;\n}\n\n/* Responsive behavior for smaller screens */\n@media (max-width: 1200px) {\n  .gram-frame-unified-layout {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .gram-frame-left-column,\n  .gram-frame-middle-column,\n  .gram-frame-right-column,\n  .gram-frame-sidebands-column {\n    flex: 0 0 auto;\n    min-height: 200px;\n  }\n}\n\n/* Selection highlighting for keyboard control */\n.gram-frame-selected-row {\n  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;\n  color: #aaffaa !important;\n  outline: 2px solid #4a8a4a !important;\n  outline-offset: -1px;\n  position: relative;\n  z-index: 10;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.15),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 0 8px rgba(74, 138, 74, 0.6),\n    0 0 2px rgba(74, 138, 74, 0.8) !important;\n}\n\n.gram-frame-selected-row td {\n  color: #aaffaa !important;\n  border-color: #4a8a4a !important;\n  position: relative;\n  z-index: 11;\n}\n\n/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n";
   document.head.appendChild(style);
 
   "use strict";
@@ -17,7 +17,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     instanceId: "",
     mode: "pan",
-    // 'analysis', 'harmonics', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
+    // 'analysis', 'harmonics', 'sideband', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
     previousMode: null,
     // Previous mode for switching back
     rate: 1,
@@ -495,8 +495,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function hasPersistableAnnotations(state) {
     const hasMarkers = !!(state.analysis && state.analysis.markers && state.analysis.markers.length > 0);
     const hasHarmonics = !!(state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0);
+    const hasSidebands = !!(state.sidebands && state.sidebands.sidebandSets && state.sidebands.sidebandSets.length > 0);
     const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null || state.doppler.fZero !== null));
-    return hasMarkers || hasHarmonics || hasDoppler;
+    return hasMarkers || hasHarmonics || hasSidebands || hasDoppler;
   }
   function isFiniteNumber(value) {
     return typeof value === "number" && Number.isFinite(value);
@@ -535,6 +536,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     } else if (data && data.harmonics && data.harmonics.harmonicSets != null) {
       dropped++;
     }
+    let sidebandSets = [];
+    if (data && data.sidebands && Array.isArray(data.sidebands.sidebandSets)) {
+      sidebandSets = data.sidebands.sidebandSets.filter((sb) => {
+        const valid = !!sb && isNonEmptyString(sb.id) && isNonEmptyString(sb.color) && isFiniteNumber(sb.anchorTime) && isFiniteNumber(sb.fundamentalFreq) && // Strictly positive, for the same reason a harmonic set's is: a spacing
+        // of zero makes the sideband index range infinite.
+        isFiniteNumber(sb.spacing) && sb.spacing > 0;
+        if (!valid) dropped++;
+        return valid;
+      });
+    } else if (data && data.sidebands && data.sidebands.sidebandSets != null) {
+      dropped++;
+    }
     const rawDoppler = data && data.doppler || {};
     const doppler = { fPlus: null, fMinus: null, fZero: null, color: null };
     for (
@@ -555,6 +568,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       gram: data && data.gram,
       analysis: { markers },
       harmonics: { harmonicSets },
+      sidebands: { sidebandSets },
       doppler
     };
     return { annotations, dropped };
@@ -628,6 +642,21 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             // bump SCHEMA_VERSION. Records written before it simply lack the key
             // and restore as `true` (pin shown), matching their original look.
             showPin: hs.showPin !== false
+          }))
+        },
+        // `sidebands` is an ADDITIVE section (issue #241). It MUST NOT trigger a
+        // SCHEMA_VERSION bump: the strict version guard in loadAnnotations would
+        // otherwise discard every pre-existing v1 record. Records written before
+        // sidebands existed simply lack the key and restore with none.
+        sidebands: {
+          sidebandSets: (state.sidebands && state.sidebands.sidebandSets || []).map((sb) => ({
+            id: sb.id,
+            color: sb.color,
+            anchorTime: sb.anchorTime,
+            fundamentalFreq: sb.fundamentalFreq,
+            spacing: sb.spacing,
+            symbol: sb.symbol || "cross",
+            showPin: sb.showPin !== false
           }))
         },
         doppler: {
@@ -737,12 +766,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const state = instance.state;
     const row = document.createElement("label");
     row.className = "gram-frame-pin-toggle";
-    row.title = "Draw harmonic sets with full-height pin lines instead of mini-pins";
+    row.title = "Draw harmonic and sideband sets with full-height pin lines instead of mini-pins";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.className = "gram-frame-pin-toggle-input";
     checkbox.checked = state.showHarmonicPin !== false;
-    checkbox.setAttribute("aria-label", "Show tall harmonic pins");
+    checkbox.setAttribute("aria-label", "Show tall pins");
     const text = document.createElement("span");
     text.className = "gram-frame-pin-toggle-label";
     text.textContent = "Tall Pins";
@@ -768,7 +797,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       setEnabled(enabled) {
         checkbox.disabled = !enabled;
         row.classList.toggle("gram-frame-pin-toggle-disabled", !enabled);
-        row.title = enabled ? "Draw harmonic sets with full-height pin lines instead of mini-pins" : "Tall pins apply to harmonic sets only";
+        row.title = enabled ? "Draw harmonic and sideband sets with full-height pin lines instead of mini-pins" : "Tall pins apply to harmonic and sideband sets only";
       }
     };
     return row;
@@ -891,249 +920,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       data: imageToData(image.x, image.y, viewport)
     };
   }
-  function createDiffingTable(container, spec) {
-    const area = document.createElement("div");
-    area.className = "gram-frame-table-area";
-    const wrapper = document.createElement("div");
-    wrapper.className = "gram-frame-table-container";
-    const table = document.createElement("table");
-    table.className = "gram-frame-table";
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    spec.columns.forEach((column) => {
-      const th = document.createElement("th");
-      th.textContent = column.label || "";
-      if (column.width) {
-        th.style.width = column.width;
-      }
-      headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-    const tbody = document.createElement("tbody");
-    table.appendChild(tbody);
-    wrapper.appendChild(table);
-    area.appendChild(wrapper);
-    container.appendChild(area);
-    let currentRows = [];
-    let renderedKeys = /* @__PURE__ */ new Set();
-    function setCellContent(cell, content) {
-      if (content instanceof Node) {
-        cell.replaceChildren(content);
-      } else if (cell.textContent !== content) {
-        cell.textContent = content;
-      }
-    }
-    function applySelection(tr, key) {
-      const selected = spec.isSelected ? spec.isSelected(key) : false;
-      tr.classList.toggle("gram-frame-selected-row", selected);
-    }
-    function buildRow(row, index) {
-      const key = spec.rowKey(row, index);
-      const tr = document.createElement("tr");
-      tr.setAttribute(spec.rowAttribute, key);
-      if (spec.rowClassName) {
-        tr.className = spec.rowClassName;
-      }
-      applySelection(tr, key);
-      spec.cells(row, index).forEach((content, column) => {
-        const td = document.createElement("td");
-        const className = spec.columns[column] && spec.columns[column].cellClassName;
-        if (className) {
-          td.className = className;
-        }
-        setCellContent(td, content);
-        tr.appendChild(td);
-      });
-      return tr;
-    }
-    function updateRow(tr, row, index) {
-      applySelection(tr, spec.rowKey(row, index));
-      spec.cells(row, index).forEach((content, column) => {
-        const cell = tr.cells[column];
-        if (cell) {
-          setCellContent(cell, content);
-        }
-      });
-    }
-    function rebuildFrom(rows, startIndex) {
-      const existing = tbody.querySelectorAll("tr");
-      for (let i = startIndex; i < existing.length; i++) {
-        existing[i].remove();
-      }
-      for (let i = startIndex; i < rows.length; i++) {
-        tbody.appendChild(buildRow(rows[i], i));
-      }
-    }
-    function applyDiff() {
-      const existing = tbody.querySelectorAll("tr");
-      for (let index = 0; index < currentRows.length; index++) {
-        const tr = (
-          /** @type {HTMLTableRowElement} */
-          existing[index]
-        );
-        const key = spec.rowKey(currentRows[index], index);
-        if (tr && tr.getAttribute(spec.rowAttribute) === key) {
-          updateRow(tr, currentRows[index], index);
-        } else {
-          rebuildFrom(currentRows, index);
-          return;
-        }
-      }
-      for (let i = currentRows.length; i < existing.length; i++) {
-        existing[i].remove();
-      }
-    }
-    function revealRow(index) {
-      const tr = (
-        /** @type {HTMLElement|undefined} */
-        tbody.children[index]
-      );
-      if (!tr) return;
-      const bottom = tr.offsetTop + tr.offsetHeight - wrapper.clientHeight;
-      if (bottom > wrapper.scrollTop) {
-        wrapper.scrollTop = bottom;
-      }
-    }
-    const rowActions = [];
-    if (spec.deleteSelector && spec.onDelete) {
-      rowActions.push({ selector: spec.deleteSelector, handler: spec.onDelete });
-    }
-    if (spec.actions) {
-      rowActions.push(...spec.actions);
-    }
-    function handleClick(event) {
-      const target = (
-        /** @type {Element|null} */
-        event.target
-      );
-      if (!target) return;
-      const tr = (
-        /** @type {HTMLTableRowElement|null} */
-        target.closest("tr")
-      );
-      if (!tr || !tbody.contains(tr)) return;
-      const key = tr.getAttribute(spec.rowAttribute);
-      if (key === null) return;
-      const index = Array.prototype.indexOf.call(tbody.children, tr);
-      const row = currentRows[index];
-      const action = rowActions.find((candidate) => target.closest(candidate.selector));
-      if (action) {
-        event.preventDefault();
-        event.stopPropagation();
-        action.handler(key, row, index);
-        return;
-      }
-      if (spec.onSelect) {
-        spec.onSelect(key, row, index);
-      }
-    }
-    tbody.addEventListener("click", handleClick);
-    return {
-      element: table,
-      /**
-       * Diff `rows` against what is rendered, apply the difference, and keep any
-       * newly added row in view.
-       *
-       * Idempotent: calling it twice with equal input performs no DOM writes and
-       * no scrolling.
-       * @param {any[]} rows - The rows to render
-       */
-      update(rows) {
-        currentRows = rows || [];
-        const keys = currentRows.map((row, index) => spec.rowKey(row, index));
-        applyDiff();
-        let lastAdded = -1;
-        for (let index = 0; index < keys.length; index++) {
-          if (!renderedKeys.has(keys[index])) {
-            lastAdded = index;
-          }
-        }
-        if (renderedKeys.size > 0 && lastAdded !== -1) {
-          revealRow(lastAdded);
-        }
-        renderedKeys = new Set(keys);
-      },
-      /**
-       * Remove the table and its listener.
-       */
-      destroy() {
-        tbody.removeEventListener("click", handleClick);
-        if (area.parentNode) {
-          area.parentNode.removeChild(area);
-        }
-      }
-    };
-  }
-  const panelTables = /* @__PURE__ */ new WeakMap();
-  function createSymbolSwatch(harmonicSet) {
-    return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
-  }
-  function createColorCellContent(harmonicSet) {
-    const colorDiv = document.createElement("div");
-    colorDiv.className = "gram-frame-harmonic-color";
-    colorDiv.style.color = harmonicSet.color;
-    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
-    return colorDiv;
-  }
-  function formatRatio(harmonicSet, instance) {
-    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-      return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
-    }
-    return "5.000";
-  }
-  function createHarmonicDeleteButton(harmonicSet) {
-    const button = document.createElement("button");
-    button.className = "gram-frame-harmonic-delete";
-    button.setAttribute("data-harmonic-id", harmonicSet.id);
-    button.title = "Delete harmonic set";
-    button.textContent = "×";
-    return button;
-  }
-  function createHarmonicPanel(container, instance) {
-    const table = createDiffingTable(container, {
-      columns: [
-        { label: "", width: "15%" },
-        { label: "Spacing (Hz)", width: "35%", cellClassName: "gram-frame-harmonic-spacing" },
-        { label: "Ratio", width: "35%", cellClassName: "gram-frame-harmonic-rate" },
-        { label: "", width: "15%" }
-      ],
-      rowAttribute: "data-harmonic-id",
-      rowClassName: "gram-frame-harmonic-row",
-      rowKey: (harmonicSet) => harmonicSet.id,
-      cells: (harmonicSet) => [
-        createColorCellContent(harmonicSet),
-        harmonicSet.spacing.toFixed(2),
-        formatRatio(harmonicSet, instance),
-        createHarmonicDeleteButton(harmonicSet)
-      ],
-      deleteSelector: ".gram-frame-harmonic-delete",
-      onSelect: (harmonicSetId, _harmonicSet, index) => {
-        if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId) {
-          instance.interaction.clearSelection();
-        } else {
-          instance.interaction.setSelection("harmonicSet", harmonicSetId, index);
-        }
-      },
-      onDelete: (harmonicSetId) => instance.interaction.removeHarmonicSet(harmonicSetId),
-      isSelected: (harmonicSetId) => instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId
-    });
-    const panel = (
-      /** @type {HTMLElement} */
-      table.element.parentElement
+  function isPinSetOwner(mode) {
+    const candidate = (
+      /** @type {Partial<PinSetOwner>} */
+      mode
     );
-    panelTables.set(panel, table);
-    return panel;
+    return typeof (candidate == null ? void 0 : candidate.updateSet) === "function" && typeof (candidate == null ? void 0 : candidate.removeSet) === "function" && typeof (candidate == null ? void 0 : candidate.nudgeFreqUpdates) === "function" && Array.isArray(candidate == null ? void 0 : candidate.sets);
   }
-  function updateHarmonicPanelContent(panel, instance) {
-    if (!panel) {
-      return;
+  function findPinSetOwner(instance, selectionType) {
+    if (!selectionType) {
+      return null;
     }
-    const table = panelTables.get(panel);
-    if (!table) {
-      return;
-    }
-    table.update(instance.state.harmonics.harmonicSets);
+    const owner = Object.values(instance.modes || {}).filter(isPinSetOwner).find((mode) => mode.selectionType === selectionType);
+    return owner || null;
   }
   function isPersistentFeatureProvider(mode) {
     const candidate = (
@@ -1598,8 +1397,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const movement = calculateMovementFromKey(event.key, increment);
     if (selection.selectedType === "marker") {
       moveSelectedMarker(focusedInstance, selection.selectedId, movement);
-    } else if (selection.selectedType === "harmonicSet") {
-      moveSelectedHarmonicSet(focusedInstance, selection.selectedId, movement);
+    } else {
+      const owner = findPinSetOwner(focusedInstance, selection.selectedType);
+      if (owner) {
+        moveSelectedPinSet(focusedInstance, owner, selection.selectedId, movement);
+      }
     }
   }
   function isArrowKey(key) {
@@ -1649,16 +1451,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     refreshPanels(instance);
     dispatch(instance);
   }
-  function moveSelectedHarmonicSet(instance, harmonicSetId, movement) {
-    const harmonics = instance.state.harmonics;
-    if (!harmonics || !harmonics.harmonicSets) {
+  function moveSelectedPinSet(instance, owner, setId, movement) {
+    const set = owner.sets.find((candidate) => candidate.id === setId);
+    if (!set) {
       return;
     }
-    const harmonicSet = harmonics.harmonicSets.find((h) => h.id === harmonicSetId);
-    if (!harmonicSet) {
-      return;
-    }
-    const updates = {};
+    let updates = {};
     const { timeMin, timeMax } = instance.state.config;
     const viewport = instance.state;
     const image = instance.ui.spectrogramImage;
@@ -1674,12 +1472,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       );
       const before = svgPointToData(reference.x, reference.y);
       const after = svgPointToData(reference.x + movement.dx, reference.y);
-      const spacingChange = after.freq - before.freq;
-      updates.spacing = Math.max(1, harmonicSet.spacing + spacingChange);
+      updates = { ...updates, ...owner.nudgeFreqUpdates(set, after.freq - before.freq) };
     }
     if (movement.dy !== 0) {
       const anchorSVG = dataToSVG(
-        { freq: instance.state.config.freqMin, time: harmonicSet.anchorTime },
+        { freq: instance.state.config.freqMin, time: set.anchorTime },
         viewport,
         image
       );
@@ -1687,18 +1484,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       updates.anchorTime = Math.max(timeMin, Math.min(timeMax, moved.time));
     }
     if (Object.keys(updates).length > 0) {
-      const setIndex = harmonics.harmonicSets.findIndex((set) => set.id === harmonicSetId);
-      if (setIndex !== -1) {
-        Object.assign(harmonics.harmonicSets[setIndex], updates);
-        markAnnotationsChanged(instance);
-        if (instance.ui.harmonicPanel) {
-          updateHarmonicPanelContent(instance.ui.harmonicPanel, instance);
-        }
-        if (instance.featureRenderer) {
-          instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        dispatch(instance);
-      }
+      owner.updateSet(setId, updates);
     }
   }
   function setSelection(instance, type, id, index) {
@@ -1734,29 +1520,29 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const feature = analysis && analysis.markers ? analysis.markers.find((m) => m.id === sel.selectedId) : null;
       return feature ? { type: "marker", feature } : null;
     }
-    if (sel.selectedType === "harmonicSet") {
-      const harmonics = instance.state.harmonics;
-      const feature = harmonics && harmonics.harmonicSets ? harmonics.harmonicSets.find((h) => h.id === sel.selectedId) : null;
-      return feature ? { type: "harmonicSet", feature } : null;
+    const owner = findPinSetOwner(instance, sel.selectedType);
+    if (owner) {
+      const feature = owner.sets.find((set) => set.id === sel.selectedId);
+      return feature ? { type: owner.selectionType, feature } : null;
     }
     return null;
   }
   function getActiveStyle(instance) {
     const selected = getSelectedFeature(instance);
     if (selected) {
-      const isHarmonicSet = selected.type === "harmonicSet";
+      const isPinSet = selected.type !== "marker";
       return {
         color: selected.feature.color,
         symbol: (
           /** @type {SymbolType} */
           selected.feature.symbol || DEFAULT_SYMBOL
         ),
-        // A harmonic set without an explicit `showPin` (legacy/restored) is pinned.
-        showPin: isHarmonicSet ? (
-          /** @type {HarmonicSet} */
+        // A pin set without an explicit `showPin` (legacy/restored) is pinned.
+        showPin: isPinSet ? (
+          /** @type {PinSet} */
           selected.feature.showPin !== false
         ) : instance.state.showHarmonicPin !== false,
-        pinApplies: isHarmonicSet,
+        pinApplies: isPinSet,
         largeSymbols: !!selected.feature.largeSymbols
       };
     }
@@ -1769,13 +1555,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       largeSymbols: !!largeSymbols
     };
   }
-  function refreshFeatureVisuals(instance, type) {
+  function refreshFeatureVisuals(instance, _type) {
     if (instance.featureRenderer) {
       instance.featureRenderer.renderAllPersistentFeatures();
     }
-    if (type === "marker" || type === "harmonicSet") {
-      refreshPanels(instance);
-    }
+    refreshPanels(instance);
     dispatch(instance);
   }
   function applyColorToSelectedFeature(instance, color) {
@@ -1800,7 +1584,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function applyPinToSelectedFeature(instance, showPin) {
     const selected = getSelectedFeature(instance);
-    if (!selected || selected.type !== "harmonicSet") {
+    if (!selected || selected.type === "marker") {
       return false;
     }
     selected.feature.showPin = !!showPin;
@@ -1818,21 +1602,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return true;
   }
   function removeHarmonicSet(instance, id) {
-    const { harmonics, selection } = instance.state;
-    const setIndex = harmonics.harmonicSets.findIndex((set) => set.id === id);
-    if (setIndex !== -1) {
-      if (selection.selectedType === "harmonicSet" && selection.selectedId === id) {
-        clearSelection(instance);
-      }
-      harmonics.harmonicSets.splice(setIndex, 1);
-      markAnnotationsChanged(instance);
-      if (instance.ui.harmonicPanel) {
-        updateHarmonicPanelContent(instance.ui.harmonicPanel, instance);
-      }
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(instance);
+    removePinSet(instance, "harmonicSet", id);
+  }
+  function removeSidebandSet(instance, id) {
+    removePinSet(instance, "sidebandSet", id);
+  }
+  function removePinSet(instance, selectionType, id) {
+    const owner = findPinSetOwner(instance, selectionType);
+    if (owner) {
+      owner.removeSet(id);
     }
   }
   function updateSelectionVisuals(instance) {
@@ -1919,7 +1697,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const harmonicsRow = document.createElement("div");
     harmonicsRow.className = "gram-frame-style-row";
     harmonicsGroup.appendChild(harmonicsRow);
-    harmonicsRow.appendChild(createGroupLabel("Harmonics"));
+    harmonicsRow.appendChild(createGroupLabel("Pin sets"));
     harmonicsRow.appendChild(createPinToggle(instance));
     canvas.addEventListener("click", (event) => {
       const rect = canvas.getBoundingClientRect();
@@ -2023,6 +1801,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const displayNames = {
       "analysis": "Cross Cursor",
       "harmonics": "Harmonics",
+      "sideband": "Sidebands",
       "doppler": "Doppler",
       "pan": "Pan"
     };
@@ -2090,7 +1869,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       /** @type {HTMLDivElement} */
       createFullFlexLayout("gram-frame-left-column", "4px")
     );
-    leftColumn.style.flex = "0 1 750px";
+    leftColumn.style.flex = "1 1 750px";
+    leftColumn.style.maxWidth = "750px";
     leftColumn.style.width = "auto";
     leftColumn.style.minWidth = "0";
     leftColumn.style.flexDirection = "row";
@@ -2105,7 +1885,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       createFlexColumn("gram-frame-guidance-column", "8px")
     );
     guidanceColumn.style.flex = "1";
-    guidanceColumn.style.minWidth = "150px";
     const controlsColumn = (
       /** @type {HTMLDivElement} */
       createFlexColumn("gram-frame-controls-column", "1px")
@@ -2140,37 +1919,50 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       /** @type {HTMLDivElement} */
       createFlexColumn("gram-frame-right-column")
     );
-    rightColumn.style.flex = "0 0 175px";
-    rightColumn.style.minWidth = "175px";
-    rightColumn.style.width = "175px";
     const harmonicsContainer = createHarmonicsContainer();
     rightColumn.appendChild(harmonicsContainer);
+    const sidebandsColumn = (
+      /** @type {HTMLDivElement} */
+      createFlexColumn("gram-frame-sidebands-column")
+    );
+    const sidebandsContainer = createSidebandsContainer();
+    sidebandsColumn.appendChild(sidebandsContainer);
     unifiedLayoutContainer.appendChild(leftColumn);
     unifiedLayoutContainer.appendChild(middleColumn);
     unifiedLayoutContainer.appendChild(rightColumn);
+    unifiedLayoutContainer.appendChild(sidebandsColumn);
     return {
       unifiedLayoutContainer,
       leftColumn,
       middleColumn,
       rightColumn,
+      sidebandsColumn,
       modeColumn,
       guidanceColumn,
       controlsColumn,
       markersContainer,
       harmonicsContainer,
+      sidebandsContainer,
       timeLED,
       freqLED,
       speedLED,
       colorPicker
     };
   }
+  function createSidebandsContainer() {
+    const sidebandsContainer = document.createElement("div");
+    sidebandsContainer.className = "gram-frame-sidebands-persistent-container";
+    const header = document.createElement("div");
+    header.className = "gram-frame-panel-header";
+    const label = document.createElement("h4");
+    label.textContent = "Sidebands";
+    header.appendChild(label);
+    sidebandsContainer.appendChild(header);
+    return sidebandsContainer;
+  }
   function createMarkersContainer() {
     const markersContainer = document.createElement("div");
     markersContainer.className = "gram-frame-markers-persistent-container";
-    markersContainer.style.flex = "1";
-    markersContainer.style.display = "flex";
-    markersContainer.style.flexDirection = "column";
-    markersContainer.style.minHeight = "0";
     const markersHeader = document.createElement("div");
     markersHeader.className = "gram-frame-panel-header";
     const markersLabel = document.createElement("h4");
@@ -2182,10 +1974,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function createHarmonicsContainer() {
     const harmonicsContainer = document.createElement("div");
     harmonicsContainer.className = "gram-frame-harmonics-persistent-container";
-    harmonicsContainer.style.flex = "1";
-    harmonicsContainer.style.display = "flex";
-    harmonicsContainer.style.flexDirection = "column";
-    harmonicsContainer.style.minHeight = "0";
     const harmonicsHeader = document.createElement("div");
     harmonicsHeader.className = "gram-frame-panel-header gram-frame-harmonics-header";
     const harmonicsLabel = document.createElement("h4");
@@ -2623,7 +2411,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes = {}) {
     const modesContainer = document.createElement("div");
     modesContainer.className = "gram-frame-modes";
-    const modeTypes = ["pan", "analysis", "harmonics", "doppler"];
+    const modeTypes = ["pan", "analysis", "harmonics", "sideband", "doppler"];
     const modeButtons = {};
     const commandButtons = {};
     modeTypes.forEach((modeType) => {
@@ -3160,6 +2948,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     initializeKeyboardControl(instance);
     return {
       removeHarmonicSet: (id) => removeHarmonicSet(instance, id),
+      removeSidebandSet: (id) => removeSidebandSet(instance, id),
       setSelection: (type, id, index) => setSelection(instance, type, id, index),
       clearSelection: () => clearSelection(instance),
       updateSelectionVisuals: () => updateSelectionVisuals(instance),
@@ -3338,6 +3127,180 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.instance.ui.svg.style.cursor = style;
       }
     }
+  }
+  function createDiffingTable(container, spec) {
+    const area = document.createElement("div");
+    area.className = "gram-frame-table-area";
+    const wrapper = document.createElement("div");
+    wrapper.className = "gram-frame-table-container";
+    const table = document.createElement("table");
+    table.className = "gram-frame-table";
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    spec.columns.forEach((column) => {
+      const th = document.createElement("th");
+      th.textContent = column.label || "";
+      if (column.width) {
+        th.style.width = column.width;
+      }
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    area.appendChild(wrapper);
+    container.appendChild(area);
+    let currentRows = [];
+    let renderedKeys = /* @__PURE__ */ new Set();
+    function setCellContent(cell, content) {
+      if (content instanceof Node) {
+        cell.replaceChildren(content);
+      } else if (cell.textContent !== content) {
+        cell.textContent = content;
+      }
+    }
+    function applySelection(tr, key) {
+      const selected = spec.isSelected ? spec.isSelected(key) : false;
+      tr.classList.toggle("gram-frame-selected-row", selected);
+    }
+    function buildRow(row, index) {
+      const key = spec.rowKey(row, index);
+      const tr = document.createElement("tr");
+      tr.setAttribute(spec.rowAttribute, key);
+      if (spec.rowClassName) {
+        tr.className = spec.rowClassName;
+      }
+      applySelection(tr, key);
+      spec.cells(row, index).forEach((content, column) => {
+        const td = document.createElement("td");
+        const className = spec.columns[column] && spec.columns[column].cellClassName;
+        if (className) {
+          td.className = className;
+        }
+        setCellContent(td, content);
+        tr.appendChild(td);
+      });
+      return tr;
+    }
+    function updateRow(tr, row, index) {
+      applySelection(tr, spec.rowKey(row, index));
+      spec.cells(row, index).forEach((content, column) => {
+        const cell = tr.cells[column];
+        if (cell) {
+          setCellContent(cell, content);
+        }
+      });
+    }
+    function rebuildFrom(rows, startIndex) {
+      const existing = tbody.querySelectorAll("tr");
+      for (let i = startIndex; i < existing.length; i++) {
+        existing[i].remove();
+      }
+      for (let i = startIndex; i < rows.length; i++) {
+        tbody.appendChild(buildRow(rows[i], i));
+      }
+    }
+    function applyDiff() {
+      const existing = tbody.querySelectorAll("tr");
+      for (let index = 0; index < currentRows.length; index++) {
+        const tr = (
+          /** @type {HTMLTableRowElement} */
+          existing[index]
+        );
+        const key = spec.rowKey(currentRows[index], index);
+        if (tr && tr.getAttribute(spec.rowAttribute) === key) {
+          updateRow(tr, currentRows[index], index);
+        } else {
+          rebuildFrom(currentRows, index);
+          return;
+        }
+      }
+      for (let i = currentRows.length; i < existing.length; i++) {
+        existing[i].remove();
+      }
+    }
+    function revealRow(index) {
+      const tr = (
+        /** @type {HTMLElement|undefined} */
+        tbody.children[index]
+      );
+      if (!tr) return;
+      const bottom = tr.offsetTop + tr.offsetHeight - wrapper.clientHeight;
+      if (bottom > wrapper.scrollTop) {
+        wrapper.scrollTop = bottom;
+      }
+    }
+    const rowActions = [];
+    if (spec.deleteSelector && spec.onDelete) {
+      rowActions.push({ selector: spec.deleteSelector, handler: spec.onDelete });
+    }
+    if (spec.actions) {
+      rowActions.push(...spec.actions);
+    }
+    function handleClick(event) {
+      const target = (
+        /** @type {Element|null} */
+        event.target
+      );
+      if (!target) return;
+      const tr = (
+        /** @type {HTMLTableRowElement|null} */
+        target.closest("tr")
+      );
+      if (!tr || !tbody.contains(tr)) return;
+      const key = tr.getAttribute(spec.rowAttribute);
+      if (key === null) return;
+      const index = Array.prototype.indexOf.call(tbody.children, tr);
+      const row = currentRows[index];
+      const action = rowActions.find((candidate) => target.closest(candidate.selector));
+      if (action) {
+        event.preventDefault();
+        event.stopPropagation();
+        action.handler(key, row, index);
+        return;
+      }
+      if (spec.onSelect) {
+        spec.onSelect(key, row, index);
+      }
+    }
+    tbody.addEventListener("click", handleClick);
+    return {
+      element: table,
+      /**
+       * Diff `rows` against what is rendered, apply the difference, and keep any
+       * newly added row in view.
+       *
+       * Idempotent: calling it twice with equal input performs no DOM writes and
+       * no scrolling.
+       * @param {any[]} rows - The rows to render
+       */
+      update(rows) {
+        currentRows = rows || [];
+        const keys = currentRows.map((row, index) => spec.rowKey(row, index));
+        applyDiff();
+        let lastAdded = -1;
+        for (let index = 0; index < keys.length; index++) {
+          if (!renderedKeys.has(keys[index])) {
+            lastAdded = index;
+          }
+        }
+        if (renderedKeys.size > 0 && lastAdded !== -1) {
+          revealRow(lastAdded);
+        }
+        renderedKeys = new Set(keys);
+      },
+      /**
+       * Remove the table and its listener.
+       */
+      destroy() {
+        tbody.removeEventListener("click", handleClick);
+        if (area.parentNode) {
+          area.parentNode.removeChild(area);
+        }
+      }
+    };
   }
   function showMarkerLabelModal(currentLabel, onSave) {
     const overlay = document.createElement("div");
@@ -4076,6 +4039,927 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
    */
   __publicField(_AnalysisMode, "MARKER_SYMBOL_SIZE", 14);
   let AnalysisMode = _AnalysisMode;
+  const MAX_VISIBLE_PINS = 25;
+  const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1e3, 2500, 5e3];
+  function countMultiples(minHarmonic, maxHarmonic, step) {
+    return Math.floor(maxHarmonic / step) - Math.floor((minHarmonic - 1) / step);
+  }
+  function chooseSamplingStep(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
+    for (const step of NICE_STEPS) {
+      if (countMultiples(minHarmonic, maxHarmonic, step) <= max) {
+        return step;
+      }
+    }
+    return NICE_STEPS[NICE_STEPS.length - 1];
+  }
+  function sampledHarmonics(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
+    if (maxHarmonic < minHarmonic) {
+      return { step: 1, harmonics: [] };
+    }
+    const step = chooseSamplingStep(minHarmonic, maxHarmonic, max);
+    const first = Math.ceil(minHarmonic / step) * step;
+    const harmonics = [];
+    for (let h = first; h <= maxHarmonic && harmonics.length < max; h += step) {
+      harmonics.push(h);
+    }
+    return { step, harmonics };
+  }
+  const MIN_PIN_SPACING = 0.1;
+  const _PinSetMode = class _PinSetMode extends BaseMode {
+    /**
+     * Wire up the one drag handler both pin-set drags run through.
+     *
+     * Moving an existing set (`move`) and creating one by dragging (`create`)
+     * differ only in how the target is resolved — a create mints its set on
+     * mousedown — and share every subsequent step (spec 166, FR-004).
+     * @param {GramFrame} instance - GramFrame instance
+     * @param {ModeType} modeName - Mode that owns the drag, for the projection
+     */
+    constructor(instance, modeName) {
+      super(instance);
+      this.dragHandler = new BaseDragHandler(instance, {
+        // A feature drag always carries a data position. Only the pan drag passes
+        // null, and it runs on its own handler in `core/events.js`.
+        resolveTarget: (position) => this.resolvePinSetDrag(
+          /** @type {DataCoordinates} */
+          position
+        ),
+        // Hover only ever *finds* — resolvePinSetDrag mints a new set when the
+        // cursor is over empty gram, which is right for a mousedown and wrong for
+        // a hover (a hover that creates features floods the gram with sets).
+        resolveHoverTarget: (position) => this.findSetTarget(
+          /** @type {DataCoordinates} */
+          position
+        ),
+        onDragStart: (target) => this.onSetDragStart(target),
+        onDragMove: (target, currentPos, startPos) => this.onSetDragUpdate(
+          target,
+          /** @type {DataCoordinates} */
+          currentPos,
+          /** @type {DataCoordinates} */
+          startPos
+        ),
+        onDragEnd: () => this.onSetDragEnd(),
+        onDragCancel: () => this.onSetDragEnd(),
+        updateCursor: (style) => this.updateCursorStyle(style)
+      }, modeName);
+    }
+    // ---------------------------------------------------------------------------
+    // Subclass contract. Every member below is abstract: the base class calls it
+    // and cannot answer it, so a subclass that forgets one fails loudly rather
+    // than drawing nothing.
+    // ---------------------------------------------------------------------------
+    /**
+     * The sets this mode owns, live (mutated in place by add/remove).
+     * @returns {PinSet[]} This mode's sets
+     */
+    get sets() {
+      throw new Error(`${this.constructor.name} must implement the "sets" getter`);
+    }
+    /**
+     * Selection type used for this mode's sets, as `state.selection.selectedType`.
+     * @returns {SelectedFeatureType} Selection type
+     */
+    get selectionType() {
+      throw new Error(`${this.constructor.name} must implement the "selectionType" getter`);
+    }
+    /**
+     * Prefix for generated set ids, and the DOM naming stem for this mode's pins.
+     * @returns {PinSetClassNames} Class and attribute names for the drawn pins
+     */
+    get pinNames() {
+      throw new Error(`${this.constructor.name} must implement the "pinNames" getter`);
+    }
+    /**
+     * Frequency (Hz, in the raw configured scale) of a set member.
+     * @param {PinSet} _set - The set
+     * @param {number} _index - Member index
+     * @returns {number} Frequency of that member
+     */
+    freqForIndex(_set, _index) {
+      throw new Error(`${this.constructor.name} must implement freqForIndex()`);
+    }
+    /**
+     * Inclusive member-index range of a set within the currently visible span.
+     * @param {PinSet} _set - The set
+     * @returns {{minIndex: number, maxIndex: number}} Inclusive index range
+     */
+    visibleIndexRange(_set) {
+      throw new Error(`${this.constructor.name} must implement visibleIndexRange()`);
+    }
+    /**
+     * Member index nearest a probe frequency — the only member (±1) that can be
+     * within frequency tolerance of it.
+     * @param {PinSet} _set - The set
+     * @param {number} _freq - Probe frequency
+     * @returns {number} Nearest member index
+     */
+    nearestIndex(_set, _freq) {
+      throw new Error(`${this.constructor.name} must implement nearestIndex()`);
+    }
+    /**
+     * Text of a member's number label.
+     * @param {number} _index - Member index
+     * @returns {string} Label text
+     */
+    labelTextFor(_index) {
+      throw new Error(`${this.constructor.name} must implement labelTextFor()`);
+    }
+    /**
+     * Mint a new set at the mousedown position and return it as a `create`-kind
+     * drag target, so the rest of the gesture is an ordinary drag.
+     * @param {DataCoordinates} _dataCoords - Position of the mousedown
+     * @returns {DragTarget|null} A create-kind target, or null if none can be made
+     */
+    createSetTarget(_dataCoords) {
+      throw new Error(`${this.constructor.name} must implement createSetTarget()`);
+    }
+    /**
+     * The frequency-axis half of a drag: what changes when the pointer moves
+     * horizontally. The time-axis half (the anchor) is shared and handled here.
+     * @param {PinSet} _set - The set being dragged
+     * @param {number} _clickedIndex - Member index the drag grabbed
+     * @param {DataCoordinates} _currentPos - Current pointer position
+     * @returns {Partial<PinSet>} Updates to apply
+     */
+    freqUpdatesForDrag(_set, _clickedIndex, _currentPos) {
+      throw new Error(`${this.constructor.name} must implement freqUpdatesForDrag()`);
+    }
+    /**
+     * Whether this mode's table shows anything derived from the cursor position,
+     * and so has to be re-rendered as the pointer moves.
+     *
+     * Not abstract: false is the answer for a table of plain feature properties,
+     * and a mode says otherwise only when it has a reason to.
+     * @returns {boolean} True if the table follows the cursor
+     */
+    get panelTracksCursor() {
+      return false;
+    }
+    /**
+     * Re-render this mode's table from current state.
+     */
+    updatePanel() {
+      throw new Error(`${this.constructor.name} must implement updatePanel()`);
+    }
+    // ---------------------------------------------------------------------------
+    // Pointer handling
+    // ---------------------------------------------------------------------------
+    /**
+     * Handle mouse move events
+     * @param {MouseEvent} _event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseMove(_event, dataCoords) {
+      if (this.dragHandler && this.dragHandler.isDragging()) {
+        this.dragHandler.handleMouseMove(dataCoords);
+      } else if (this.dragHandler) {
+        this.dragHandler.updateCursorForHover(dataCoords);
+      }
+      if (this.panelTracksCursor && this.sets.length > 0) {
+        this.updatePanel();
+      }
+    }
+    /**
+     * Handle mouse down events
+     * @param {MouseEvent} event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseDown(event, dataCoords) {
+      if (event.button !== 0) {
+        return;
+      }
+      if (this.dragHandler) {
+        this.dragHandler.startDrag(dataCoords, event);
+      }
+    }
+    /**
+     * Handle mouse up events
+     * @param {MouseEvent} _event - Mouse event
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     */
+    handleMouseUp(_event, dataCoords) {
+      if (this.dragHandler) {
+        this.dragHandler.endDrag(dataCoords);
+      }
+    }
+    /**
+     * Find the set under a position and describe it as a `move` drag target.
+     * @param {DataCoordinates} position - Position to check
+     * @returns {DragTarget|null} Drag target if found, null otherwise
+     */
+    findSetTarget(position) {
+      const set = this.findSetAt(position);
+      if (set) {
+        return {
+          kind: "move",
+          id: set.id,
+          type: this.selectionType,
+          position,
+          data: {
+            set,
+            clickedIndex: this.nearestIndex(set, position.freq),
+            originalAnchorTime: set.anchorTime
+          }
+        };
+      }
+      return null;
+    }
+    /**
+     * Resolve what a mousedown starts.
+     *
+     * Landing on an existing set moves it; landing anywhere else creates one and
+     * drags it out from there. The new set is minted here, on mousedown, so the
+     * engine has a target id for the whole gesture (contract: drag-engine.md).
+     * @param {DataCoordinates} position - Position of the mousedown
+     * @returns {DragTarget|null} A move- or create-kind target
+     */
+    resolvePinSetDrag(position) {
+      return this.findSetTarget(position) || this.createSetTarget(position);
+    }
+    /**
+     * Start dragging a set: select it, as clicking its table row would.
+     * @param {DragTarget} target - Drag target with id and type
+     */
+    onSetDragStart(target) {
+      const index = this.sets.findIndex((set) => set.id === target.id);
+      if (index !== -1) {
+        this.instance.interaction.setSelection(
+          this.selectionType,
+          /** @type {string} */
+          target.id,
+          index
+        );
+      }
+    }
+    /**
+     * Update a set during a drag.
+     * @param {DragTarget} target - Drag target
+     * @param {DataCoordinates} currentPos - Current position
+     * @param {DataCoordinates} startPos - Position the drag started from
+     */
+    onSetDragUpdate(target, currentPos, startPos) {
+      this.instance.state.cursorPosition = {
+        freq: currentPos.freq,
+        time: currentPos.time,
+        x: 0,
+        y: 0,
+        svgX: 0,
+        svgY: 0,
+        imageX: 0,
+        imageY: 0
+        // Minimal values for compatibility
+      };
+      this.applySetDrag(target, currentPos, startPos);
+    }
+    /**
+     * End (or cancel) a set drag.
+     */
+    onSetDragEnd() {
+    }
+    /**
+     * Apply a set drag — the shared step for both the `move` and `create` kinds,
+     * which differ only in how their target was resolved.
+     * @param {DragTarget} target - The drag target from the engine
+     * @param {DataCoordinates} currentPos - Current pointer position
+     * @param {DataCoordinates} startPos - Where the drag began
+     */
+    applySetDrag(target, currentPos, startPos) {
+      if (!target || !currentPos || !startPos) return;
+      const setId = target.id;
+      if (!setId) return;
+      const set = this.sets.find((candidate) => candidate.id === setId);
+      if (!set) return;
+      const clickedIndex = target.data && target.data.clickedIndex !== void 0 ? target.data.clickedIndex : 1;
+      const updates = { ...this.freqUpdatesForDrag(set, clickedIndex, currentPos) };
+      const originalAnchorTime = target.data && target.data.originalAnchorTime !== void 0 ? target.data.originalAnchorTime : set.anchorTime;
+      const deltaTime = currentPos.time - startPos.time;
+      const { timeMin, timeMax } = this.instance.state.config;
+      updates.anchorTime = Math.max(timeMin, Math.min(timeMax, originalAnchorTime + deltaTime));
+      this.updateSet(setId, updates);
+    }
+    // ---------------------------------------------------------------------------
+    // Set lifecycle
+    // ---------------------------------------------------------------------------
+    /**
+     * Add a set, seeded with this session's style choices, and select it.
+     *
+     * The subclass supplies only the geometry (`anchorTime`, `spacing`, and for
+     * sidebands the fundamental); colour, symbol, pin visibility and symbol size
+     * come from the style panel and are the same for every pin set.
+     * @param {Partial<PinSet>} geometry - Geometry fields for the new set
+     * @returns {PinSet} The created set
+     */
+    addSet(geometry) {
+      const id = `${this.pinNames.idPrefix}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      const palette = _PinSetMode.SET_COLORS;
+      const color = this.instance.state.selectedColor || palette[this.sets.length % palette.length];
+      const set = (
+        /** @type {PinSet} */
+        {
+          id,
+          color,
+          // Use selected symbol from global state, defaulting to the symbol-less cross
+          symbol: this.instance.state.selectedSymbol || "cross",
+          // Use the session's pin-visibility preference (on unless the analyst
+          // turned it off via the style panel toggle)
+          showPin: this.instance.state.showHarmonicPin !== false,
+          // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
+          // toggle's next-feature default, so sets at both sizes can coexist.
+          largeSymbols: !!this.instance.state.largeSymbols,
+          ...geometry
+        }
+      );
+      this.sets.push(set);
+      markAnnotationsChanged(this.instance);
+      this.instance.interaction.setSelection(this.selectionType, set.id, this.sets.length - 1);
+      this.updatePanel();
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      dispatch(this.instance, { frame: true });
+      return set;
+    }
+    /**
+     * Update an existing set.
+     * @param {string} id - Set ID
+     * @param {Partial<PinSet>} updates - Properties to update
+     */
+    updateSet(id, updates) {
+      const setIndex = this.sets.findIndex((set) => set.id === id);
+      if (setIndex === -1) {
+        return;
+      }
+      Object.assign(this.sets[setIndex], updates);
+      markAnnotationsChanged(this.instance);
+      this.updatePanel();
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      dispatch(this.instance, { frame: true });
+    }
+    /**
+     * Remove a set.
+     * @param {string} id - Set ID
+     */
+    removeSet(id) {
+      const setIndex = this.sets.findIndex((set) => set.id === id);
+      if (setIndex === -1) {
+        return;
+      }
+      const { selection } = this.instance.state;
+      if (selection.selectedType === this.selectionType && selection.selectedId === id) {
+        this.instance.interaction.clearSelection();
+      }
+      this.sets.splice(setIndex, 1);
+      markAnnotationsChanged(this.instance);
+      this.updatePanel();
+      if (this.instance.featureRenderer) {
+        this.instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      dispatch(this.instance);
+    }
+    /**
+     * The frequency-axis half of a keyboard nudge: what an arrow key worth of
+     * horizontal movement changes.
+     *
+     * The default adjusts the spacing, which is what both pin-set modes want. A
+     * mode overrides it to change the floor, or to nudge something else.
+     * @param {PinSet} set - The set being nudged
+     * @param {number} freqDelta - What the keypress is worth in Hz, signed
+     * @returns {Partial<PinSet>} Updates to apply
+     */
+    nudgeFreqUpdates(set, freqDelta) {
+      return { spacing: Math.max(MIN_PIN_SPACING, set.spacing + freqDelta) };
+    }
+    // ---------------------------------------------------------------------------
+    // Hit testing
+    // ---------------------------------------------------------------------------
+    /**
+     * Find the set whose drawn geometry contains the given position.
+     *
+     * Hit-testing follows exactly what is drawn — nothing more, nothing less.
+     * Every visible part of a pin grabs it: the line's fixed-pixel span AND the
+     * number label + symbol stacked above it. A set with its pin hidden draws
+     * mini-pins, so its line region shrinks to that stub — the empty span below,
+     * where a full pin would have reached, is blank on screen and blank to the
+     * mouse too.
+     *
+     * Takes the probe position as a parameter rather than reading
+     * `state.cursorPosition`: the stored cursor goes stale during pans (wheel-pan
+     * suppresses mousemove), and a click tested against the pre-pan time missed
+     * the pin and minted a duplicate set on top of it (BH-13).
+     *
+     * Bounded work per set (BH-2): the range is the VISIBLE one (zoom-aware, the
+     * same source the renderer uses), only the member nearest the probe frequency
+     * (±1) is line-tested — no other line can be within frequency tolerance — and
+     * the stack test walks just the thinned labelled subset.
+     *
+     * @param {DataCoordinates} position - Probe position {freq, time}
+     * @returns {PinSet|null} The set if found, null otherwise
+     */
+    findSetAt(position) {
+      if (!position) return null;
+      const { freq, time } = position;
+      for (const set of this.sets) {
+        if (!(set.spacing > 0)) continue;
+        const { minIndex, maxIndex } = this.visibleIndexRange(set);
+        if (maxIndex < minIndex) continue;
+        const { lineHeight, lineTop } = this.pinLineDimensions(set);
+        const stack = this.labelStackBounds(lineTop, set);
+        const labelled = this.labelledIndices(minIndex, maxIndex);
+        const pinDrawn = set.showPin !== false;
+        const lineFrom = pinDrawn ? lineTop : stack.bottom;
+        const lineTo = lineFrom + (pinDrawn ? lineHeight : _PinSetMode.MINI_PIN_HEIGHT);
+        const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
+        const cursorSVG = dataToSVG(
+          { freq, time },
+          this.getViewport(),
+          this.instance.ui.spectrogramImage
+        );
+        if (cursorSVG.y >= lineFrom && cursorSVG.y <= lineTo) {
+          const nearest = this.nearestIndex(set, freq);
+          const from = Math.max(minIndex, nearest - 1);
+          const to = Math.min(maxIndex, nearest + 1);
+          for (let index = from; index <= to; index++) {
+            if (Math.abs(freq - this.freqForIndex(set, index)) < tolerance.freq) {
+              return set;
+            }
+          }
+        }
+        if (cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom) {
+          for (const index of labelled) {
+            if (Math.abs(cursorSVG.x - this.pinX(set, index)) <= this.labelStackHalfWidth(set, index)) {
+              return set;
+            }
+          }
+        }
+      }
+      return null;
+    }
+    // ---------------------------------------------------------------------------
+    // Geometry
+    // ---------------------------------------------------------------------------
+    /**
+     * The visible frequency span, as the frequency axis reports it.
+     *
+     * Viewport-aware: zooming in narrows the span (fewer pins), zooming out /
+     * panning widens it. At zoom 1.0 it equals the full data range.
+     * @returns {{freqMin: number, freqMax: number}} Visible frequency span
+     */
+    visibleFrequencySpan() {
+      const { freqMin, freqMax } = calculateVisibleDataRange(
+        this.instance.state,
+        this.instance.ui.spectrogramImage
+      );
+      return { freqMin, freqMax };
+    }
+    /**
+     * The "major" subset of member indices that receive a number label and symbol,
+     * thinned to at most the label limit (default 25) by regular sampling.
+     *
+     * Every pin line is still drawn (spec 159); this limit governs labels and
+     * symbols only. When the visible range already fits under the limit the subset
+     * is the whole range, so every drawn pin is labelled (FR-005).
+     * @param {number} minIndex - Lowest visible member index
+     * @param {number} maxIndex - Highest visible member index
+     * @returns {number[]} Ascending member indices to label/symbol
+     */
+    labelledIndices(minIndex, maxIndex) {
+      return sampledHarmonics(minIndex, maxIndex).harmonics;
+    }
+    /**
+     * Calculate pin line dimensions and positions.
+     *
+     * The height is a fixed pixel length taken from the *base* (unzoomed) render
+     * height, so a pin covers the same number of screen pixels no matter how far
+     * the user has zoomed in — it is not a span of time that stretches with the
+     * image. Only the centre is zoom-aware: the pin stays centred on the set's
+     * anchor time (the original click location), so it tracks the feature while
+     * keeping a constant height.
+     *
+     * @param {PinSet} set - The set being drawn
+     * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
+     */
+    pinLineDimensions(set) {
+      const { renderHeight } = getRenderDimensions(this.instance.state);
+      const lineHeight = renderHeight * _PinSetMode.PIN_HEIGHT_RATIO;
+      const anchorPoint = { freq: this.freqForIndex(set, 1), time: set.anchorTime };
+      const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.ui.spectrogramImage);
+      const lineTop = anchorSVG.y - lineHeight / 2;
+      return { lineHeight, lineTop };
+    }
+    /**
+     * Compute the SVG x-coordinate of a member's vertical pin line.
+     * @param {PinSet} set - The set
+     * @param {number} index - Member index
+     * @returns {number} SVG x-coordinate of the pin line
+     */
+    pinX(set, index) {
+      const point = { freq: this.freqForIndex(set, index), time: set.anchorTime };
+      return dataToSVG(point, this.getViewport(), this.instance.ui.spectrogramImage).x;
+    }
+    /**
+     * Effective pixel size of a set's symbol marks: the base size scaled by that
+     * set's own large-symbol flag, so sets at both sizes can share a gram. The
+     * whole label/symbol stack layout derives from this, so the label spacing and
+     * top-edge clamping follow the set's chosen size.
+     * @param {PinSet} set - The set
+     * @returns {number} Symbol diameter in px
+     */
+    symbolSize(set) {
+      return _PinSetMode.SYMBOL_SIZE * resolveSymbolScale(set);
+    }
+    /**
+     * Compute the shared vertical layout of a pin's label/symbol stack.
+     *
+     * Ideal (top-to-bottom): label baseline, then symbol, then the pin line top,
+     * so the symbol caps the line and the label sits above the symbol. When the
+     * stack's top would clip above the spectrogram's top edge, the whole stack
+     * (label + symbol) is nudged down by the overflow so it stays legible
+     * (spec 159, FR-011).
+     *
+     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+     * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
+     * @param {PinSet} set - Set being laid out (its symbol size drives the stack)
+     * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
+     */
+    labelStackPositions(lineTop, imageTop, set) {
+      const r = this.symbolSize(set) / 2;
+      const gap = _PinSetMode.LABEL_GAP;
+      const fontSize = _PinSetMode.LABEL_FONT_SIZE;
+      let symbolCy = lineTop - r;
+      let labelY = symbolCy - r - gap;
+      const labelTop = labelY - fontSize;
+      const minTop = imageTop + _PinSetMode.STACK_TOP_PAD;
+      if (labelTop < minTop) {
+        const shift = minTop - labelTop;
+        symbolCy += shift;
+        labelY += shift;
+      }
+      return { symbolCy, labelY };
+    }
+    /**
+     * Vertical extent (SVG coords) of a pin's label/symbol stack, for hit-testing.
+     *
+     * Derived from the same {@link PinSetMode#labelStackPositions} layout the
+     * renderer uses, so the grab region tracks the drawn stack — including the
+     * downward nudge applied near the image's top edge. The bottom is clamped to
+     * the pin line's top so the stack region and the line region always meet with
+     * no dead gap between them.
+     *
+     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
+     * @param {PinSet} set - Set being hit-tested
+     * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
+     */
+    labelStackBounds(lineTop, set) {
+      const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
+      const { symbolCy, labelY } = this.labelStackPositions(lineTop, imageTop, set);
+      const r = this.symbolSize(set) / 2;
+      return {
+        // One ascent above the label's baseline is the top of the characters.
+        top: labelY - _PinSetMode.LABEL_FONT_SIZE,
+        bottom: Math.max(lineTop, symbolCy + r)
+      };
+    }
+    /**
+     * Half-width (SVG px) of a pin's label/symbol stack, for hit-testing.
+     *
+     * The wider of the symbol mark and the number label, so both are grabbable:
+     * a `cross` set has no symbol but still shows its label, and a "Large
+     * symbols" set's mark is wider than its text. Label width is estimated from
+     * the character count rather than measured, which is ample for a grab region.
+     *
+     * @param {PinSet} set - Set being hit-tested
+     * @param {number} index - Member index whose label is drawn
+     * @returns {number} Half-width in SVG pixels
+     */
+    labelStackHalfWidth(set, index) {
+      const characters = this.labelTextFor(index).length;
+      const labelHalfWidth = characters * _PinSetMode.LABEL_FONT_SIZE * _PinSetMode.LABEL_CHAR_WIDTH_RATIO / 2;
+      return Math.max(this.symbolSize(set) / 2, labelHalfWidth);
+    }
+    // ---------------------------------------------------------------------------
+    // Rendering
+    // ---------------------------------------------------------------------------
+    /**
+     * Create the SVG line element for one pin.
+     * @param {number} index - Member index
+     * @param {PinSet} set - The set
+     * @param {number} lineX - X position for the line
+     * @param {number} lineTop - Top Y position for the line
+     * @param {number} lineHeight - Height of the line
+     * @returns {SVGLineElement} SVG line element
+     */
+    createPinLine(index, set, lineX, lineTop, lineHeight) {
+      const names = this.pinNames;
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("class", names.lineClass);
+      line.setAttribute(names.setIdAttribute, set.id);
+      line.setAttribute(names.indexAttribute, String(index));
+      line.setAttribute("x1", String(lineX));
+      line.setAttribute("y1", String(lineTop));
+      line.setAttribute("x2", String(lineX));
+      line.setAttribute("y2", String(lineTop + lineHeight));
+      line.setAttribute("stroke", set.color);
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("stroke-linecap", "round");
+      line.setAttribute("opacity", "0.9");
+      return line;
+    }
+    /**
+     * Create the short stub line drawn under a member when the set's full pin is
+     * hidden.
+     *
+     * Same colour and stroke as a full pin line, so a mini-pin reads as the same
+     * feature at a smaller scale; only its class and height differ. The distinct
+     * class keeps the two apart for cleanup, hit-testing and tests — a hidden-pin
+     * set still draws no full pin line.
+     *
+     * @param {number} index - Member index
+     * @param {PinSet} set - The set
+     * @param {number} lineX - X position of the mini-pin
+     * @param {number} top - Top Y position of the mini-pin (the symbol's underside)
+     * @returns {SVGLineElement} SVG line element
+     */
+    createMiniPin(index, set, lineX, top) {
+      const miniPin = this.createPinLine(index, set, lineX, top, _PinSetMode.MINI_PIN_HEIGHT);
+      miniPin.setAttribute("class", this.pinNames.miniPinClass);
+      return miniPin;
+    }
+    /**
+     * Create the SVG text label for a member.
+     *
+     * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
+     * positioned above the pin's symbol (baseline at `labelY`), so the vertical
+     * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
+     *
+     * The characters are drawn black inside a white halo rather than in the set's
+     * colour: a single colour is only legible over part of a gram, whereas the
+     * halo reads over both dark and light backgrounds. Set identity is still
+     * carried by the pin's line and symbol colour.
+     *
+     * @param {number} index - Member index
+     * @param {PinSet} set - The set
+     * @param {number} lineX - X position of the pin line (label is centred on it)
+     * @param {number} labelY - Baseline Y position for the label text
+     * @returns {SVGTextElement} SVG text element
+     */
+    createPinLabel(index, set, lineX, labelY) {
+      const names = this.pinNames;
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("class", names.labelClass);
+      label.setAttribute(names.setIdAttribute, set.id);
+      label.setAttribute(names.indexAttribute, String(index));
+      label.setAttribute("x", String(lineX));
+      label.setAttribute("y", String(labelY));
+      label.setAttribute("text-anchor", "middle");
+      applyTextHalo(
+        /** @type {SVGTextElement} */
+        label
+      );
+      label.setAttribute("font-size", String(_PinSetMode.LABEL_FONT_SIZE));
+      label.setAttribute("font-weight", "bold");
+      label.setAttribute("font-family", "Arial, sans-serif");
+      label.textContent = this.labelTextFor(index);
+      return label;
+    }
+    /**
+     * Create the filled symbol mark drawn between a pin's number label and the top
+     * of its line.
+     *
+     * The vertical position (`symbolCy`) is computed once per set by
+     * {@link PinSetMode#labelStackPositions} so the whole label/symbol stack
+     * shares a consistent, on-screen layout.
+     *
+     * @param {PinSet} set - The set
+     * @param {number} lineX - X position of the pin line (symbol is centred on it)
+     * @param {number} symbolCy - Centre Y position for the symbol
+     * @returns {SVGElement|null} SVG symbol element, or null for the `cross` (symbol-less) style
+     */
+    createPinSymbol(set, lineX, symbolCy) {
+      const symbol = createSymbolMark(set.symbol, lineX, symbolCy, this.symbolSize(set), set.color);
+      if (!symbol) {
+        return null;
+      }
+      symbol.setAttribute(this.pinNames.setIdAttribute, set.id);
+      return symbol;
+    }
+    /**
+     * Whether this mode currently owns any persistent feature.
+     *
+     * Half of the `PersistentFeatureProvider` capability.
+     * @returns {boolean} True if at least one set exists
+     */
+    hasPersistentFeatures() {
+      return this.sets.length > 0;
+    }
+    /**
+     * Render every set this mode owns.
+     */
+    renderPersistentFeatures() {
+      if (!this.instance.ui.cursorGroup) {
+        return;
+      }
+      const names = this.pinNames;
+      const existingLines = this.instance.ui.cursorGroup.querySelectorAll(
+        `.${names.lineClass}, .${names.miniPinClass}`
+      );
+      existingLines.forEach((line) => line.remove());
+      const existingSymbols = this.instance.ui.cursorGroup.querySelectorAll(
+        `.gram-frame-harmonic-symbol[${names.setIdAttribute}]`
+      );
+      existingSymbols.forEach((symbol) => symbol.remove());
+      this.sets.forEach((set) => this.renderSet(set));
+    }
+    /**
+     * Render a single set as vertical pin lines.
+     *
+     * Spec 159: draw a pin line for EVERY member in the visible span (no pins are
+     * dropped, even if they merge into a solid block), then draw a number label
+     * and symbol only for the thinned "major" subset so the overlay stays
+     * readable. Lines are appended first so the labels/symbols paint on top.
+     *
+     * A set with `showPin === false` draws a mini-pin per member instead of a
+     * full-height line: a stub hanging from the symbol's underside, in the set's
+     * colour. Labels and symbols are thinned, so without them a pin-less set gave
+     * no sign of where the members between the labelled ones actually fell
+     * (issue #232); the mini-pins restore that alignment with the data at a
+     * fraction of the ink. The label/symbol geometry is unchanged either way, so
+     * toggling the pin swaps line lengths without moving anything else.
+     *
+     * @param {PinSet} set - Set to render
+     */
+    renderSet(set) {
+      if (!this.instance.ui.cursorGroup) {
+        return;
+      }
+      const { minIndex, maxIndex } = this.visibleIndexRange(set);
+      if (maxIndex < minIndex) {
+        return;
+      }
+      const { lineHeight, lineTop } = this.pinLineDimensions(set);
+      const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
+      const { symbolCy, labelY } = this.labelStackPositions(lineTop, imageTop, set);
+      const pinDrawn = set.showPin !== false;
+      const visibleCount = maxIndex - minIndex + 1;
+      const stride = Math.max(1, Math.ceil(visibleCount / _PinSetMode.MAX_PIN_LINES));
+      const miniPinTop = symbolCy + this.symbolSize(set) / 2;
+      for (let index = minIndex; index <= maxIndex; index += stride) {
+        const lineX = this.pinX(set, index);
+        const line = pinDrawn ? this.createPinLine(index, set, lineX, lineTop, lineHeight) : this.createMiniPin(index, set, lineX, miniPinTop);
+        this.instance.ui.cursorGroup.appendChild(line);
+      }
+      this.labelledIndices(minIndex, maxIndex).forEach((index) => {
+        const lineX = this.pinX(set, index);
+        const symbol = this.createPinSymbol(set, lineX, symbolCy);
+        const label = this.createPinLabel(index, set, lineX, labelY);
+        if (symbol) {
+          this.instance.ui.cursorGroup.appendChild(symbol);
+        }
+        this.instance.ui.cursorGroup.appendChild(label);
+      });
+    }
+  };
+  /**
+   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
+   * this scaled by the "Large" symbol-size experiment toggle — use
+   * {@link PinSetMode#symbolSize} rather than reading this directly.
+   * @type {number}
+   */
+  __publicField(_PinSetMode, "SYMBOL_SIZE", 10);
+  /**
+   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
+   *
+   * The resulting height is a fixed pixel length, not a span of time: it is
+   * derived from the viewport's base render size (which tracks expand, not zoom)
+   * rather than from the zoomed image element. Pins therefore keep the same
+   * on-screen height at every zoom level, growing/shrinking only when the
+   * component itself is resized.
+   * @type {number}
+   */
+  __publicField(_PinSetMode, "PIN_HEIGHT_RATIO", 0.2);
+  /**
+   * Height (px) of a mini-pin: the stub line drawn under each member of a set
+   * whose full pin is hidden.
+   *
+   * Fixed rather than derived, by design (spec: issue #232). It is half the
+   * height of a "Large" symbol mark (SYMBOL_SIZE * LARGE_SYMBOL_SCALE = 20px),
+   * which is enough to tie each pin to the data beneath it without reinstating
+   * the clutter the pin toggle exists to remove.
+   * @type {number}
+   */
+  __publicField(_PinSetMode, "MINI_PIN_HEIGHT", 10);
+  /**
+   * Maximum pin lines rendered per set. At the 0.1 Hz minimum spacing a
+   * standard 0–20 kHz config has 200,000 visible members; drawing an SVG line
+   * for each — rebuilt on every drag frame — locked the browser (BH-2). Past
+   * this cap the drawn lines are a regular sample of the range; well beyond
+   * typical screen widths, adjacent pins merge on screen anyway, so the thinning
+   * is invisible until the set is already a solid block.
+   * @type {number}
+   */
+  __publicField(_PinSetMode, "MAX_PIN_LINES", 1e3);
+  /**
+   * Font size (px) of a pin's number label; also used as its approximate ascent
+   * when clamping the label/symbol stack to the image's top edge.
+   * @type {number}
+   */
+  __publicField(_PinSetMode, "LABEL_FONT_SIZE", 12);
+  /**
+   * Approximate width of one label character as a fraction of the label font
+   * size, used to size the label's grab region (bold Arial digits are ~0.6 em
+   * wide).
+   * @type {number}
+   */
+  __publicField(_PinSetMode, "LABEL_CHAR_WIDTH_RATIO", 0.6);
+  /**
+   * Vertical gap (px) between the pin's number label and its symbol.
+   * @type {number}
+   */
+  __publicField(_PinSetMode, "LABEL_GAP", 3);
+  /**
+   * Minimum padding (px) kept between the top of a pin's label and the top edge
+   * of the spectrogram image.
+   * @type {number}
+   */
+  __publicField(_PinSetMode, "STACK_TOP_PAD", 1);
+  /**
+   * Colour palette used when the style panel offers no explicit choice.
+   * @type {string[]}
+   */
+  __publicField(_PinSetMode, "SET_COLORS", ["#ff6b6b", "#2ecc71", "#f39c12", "#9b59b6", "#ffc93c", "#ff9ff3", "#45b7d1", "#e67e22"]);
+  let PinSetMode = _PinSetMode;
+  const panelTables$1 = /* @__PURE__ */ new WeakMap();
+  function createSymbolSwatch(harmonicSet) {
+    return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
+  }
+  function createColorCellContent$1(harmonicSet) {
+    const colorDiv = document.createElement("div");
+    colorDiv.className = "gram-frame-harmonic-color";
+    colorDiv.style.color = harmonicSet.color;
+    colorDiv.appendChild(createSymbolSwatch(harmonicSet));
+    return colorDiv;
+  }
+  function formatRatio(harmonicSet, instance) {
+    if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
+      return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3);
+    }
+    return "5.000";
+  }
+  function createHarmonicDeleteButton(harmonicSet) {
+    const button = document.createElement("button");
+    button.className = "gram-frame-harmonic-delete";
+    button.setAttribute("data-harmonic-id", harmonicSet.id);
+    button.title = "Delete harmonic set";
+    button.textContent = "×";
+    return button;
+  }
+  function createHarmonicPanel(container, instance) {
+    const table = createDiffingTable(container, {
+      columns: [
+        { label: "", width: "15%" },
+        { label: "Spacing (Hz)", width: "35%", cellClassName: "gram-frame-harmonic-spacing" },
+        { label: "Ratio", width: "35%", cellClassName: "gram-frame-harmonic-rate" },
+        { label: "", width: "15%" }
+      ],
+      rowAttribute: "data-harmonic-id",
+      rowClassName: "gram-frame-harmonic-row",
+      rowKey: (harmonicSet) => harmonicSet.id,
+      cells: (harmonicSet) => [
+        createColorCellContent$1(harmonicSet),
+        harmonicSet.spacing.toFixed(2),
+        formatRatio(harmonicSet, instance),
+        createHarmonicDeleteButton(harmonicSet)
+      ],
+      deleteSelector: ".gram-frame-harmonic-delete",
+      onSelect: (harmonicSetId, _harmonicSet, index) => {
+        if (instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId) {
+          instance.interaction.clearSelection();
+        } else {
+          instance.interaction.setSelection("harmonicSet", harmonicSetId, index);
+        }
+      },
+      onDelete: (harmonicSetId) => instance.interaction.removeHarmonicSet(harmonicSetId),
+      isSelected: (harmonicSetId) => instance.state.selection.selectedType === "harmonicSet" && instance.state.selection.selectedId === harmonicSetId
+    });
+    const panel = (
+      /** @type {HTMLElement} */
+      table.element.parentElement
+    );
+    panelTables$1.set(panel, table);
+    return panel;
+  }
+  function updateHarmonicPanelContent(panel, instance) {
+    if (!panel) {
+      return;
+    }
+    const table = panelTables$1.get(panel);
+    if (!table) {
+      return;
+    }
+    table.update(instance.state.harmonics.harmonicSets);
+  }
   function calculateVisibleTimePeriodCenter(state, instance) {
     const ZOOM_EPSILON = 1e-3;
     if (Math.abs(state.zoom.level - 1) < ZOOM_EPSILON) {
@@ -4170,145 +5054,145 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     });
     spacingInput.focus();
   }
-  const MAX_VISIBLE_PINS = 25;
-  const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1e3, 2500, 5e3];
-  function countMultiples(minHarmonic, maxHarmonic, step) {
-    return Math.floor(maxHarmonic / step) - Math.floor((minHarmonic - 1) / step);
-  }
-  function chooseSamplingStep(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
-    for (const step of NICE_STEPS) {
-      if (countMultiples(minHarmonic, maxHarmonic, step) <= max) {
-        return step;
-      }
-    }
-    return NICE_STEPS[NICE_STEPS.length - 1];
-  }
-  function sampledHarmonics(minHarmonic, maxHarmonic, max = MAX_VISIBLE_PINS) {
-    if (maxHarmonic < minHarmonic) {
-      return { step: 1, harmonics: [] };
-    }
-    const step = chooseSamplingStep(minHarmonic, maxHarmonic, max);
-    const first = Math.ceil(minHarmonic / step) * step;
-    const harmonics = [];
-    for (let h = first; h <= maxHarmonic && harmonics.length < max; h += step) {
-      harmonics.push(h);
-    }
-    return { step, harmonics };
-  }
-  const _HarmonicsMode = class _HarmonicsMode extends BaseMode {
+  class HarmonicsMode extends PinSetMode {
     /**
-     * Initialize HarmonicsMode with drag handler
+     * Initialize HarmonicsMode
      * @param {GramFrame} instance - GramFrame instance
      */
     constructor(instance) {
-      super(instance);
-      this.dragHandler = new BaseDragHandler(instance, {
-        // A feature drag always carries a data position. Only the pan drag passes
-        // null, and it runs on its own handler in `core/events.js`.
-        resolveTarget: (position) => this.resolveHarmonicDrag(
-          /** @type {DataCoordinates} */
-          position
-        ),
-        // Hover only ever *finds* — resolveHarmonicDrag mints a new set when the
-        // cursor is over empty gram, which is right for a mousedown and wrong for
-        // a hover (a hover that creates features floods the gram with sets).
-        resolveHoverTarget: (position) => this.findHarmonicSetTarget(
-          /** @type {DataCoordinates} */
-          position
-        ),
-        onDragStart: (target, position) => this.onHarmonicSetDragStart(
-          target,
-          /** @type {DataCoordinates} */
-          position
-        ),
-        onDragMove: (target, currentPos, startPos) => this.onHarmonicSetDragUpdate(
-          target,
-          /** @type {DataCoordinates} */
-          currentPos,
-          /** @type {DataCoordinates} */
-          startPos
-        ),
-        onDragEnd: (target, position) => this.onHarmonicSetDragEnd(target, position),
-        onDragCancel: (target) => this.onHarmonicSetDragEnd(target, null),
-        updateCursor: (style) => this.updateCursorStyle(style)
-      }, "harmonics");
+      super(instance, "harmonics");
     }
     /**
-     * Find harmonic set target for drag handler
-     * @param {DataCoordinates} position - Position to check
-     * @returns {DragTarget|null} Drag target if found, null otherwise
+     * The harmonic sets, live.
+     * @returns {PinSet[]} This mode's sets
      */
-    findHarmonicSetTarget(position) {
-      const harmonicSet = this.findHarmonicSetAt(position);
-      if (harmonicSet) {
-        return {
-          kind: "move",
-          id: harmonicSet.id,
-          type: "harmonicSet",
-          position,
-          data: {
-            harmonicSet,
-            clickedHarmonicNumber: this.findClickedHarmonicNumber(harmonicSet, position.freq),
-            originalAnchorTime: harmonicSet.anchorTime
-          }
-        };
-      }
-      return null;
+    get sets() {
+      return this.instance.state.harmonics.harmonicSets;
     }
     /**
-     * Resolve what a mousedown in harmonics mode starts.
-     *
-     * Landing on an existing set moves it; landing anywhere else creates one and
-     * drags it out from there. The new set is minted here, on mousedown, so the
-     * engine has a target id for the whole gesture (contract: drag-engine.md).
-     * @param {DataCoordinates} position - Position of the mousedown
-     * @returns {DragTarget|null} A move- or create-kind target
+     * @returns {SelectedFeatureType} Selection type for a harmonic set
      */
-    resolveHarmonicDrag(position) {
-      const existing = this.findHarmonicSetTarget(position);
-      if (existing) {
-        return existing;
-      }
-      return this.createHarmonicSetTarget(position);
+    get selectionType() {
+      return "harmonicSet";
     }
     /**
-     * Start dragging a harmonic set
-     * @param {DragTarget} target - Drag target with id and type
-     * @param {DataCoordinates} position - Start position
+     * DOM naming for harmonic pins. Unchanged from before the pin machinery was
+     * shared, so every existing CSS selector, test and helper keeps working.
+     * @returns {PinSetClassNames} Class and attribute names
      */
-    onHarmonicSetDragStart(target, position) {
-      const harmonicSet = target.data.harmonicSet;
-      const index = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === harmonicSet.id);
-      if (index !== -1) {
-        this.instance.interaction.setSelection("harmonicSet", harmonicSet.id, index);
-      }
-    }
-    /**
-     * Update harmonic set during drag
-     * @param {DragTarget} target - Drag target
-     * @param {DataCoordinates} currentPos - Current position
-     * @param {DataCoordinates} startPos - Start position
-     */
-    onHarmonicSetDragUpdate(target, currentPos, startPos) {
-      this.instance.state.cursorPosition = {
-        freq: currentPos.freq,
-        time: currentPos.time,
-        x: 0,
-        y: 0,
-        svgX: 0,
-        svgY: 0,
-        imageX: 0,
-        imageY: 0
-        // Minimal values for compatibility
+    get pinNames() {
+      return {
+        idPrefix: "harmonic",
+        lineClass: "gram-frame-harmonic-line",
+        miniPinClass: "gram-frame-harmonic-mini-pin",
+        labelClass: "gram-frame-harmonic-number",
+        setIdAttribute: "data-harmonic-set-id",
+        indexAttribute: "data-harmonic-number"
       };
-      this.applyHarmonicSetDrag(target, currentPos, startPos);
     }
     /**
-     * End dragging a harmonic set
-     * @param {Object} _target - Drag target with id and type (unused)
-     * @param {DataCoordinates|null} _position - End position (unused)
+     * Frequency of the nth harmonic: the origin is 0 Hz, so it is a plain
+     * multiple of the spacing.
+     * @param {PinSet} set - Harmonic set
+     * @param {number} index - Harmonic number
+     * @returns {number} Frequency in Hz
      */
-    onHarmonicSetDragEnd(_target, _position) {
+    freqForIndex(set, index) {
+      return index * set.spacing;
+    }
+    /**
+     * Get the inclusive harmonic-number range of a set that falls within the
+     * currently visible frequency span.
+     *
+     * Harmonic numbers start at 1: there is no zeroth harmonic, and a set never
+     * draws below its own origin.
+     * @param {PinSet} set - Harmonic set
+     * @returns {{minIndex: number, maxIndex: number}} Inclusive harmonic range
+     */
+    visibleIndexRange(set) {
+      const { freqMin, freqMax } = this.visibleFrequencySpan();
+      return {
+        minIndex: Math.max(1, Math.ceil(freqMin / set.spacing)),
+        maxIndex: Math.floor(freqMax / set.spacing)
+      };
+    }
+    /**
+     * Find which harmonic number a frequency is nearest.
+     * @param {PinSet} set - Harmonic set
+     * @param {number} freq - Probe frequency
+     * @returns {number} Harmonic number (1, 2, 3, ...)
+     */
+    nearestIndex(set, freq) {
+      return Math.max(1, Math.round(freq / set.spacing));
+    }
+    /**
+     * The harmonics table's Ratio column is the cursor frequency over the set's
+     * spacing, so it is stale the moment the pointer moves.
+     * @returns {boolean} True — this table follows the cursor
+     */
+    get panelTracksCursor() {
+      return true;
+    }
+    /**
+     * @param {number} index - Harmonic number
+     * @returns {string} The harmonic number, as drawn
+     */
+    labelTextFor(index) {
+      return String(index);
+    }
+    /**
+     * Mint a new harmonic set at the mousedown position.
+     *
+     * The initial spacing places the cursor on a sensible harmonic — the 10th
+     * when the frequency axis starts above zero, the 5th when it starts at zero —
+     * which is what keeps the first drawn set legible.
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
+     */
+    createSetTarget(dataCoords) {
+      const { freqMin } = this.instance.state.config;
+      const clickedIndex = freqMin > 0 ? 10 : 5;
+      const initialSpacing = Math.max(dataCoords.freq / clickedIndex, MIN_PIN_SPACING);
+      const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing);
+      if (!harmonicSet) {
+        return null;
+      }
+      return {
+        kind: "create",
+        id: harmonicSet.id,
+        type: "harmonicSet",
+        position: dataCoords,
+        data: {
+          set: harmonicSet,
+          clickedIndex,
+          originalAnchorTime: dataCoords.time
+        }
+      };
+    }
+    /**
+     * Dragging a harmonic keeps that harmonic under the cursor, which is the same
+     * as scaling the spacing.
+     * @param {PinSet} _set - Harmonic set being dragged
+     * @param {number} clickedIndex - Harmonic number the drag grabbed
+     * @param {DataCoordinates} currentPos - Current pointer position
+     * @returns {Partial<PinSet>} Spacing update
+     */
+    freqUpdatesForDrag(_set, clickedIndex, currentPos) {
+      const spacing = Math.max(currentPos.freq / (clickedIndex || 1), MIN_PIN_SPACING);
+      return { spacing };
+    }
+    /**
+     * Nudging a harmonic set's spacing with the arrow keys.
+     *
+     * The 1 Hz floor is inherited from before the pin machinery was shared: a
+     * harmonic set nudged below it draws so many pins that the keypress is
+     * indistinguishable from a hang, and the analyst has no way back.
+     * @param {PinSet} set - Harmonic set being nudged
+     * @param {number} freqDelta - What the keypress is worth in Hz, signed
+     * @returns {Partial<PinSet>} Spacing update
+     */
+    nudgeFreqUpdates(set, freqDelta) {
+      return { spacing: Math.max(1, set.spacing + freqDelta) };
     }
     /**
      * Get guidance content for harmonics mode
@@ -4326,40 +5210,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       };
     }
     /**
-     * Handle mouse move events in harmonics mode
-     * @param {MouseEvent} _event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseMove(_event, dataCoords) {
-      if (this.dragHandler.isDragging()) {
-        this.dragHandler.handleMouseMove(dataCoords);
-      } else {
-        this.dragHandler.updateCursorForHover(dataCoords);
-      }
-      if (this.instance.state.harmonics.harmonicSets.length > 0) {
-        this.updateHarmonicPanel();
-      }
-    }
-    /**
-     * Handle mouse down events in harmonics mode
-     * @param {MouseEvent} event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseDown(event, dataCoords) {
-      if (event.button !== 0) {
-        return;
-      }
-      this.dragHandler.startDrag(dataCoords, event);
-    }
-    /**
-     * Handle mouse up events in harmonics mode
-     * @param {MouseEvent} _event - Mouse event
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     */
-    handleMouseUp(_event, dataCoords) {
-      this.dragHandler.endDrag(dataCoords);
-    }
-    /**
      * Create UI elements for harmonics mode
      * @param {HTMLElement} harmonicsContainer - Persistent container for harmonics table
      */
@@ -4368,8 +5218,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.uiElements.harmonicsContainer = harmonicsContainer;
       const buttonContainer = harmonicsContainer.querySelector(".gram-frame-harmonics-button-container");
       if (buttonContainer && buttonContainer.querySelector(".gram-frame-manual-button")) {
-        this.uiElements.manualButton = buttonContainer.querySelector(".gram-frame-manual-button");
-        this.uiElements.harmonicPanel = harmonicsContainer.querySelector(".gram-frame-harmonic-panel");
+        this.uiElements.manualButton = /** @type {HTMLElement|null} */
+        buttonContainer.querySelector(".gram-frame-manual-button");
+        this.uiElements.harmonicPanel = /** @type {HTMLElement|null} */
+        harmonicsContainer.querySelector(".gram-frame-harmonic-panel");
         this.instance.ui.harmonicPanel = this.uiElements.harmonicPanel;
         return;
       }
@@ -4380,7 +5232,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.uiElements.harmonicPanel = createHarmonicPanel(harmonicsContainer, this.instance);
       this.instance.ui.harmonicPanel = this.uiElements.harmonicPanel;
       this.instance.ui.colorPicker = this.instance.ui.colorPicker || null;
-      this.updateHarmonicPanel();
+      this.updatePanel();
     }
     /**
      * Update LED displays for harmonics mode
@@ -4393,7 +5245,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Update mode-specific LED values and labels based on current state
      */
     updateModeSpecificLEDs() {
-      this.updateHarmonicPanel();
+      this.updatePanel();
     }
     /**
      * Reset harmonics-specific state
@@ -4418,229 +5270,38 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Add a new harmonic set
      * @param {number} anchorTime - Time position in seconds
      * @param {number} spacing - Frequency spacing in Hz
-     * @returns {HarmonicSet} The created harmonic set
+     * @returns {PinSet} The created harmonic set
      */
     addHarmonicSet(anchorTime, spacing) {
-      const id = `harmonic-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-      let color;
-      if (this.instance.state.selectedColor) {
-        color = this.instance.state.selectedColor;
-      } else {
-        const colorIndex = this.instance.state.harmonics.harmonicSets.length % _HarmonicsMode.harmonicColors.length;
-        color = _HarmonicsMode.harmonicColors[colorIndex];
-      }
-      const symbol = this.instance.state.selectedSymbol || "cross";
-      const showPin = this.instance.state.showHarmonicPin !== false;
-      const harmonicSet = {
-        id,
-        color,
-        anchorTime,
-        spacing,
-        symbol,
-        showPin,
-        // EXPERIMENT (temporary): symbol size is carried per set, seeded from the
-        // toggle's next-feature default, so sets at both sizes can coexist.
-        largeSymbols: !!this.instance.state.largeSymbols
-      };
-      this.instance.state.harmonics.harmonicSets.push(harmonicSet);
-      markAnnotationsChanged(this.instance);
-      const index = this.instance.state.harmonics.harmonicSets.length - 1;
-      this.instance.interaction.setSelection("harmonicSet", harmonicSet.id, index);
-      if (this.instance.ui.harmonicPanel) {
-        updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
-      }
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(this.instance, { frame: true });
-      return harmonicSet;
+      return this.addSet({ anchorTime, spacing });
     }
     /**
      * Update an existing harmonic set
      * @param {string} id - Harmonic set ID
-     * @param {Partial<HarmonicSet>} updates - Properties to update
+     * @param {Partial<PinSet>} updates - Properties to update
      */
     updateHarmonicSet(id, updates) {
-      const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
-      if (setIndex !== -1) {
-        Object.assign(this.instance.state.harmonics.harmonicSets[setIndex], updates);
-        markAnnotationsChanged(this.instance);
-        if (this.instance.ui.harmonicPanel) {
-          updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
-        }
-        if (this.instance.featureRenderer) {
-          this.instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        dispatch(this.instance, { frame: true });
-      }
+      this.updateSet(id, updates);
     }
     /**
      * Remove a harmonic set
      * @param {string} id - Harmonic set ID
      */
     removeHarmonicSet(id) {
-      const setIndex = this.instance.state.harmonics.harmonicSets.findIndex((set) => set.id === id);
-      if (setIndex !== -1) {
-        if (this.instance.state.selection.selectedType === "harmonicSet" && this.instance.state.selection.selectedId === id) {
-          this.instance.interaction.clearSelection();
-        }
-        this.instance.state.harmonics.harmonicSets.splice(setIndex, 1);
-        markAnnotationsChanged(this.instance);
-        if (this.instance.ui.harmonicPanel) {
-          updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
-        }
-        if (this.instance.featureRenderer) {
-          this.instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        dispatch(this.instance, { frame: true });
-      }
+      this.removeSet(id);
     }
     /**
      * Find the harmonic set whose drawn geometry contains the given position.
-     *
-     * Hit-testing follows exactly what is drawn — nothing more, nothing less.
-     * Every visible part of a pin grabs it: the line's fixed-pixel span AND the
-     * number label + symbol stacked above it. A set with its pin hidden draws
-     * mini-pins, so its line region shrinks to that stub — the empty span below,
-     * where a full pin would have reached, is blank on screen and blank to the
-     * mouse too.
-     *
-     * Takes the probe position as a parameter rather than reading
-     * `state.cursorPosition`: the stored cursor goes stale during pans (wheel-pan
-     * suppresses mousemove), and a click tested against the pre-pan time missed
-     * the pin and minted a duplicate set on top of it (BH-13).
-     *
-     * Bounded work per set (BH-2): the range is the VISIBLE one (zoom-aware, the
-     * same source the renderer uses), only the harmonic nearest the probe
-     * frequency (±1) is line-tested — no other line can be within frequency
-     * tolerance — and the stack test walks just the thinned labelled subset.
-     * The full-range loop this replaces iterated 200,000 harmonics per hover at
-     * the minimum spacing on a standard config.
-     *
      * @param {DataCoordinates} position - Probe position {freq, time}
-     * @returns {HarmonicSet|null} The harmonic set if found, null otherwise
+     * @returns {PinSet|null} The harmonic set if found, null otherwise
      */
     findHarmonicSetAt(position) {
-      if (!position) return null;
-      const { freq, time } = position;
-      for (const harmonicSet of this.instance.state.harmonics.harmonicSets) {
-        if (harmonicSet.spacing > 0) {
-          const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet);
-          if (maxHarmonic < minHarmonic) continue;
-          const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
-          const stack = this.calculateLabelStackBounds(lineTop, harmonicSet);
-          const labelled = this.getLabelledHarmonics(minHarmonic, maxHarmonic);
-          const pinDrawn = harmonicSet.showPin !== false;
-          const lineFrom = pinDrawn ? lineTop : stack.bottom;
-          const lineTo = lineFrom + (pinDrawn ? lineHeight : _HarmonicsMode.MINI_PIN_HEIGHT);
-          const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
-          const cursorSVG = dataToSVG(
-            { freq, time },
-            this.getViewport(),
-            this.instance.ui.spectrogramImage
-          );
-          if (cursorSVG.y >= lineFrom && cursorSVG.y <= lineTo) {
-            const nearest = Math.round(freq / harmonicSet.spacing);
-            const from = Math.max(minHarmonic, nearest - 1);
-            const to = Math.min(maxHarmonic, nearest + 1);
-            for (let h = from; h <= to; h++) {
-              if (Math.abs(freq - h * harmonicSet.spacing) < tolerance.freq) {
-                return harmonicSet;
-              }
-            }
-          }
-          if (cursorSVG.y >= stack.top && cursorSVG.y <= stack.bottom) {
-            for (const h of labelled) {
-              if (Math.abs(cursorSVG.x - this.harmonicLineX(harmonicSet, h)) <= this.labelStackHalfWidth(harmonicSet, h)) {
-                return harmonicSet;
-              }
-            }
-          }
-        }
-      }
-      return null;
-    }
-    /**
-     * Mint a new harmonic set at the mousedown position and return it as a
-     * `create`-kind drag target, so the rest of the gesture is an ordinary drag.
-     *
-     * The initial spacing places the cursor on a sensible harmonic — the 10th
-     * when the frequency axis starts above zero, the 5th when it starts at zero —
-     * which is what keeps the first drawn set legible.
-     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
-     * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
-     */
-    createHarmonicSetTarget(dataCoords) {
-      const { freqMin } = this.instance.state.config;
-      let initialSpacing;
-      let clickedHarmonicNumber;
-      if (freqMin > 0) {
-        clickedHarmonicNumber = 10;
-        initialSpacing = dataCoords.freq / clickedHarmonicNumber;
-      } else {
-        clickedHarmonicNumber = 5;
-        initialSpacing = dataCoords.freq / clickedHarmonicNumber;
-      }
-      initialSpacing = Math.max(initialSpacing, 0.1);
-      const harmonicSet = this.addHarmonicSet(dataCoords.time, initialSpacing);
-      if (!harmonicSet) {
-        return null;
-      }
-      return {
-        kind: "create",
-        id: harmonicSet.id,
-        type: "harmonicSet",
-        position: dataCoords,
-        data: {
-          harmonicSet,
-          clickedHarmonicNumber,
-          originalAnchorTime: dataCoords.time
-        }
-      };
-    }
-    /**
-     * Find which harmonic number was clicked
-     * @param {HarmonicSet} harmonicSet - The harmonic set
-     * @param {number} freq - The clicked frequency
-     * @returns {number} The harmonic number (1, 2, 3, etc.)
-     */
-    findClickedHarmonicNumber(harmonicSet, freq) {
-      const harmonicNumber = Math.round(freq / harmonicSet.spacing);
-      return Math.max(1, harmonicNumber);
-    }
-    /**
-     * Apply a harmonic-set drag — the shared step for both the `move` and
-     * `create` kinds, which differ only in how their target was resolved.
-     * @param {DragTarget} target - The drag target from the engine
-     * @param {DataCoordinates} currentPos - Current pointer position
-     * @param {DataCoordinates} startPos - Where the drag began
-     */
-    applyHarmonicSetDrag(target, currentPos, startPos) {
-      if (!target || !currentPos || !startPos) return;
-      const setId = target.id;
-      if (!setId) return;
-      const harmonicSet = this.instance.state.harmonics.harmonicSets.find((set) => set.id === setId);
-      if (!harmonicSet) return;
-      let newSpacing;
-      const clickedHarmonicNumber = target.data && target.data.clickedHarmonicNumber || 1;
-      newSpacing = currentPos.freq / clickedHarmonicNumber;
-      newSpacing = Math.max(newSpacing, 0.1);
-      const originalAnchorTime = target.data && target.data.originalAnchorTime !== void 0 ? target.data.originalAnchorTime : harmonicSet.anchorTime;
-      const deltaTime = currentPos.time - startPos.time;
-      const { timeMin, timeMax } = this.instance.state.config;
-      const newAnchorTime = Math.max(timeMin, Math.min(timeMax, originalAnchorTime + deltaTime));
-      const updates = {};
-      if (newSpacing > 0) {
-        updates.spacing = newSpacing;
-      }
-      updates.anchorTime = newAnchorTime;
-      this.updateHarmonicSet(setId, updates);
-      this.updateHarmonicPanel();
+      return this.findSetAt(position);
     }
     /**
      * Update harmonic management panel
      */
-    updateHarmonicPanel() {
+    updatePanel() {
       if (this.instance.ui.harmonicPanel) {
         updateHarmonicPanelContent(this.instance.ui.harmonicPanel, this.instance);
       }
@@ -4669,9 +5330,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Re-render this mode's persistent panel from current state.
      *
      * The `PanelOwner` capability. `MainUI` used to reach in by name, resolve the
-     * panel element on this mode's behalf, and call `updateHarmonicPanel` through
-     * an `any` cast. Resolving the panel reference belongs here — it is this
-     * mode's own UI element — so it is absorbed rather than left outside
+     * panel element on this mode's behalf, and call the panel update through an
+     * `any` cast. Resolving the panel reference belongs here — it is this mode's
+     * own UI element — so it is absorbed rather than left outside
      * (spec 167, FR-006, AS-4.2).
      */
     refreshPanel() {
@@ -4684,348 +5345,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           this.instance.ui.harmonicPanel = existingPanel;
         }
       }
-      this.updateHarmonicPanel();
-    }
-    /**
-     * Whether this mode currently owns any persistent feature.
-     *
-     * Half of the `PersistentFeatureProvider` capability. Lived on
-     * `FeatureRenderer` as `hasHarmonicFeatures()` until spec 167 moved it onto
-     * the mode that owns the state it reads.
-     * @returns {boolean} True if at least one harmonic set exists
-     */
-    hasPersistentFeatures() {
-      const harmonics = this.instance.state.harmonics;
-      return !!(harmonics && harmonics.harmonicSets && harmonics.harmonicSets.length > 0);
-    }
-    /**
-     * Render persistent features for harmonics mode
-     */
-    renderPersistentFeatures() {
-      var _a;
-      if (!this.instance.ui.cursorGroup || !((_a = this.instance.state.harmonics) == null ? void 0 : _a.harmonicSets)) {
-        return;
-      }
-      const existingHarmonics = this.instance.ui.cursorGroup.querySelectorAll(
-        ".gram-frame-harmonic-line, .gram-frame-harmonic-mini-pin"
-      );
-      existingHarmonics.forEach((line) => line.remove());
-      const existingSymbols = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-harmonic-symbol[data-harmonic-set-id]");
-      existingSymbols.forEach((symbol) => symbol.remove());
-      this.instance.state.harmonics.harmonicSets.forEach((harmonicSet) => {
-        this.renderHarmonicSet(harmonicSet);
-      });
-    }
-    /**
-     * Get the inclusive harmonic-number range of a set that falls within the
-     * currently visible frequency span.
-     *
-     * The visible range comes from `calculateVisibleDataRange` (the same
-     * source the frequency axis uses), so it is viewport-aware: zooming in narrows
-     * the span (fewer harmonics), zooming out / panning widens it. At zoom 1.0 the
-     * visible range equals the full data range.
-     *
-     * Every harmonic in this range is drawn as a pin line (spec 159, FR-001); the
-     * label/symbol subset is a regularly-sampled slice of it (see
-     * {@link getLabelledHarmonics}).
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {{minHarmonic: number, maxHarmonic: number}} Inclusive harmonic range
-     */
-    getVisibleHarmonicRange(harmonicSet) {
-      const { freqMin, freqMax } = calculateVisibleDataRange(this.instance.state, this.instance.ui.spectrogramImage);
-      const minHarmonic = Math.max(1, Math.ceil(freqMin / harmonicSet.spacing));
-      const maxHarmonic = Math.floor(freqMax / harmonicSet.spacing);
-      return { minHarmonic, maxHarmonic };
-    }
-    /**
-     * Get the "major" subset of harmonic numbers that receive a number label and
-     * symbol, thinned to at most the label limit (default 25) by regular sampling.
-     *
-     * Reuses the spec-158 sampling maths, but that limit now governs
-     * labels/symbols only — every pin line is still drawn (spec 159). When the
-     * visible range already fits under the limit the subset is the whole range, so
-     * every drawn pin is labelled (FR-005).
-     *
-     * @param {number} minHarmonic - Lowest visible harmonic number (>= 1)
-     * @param {number} maxHarmonic - Highest visible harmonic number
-     * @returns {number[]} Ascending harmonic numbers to label/symbol (length <= cap)
-     */
-    getLabelledHarmonics(minHarmonic, maxHarmonic) {
-      return sampledHarmonics(minHarmonic, maxHarmonic).harmonics;
-    }
-    /**
-     * Calculate harmonic line dimensions and positions.
-     *
-     * The height is a fixed pixel length taken from the *base* (unzoomed) render
-     * height, so a pin covers the same number of screen pixels no matter how far
-     * the user has zoomed in — it is not a span of time that stretches with the
-     * image. Only the centre is zoom-aware: the pin stays centred on the set's
-     * anchor time (the original click location), so it tracks the feature while
-     * keeping a constant height.
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
-     */
-    calculateHarmonicLineDimensions(harmonicSet) {
-      const { renderHeight } = getRenderDimensions(this.instance.state);
-      const lineHeight = renderHeight * _HarmonicsMode.PIN_HEIGHT_RATIO;
-      const anchorPoint = { freq: harmonicSet.spacing, time: harmonicSet.anchorTime };
-      const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.ui.spectrogramImage);
-      const lineTop = anchorSVG.y - lineHeight / 2;
-      return { lineHeight, lineTop };
-    }
-    /**
-     * Create SVG line element for a harmonic
-     * @param {number} harmonicNumber - Harmonic number
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} lineX - X position for the line
-     * @param {number} lineTop - Top Y position for the line
-     * @param {number} lineHeight - Height of the line
-     * @returns {SVGLineElement} SVG line element
-     */
-    createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight) {
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("class", "gram-frame-harmonic-line");
-      line.setAttribute("data-harmonic-set-id", harmonicSet.id);
-      line.setAttribute("data-harmonic-number", String(harmonicNumber));
-      line.setAttribute("x1", String(lineX));
-      line.setAttribute("y1", String(lineTop));
-      line.setAttribute("x2", String(lineX));
-      line.setAttribute("y2", String(lineTop + lineHeight));
-      line.setAttribute("stroke", harmonicSet.color);
-      line.setAttribute("stroke-width", "2");
-      line.setAttribute("stroke-linecap", "round");
-      line.setAttribute("opacity", "0.9");
-      return line;
-    }
-    /**
-     * Create the short stub line drawn under a harmonic when the set's full pin is
-     * hidden.
-     *
-     * Same colour and stroke as a full pin line, so a mini-pin reads as the same
-     * feature at a smaller scale; only its class and height differ. The distinct
-     * class keeps the two apart for cleanup, hit-testing and tests — a hidden-pin
-     * set still draws no `.gram-frame-harmonic-line`.
-     *
-     * @param {number} harmonicNumber - Harmonic number
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} lineX - X position of the mini-pin
-     * @param {number} top - Top Y position of the mini-pin (the symbol's underside)
-     * @returns {SVGLineElement} SVG line element
-     */
-    createMiniPin(harmonicNumber, harmonicSet, lineX, top) {
-      const miniPin = this.createHarmonicLine(
-        harmonicNumber,
-        harmonicSet,
-        lineX,
-        top,
-        _HarmonicsMode.MINI_PIN_HEIGHT
-      );
-      miniPin.setAttribute("class", "gram-frame-harmonic-mini-pin");
-      return miniPin;
-    }
-    /**
-     * Create SVG text label for a harmonic number.
-     *
-     * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
-     * positioned above the pin's symbol (baseline at `labelY`), so the vertical
-     * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
-     *
-     * The digits are drawn black inside a white halo rather than in the set's
-     * colour: a single colour is only legible over part of a gram, whereas the
-     * halo reads over both dark and light backgrounds. Set identity is still
-     * carried by the pin's line and symbol colour.
-     *
-     * @param {number} harmonicNumber - Harmonic number
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} lineX - X position of the pin line (label is centred on it)
-     * @param {number} labelY - Baseline Y position for the label text
-     * @returns {SVGTextElement} SVG text element
-     */
-    createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY) {
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("class", "gram-frame-harmonic-number");
-      label.setAttribute("data-harmonic-set-id", harmonicSet.id);
-      label.setAttribute("data-harmonic-number", String(harmonicNumber));
-      label.setAttribute("x", String(lineX));
-      label.setAttribute("y", String(labelY));
-      label.setAttribute("text-anchor", "middle");
-      applyTextHalo(
-        /** @type {SVGTextElement} */
-        label
-      );
-      label.setAttribute("font-size", String(_HarmonicsMode.LABEL_FONT_SIZE));
-      label.setAttribute("font-weight", "bold");
-      label.setAttribute("font-family", "Arial, sans-serif");
-      label.textContent = String(harmonicNumber);
-      return label;
-    }
-    /**
-     * Effective pixel size of a set's symbol marks: the base size scaled by that
-     * set's own large-symbol flag, so sets at both sizes can share a gram. The
-     * whole label/symbol stack layout derives from this, so the label spacing and
-     * top-edge clamping follow the set's chosen size.
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @returns {number} Symbol diameter in px
-     */
-    symbolSize(harmonicSet) {
-      return _HarmonicsMode.SYMBOL_SIZE * resolveSymbolScale(harmonicSet);
-    }
-    /**
-     * Create the filled symbol mark drawn between a pin's number label and the top
-     * of its line.
-     *
-     * The vertical position (`symbolCy`) is computed once per set by
-     * {@link calculateLabelStackPositions} so the whole label/symbol stack shares a
-     * consistent, on-screen layout.
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} lineX - X position of the pin line (symbol is centred on it)
-     * @param {number} symbolCy - Centre Y position for the symbol
-     * @returns {SVGElement|null} SVG symbol element, or null for the `cross` (symbol-less) style
-     */
-    createHarmonicSymbol(harmonicSet, lineX, symbolCy) {
-      const symbol = createSymbolMark(
-        harmonicSet.symbol,
-        lineX,
-        symbolCy,
-        this.symbolSize(harmonicSet),
-        harmonicSet.color
-      );
-      if (!symbol) {
-        return null;
-      }
-      symbol.setAttribute("data-harmonic-set-id", harmonicSet.id);
-      return symbol;
-    }
-    /**
-     * Compute the shared vertical layout of a pin's label/symbol stack.
-     *
-     * Ideal (top-to-bottom): label baseline, then symbol, then the pin line top,
-     * so the symbol caps the line and the label sits above the symbol. When the
-     * stack's top would clip above the spectrogram's top edge, the whole stack
-     * (label + symbol) is nudged down by the overflow so it stays legible
-     * (spec 159, FR-011).
-     *
-     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
-     * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
-     * @param {HarmonicSet} harmonicSet - Harmonic set being laid out (its symbol size drives the stack)
-     * @returns {{symbolCy: number, labelY: number}} Symbol centre and label baseline Y
-     */
-    calculateLabelStackPositions(lineTop, imageTop, harmonicSet) {
-      const r = this.symbolSize(harmonicSet) / 2;
-      const gap = _HarmonicsMode.LABEL_GAP;
-      const fontSize = _HarmonicsMode.LABEL_FONT_SIZE;
-      let symbolCy = lineTop - r;
-      let labelY = symbolCy - r - gap;
-      const labelTop = labelY - fontSize;
-      const minTop = imageTop + _HarmonicsMode.STACK_TOP_PAD;
-      if (labelTop < minTop) {
-        const shift = minTop - labelTop;
-        symbolCy += shift;
-        labelY += shift;
-      }
-      return { symbolCy, labelY };
-    }
-    /**
-     * Vertical extent (SVG coords) of a pin's label/symbol stack, for hit-testing.
-     *
-     * Derived from the same {@link calculateLabelStackPositions} layout the
-     * renderer uses, so the grab region tracks the drawn stack — including the
-     * downward nudge applied near the image's top edge. The bottom is clamped to
-     * the pin line's top so the stack region and the line region always meet with
-     * no dead gap between them.
-     *
-     * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
-     * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
-     * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
-     */
-    calculateLabelStackBounds(lineTop, harmonicSet) {
-      const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
-      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
-      const r = this.symbolSize(harmonicSet) / 2;
-      return {
-        // One ascent above the label's baseline is the top of the digits.
-        top: labelY - _HarmonicsMode.LABEL_FONT_SIZE,
-        bottom: Math.max(lineTop, symbolCy + r)
-      };
-    }
-    /**
-     * Half-width (SVG px) of a pin's label/symbol stack, for hit-testing.
-     *
-     * The wider of the symbol mark and the number label, so both are grabbable:
-     * a `cross` set has no symbol but still shows its digits, and a "Large
-     * symbols" set's mark is wider than its digits. Label width is estimated from
-     * the digit count rather than measured, which is ample for a grab region.
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set being hit-tested
-     * @param {number} harmonicNumber - Harmonic number whose label is drawn
-     * @returns {number} Half-width in SVG pixels
-     */
-    labelStackHalfWidth(harmonicSet, harmonicNumber) {
-      const digits = String(harmonicNumber).length;
-      const labelHalfWidth = digits * _HarmonicsMode.LABEL_FONT_SIZE * _HarmonicsMode.LABEL_CHAR_WIDTH_RATIO / 2;
-      return Math.max(this.symbolSize(harmonicSet) / 2, labelHalfWidth);
-    }
-    /**
-     * Compute the SVG x-coordinate of a harmonic's vertical pin line.
-     * @param {HarmonicSet} harmonicSet - Harmonic set configuration
-     * @param {number} harmonicNumber - Harmonic number
-     * @returns {number} SVG x-coordinate of the pin line
-     */
-    harmonicLineX(harmonicSet, harmonicNumber) {
-      const harmonicPoint = { freq: harmonicNumber * harmonicSet.spacing, time: harmonicSet.anchorTime };
-      return dataToSVG(harmonicPoint, this.getViewport(), this.instance.ui.spectrogramImage).x;
-    }
-    /**
-     * Render a single harmonic set as vertical pin lines.
-     *
-     * Spec 159: draw a pin line for EVERY harmonic in the visible span (no pins are
-     * dropped, even if they merge into a solid block), then draw a number label and
-     * symbol only for the thinned "major" subset so the overlay stays readable.
-     * Lines are appended first so the labels/symbols paint on top of them.
-     *
-     * A set with `showPin === false` draws a mini-pin per harmonic instead of a
-     * full-height line: a stub hanging from the symbol's underside, in the set's
-     * colour. Labels and symbols are thinned, so without them a pin-less set gave
-     * no sign of where the harmonics between the labelled ones actually fell
-     * (issue #232); the mini-pins restore that alignment with the data at a
-     * fraction of the ink. The label/symbol geometry is unchanged either way, so
-     * toggling the pin swaps line lengths without moving anything else.
-     *
-     * @param {HarmonicSet} harmonicSet - Harmonic set to render
-     */
-    renderHarmonicSet(harmonicSet) {
-      if (!this.instance.ui.cursorGroup) {
-        return;
-      }
-      const { minHarmonic, maxHarmonic } = this.getVisibleHarmonicRange(harmonicSet);
-      if (maxHarmonic < minHarmonic) {
-        return;
-      }
-      const { lineHeight, lineTop } = this.calculateHarmonicLineDimensions(harmonicSet);
-      const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
-      const { symbolCy, labelY } = this.calculateLabelStackPositions(lineTop, imageTop, harmonicSet);
-      const pinDrawn = harmonicSet.showPin !== false;
-      const visibleCount = maxHarmonic - minHarmonic + 1;
-      const stride = Math.max(1, Math.ceil(visibleCount / _HarmonicsMode.MAX_PIN_LINES));
-      const miniPinTop = symbolCy + this.symbolSize(harmonicSet) / 2;
-      for (let harmonicNumber = minHarmonic; harmonicNumber <= maxHarmonic; harmonicNumber += stride) {
-        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
-        const line = pinDrawn ? this.createHarmonicLine(harmonicNumber, harmonicSet, lineX, lineTop, lineHeight) : this.createMiniPin(harmonicNumber, harmonicSet, lineX, miniPinTop);
-        this.instance.ui.cursorGroup.appendChild(line);
-      }
-      const labelledHarmonics = this.getLabelledHarmonics(minHarmonic, maxHarmonic);
-      labelledHarmonics.forEach((harmonicNumber) => {
-        const lineX = this.harmonicLineX(harmonicSet, harmonicNumber);
-        const symbol = this.createHarmonicSymbol(harmonicSet, lineX, symbolCy);
-        const label = this.createHarmonicLabel(harmonicNumber, harmonicSet, lineX, labelY);
-        if (symbol) {
-          this.instance.ui.cursorGroup.appendChild(symbol);
-        }
-        this.instance.ui.cursorGroup.appendChild(label);
-      });
+      this.updatePanel();
     }
     /**
      * Get initial state for harmonics mode
@@ -5040,75 +5360,333 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         }
       };
     }
+  }
+  const panelTables = /* @__PURE__ */ new WeakMap();
+  function createColorCellContent(sidebandSet) {
+    const colorDiv = document.createElement("div");
+    colorDiv.className = "gram-frame-sideband-color";
+    colorDiv.style.color = sidebandSet.color;
+    colorDiv.appendChild(createColorIndicator(sidebandSet.symbol, sidebandSet.color));
+    return colorDiv;
+  }
+  function createSidebandDeleteButton(sidebandSet) {
+    const button = document.createElement("button");
+    button.className = "gram-frame-sideband-delete";
+    button.setAttribute("data-sideband-id", sidebandSet.id);
+    button.title = "Delete sideband set";
+    button.textContent = "×";
+    return button;
+  }
+  function createSidebandPanel(container, instance) {
+    const table = createDiffingTable(container, {
+      columns: [
+        { label: "", width: "15%" },
+        { label: "Freq (Hz)", width: "35%", cellClassName: "gram-frame-sideband-freq" },
+        { label: "Spacing (Hz)", width: "35%", cellClassName: "gram-frame-sideband-spacing" },
+        { label: "", width: "15%" }
+      ],
+      rowAttribute: "data-sideband-id",
+      rowClassName: "gram-frame-sideband-row",
+      rowKey: (sidebandSet) => sidebandSet.id,
+      cells: (sidebandSet) => [
+        createColorCellContent(sidebandSet),
+        sidebandSet.fundamentalFreq.toFixed(2),
+        sidebandSet.spacing.toFixed(2),
+        createSidebandDeleteButton(sidebandSet)
+      ],
+      deleteSelector: ".gram-frame-sideband-delete",
+      onSelect: (sidebandSetId, _sidebandSet, index) => {
+        if (instance.state.selection.selectedType === "sidebandSet" && instance.state.selection.selectedId === sidebandSetId) {
+          instance.interaction.clearSelection();
+        } else {
+          instance.interaction.setSelection("sidebandSet", sidebandSetId, index);
+        }
+      },
+      onDelete: (sidebandSetId) => instance.interaction.removeSidebandSet(sidebandSetId),
+      isSelected: (sidebandSetId) => instance.state.selection.selectedType === "sidebandSet" && instance.state.selection.selectedId === sidebandSetId
+    });
+    const panel = (
+      /** @type {HTMLElement} */
+      table.element.parentElement
+    );
+    panel.classList.add("gram-frame-sideband-panel");
+    panelTables.set(panel, table);
+    return panel;
+  }
+  function updateSidebandPanelContent(panel, instance) {
+    if (!panel) {
+      return;
+    }
+    const table = panelTables.get(panel);
+    if (!table) {
+      return;
+    }
+    table.update(instance.state.sidebands.sidebandSets);
+  }
+  const _SidebandMode = class _SidebandMode extends PinSetMode {
+    /**
+     * Initialize SidebandMode
+     * @param {GramFrame} instance - GramFrame instance
+     */
+    constructor(instance) {
+      super(instance, "sideband");
+    }
+    /**
+     * The sideband sets, live.
+     * @returns {PinSet[]} This mode's sets
+     */
+    get sets() {
+      return this.instance.state.sidebands.sidebandSets;
+    }
+    /**
+     * @returns {SelectedFeatureType} Selection type for a sideband set
+     */
+    get selectionType() {
+      return "sidebandSet";
+    }
+    /**
+     * DOM naming for sideband pins: its own stem, so a selector, a cleanup pass
+     * or a test can never confuse a sideband with a harmonic.
+     * @returns {PinSetClassNames} Class and attribute names
+     */
+    get pinNames() {
+      return {
+        idPrefix: "sideband",
+        lineClass: "gram-frame-sideband-line",
+        miniPinClass: "gram-frame-sideband-mini-pin",
+        labelClass: "gram-frame-sideband-number",
+        setIdAttribute: "data-sideband-set-id",
+        indexAttribute: "data-sideband-index"
+      };
+    }
+    /**
+     * Frequency of sideband `index`, counted out from the fundamental. Negative
+     * indices fall below it, positive ones above; index 0 is the fundamental.
+     * @param {PinSet} set - Sideband set
+     * @param {number} index - Sideband index
+     * @returns {number} Frequency in Hz
+     */
+    freqForIndex(set, index) {
+      return this.fundamentalOf(set) + index * set.spacing;
+    }
+    /**
+     * The inclusive sideband-index range within the currently visible frequency
+     * span. Unlike a harmonic set this is not clamped at zero: sidebands below the
+     * fundamental are as real as those above it.
+     * @param {PinSet} set - Sideband set
+     * @returns {{minIndex: number, maxIndex: number}} Inclusive index range
+     */
+    visibleIndexRange(set) {
+      const { freqMin, freqMax } = this.visibleFrequencySpan();
+      const fundamental = this.fundamentalOf(set);
+      return {
+        minIndex: Math.ceil((freqMin - fundamental) / set.spacing),
+        maxIndex: Math.floor((freqMax - fundamental) / set.spacing)
+      };
+    }
+    /**
+     * Which sideband a probe frequency is nearest.
+     * @param {PinSet} set - Sideband set
+     * @param {number} freq - Probe frequency
+     * @returns {number} Nearest sideband index
+     */
+    nearestIndex(set, freq) {
+      return Math.round((freq - this.fundamentalOf(set)) / set.spacing);
+    }
+    /**
+     * Label a sideband by its signed offset from the fundamental, so the origin
+     * is identifiable at a glance: `0` on the fundamental, `+1`/`-1` either side.
+     * @param {number} index - Sideband index
+     * @returns {string} Label text
+     */
+    labelTextFor(index) {
+      return index > 0 ? `+${index}` : String(index);
+    }
+    /**
+     * The set's fundamental, tolerating a record that somehow lacks one.
+     * @param {PinSet} set - Sideband set
+     * @returns {number} Fundamental frequency in Hz
+     */
+    fundamentalOf(set) {
+      return set.fundamentalFreq || 0;
+    }
+    /**
+     * Mint a new sideband set at the mousedown position.
+     *
+     * The click sets the fundamental. The seed spacing spreads roughly
+     * {@link SidebandMode.INITIAL_SIDEBAND_COUNT} members across the frequency
+     * axis, which puts an equal number either side of a centred fundamental and
+     * more on the roomier side of an off-centre one — exactly as the analyst
+     * placed it. The drag that follows then sets the real spacing.
+     * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
+     * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
+     */
+    createSetTarget(dataCoords) {
+      const { freqMin, freqMax } = this.instance.state.config;
+      const span = Math.abs(freqMax - freqMin);
+      const initialSpacing = Math.max(span / _SidebandMode.INITIAL_SIDEBAND_COUNT, MIN_PIN_SPACING);
+      const sidebandSet = this.addSidebandSet(dataCoords.time, dataCoords.freq, initialSpacing);
+      if (!sidebandSet) {
+        return null;
+      }
+      return {
+        kind: "create",
+        id: sidebandSet.id,
+        type: "sidebandSet",
+        position: dataCoords,
+        data: {
+          set: sidebandSet,
+          // The click landed on the fundamental, so the drag that follows moves
+          // the origin — which is how the analyst places it precisely.
+          clickedIndex: 0,
+          originalAnchorTime: dataCoords.time
+        }
+      };
+    }
+    /**
+     * What a horizontal drag means for a sideband set.
+     *
+     * Grabbing the fundamental moves the whole set along the frequency axis;
+     * grabbing any other sideband holds it under the cursor, which sets the
+     * spacing. Dragging a sideband past the fundamental would invert the spacing,
+     * so it is floored at the shared minimum rather than allowed to go negative.
+     * @param {PinSet} set - The set being dragged
+     * @param {number} clickedIndex - Sideband index the drag grabbed
+     * @param {DataCoordinates} currentPos - Current pointer position
+     * @returns {Partial<PinSet>} Updates to apply
+     */
+    freqUpdatesForDrag(set, clickedIndex, currentPos) {
+      if (clickedIndex === 0) {
+        const { freqMin, freqMax } = this.instance.state.config;
+        const lower = Math.min(freqMin, freqMax);
+        const upper = Math.max(freqMin, freqMax);
+        return { fundamentalFreq: Math.max(lower, Math.min(upper, currentPos.freq)) };
+      }
+      const spacing = (currentPos.freq - this.fundamentalOf(set)) / clickedIndex;
+      return { spacing: Math.max(spacing, MIN_PIN_SPACING) };
+    }
+    /**
+     * Add a new sideband set
+     * @param {number} anchorTime - Time position in seconds
+     * @param {number} fundamentalFreq - Fundamental frequency in Hz
+     * @param {number} spacing - Frequency spacing between adjacent sidebands in Hz
+     * @returns {PinSet} The created sideband set
+     */
+    addSidebandSet(anchorTime, fundamentalFreq, spacing) {
+      return this.addSet({ anchorTime, fundamentalFreq, spacing });
+    }
+    /**
+     * Update an existing sideband set
+     * @param {string} id - Sideband set ID
+     * @param {Partial<PinSet>} updates - Properties to update
+     */
+    updateSidebandSet(id, updates) {
+      this.updateSet(id, updates);
+    }
+    /**
+     * Remove a sideband set
+     * @param {string} id - Sideband set ID
+     */
+    removeSidebandSet(id) {
+      this.removeSet(id);
+    }
+    /**
+     * Find the sideband set whose drawn geometry contains the given position.
+     * @param {DataCoordinates} position - Probe position {freq, time}
+     * @returns {PinSet|null} The sideband set if found, null otherwise
+     */
+    findSidebandSetAt(position) {
+      return this.findSetAt(position);
+    }
+    /**
+     * Get guidance content for sidebands mode
+     * @returns {Object} Structured guidance content
+     */
+    getGuidanceText() {
+      return {
+        title: "Sidebands Mode",
+        items: [
+          "Click & drag to place a sideband set at that frequency",
+          "Drag the 0 line to move the fundamental",
+          "Drag any other line to adjust sideband spacing",
+          "Click table row + arrow keys (Shift for larger steps)"
+        ]
+      };
+    }
+    /**
+     * Create UI elements for sidebands mode
+     * @param {HTMLElement} sidebandsContainer - Persistent container for the sidebands table
+     */
+    createUI(sidebandsContainer) {
+      this.uiElements = {};
+      this.uiElements.sidebandsContainer = sidebandsContainer;
+      const existingPanel = (
+        /** @type {HTMLElement|null} */
+        sidebandsContainer.querySelector(".gram-frame-sideband-panel")
+      );
+      this.uiElements.sidebandPanel = existingPanel || createSidebandPanel(sidebandsContainer, this.instance);
+      this.instance.ui.sidebandPanel = this.uiElements.sidebandPanel;
+      this.updatePanel();
+    }
+    /**
+     * Destroy mode-specific UI elements when leaving this mode.
+     *
+     * The panel and its container are persistent — the sidebands table stays
+     * visible in every mode, as the markers and harmonics tables do — so this
+     * deliberately does NOT call `super.destroyUI()`.
+     */
+    destroyUI() {
+    }
+    /**
+     * Update the sidebands table
+     */
+    updatePanel() {
+      if (this.instance.ui.sidebandPanel) {
+        updateSidebandPanelContent(this.instance.ui.sidebandPanel, this.instance);
+      }
+    }
+    /**
+     * Re-render this mode's persistent panel from current state.
+     *
+     * The `PanelOwner` capability.
+     * @see {@link module:modes/capabilities}
+     */
+    refreshPanel() {
+      if (!this.instance.ui.sidebandPanel && this.instance.ui.sidebandsContainer) {
+        const existingPanel = (
+          /** @type {HTMLElement|null} */
+          this.instance.ui.sidebandsContainer.querySelector(".gram-frame-sideband-panel")
+        );
+        if (existingPanel) {
+          this.instance.ui.sidebandPanel = existingPanel;
+        }
+      }
+      this.updatePanel();
+    }
+    /**
+     * Get initial state for sidebands mode
+     * @returns {SidebandsInitialState} Sidebands-specific initial state
+     */
+    static getInitialState() {
+      return {
+        sidebands: {
+          sidebandSets: []
+        }
+      };
+    }
   };
   /**
-   * Color palette for harmonic sets
-   * @type {string[]}
-   */
-  __publicField(_HarmonicsMode, "harmonicColors", ["#ff6b6b", "#2ecc71", "#f39c12", "#9b59b6", "#ffc93c", "#ff9ff3", "#45b7d1", "#e67e22"]);
-  /**
-   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
-   * this scaled by the "Large" symbol-size experiment toggle — use
-   * {@link HarmonicsMode#symbolSize} rather than reading this directly.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "SYMBOL_SIZE", 10);
-  /**
-   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
+   * Number of sidebands a newly placed set spreads across the frequency axis.
    *
-   * The resulting height is a fixed pixel length, not a span of time: it is
-   * derived from the viewport's base render size (which tracks expand, not zoom)
-   * rather than from the zoomed image element. Pins therefore keep the same
-   * on-screen height at every zoom level, growing/shrinking only when the
-   * component itself is resized.
+   * The seed spacing is the axis span divided by this, so a set dropped in the
+   * middle of the gram shows about this many members — an equal count each side
+   * when the fundamental is central, and more on the roomier side when it is
+   * not. It is only a starting point: the analyst drags a sideband onto the
+   * data immediately afterwards, which is what actually sets the spacing.
    * @type {number}
    */
-  __publicField(_HarmonicsMode, "PIN_HEIGHT_RATIO", 0.2);
-  /**
-   * Height (px) of a mini-pin: the stub line drawn under each harmonic of a set
-   * whose full pin is hidden.
-   *
-   * Fixed rather than derived, by design (spec: issue #232). It is half the
-   * height of a "Large" symbol mark (SYMBOL_SIZE * LARGE_SYMBOL_SCALE = 20px),
-   * which is enough to tie each harmonic to the data beneath it without
-   * reinstating the clutter the pin toggle exists to remove.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "MINI_PIN_HEIGHT", 10);
-  /**
-   * Maximum pin lines rendered per harmonic set. At the 0.1 Hz minimum spacing
-   * a standard 0–20 kHz config has 200,000 visible harmonics; drawing an SVG
-   * line for each — rebuilt on every drag frame — locked the browser (BH-2).
-   * Past this cap the drawn lines are a regular sample of the range; well
-   * beyond typical screen widths, adjacent pins merge on screen anyway, so the
-   * thinning is invisible until the set is already a solid block.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "MAX_PIN_LINES", 1e3);
-  /**
-   * Font size (px) of a pin's number label; also used as its approximate ascent
-   * when clamping the label/symbol stack to the image's top edge.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "LABEL_FONT_SIZE", 12);
-  /**
-   * Approximate width of one label digit as a fraction of the label font size,
-   * used to size the label's grab region (bold Arial digits are ~0.6 em wide).
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "LABEL_CHAR_WIDTH_RATIO", 0.6);
-  /**
-   * Vertical gap (px) between the pin's number label and its symbol.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "LABEL_GAP", 3);
-  /**
-   * Minimum padding (px) kept between the top of a pin's label and the top edge
-   * of the spectrogram image.
-   * @type {number}
-   */
-  __publicField(_HarmonicsMode, "STACK_TOP_PAD", 1);
-  let HarmonicsMode = _HarmonicsMode;
+  __publicField(_SidebandMode, "INITIAL_SIDEBAND_COUNT", 8);
+  let SidebandMode = _SidebandMode;
   const MS_TO_KNOTS = 1.94384;
   function calculateMidpoint(fPlus, fMinus) {
     return {
@@ -5971,12 +6549,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             return new AnalysisMode(instance);
           case "harmonics":
             return new HarmonicsMode(instance);
+          case "sideband":
+            return new SidebandMode(instance);
           case "doppler":
             return new DopplerMode(instance);
           case "pan":
             return new PanMode(instance);
           default:
-            throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, doppler, pan`);
+            throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, sideband, doppler, pan`);
         }
       } catch (error) {
         console.error(`CRITICAL ERROR: Failed to create mode "${modeName}":`, error);
@@ -6007,7 +6587,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * rather than importing the mode classes itself, which is what breaks the
      * state ⇄ modes cycle (spec 167, FR-002, ADR-014).
      *
-     * Merge order is fixed and explicit: analysis, harmonics, doppler, pan.
+     * Merge order is fixed and explicit: analysis, harmonics, sideband, doppler, pan.
      * @returns {Partial<GramFrameState>} Merged mode slices
      */
     static getModeInitialStates() {
@@ -6015,6 +6595,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         {},
         AnalysisMode.getInitialState(),
         HarmonicsMode.getInitialState(),
+        SidebandMode.getInitialState(),
         DopplerMode.getInitialState(),
         PanMode.getInitialState()
       );
@@ -6026,7 +6607,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {ModeType[]} Array of mode names
      */
     static getAvailableModes() {
-      return ["analysis", "harmonics", "doppler", "pan"];
+      return ["analysis", "harmonics", "sideband", "doppler", "pan"];
     }
     /**
      * Validate if a mode name is supported
@@ -6123,9 +6704,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     });
     return { modes, featureRenderer };
   }
-  function setupModeUI(instance, modes, markersContainer, harmonicsContainer, guidancePanel) {
-    modes["analysis"].createUI(markersContainer);
-    modes["harmonics"].createUI(harmonicsContainer);
+  function setupModeUI(instance, modes, panelContainers, guidancePanel) {
+    Object.entries(panelContainers).forEach(([modeName, container]) => {
+      if (modes[modeName]) {
+        modes[modeName].createUI(container);
+      }
+    });
     const currentMode = modes[instance.state.mode] || modes["pan"];
     updateGuidancePanel(guidancePanel, currentMode.getGuidanceText());
     return currentMode;
@@ -6494,6 +7078,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         applyLargeSymbolsToSelectedFeature: () => false,
         removeHarmonicSet: () => {
         },
+        removeSidebandSet: () => {
+        },
         // Replaced by the colour picker when it mounts; a no-op until then, so a
         // caller arriving early does nothing rather than throwing.
         syncStyleControls: () => {
@@ -6562,6 +7148,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         modeColumn: layout.modeColumn,
         markersContainer: layout.markersContainer,
         harmonicsContainer: layout.harmonicsContainer,
+        sidebandsContainer: layout.sidebandsContainer,
         timeLED: layout.timeLED,
         freqLED: layout.freqLED,
         speedLED: layout.speedLED,
@@ -6570,10 +7157,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         modeButtons: initialModeUI.modeButtons,
         commandButtons: initialModeUI.commandButtons,
         guidancePanel: initialModeUI.guidancePanel,
-        // Mounted later, or not at all: the harmonics panel arrives with that
-        // mode's UI, the expand toggle only for a landscape image, and nothing
-        // assigns the mode/rate LEDs at all — every read of them is guarded.
+        // Mounted later, or not at all: the harmonics and sidebands panels
+        // arrive with their modes' UI, the expand toggle only for a landscape
+        // image, and nothing assigns the mode/rate LEDs at all — every read of
+        // them is guarded.
         harmonicPanel: null,
+        sidebandPanel: null,
         expandToggleButton: null,
         modeLED: null,
         rateLED: null
@@ -6582,7 +7171,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const { modes, featureRenderer } = initializeModeInfrastructure(this);
       this.modes = modes;
       this.featureRenderer = featureRenderer;
-      this.currentMode = setupModeUI(this, modes, layout.markersContainer, layout.harmonicsContainer, initialModeUI.guidancePanel);
+      this.currentMode = setupModeUI(this, modes, {
+        analysis: layout.markersContainer,
+        harmonics: layout.harmonicsContainer,
+        sideband: layout.sidebandsContainer
+      }, initialModeUI.guidancePanel);
       const modeUI = updateModeUIWithCommands(
         this,
         initialModeUI,
@@ -6597,6 +7190,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.ui.guidancePanel = modeUI.guidancePanel;
       const controls = setupAllEventListeners(this);
       this.interaction.removeHarmonicSet = controls.removeHarmonicSet;
+      this.interaction.removeSidebandSet = controls.removeSidebandSet;
       this.interaction.setSelection = controls.setSelection;
       this.interaction.clearSelection = controls.clearSelection;
       this.interaction.updateSelectionVisuals = controls.updateSelectionVisuals;
@@ -6671,6 +7265,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const fresh = createInitialState(ModeFactory.getModeInitialStates());
       this.state.analysis = fresh.analysis;
       this.state.harmonics = fresh.harmonics;
+      this.state.sidebands = fresh.sidebands;
       this.state.doppler = fresh.doppler;
       this.state.cursors = fresh.cursors;
       if (clearAnnotations(this.persistence._storageInstanceIndex, this._storageContext())) {
@@ -6728,6 +7323,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           showPin: hs.showPin !== false
         }));
       }
+      if (saved.sidebands && Array.isArray(saved.sidebands.sidebandSets)) {
+        this.state.sidebands.sidebandSets = saved.sidebands.sidebandSets.map((sb) => ({
+          ...sb,
+          symbol: sb.symbol || "cross",
+          showPin: sb.showPin !== false
+        }));
+      }
       if (saved.doppler) {
         this.state.doppler.fPlus = saved.doppler.fPlus || null;
         this.state.doppler.fMinus = saved.doppler.fMinus || null;
@@ -6755,6 +7357,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           state.annotationRevision || 0,
           state.analysis && state.analysis.markers ? state.analysis.markers.length : 0,
           state.harmonics && state.harmonics.harmonicSets ? state.harmonics.harmonicSets.length : 0,
+          state.sidebands && state.sidebands.sidebandSets ? state.sidebands.sidebandSets.length : 0,
           doppler.fPlus ? `${doppler.fPlus.time}:${doppler.fPlus.freq}` : "-",
           doppler.fMinus ? `${doppler.fMinus.time}:${doppler.fMinus.freq}` : "-",
           doppler.fZero ? `${doppler.fZero.time}:${doppler.fZero.freq}` : "-",
@@ -6837,7 +7440,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         });
       }
       if (this.ui.container) {
-        this.ui.container.classList.remove("gram-frame-analysis-mode", "gram-frame-harmonics-mode");
+        ModeFactory.getAvailableModes().forEach((modeName) => {
+          this.ui.container.classList.remove(`gram-frame-${modeName}-mode`);
+        });
         this.ui.container.classList.add(`gram-frame-${mode}-mode`);
       }
       if (this.currentMode) {

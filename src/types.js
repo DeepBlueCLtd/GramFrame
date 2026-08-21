@@ -118,6 +118,59 @@
  * @property {HarmonicSet[]} harmonicSets - Array of harmonic sets with persistent overlays
  */
 
+/**
+ * A sideband set: equally-spaced pins either side of a fundamental frequency the
+ * analyst places. Unlike a harmonic set its origin is not 0 Hz — member `n` sits
+ * at `fundamentalFreq + n * spacing`, for negative as well as positive `n`
+ * (issue #241).
+ * @typedef {Object} SidebandSet
+ * @property {string} id - Unique identifier for the sideband set
+ * @property {string} color - Display colour for the sideband lines
+ * @property {number} anchorTime - Time position (Y-axis) in seconds
+ * @property {number} fundamentalFreq - Frequency of the fundamental (member 0) in Hz
+ * @property {number} spacing - Frequency spacing between adjacent sidebands in Hz
+ * @property {SymbolType} symbol - Filled shape drawn at the top of each pin and shown in the sidebands table
+ * @property {boolean} [showPin] - Whether the vertical pin lines are drawn; absent (legacy/restored) means shown
+ * @property {boolean} [largeSymbols] - EXPERIMENT (temporary): draw this set's pin symbols at the large size; not persisted
+ */
+
+/**
+ * Sidebands mode state
+ * @typedef {Object} SidebandsState
+ * @property {SidebandSet[]} sidebandSets - Array of sideband sets with persistent overlays
+ */
+
+/**
+ * What every pin-set family has in common, and all `PinSetMode` needs to draw
+ * one. `HarmonicSet` matches it exactly; `SidebandSet` adds its fundamental.
+ * @typedef {Object} PinSet
+ * @property {string} id - Unique identifier
+ * @property {string} color - Display colour
+ * @property {number} anchorTime - Time position (Y-axis) in seconds
+ * @property {number} spacing - Frequency spacing between adjacent members in Hz
+ * @property {SymbolType} symbol - Filled shape drawn at the top of each pin
+ * @property {boolean} [showPin] - Whether the vertical pin lines are drawn
+ * @property {boolean} [largeSymbols] - EXPERIMENT (temporary): large symbol marks
+ * @property {number} [fundamentalFreq] - Origin frequency; sideband sets only
+ */
+
+/**
+ * The DOM naming a pin-set mode draws under: one stem per mode, so two modes'
+ * pins never collide in a selector, a cleanup pass or a test.
+ * @typedef {Object} PinSetClassNames
+ * @property {string} idPrefix - Prefix for generated set ids
+ * @property {string} lineClass - Class on a full-height pin line
+ * @property {string} miniPinClass - Class on a mini-pin stub
+ * @property {string} labelClass - Class on a pin's number label
+ * @property {string} setIdAttribute - Attribute carrying the owning set's id
+ * @property {string} indexAttribute - Attribute carrying the member index
+ */
+
+/**
+ * What `state.selection.selectedType` may name.
+ * @typedef {'marker'|'harmonicSet'|'sidebandSet'} SelectedFeatureType
+ */
+
 
 
 
@@ -222,7 +275,7 @@
 
 /**
  * Analysis mode type
- * @typedef {'analysis'|'harmonics'|'doppler'|'pan'} ModeType
+ * @typedef {'analysis'|'harmonics'|'sideband'|'doppler'|'pan'} ModeType
  */
 
 /**
@@ -286,6 +339,7 @@
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {number} annotationRevision - Bumped by every annotation mutation; lets the storage listener skip pure cursor moves
  * @property {HarmonicsState} harmonics - Harmonics mode state
+ * @property {SidebandsState} sidebands - Sidebands mode state
  * @property {DopplerState} doppler - Doppler mode state
  * @property {AnalysisState} analysis - Analysis mode state
  * @property {DragProjection} drag - Read-only projection of the active drag
@@ -327,6 +381,7 @@
  * @property {StoredGramFingerprint} [gram] - Which gram this record belongs to; ABSENT in legacy records (restores without the identity check)
  * @property {StoredAnalysisData} analysis - Stored analysis mode annotations
  * @property {StoredHarmonicsData} harmonics - Stored harmonics mode annotations
+ * @property {StoredSidebandsData} [sidebands] - Stored sidebands mode annotations; ABSENT in records written before sidebands existed
  * @property {StoredDopplerData} doppler - Stored doppler mode annotations
  */
 
@@ -374,6 +429,24 @@
  * @property {number} spacing - Frequency spacing between harmonics in Hz
  * @property {SymbolType} [symbol] - Persisted symbol; ABSENT in legacy (pre-feature) records
  * @property {boolean} [showPin] - Persisted pin visibility; ABSENT in records saved before the pin toggle (restores as shown)
+ */
+
+/**
+ * Stored sidebands data
+ * @typedef {Object} StoredSidebandsData
+ * @property {Array<StoredSidebandSet>} sidebandSets - All sideband sets
+ */
+
+/**
+ * Stored sideband set (persisted subset of SidebandSet)
+ * @typedef {Object} StoredSidebandSet
+ * @property {string} id - Unique identifier
+ * @property {string} color - Display colour (hex)
+ * @property {number} anchorTime - Y-axis position in seconds
+ * @property {number} fundamentalFreq - Fundamental (member 0) frequency in Hz
+ * @property {number} spacing - Frequency spacing between adjacent sidebands in Hz
+ * @property {SymbolType} [symbol] - Persisted symbol; defaults to `cross` on restore
+ * @property {boolean} [showPin] - Persisted pin visibility; absent restores as shown
  */
 
 /**
@@ -458,6 +531,7 @@
  * @property {function(boolean): boolean} applyPinToSelectedFeature - Show/hide pin lines
  * @property {function(boolean): boolean} applyLargeSymbolsToSelectedFeature - Resize symbols
  * @property {function(string): void} removeHarmonicSet - Delete a harmonic set by id
+ * @property {function(string): void} removeSidebandSet - Delete a sideband set by id
  * @property {function(): void} syncStyleControls - Sync the controls to the selection
  * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} _symbolControl - Symbol drop-down handle
  * @property {{setValue: function(boolean): void, setEnabled: function(boolean): void}|null} _pinControl - Pin toggle handle
@@ -508,7 +582,9 @@
  * @property {HTMLElement} speedLED - Speed readout
  * @property {HTMLDivElement} markersContainer - Markers table container
  * @property {HTMLDivElement} harmonicsContainer - Harmonics panel container
+ * @property {HTMLDivElement} sidebandsContainer - Sidebands panel container
  * @property {HTMLElement|null} harmonicPanel - Harmonics panel, mounted by HarmonicsMode
+ * @property {HTMLElement|null} sidebandPanel - Sidebands panel, mounted by SidebandMode
  * @property {SVGImageElement} spectrogramImage - The spectrogram image element
  * @property {HTMLButtonElement|null} expandToggleButton - Expand toggle; absent for portrait images
  * @property {HTMLDivElement} modesContainer - Mode buttons container
@@ -521,6 +597,7 @@
  * The selection and restyle functions bound by `setupAllEventListeners`.
  * @typedef {Object} SelectionControls
  * @property {function(string): void} removeHarmonicSet - Delete a harmonic set by id
+ * @property {function(string): void} removeSidebandSet - Delete a sideband set by id
  * @property {function(string, string, number): void} setSelection - Select a feature
  * @property {function(): void} clearSelection - Clear the selection
  * @property {function(): void} updateSelectionVisuals - Re-render selection styling
@@ -537,11 +614,13 @@
  * @property {HTMLDivElement} leftColumn - Readout column
  * @property {HTMLDivElement} middleColumn - Markers column
  * @property {HTMLDivElement} rightColumn - Harmonics column
+ * @property {HTMLDivElement} sidebandsColumn - Sidebands column
  * @property {HTMLDivElement} modeColumn - Mode buttons column
  * @property {HTMLDivElement} guidanceColumn - Guidance text column
  * @property {HTMLDivElement} controlsColumn - Controls column
  * @property {HTMLDivElement} markersContainer - Markers table container
  * @property {HTMLDivElement} harmonicsContainer - Harmonics panel container
+ * @property {HTMLDivElement} sidebandsContainer - Sidebands panel container
  * @property {HTMLElement} timeLED - Time readout
  * @property {HTMLElement} freqLED - Frequency readout
  * @property {HTMLElement} speedLED - Speed readout
@@ -593,6 +672,12 @@
  * Harmonics mode initial state object
  * @typedef {Object} HarmonicsInitialState
  * @property {HarmonicsState} harmonics - Harmonics state
+ */
+
+/**
+ * Sidebands mode initial state object
+ * @typedef {Object} SidebandsInitialState
+ * @property {SidebandsState} sidebands - Sidebands state
  */
 
 /**
