@@ -64,10 +64,11 @@ const DRAG_BRACKETS = [
 /**
  * Build the cursor artwork.
  *
- * Each shape is stroked twice — black underneath, white on top — the halo idiom
- * already used for marker text (`applyTextHalo` in `svg.js`). It is what keeps
- * the cursor legible over the blue field and over a saturated yellow tonal
- * alike, neither of which a single-colour cursor survives.
+ * Each shape is stroked twice — black underneath, white on top — the halo idiom.
+ * A cursor cannot carry the plate on-gram text labels use (`labelPlate.js`), so
+ * it keeps the two-tone outline instead; it is what keeps the cursor legible
+ * over the blue field and over a saturated yellow tonal alike, neither of which
+ * a single-colour cursor survives.
  * @param {string[]} shapes - Path data for the brackets
  * @param {number} coreWidth - Stroke width of the white core
  * @param {number} haloWidth - Stroke width of the black halo beneath it

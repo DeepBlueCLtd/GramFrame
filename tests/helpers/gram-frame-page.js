@@ -742,25 +742,43 @@ class GramFramePage {
   }
 
   /**
-   * Read the resolved paint of every rendered harmonic number label, optionally
-   * scoped to a single set. Uses computed style (not attributes) so a CSS rule
-   * overriding the halo would be caught.
+   * Read how every rendered harmonic number label is painted, optionally scoped
+   * to a single set: the resolved paint of the digits, and the white plate
+   * drawn behind them (issue #243). Uses computed style (not attributes) so a
+   * CSS rule overriding either would be caught, and reports both boxes so a
+   * test can check the plate actually covers the characters.
    * @param {string} [setId] - Restrict to one harmonic set
-   * @returns {Promise<Array<{fill: string, stroke: string, strokeWidth: string, strokeLinejoin: string, paintOrder: string}>>}
+   * @returns {Promise<Array<{fill: string, stroke: string, plate: null|{fill: string, radius: number, box: {left: number, right: number, top: number, bottom: number}}, textBox: {left: number, right: number, top: number, bottom: number}}>>}
    */
-  async getHarmonicLabelStyles(setId) {
+  async getHarmonicLabelPaint(setId) {
     const selector = setId
       ? `.gram-frame-harmonic-number[data-harmonic-set-id="${setId}"]`
       : '.gram-frame-harmonic-number'
     return this.page.evaluate((sel) => {
+      /**
+       * @param {Element} el - Element to box
+       * @returns {{left: number, right: number, top: number, bottom: number}} Its viewport box
+       */
+      const box = (el) => {
+        const r = el.getBoundingClientRect()
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }
+      }
       return Array.from(document.querySelectorAll(sel)).map((el) => {
         const style = window.getComputedStyle(el)
+        const plate = el.parentElement
+          ? el.parentElement.querySelector('.gram-frame-label-plate')
+          : null
         return {
           fill: style.fill,
           stroke: style.stroke,
-          strokeWidth: style.strokeWidth,
-          strokeLinejoin: style.strokeLinejoin,
-          paintOrder: style.paintOrder
+          plate: plate
+            ? {
+              fill: window.getComputedStyle(plate).fill,
+              radius: Number(plate.getAttribute('rx')),
+              box: box(plate)
+            }
+            : null,
+          textBox: box(el)
         }
       })
     }, selector)
@@ -936,16 +954,29 @@ class GramFramePage {
   }
 
   /**
-   * Read a marker's on-gram label element, if it has one.
+   * Read a marker's on-gram label element, if it has one — including the white
+   * plate drawn behind it (issue #243) and how the two are boxed on screen, so
+   * a test can check the plate covers the characters.
    * @param {string} markerId - Marker to inspect
-   * @returns {Promise<{text: string, x: number, y: number, textAnchor: string, fill: string, stroke: string, paintOrder: string}|null>}
+   * @returns {Promise<{text: string, x: number, y: number, textAnchor: string, fill: string, stroke: string, textBox: {left: number, right: number, top: number, bottom: number}, plate: null|{fill: string, radius: number, box: {left: number, right: number, top: number, bottom: number}}}|null>}
    */
   async getMarkerLabelOverlay(markerId) {
     return this.page.evaluate((id) => {
+      /**
+       * @param {Element} node - Element to box
+       * @returns {{left: number, right: number, top: number, bottom: number}} Its viewport box
+       */
+      const box = (node) => {
+        const r = node.getBoundingClientRect()
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }
+      }
       const el = document.querySelector(
         `.gram-frame-analysis-marker[data-marker-id="${id}"] .gram-frame-marker-label`
       )
       if (!el) return null
+      const plate = el.parentElement
+        ? el.parentElement.querySelector('.gram-frame-label-plate')
+        : null
       return {
         text: el.textContent || '',
         x: parseFloat(el.getAttribute('x') || '0'),
@@ -953,7 +984,14 @@ class GramFramePage {
         textAnchor: el.getAttribute('text-anchor') || '',
         fill: el.getAttribute('fill') || '',
         stroke: el.getAttribute('stroke') || '',
-        paintOrder: el.getAttribute('paint-order') || ''
+        textBox: box(el),
+        plate: plate
+          ? {
+            fill: plate.getAttribute('fill') || '',
+            radius: Number(plate.getAttribute('rx')),
+            box: box(plate)
+          }
+          : null
       }
     }, markerId)
   }

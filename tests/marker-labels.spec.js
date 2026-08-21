@@ -309,14 +309,54 @@ test.describe('Marker labels', () => {
     expect(overlay.y).toBeGreaterThan(symbol.bottom)
   })
 
-  test('the label is drawn black inside a white halo, painted behind the glyphs', async ({ gramFramePage }) => {
+  // Issue #243: the label used to be haloed (a white outline behind the glyphs),
+  // which let the gram show through between and inside the characters. It now
+  // sits on an opaque white plate, as the legacy viewer's labels do.
+  test('the label is drawn black on a white rounded plate', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
-    await gramFramePage.setMarkerLabel(markerId, 'Halo')
+    await gramFramePage.setMarkerLabel(markerId, 'Plate')
 
     const overlay = await gramFramePage.getMarkerLabelOverlay(markerId)
     expect(overlay.fill).toBe('#000')
-    expect(overlay.stroke).toBe('#fff')
-    expect(overlay.paintOrder).toBe('stroke fill')
+    // No halo stroke left on the glyphs: the plate is the contrast now
+    expect(overlay.stroke).toBe('')
+    expect(overlay.plate).not.toBeNull()
+    expect(overlay.plate.fill).toBe('#fff')
+    expect(overlay.plate.radius).toBeGreaterThan(0)
+  })
+
+  test('the plate covers the label it carries, with room around it', async ({ gramFramePage }) => {
+    const markerId = await placeMarker(gramFramePage, 220, 160)
+    await gramFramePage.setMarkerLabel(markerId, 'Contact Alpha')
+
+    const { plate, textBox } = await gramFramePage.getMarkerLabelOverlay(markerId)
+    expect(plate).not.toBeNull()
+    expect(plate.box.left).toBeLessThanOrEqual(textBox.left)
+    expect(plate.box.right).toBeGreaterThanOrEqual(textBox.right)
+    expect(plate.box.top).toBeLessThanOrEqual(textBox.top)
+    expect(plate.box.bottom).toBeGreaterThanOrEqual(textBox.bottom)
+    // Wider than the text, so the contrast reaches past the characters
+    expect(plate.box.right - plate.box.left).toBeGreaterThan(textBox.right - textBox.left)
+  })
+
+  test('the plate stays clear of the crosshair it annotates', async ({ gramFramePage }) => {
+    const markerId = await placeMarker(gramFramePage, 220, 160)
+    await gramFramePage.setMarkerLabel(markerId, 'Clear')
+
+    const { plate } = await gramFramePage.getMarkerLabelOverlay(markerId)
+    const centre = await gramFramePage.page.evaluate((id) => {
+      const dot = document.querySelector(
+        `.gram-frame-analysis-marker[data-marker-id="${id}"] circle`
+      )
+      const r = dot.getBoundingClientRect()
+      return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2, right: r.right, top: r.top }
+    }, markerId)
+
+    // Upper-right quadrant, with the PLATE — not just the text — outside the
+    // crosshair's centre dot, so the white rectangle never covers the point the
+    // marker is on.
+    expect(plate.box.left).toBeGreaterThanOrEqual(centre.right)
+    expect(plate.box.bottom).toBeLessThanOrEqual(centre.top)
   })
 
   test('the label moves with the marker when it is dragged', async ({ gramFramePage }) => {

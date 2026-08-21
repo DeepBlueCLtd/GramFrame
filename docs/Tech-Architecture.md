@@ -153,11 +153,13 @@ Axes are rendered by `renderAxes(instance)` in `src/components/table.js`:
 1. Clears `cursorGroup`
 2. Calls `featureRenderer.renderAllPersistentFeatures()` to redraw all saved features
 
-Modes add SVG elements to `cursorGroup` using utilities from `src/utils/svg.js`:
+Modes create their own SVG elements and append them to `cursorGroup`, drawing on
+the shared rendering helpers:
 
-- `createSVGLine(x1, y1, x2, y2, className)` — Creates `<line>` elements
-- `createSVGText(x, y, text, className, anchor)` — Creates `<text>` elements
-- `createSVGCircle(cx, cy, r, className)` — Creates `<circle>` elements
+- `src/rendering/symbols.js` — `createSymbolMark()` for a marker or pin's shape
+- `src/rendering/labels.js` — `createMarkerLabel()` for a marker's on-gram label
+- `src/utils/labelPlate.js` — `plateLabel()`, which puts any on-gram text on the
+  white rounded plate that keeps it legible over the gram
 
 ### Coordinate Transform Chain
 

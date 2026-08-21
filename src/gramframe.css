@@ -908,9 +908,10 @@ table.gram-frame-table {
 }
 
 /*
- * A marker's on-gram label. Legibility comes from the halo (black glyphs in a
- * white outline) set as presentation attributes by applyTextHalo() — see
- * src/utils/svg.js. Never a click target: the marker underneath is.
+ * A marker's on-gram label. Legibility comes from the white rounded plate drawn
+ * behind it (issue #243) — the geometry and colours are presentation attributes
+ * set by plateLabel(), see src/utils/labelPlate.js. Never a click target: the
+ * marker underneath is.
  */
 .gram-frame-marker-label {
   font-family: Arial, sans-serif;
@@ -918,6 +919,16 @@ table.gram-frame-table {
   font-weight: bold;
   pointer-events: none;
   user-select: none;
+}
+
+/*
+ * The white plate behind any on-gram label, and the group holding the two. Both
+ * are transparent to the pointer so the plate never intercepts a click meant
+ * for the feature it annotates, or for the gram beneath it.
+ */
+.gram-frame-label-plate,
+.gram-frame-label-plated {
+  pointer-events: none;
 }
 
 /* Military-style mode selection header */
@@ -1276,9 +1287,9 @@ table.gram-frame-table {
   font-weight: bold;
   pointer-events: none;
   /*
-   * Legibility comes from the halo (black glyphs inside a white outline) set as
-   * presentation attributes by applyTextHalo() in src/utils/svg.js — see the
-   * fill/stroke/paint-order there. No drop-shadow: it only blurred the outline.
+   * Legibility comes from the white rounded plate drawn behind the digits
+   * (issue #243), set as presentation attributes by plateLabel() in
+   * src/utils/labelPlate.js. No drop-shadow: it only blurs the plate's edge.
    */
 }
 
