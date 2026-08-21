@@ -38,21 +38,23 @@ export function initializeModeInfrastructure(instance) {
  * Mount each panel-owning mode's UI and pick the starting mode.
  *
  * The per-mode container is why this names modes rather than using a
- * capability: analysis and harmonics mount into *different* columns, which no
- * capability expresses. Recorded as a documented exception in ADR-017.
+ * capability: each panel-owning mode mounts into a *different* column, which no
+ * capability expresses. Recorded as a documented exception in ADR-017. The
+ * caller supplies the mapping, so adding a panel-owning mode is one entry in
+ * that map rather than another parameter here.
  * @param {GramFrame} instance - GramFrame instance
  * @param {Object<string, BaseMode>} modes - Constructed modes
- * @param {HTMLDivElement} markersContainer - Middle column, for the markers table
- * @param {HTMLDivElement} harmonicsContainer - Right column, for the harmonics panel
+ * @param {Object<string, HTMLDivElement>} panelContainers - Column each panel-owning mode mounts into, by mode name
  * @param {HTMLDivElement} guidancePanel - Panel the starting mode's guidance is written into
  * @returns {BaseMode} The starting mode
  */
-export function setupModeUI(instance, modes, markersContainer, harmonicsContainer, guidancePanel) {
-  // Analysis markers in middle column (always visible)
-  modes['analysis'].createUI(markersContainer)
-
-  // Harmonics sets in right column (always visible)
-  modes['harmonics'].createUI(harmonicsContainer)
+export function setupModeUI(instance, modes, panelContainers, guidancePanel) {
+  // Every panel-owning mode's table is always visible, whatever mode is active
+  Object.entries(panelContainers).forEach(([modeName, container]) => {
+    if (modes[modeName]) {
+      modes[modeName].createUI(container)
+    }
+  })
 
   // Set initial mode from state (pan by default)
   const currentMode = modes[instance.state.mode] || modes['pan']

@@ -130,7 +130,8 @@ export function createColorPicker(instance) {
   // gram.
   symbolRow.appendChild(createLargeSymbolToggle(instance))
 
-  // --- Harmonics band: the pin toggle is the one harmonics-only control ---
+  // --- Pin band: the pin toggle is the one control that applies to pin sets
+  // (harmonic and sideband) rather than to every feature ---
   const divider = document.createElement('div')
   divider.className = 'gram-frame-style-divider'
   container.appendChild(divider)
@@ -144,7 +145,7 @@ export function createColorPicker(instance) {
   harmonicsRow.className = 'gram-frame-style-row'
   harmonicsGroup.appendChild(harmonicsRow)
 
-  harmonicsRow.appendChild(createGroupLabel('Harmonics'))
+  harmonicsRow.appendChild(createGroupLabel('Pin sets'))
   harmonicsRow.appendChild(createPinToggle(instance))
 
   // Add click handler for color selection

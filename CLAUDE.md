@@ -56,7 +56,7 @@ curl -d "status here" ntfy.sh/iancc2025
 - **Main Class**: `GramFrame` in `src/main.js` - Central component managing all functionality
 - **Entry Point**: `src/index.js` - Main module export and global registration
 - **State Management**: `src/core/state.js` - Centralized state with listener pattern
-- **Mode System**: Modular architecture with four modes — Pan (default), Analysis, Harmonics and Doppler
+- **Mode System**: Modular architecture with five modes — Pan (default), Analysis, Harmonics, Sidebands and Doppler
 - **Feature Rendering**: `src/core/FeatureRenderer.js` - Cross-mode feature coordination
 - **Mode Factory**: `src/modes/ModeFactory.js` - Centralized mode instantiation
 
@@ -92,19 +92,27 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `BaseMode.js` - Abstract base class for all modes
   - `ModeFactory.js` - Mode instantiation factory
   - `analysis/AnalysisMode.js` - Analysis mode with marker persistence
-  - `harmonics/HarmonicsMode.js` - Harmonics calculation mode
+  - `harmonics/HarmonicsMode.js` - Harmonics calculation mode (a `PinSetMode`)
   - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog
+  - `sideband/SidebandMode.js` - Sidebands mode: a pin set whose origin the
+    analyst places (a `PinSetMode`)
   - `doppler/DopplerMode.js` - Doppler speed calculation mode
   - `pan/PanMode.js` - Pan mode (the default mode)
   - `capabilities.js` - Duck-typed mode capabilities (`PersistentFeatureProvider`,
-    `PanelOwner`) and their predicates. How `FeatureRenderer` and `MainUI` find
+    `PanelOwner`, `PinSetOwner`) and their predicates. How `FeatureRenderer` and `MainUI` find
     what a mode can do without naming it (ADR-017)
   - `shared/BaseDragHandler.js` - The shared drag engine: every pointer drag (move, create, place, pan) and the single `state.drag` projection
+  - `shared/PinSetMode.js` - The shared pin-set mode: pin geometry, the
+    label/symbol stack, hit testing, rendering, drag wiring and set
+    add/update/remove for Harmonics and Sidebands. A subclass supplies only
+    where its sets live and what frequency a member index maps to
 - `src/components/` - UI component modules:
   - `UIComponents.js` - LED displays, colour picker and layout helpers
   - `MainUI.js` - Unified layout and persistent panels
   - `ModeButtons.js` - Mode switching interface
   - `HarmonicPanel.js` - Harmonics display panel
+  - `SidebandPanel.js` - Sidebands display panel (its own column beside the
+    harmonics panel; both are always visible)
   - `DiffingTable.js` - Shared row-diffing table behind the markers table and harmonics panel
   - `ColorPicker.js` - Colour selection component
   - `SymbolPicker.js` - Symbol selection component
@@ -198,7 +206,7 @@ There is no visual/screenshot regression testing — see
 ## Important Implementation Notes
 
 ### Architecture
-- **Modular Mode System**: Each mode (Pan, Analysis, Harmonics, Doppler) extends BaseMode
+- **Modular Mode System**: Each mode (Pan, Analysis, Harmonics, Sidebands, Doppler) extends BaseMode
 - **Feature Persistence**: FeatureRenderer coordinates cross-mode feature visibility
 - **Factory Pattern**: ModeFactory centralizes mode instantiation and error handling
 - **Separation of Concerns**: Clear separation between rendering, state, events, and UI
@@ -257,6 +265,8 @@ There is no visual/screenshot regression testing — see
 - **Analysis Mode**: Persistent draggable markers with cross-mode visibility and optional
   haloed text labels (upper-right of a crosshair, centred above a shaped symbol)
 - **Harmonics Mode**: Real-time harmonic calculation and display
+- **Sidebands Mode**: A pin set with a user-placed origin — the fundamental —
+  with members spread each side of it and labelled by signed offset
 - **Doppler Mode**: Speed calculation from f+/f-/f₀ markers
 
 ## Active Technologies

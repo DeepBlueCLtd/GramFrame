@@ -122,7 +122,7 @@ State is deep-copied before being passed to listeners, so you cannot accidentall
 
 ## Annotation Persistence (Trainer vs. Student)
 
-GramFrame can persist annotations (analysis markers, harmonic sets, doppler
+GramFrame can persist annotations (analysis markers, harmonic sets, sideband sets, doppler
 curves) in browser storage. The storage backend depends on whether the page is
 detected as a **trainer** page or a **student** page:
 

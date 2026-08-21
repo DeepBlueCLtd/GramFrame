@@ -12,6 +12,7 @@ describe('getModeDisplayName', () => {
   test('maps every built-in mode', () => {
     expect(getModeDisplayName('analysis')).toBe('Cross Cursor')
     expect(getModeDisplayName('harmonics')).toBe('Harmonics')
+    expect(getModeDisplayName('sideband')).toBe('Sidebands')
     expect(getModeDisplayName('doppler')).toBe('Doppler')
     expect(getModeDisplayName('pan')).toBe('Pan')
   })

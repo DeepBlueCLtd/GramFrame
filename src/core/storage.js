@@ -1,8 +1,8 @@
 /**
  * Browser Storage Adapter for GramFrame
  *
- * Persists user annotations (analysis markers, harmonic sets, doppler curves)
- * in browser storage. Trainers get localStorage (permanent); students get
+ * Persists user annotations (analysis markers, harmonic sets, sideband sets,
+ * doppler curves) in browser storage. Trainers get localStorage (permanent); students get
  * sessionStorage (cleared on browser close).
  *
  * Student persistence is additionally capped at 24 hours (feature 157): on
@@ -227,8 +227,9 @@ export function savePinPreference(showPin) {
 export function hasPersistableAnnotations(state) {
   const hasMarkers = !!(state.analysis && state.analysis.markers && state.analysis.markers.length > 0)
   const hasHarmonics = !!(state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0)
+  const hasSidebands = !!(state.sidebands && state.sidebands.sidebandSets && state.sidebands.sidebandSets.length > 0)
   const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null || state.doppler.fZero !== null))
-  return hasMarkers || hasHarmonics || hasDoppler
+  return hasMarkers || hasHarmonics || hasSidebands || hasDoppler
 }
 
 /**
@@ -314,6 +315,22 @@ export function sanitizeStoredAnnotations(data) {
     dropped++ // harmonicSets present but not an array
   }
 
+  /** @type {StoredSidebandSet[]} */
+  let sidebandSets = []
+  if (data && data.sidebands && Array.isArray(data.sidebands.sidebandSets)) {
+    sidebandSets = data.sidebands.sidebandSets.filter((/** @type {any} */ sb) => {
+      const valid = !!sb && isNonEmptyString(sb.id) && isNonEmptyString(sb.color) &&
+        isFiniteNumber(sb.anchorTime) && isFiniteNumber(sb.fundamentalFreq) &&
+        // Strictly positive, for the same reason a harmonic set's is: a spacing
+        // of zero makes the sideband index range infinite.
+        isFiniteNumber(sb.spacing) && sb.spacing > 0
+      if (!valid) dropped++
+      return valid
+    })
+  } else if (data && data.sidebands && data.sidebands.sidebandSets != null) {
+    dropped++ // sidebandSets present but not an array
+  }
+
   const rawDoppler = (data && data.doppler) || {}
   /** @type {StoredDopplerData} */
   const doppler = { fPlus: null, fMinus: null, fZero: null, color: null }
@@ -333,6 +350,7 @@ export function sanitizeStoredAnnotations(data) {
     gram: data && data.gram,
     analysis: { markers },
     harmonics: { harmonicSets },
+    sidebands: { sidebandSets },
     doppler
   }
   return { annotations, dropped }
@@ -452,6 +470,21 @@ export function saveAnnotations(state, instanceIndex, context) {
           // bump SCHEMA_VERSION. Records written before it simply lack the key
           // and restore as `true` (pin shown), matching their original look.
           showPin: hs.showPin !== false
+        }))
+      },
+      // `sidebands` is an ADDITIVE section (issue #241). It MUST NOT trigger a
+      // SCHEMA_VERSION bump: the strict version guard in loadAnnotations would
+      // otherwise discard every pre-existing v1 record. Records written before
+      // sidebands existed simply lack the key and restore with none.
+      sidebands: {
+        sidebandSets: (state.sidebands && state.sidebands.sidebandSets || []).map(sb => ({
+          id: sb.id,
+          color: sb.color,
+          anchorTime: sb.anchorTime,
+          fundamentalFreq: sb.fundamentalFreq,
+          spacing: sb.spacing,
+          symbol: sb.symbol || 'cross',
+          showPin: sb.showPin !== false
         }))
       },
       doppler: {

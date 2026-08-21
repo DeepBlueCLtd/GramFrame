@@ -105,6 +105,7 @@ export class GramFrame {
     applyPinToSelectedFeature: () => false,
     applyLargeSymbolsToSelectedFeature: () => false,
     removeHarmonicSet: () => {},
+    removeSidebandSet: () => {},
     // Replaced by the colour picker when it mounts; a no-op until then, so a
     // caller arriving early does nothing rather than throwing.
     syncStyleControls: () => {},
@@ -212,6 +213,7 @@ export class GramFrame {
       modeColumn: layout.modeColumn,
       markersContainer: layout.markersContainer,
       harmonicsContainer: layout.harmonicsContainer,
+      sidebandsContainer: layout.sidebandsContainer,
       timeLED: layout.timeLED,
       freqLED: layout.freqLED,
       speedLED: layout.speedLED,
@@ -220,10 +222,12 @@ export class GramFrame {
       modeButtons: initialModeUI.modeButtons,
       commandButtons: initialModeUI.commandButtons,
       guidancePanel: initialModeUI.guidancePanel,
-      // Mounted later, or not at all: the harmonics panel arrives with that
-      // mode's UI, the expand toggle only for a landscape image, and nothing
-      // assigns the mode/rate LEDs at all — every read of them is guarded.
+      // Mounted later, or not at all: the harmonics and sidebands panels
+      // arrive with their modes' UI, the expand toggle only for a landscape
+      // image, and nothing assigns the mode/rate LEDs at all — every read of
+      // them is guarded.
       harmonicPanel: null,
+      sidebandPanel: null,
       expandToggleButton: null,
       modeLED: null,
       rateLED: null
@@ -234,7 +238,11 @@ export class GramFrame {
     const { modes, featureRenderer } = initializeModeInfrastructure(this)
     this.modes = modes
     this.featureRenderer = featureRenderer
-    this.currentMode = setupModeUI(this, modes, layout.markersContainer, layout.harmonicsContainer, initialModeUI.guidancePanel)
+    this.currentMode = setupModeUI(this, modes, {
+      analysis: layout.markersContainer,
+      harmonics: layout.harmonicsContainer,
+      sideband: layout.sidebandsContainer
+    }, initialModeUI.guidancePanel)
 
     const modeUI = updateModeUIWithCommands(
       this, initialModeUI, modes, this.currentMode, layout.modeColumn, layout.guidanceColumn
@@ -246,6 +254,7 @@ export class GramFrame {
 
     const controls = setupAllEventListeners(this)
     this.interaction.removeHarmonicSet = controls.removeHarmonicSet
+    this.interaction.removeSidebandSet = controls.removeSidebandSet
     this.interaction.setSelection = controls.setSelection
     this.interaction.clearSelection = controls.clearSelection
     this.interaction.updateSelectionVisuals = controls.updateSelectionVisuals
@@ -264,8 +273,8 @@ export class GramFrame {
     // Restore saved annotations before first render
     this._restoreAnnotations()
 
-    // Reflect restored annotations in the persistent control panels (markers
-    // and harmonics tables) and in the SVG overlays. Without this, reloaded
+    // Reflect restored annotations in the persistent control panels (the
+    // markers, harmonics and sidebands tables) and in the SVG overlays. Without this, reloaded
     // annotations render over the spectrogram but leave the panel tables empty.
     updatePersistentPanels(this)
     if (this.featureRenderer) {
@@ -357,6 +366,7 @@ export class GramFrame {
     const fresh = createInitialState(ModeFactory.getModeInitialStates())
     this.state.analysis = fresh.analysis
     this.state.harmonics = fresh.harmonics
+    this.state.sidebands = fresh.sidebands
     this.state.doppler = fresh.doppler
     this.state.cursors = fresh.cursors
 
@@ -377,7 +387,7 @@ export class GramFrame {
       this.currentMode.activate()
     }
 
-    // Refresh the persistent markers and harmonics tables (always visible,
+    // Refresh the persistent markers, harmonics and sidebands tables (always visible,
     // regardless of the active mode) so cleared annotations also disappear
     // from the tables above the spectrogram, not just the SVG overlay
     updatePersistentPanels(this)
@@ -439,6 +449,16 @@ export class GramFrame {
       }))
     }
 
+    // Merge sideband sets (issue #241). Records written before sidebands
+    // existed simply lack the key and restore as none.
+    if (saved.sidebands && Array.isArray(saved.sidebands.sidebandSets)) {
+      this.state.sidebands.sidebandSets = saved.sidebands.sidebandSets.map(sb => ({
+        ...sb,
+        symbol: sb.symbol || 'cross',
+        showPin: sb.showPin !== false
+      }))
+    }
+
     // Merge doppler state
     if (saved.doppler) {
       this.state.doppler.fPlus = saved.doppler.fPlus || null
@@ -484,6 +504,7 @@ export class GramFrame {
         state.annotationRevision || 0,
         state.analysis && state.analysis.markers ? state.analysis.markers.length : 0,
         state.harmonics && state.harmonics.harmonicSets ? state.harmonics.harmonicSets.length : 0,
+        state.sidebands && state.sidebands.sidebandSets ? state.sidebands.sidebandSets.length : 0,
         doppler.fPlus ? `${doppler.fPlus.time}:${doppler.fPlus.freq}` : '-',
         doppler.fMinus ? `${doppler.fMinus.time}:${doppler.fMinus.freq}` : '-',
         doppler.fZero ? `${doppler.fZero.time}:${doppler.fZero.freq}` : '-',
@@ -624,11 +645,15 @@ export class GramFrame {
       })
     }
     
-    // Update container class for mode-specific styling
+    // Update container class for mode-specific styling. Every registered mode's
+    // class is removed rather than a hand-kept list of three: the old list had
+    // silently gone stale (pan and doppler were added and never removed, so
+    // their classes accumulated), and the sidebands panel's visibility now
+    // depends on the class being accurate.
     if (this.ui.container) {
-      // Remove all mode classes
-      this.ui.container.classList.remove('gram-frame-analysis-mode', 'gram-frame-harmonics-mode')
-      // Add current mode class
+      ModeFactory.getAvailableModes().forEach(modeName => {
+        this.ui.container.classList.remove(`gram-frame-${modeName}-mode`)
+      })
       this.ui.container.classList.add(`gram-frame-${mode}-mode`)
     }
     

@@ -1,5 +1,6 @@
 import { AnalysisMode } from './analysis/AnalysisMode.js'
 import { HarmonicsMode } from './harmonics/HarmonicsMode.js'
+import { SidebandMode } from './sideband/SidebandMode.js'
 import { DopplerMode } from './doppler/DopplerMode.js'
 import { PanMode } from './pan/PanMode.js'
 import { looksLikeMissingApiError } from '../core/browserCompatibility.js'
@@ -30,6 +31,9 @@ export class ModeFactory {
         
         case 'harmonics':
           return new HarmonicsMode(instance)
+
+        case 'sideband':
+          return new SidebandMode(instance)
         
         case 'doppler':
           return new DopplerMode(instance)
@@ -38,7 +42,7 @@ export class ModeFactory {
           return new PanMode(instance)
         
         default:
-          throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, doppler, pan`)
+          throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, sideband, doppler, pan`)
       }
     } catch (error) {
       console.error(`CRITICAL ERROR: Failed to create mode "${modeName}":`, error)
@@ -78,13 +82,14 @@ export class ModeFactory {
    * rather than importing the mode classes itself, which is what breaks the
    * state ⇄ modes cycle (spec 167, FR-002, ADR-014).
    *
-   * Merge order is fixed and explicit: analysis, harmonics, doppler, pan.
+   * Merge order is fixed and explicit: analysis, harmonics, sideband, doppler, pan.
    * @returns {Partial<GramFrameState>} Merged mode slices
    */
   static getModeInitialStates() {
     const slices = Object.assign({},
       AnalysisMode.getInitialState(),
       HarmonicsMode.getInitialState(),
+      SidebandMode.getInitialState(),
       DopplerMode.getInitialState(),
       PanMode.getInitialState()
     )
@@ -97,7 +102,7 @@ export class ModeFactory {
    * @returns {ModeType[]} Array of mode names
    */
   static getAvailableModes() {
-    return ['analysis', 'harmonics', 'doppler', 'pan']
+    return ['analysis', 'harmonics', 'sideband', 'doppler', 'pan']
   }
 
   /**

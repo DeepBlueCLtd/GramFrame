@@ -52,13 +52,14 @@ All runtime data for a GramFrame instance lives in a single `state` object. See 
     kind: null,               // 'move' | 'create' | 'place' | 'pan'
     mode: null,               // Mode that owns the drag; null for the central pan
     targetId: null,           // Dragged feature's id; null for a pan
-    targetType: null,         // 'marker' | 'harmonicSet' | 'dopplerMarker' | null
+    targetType: null,         // 'marker' | 'harmonicSet' | 'sidebandSet' | 'dopplerMarker' | null
     startPosition: null       // Where the drag began, in data coordinates
   },
 
   // Mode-specific state (merged from each mode's getInitialState())
   analysis: { markers: [...], ... },
   harmonics: { harmonicSets: [...], ... },
+  sidebands: { sidebandSets: [...] },
   doppler: { fPlus, fMinus, fZero, ... },
   // ...
 }

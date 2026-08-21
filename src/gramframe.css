@@ -929,10 +929,19 @@ table.gram-frame-table {
   justify-content: flex-start;
 }
 
+/*
+ * The mode buttons, stacked one per row.
+ *
+ * The gap and the button paddings below were tightened when Sidebands became a
+ * fifth mode (issue #241): at the old sizes a fifth row made the whole control
+ * panel ~40px taller in every mode whose guidance text is short, which pushed
+ * the spectrogram itself that far down the page. Five rows now occupy what four
+ * did, so adding the mode cost the gram no vertical space.
+ */
 .gram-frame-modes {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   justify-content: center;
   align-items: stretch;
   flex: 0 0 auto;
@@ -950,8 +959,34 @@ table.gram-frame-table {
 /* Simplified left panel - no sub-columns needed */
 
 /* Guidance panel */
+/*
+ * The guidance panel fills its column and scrolls, rather than growing the
+ * control row to fit its text.
+ *
+ * Same mechanism as the tables beside it (an absolutely positioned child of a
+ * relative column), and for the same reason: the guidance column is what gives
+ * way when a host is too narrow for the whole row, and the narrower it gets the
+ * taller its text wraps. Letting that set the row height pushed the row — and
+ * the spectrogram under it — down the page, by as much as 80px on a 1280px host
+ * once a fourth table joined the row (issue #241).
+ *
+ * The row is now as tall as the readouts and the mode buttons need and no
+ * taller, in every mode. Two things follow: the gram sits at a constant height
+ * instead of moving as the analyst switches mode, and a host too narrow for the
+ * full guidance text costs reading length here rather than gram height.
+ */
+.gram-frame-guidance-column {
+  position: relative;
+}
+
 .gram-frame-guidance {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
   padding: 8px 12px;
   background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);
   border: 2px solid #333;
@@ -994,7 +1029,7 @@ table.gram-frame-table {
 
 /* Military-style metal buttons */
 .gram-frame-mode-btn {
-  padding: 8px 6px;
+  padding: 5px 6px;
   background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);
   color: #ddd;
   border: 2px solid #555;
@@ -1014,7 +1049,7 @@ table.gram-frame-table {
 }
 
 .gram-frame-command-btn {
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);
   color: #ddd;
   border: 2px solid #444;
@@ -1025,7 +1060,7 @@ table.gram-frame-table {
   line-height: 1;
   flex: 0 0 auto;
   min-width: 32px;
-  height: 36px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1224,7 +1259,9 @@ table.gram-frame-table {
 
 
 .gram-frame-harmonic-line,
-.gram-frame-harmonic-mini-pin {
+.gram-frame-harmonic-mini-pin,
+.gram-frame-sideband-line,
+.gram-frame-sideband-mini-pin {
   stroke-width: 2;
   fill: none;
   pointer-events: none;
@@ -1232,7 +1269,8 @@ table.gram-frame-table {
 }
 
 
-.gram-frame-harmonic-number {
+.gram-frame-harmonic-number,
+.gram-frame-sideband-number {
   font-family: Arial, sans-serif;
   font-size: 12px;
   font-weight: bold;
@@ -1292,12 +1330,15 @@ table.gram-frame-table {
 /* Legacy harmonic panel styles - now using unified table structure */
 
 .gram-frame-harmonic-spacing,
-.gram-frame-harmonic-rate {
+.gram-frame-harmonic-rate,
+.gram-frame-sideband-freq,
+.gram-frame-sideband-spacing {
   font-size: 14px;
   font-weight: bold;
 }
 
-.gram-frame-harmonic-color {
+.gram-frame-harmonic-color,
+.gram-frame-sideband-color {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1309,7 +1350,8 @@ table.gram-frame-table {
   display: block;
 }
 
-.gram-frame-harmonic-delete {
+.gram-frame-harmonic-delete,
+.gram-frame-sideband-delete {
   background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);
   color: #ff6666;
   border: 1px solid #555;
@@ -1326,12 +1368,14 @@ table.gram-frame-table {
   transition: all 0.1s ease;
 }
 
-.gram-frame-harmonic-delete:hover {
+.gram-frame-harmonic-delete:hover,
+.gram-frame-sideband-delete:hover {
   background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);
   border-color: #777;
 }
 
-.gram-frame-harmonic-delete:active {
+.gram-frame-harmonic-delete:active,
+.gram-frame-sideband-delete:active {
   transform: translateY(1px);
 }
 
@@ -1636,8 +1680,19 @@ table.gram-frame-table {
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
 }
 
-/* Harmonics column. 200 → 175px; see the markers-column note above. */
-.gram-frame-right-column {
+/*
+ * The two pin-set tables: harmonics (200 → 175px when the markers column gained
+ * its Label column — see the markers-column note above), and sidebands beside
+ * it. Both are always visible (issue #241).
+ *
+ * 175px each — the width the harmonics table has always had — so the two read as
+ * a matched pair. Together with the markers table and the readouts beside them,
+ * the control row now wants ~1090px; a host narrower than that squeezes the
+ * guidance column, which scrolls rather than growing the row taller (see the
+ * note on `.gram-frame-guidance`).
+ */
+.gram-frame-right-column,
+.gram-frame-sidebands-column {
   display: flex;
   flex-direction: column;
   flex: 0 0 175px;
@@ -1660,7 +1715,8 @@ table.gram-frame-table {
 }
 
 .gram-frame-markers-persistent-container,
-.gram-frame-harmonics-persistent-container {
+.gram-frame-harmonics-persistent-container,
+.gram-frame-sidebands-persistent-container {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1691,7 +1747,8 @@ table.gram-frame-table {
 }
 
 .gram-frame-markers-persistent-container h4,
-.gram-frame-harmonics-persistent-container h4 {
+.gram-frame-harmonics-persistent-container h4,
+.gram-frame-sidebands-persistent-container h4 {
   margin: 0;
   padding: 0;
   border: 0;
@@ -1718,7 +1775,8 @@ table.gram-frame-table {
   
   .gram-frame-left-column,
   .gram-frame-middle-column,
-  .gram-frame-right-column {
+  .gram-frame-right-column,
+  .gram-frame-sidebands-column {
     flex: 0 0 auto;
     min-height: 200px;
   }

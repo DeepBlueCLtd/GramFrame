@@ -4,7 +4,7 @@ This component provides an interactive overlay for sonar spectrogram images, ena
 
 ## Key Features
 
-- Modes: Pan (default), Analysis, Harmonics, Doppler
+- Modes: Pan (default), Analysis, Harmonics, Sidebands, Doppler
 - Harmonic line overlays with frequency labels
 - Retro-style LED readouts for measurement
 - Drag-to-place cursor system with unlimited cursors
@@ -24,7 +24,7 @@ This component provides an interactive overlay for sonar spectrogram images, ena
 
 ## Annotation Persistence
 
-Annotations (analysis markers, harmonic sets, and Doppler curves) are saved to
+Annotations (analysis markers, harmonic sets, sideband sets, and Doppler curves) are saved to
 browser storage automatically. The storage backend depends on whether the page
 is detected as a **trainer** or **student** context:
 
