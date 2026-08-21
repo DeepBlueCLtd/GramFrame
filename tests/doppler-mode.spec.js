@@ -1,825 +1,414 @@
 import { test, expect } from './helpers/fixtures.js'
-import { 
-  expectValidMetadata, 
+import {
+  expectValidMetadata,
   expectValidMode,
   expectValidConfig,
-  expectValidImageDetails 
+  expectValidImageDetails
 } from './helpers/state-assertions.js'
 
 /**
- * @fileoverview Comprehensive E2E tests for Doppler Mode functionality
- * Tests Doppler marker placement, dragging, speed calculations, and UI interactions
+ * @fileoverview E2E tests for Doppler mode: marker placement, dragging, speed
+ * calculation, persistence across modes and reset.
+ *
+ * Every interaction here is positioned from the drawn gram's own bounding box.
+ * These tests used to drive `page.mouse` at absolute page coordinates like
+ * (200, 150), which on the debug page sit some 390px *above* the component —
+ * no marker was ever placed, and each assertion was wrapped in an
+ * `if (state.doppler.fPlus)` or bailed out with an early `return`, so the whole
+ * suite passed while exercising nothing. Assertions are unconditional now: if a
+ * placement stops working, these fail.
+ *
+ * Debug config spans freq 0-100 Hz across the image and time 0-60 s bottom-up.
  */
 
+const FREQ_SPAN = 100
+const TIME_SPAN = 60
+
 /**
- * Doppler Mode test suite
- * @description Tests Doppler marker placement, dragging, speed calculations, and UI interactions
+ * The drawn gram's rectangle in client coordinates.
+ *
+ * Scrolls the component fully into view first. The debug page puts the gram low
+ * enough that its bottom edge can sit below the viewport, and a drag towards a
+ * point outside the window leaves the SVG — which correctly cancels the drag,
+ * but for reasons that have nothing to do with what is being tested.
+ * @param {import('./helpers/gram-frame-page.js').default} gfp - Page helper
+ * @returns {Promise<{x: number, y: number, width: number, height: number}>} Client rect
  */
-test.describe('Doppler Mode - Comprehensive E2E Tests', () => {
-  /**
-   * Setup before each test - switch to Doppler mode
-   * @param {TestParams} params - Test parameters
-   * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-   * @returns {Promise<void>}
-   */
+async function gramRect(gfp) {
+  await gfp.svg.scrollIntoViewIfNeeded()
+  const box = await gfp.page.locator('.gram-frame-spectrogram-image').boundingBox()
+  expect(box).not.toBeNull()
+  return box
+}
+
+/**
+ * A client point at a fraction across and down the drawn gram.
+ * @param {{x: number, y: number, width: number, height: number}} rect - Gram rect
+ * @param {number} fx - Fraction across (0 = left edge, 1 = right edge)
+ * @param {number} fy - Fraction down (0 = top edge, 1 = bottom edge)
+ * @returns {{x: number, y: number}} Client coordinates
+ */
+function pointAt(rect, fx, fy) {
+  return { x: rect.x + rect.width * fx, y: rect.y + rect.height * fy }
+}
+
+/**
+ * The data coordinates a gram fraction corresponds to, for expected values.
+ * @param {number} fx - Fraction across
+ * @param {number} fy - Fraction down
+ * @returns {{freq: number, time: number}} Data coordinates
+ */
+function dataAt(fx, fy) {
+  return { freq: FREQ_SPAN * fx, time: TIME_SPAN * (1 - fy) }
+}
+
+/**
+ * Drag out a Doppler curve between two fractions of the gram, and wait for the
+ * placement to land.
+ * @param {import('./helpers/gram-frame-page.js').default} gfp - Page helper
+ * @param {[number, number]} from - Start fraction [across, down]
+ * @param {[number, number]} to - End fraction [across, down]
+ * @returns {Promise<import('../src/types.js').GramFrameState>} State after placement
+ */
+async function placeCurve(gfp, from, to) {
+  const rect = await gramRect(gfp)
+  const start = pointAt(rect, from[0], from[1])
+  const end = pointAt(rect, to[0], to[1])
+
+  await gfp.page.mouse.move(start.x, start.y)
+  await gfp.page.mouse.down()
+  await gfp.page.mouse.move(end.x, end.y, { steps: 5 })
+  await gfp.page.mouse.up()
+
+  await gfp.waitForState((state) => !!(state.doppler.fPlus && state.doppler.fMinus && state.doppler.fZero))
+  return gfp.getState()
+}
+
+/**
+ * Drag a rendered Doppler marker by a client-pixel offset.
+ * @param {import('./helpers/gram-frame-page.js').default} gfp - Page helper
+ * @param {'fPlus'|'fMinus'|'crosshair'} marker - Which marker's element to grab
+ * @param {number} dx - Horizontal offset in client px
+ * @param {number} dy - Vertical offset in client px
+ * @returns {Promise<void>}
+ */
+async function dragMarker(gfp, marker, dx, dy) {
+  const box = await gfp.page.locator(`.gram-frame-doppler-${marker}`).first().boundingBox()
+  expect(box, `the ${marker} marker should be rendered`).not.toBeNull()
+
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+
+  await gfp.page.mouse.move(cx, cy)
+  await gfp.page.mouse.down()
+  await gfp.page.mouse.move(cx + dx, cy + dy, { steps: 5 })
+  await gfp.page.mouse.up()
+}
+
+test.describe('Doppler Mode', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    
-    // Switch to Doppler mode
     await gramFramePage.clickMode('Doppler')
-    
-    // Verify we're in doppler mode
-    /** @type {import('../src/types.js').GramFrameState} */
+    await gramFramePage.waitForImageDimensions()
+
     const state = await gramFramePage.getState()
     expectValidMode(state, 'doppler')
   })
 
-  /**
-   * Doppler marker placement test suite
-   */
-  test.describe('Doppler Marker Placement', () => {
-    /**
-     * Test creation of f+ and f- markers with click and drag
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should create f+ and f- markers with click and drag', async ({ gramFramePage }) => {
-      /** @type {number} */
-      const startX = 200
-      /** @type {number} */
-      const startY = 150
-      /** @type {number} */
-      const endX = 300
-      /** @type {number} */
-      const endY = 200
-      
-      // Click and drag to create Doppler markers
-      await gramFramePage.page.mouse.move(startX, startY)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(endX, endY)
-      await gramFramePage.page.mouse.up()
-      
-      // Verify Doppler markers were created
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      expect(state.doppler).toBeDefined()
-      
-      // Check if markers were created
-      if (state.doppler.fPlus && state.doppler.fMinus) {
-        // Verify marker properties
-        expect(state.doppler.fPlus).toHaveProperty('time')
-        expect(state.doppler.fPlus).toHaveProperty('frequency')
-        expect(state.doppler.fMinus).toHaveProperty('time')
-        expect(state.doppler.fMinus).toHaveProperty('frequency')
-        
-        expect(state.doppler.fPlus.time).toBeGreaterThan(0)
-        expect(state.doppler.fPlus.freq).toBeGreaterThan(0)
-        expect(state.doppler.fMinus.time).toBeGreaterThan(0)
-        expect(state.doppler.fMinus.freq).toBeGreaterThan(0)
-      } else {
-        // If no markers created, at least verify doppler state exists
-        expect(state.doppler).toHaveProperty('fPlus')
-        expect(state.doppler).toHaveProperty('fMinus')
-      }
-    })
-    
-    /**
-     * Test automatic calculation of f₀ midpoint marker
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should automatically calculate f₀ midpoint marker', async ({ gramFramePage }) => {
-      // Create f+ and f- markers
-      await gramFramePage.page.mouse.move(200, 100)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      // Verify f₀ was automatically calculated (if markers were created)
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      
-      if (state.doppler.fPlus && state.doppler.fMinus && state.doppler.fZero) {
-        expect(state.doppler.fZero).toHaveProperty('time')
-        expect(state.doppler.fZero).toHaveProperty('frequency')
-        
-        // f₀ should be approximately between f+ and f-
-        /** @type {number} */
-        const fPlusFreq = state.doppler.fPlus.freq
-        /** @type {number} */
-        const fMinusFreq = state.doppler.fMinus.freq
-        /** @type {number} */
-        const fZeroFreq = state.doppler.fZero.freq
-        
-        /** @type {number} */
-        const minFreq = Math.min(fPlusFreq, fMinusFreq)
-        /** @type {number} */
-        const maxFreq = Math.max(fPlusFreq, fMinusFreq)
-        
-        expect(fZeroFreq).toBeGreaterThanOrEqual(minFreq - 10) // Small tolerance
-        expect(fZeroFreq).toBeLessThanOrEqual(maxFreq + 10)
-      } else {
-        // If markers weren't created, verify state structure exists
-        expect(state.doppler).toHaveProperty('fZero')
-      }
-    })
-    
-  })
+  test.describe('Marker Placement', () => {
+    test('a drag places f+ and f- at its two ends', async ({ gramFramePage }) => {
+      // Start high on the gram (later in time), finish low (earlier).
+      const state = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
 
-  /**
-   * Doppler marker dragging test suite
-   */
-  test.describe('Doppler Marker Dragging', () => {
-    /**
-     * Test dragging f₀ marker independently
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should allow dragging f₀ marker independently', async ({ gramFramePage }) => {
-      // Create initial Doppler markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      /** @type {import('../src/types.js').GramFrameState} */
-      let state = await gramFramePage.getState()
-      
-      // Skip test if markers weren't created
-      if (!state.doppler.fZero) {
-        return
-      }
-      
-      // Calculate approximate f₀ position for dragging
-      /** @type {number} */
-      const fZeroX = (200 + 300) / 2 // Approximate midpoint
-      /** @type {number} */
-      const fZeroY = (150 + 200) / 2
-      
-      // Drag f₀ marker to new position
-      await gramFramePage.page.mouse.move(fZeroX, fZeroY)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(fZeroX + 50, fZeroY + 25)
-      await gramFramePage.page.mouse.up()
-      
-      // Verify f₀ marker was moved or drag was attempted
-      state = await gramFramePage.getState()
-      if (state.doppler.fZero) {
-        expect(state.doppler.fZero.time).toBeDefined()
-      }
+      const expectedHigh = dataAt(0.3, 0.2)
+      const expectedLow = dataAt(0.6, 0.7)
+
+      // f+ is defined as the later marker, whichever end of the drag it was.
+      expect(state.doppler.fPlus.time).toBeGreaterThan(state.doppler.fMinus.time)
+
+      expect(state.doppler.fPlus.time).toBeCloseTo(expectedHigh.time, 0)
+      expect(state.doppler.fPlus.freq).toBeCloseTo(expectedHigh.freq, 0)
+      expect(state.doppler.fMinus.time).toBeCloseTo(expectedLow.time, 0)
+      expect(state.doppler.fMinus.freq).toBeCloseTo(expectedLow.freq, 0)
     })
-    
-    /**
-     * Test cursor style updates when hovering over markers
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should update cursor style when hovering over markers', async ({ gramFramePage }) => {
-      // Create Doppler markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      // Hover over f+ marker position
-      await gramFramePage.page.mouse.move(200, 150)
-      
-      // Check cursor style (should indicate draggable)
-      /** @type {string | null} */
-      const cursor = await gramFramePage.page.evaluate(() => {
-        const svg = document.querySelector('.gram-frame-svg')
-        return svg ? window.getComputedStyle(svg).cursor : null
-      })
-      
-      // Cursor may or may not change depending on marker existence
-      if (cursor) {
-        expect(typeof cursor).toBe('string')
-      }
+
+    test('a drag placed the other way round still orders f+ after f-', async ({ gramFramePage }) => {
+      // Same two points, dragged bottom-to-top: the roles must not swap.
+      const state = await placeCurve(gramFramePage, [0.6, 0.7], [0.3, 0.2])
+
+      expect(state.doppler.fPlus.time).toBeGreaterThan(state.doppler.fMinus.time)
+      expect(state.doppler.fPlus.freq).toBeCloseTo(dataAt(0.3, 0.2).freq, 0)
+      expect(state.doppler.fMinus.freq).toBeCloseTo(dataAt(0.6, 0.7).freq, 0)
+    })
+
+    test('f₀ is derived as the midpoint of f+ and f-', async ({ gramFramePage }) => {
+      const { doppler } = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      expect(doppler.fZero.time).toBeCloseTo((doppler.fPlus.time + doppler.fMinus.time) / 2, 6)
+      expect(doppler.fZero.freq).toBeCloseTo((doppler.fPlus.freq + doppler.fMinus.freq) / 2, 6)
+    })
+
+    test('placement leaves no half-finished geometry behind', async ({ gramFramePage }) => {
+      const state = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      expect(state.doppler.tempFirst).toBeNull()
+      expect(state.doppler.previewEnd).toBeNull()
+      expect(state.drag.active).toBe(false)
     })
   })
 
-  /**
-   * Speed calculation workflow test suite
-   */
-  test.describe('Speed Calculation Workflow', () => {
-    /**
-     * Test Doppler speed calculation from f+ and f- markers
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should calculate Doppler speed from f+ and f- markers', async ({ gramFramePage }) => {
-      // Create Doppler markers with known frequency difference
-      await gramFramePage.page.mouse.move(200, 100) // Higher frequency
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200) // Lower frequency
-      await gramFramePage.page.mouse.up()
-      
-      // Verify speed calculation is performed
-      /** @type {import('../src/types.js').GramFrameState} */
+  test.describe('Marker Dragging', () => {
+    // The cursor affordance over a marker is covered in cursor-hover.spec.js,
+    // and the size of the region that grabs one in doppler-hotspot.spec.js.
+
+    test('dragging f+ moves f+ and leaves f- alone', async ({ gramFramePage }) => {
+      const before = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      await dragMarker(gramFramePage, 'fPlus', 40, 20)
+      const after = await gramFramePage.getState()
+
+      expect(after.doppler.fPlus.freq).toBeGreaterThan(before.doppler.fPlus.freq)
+      expect(after.doppler.fPlus.time).toBeLessThan(before.doppler.fPlus.time)
+      expect(after.doppler.fMinus).toEqual(before.doppler.fMinus)
+    })
+
+    test('dragging f- moves f- and leaves f+ alone', async ({ gramFramePage }) => {
+      const before = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      await dragMarker(gramFramePage, 'fMinus', -40, 20)
+      const after = await gramFramePage.getState()
+
+      expect(after.doppler.fMinus.freq).toBeLessThan(before.doppler.fMinus.freq)
+      expect(after.doppler.fMinus.time).toBeLessThan(before.doppler.fMinus.time)
+      expect(after.doppler.fPlus).toEqual(before.doppler.fPlus)
+    })
+
+    test('f₀ drags independently of the markers it was derived from', async ({ gramFramePage }) => {
+      const before = await placeCurve(gramFramePage, [0.25, 0.2], [0.75, 0.8])
+
+      // f₀ sits at the curve's midpoint, well clear of both ends here.
+      await dragMarker(gramFramePage, 'crosshair', 30, 0)
+      const after = await gramFramePage.getState()
+
+      expect(after.doppler.fZero.freq).toBeGreaterThan(before.doppler.fZero.freq)
+      expect(after.doppler.fPlus).toEqual(before.doppler.fPlus)
+      expect(after.doppler.fMinus).toEqual(before.doppler.fMinus)
+    })
+
+    test('a completed drag leaves the engine idle', async ({ gramFramePage }) => {
+      await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+      await dragMarker(gramFramePage, 'fPlus', 20, 10)
+
       const state = await gramFramePage.getState()
-      
-      // Skip if markers weren't created
-      if (!state.doppler.fPlus || !state.doppler.fMinus) {
-        return
-      }
-      
-      // Check if speed calculation fields exist
-      if (state.doppler.calculatedSpeed !== undefined) {
-        expect(state.doppler.calculatedSpeed).toBeGreaterThanOrEqual(0)
-      }
-      
-      // Verify frequency difference is calculated
-      /** @type {number} */
-      const freqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
-      expect(freqDiff).toBeGreaterThanOrEqual(0)
-    })
-    
-    /**
-     * Test speed calculation updates when dragging markers
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should update speed calculation when dragging markers', async ({ gramFramePage }) => {
-      // Create initial markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      // Get initial calculation
-      /** @type {import('../src/types.js').GramFrameState} */
-      let state = await gramFramePage.getState()
-      
-      // Skip if markers weren't created
-      if (!state.doppler.fPlus || !state.doppler.fMinus) {
-        return
-      }
-      
-      // Drag one marker to change frequency difference
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(200, 100) // Move to higher frequency
-      await gramFramePage.page.mouse.up()
-      
-      // Verify calculation updated or drag was attempted
-      state = await gramFramePage.getState()
-      if (state.doppler.fPlus && state.doppler.fMinus) {
-        /** @type {number} */
-        const newFreqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
-        // Frequency difference may or may not have changed
-        expect(newFreqDiff).toBeGreaterThanOrEqual(0)
-      }
-    })
-    
-    /**
-     * Test handling of zero frequency difference gracefully
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should handle zero frequency difference gracefully', async ({ gramFramePage }) => {
-      // Create markers at same frequency (vertically aligned)
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 150) // Same frequency, different time
-      await gramFramePage.page.mouse.up()
-      
-      // Verify system handles zero frequency difference
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      
-      // Skip if markers weren't created
-      if (!state.doppler.fPlus || !state.doppler.fMinus) {
-        return
-      }
-      
-      if (state.doppler.calculatedSpeed !== undefined) {
-        // Speed should be zero or very close to zero
-        expect(state.doppler.calculatedSpeed).toBeLessThanOrEqual(1)
-      }
-      
-      // Should not cause errors
-      expect(state.doppler.fPlus).toBeDefined()
-      expect(state.doppler.fMinus).toBeDefined()
-    })
-  })
-
-  /**
-   * Bearing input interactions test suite
-   */
-  test.describe('Bearing Input Interactions', () => {
-  })
-
-  /**
-   * Time selection and display test suite
-   */
-  test.describe('Time Selection and Display', () => {
-    /**
-     * Test display of time values for f+ and f- markers
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should display time values for f+ and f- markers', async ({ gramFramePage }) => {
-      // Create Doppler markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(350, 200)
-      await gramFramePage.page.mouse.up()
-      
-      // Verify time values are calculated
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      
-      // Skip if markers weren't created
-      if (!state.doppler.fPlus || !state.doppler.fMinus) {
-        return
-      }
-      
-      expect(state.doppler.fPlus.time).toBeGreaterThan(0)
-      expect(state.doppler.fMinus.time).toBeGreaterThan(0)
-      
-      // Times should be different (unless vertically aligned)
-      /** @type {number} */
-      const timeDiff = Math.abs(state.doppler.fPlus.time - state.doppler.fMinus.time)
-      expect(timeDiff).toBeGreaterThanOrEqual(0)
-    })
-    
-    /**
-     * Test handling of time-based calculations correctly
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should handle time-based calculations correctly', async ({ gramFramePage }) => {
-      // Create markers with significant time difference
-      await gramFramePage.page.mouse.move(150, 150) // Earlier time
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(400, 200) // Later time
-      await gramFramePage.page.mouse.up()
-      
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      
-      // Skip if markers weren't created
-      if (!state.doppler.fPlus || !state.doppler.fMinus) {
-        return
-      }
-      
-      /** @type {number} */
-      const timeDiff = Math.abs(state.doppler.fPlus.time - state.doppler.fMinus.time)
-      
-      // Verify time difference was captured
-      expect(timeDiff).toBeGreaterThanOrEqual(0)
-      
-      // Time values should be within reasonable range
-      expect(state.doppler.fPlus.time).toBeGreaterThanOrEqual(state.config.timeMin)
-      expect(state.doppler.fPlus.time).toBeLessThanOrEqual(state.config.timeMax)
-      expect(state.doppler.fMinus.time).toBeGreaterThanOrEqual(state.config.timeMin)
-      expect(state.doppler.fMinus.time).toBeLessThanOrEqual(state.config.timeMax)
-    })
-  })
-
-  /**
-   * UI display and calculation results test suite
-   */
-  test.describe('UI Display and Calculation Results', () => {
-    
-    /**
-     * Test real-time display updates during dragging
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should update display in real-time during dragging', async ({ gramFramePage }) => {
-      // Create initial markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      try {
-        /** @type {import('@playwright/test').Locator} */
-        const resultsDisplay = gramFramePage.page.locator('.gram-frame-doppler-results, .doppler-speed-display')
-        await resultsDisplay.waitFor({ timeout: 1000 })
-        
-        /** @type {string | null} */
-        const initialText = await resultsDisplay.textContent()
-        
-        // Drag marker to change calculation
-        await gramFramePage.page.mouse.move(200, 150)
-        await gramFramePage.page.mouse.down()
-        await gramFramePage.page.mouse.move(200, 100) // Change frequency
-        await gramFramePage.page.mouse.up()
-        
-        // Verify display updated
-        await expect(resultsDisplay).not.toHaveText(initialText ?? '')
-      } catch (_error) {
-        console.log('Real-time display update not testable')
-      }
-    })
-  })
-
-  /**
-   * Cross-mode functionality test suite
-   */
-  test.describe('Cross-Mode Functionality', () => {
-    /**
-     * Test maintaining Doppler markers when switching modes
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should maintain Doppler markers when switching modes', async ({ gramFramePage }) => {
-      // Create Doppler markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      /** @type {import('../src/types.js').GramFrameState} */
-      let state = await gramFramePage.getState()
-      /** @type {import('../src/types.js').DopplerState} */
-      const originalDopplerState = { ...state.doppler }
-      
-      // Switch to Cross Cursor mode
-      await gramFramePage.clickMode('Cross Cursor')
-      
-      // Verify Doppler state persists (if markers were created)
-      state = await gramFramePage.getState()
-      if (originalDopplerState.fPlus && originalDopplerState.fMinus) {
-        expect(state.doppler.fPlus).toEqual(originalDopplerState.fPlus)
-        expect(state.doppler.fMinus).toEqual(originalDopplerState.fMinus)
-        if (originalDopplerState.fZero) {
-          expect(state.doppler.fZero).toEqual(originalDopplerState.fZero)
-        }
-      }
-      
-      // Switch back to Doppler mode
-      await gramFramePage.clickMode('Doppler')
-      
-      // Verify markers are still functional
-      state = await gramFramePage.getState()
-      if (originalDopplerState.fPlus) {
-        expect(state.doppler.fPlus).toEqual(originalDopplerState.fPlus)
-      }
-      
-      // Check for Doppler markers in SVG (may not exist)
-      try {
-        /** @type {import('@playwright/test').Locator} */
-        const dopplerMarkers = gramFramePage.page.locator('.gram-frame-doppler-marker')
-        /** @type {number} */
-        const count = await dopplerMarkers.count()
-        if (count > 0) {
-          expect(count).toBeGreaterThan(0)
-        }
-      } catch (_error) {
-        // Markers may not be visible
-      }
-    })
-    
-    /**
-     * Test coexistence with Cross Cursor markers
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should coexist with Cross Cursor markers', async ({ gramFramePage }) => {
-      // Switch to Cross Cursor mode and create markers
-      await gramFramePage.clickMode('Cross Cursor')
-      await gramFramePage.clickSpectrogram(150, 100)
-      
-      // Switch back to Doppler mode
-      await gramFramePage.clickMode('Doppler')
-      
-      // Create Doppler markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      // Verify both types of markers coexist
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      expect(state.analysis?.markers).toHaveLength(1)
-      
-      // Check if Doppler markers were created
-      if (state.doppler.fPlus && state.doppler.fMinus) {
-        expect(state.doppler.fPlus).toBeDefined()
-        expect(state.doppler.fMinus).toBeDefined()
-      }
-      
-      // Check for markers in SVG (may not exist)
-      try {
-        /** @type {import('@playwright/test').Locator} */
-        const analysisMarkers = gramFramePage.page.locator('.gram-frame-analysis-marker')
-        await expect(analysisMarkers).toHaveCount(1)
-        
-        /** @type {import('@playwright/test').Locator} */
-        const dopplerMarkers = gramFramePage.page.locator('.gram-frame-doppler-marker')
-        /** @type {number} */
-        const dopplerCount = await dopplerMarkers.count()
-        if (dopplerCount > 0) {
-          expect(dopplerCount).toBeGreaterThan(0)
-        }
-      } catch (_error) {
-        // Some markers may not be visible
-      }
-    })
-  })
-
-  /**
-   * Reset and clear functionality test suite
-   */
-  test.describe('Reset and Clear Functionality', () => {
-    /**
-     * Test resetting markers via right-click
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should reset markers via right-click', async ({ gramFramePage }) => {
-      // Create Doppler markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-      
-      // Check if markers were created
-      /** @type {import('../src/types.js').GramFrameState} */
-      let state = await gramFramePage.getState()
-      /** @type {boolean} */
-      const hasMarkers = state.doppler.fPlus && state.doppler.fMinus
-      
-      if (!hasMarkers) {
-        return // Skip test if no markers were created
-      }
-      
-      expect(state.doppler.fPlus).toBeDefined()
-      expect(state.doppler.fMinus).toBeDefined()
-      
-      // Right-click to reset (if implemented)
-      await gramFramePage.page.mouse.click(250, 175, { button: 'right' })
-      
-      // The context-menu handler runs synchronously, so the click resolving is
-      // itself the signal that any reset has already happened.
-      // Check if markers were reset
-      state = await gramFramePage.getState()
-      // Note: This test assumes right-click reset is implemented
-      // If not implemented, markers will still exist
-    })
-  })
-
-  /**
-   * Edge cases and error handling test suite
-   */
-  test.describe('Edge Cases and Error Handling', () => {
-    /**
-     * Test marker placement at spectrogram boundaries
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should handle marker placement at spectrogram boundaries', async ({ gramFramePage }) => {
-      /** @type {import('@playwright/test').BoundingBox | null} */
-      const svgBox = await gramFramePage.svg.boundingBox()
-      expect(svgBox).toBeTruthy()
-      
-      if (svgBox) {
-        // Test boundary positions (accounting for axes margins)
-        await gramFramePage.page.mouse.move(65, 50) // Near left edge
-        await gramFramePage.page.mouse.down()
-        await gramFramePage.page.mouse.move(svgBox.width - 10, svgBox.height - 55) // Near right-bottom
-        await gramFramePage.page.mouse.up()
-        
-        // Check if markers were created successfully
-        /** @type {import('../src/types.js').GramFrameState} */
-        const state = await gramFramePage.getState()
-        
-        if (state.doppler.fPlus && state.doppler.fMinus) {
-          expect(state.doppler.fPlus).toBeDefined()
-          expect(state.doppler.fMinus).toBeDefined()
-          
-          // Coordinates should be within valid ranges
-          expect(state.doppler.fPlus.time).toBeGreaterThanOrEqual(state.config.timeMin)
-          expect(state.doppler.fPlus.time).toBeLessThanOrEqual(state.config.timeMax)
-          expect(state.doppler.fMinus.time).toBeGreaterThanOrEqual(state.config.timeMin)
-          expect(state.doppler.fMinus.time).toBeLessThanOrEqual(state.config.timeMax)
-        }
-      }
-    })
-    
-    /**
-     * Test handling rapid marker creation and dragging
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should handle rapid marker creation and dragging', async ({ gramFramePage }) => {
-      // Rapidly create and modify Doppler markers
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(250, 180)
-      await gramFramePage.page.mouse.move(300, 200)
-      await gramFramePage.page.mouse.up()
-
-      // Immediately start dragging
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(180, 130)
-      await gramFramePage.page.mouse.up()
-      
-      // Verify final state is consistent
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      
-      // Check marker state (may or may not exist)
-      if (state.doppler.fPlus && state.doppler.fMinus) {
-        expect(state.doppler.fPlus).toBeDefined()
-        expect(state.doppler.fMinus).toBeDefined()
-        if (state.doppler.fZero) {
-          expect(state.doppler.fZero).toBeDefined()
-        }
-      }
-      
-      // Verify drag states are clean. Drag bookkeeping is now the engine's
-      // single read-only projection (spec 166, FR-004).
       expect(state.drag.active).toBe(false)
       expect(state.drag.kind).toBeNull()
     })
-    
-    /**
-     * Test state consistency during complex operations
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should maintain state consistency during complex operations', async ({ gramFramePage }) => {
-      // Perform complex sequence of operations
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down() // Start creating markers
-      await gramFramePage.clickMode('Cross Cursor') // Switch mode mid-operation
-      await gramFramePage.clickMode('Doppler') // Switch back
-      await gramFramePage.page.mouse.move(300, 200) // Continue operation
-      await gramFramePage.page.mouse.up() // Complete operation
-      
-      // Verify final state is consistent
-      /** @type {import('../src/types.js').GramFrameState} */
+  })
+
+  test.describe('Speed Calculation', () => {
+    test('speed follows the Doppler formula over f+, f- and f₀', async ({ gramFramePage }) => {
+      const { doppler } = await placeCurve(gramFramePage, [0.3, 0.2], [0.7, 0.8])
+
+      // v = (c / f₀) × Δf, with c = 1481 m/s and Δf = (f+ − f−) / 2.
+      const expected = Math.abs((1481 / doppler.fZero.freq) * ((doppler.fPlus.freq - doppler.fMinus.freq) / 2))
+
+      expect(doppler.speed).toBeCloseTo(expected, 6)
+    })
+
+    test('dragging a marker recomputes the speed', async ({ gramFramePage }) => {
+      const before = await placeCurve(gramFramePage, [0.3, 0.2], [0.7, 0.8])
+      expect(before.doppler.speed).toBeGreaterThan(0)
+
+      // Widen the frequency gap: a bigger Δf over the same f₀ means more speed.
+      await dragMarker(gramFramePage, 'fPlus', -60, 0)
+      const after = await gramFramePage.getState()
+
+      expect(after.doppler.fPlus.freq).toBeLessThan(before.doppler.fPlus.freq)
+      expect(after.doppler.speed).not.toBeCloseTo(before.doppler.speed, 3)
+      const expected = Math.abs(
+        (1481 / after.doppler.fZero.freq) * ((after.doppler.fPlus.freq - after.doppler.fMinus.freq) / 2)
+      )
+      expect(after.doppler.speed).toBeCloseTo(expected, 6)
+    })
+
+    test('markers at the same frequency give a speed of zero', async ({ gramFramePage }) => {
+      // Vertically aligned: same frequency, different times.
+      const { doppler } = await placeCurve(gramFramePage, [0.5, 0.25], [0.5, 0.75])
+
+      expect(doppler.fPlus.freq).toBeCloseTo(doppler.fMinus.freq, 3)
+      expect(doppler.speed).toBeCloseTo(0, 3)
+    })
+
+    test('the speed LED shows the calculated value', async ({ gramFramePage }) => {
+      const { doppler } = await placeCurve(gramFramePage, [0.3, 0.2], [0.7, 0.8])
+
+      const led = await gramFramePage.getLEDValue('Doppler\u00a0Speed (kts)')
+      expect(led).toMatch(/\d/)
+      // The LED reads in knots; state carries m/s.
+      const shown = parseFloat(led.replace(/[^\d.-]/g, ''))
+      expect(shown).toBeCloseTo(doppler.speed * 1.94384, 0)
+    })
+  })
+
+  test.describe('Coordinates', () => {
+    test('marker positions land inside the configured ranges', async ({ gramFramePage }) => {
+      const state = await placeCurve(gramFramePage, [0.2, 0.15], [0.8, 0.85])
+
+      for (const marker of [state.doppler.fPlus, state.doppler.fMinus, state.doppler.fZero]) {
+        expect(marker.time).toBeGreaterThanOrEqual(state.config.timeMin)
+        expect(marker.time).toBeLessThanOrEqual(state.config.timeMax)
+        expect(marker.freq).toBeGreaterThanOrEqual(state.config.freqMin)
+        expect(marker.freq).toBeLessThanOrEqual(state.config.freqMax)
+      }
+    })
+
+    test('markers placed at the gram edges stay in range', async ({ gramFramePage }) => {
+      // Two pixels inside opposite corners — the extremes a press can still
+      // resolve to data coordinates at all.
+      const rect = await gramRect(gramFramePage)
+      const inset = 2
+      await gramFramePage.page.mouse.move(rect.x + inset, rect.y + inset)
+      await gramFramePage.page.mouse.down()
+      await gramFramePage.page.mouse.move(
+        rect.x + rect.width - inset,
+        rect.y + rect.height - inset,
+        { steps: 5 }
+      )
+      await gramFramePage.page.mouse.up()
+      await gramFramePage.waitForState((s) => !!(s.doppler.fPlus && s.doppler.fMinus))
+
+      const state = await gramFramePage.getState()
+      for (const marker of [state.doppler.fPlus, state.doppler.fMinus, state.doppler.fZero]) {
+        expect(marker.time).toBeGreaterThanOrEqual(state.config.timeMin)
+        expect(marker.time).toBeLessThanOrEqual(state.config.timeMax)
+        expect(marker.freq).toBeGreaterThanOrEqual(state.config.freqMin)
+        expect(marker.freq).toBeLessThanOrEqual(state.config.freqMax)
+      }
+    })
+
+    test('a drag of barely any distance still places both markers', async ({ gramFramePage }) => {
+      const rect = await gramRect(gramFramePage)
+      const start = pointAt(rect, 0.5, 0.5)
+
+      await gramFramePage.page.mouse.move(start.x, start.y)
+      await gramFramePage.page.mouse.down()
+      await gramFramePage.page.mouse.move(start.x + 1, start.y + 1)
+      await gramFramePage.page.mouse.up()
+
+      const state = await gramFramePage.getState()
+      expect(state.doppler.fPlus).not.toBeNull()
+      expect(state.doppler.fMinus).not.toBeNull()
+      expect(Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)).toBeLessThan(1)
+    })
+  })
+
+  test.describe('Cross-Mode Behaviour', () => {
+    test('markers survive a round trip through another mode', async ({ gramFramePage }) => {
+      const before = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      await gramFramePage.clickMode('Cross Cursor')
+      const away = await gramFramePage.getState()
+      expect(away.doppler.fPlus).toEqual(before.doppler.fPlus)
+      expect(away.doppler.fMinus).toEqual(before.doppler.fMinus)
+      expect(away.doppler.fZero).toEqual(before.doppler.fZero)
+
+      await gramFramePage.clickMode('Doppler')
+      const back = await gramFramePage.getState()
+      expect(back.doppler.fPlus).toEqual(before.doppler.fPlus)
+      expect(back.doppler.fMinus).toEqual(before.doppler.fMinus)
+
+      // And the curve is drawn again rather than merely remembered.
+      await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).toHaveCount(1)
+    })
+
+    test('a doppler curve coexists with cross-cursor markers', async ({ gramFramePage }) => {
+      await gramFramePage.clickMode('Cross Cursor')
+      await gramFramePage.clickSpectrogram(150, 100)
+      await gramFramePage.waitForMarkerCount(1)
+
+      await gramFramePage.clickMode('Doppler')
+      const state = await placeCurve(gramFramePage, [0.4, 0.3], [0.7, 0.7])
+
+      expect(state.analysis.markers).toHaveLength(1)
+      expect(state.doppler.fPlus).not.toBeNull()
+      expect(state.doppler.fMinus).not.toBeNull()
+      await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).toHaveCount(1)
+    })
+  })
+
+  test.describe('Reset', () => {
+    test('right-click clears every marker and the speed', async ({ gramFramePage }) => {
+      await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      const rect = await gramRect(gramFramePage)
+      const centre = pointAt(rect, 0.45, 0.45)
+      await gramFramePage.page.mouse.click(centre.x, centre.y, { button: 'right' })
+
+      const state = await gramFramePage.getState()
+      expect(state.doppler.fPlus).toBeNull()
+      expect(state.doppler.fMinus).toBeNull()
+      expect(state.doppler.fZero).toBeNull()
+      expect(state.doppler.speed).toBeNull()
+      await expect(gramFramePage.page.locator('.gram-frame-doppler-fPlus')).toHaveCount(0)
+    })
+
+    test('a fresh curve can be drawn after a reset', async ({ gramFramePage }) => {
+      await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      const rect = await gramRect(gramFramePage)
+      const centre = pointAt(rect, 0.45, 0.45)
+      await gramFramePage.page.mouse.click(centre.x, centre.y, { button: 'right' })
+      await gramFramePage.waitForState((state) => state.doppler.fPlus === null)
+
+      const state = await placeCurve(gramFramePage, [0.2, 0.3], [0.5, 0.6])
+      expect(state.doppler.fPlus).not.toBeNull()
+      expect(state.doppler.speed).toBeGreaterThan(0)
+    })
+  })
+
+  test.describe('Edge Cases', () => {
+    test('placing then immediately dragging keeps the state consistent', async ({ gramFramePage }) => {
+      await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+      await dragMarker(gramFramePage, 'fPlus', -20, -20)
+
+      const state = await gramFramePage.getState()
+      expect(state.doppler.fPlus).not.toBeNull()
+      expect(state.doppler.fMinus).not.toBeNull()
+      expect(state.doppler.fZero).not.toBeNull()
+      expect(state.drag.active).toBe(false)
+      expect(state.drag.kind).toBeNull()
+    })
+
+    test('releasing outside the gram cancels rather than stranding the drag', async ({ gramFramePage }) => {
+      const before = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      const box = await gramFramePage.page.locator('.gram-frame-doppler-fPlus').boundingBox()
+      await gramFramePage.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+      await gramFramePage.page.mouse.down()
+      // Out over the axis margin, where there are no data coordinates.
+      await gramFramePage.page.mouse.move(box.x + box.width / 2, before.margins.top - 40, { steps: 5 })
+      await gramFramePage.page.mouse.up()
+
+      const state = await gramFramePage.getState()
+      expect(state.drag.active).toBe(false)
+      expect(state.doppler.fPlus).not.toBeNull()
+    })
+
+    test('the component stays coherent through a mode switch', async ({ gramFramePage }) => {
+      await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      await gramFramePage.clickMode('Cross Cursor')
+      await gramFramePage.clickMode('Doppler')
+
       const state = await gramFramePage.getState()
       expectValidMetadata(state)
       expectValidMode(state, 'doppler')
       expectValidConfig(state)
       expectValidImageDetails(state)
-      
-      // Doppler state should be consistent despite mode switching
+
       expect(state.drag.active).toBe(false)
       expect(state.drag.kind).toBeNull()
-    })
-    
-    /**
-     * Test handling overlapping marker positions
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should handle overlapping marker positions', async ({ gramFramePage }) => {
-      // Create markers at same position
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(201, 151) // Minimal movement
-      await gramFramePage.page.mouse.up()
-      
-      // Verify system handles overlapping positions gracefully
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      
-      if (state.doppler.fPlus && state.doppler.fMinus) {
-        // Should have valid but potentially similar positions
-        expect(state.doppler.fPlus).toHaveProperty('time')
-        expect(state.doppler.fPlus).toHaveProperty('frequency')
-        expect(state.doppler.fMinus).toHaveProperty('time')
-        expect(state.doppler.fMinus).toHaveProperty('frequency')
-        
-        // Frequency difference should be minimal
-        /** @type {number} */
-        const freqDiff = Math.abs(state.doppler.fPlus.freq - state.doppler.fMinus.freq)
-        expect(freqDiff).toBeLessThan(100) // Small difference for overlapping positions
-      }
-    })
-  })
-
-  /**
-   * Coordinate system integration test suite
-   */
-  test.describe('Coordinate System Integration', () => {
-    /**
-     * Test accurate conversion of marker positions to frequency/time
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should accurately convert marker positions to frequency/time', async ({ gramFramePage }) => {
-      // Create markers at known positions
-      /** @type {number} */
-      const startX = 200
-      /** @type {number} */
-      const startY = 150
-      /** @type {number} */
-      const endX = 300
-      /** @type {number} */
-      const endY = 250
-      
-      await gramFramePage.page.mouse.move(startX, startY)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(endX, endY)
-      await gramFramePage.page.mouse.up()
-      
-      /** @type {import('../src/types.js').GramFrameState} */
-      const state = await gramFramePage.getState()
-      
-      // Skip if markers weren't created
-      if (!state.doppler.fPlus || !state.doppler.fMinus) {
-        return
-      }
-      
-      // Verify coordinates are within expected ranges
-      expect(state.doppler.fPlus.time).toBeGreaterThanOrEqual(state.config.timeMin)
-      expect(state.doppler.fPlus.time).toBeLessThanOrEqual(state.config.timeMax)
-      expect(state.doppler.fPlus.freq).toBeGreaterThanOrEqual(state.config.freqMin)
-      expect(state.doppler.fPlus.freq).toBeLessThanOrEqual(state.config.freqMax)
-      
-      expect(state.doppler.fMinus.time).toBeGreaterThanOrEqual(state.config.timeMin)
-      expect(state.doppler.fMinus.time).toBeLessThanOrEqual(state.config.timeMax)
-      expect(state.doppler.fMinus.freq).toBeGreaterThanOrEqual(state.config.freqMin)
-      expect(state.doppler.fMinus.freq).toBeLessThanOrEqual(state.config.freqMax)
-    })
-  })
-
-  test.describe('Issue #136 - Doppler marker dragging', () => {
-    test('should properly detect and allow dragging of doppler markers after placement', async ({ gramFramePage }) => {
-      // Create initial doppler curve using mouse API (like other tests)
-      await gramFramePage.page.mouse.move(400, 200)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(500, 300)
-      await gramFramePage.page.mouse.up()
-      
-      // Verify markers were created
-      let state = await gramFramePage.getState()
-      
-      // Skip test if markers weren't created (separate issue)
-      if (!state.doppler.fPlus || !state.doppler.fMinus || !state.doppler.fZero) {
-        console.log('Doppler markers not created - skipping drag test')
-        return
-      }
-      
-      const originalFPlusFreq = state.doppler.fPlus.freq
-      const originalFMinusFreq = state.doppler.fMinus.freq
-      
-      // Try to drag the f+ marker to a new position  
-      // First, click on the approximate location of f+ marker
-      await gramFramePage.page.mouse.move(400, 200)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(420, 180) // Move to new position
-      await gramFramePage.page.mouse.up()
-      
-      // Check if the marker position actually changed
-      state = await gramFramePage.getState()
-      const fPlusChanged = state.doppler.fPlus.freq !== originalFPlusFreq
-      
-      // Try dragging f- marker as well
-      await gramFramePage.page.mouse.move(500, 300)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(480, 320)
-      await gramFramePage.page.mouse.up()
-      
-      const finalState = await gramFramePage.getState()
-      const fMinusChanged = finalState.doppler.fMinus.freq !== originalFMinusFreq
-      
-      // Verify that markers can actually be dragged (Issue #136)
-      // The test should demonstrate that dragging works properly
-      console.log('F+ changed:', fPlusChanged, 'F- changed:', fMinusChanged)
-      console.log('Original f+ freq:', originalFPlusFreq, 'New f+ freq:', state.doppler.fPlus.freq)
-      console.log('Original f- freq:', originalFMinusFreq, 'New f- freq:', finalState.doppler.fMinus.freq)
-      
-      // This test confirms that doppler marker dragging is working correctly
-      // If this test passes consistently, then Issue #136 has been resolved
-      expect(fPlusChanged || fMinusChanged).toBe(true)
-      
-      // Ensure markers are still within bounds
-      expect(finalState.doppler.fPlus.time).toBeGreaterThanOrEqual(finalState.config.timeMin)
-      expect(finalState.doppler.fPlus.time).toBeLessThanOrEqual(finalState.config.timeMax)
-      expect(finalState.doppler.fPlus.freq).toBeGreaterThanOrEqual(finalState.config.freqMin)
-      expect(finalState.doppler.fPlus.freq).toBeLessThanOrEqual(finalState.config.freqMax)
-      
-      expect(finalState.doppler.fMinus.time).toBeGreaterThanOrEqual(finalState.config.timeMin)
-      expect(finalState.doppler.fMinus.time).toBeLessThanOrEqual(finalState.config.timeMax)
-      expect(finalState.doppler.fMinus.freq).toBeGreaterThanOrEqual(finalState.config.freqMin)
-      expect(finalState.doppler.fMinus.freq).toBeLessThanOrEqual(finalState.config.freqMax)
+      expect(state.doppler.tempFirst).toBeNull()
+      expect(state.doppler.previewEnd).toBeNull()
     })
   })
 })

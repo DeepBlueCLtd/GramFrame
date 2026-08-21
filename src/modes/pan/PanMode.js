@@ -27,7 +27,7 @@ export class PanMode extends BaseMode {
       onDragMove: (_target, _position, _startPosition, event) => this.onPanMove(event),
       onDragEnd: () => this.onPanEnd(),
       onDragCancel: () => this.onPanEnd(),
-      updateCursor: (style) => this.applyCursor(style),
+      updateCursor: (style) => this.updateCursorStyle(style),
       // A pan keeps the hand, rather than the hollow brackets feature drags use:
       // there is no target under the pointer for it to obscure.
       cursorFor: (kind, phase) => {
@@ -55,16 +55,6 @@ export class PanMode extends BaseMode {
    */
   idleCursor() {
     return this.instance.state.zoom.level > 1.0 ? PAN_IDLE_CURSOR : IDLE_CURSOR
-  }
-
-  /**
-   * Apply a cursor style to the SVG.
-   * @param {string} style - Cursor style
-   */
-  applyCursor(style) {
-    if (this.instance.ui.svg) {
-      this.instance.ui.svg.style.cursor = style
-    }
   }
 
   /**
@@ -102,7 +92,7 @@ export class PanMode extends BaseMode {
    * Restore the resting cursor when the pan finishes.
    */
   onPanEnd() {
-    this.applyCursor(this.idleCursor())
+    this.updateCursorStyle(this.idleCursor())
   }
 
   /**
@@ -111,7 +101,7 @@ export class PanMode extends BaseMode {
   activate() {
     // Set cursor to grab if zoomed
     if (this.instance.state.zoom.level > 1.0) {
-      this.applyCursor(PAN_IDLE_CURSOR)
+      this.updateCursorStyle(PAN_IDLE_CURSOR)
     }
 
     // Reset any existing drag state
@@ -124,7 +114,7 @@ export class PanMode extends BaseMode {
   deactivate() {
     // Clear drag state, then reset the cursor
     this.dragHandler.reset()
-    this.applyCursor(IDLE_CURSOR)
+    this.updateCursorStyle(IDLE_CURSOR)
   }
 
   /**

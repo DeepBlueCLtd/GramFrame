@@ -19,30 +19,35 @@
 /**
  * The tunable constants behind `calculateDataTolerance`.
  * @typedef {Object} ToleranceConfig
- * @property {number} pixelRadius - Drag/click radius in SVG coordinate space
- * @property {DataTolerance} minDataTolerance - Floor, so high zoom does not make interactions hair-trigger
- * @property {DataTolerance} maxDataTolerance - Ceiling, so low zoom does not make them insensitive
+ * @property {number} pixelRadius - Drag/click radius, in rendered image pixels
+ * @property {DataTolerance} fallbackDataTolerance - Used only when the viewport
+ *   is missing or degenerate and no pixel-derived value can be computed
  */
 
 /**
- * Default tolerance configuration
- * @type {Object}
+ * Default tolerance configuration.
+ *
+ * `pixelRadius` is the whole policy: a feature is grabbable within 8 rendered
+ * pixels of its position, on either axis, at any zoom and for any data range.
+ *
+ * There are deliberately no absolute data-space clamps. There used to be
+ * (`maxDataTolerance: { time: 0.5, freq: 50 }`), and because a gram's data
+ * range per pixel varies enormously between configs, that ceiling silently
+ * shrank the hotspot to a fraction of its intended size on ordinary material:
+ * on a 237px-tall gram spanning 60s, 0.5s is under 2px, so the grab band down
+ * the time axis was *narrower than the marker glyph drawn on it* (issue: a
+ * Doppler marker that could not be picked up). A ceiling expressed in seconds
+ * and hertz cannot express "8 pixels"; the pixel radius already does.
+ * @type {ToleranceConfig}
  */
-/** @type {ToleranceConfig} */
 const DEFAULT_TOLERANCE = {
-  // Pixel tolerance for drag/click detection (in SVG coordinate space)
+  // Hit radius in rendered image pixels, applied to both axes
   pixelRadius: 8,
-  
-  // Minimum data space tolerance (prevents overly sensitive interactions at high zoom)
-  minDataTolerance: {
-    time: 0.01,  // 0.01 seconds minimum
-    freq: 1.0    // 1 Hz minimum
-  },
-  
-  // Maximum data space tolerance (prevents insensitive interactions at low zoom)
-  maxDataTolerance: {
-    time: 0.5,   // 0.5 seconds maximum
-    freq: 50.0   // 50 Hz maximum
+
+  // Only reached when the viewport cannot be read at all
+  fallbackDataTolerance: {
+    time: 0.01,
+    freq: 1.0
   }
 }
 
@@ -55,12 +60,11 @@ const DEFAULT_TOLERANCE = {
  */
 function calculateDataTolerance(viewport, spectrogramImage, customTolerance = {}) {
   const config = { ...DEFAULT_TOLERANCE, ...customTolerance }
-  
+
   if (!viewport || !spectrogramImage) {
-    // Fallback to minimum tolerance if viewport/image unavailable
-    return config.minDataTolerance
+    return config.fallbackDataTolerance
   }
-  
+
   const { config: dataConfig, imageDetails, zoom } = viewport
   const { naturalWidth, naturalHeight } = imageDetails
   // Base render size (defaults to natural; grows when expanded)
@@ -68,34 +72,21 @@ function calculateDataTolerance(viewport, spectrogramImage, customTolerance = {}
   const renderHeight = imageDetails.renderHeight || naturalHeight
 
   if (!dataConfig || !renderWidth || !renderHeight) {
-    return config.minDataTolerance
+    return config.fallbackDataTolerance
   }
 
   // Calculate pixel-to-data conversion factors
   const timeRange = dataConfig.timeMax - dataConfig.timeMin
   const freqRange = dataConfig.freqMax - dataConfig.freqMin
 
-  // Account for zoom level - higher zoom means smaller pixel tolerance in data space
+  // Zooming in draws the same data over more pixels, so the same on-screen
+  // radius covers proportionally less data. Dividing by the zoom level is what
+  // keeps the grab radius a constant *visual* size at every zoom.
   const effectiveZoom = zoom?.level || 1.0
 
-  // Convert pixel tolerance to data space (relative to the rendered image size)
-  const timeToleranceFromPixels = (config.pixelRadius / renderHeight) * timeRange / effectiveZoom
-  const freqToleranceFromPixels = (config.pixelRadius / renderWidth) * freqRange / effectiveZoom
-  
-  // Apply min/max constraints
-  const timeTolerance = Math.max(
-    config.minDataTolerance.time,
-    Math.min(config.maxDataTolerance.time, timeToleranceFromPixels)
-  )
-  
-  const freqTolerance = Math.max(
-    config.minDataTolerance.freq,
-    Math.min(config.maxDataTolerance.freq, freqToleranceFromPixels)
-  )
-  
   return {
-    time: timeTolerance,
-    freq: freqTolerance
+    time: (config.pixelRadius / renderHeight) * timeRange / effectiveZoom,
+    freq: (config.pixelRadius / renderWidth) * freqRange / effectiveZoom
   }
 }
 
@@ -164,7 +155,10 @@ export function findClosestTarget(position, targets, tolerance) {
 
 
 /**
- * Get uniform tolerance calculation for all modes
+ * Get uniform tolerance calculation for all modes.
+ *
+ * Every mode's hit test goes through here, so "how close counts as on it" is
+ * one answer rather than four.
  * @param {Viewport} viewport - Viewport configuration
  * @param {HTMLElement|SVGImageElement} spectrogramImage - Spectrogram image element
  * @returns {DataTolerance} Tolerance object with time and freq properties

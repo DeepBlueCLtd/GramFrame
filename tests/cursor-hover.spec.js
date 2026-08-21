@@ -18,6 +18,10 @@ const BRACKET_CURSOR = /^url\("data:image\/svg\+xml/
 
 /**
  * Read the cursor style currently applied to the component's SVG.
+ *
+ * The SVG root is deliberately the only element checked: `cursor` is resolved
+ * on whatever the pointer hits, and features are drawn over the image, so the
+ * root is the one place a value reaches every one of them by inheritance.
  * @param {import('./helpers/gram-frame-page.js').default} gramFramePage - Page object
  * @returns {Promise<string>} The inline cursor style
  */
@@ -86,6 +90,34 @@ test.describe('Cursor over a draggable feature', () => {
     const overSet = await svgCursor(gramFramePage)
     expect(overSet).toMatch(BRACKET_CURSOR)
     expect(overSet).not.toContain('grab')
+  })
+
+  test('a doppler marker takes the hollow cursor', async ({ gramFramePage }) => {
+    await gramFramePage.clickMode('Doppler')
+    await gramFramePage.waitForImageDimensions()
+
+    // Drag out a curve, which places f+ and f- at the drag's two ends.
+    await gramFramePage.startDragSVG(200, 100)
+    await gramFramePage.endDragSVG(300, 200)
+    await gramFramePage.waitForState((state) => !!(state.doppler.fPlus && state.doppler.fMinus))
+
+    // Off the markers: the resting crosshair.
+    await gramFramePage.moveMouseToSpectrogram(450, 250)
+    expect(await svgCursor(gramFramePage)).toBe('crosshair')
+
+    // Dead centre of a marker's own glyph. This is what regressed: doppler was
+    // the one mode still styling the `<image>` rather than the SVG root, so the
+    // marker — sitting on top of the image — kept the SVG's crosshair.
+    const marker = gramFramePage.page.locator('.gram-frame-doppler-fMinus')
+    const box = await marker.boundingBox()
+    await gramFramePage.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+
+    const overMarker = await svgCursor(gramFramePage)
+    expect(overMarker).toMatch(BRACKET_CURSOR)
+    expect(overMarker).not.toContain('grab')
+
+    await gramFramePage.moveMouseToSpectrogram(450, 250)
+    expect(await svgCursor(gramFramePage)).toBe('crosshair')
   })
 
   test('panning keeps the hand — there is no feature under it to hide', async ({ gramFramePage }) => {

@@ -229,6 +229,15 @@ There is no visual/screenshot regression testing — see
   like — pan keeps the hand, every feature drag takes the hollow brackets from
   `utils/cursors.js`. Hover goes through `applyCursor` like every other
   transition, so a mode's opinion covers it too
+- The chosen cursor is applied to the **SVG root** (`BaseMode.updateCursorStyle`,
+  inherited by every mode), never to the `<image>` inside it. `cursor` resolves
+  on whatever element the pointer hits, and features are drawn over the image as
+  its siblings — styling the image leaves the cursor unchanged over the very
+  feature being aimed at
+- Hit-test tolerance (`utils/tolerance.js`) is a pixel radius, not a data-space
+  range: 8 rendered pixels on each axis at any zoom and any gram span. Clamps
+  expressed in seconds and hertz cannot say "8 pixels" and silently shrank the
+  grab region below the size of the drawn glyph
 - `core/state.js` imports no mode. `ModeFactory.getModeInitialStates()` composes
   the initial-state slices and `createInitialState(modeStates)` receives them;
   mode slices are additive and can never overwrite a core key (ADR-014)
