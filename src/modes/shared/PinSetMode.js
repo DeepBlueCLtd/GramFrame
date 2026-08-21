@@ -33,7 +33,7 @@ import { BaseDragHandler } from './BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
 import { createSymbolMark, labelSitsBelowSymbol, resolveSymbolScale } from '../../rendering/symbols.js'
-import { applyTextHalo } from '../../utils/svg.js'
+import { labelPlateExtents, labelPlateRect, measureLabelWidth, plateLabel } from '../../utils/labelPlate.js'
 
 /**
  * Minimum spacing (Hz) any pin set may be dragged or nudged to.
@@ -92,22 +92,15 @@ export class PinSetMode extends BaseMode {
   static MAX_PIN_LINES = 1000
 
   /**
-   * Font size (px) of a pin's number label; also used as its approximate ascent
-   * when clamping the label/symbol stack to the image's top edge.
+   * Font size (px) of a pin's number label. The plate the label sits on is
+   * sized from it too, so it also fixes how much room the stack leaves above
+   * and below the text (see `utils/labelPlate.js`).
    * @type {number}
    */
   static LABEL_FONT_SIZE = 12
 
   /**
-   * Approximate width of one label character as a fraction of the label font
-   * size, used to size the label's grab region (bold Arial digits are ~0.6 em
-   * wide).
-   * @type {number}
-   */
-  static LABEL_CHAR_WIDTH_RATIO = 0.6
-
-  /**
-   * Vertical gap (px) between the pin's number label and its symbol.
+   * Vertical gap (px) between the edge of the pin label's plate and its symbol.
    * @type {number}
    */
   static LABEL_GAP = 3
@@ -735,18 +728,19 @@ export class PinSetMode extends BaseMode {
   labelStackPositions(lineTop, imageTop, set) {
     const r = this.symbolSize(set) / 2
     const gap = PinSetMode.LABEL_GAP
-    const fontSize = PinSetMode.LABEL_FONT_SIZE
+    const plate = labelPlateExtents(PinSetMode.LABEL_FONT_SIZE)
     const below = labelSitsBelowSymbol(set.symbol)
 
-    // Symbol caps the line; the label baseline sits just above the symbol, or —
-    // for an up-pointing triangle — a whole line of text below it, so the
-    // glyphs (which hang above their baseline) clear the mark.
+    // Symbol caps the line; the label sits just above the symbol, or — for an
+    // up-pointing triangle — just below it. The gap is measured from the edge
+    // of the label's plate rather than from its baseline (issue #243), so the
+    // white rectangle clears the mark by as much as the bare glyphs used to.
     let symbolCy = lineTop - r
-    let labelY = below ? symbolCy + r + gap + fontSize : symbolCy - r - gap
+    let labelY = below ? symbolCy + r + gap + plate.above : symbolCy - r - gap - plate.below
 
-    // Keep the top of the stack on-screen: the label's approximate ascent when
-    // it leads the stack, the symbol's top edge when the label hangs below.
-    const stackTop = below ? symbolCy - r : labelY - fontSize
+    // Keep the top of the stack on-screen: the top of the label's plate when it
+    // leads the stack, the symbol's top edge when the label hangs below.
+    const stackTop = below ? symbolCy - r : labelY - plate.above
     const minTop = imageTop + PinSetMode.STACK_TOP_PAD
     if (stackTop < minTop) {
       const shift = minTop - stackTop
@@ -782,13 +776,14 @@ export class PinSetMode extends BaseMode {
     const r = this.symbolSize(set) / 2
     const below = labelSitsBelowSymbol(set.symbol)
     const symbolBottom = symbolCy + r
+    const plate = labelPlateExtents(PinSetMode.LABEL_FONT_SIZE)
 
     return {
-      // One ascent above the label's baseline is the top of the characters —
-      // unless the label hangs below, in which case the symbol leads the stack.
-      top: below ? symbolCy - r : labelY - PinSetMode.LABEL_FONT_SIZE,
-      // The baseline is the underside of the characters when they trail.
-      bottom: Math.max(lineTop, below ? labelY : symbolBottom),
+      // The top of the label's plate — unless the label hangs below, in which
+      // case the symbol leads the stack.
+      top: below ? symbolCy - r : labelY - plate.above,
+      // The plate's underside is the bottom of the stack when the label trails.
+      bottom: Math.max(lineTop, below ? labelY + plate.below : symbolBottom),
       symbolBottom
     }
   }
@@ -798,18 +793,25 @@ export class PinSetMode extends BaseMode {
    *
    * The wider of the symbol mark and the number label, so both are grabbable:
    * a `cross` set has no symbol but still shows its label, and a "Large
-   * symbols" set's mark is wider than its text. Label width is estimated from
-   * the character count rather than measured, which is ample for a grab region.
+   * symbols" set's mark is wider than its text. The label's half-width is the
+   * plate's, measured the same way the renderer sizes it, so the grab region
+   * covers exactly the white rectangle the analyst is aiming at.
    *
    * @param {PinSet} set - Set being hit-tested
    * @param {number} index - Member index whose label is drawn
    * @returns {number} Half-width in SVG pixels
    */
   labelStackHalfWidth(set, index) {
-    const characters = this.labelTextFor(index).length
-    const labelHalfWidth = characters * PinSetMode.LABEL_FONT_SIZE * PinSetMode.LABEL_CHAR_WIDTH_RATIO / 2
+    const fontSize = PinSetMode.LABEL_FONT_SIZE
+    const plate = labelPlateRect({
+      x: 0,
+      y: 0,
+      textAnchor: 'middle',
+      width: measureLabelWidth(this.labelTextFor(index), fontSize),
+      fontSize
+    })
 
-    return Math.max(this.symbolSize(set) / 2, labelHalfWidth)
+    return Math.max(this.symbolSize(set) / 2, plate.width / 2)
   }
 
   // ---------------------------------------------------------------------------
@@ -864,7 +866,7 @@ export class PinSetMode extends BaseMode {
   }
 
   /**
-   * Create the SVG text label for a member.
+   * Create the plated text label for a member.
    *
    * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
    * positioned above the pin's symbol (baseline at `labelY`), so the vertical
@@ -872,32 +874,34 @@ export class PinSetMode extends BaseMode {
    * {@link PinSetMode#labelStackPositions} owns that baseline, so a set whose
    * symbol carries its label underneath needs nothing special here.
    *
-   * The characters are drawn black inside a white halo rather than in the set's
-   * colour: a single colour is only legible over part of a gram, whereas the
-   * halo reads over both dark and light backgrounds. Set identity is still
-   * carried by the pin's line and symbol colour.
+   * The characters are drawn black on a white rounded plate rather than in the
+   * set's colour: a single colour is only legible over part of a gram, whereas
+   * the plate reads over both dark and light backgrounds (issue #243). Set
+   * identity is still carried by the pin's line and symbol colour.
    *
    * @param {number} index - Member index
    * @param {PinSet} set - The set
    * @param {number} lineX - X position of the pin line (label is centred on it)
    * @param {number} labelY - Baseline Y position for the label text
-   * @returns {SVGTextElement} SVG text element
+   * @returns {SVGGElement} Group holding the plate and its text
    */
   createPinLabel(index, set, lineX, labelY) {
     const names = this.pinNames
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    const label = /** @type {SVGTextElement} */ (
+      document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    )
     label.setAttribute('class', names.labelClass)
     label.setAttribute(names.setIdAttribute, set.id)
     label.setAttribute(names.indexAttribute, String(index))
     label.setAttribute('x', String(lineX)) // centred on the pin line
     label.setAttribute('y', String(labelY)) // above the symbol
     label.setAttribute('text-anchor', 'middle')
-    applyTextHalo(/** @type {SVGTextElement} */ (label))
     label.setAttribute('font-size', String(PinSetMode.LABEL_FONT_SIZE))
     label.setAttribute('font-weight', 'bold')
     label.setAttribute('font-family', 'Arial, sans-serif')
     label.textContent = this.labelTextFor(index)
-    return label
+    // Plated last, once the text carries everything the plate is sized from.
+    return plateLabel(label)
   }
 
   /**
