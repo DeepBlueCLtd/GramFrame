@@ -127,16 +127,6 @@ export class HarmonicsMode extends BaseMode {
   }
 
   /**
-   * Update cursor style for drag operations
-   * @param {string} style - A CSS cursor value, as resolved by `utils/cursors.js`
-   */
-  updateCursorStyle(style) {
-    if (this.instance.ui.svg) {
-      this.instance.ui.svg.style.cursor = style
-    }
-  }
-
-  /**
    * Color palette for harmonic sets
    * @type {string[]}
    */

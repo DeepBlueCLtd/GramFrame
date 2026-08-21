@@ -215,12 +215,21 @@ export class BaseMode {
   }
 
   /**
-   * Update cursor style for drag operations
+   * Update cursor style for drag operations.
+   *
+   * The style goes on the SVG root, not on the `<image>` inside it. `cursor` is
+   * resolved on whatever element the pointer actually hits, and a feature is
+   * drawn *over* the image as a sibling of it — a marker circle, a harmonic
+   * pin, a Doppler curve. Styling the image therefore left the cursor unchanged
+   * at exactly the moment it mattered: over the feature itself, where the hit
+   * element inherited the SVG's resting `crosshair` instead. On the root, every
+   * descendant inherits the value, so the affordance holds wherever the pointer
+   * is inside the component.
    * @param {string} style - A CSS cursor value, as resolved by `utils/cursors.js`
    */
   updateCursorStyle(style) {
-    if (this.instance.ui.spectrogramImage) {
-      this.instance.ui.spectrogramImage.style.cursor = style
+    if (this.instance.ui.svg) {
+      this.instance.ui.svg.style.cursor = style
     }
   }
 }

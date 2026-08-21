@@ -1360,6 +1360,16 @@ table.gram-frame-table {
   pointer-events: none;
 }
 
+/*
+ * The vertical extensions are drawn after the f+/f- dots, so while they were
+ * hit-testable they sat on top of the very markers the analyst was aiming at.
+ * Doppler hit-testing is done in data space against the marker positions, not
+ * by hitting an element, so nothing needs these to be targets.
+ */
+.gram-frame-doppler-extension {
+  pointer-events: none;
+}
+
 .gram-frame-doppler-guide {
   pointer-events: none;
 }
