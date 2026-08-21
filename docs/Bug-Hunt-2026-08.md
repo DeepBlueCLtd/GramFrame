@@ -4,9 +4,11 @@
 > order below was implemented in full: BH-1 – BH-13, BH-15 – BH-19, BH-21,
 > BH-23 – BH-25 and BH-31 – BH-33 are **fixed**, with regression tests for the
 > headliners in `tests/storage.spec.js` ("Bug-hunt regressions") and
-> `tests/unit/storage-validation.test.js`. Still open, deliberately: BH-14
+> `tests/unit/storage-validation.test.js`. BH-22 was fixed later, once a live
+> report of an ungrabbable Doppler marker confirmed it — see its entry below.
+> Still open, deliberately: BH-14
 > (multi-tab last-writer-wins — needs a `storage`-event merge design), BH-20
-> (config coercions), BH-22 (tolerance vs axis span — needs a fixture), BH-26
+> (config coercions), BH-26
 > (rate ≠ 1, latent by agreement), BH-27/BH-28 (formatTime/axis label polish),
 > BH-29 (button zoom-out centre) and BH-30 (style-picker default dispatches).
 
@@ -46,7 +48,7 @@ All findings verified against commit `91656a5` (code unchanged by the docs/tests
 | BH-19 | "Clear gram" leaves the doppler speed LED and style controls stale | Medium | Confirmed |
 | BH-20 | Silent config coercions: blank cell → 0, `"1,5"` → 1 | Medium | Confirmed |
 | BH-21 | Version-mismatch deletes forward data on read; re-save strips additive fields | Medium | Confirmed |
-| BH-22 | Hit-test tolerance floors/ceilings ignore the axis span | Medium | Plausible |
+| BH-22 | Hit-test tolerance floors/ceilings ignore the axis span | Medium | Confirmed (fixed) |
 | BH-23 | No image/config fingerprint: republished content inherits stale annotations | Medium | Plausible |
 | BH-24–33 | Ten low/latent findings | Low | Mixed |
 
@@ -104,7 +106,9 @@ The storage key is `pathname` + instance index (`storage.js:157-163`), where the
 ### Configuration and geometry
 - **BH-19 — "Clear gram" leaves derived UI stale.** It rebuilds state slices but skips both `updateSpeedLED` (its "refresh LEDs" call targets `modeLED`/`rateLED`, which are never assigned — a no-op) and `clearSelection()` (it replaces the selection object instead), so the doppler LED keeps the deleted curve's speed and the style controls keep the deleted feature's state — including a Pin toggle stuck disabled if a marker was selected (`main.js:371-411`, vs the right-click reset sibling `DopplerMode.js:475-480` which does call `updateSpeedLED`).
 - **BH-20 — Silent config coercions** (`configuration.js:53-59`): an empty value cell becomes `'0'` (`textContent?.trim() || '0'`) — a blank `time-start` yields a plausible-looking 0–60 axis with no warning; `parseFloat` partial parsing turns the European decimal comma `"1,5"` into `1` (halved axis). Duplicate parameter rows: last silently wins. (Range validation itself is good — missing rows, zero and inverted ranges all throw loudly.)
-- **BH-22 — Tolerance floors/ceilings ignore the axis span** (`tolerance.js:32-47`). Wide-band at zoom 1: the 50 Hz ceiling is ~2.5 px of grab radius on a 0–20 kHz/1000 px gram — features are hard to grab. Narrow-band: the 1 Hz floor is 10% of a 0–10 Hz axis and zoom can never shrink it, so two features 0.9 Hz apart are never disambiguable — the `/effectiveZoom` term is dead once floored. Plausible (arithmetic confirmed; UX impact needs a fixture).
+- **BH-22 — Tolerance floors/ceilings ignore the axis span** (`tolerance.js:32-47`). Wide-band at zoom 1: the 50 Hz ceiling is ~2.5 px of grab radius on a 0–20 kHz/1000 px gram — features are hard to grab. Narrow-band: the 1 Hz floor is 10% of a 0–10 Hz axis and zoom can never shrink it, so two features 0.9 Hz apart are never disambiguable — the `/effectiveZoom` term is dead once floored.
+
+  **Confirmed and fixed.** The fixture the entry asked for arrived as a field report: a Doppler marker that could not be picked up at all. The *time* ceiling is the sharper edge of the same bug — 0.5 s on the debug gram (237 px over 60 s) is under 2 px, so the grab band down the time axis was narrower than the 8 px dot drawn on it, and an analyst dead centre on a marker could miss it by 3 px. Both clamps are gone: the tolerance is now exactly `pixelRadius` (8) rendered pixels on each axis at every zoom and every span, which is what the constant always claimed. Pinned by `tests/unit/tolerance.test.js` (radius holds across zoom and span) and `tests/doppler-hotspot.spec.js` (every pixel of a drawn marker grabs it).
 - **BH-23 — No image/config fingerprint in stored records** (`storage.js:237-277`). Republishing a lesson with a different recording at the same path restores old markers onto the new image at coordinates that meant something else — no way to detect the swap. Distinct from BH-6: corrupts meaning even with stable indices.
 
 ---

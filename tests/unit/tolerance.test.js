@@ -9,10 +9,10 @@ import {
 /**
  * @fileoverview Unit tests for the shared hit-test tolerances. Pins the three
  * geometric contracts (box test, circle test, closest-within-circle) and the
- * zoom-aware data-space tolerance derivation with its min/max clamps.
+ * zoom-aware data-space tolerance derivation.
  */
 
-/** A tolerance of 0.5s × 50Hz, matching the documented ceiling values */
+/** An arbitrary tolerance of 0.5s × 50Hz, for the pure geometric tests */
 const TOL = { time: 0.5, freq: 50 }
 
 describe('isWithinDataTolerance (box test)', () => {
@@ -66,8 +66,7 @@ describe('findClosestTarget', () => {
 
 describe('getUniformTolerance', () => {
   /**
-   * Build a viewport whose 8px hit radius lands strictly between the
-   * documented floors (0.01s / 1Hz) and ceilings (0.5s / 50Hz):
+   * Build a viewport of a known size and span:
    * time: (8 / 1000px) × 30s = 0.24s, freq: (8 / 800px) × 2000Hz = 20Hz.
    * @param {number} zoomLevel - Zoom level for the viewport
    * @returns {any} Viewport for getUniformTolerance
@@ -82,6 +81,24 @@ describe('getUniformTolerance', () => {
 
   const image = /** @type {any} */ ({})
 
+  /**
+   * Convert a viewport's tolerance back into the rendered pixel radius it
+   * represents on each axis. This is the contract the constant states: eight
+   * pixels, whatever the gram's span or the zoom level.
+   * @param {any} viewport - Viewport to measure
+   * @returns {{time: number, freq: number}} Radius in rendered pixels per axis
+   */
+  function pixelRadiusOf(viewport) {
+    const { config, imageDetails, zoom } = viewport
+    const tolerance = getUniformTolerance(viewport, image)
+    const height = imageDetails.renderHeight || imageDetails.naturalHeight
+    const width = imageDetails.renderWidth || imageDetails.naturalWidth
+    return {
+      time: tolerance.time / (config.timeMax - config.timeMin) * height * zoom.level,
+      freq: tolerance.freq / (config.freqMax - config.freqMin) * width * zoom.level
+    }
+  }
+
   test('derives data-space tolerance from the rendered size at zoom 1', () => {
     expect(getUniformTolerance(makeViewport(1), image)).toEqual({ time: 0.24, freq: 20 })
   })
@@ -90,20 +107,45 @@ describe('getUniformTolerance', () => {
     expect(getUniformTolerance(makeViewport(2), image)).toEqual({ time: 0.12, freq: 10 })
   })
 
-  test('extreme zoom clamps to the floor instead of going hair-trigger', () => {
-    expect(getUniformTolerance(makeViewport(1000), image)).toEqual({ time: 0.01, freq: 1 })
+  test('the grab radius stays 8 rendered pixels at every zoom level', () => {
+    for (const level of [0.5, 1, 2, 10, 1000]) {
+      const radius = pixelRadiusOf(makeViewport(level))
+      expect(radius.time).toBeCloseTo(8, 6)
+      expect(radius.freq).toBeCloseTo(8, 6)
+    }
   })
 
-  test('a tiny render of a huge range clamps to the ceiling', () => {
+  test('a tiny render of a huge range still grabs across 8 pixels', () => {
+    // Formerly clamped to a 0.5s / 50Hz ceiling, which on this viewport is
+    // 0.08px of time — a hotspot far narrower than any glyph drawn on it.
     const viewport = {
       config: { timeMin: 0, timeMax: 600, freqMin: 0, freqMax: 100000 },
       imageDetails: { naturalWidth: 100, naturalHeight: 100, renderWidth: 100, renderHeight: 100 },
       zoom: { level: 1 }
     }
-    expect(getUniformTolerance(viewport, image)).toEqual({ time: 0.5, freq: 50 })
+    expect(getUniformTolerance(viewport, image)).toEqual({ time: 48, freq: 8000 })
+    const radius = pixelRadiusOf(viewport)
+    expect(radius.time).toBeCloseTo(8, 6)
+    expect(radius.freq).toBeCloseTo(8, 6)
   })
 
-  test('missing viewport falls back to the floor tolerance', () => {
+  test('the grab radius does not depend on how much data a gram spans', () => {
+    // The bug this replaced: two grams of the same pixel size, differing only
+    // in the span they cover, had wildly different grab regions on screen.
+    const narrow = {
+      config: { timeMin: 0, timeMax: 10, freqMin: 0, freqMax: 100 },
+      imageDetails: { naturalWidth: 902, naturalHeight: 237, renderWidth: 902, renderHeight: 237 },
+      zoom: { level: 1 }
+    }
+    const wide = {
+      ...narrow,
+      config: { timeMin: 0, timeMax: 600, freqMin: 0, freqMax: 20000 }
+    }
+    expect(pixelRadiusOf(narrow).time).toBeCloseTo(pixelRadiusOf(wide).time, 6)
+    expect(pixelRadiusOf(narrow).freq).toBeCloseTo(pixelRadiusOf(wide).freq, 6)
+  })
+
+  test('missing viewport falls back to a nominal tolerance', () => {
     expect(getUniformTolerance(/** @type {any} */ (null), image)).toEqual({ time: 0.01, freq: 1.0 })
   })
 

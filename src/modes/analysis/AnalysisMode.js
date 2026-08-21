@@ -221,16 +221,6 @@ export class AnalysisMode extends BaseMode {
   }
 
   /**
-   * Update cursor style for drag operations
-   * @param {string} style - A CSS cursor value, as resolved by `utils/cursors.js`
-   */
-  updateCursorStyle(style) {
-    if (this.instance.ui.svg) {
-      this.instance.ui.svg.style.cursor = style
-    }
-  }
-
-  /**
    * Get guidance content for analysis mode
    * @returns {Object} Structured guidance content
    */
