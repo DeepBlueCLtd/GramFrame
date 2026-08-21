@@ -58,7 +58,9 @@ events, broadband pulses or ambient shifts in sonar data.
   entered — and clearing the field removes the label again.
 - A label is drawn on the gram in black inside a white halo, so it reads over
   both dark and light pixels: in the upper-right quadrant of a crosshair marker,
-  or centred above a marker that carries a shaped symbol.
+  or centred above a marker that carries a shaped symbol. The one exception is
+  the upward-pointing triangle, which is aimed at the gram above it — its label
+  is centred *below* the symbol so the data being marked stays visible.
 - The table's **Label** column shows labels of five characters or fewer in full,
   and abbreviates anything longer to its first three characters plus `..`. The
   full text stays on the gram and in the dialog.
@@ -85,6 +87,10 @@ multiples of a spacing.
   are drawn within the visible span, at a regular "nice" interval, so a small
   spacing over a wide span stays legible. The pins themselves are not thinned, so
   the unlabelled harmonics still show against the data.
+- Each harmonic number sits above its symbol — except for a set drawn with the
+  upward-pointing triangle, whose apex points at the gram above it. There the
+  number hangs below the symbol instead, leaving that data clear; the grab region
+  follows the digits, so the set is still grabbable wherever it is drawn.
 - Sets are listed in the harmonics panel; selecting a row enables arrow-key
   adjustment and in-place restyling, as for markers.
 

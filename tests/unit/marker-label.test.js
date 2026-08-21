@@ -5,6 +5,7 @@ import {
   formatMarkerLabelForTable,
   markerLabelPlacement
 } from '../../src/utils/markerLabel.js'
+import { labelSitsBelowSymbol, SYMBOL_CATALOG } from '../../src/rendering/symbols.js'
 
 /**
  * @fileoverview Unit coverage for feature 231 — cross-cursor labels.
@@ -98,13 +99,40 @@ describe('markerLabelPlacement', () => {
     expect(placement.textAnchor).toBe('middle')
   })
 
-  it('places every shaped symbol the same way', () => {
-    const shaped = ['circle', 'square', 'diamond', 'triangle', 'triangle-down', 'star']
+  it('places every shaped symbol above, bar the up-pointing triangle', () => {
+    const shaped = ['circle', 'square', 'diamond', 'triangle-down', 'star']
     const expected = markerLabelPlacement('circle', CX, CY, SYMBOL_SIZE)
 
     for (const symbol of shaped) {
       expect(markerLabelPlacement(symbol, CX, CY, SYMBOL_SIZE)).toEqual(expected)
     }
+  })
+
+  // Issue #242: an up-pointing triangle is aimed at the gram above it, so a
+  // label there covers the data the analyst was marking.
+  it('centres an up-triangle marker\'s label BELOW the symbol', () => {
+    const placement = markerLabelPlacement('triangle', CX, CY, SYMBOL_SIZE)
+
+    expect(placement.x).toBe(CX)
+    expect(placement.textAnchor).toBe('middle')
+    // A whole line of text below the symbol's bottom edge, so the glyphs —
+    // which hang above their baseline — start clear of the mark.
+    expect(placement.y).toBeGreaterThan(CY + SYMBOL_SIZE / 2 + 12)
+  })
+
+  it('leaves the down-pointing triangle\'s label above it', () => {
+    // Only the UP triangle points at the space a label would occupy.
+    const down = markerLabelPlacement('triangle-down', CX, CY, SYMBOL_SIZE)
+
+    expect(down.y).toBeLessThan(CY - SYMBOL_SIZE / 2)
+  })
+
+  it('drops the up-triangle\'s label further for a larger symbol', () => {
+    const small = markerLabelPlacement('triangle', CX, CY, 14)
+    const large = markerLabelPlacement('triangle', CX, CY, 28)
+
+    expect(large.y).toBeGreaterThan(small.y)
+    expect(large.y - small.y).toBe((28 - 14) / 2)
   })
 
   it('lifts the label further for a larger symbol', () => {
@@ -134,5 +162,21 @@ describe('markerLabelPlacement', () => {
 
     expect(moved.x - base.x).toBe(25)
     expect(moved.y - base.y).toBe(-10)
+  })
+})
+
+describe('labelSitsBelowSymbol', () => {
+  it('is true for the up-pointing triangle alone', () => {
+    // The rule the pin stack and the marker label share (issue #242): one
+    // symbol points at the space above it, so only that one gives it up.
+    const below = SYMBOL_CATALOG.filter(labelSitsBelowSymbol)
+
+    expect(below).toEqual(['triangle'])
+  })
+
+  it('treats an unknown, null or absent symbol as the default (above)', () => {
+    expect(labelSitsBelowSymbol('pentagon')).toBe(false)
+    expect(labelSitsBelowSymbol(null)).toBe(false)
+    expect(labelSitsBelowSymbol(undefined)).toBe(false)
   })
 })

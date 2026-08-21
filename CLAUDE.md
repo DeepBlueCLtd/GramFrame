@@ -263,7 +263,8 @@ There is no visual/screenshot regression testing — see
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
 - **Analysis Mode**: Persistent draggable markers with cross-mode visibility and optional
-  haloed text labels (upper-right of a crosshair, centred above a shaped symbol)
+  haloed text labels (upper-right of a crosshair, centred above a shaped symbol —
+  below an upward-pointing triangle, whose apex points at the data above it)
 - **Harmonics Mode**: Real-time harmonic calculation and display
 - **Sidebands Mode**: A pin set with a user-placed origin — the fundamental —
   with members spread each side of it and labelled by signed offset

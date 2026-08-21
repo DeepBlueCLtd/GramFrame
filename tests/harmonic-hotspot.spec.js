@@ -165,4 +165,45 @@ test.describe('Harmonic set hotspot', () => {
 
     expect(await probeAt(gramFramePage, labelSelector(setId, CENTRE_HARMONIC), -60)).toBeNull()
   })
+
+  // Issue #242: an up-pointing triangle carries its label underneath, so the
+  // hotspot has to follow the digits rather than stay where they used to be.
+  test.describe('up-pointing triangle', () => {
+    const symbolSelector = (setId) => `.gram-frame-harmonic-symbol[data-harmonic-set-id="${setId}"]`
+
+    test('the label under the triangle still grabs its set', async ({ gramFramePage }) => {
+      const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+      await updateSet(gramFramePage, setId, { symbol: 'triangle' })
+
+      expect(await probeAt(gramFramePage, labelSelector(setId, CENTRE_HARMONIC))).toBe(setId)
+    })
+
+    test('the triangle itself still grabs its set', async ({ gramFramePage }) => {
+      const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+      await updateSet(gramFramePage, setId, { symbol: 'triangle' })
+
+      expect(await probeAt(gramFramePage, symbolSelector(setId))).toBe(setId)
+    })
+
+    test('the space above the apex, which the label vacated, grabs nothing', async ({ gramFramePage }) => {
+      const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+
+      // Just above the symbol is live while the label sits there...
+      await updateSet(gramFramePage, setId, { symbol: 'circle' })
+      expect(await probeAt(gramFramePage, symbolSelector(setId), -10)).toBe(setId)
+
+      // ...and goes dead once the label drops below an up-pointing triangle,
+      // because nothing is drawn there any more.
+      await updateSet(gramFramePage, setId, { symbol: 'triangle' })
+      expect(await probeAt(gramFramePage, symbolSelector(setId), -10)).toBeNull()
+    })
+
+    test('with the pin hidden, the mini-pin still hangs from the symbol and grabs the set', async ({ gramFramePage }) => {
+      const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
+      await updateSet(gramFramePage, setId, { symbol: 'triangle', showPin: false })
+
+      const miniPin = `.gram-frame-harmonic-mini-pin[data-harmonic-set-id="${setId}"][data-harmonic-number="${CENTRE_HARMONIC}"]`
+      expect(await probeAt(gramFramePage, miniPin)).toBe(setId)
+    })
+  })
 })
