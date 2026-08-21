@@ -32,7 +32,7 @@ import {
 import { BaseDragHandler } from './BaseDragHandler.js'
 import { getUniformTolerance } from '../../utils/tolerance.js'
 import { sampledHarmonics } from '../../utils/harmonicSampling.js'
-import { createSymbolMark, resolveSymbolScale } from '../../rendering/symbols.js'
+import { createSymbolMark, labelSitsBelowSymbol, resolveSymbolScale } from '../../rendering/symbols.js'
 import { applyTextHalo } from '../../utils/svg.js'
 
 /**
@@ -592,9 +592,10 @@ export class PinSetMode extends BaseMode {
       // Only the thinned subset is labelled, so only those pins carry a stack.
       const labelled = this.labelledIndices(minIndex, maxIndex)
       // A hidden pin draws mini-pins instead of full lines, so its line grab
-      // region is the mini-pin stub hanging from the stack's underside.
+      // region is the mini-pin stub hanging from the symbol's underside — which
+      // is where the renderer hangs it, label placement notwithstanding.
       const pinDrawn = set.showPin !== false
-      const lineFrom = pinDrawn ? lineTop : stack.bottom
+      const lineFrom = pinDrawn ? lineTop : stack.symbolBottom
       const lineTo = lineFrom + (pinDrawn ? lineHeight : PinSetMode.MINI_PIN_HEIGHT)
 
       const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage)
@@ -720,6 +721,12 @@ export class PinSetMode extends BaseMode {
    * (label + symbol) is nudged down by the overflow so it stays legible
    * (spec 159, FR-011).
    *
+   * An upward-pointing triangle inverts the label (issue #242): its apex points
+   * at the gram above the pin, so a number stacked over it hides exactly the
+   * data the set was placed against. That label drops to the symbol's underside
+   * instead, over the pin line's top — ink the set already spends there. The
+   * symbol keeps capping the line either way, so the pin's anchor never moves.
+   *
    * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
    * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
    * @param {PinSet} set - Set being laid out (its symbol size drives the stack)
@@ -729,16 +736,20 @@ export class PinSetMode extends BaseMode {
     const r = this.symbolSize(set) / 2
     const gap = PinSetMode.LABEL_GAP
     const fontSize = PinSetMode.LABEL_FONT_SIZE
+    const below = labelSitsBelowSymbol(set.symbol)
 
-    // Symbol caps the line; label baseline sits just above the symbol.
+    // Symbol caps the line; the label baseline sits just above the symbol, or —
+    // for an up-pointing triangle — a whole line of text below it, so the
+    // glyphs (which hang above their baseline) clear the mark.
     let symbolCy = lineTop - r
-    let labelY = symbolCy - r - gap
+    let labelY = below ? symbolCy + r + gap + fontSize : symbolCy - r - gap
 
-    // Keep the top of the label (approx one ascent above its baseline) on-screen.
-    const labelTop = labelY - fontSize
+    // Keep the top of the stack on-screen: the label's approximate ascent when
+    // it leads the stack, the symbol's top edge when the label hangs below.
+    const stackTop = below ? symbolCy - r : labelY - fontSize
     const minTop = imageTop + PinSetMode.STACK_TOP_PAD
-    if (labelTop < minTop) {
-      const shift = minTop - labelTop
+    if (stackTop < minTop) {
+      const shift = minTop - stackTop
       symbolCy += shift
       labelY += shift
     }
@@ -751,23 +762,34 @@ export class PinSetMode extends BaseMode {
    *
    * Derived from the same {@link PinSetMode#labelStackPositions} layout the
    * renderer uses, so the grab region tracks the drawn stack — including the
-   * downward nudge applied near the image's top edge. The bottom is clamped to
-   * the pin line's top so the stack region and the line region always meet with
-   * no dead gap between them.
+   * downward nudge applied near the image's top edge, and the label's drop to
+   * the underside of an up-pointing triangle (issue #242): move the text and
+   * the hotspot moves with it. The bottom is clamped to the pin line's top so
+   * the stack region and the line region always meet with no dead gap between
+   * them.
+   *
+   * `symbolBottom` is reported separately because it, not the region's bottom,
+   * is where a mini-pin hangs from — a label drawn below the symbol pushes the
+   * region past the stub it would otherwise anchor.
    *
    * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
    * @param {PinSet} set - Set being hit-tested
-   * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
+   * @returns {{top: number, bottom: number, symbolBottom: number}} Stack region and the symbol's underside
    */
   labelStackBounds(lineTop, set) {
     const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top
     const { symbolCy, labelY } = this.labelStackPositions(lineTop, imageTop, set)
     const r = this.symbolSize(set) / 2
+    const below = labelSitsBelowSymbol(set.symbol)
+    const symbolBottom = symbolCy + r
 
     return {
-      // One ascent above the label's baseline is the top of the characters.
-      top: labelY - PinSetMode.LABEL_FONT_SIZE,
-      bottom: Math.max(lineTop, symbolCy + r)
+      // One ascent above the label's baseline is the top of the characters —
+      // unless the label hangs below, in which case the symbol leads the stack.
+      top: below ? symbolCy - r : labelY - PinSetMode.LABEL_FONT_SIZE,
+      // The baseline is the underside of the characters when they trail.
+      bottom: Math.max(lineTop, below ? labelY : symbolBottom),
+      symbolBottom
     }
   }
 
@@ -847,6 +869,8 @@ export class PinSetMode extends BaseMode {
    * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
    * positioned above the pin's symbol (baseline at `labelY`), so the vertical
    * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
+   * {@link PinSetMode#labelStackPositions} owns that baseline, so a set whose
+   * symbol carries its label underneath needs nothing special here.
    *
    * The characters are drawn black inside a white halo rather than in the set's
    * colour: a single colour is only legible over part of a gram, whereas the

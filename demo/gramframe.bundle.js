@@ -219,6 +219,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       symbolType
     ) : DEFAULT_SYMBOL;
   }
+  function labelSitsBelowSymbol(symbolType) {
+    return resolveSymbolType(symbolType) === "triangle";
+  }
   function toPoints(pts) {
     return pts.map(([x, y]) => `${x},${y}`).join(" ");
   }
@@ -416,9 +419,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const QUADRANT_GAP = 5;
   const ABOVE_SYMBOL_GAP = 4;
+  const MARKER_LABEL_FONT_SIZE = 12;
   function markerLabelPlacement(symbol, cx, cy, symbolSize) {
     if (resolveSymbolType(symbol) === "cross") {
       return { x: cx + QUADRANT_GAP, y: cy - QUADRANT_GAP, textAnchor: "start" };
+    }
+    if (labelSitsBelowSymbol(symbol)) {
+      const y = cy + symbolSize / 2 + ABOVE_SYMBOL_GAP + MARKER_LABEL_FONT_SIZE;
+      return { x: cx, y, textAnchor: "middle" };
     }
     return { x: cx, y: cy - symbolSize / 2 - ABOVE_SYMBOL_GAP, textAnchor: "middle" };
   }
@@ -3447,7 +3455,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return text;
   }
   const SVG_NS$1 = "http://www.w3.org/2000/svg";
-  const MARKER_LABEL_FONT_SIZE = 12;
   function createMarkerLabel(marker, cx, cy, symbolSize) {
     if (!marker.label) {
       return null;
@@ -4469,7 +4476,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const stack = this.labelStackBounds(lineTop, set);
         const labelled = this.labelledIndices(minIndex, maxIndex);
         const pinDrawn = set.showPin !== false;
-        const lineFrom = pinDrawn ? lineTop : stack.bottom;
+        const lineFrom = pinDrawn ? lineTop : stack.symbolBottom;
         const lineTo = lineFrom + (pinDrawn ? lineHeight : _PinSetMode.MINI_PIN_HEIGHT);
         const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
         const cursorSVG = dataToSVG(
@@ -4579,6 +4586,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * (label + symbol) is nudged down by the overflow so it stays legible
      * (spec 159, FR-011).
      *
+     * An upward-pointing triangle inverts the label (issue #242): its apex points
+     * at the gram above the pin, so a number stacked over it hides exactly the
+     * data the set was placed against. That label drops to the symbol's underside
+     * instead, over the pin line's top — ink the set already spends there. The
+     * symbol keeps capping the line either way, so the pin's anchor never moves.
+     *
      * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
      * @param {number} imageTop - Top edge of the spectrogram image in SVG coords
      * @param {PinSet} set - Set being laid out (its symbol size drives the stack)
@@ -4588,12 +4601,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const r = this.symbolSize(set) / 2;
       const gap = _PinSetMode.LABEL_GAP;
       const fontSize = _PinSetMode.LABEL_FONT_SIZE;
+      const below = labelSitsBelowSymbol(set.symbol);
       let symbolCy = lineTop - r;
-      let labelY = symbolCy - r - gap;
-      const labelTop = labelY - fontSize;
+      let labelY = below ? symbolCy + r + gap + fontSize : symbolCy - r - gap;
+      const stackTop = below ? symbolCy - r : labelY - fontSize;
       const minTop = imageTop + _PinSetMode.STACK_TOP_PAD;
-      if (labelTop < minTop) {
-        const shift = minTop - labelTop;
+      if (stackTop < minTop) {
+        const shift = minTop - stackTop;
         symbolCy += shift;
         labelY += shift;
       }
@@ -4604,22 +4618,33 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      *
      * Derived from the same {@link PinSetMode#labelStackPositions} layout the
      * renderer uses, so the grab region tracks the drawn stack — including the
-     * downward nudge applied near the image's top edge. The bottom is clamped to
-     * the pin line's top so the stack region and the line region always meet with
-     * no dead gap between them.
+     * downward nudge applied near the image's top edge, and the label's drop to
+     * the underside of an up-pointing triangle (issue #242): move the text and
+     * the hotspot moves with it. The bottom is clamped to the pin line's top so
+     * the stack region and the line region always meet with no dead gap between
+     * them.
+     *
+     * `symbolBottom` is reported separately because it, not the region's bottom,
+     * is where a mini-pin hangs from — a label drawn below the symbol pushes the
+     * region past the stub it would otherwise anchor.
      *
      * @param {number} lineTop - Top Y position of the pin lines (SVG coords)
      * @param {PinSet} set - Set being hit-tested
-     * @returns {{top: number, bottom: number}} Top and bottom Y of the stack region
+     * @returns {{top: number, bottom: number, symbolBottom: number}} Stack region and the symbol's underside
      */
     labelStackBounds(lineTop, set) {
       const imageTop = getImageBounds(this.getViewport(), this.instance.ui.spectrogramImage).top;
       const { symbolCy, labelY } = this.labelStackPositions(lineTop, imageTop, set);
       const r = this.symbolSize(set) / 2;
+      const below = labelSitsBelowSymbol(set.symbol);
+      const symbolBottom = symbolCy + r;
       return {
-        // One ascent above the label's baseline is the top of the characters.
-        top: labelY - _PinSetMode.LABEL_FONT_SIZE,
-        bottom: Math.max(lineTop, symbolCy + r)
+        // One ascent above the label's baseline is the top of the characters —
+        // unless the label hangs below, in which case the symbol leads the stack.
+        top: below ? symbolCy - r : labelY - _PinSetMode.LABEL_FONT_SIZE,
+        // The baseline is the underside of the characters when they trail.
+        bottom: Math.max(lineTop, below ? labelY : symbolBottom),
+        symbolBottom
       };
     }
     /**
@@ -4693,6 +4718,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Centred horizontally on the pin's line (`text-anchor: middle` at `lineX`) and
      * positioned above the pin's symbol (baseline at `labelY`), so the vertical
      * stack over a pin reads label -> symbol -> line (spec 159, FR-009/FR-010).
+     * {@link PinSetMode#labelStackPositions} owns that baseline, so a set whose
+     * symbol carries its label underneath needs nothing special here.
      *
      * The characters are drawn black inside a white halo rather than in the set's
      * colour: a single colour is only legible over part of a gram, whereas the
