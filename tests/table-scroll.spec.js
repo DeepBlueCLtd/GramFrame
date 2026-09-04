@@ -80,6 +80,49 @@ async function fillBothPanels(gfp, count) {
   await gfp.waitForTableRowCount('harmonics', count)
 }
 
+/**
+ * Select a feature the way clicking it on the gram does — through the
+ * instance's selection API rather than through its table row, which is the
+ * case the row could be off-screen for.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} type - Selection type, e.g. 'harmonicSet'
+ * @param {string} id - Feature id
+ * @param {number} index - Row index, for display purposes
+ * @returns {Promise<void>}
+ */
+async function selectFeature(page, type, id, index) {
+  await page.evaluate(([featureType, featureId, featureIndex]) => {
+    // @ts-ignore - test-only global
+    const instance = window.GramFrame.__test__getInstances()[0]
+    instance.interaction.setSelection(featureType, featureId, featureIndex)
+  }, [type, id, index])
+}
+
+/**
+ * Where the selected row sits relative to the scrollport and the sticky header.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} selector - Scroll container selector
+ * @returns {Promise<{overflowing: boolean, rowTop: number, rowBottom: number, headerBottom: number, viewportBottom: number}>}
+ */
+async function selectedRowPosition(page, selector) {
+  return page.evaluate((sel) => {
+    const container = document.querySelector(sel)
+    const row = container.querySelector('tbody tr.gram-frame-selected-row')
+    const containerBox = container.getBoundingClientRect()
+    const headerBox = container.querySelector('thead th').getBoundingClientRect()
+    const rowBox = row.getBoundingClientRect()
+    return {
+      overflowing: container.scrollHeight > container.clientHeight,
+      rowTop: rowBox.top,
+      rowBottom: rowBox.bottom,
+      headerBottom: headerBox.bottom,
+      // clientTop is the container's top border, which sits outside the
+      // scrollport that clientHeight measures.
+      viewportBottom: containerBox.top + container.clientTop + container.clientHeight
+    }
+  }, selector)
+}
+
 test.describe('Markers/harmonics tables: fixed height with a scrolling body', () => {
   test('panel heights and the image position are unchanged as rows are added', async ({ page }) => {
     const gfp = await gotoDemo(page)
@@ -168,6 +211,57 @@ test.describe('Markers/harmonics tables: fixed height with a scrolling body', ()
       // ...and the row just added is inside the visible band, not below it.
       expect(metrics.lastRowBottom).toBeLessThanOrEqual(metrics.viewportBottom + 1)
     }
+  })
+
+  test('selecting a harmonic set off-screen scrolls its row into view', async ({ page }) => {
+    const gfp = await gotoDemo(page)
+    await fillBothPanels(gfp, MANY_ROWS)
+
+    const sets = (await gfp.getState()).harmonics.harmonicSets
+
+    // Filling left the table auto-scrolled to the newest set, so the FIRST set
+    // is above the fold. Selecting it — as clicking its pins on the gram does —
+    // must bring its row back into view (scrolling up).
+    await selectFeature(page, 'harmonicSet', sets[0].id, 0)
+    await gfp.waitForSelectedRow('harmonics', sets[0].id)
+    const first = await selectedRowPosition(page, HARMONICS_TABLE)
+    expect(first.overflowing).toBe(true)
+    expect(first.rowTop).toBeGreaterThanOrEqual(first.headerBottom - 1)
+    expect(first.rowBottom).toBeLessThanOrEqual(first.viewportBottom + 1)
+
+    // ...and selecting the LAST set from there scrolls back down to it.
+    const last = sets[sets.length - 1]
+    await selectFeature(page, 'harmonicSet', last.id, sets.length - 1)
+    await gfp.waitForSelectedRow('harmonics', last.id)
+    const lastPosition = await selectedRowPosition(page, HARMONICS_TABLE)
+    expect(lastPosition.rowTop).toBeGreaterThanOrEqual(lastPosition.headerBottom - 1)
+    expect(lastPosition.rowBottom).toBeLessThanOrEqual(lastPosition.viewportBottom + 1)
+  })
+
+  test('a selected row already in view does not move the table', async ({ page }) => {
+    const gfp = await gotoDemo(page)
+    await fillBothPanels(gfp, MANY_ROWS)
+
+    const sets = (await gfp.getState()).harmonics.harmonicSets
+    await selectFeature(page, 'harmonicSet', sets[0].id, 0)
+    await gfp.waitForSelectedRow('harmonics', sets[0].id)
+
+    // The analyst nudges the scroll by hand; the selected row is still visible,
+    // so a re-render for an unrelated reason must leave the position alone.
+    const scrollTop = await page.evaluate((sel) => {
+      const container = document.querySelector(sel)
+      container.scrollTop += 5
+      return container.scrollTop
+    }, HARMONICS_TABLE)
+
+    await page.evaluate(() => {
+      // @ts-ignore - test-only global
+      const instance = window.GramFrame.__test__getInstances()[0]
+      instance.modes['harmonics'].refreshPanel()
+    })
+
+    expect(await page.evaluate((sel) => document.querySelector(sel).scrollTop, HARMONICS_TABLE))
+      .toBe(scrollTop)
   })
 
   test('scrolling back up is not undone by an update that adds no rows', async ({ page }) => {
