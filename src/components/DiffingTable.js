@@ -71,6 +71,15 @@ export function createDiffingTable(container, spec) {
   let renderedKeys = new Set()
 
   /**
+   * The selected row's key as of the previous update, so a *change* of
+   * selection can be told from the same row staying selected across the many
+   * updates a drag produces. Only a change scrolls; once revealed, the row is
+   * the analyst's to scroll away from.
+   * @type {string|null}
+   */
+  let renderedSelectedKey = null
+
+  /**
    * Put one cell's content in place, accepting either a string or a node.
    * @param {HTMLTableCellElement} cell - Cell to fill
    * @param {string|Node} content - New content
@@ -188,18 +197,21 @@ export function createDiffingTable(container, spec) {
   }
 
   /**
-   * Scroll the row at `index` into view, if it is below the fold.
+   * Scroll the row at `index` into view, if it is outside the visible band.
    *
    * Sets `scrollTop` on the scroll wrapper rather than calling
    * `Element.scrollIntoView`, which would also scroll every scrollable ancestor
    * — including the host page — to bring the table into view. A new marker
    * should move the table's own scrollbar and nothing else.
    *
-   * Only ever scrolls DOWN: if the row is already visible the wrapper is left
-   * exactly where the user put it.
+   * The scroll is minimal, and never happens at all when the row is already
+   * visible: the wrapper is then left exactly where the user put it. Upward
+   * scrolling is opt-in (`allowUpward`) because an *addition* only ever appears
+   * below the fold, whereas a *selection* can be anywhere in the list.
    * @param {number} index - Index of the row to reveal
+   * @param {boolean} [allowUpward] - Also scroll up for a row above the fold
    */
-  function revealRow(index) {
+  function revealRow(index, allowUpward = false) {
     const tr = /** @type {HTMLElement|undefined} */ (tbody.children[index])
     if (!tr) return
 
@@ -208,6 +220,18 @@ export function createDiffingTable(container, spec) {
     const bottom = tr.offsetTop + tr.offsetHeight - wrapper.clientHeight
     if (bottom > wrapper.scrollTop) {
       wrapper.scrollTop = bottom
+      return
+    }
+
+    if (!allowUpward) return
+
+    // The header is sticky at the top of the scrollport, so it floats over the
+    // first rows of the scrolled body: scrolling to the row's own offsetTop
+    // would park it underneath the header rather than beside it.
+    const headerCell = /** @type {HTMLElement|null} */ (headerRow.firstElementChild)
+    const top = tr.offsetTop - (headerCell ? headerCell.offsetHeight : 0)
+    if (top < wrapper.scrollTop) {
+      wrapper.scrollTop = Math.max(0, top)
     }
   }
 
@@ -263,7 +287,7 @@ export function createDiffingTable(container, spec) {
 
     /**
      * Diff `rows` against what is rendered, apply the difference, and keep any
-     * newly added row in view.
+     * newly added or newly selected row in view.
      *
      * Idempotent: calling it twice with equal input performs no DOM writes and
      * no scrolling.
@@ -288,7 +312,19 @@ export function createDiffingTable(container, spec) {
         revealRow(lastAdded)
       }
 
+      // Keep a newly selected row in view too. Selecting a feature on the gram
+      // (or with the keyboard) highlights its row, and once the list overflows
+      // that highlight can be off the bottom — or above the top — of the
+      // table, leaving the selection with no visible feedback at all.
+      const isSelected = spec.isSelected
+      const selectedIndex = isSelected ? keys.findIndex(key => isSelected(key)) : -1
+      const selectedKey = selectedIndex === -1 ? null : keys[selectedIndex]
+      if (renderedKeys.size > 0 && selectedKey !== null && selectedKey !== renderedSelectedKey) {
+        revealRow(selectedIndex, true)
+      }
+
       renderedKeys = new Set(keys)
+      renderedSelectedKey = selectedKey
     },
 
     /**
