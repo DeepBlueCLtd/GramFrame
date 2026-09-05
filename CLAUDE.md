@@ -141,7 +141,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `spectrogramImage.js` - Spectrogram image load and scaling
   - `svgLayout.js` - SVG layout, viewBox and zoom-transform application
 - `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
-  - `axes.js` - The axis engine: `renderAxes` and its private tick/label helpers
+  - `axes.js` - The axis engine: `renderAxes` and its private tick/label helpers.
+    Both axes use the same nice-number tick engine and label at a precision their
+    own tick interval justifies, so no label is finer than its tick and none
+    repeats its neighbour (issue #259)
   - `symbols.js` - Marker/harmonic symbol shapes
   - `labels.js` - Marker label placement and element (feature 231)
 - `src/utils/` - Utility modules:

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Short-span gram - R9-07</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>0–10 s, 100–102 Hz</h1>
+  <!-- Two axis defects in one page (R9-07): a 10 s span used to divide into
+       five ticks 2.5 s apart, three of which printed a truncated `mm:ss`; and
+       a 2 Hz band gets sub-hertz tick intervals, which `Math.round` collapsed
+       onto the same integer label. -->
+  <div class="component-container">
+    <table class="gram-config">
+      <tr>
+        <td colspan="2"><img src="../../sample/mock-gram.png" alt="Sample Spectrogram"></td>
+      </tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>10</td></tr>
+      <tr><td>freq-start</td><td>100</td></tr>
+      <tr><td>freq-end</td><td>102</td></tr>
+    </table>
+  </div>
+
+  <div class="diagnostics-panel" style="display:none;">
+    <pre id="state-display">Loading...</pre>
+  </div>
+
+  <script type="module">
+    document.addEventListener('DOMContentLoaded', () => {
+      const stateDisplay = document.getElementById('state-display')
+      window.GramFrame.addStateListener((state) => {
+        stateDisplay.textContent = JSON.stringify(state, null, 2)
+      })
+    })
+  </script>
+</body>
+</html>
