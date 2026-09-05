@@ -171,9 +171,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `spectrogramImage.js` - Spectrogram image load and scaling
   - `svgLayout.js` - SVG layout, viewBox and zoom-transform application
 - `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
-  - `regionOverlay.js` - The region-zoom rubber band, its dimmed surround and
-    its live span readout. Draws only; the geometry arrives already
-    aspect-locked and clamped
+  - `regionOverlay.js` - The region-zoom rubber band, the dashed outline of the
+    view it will produce, the dimmed surround and the live span readout. Draws
+    only; the geometry arrives already clamped
   - `axes.js` - The axis engine: `renderAxes` and its private tick/label helpers.
     Both axes use the same nice-number tick engine and label at a precision their
     own tick interval justifies, so no label is finer than its tick and none
@@ -186,8 +186,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     `getRenderDimensions` and `calculateVisibleDataRange`, which live here rather
     than in a component so `rendering/` and `core/` can use them without a cycle
   - `regionGeometry.js` - The region-zoom geometry: the selectable area, the
-    aspect lock and the clamp to the gram's edge. Pure functions over the
-    viewport, so the two rules an analyst feels are covered without a browser
+    free selection, the `contain` fit that decides the resulting view, and the
+    clamp to the gram's edge. Pure functions over the viewport, so the rules an
+    analyst feels are covered without a browser
   - `axisFormat.js` - The one statement of "the tick interval decides the
     precision", shared by both axes and by the region-zoom span readout
   - `doppler.js` - Doppler-specific calculations
@@ -358,13 +359,17 @@ There is no visual/screenshot regression testing — see
 
 ### Mode-Specific Features
 - **Region zoom (every mode)**: Shift + left-drag a box to zoom to it (spec
-  170). The box is locked to the axes area's aspect ratio *while it is drawn*,
-  because zoom is one isotropic level plus a centre and an arbitrary rectangle
-  cannot become the view; the dimmed surround is what makes the lock read as
-  deliberate. It clamps at 10× rather than refusing, and a release over the
-  axis margins completes it — deliberately unlike a feature drag, which is
-  cancelled off-image, because selecting to the very edge is a normal thing to
-  want. The **fit** button beside `+`/`−` is the one-click way back out
+  170). The box is free — any proportions — and the resulting view **contains**
+  it: zoom is one isotropic level plus a centre, so the level is the smaller of
+  what each axis needs, and the slack axis shows more of the gram beside the
+  selection. (`contain`, not `cover`; cropping what was deliberately framed is
+  the wrong way for a measurement tool to fail.) The overlay draws that
+  resulting view as a second dashed outline and dims outside *it*, so what you
+  draw is still what you get plus a stated remainder. It clamps at 10× rather
+  than refusing — visibly, since the preview is capped by the same limit — and
+  a release over the axis margins completes it, deliberately unlike a feature
+  drag, which is cancelled off-image, because selecting to the very edge is a
+  normal thing to want. The **fit** button beside `+`/`−` is the way back out
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
 - **The control row**: each mode's group is `[mode button] [its commands]`, and
   Pan's is the only group with commands — zoom out, zoom in, fit — so it is the

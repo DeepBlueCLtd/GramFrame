@@ -15,9 +15,9 @@ import { screenToSVG, imageToData, getRenderDimensions } from '../utils/coordina
 import { refreshExpandedLayout } from '../components/ExpandToggle.js'
 import { isPlayerActive, clampViewTop, visibleWindowSeconds } from '../player/playerView.js'
 
-/** The zoom range the view is held within. Region zoom clamps to it like every other path. */
-const MIN_ZOOM = 1.0
-const MAX_ZOOM = 10.0
+/** The zoom range the view is held within. Every zoom path clamps to it. */
+export const MIN_ZOOM = 1.0
+export const MAX_ZOOM = 10.0
 
 /**
  * The current zoom level. One reader, rather than the five copies of
@@ -93,21 +93,15 @@ function zoomReset(instance) {
  * @param {number} centerY - Center Y (0-1 normalized)
  */
 export function setZoom(instance, level, centerX, centerY) {
-  // Update state
   const zoom = instance.state.zoom
   zoom.level = level
   zoom.centerX = centerX
   zoom.centerY = centerY
-  
-  // Apply zoom transform
+
   if (instance.ui.svg) {
     applyZoomTransform(instance)
   }
-  
-  // Update zoom control states
   updateZoomControlStates(instance)
-  
-  // Notify listeners
   dispatch(instance, { frame: true })
 }
 
@@ -224,17 +218,19 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
 }
 
 /**
- * Zoom so a selected region of the gram fills the visible area (spec 170, FR-006).
+ * Zoom so a selected region of the gram is centred and wholly visible
+ * (spec 170, FR-006).
  *
- * The region arrives in image render-pixel space, already locked to the axes
- * area's aspect ratio by the gesture that drew it — which is what makes a
- * single isotropic level able to honour both of its dimensions at once.
+ * The region arrives in image render-pixel space, in whatever proportions the
+ * analyst drew. Zoom is one isotropic level, so the level is the *smaller* of
+ * what each axis would need — `contain` — and the slack axis then shows more of
+ * the gram than was framed, beside the selection or above and below it. The
+ * larger factor (`cover`) would crop away part of what was deliberately
+ * selected, the wrong way for a measurement tool to fail.
  *
- * `zoom.centerX/centerY` are not the view's centre but its *anchor*: the
- * image point that keeps its unzoomed screen position through the transform
- * (see `applyZoomTransform`). Putting the selection's centre at the centre of
- * the axes area therefore means solving for the anchor rather than assigning
- * the centre, which is what {@link anchorForCentre} does.
+ * `zoom.centerX/centerY` are not the view's centre but its *anchor* — the image
+ * point that keeps its unzoomed screen position through the transform — so
+ * centring the selection means solving for it, as {@link anchorForCentre} does.
  * @param {GramFrame} instance - GramFrame instance
  * @param {{x: number, y: number, width: number, height: number}} region - Region in image render pixels
  */
@@ -246,22 +242,30 @@ export function zoomToRegion(instance, region) {
     return
   }
 
-  // Clamped rather than refused: a selection finer than 10x shows more than was
-  // drawn, which is the safe direction to fail (FR-007).
-  const level = Math.max(MIN_ZOOM, Math.min(renderWidth / region.width, MAX_ZOOM))
   const centreX = (region.x + region.width / 2) / renderWidth
+  // The tighter axis wins, and the result is clamped rather than refused: a
+  // selection finer than 10x shows more than was drawn (FR-007).
+  const across = renderWidth / region.width
 
   if (isPlayerActive(instance)) {
-    // Vertically a player's view is a time window, not a normalised centre
-    // (spec 168, D7). Hold the selection's mid-time at the middle of the new
-    // window; the clamp keeps unplayed time out of view (FR-013).
-    const centreTime = imageToData(0, region.y + region.height / 2, state).time
+    // Vertically a player's view is a time window rather than a fraction of an
+    // image (spec 168, D7), so its magnification is a ratio of seconds: the
+    // window it would take to hold the selection's own span.
+    const topTime = imageToData(0, region.y, state).time
+    const bottomTime = imageToData(0, region.y + region.height, state).time
+    const seconds = topTime - bottomTime
+    const through = seconds > 0 ? player.windowSeconds / seconds : across
+    const level = Math.max(MIN_ZOOM, Math.min(across, through, MAX_ZOOM))
+
+    // Hold the selection's mid-time at the middle of the new window; the clamp
+    // keeps unplayed time out of view (FR-013).
     zoom.level = level
-    player.viewTop = clampViewTop(instance, centreTime + visibleWindowSeconds(instance) / 2)
+    player.viewTop = clampViewTop(instance, (topTime + bottomTime) / 2 + visibleWindowSeconds(instance) / 2)
     setZoom(instance, level, anchorForCentre(centreX, level), 0.5)
     return
   }
 
+  const level = Math.max(MIN_ZOOM, Math.min(across, renderHeight / region.height, MAX_ZOOM))
   const centreY = (region.y + region.height / 2) / renderHeight
   setZoom(instance, level, anchorForCentre(centreX, level), anchorForCentre(centreY, level))
 }
@@ -286,11 +290,10 @@ function anchorForCentre(centre, level) {
 }
 
 /**
- * Show the whole gram again in one action (spec 170, FR-014).
- *
- * On an audio-sourced gram "the whole gram" is the configured `window-seconds`
- * window rather than the entire recording, so this returns the zoom to 1x and
- * leaves the window where it is, re-clamped (AS-3.3).
+ * Show the whole gram again in one action (spec 170, FR-014). On an
+ * audio-sourced gram "the whole gram" is the configured `window-seconds` window
+ * rather than the whole recording, so this returns to 1x and leaves the window
+ * where it is, re-clamped (AS-3.3).
  * @param {GramFrame} instance - GramFrame instance
  */
 export function fitView(instance) {
@@ -303,10 +306,9 @@ export function fitView(instance) {
 }
 
 /**
- * Update zoom control button states based on current zoom level.
- *
- * Module-private since the dead `_setRate`/`_updateAxes`/`_updateZoomControlStates`
- * forwarder chain in main.js was deleted (L1): its only caller is `setZoom` above.
+ * Update zoom control button states based on current zoom level. Module-private
+ * since the dead `_setRate`/`_updateAxes`/`_updateZoomControlStates` forwarder
+ * chain in main.js was deleted (L1): its only caller is `setZoom` above.
  * @param {GramFrame} instance - GramFrame instance
  */
 function updateZoomControlStates(instance) {

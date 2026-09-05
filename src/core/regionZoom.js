@@ -14,11 +14,14 @@
  *
  * Two shapes of the design look arbitrary from the outside and are not:
  *
- * - **The box is locked to the axes area's aspect ratio while it is drawn.**
- *   Zoom is a single isotropic level plus a centre, so an arbitrary rectangle
- *   cannot become the view. Constraining the rubber band as it is drawn keeps
- *   the promise that what you draw is what you get; the dimmed surround
- *   (FR-004) makes the lock read as deliberate rather than broken.
+ * - **The box is free, and the view *contains* it.** Zoom is a single isotropic
+ *   level plus a centre, so an arbitrary rectangle cannot become the view
+ *   exactly. Rather than constrain the rubber band to the view's proportions —
+ *   which made it lurch in width as the pointer moved down — the selection is
+ *   drawn freely and the view is scaled by whichever axis is the tighter fit,
+ *   showing more of the gram beside it. The overlay draws that resulting view
+ *   as a second, dashed outline, so what-you-draw-is-what-you-get survives: one
+ *   box is what you asked for, the other is what comes with it.
  * - **A release over the axis margins completes the zoom** (FR-011), where a
  *   feature drag would be cancelled. Selecting right up to the edge of a gram
  *   is a normal thing to want; a feature released off-image has no position.
@@ -28,8 +31,8 @@
 
 import { BaseDragHandler, hasActiveDrag } from '../modes/shared/BaseDragHandler.js'
 import { screenToSVG } from '../utils/coordinates.js'
-import { selectionBounds, withinBounds, aspectLockedRect, rectToRegion } from '../utils/regionGeometry.js'
-import { zoomToRegion } from './viewport.js'
+import { selectionBounds, withinBounds, selectionRect, containedView, rectToRegion } from '../utils/regionGeometry.js'
+import { zoomToRegion, MIN_ZOOM, MAX_ZOOM } from './viewport.js'
 import { createRegionOverlay, renderRegionOverlay } from '../rendering/regionOverlay.js'
 import { isPlaying } from '../player/playerView.js'
 
@@ -52,6 +55,13 @@ const CLICK_THRESHOLD_PX = 5
  * @type {string}
  */
 const REGION_READY_CLASS = 'gram-frame-region-ready'
+
+/**
+ * The zoom range the resulting-view preview is capped by, so the overlay shows
+ * the 10x cap arriving rather than springing it on release.
+ * @type {{min: number, max: number}}
+ */
+const ZOOM_LIMITS = { min: MIN_ZOOM, max: MAX_ZOOM }
 
 /**
  * One instance's in-progress selection.
@@ -102,9 +112,10 @@ function drawSelection(instance, session) {
     return
   }
   const bounds = boundsFor(instance)
-  const rect = aspectLockedRect(viewportOf(instance), bounds, session.start, session.current)
+  const rect = selectionRect(bounds, session.start, session.current)
   const { freqSpan, timeSpan } = regionOf(instance, rect)
-  renderRegionOverlay(session.overlay, { rect, bounds, freqSpan, timeSpan })
+  const view = containedView(viewportOf(instance), bounds, rect, ZOOM_LIMITS)
+  renderRegionOverlay(session.overlay, { rect, view, bounds, freqSpan, timeSpan })
 }
 
 /**
@@ -146,7 +157,7 @@ function teardown(instance, session) {
  * @param {RegionSession} session - The selection being released
  */
 function finishSelection(instance, session) {
-  const rect = aspectLockedRect(viewportOf(instance), boundsFor(instance), session.start, session.current)
+  const rect = selectionRect(boundsFor(instance), session.start, session.current)
   teardown(instance, session)
   // Below the threshold this was a click, not a selection: leave both the view
   // and the annotations exactly as they were (FR-008).

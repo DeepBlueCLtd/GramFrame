@@ -1930,11 +1930,24 @@ table.gram-frame-table {
 }
 
 /* The rubber band itself: a plain white outline, which reads cleanly because
-   everything outside it is dimmed. */
+   everything outside the resulting view is dimmed. */
 .gram-frame-region-box {
   fill: none;
   stroke: #fff;
   stroke-width: 1.5;
+  pointer-events: none;
+}
+
+/* What will actually be on screen after the zoom: the selection grown on
+   whichever axis is the looser fit. Dashed and dimmer, so it reads as a
+   consequence of the solid box rather than as a second thing to aim. Hidden
+   when it coincides with the selection. */
+.gram-frame-region-view {
+  fill: none;
+  stroke: #fff;
+  stroke-opacity: 0.65;
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
   pointer-events: none;
 }
 

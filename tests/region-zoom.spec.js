@@ -15,6 +15,7 @@ import { GramFramePage } from './helpers/gram-frame-page.js'
 
 /** The selection overlay's pieces. */
 const BOX = '.gram-frame-region-box'
+const VIEW = '.gram-frame-region-view'
 const DIM = '.gram-frame-region-dim'
 const READOUT = '.gram-frame-region-readout'
 
@@ -53,9 +54,10 @@ test.describe('Feature 170 — Region zoom', () => {
       const timeRange = timeMax - timeMin
       const { renderWidth, renderHeight } = await gfp.renderSize()
 
-      // A box from 10% to 58% of the gram on both axes: equal fractions, so the
-      // aspect lock has nothing to correct and the drawn box is the box. It
-      // starts clear of the expand toggle, which overlays the gram's top-left.
+      // A box from 10% to 58% of the gram on both axes. Equal fractions means
+      // it is already the view's own shape, so `contain` neither grows nor
+      // crops it and the drawn box is exactly the view. It starts clear of the
+      // expand toggle, which overlays the gram's top-left.
       const from = { x: 0.1, y: 0.1 }
       const to = { x: 0.58, y: 0.58 }
       const a = await gfp.imageSVGPoint(from.x, from.y)
@@ -185,11 +187,10 @@ test.describe('Feature 170 — Region zoom', () => {
       await expect(page.locator(BOX)).toHaveCount(0)
     })
 
-    test('the box keeps the gram’s proportions (AS-3.2, FR-003)', async ({ page }) => {
+    test('the box follows the pointer, and the view it produces is shown too (AS-3.2, FR-003)', async ({ page }) => {
       const { renderWidth, renderHeight } = await gfp.renderSize()
-      const gramAspect = renderWidth / renderHeight
 
-      // A wide, shallow sweep: the pointer's larger dimension wins.
+      // A wide, shallow sweep: nothing constrains it, so it stays shallow.
       const a = await gfp.imageSVGPoint(0.1, 0.5)
       const b = await gfp.imageSVGPoint(0.6, 0.53)
       await gfp.shiftDragSVG(a.x, a.y, b.x, b.y, { release: false })
@@ -197,7 +198,54 @@ test.describe('Feature 170 — Region zoom', () => {
       const box = page.locator(BOX)
       const width = Number(await box.getAttribute('width'))
       const height = Number(await box.getAttribute('height'))
-      expect(width / height).toBeCloseTo(gramAspect, 3)
+      // Half the gram wide and a sliver tall: far from the view's proportions.
+      expect(width / height).toBeGreaterThan(3 * (renderWidth / renderHeight))
+
+      // ...and the second outline says what will actually be on screen: the
+      // same width, grown to the view's shape.
+      const view = page.locator(VIEW)
+      await expect(view).toBeVisible()
+      const viewWidth = Number(await view.getAttribute('width'))
+      const viewHeight = Number(await view.getAttribute('height'))
+      expect(viewWidth).toBeCloseTo(width, 0)
+      expect(viewHeight).toBeGreaterThan(height)
+      expect(viewWidth / viewHeight).toBeCloseTo(renderWidth / renderHeight, 2)
+
+      await page.mouse.up()
+      await page.keyboard.up('Shift')
+    })
+
+    test('the second outline is drawn only when it would say something (AS-3.2)', async ({ page }) => {
+      // A box a quarter of the gram across and a quarter down is close to the
+      // view's own shape, so the resulting view is the selection give or take
+      // the pointer's rounding — and the dashed outline is drawn only if the
+      // two would be visibly different lines.
+      const a = await gfp.imageSVGPoint(0.3, 0.3)
+      const b = await gfp.imageSVGPoint(0.55, 0.55)
+      await gfp.shiftDragSVG(a.x, a.y, b.x, b.y, { release: false })
+
+      const read = async (/** @type {string} */ selector) => {
+        const el = page.locator(selector)
+        return {
+          x: Number(await el.getAttribute('x')),
+          y: Number(await el.getAttribute('y')),
+          width: Number(await el.getAttribute('width')),
+          height: Number(await el.getAttribute('height'))
+        }
+      }
+      const box = await read(BOX)
+      const view = await read(VIEW)
+
+      // The view always contains the selection: `contain` never crops.
+      expect(view.x).toBeLessThanOrEqual(box.x + 0.5)
+      expect(view.y).toBeLessThanOrEqual(box.y + 0.5)
+      expect(view.x + view.width).toBeGreaterThanOrEqual(box.x + box.width - 0.5)
+      expect(view.y + view.height).toBeGreaterThanOrEqual(box.y + box.height - 0.5)
+
+      // ...and it is hidden exactly when drawing it would only double the line.
+      const coincides = Math.abs(view.x - box.x) < 1 && Math.abs(view.y - box.y) < 1 &&
+        Math.abs(view.width - box.width) < 1 && Math.abs(view.height - box.height) < 1
+      await expect(page.locator(VIEW)).toBeVisible({ visible: !coincides })
 
       await page.mouse.up()
       await page.keyboard.up('Shift')

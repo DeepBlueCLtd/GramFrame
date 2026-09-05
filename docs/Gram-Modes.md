@@ -13,10 +13,12 @@ Behaviour common to every mode:
 - Ctrl+wheel zooms about the pointer, wheel scrolls along frequency when zoomed
   in, and a middle-button drag pans — in every mode.
 - **Shift + drag** a box over the gram to zoom straight into that region, in
-  every mode and at any zoom level. The box holds the gram's proportions while
-  you draw it (zoom is one level plus a centre, so an arbitrary rectangle
-  cannot become the view), the surround dims, and the span you are choosing is
-  shown live. Escape cancels; a Shift-click that barely moves does nothing.
+  every mode and at any zoom level. Draw it in any proportions you like: the
+  view that results is scaled so the whole box fits, centred, which means it
+  shows a little more of the gram either side of a wide band, or above and
+  below a narrow one. A dashed outline shows that resulting view as you drag,
+  the surround dims to match, and the span you are choosing is shown live.
+  Escape cancels; a Shift-click that barely moves does nothing.
 - Switching mode clears the current selection, so the colour/symbol controls
   target the next feature you create rather than restyling the last one.
 
