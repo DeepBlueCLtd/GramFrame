@@ -548,18 +548,41 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     return age > STUDENT_TTL_MS;
   }
-  function detectUserContext() {
-    if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
-      return "trainer";
+  function describeUserContext() {
+    const flag = document.querySelector(TRAINER_FLAG_SELECTOR);
+    if (flag) {
+      return {
+        context: "trainer",
+        matchedBy: "flag",
+        reason: `matched the persistence flag on <${describeFlagElement(flag)}>`
+      };
     }
     const anchors = document.querySelectorAll("a");
     for (let i = 0; i < anchors.length; i++) {
       const text = anchors[i].textContent;
       if (text && text.trim() === "ANALYSIS") {
-        return "trainer";
+        return {
+          context: "trainer",
+          matchedBy: "legacy-anchor",
+          reason: 'matched the legacy "ANALYSIS" anchor (no gf-persistent flag on the page)'
+        };
       }
     }
-    return "student";
+    return {
+      context: "student",
+      matchedBy: "none",
+      reason: 'no gf-persistent flag (id, class or data-attribute) and no "ANALYSIS" anchor was on the page when the component initialised'
+    };
+  }
+  function detectUserContext() {
+    return describeUserContext().context;
+  }
+  function describeFlagElement(el) {
+    const parts = [el.tagName.toLowerCase()];
+    if (el.id === "gf-persistent") parts.push('id="gf-persistent"');
+    if (el.classList.contains("gf-persistent")) parts.push('class="gf-persistent"');
+    if (el.hasAttribute("data-gf-persistent")) parts.push("data-gf-persistent");
+    return parts.join(" ");
   }
   function getStorage(context) {
     try {
@@ -7257,8 +7280,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.stateListeners = [];
       this.instanceId = "";
       this.persistence._storageInstanceIndex = document.querySelectorAll(".gram-frame-container").length;
-      this.persistence._isTrainerContext = detectUserContext() === "trainer";
+      const detectedContext = describeUserContext();
+      this.persistence._isTrainerContext = detectedContext.context === "trainer";
       const dom = setupSpectrogramComponents(this, configTable);
+      dom.container.dataset.gfContext = detectedContext.context;
+      console.info(
+        `GramFrame: instance ${this.persistence._storageInstanceIndex} is on a ${detectedContext.context} page (${detectedContext.reason}) — ` + (this.persistence._isTrainerContext ? 'annotations persist in localStorage and the "Clear gram" button is shown' : 'annotations are session-only, expire after 24 hours, and there is no "Clear gram" button')
+      );
       const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell);
       const initialModeUI = setupPersistentContainers(this, layout.modeColumn, layout.guidanceColumn);
       this.ui = {
