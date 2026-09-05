@@ -54,7 +54,7 @@ Each GramFrame instance maintains a centralised state object (`GramFrameState`) 
 - Cursor position across all coordinate systems
 - Mode-specific data (markers, harmonic sets, Doppler curve parameters)
 - Configuration parameters (axis ranges, margins, zoom level)
-- UI state (selected colour, rate divisor, selection)
+- UI state (selected colour, frequency-rate divisor, selection)
 
 State changes propagate via a listener pattern. External code can subscribe to state updates and receive deep-copied snapshots, preventing accidental mutation. This pattern also supports Hot Module Reload during development -- state listeners survive code changes.
 

@@ -327,11 +327,11 @@ function moveSelectedMarker(instance, markerId, movement) {
   // needs no external compensation.
   //
   // `dataToSVG` takes frequency in the raw configured scale while `imageToData`
-  // divides by rate (see the module's note), so the rate is re-applied on the
+  // divides by the frequency rate (see the module's note), so it is re-applied on the
   // way out and removed on the way back — keeping this a true round trip, as
   // the private pair this replaces was.
   const currentSVG = dataToSVG(
-    { freq: marker.freq * instance.state.rate, time: marker.time },
+    { freq: marker.freq * instance.state.frequencyRate, time: marker.time },
     instance.state,
     instance.ui.spectrogramImage
   )

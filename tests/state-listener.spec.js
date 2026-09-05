@@ -336,14 +336,14 @@ test.describe('Notifications are batched (spec 166, US4)', () => {
 
     const result = await page.evaluate(() => {
       const instance = window.GramFrame.__test__getInstances()[0]
-      instance.state.rate = 42
+      instance.state.frequencyRate = 42
       // Schedule a notification, then tear down before it would fire
       instance.notifyStateListeners()
       // @ts-ignore
       const beforeDestroy = window.__notifyCount
       instance.destroy()
       // @ts-ignore
-      return { beforeDestroy, afterDestroy: window.__notifyCount, seenRate: window.__lastState.rate }
+      return { beforeDestroy, afterDestroy: window.__notifyCount, seenRate: window.__lastState.frequencyRate }
     })
 
     // Nothing had been delivered yet; destroy flushed it synchronously

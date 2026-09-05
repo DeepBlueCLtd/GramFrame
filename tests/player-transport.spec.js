@@ -32,12 +32,12 @@ test.describe('Story 5 — full transport', () => {
     expect((await readAudio(page)).paused).toBe(true)
     await expect(page.locator('.gram-frame-transport-time')).toHaveText('00:12 / 00:20')
 
-    // Loop, rate, mute, volume
+    // Loop, playback rate, mute, volume
     await page.locator('.gram-frame-transport-loop').click()
-    await page.locator('.gram-frame-transport-rate').selectOption('2')
+    await page.locator('.gram-frame-transport-playback-rate').selectOption('2')
     await page.locator('.gram-frame-transport-mute').click()
     await page.locator('.gram-frame-transport-volume').fill('0.4')
-    await gfp.waitForState(s => s.player.loop && s.player.rate === 2 && s.player.muted && Math.abs(s.player.volume - 0.4) < 1e-6, { message: 'state to mirror the controls' })
+    await gfp.waitForState(s => s.player.loop && s.player.playbackRate === 2 && s.player.muted && Math.abs(s.player.volume - 0.4) < 1e-6, { message: 'state to mirror the controls' })
     const audio = await readAudio(page)
     expect(audio.loop).toBe(true)
     expect(audio.playbackRate).toBe(2)
@@ -80,8 +80,8 @@ test.describe('Story 5 — full transport', () => {
     // About 300 Hz (hover positions are padding-box relative; the SVG's border
     // shifts them by a couple of pixels, which is a few hertz here)
     const before = await gfp.readDataAtPixel(MARGINS.left + 90, MARGINS.top + 100)
-    await page.evaluate(() => window.GramFrame.getPlayer(0).setRate(2))
-    await gfp.waitForState(s => s.player.rate === 2, { message: 'rate 2×' })
+    await page.evaluate(() => window.GramFrame.getPlayer(0).setPlaybackRate(2))
+    await gfp.waitForState(s => s.player.playbackRate === 2, { message: 'playback rate 2×' })
     const after = await gfp.readDataAtPixel(MARGINS.left + 90, MARGINS.top + 101)
     expect(Math.abs(before.freq - 300)).toBeLessThan(10)
     expect(Math.abs(after.freq - before.freq)).toBeLessThan(0.5)
@@ -164,7 +164,7 @@ test.describe('Story 5 — full transport', () => {
     const shape = await page.evaluate(() => {
       const player = window.GramFrame.getPlayer(0)
       return {
-        methods: ['play', 'pause', 'toggle', 'seek', 'restart', 'setLoop', 'setRate', 'setVolume', 'setMute', 'isReady'].every(m => typeof player[m] === 'function'),
+        methods: ['play', 'pause', 'toggle', 'seek', 'restart', 'setLoop', 'setPlaybackRate', 'setVolume', 'setMute', 'isReady'].every(m => typeof player[m] === 'function'),
         ready: player.isReady(),
         second: window.GramFrame.getPlayer(1)
       }

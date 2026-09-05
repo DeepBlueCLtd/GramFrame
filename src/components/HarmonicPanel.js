@@ -55,7 +55,7 @@ function formatRatio(harmonicSet, instance) {
   if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
     return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3)
   }
-  return '5.000' // Representative rate for 5th harmonic
+  return '5.000' // Representative ratio for the 5th harmonic
 }
 
 /**
@@ -90,7 +90,7 @@ export function createHarmonicPanel(container, instance) {
     columns: [
       { label: '', width: '15%' },
       { label: 'Spacing (Hz)', width: '35%', cellClassName: 'gram-frame-harmonic-spacing' },
-      { label: 'Ratio', width: '35%', cellClassName: 'gram-frame-harmonic-rate' },
+      { label: 'Ratio', width: '35%', cellClassName: 'gram-frame-harmonic-ratio' },
       { label: '', width: '15%' }
     ],
     rowAttribute: 'data-harmonic-id',

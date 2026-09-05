@@ -29,11 +29,11 @@ const FAST_STEP = 5
  * @returns {{perPixelFreq: number, perPixelTime: number}} Data units per pixel
  */
 function dataPerPixel(state) {
-  const { config, imageDetails, rate } = state
+  const { config, imageDetails, frequencyRate } = state
   const renderWidth = imageDetails.renderWidth || imageDetails.naturalWidth
   const renderHeight = imageDetails.renderHeight || imageDetails.naturalHeight
   return {
-    perPixelFreq: ((config.freqMax - config.freqMin) / rate) / renderWidth,
+    perPixelFreq: ((config.freqMax - config.freqMin) / frequencyRate) / renderWidth,
     perPixelTime: (config.timeMax - config.timeMin) / renderHeight
   }
 }

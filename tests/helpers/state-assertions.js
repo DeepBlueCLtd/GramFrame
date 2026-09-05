@@ -153,18 +153,18 @@ function expectValidMode(state, expectedMode) {
 }
 
 /**
- * Verify that the state has a valid rate
+ * Verify that the state has a valid frequency rate
  * @param {any} state - The GramFrame state object
- * @param {number} [expectedRate] - Optional expected rate
+ * @param {number} [expectedFrequencyRate] - Optional expected frequency rate
  * @returns {void}
  */
-function expectValidRate(state, expectedRate) {
-  expect(state).toHaveProperty('rate')
-  expect(typeof state.rate).toBe('number')
-  expect(state.rate).toBeGreaterThan(0)
-  
-  if (expectedRate !== undefined) {
-    expect(state.rate).toBe(expectedRate)
+function expectValidFrequencyRate(state, expectedFrequencyRate) {
+  expect(state).toHaveProperty('frequencyRate')
+  expect(typeof state.frequencyRate).toBe('number')
+  expect(state.frequencyRate).toBeGreaterThan(0)
+
+  if (expectedFrequencyRate !== undefined) {
+    expect(state.frequencyRate).toBe(expectedFrequencyRate)
   }
 }
 
@@ -175,5 +175,5 @@ export {
   expectValidConfig,
   expectValidCursorPosition,
   expectValidMode,
-  expectValidRate
+  expectValidFrequencyRate
 }

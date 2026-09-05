@@ -212,7 +212,7 @@ export class BaseMode {
       imageDetails: this.instance.state.imageDetails,
       config: this.instance.state.config,
       zoom: this.instance.state.zoom,
-      rate: this.instance.state.rate
+      frequencyRate: this.instance.state.frequencyRate
     }
   }
 

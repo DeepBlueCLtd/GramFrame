@@ -59,5 +59,5 @@ If the user enters a valid spacing and clicks **Add**:
 ## 🔧 Implementation Notes
 
 - Harmonics are drawn horizontally at the specified spacing intervals.
-- The spacing is not influenced by rate input; this is a “raw spacing” mode.
+- The spacing is not influenced by the frequency-rate input; this is a “raw spacing” mode.
 - The harmonic set behaves identically to dragged sets once created.

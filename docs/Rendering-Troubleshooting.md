@@ -56,7 +56,7 @@ featureRenderer.renderAllPersistentFeatures()
 
 - **Not accounting for margins**: SVG elements are positioned relative to the viewBox, which includes margin space. Image coordinates start at `(margins.left, margins.top)`, not `(0, 0)`.
 
-- **Rate not applied**: Frequency values are divided by `rate`. If you're computing frequency positions, ensure you use the rate-adjusted value from `imageToDataCoordinates`, or apply `/ rate` yourself.
+- **Frequency rate not applied**: Frequency values are divided by `frequencyRate`. If you're computing frequency positions, use the scaled value from `imageToDataCoordinates`, or apply `/ frequencyRate` yourself.
 
 - **Zoom not accounted for**: When zoomed, the image position and dimensions change. `screenToDataWithZoom()` in `events.js` handles this, but if you're doing manual coordinate math, you need to account for the zoomed image's `x`, `y`, `width`, and `height` attributes.
 

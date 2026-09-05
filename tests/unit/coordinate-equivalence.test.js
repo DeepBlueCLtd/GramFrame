@@ -74,10 +74,10 @@ function referenceScreenToSVG(screenX, screenY, svg) {
  * @param {number} imageY
  * @param {any} config
  * @param {any} imageDetails
- * @param {number} rate
+ * @param {number} frequencyRate
  * @returns {{freq: number, time: number}}
  */
-function referenceImageToData(imageX, imageY, config, imageDetails, rate) {
+function referenceImageToData(imageX, imageY, config, imageDetails, frequencyRate) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
   const renderWidth = imageDetails.renderWidth || naturalWidth
@@ -89,7 +89,7 @@ function referenceImageToData(imageX, imageY, config, imageDetails, rate) {
   const rawFreq = freqMin + (boundedX / renderWidth) * (freqMax - freqMin)
   const time = timeMax - (boundedY / renderHeight) * (timeMax - timeMin)
 
-  return { freq: rawFreq / rate, time }
+  return { freq: rawFreq / frequencyRate, time }
 }
 
 /**
@@ -164,17 +164,17 @@ function referenceImageBounds(viewport, spectrogramImage = null) {
  * @param {number} time
  * @param {any} config
  * @param {any} imageDetails
- * @param {number} rate
+ * @param {number} frequencyRate
  * @param {any} margins
  * @returns {{x: number, y: number}}
  */
-function referenceKeyboardDataToSVG(freq, time, config, imageDetails, rate, margins) {
+function referenceKeyboardDataToSVG(freq, time, config, imageDetails, frequencyRate, margins) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
   const renderWidth = imageDetails.renderWidth || naturalWidth
   const renderHeight = imageDetails.renderHeight || naturalHeight
 
-  const rawFreq = freq * rate
+  const rawFreq = freq * frequencyRate
 
   const normalizedX = (rawFreq - freqMin) / (freqMax - freqMin)
   const normalizedY = 1.0 - (time - timeMin) / (timeMax - timeMin)
@@ -191,11 +191,11 @@ function referenceKeyboardDataToSVG(freq, time, config, imageDetails, rate, marg
  * @param {number} svgY
  * @param {any} config
  * @param {any} imageDetails
- * @param {number} rate
+ * @param {number} frequencyRate
  * @param {any} margins
  * @returns {{freq: number, time: number}}
  */
-function referenceKeyboardSVGToData(svgX, svgY, config, imageDetails, rate, margins) {
+function referenceKeyboardSVGToData(svgX, svgY, config, imageDetails, frequencyRate, margins) {
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { naturalWidth, naturalHeight } = imageDetails
   const renderWidth = imageDetails.renderWidth || naturalWidth
@@ -210,7 +210,7 @@ function referenceKeyboardSVGToData(svgX, svgY, config, imageDetails, rate, marg
   const rawFreq = freqMin + (boundedX / renderWidth) * (freqMax - freqMin)
   const time = timeMax - (boundedY / renderHeight) * (timeMax - timeMin)
 
-  return { freq: rawFreq / rate, time }
+  return { freq: rawFreq / frequencyRate, time }
 }
 
 /**
@@ -260,7 +260,7 @@ function referenceEventsScreenToData(instance, event) {
     imageX, imageY,
     instance.state.config,
     instance.state.imageDetails,
-    instance.state.rate
+    instance.state.frequencyRate
   )
 
   return { svgCoords, imageX, imageY, dataCoords }
@@ -301,8 +301,8 @@ const MARGIN_VARIANTS = {
   asymmetric: { left: 90, bottom: 20, right: 40, top: 35 }
 }
 
-/** Rate values — a frequency divider applied on the data side only (I4) */
-const RATES = [1, 2]
+/** Frequency-rate values — a divider applied on the data side only (I4) */
+const FREQUENCY_RATES = [1, 2]
 
 /** Time/frequency configuration */
 const CONFIG = { timeMin: 0, timeMax: 60, freqMin: 100, freqMax: 2100 }
@@ -313,10 +313,10 @@ const TOL = 1e-9
 /**
  * Build one grid cell: the viewport bundle plus the element and SVG stubs the
  * implementations read.
- * @param {{zoom: number, renderVariant: string, hasElement: boolean, marginVariant: string, rate: number}} axes
+ * @param {{zoom: number, renderVariant: string, hasElement: boolean, marginVariant: string, frequencyRate: number}} axes
  * @returns {any} Cell fixtures
  */
-function buildCell({ zoom, renderVariant, hasElement, marginVariant, rate }) {
+function buildCell({ zoom, renderVariant, hasElement, marginVariant, frequencyRate }) {
   const margins = /** @type {Record<string, {left: number, bottom: number, right: number, top: number}>} */ (MARGIN_VARIANTS)[marginVariant]
   const { renderWidth, renderHeight } = /** @type {Record<string, {renderWidth: number, renderHeight: number}>} */ (RENDER_VARIANTS)[renderVariant]
   const imageDetails = {
@@ -356,11 +356,11 @@ function buildCell({ zoom, renderVariant, hasElement, marginVariant, rate }) {
     viewBox: { baseVal: { x: 0, y: 0, width: viewBoxWidth, height: viewBoxHeight } }
   }
 
-  const viewport = { margins, imageDetails, config: CONFIG, rate, zoom: { level: zoom } }
+  const viewport = { margins, imageDetails, config: CONFIG, frequencyRate, zoom: { level: zoom } }
   const instance = { state: viewport, svg, spectrogramImage }
 
   return {
-    axes: { zoom, renderVariant, hasElement, marginVariant, rate },
+    axes: { zoom, renderVariant, hasElement, marginVariant, frequencyRate },
     margins,
     imageDetails,
     viewport,
@@ -386,8 +386,8 @@ for (const zoom of ZOOM_LEVELS) {
   for (const renderVariant of Object.keys(RENDER_VARIANTS)) {
     for (const hasElement of ELEMENT_PRESENCE) {
       for (const marginVariant of Object.keys(MARGIN_VARIANTS)) {
-        for (const rate of RATES) {
-          CELLS.push(buildCell({ zoom, renderVariant, hasElement, marginVariant, rate }))
+        for (const frequencyRate of FREQUENCY_RATES) {
+          CELLS.push(buildCell({ zoom, renderVariant, hasElement, marginVariant, frequencyRate }))
         }
       }
     }
@@ -445,7 +445,7 @@ function imagePointToClient(cell, imageX, imageY) {
  */
 function label(cell) {
   const a = cell.axes
-  return `zoom=${a.zoom} render=${a.renderVariant} element=${a.hasElement} margins=${a.marginVariant} rate=${a.rate}`
+  return `zoom=${a.zoom} render=${a.renderVariant} element=${a.hasElement} margins=${a.marginVariant} frequencyRate=${a.frequencyRate}`
 }
 
 /**
@@ -461,7 +461,7 @@ function expectClose(actual, expected, what) {
 
 describe('canonical coordinate module vs the pre-consolidation reference', () => {
   test('the grid covers every documented cell', () => {
-    // 4 zoom x 3 render x 2 element x 3 margins x 2 rate
+    // 4 zoom x 3 render x 2 element x 3 margins x 2 frequency rates
     expect(CELLS.length).toBe(4 * 3 * 2 * 3 * 2)
   })
 
@@ -498,7 +498,7 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
         if (!point.inBounds) continue
         const actual = imageToData(point.imageX, point.imageY, cell.viewport)
         const expected = referenceImageToData(
-          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.rate
+          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.frequencyRate
         )
         expectClose(actual.freq, expected.freq, `${label(cell)} ${point.name} freq`)
         expectClose(actual.time, expected.time, `${label(cell)} ${point.name} time`)
@@ -516,7 +516,7 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
         const clamped = clampToImage(point.imageX, point.imageY, cell.viewport)
         const viaSplit = imageToData(clamped.x, clamped.y, cell.viewport)
         const expected = referenceImageToData(
-          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.rate
+          point.imageX, point.imageY, CONFIG, cell.imageDetails, cell.axes.frequencyRate
         )
         expectClose(viaSplit.freq, expected.freq, `${label(cell)} ${point.name} clamped freq`)
         expectClose(viaSplit.time, expected.time, `${label(cell)} ${point.name} clamped time`)
@@ -562,7 +562,7 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
     for (const cell of CELLS) {
       for (const point of imageSamplePoints(cell)) {
         const data = imageToData(point.imageX, point.imageY, cell.viewport)
-        const rawData = { freq: data.freq * cell.axes.rate, time: data.time }
+        const rawData = { freq: data.freq * cell.axes.frequencyRate, time: data.time }
 
         const actual = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
         const expected = referenceDataToSVG(rawData, cell.viewport, cell.spectrogramImage)
@@ -581,11 +581,11 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
     for (const cell of cells) {
       for (const point of imageSamplePoints(cell)) {
         const data = imageToData(point.imageX, point.imageY, cell.viewport)
-        const rawData = { freq: data.freq * cell.axes.rate, time: data.time }
+        const rawData = { freq: data.freq * cell.axes.frequencyRate, time: data.time }
 
         const actual = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
         const expected = referenceKeyboardDataToSVG(
-          data.freq, data.time, CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
+          data.freq, data.time, CONFIG, cell.imageDetails, cell.axes.frequencyRate, cell.margins
         )
 
         expectClose(actual.x, expected.x, `${label(cell)} ${point.name} x`)
@@ -611,7 +611,7 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
         canonicalOrigin.x + step, canonicalOrigin.y, cell.viewport, cell.spectrogramImage
       )
       const canonicalMoved = dataToSVG(
-        { freq: imageToData(canonicalMovedImage.x, canonicalMovedImage.y, cell.viewport).freq * cell.axes.rate,
+        { freq: imageToData(canonicalMovedImage.x, canonicalMovedImage.y, cell.viewport).freq * cell.axes.frequencyRate,
           time: origin.time },
         cell.viewport,
         cell.spectrogramImage
@@ -622,13 +622,13 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
       // divided by the zoom level, as the deleted code did.
       const compensated = step / cell.axes.zoom
       const refOrigin = referenceKeyboardDataToSVG(
-        origin.freq / cell.axes.rate, origin.time, CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
+        origin.freq / cell.axes.frequencyRate, origin.time, CONFIG, cell.imageDetails, cell.axes.frequencyRate, cell.margins
       )
       const refMovedData = referenceKeyboardSVGToData(
-        refOrigin.x + compensated, refOrigin.y, CONFIG, cell.imageDetails, cell.axes.rate, cell.margins
+        refOrigin.x + compensated, refOrigin.y, CONFIG, cell.imageDetails, cell.axes.frequencyRate, cell.margins
       )
       const refMoved = referenceDataToSVG(
-        { freq: refMovedData.freq * cell.axes.rate, time: refMovedData.time },
+        { freq: refMovedData.freq * cell.axes.frequencyRate, time: refMovedData.time },
         cell.viewport,
         cell.spectrogramImage
       )
@@ -643,7 +643,7 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
         if (!point.inBounds) continue
 
         const data = imageToData(point.imageX, point.imageY, cell.viewport)
-        const rawData = { freq: data.freq * cell.axes.rate, time: data.time }
+        const rawData = { freq: data.freq * cell.axes.frequencyRate, time: data.time }
         const svgPoint = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
         const back = svgToImage(svgPoint.x, svgPoint.y, cell.viewport, cell.spectrogramImage)
 
@@ -672,20 +672,20 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
     }
   })
 
-  test('rate is applied on the data side only — SVG and image space are rate-free (I4)', () => {
-    for (const cell of CELLS.filter((c) => c.axes.rate === 2)) {
-      const rateOne = buildCell({ ...cell.axes, rate: 1 })
+  test('the frequency rate is applied on the data side only — SVG and image space carry none of it (I4)', () => {
+    for (const cell of CELLS.filter((c) => c.axes.frequencyRate === 2)) {
+      const rateOne = buildCell({ ...cell.axes, frequencyRate: 1 })
       for (const point of imageSamplePoints(cell)) {
         const withRate = imageToData(point.imageX, point.imageY, cell.viewport)
         const withoutRate = imageToData(point.imageX, point.imageY, rateOne.viewport)
-        expectClose(withRate.freq * 2, withoutRate.freq, `${label(cell)} ${point.name} freq scales with rate`)
-        expectClose(withRate.time, withoutRate.time, `${label(cell)} ${point.name} time ignores rate`)
+        expectClose(withRate.freq * 2, withoutRate.freq, `${label(cell)} ${point.name} freq scales with the frequency rate`)
+        expectClose(withRate.time, withoutRate.time, `${label(cell)} ${point.name} time ignores the frequency rate`)
 
-        // Image space itself is untouched by rate
+        // Image space itself is untouched by the frequency rate
         const svgWith = dataToSVG({ freq: 1000, time: 30 }, cell.viewport, cell.spectrogramImage)
         const svgWithout = dataToSVG({ freq: 1000, time: 30 }, rateOne.viewport, rateOne.spectrogramImage)
-        expectClose(svgWith.x, svgWithout.x, `${label(cell)} ${point.name} SVG x is rate-free`)
-        expectClose(svgWith.y, svgWithout.y, `${label(cell)} ${point.name} SVG y is rate-free`)
+        expectClose(svgWith.x, svgWithout.x, `${label(cell)} ${point.name} SVG x carries no frequency rate`)
+        expectClose(svgWith.y, svgWithout.y, `${label(cell)} ${point.name} SVG y carries no frequency rate`)
       }
     }
   })

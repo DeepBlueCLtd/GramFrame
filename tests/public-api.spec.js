@@ -144,7 +144,7 @@ test.describe('The public API on a page with no debug hooks', () => {
       let delivered = null
       const first = (/** @type {any} */ state) => {
         delivered = state
-        state.rate = 9999
+        state.frequencyRate = 9999
         state.config.freqMax = -1
       }
       window.GramFrame.addStateListener(first)
@@ -156,7 +156,7 @@ test.describe('The public API on a page with no debug hooks', () => {
       window.GramFrame.addStateListener(second)
       window.GramFrame.removeStateListener(second)
 
-      return { mutatedRate: delivered.rate, liveRate: fresh.rate, liveFreqMax: fresh.config.freqMax }
+      return { mutatedRate: delivered.frequencyRate, liveRate: fresh.frequencyRate, liveFreqMax: fresh.config.freqMax }
     })
 
     expect(result.mutatedRate).toBe(9999)

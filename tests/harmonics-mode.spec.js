@@ -73,10 +73,10 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         /** @type {HarmonicSet} */
         const harmonicSet = state.harmonics.harmonicSets[0]
         expect(harmonicSet).toHaveProperty('id')
-        expect(harmonicSet).toHaveProperty('fundamentalFreq')
-        expect(harmonicSet).toHaveProperty('rate')
+        expect(harmonicSet).toHaveProperty('anchorTime')
+        expect(harmonicSet).toHaveProperty('spacing')
         expect(harmonicSet).toHaveProperty('color')
-        expect(harmonicSet.fundamentalFreq).toBeGreaterThan(0)
+        expect(harmonicSet.spacing).toBeGreaterThan(0)
       } else {
         // If no harmonics created, at least verify state structure exists
         expect(state.harmonics.harmonicSets).toEqual([])
@@ -117,11 +117,8 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       const harmonicSet = state.harmonics.harmonicSets[0]
       
       // Verify harmonic spacing was calculated
-      expect(harmonicSet.rate).toBeGreaterThan(0)
-      expect(harmonicSet.fundamentalFreq).toBeGreaterThan(0)
-      
-      // Rate should be a reasonable value
-      expect(harmonicSet.rate).toBeGreaterThan(0)
+      expect(harmonicSet.spacing).toBeGreaterThan(0)
+      expect(harmonicSet.anchorTime).toBeGreaterThanOrEqual(0)
     })
     
     /**
@@ -210,8 +207,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         if (state.harmonics?.harmonicSets?.length > 0) {
           /** @type {HarmonicSet} */
           const harmonicSet = state.harmonics.harmonicSets[0]
-          expect(harmonicSet.fundamentalFreq).toBeGreaterThan(0)
-          expect(harmonicSet.rate).toBeGreaterThan(0)
+          expect(harmonicSet.spacing).toBeGreaterThan(0)
         }
       }
       
@@ -256,9 +252,9 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       state = await gramFramePage.getState()
       if (state.harmonics.harmonicSets.length > 0) {
         /** @type {number} */
-        const newRate = state.harmonics.harmonicSets[0].rate
-        expect(newRate).toBeGreaterThan(0)
-        // Rate may or may not have changed depending on implementation
+        const newSpacing = state.harmonics.harmonicSets[0].spacing
+        expect(newSpacing).toBeGreaterThan(0)
+        // The spacing may or may not have changed depending on implementation
       }
     })
   })
@@ -412,7 +408,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       const state = await gramFramePage.getState()
       // May or may not create a harmonic set depending on minimum threshold
       if (state.harmonics?.harmonicSets?.length > 0) {
-        expect(state.harmonics.harmonicSets[0].rate).toBeGreaterThan(0)
+        expect(state.harmonics.harmonicSets[0].spacing).toBeGreaterThan(0)
       }
     })
     

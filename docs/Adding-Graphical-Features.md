@@ -46,7 +46,7 @@ Screen Coords ──→ SVG Coords ──→ Image Coords ──→ Data Coords
    - Input: pixel position on the natural image
    - Output: `{freq, time}` in domain units
    - X-axis maps to frequency, Y-axis maps to time (inverted: Y=0 is top)
-   - Rate acts as a frequency divider: `freq = rawFreq / rate`
+   - The frequency rate acts as a divider: `freq = rawFreq / frequencyRate`
 
 ### Converting Data Coords Back to SVG
 

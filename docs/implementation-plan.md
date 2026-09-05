@@ -158,13 +158,13 @@ This document outlines the technical implementation approach for each phase of t
 - Verify cursor selection and highlighting behavior
 - Fix any broken integration tests before proceeding to the next task
 
-### Rate input functionality
-- Add rate input field to UI
-- Implement rate change handling
-- Update harmonic calculations based on rate
-- Create integration tests for rate input functionality
-- Test harmonic recalculation with rate changes
-- Verify UI updates with rate changes
+### Frequency-rate input functionality
+- Add a frequency-rate input field to the UI
+- Implement frequency-rate change handling
+- Update harmonic calculations based on the frequency rate
+- Create integration tests for the frequency-rate input
+- Test harmonic recalculation with frequency-rate changes
+- Verify UI updates with frequency-rate changes
 - Fix any broken integration tests before proceeding to the next task
 
 ## Phase 5: Final Fit & Polish

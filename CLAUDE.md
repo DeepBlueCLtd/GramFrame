@@ -90,7 +90,7 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `audioSource.js` - `fetch`, falling back to the `<name>.wav.js` sidecar over `file://`
 - `src/player/` - The player around that chain:
   - `audioSetup.js` - The audio twin of `spectrogramImage.js`: load → analyse → paint → ready, then the deferred annotation restore
-  - `transport.js` - The `<audio>` element and `instance.player` (play/pause/seek/loop/rate/volume/mute)
+  - `transport.js` - The `<audio>` element and `instance.player` (play/pause/seek/loop/playback rate/volume/mute)
   - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow
     loop, the reveal rule, and the time read off a click on the time axis
 - `src/core/` - Core system modules:
@@ -274,7 +274,7 @@ There is no visual/screenshot regression testing — see
 - **Separation of Concerns**: Clear separation between rendering, state, events, and UI
 
 ### Technical Details
-- Rate affects frequency calculations (acts as frequency divider)
+- `state.frequencyRate` affects frequency calculations (it is the frequency divider). The player's `state.player.playbackRate` is a separate quantity; neither is named bare `rate`
 - Axes have configurable margins (left: 60px, bottom: 50px)
 - Harmonics are calculated dynamically during drag interactions
 - `commitAnnotationChange()` in `src/core/state.js` is the cadence every

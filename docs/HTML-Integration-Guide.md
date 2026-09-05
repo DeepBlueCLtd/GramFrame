@@ -123,14 +123,14 @@ everything below 11 kHz.
 
 ### Playback and keys
 
-The bar under the gram offers play/pause, restart, a seek slider, loop, rate
+The bar under the gram offers play/pause, restart, a seek slider, loop, playback rate
 (0.5× to 2×), mute and volume; a click on the time axis also seeks. When a
 player has keyboard focus (click on it), `Space` or `K` toggles play,
 `J`/`L` seek 5 s back or forward (30 s with `Shift`), `Home` restarts and `M`
 mutes. Arrow keys keep nudging a selected annotation. Image-backed grams are
 unaffected by any of these.
 
-Changing the rate changes the audible pitch (the browser's default); the gram
+Changing the playback rate changes the audible pitch (the browser's default); the gram
 is never re-analysed, so the frequency readouts stay true.
 
 The expand toggle (⤡) at the top-left of the gram works as it does on an
@@ -140,7 +140,7 @@ with it.
 
 From script, `GramFrame.getPlayer(index)` returns the player of the
 `index`-th instance (`null` for an image-backed one) with `play()`, `pause()`,
-`seek(seconds)`, `restart()`, `setLoop()`, `setRate()`, `setVolume()` and
+`seek(seconds)`, `restart()`, `setLoop()`, `setPlaybackRate()`, `setVolume()` and
 `setMute()`. `play()` returns the element's promise, which rejects if the
 browser refuses to start audio without a user gesture. The broadcast state
 carries a `player` object with the duration, playhead, transport flags and
