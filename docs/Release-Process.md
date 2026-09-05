@@ -13,8 +13,8 @@ The release system automatically creates GitHub releases when version tags are p
 The release workflow (`.github/workflows/release.yml`) is triggered when you push a version tag:
 
 1. **Tag Validation**: Ensures tag follows semantic versioning format (`v*.*.*.`)
-2. **Build Process**: Runs typecheck, installs dependencies, and builds the project
-3. **Testing**: Executes the full test suite to ensure quality
+2. **Quality gate**: Runs the same five checks the PR gate runs — `yarn hygiene`, `yarn lint`, `yarn typecheck`, `yarn test:unit` — then builds the standalone bundle
+3. **Testing**: Executes the full Playwright suite to ensure quality
 4. **Asset Bundling**: Creates a release archive with:
    - The standalone bundle (`gramframe.bundle.js`) — the only build users need
    - Sample `index.html` for testing (a copy of `test-release.html`)
@@ -34,9 +34,12 @@ To create a new release, follow these steps:
 git checkout main
 git pull origin main
 
-# Ensure all tests pass
-yarn test
+# Ensure all gates pass — the same five the release workflow runs
+yarn hygiene
+yarn lint
 yarn typecheck
+yarn test:unit
+yarn test
 yarn build
 ```
 

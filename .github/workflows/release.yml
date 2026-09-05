@@ -55,10 +55,30 @@ jobs:
           echo "🎭 Installing Playwright browsers..."
           yarn playwright install
 
+      # The release gate must be at least as strict as the PR gate (R9-05).
+      # It used to run typecheck, build and Playwright but neither `yarn lint`
+      # nor `yarn hygiene`, so a release cut from a branch that never went
+      # through a PR could ship a lint or ratchet regression. These are the
+      # same five checks `test.yml` runs, in the same order.
+      - name: Hygiene ratchet (cycles, unused exports, waitForTimeout)
+        run: |
+          echo "📏 Running hygiene ratchet..."
+          yarn hygiene
+
+      - name: Lint
+        run: |
+          echo "🧹 Running lint..."
+          yarn lint
+
       - name: Run type checking
         run: |
           echo "🔍 Running type checking..."
           yarn typecheck
+
+      - name: Unit tests
+        run: |
+          echo "🔬 Running unit tests..."
+          yarn test:unit
 
       - name: Check the tag matches package.json
         run: |
