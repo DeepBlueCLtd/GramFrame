@@ -1793,6 +1793,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       instance.featureRenderer.renderAllPersistentFeatures();
     }
   }
+  const PLAYER_RENDER_WIDTH = 900;
+  const PLAYER_RENDER_HEIGHT = 400;
+  function baseRenderSize(instance) {
+    if (isPlayerActive(instance)) {
+      return { width: PLAYER_RENDER_WIDTH, height: PLAYER_RENDER_HEIGHT };
+    }
+    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
+    return { width: naturalWidth, height: naturalHeight };
+  }
   const followHandles = /* @__PURE__ */ new WeakMap();
   function playerOf(instance) {
     return instance.state.player;
@@ -2996,16 +3005,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const BOTTOM_GAP = 16;
   function isLandscape(instance) {
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    return naturalWidth > 0 && naturalHeight > 0 && naturalWidth > naturalHeight;
+    const { width, height } = baseRenderSize(instance);
+    return width > 0 && height > 0 && width > height;
   }
   function computeAvailableRenderSize(instance) {
     const margins = instance.state.margins;
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
+    const { width: baseWidth, height: baseHeight } = baseRenderSize(instance);
     const cell = instance.ui.mainCell;
     const svg = instance.ui.svg;
     if (!cell || !svg) {
-      return { width: naturalWidth, height: naturalHeight };
+      return { width: baseWidth, height: baseHeight };
     }
     const cellStyle = window.getComputedStyle(cell);
     const padL = parseFloat(cellStyle.paddingLeft) || 0;
@@ -3015,10 +3024,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const width = cell.clientWidth - padL - padR - svgBorderX - margins.left - margins.right;
     const svgRect = svg.getBoundingClientRect();
     const imageTopViewport = svgRect.top + margins.top;
-    const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP;
+    const transport = isPlayerActive(instance) ? cell.querySelector(".gram-frame-transport") : null;
+    const transportHeight = transport instanceof HTMLElement ? transport.offsetHeight + (parseFloat(window.getComputedStyle(transport).marginTop) || 0) : 0;
+    const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP - transportHeight;
     return {
-      width: Math.max(naturalWidth, Math.round(width)),
-      height: Math.max(naturalHeight, Math.round(height))
+      width: Math.max(baseWidth, Math.round(width)),
+      height: Math.max(baseHeight, Math.round(height))
     };
   }
   function applyExpandLayout(instance) {
@@ -3034,8 +3045,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         imageDetails.renderHeight = settled.height;
       }
     } else {
-      imageDetails.renderWidth = imageDetails.naturalWidth;
-      imageDetails.renderHeight = imageDetails.naturalHeight;
+      const base = baseRenderSize(instance);
+      imageDetails.renderWidth = base.width;
+      imageDetails.renderHeight = base.height;
     }
     updateSVGLayout(instance);
     renderAxes(instance);
@@ -8400,8 +8412,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     instance.player = controller;
     return controller;
   }
-  const PLAYER_RENDER_WIDTH = 900;
-  const PLAYER_RENDER_HEIGHT = 400;
   function setProgress(instance, fraction, stage) {
     instance.state.player.progress = fraction;
     if (instance.ui.mainCell) {
@@ -8484,6 +8494,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       container.classList.remove("gram-frame-loading", "gram-frame-analysing");
       delete instance.ui.mainCell.dataset.gramProgress;
       updateSVGLayout(instance);
+      createExpandToggle(instance);
       instance._restoreAnnotations();
       updatePersistentPanels(instance);
       if (instance.featureRenderer) {
