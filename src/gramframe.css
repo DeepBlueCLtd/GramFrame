@@ -192,6 +192,84 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   text-shadow: none;
 }
 
+/* An audio-sourced gram (spec 168) is analysed after the table is replaced:
+   the loading caption stays up, but reads the stage and percentage the setup
+   step writes into data-gram-progress on the main panel (FR-006). */
+.gram-frame-container.gram-frame-analysing .gram-frame-main-panel::after {
+  content: attr(data-gram-progress);
+}
+
+/* While the recording plays, annotation tools, pan and zoom are inert
+   (FR-013); the arrow rather than the crosshair says so. !important because
+   the modes set the cursor inline on the SVG root. */
+.gram-frame-container.gram-frame-playing .gram-frame-svg {
+  cursor: default !important;
+}
+
+/* The transport bar under an audio-sourced gram (spec 168, D13). */
+.gram-frame-transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 6px;
+  background: rgba(20, 30, 45, 0.75);
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e6f2ff;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.gram-frame-transport-btn {
+  min-width: 30px;
+  height: 26px;
+  padding: 0 6px;
+  color: #e6f2ff;
+  background: rgba(40, 60, 90, 0.8);
+  border: 1px solid rgba(180, 200, 230, 0.5);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gram-frame-transport-btn:hover {
+  background: rgba(60, 90, 130, 0.9);
+}
+
+.gram-frame-transport-btn[aria-pressed="true"] {
+  background: rgba(60, 100, 60, 0.85);
+  border-color: rgba(150, 220, 150, 0.8);
+}
+
+.gram-frame-transport-seek {
+  flex: 1 1 200px;
+  min-width: 120px;
+}
+
+.gram-frame-transport-volume {
+  flex: 0 0 80px;
+  width: 80px;
+}
+
+.gram-frame-transport-time {
+  flex: 0 0 auto;
+  min-width: 96px;
+  text-align: center;
+  color: #00ff00;
+  text-shadow: 0 0 4px rgba(0, 255, 0, 0.5);
+}
+
+.gram-frame-transport-rate {
+  height: 26px;
+  color: #e6f2ff;
+  background: rgba(40, 60, 90, 0.8);
+  border: 1px solid rgba(180, 200, 230, 0.5);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
 /* Expand/collapse image toggle — floats at the top-left of the image region,
    clear of the time-axis labels (left margin is 60px). Landscape grams only. */
 .gram-frame-expand-toggle {

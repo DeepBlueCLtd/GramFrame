@@ -11,8 +11,9 @@ import { applyZoomTransform, updateSVGLayout } from '../components/svgLayout.js'
 import { renderAxes } from '../rendering/axes.js'
 import { updateCommandButtonStates, updateModeButtonStates } from '../components/ModeButtons.js'
 import { dispatch } from './state.js'
-import { screenToSVG } from '../utils/coordinates.js'
+import { screenToSVG, imageToData } from '../utils/coordinates.js'
 import { refreshExpandedLayout } from '../components/ExpandToggle.js'
+import { isPlayerActive, clampViewTop, visibleWindowSeconds } from '../player/playerView.js'
 
 /**
  * Zoom in by increasing zoom level
@@ -21,7 +22,7 @@ import { refreshExpandedLayout } from '../components/ExpandToggle.js'
 export function zoomIn(instance) {
   const zoom = instance.state.zoom
   const newLevel = Math.min(zoom.level * 1.5, 10.0) // Max 10x zoom
-  setZoom(instance, newLevel, zoom.centerX, zoom.centerY)
+  zoomAboutViewCentre(instance, newLevel)
 }
 
 /**
@@ -31,6 +32,26 @@ export function zoomIn(instance) {
 export function zoomOut(instance) {
   const zoom = instance.state.zoom
   const newLevel = Math.max(zoom.level / 1.5, 1.0) // Min 1x zoom
+  zoomAboutViewCentre(instance, newLevel)
+}
+
+/**
+ * Change the zoom level keeping the centre of the view where it is.
+ *
+ * For an image the centre is `zoom.centerX/Y`, which `setZoom` already keeps.
+ * For an audio-sourced gram the vertical position is a time, not a centre
+ * fraction (spec 168, D7): the time at the middle of the view is held and the
+ * top edge recomputed from the new window height (D11).
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {number} newLevel - Target zoom level
+ */
+function zoomAboutViewCentre(instance, newLevel) {
+  const { zoom, player } = instance.state
+  if (isPlayerActive(instance)) {
+    const centreTime = player.viewTop - visibleWindowSeconds(instance) / 2
+    zoom.level = newLevel
+    player.viewTop = clampViewTop(instance, centreTime + visibleWindowSeconds(instance) / 2)
+  }
   setZoom(instance, newLevel, zoom.centerX, zoom.centerY)
 }
 
@@ -118,7 +139,17 @@ export function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
  * @param {number} deltaY - Change in centre Y (normalized)
  */
 export function panByNormalized(instance, deltaX, deltaY) {
-  const zoom = instance.state.zoom
+  const { zoom, player } = instance.state
+  if (isPlayerActive(instance)) {
+    // Vertically the view is a time window: a normalised delta of the render
+    // height is `window-seconds`, at any zoom level, and the clamp keeps the
+    // window inside what has been played (spec 168, FR-016). Horizontally the
+    // frequency axis pans as an image does, once zoomed in.
+    player.viewTop = clampViewTop(instance, player.viewTop + deltaY * player.windowSeconds)
+    const newCenterX = zoom.level > 1.0 ? Math.max(0, Math.min(1, zoom.centerX + deltaX)) : zoom.centerX
+    setZoom(instance, zoom.level, newCenterX, zoom.centerY)
+    return
+  }
   if (zoom.level <= 1.0) {
     return // No panning when not zoomed
   }
@@ -138,19 +169,33 @@ export function panByNormalized(instance, deltaX, deltaY) {
  * @param {number} imageY - Pointer Y in render-pixel space (0..renderHeight)
  */
 export function zoomAtImagePoint(instance, factor, imageX, imageY) {
-  const currentLevel = instance.state.zoom.level
+  const state = instance.state
+  const { zoom, player, imageDetails } = state
+  const currentLevel = zoom.level
   const newLevel = Math.max(1.0, Math.min(currentLevel * factor, 10.0))
   if (newLevel === currentLevel) {
     return // Already at the min/max limit
   }
+  const { naturalWidth, naturalHeight } = imageDetails
+  const renderWidth = imageDetails.renderWidth || naturalWidth
+  const renderHeight = imageDetails.renderHeight || naturalHeight
+
+  if (isPlayerActive(instance)) {
+    // Hold the time under the pointer at the same fraction of the view while
+    // the window's height in seconds changes (spec 168, D11).
+    const pointerTime = imageToData(imageX, imageY, state).time
+    const fraction = (player.viewTop - pointerTime) / visibleWindowSeconds(instance)
+    zoom.level = newLevel
+    player.viewTop = clampViewTop(instance, pointerTime + fraction * visibleWindowSeconds(instance))
+    const centerX = newLevel <= 1.0 ? 0.5 : Math.max(0, Math.min(1, imageX / renderWidth))
+    setZoom(instance, newLevel, centerX, 0.5)
+    return
+  }
+
   if (newLevel <= 1.0) {
     zoomReset(instance)
     return
   }
-  const imageDetails = instance.state.imageDetails
-  const { naturalWidth, naturalHeight } = imageDetails
-  const renderWidth = imageDetails.renderWidth || naturalWidth
-  const renderHeight = imageDetails.renderHeight || naturalHeight
   const centerX = Math.max(0, Math.min(1, imageX / renderWidth))
   const centerY = Math.max(0, Math.min(1, imageY / renderHeight))
   setZoom(instance, newLevel, centerX, centerY)

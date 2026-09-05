@@ -91,8 +91,10 @@ export function updateModeUIWithCommands(instance, previous, modes, currentMode,
  * @param {GramFrame} instance - GramFrame instance
  */
 export function setupSpectrogramIfAvailable(instance) {
-  // Set up spectrogram image if we have one from config extraction
-  if (instance.state.imageDetails.url) {
+  // Set up spectrogram image if we have one from config extraction. An
+  // audio-sourced instance carries its audio URL here and is set up by
+  // `player/audioSetup.js` from the constructor instead (spec 168).
+  if (instance.state.imageDetails.url && !instance.state.player.active) {
     setupSpectrogramImage(instance, instance.state.imageDetails.url)
   }
 }

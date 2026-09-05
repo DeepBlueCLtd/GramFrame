@@ -94,6 +94,36 @@ const initialState = {
     selectedId: null,    // ID of selected item
     selectedIndex: null  // Index in table for display purposes
   },
+  // The spectrograph player (spec 168). A core slice rather than a mode's: it
+  // describes what the instance is built on, as `imageDetails` does, not how
+  // the analyst is interacting with it. Inert on image-backed instances so
+  // every listener sees one shape.
+  player: {
+    active: false,
+    ready: false,
+    progress: 0,
+    source: '',
+    duration: 0,
+    sampleRate: 0,
+    channels: 0,
+    playhead: 0,
+    playing: false,
+    ended: false,
+    loop: false,
+    rate: 1,
+    volume: 1,
+    muted: false,
+    viewTop: 0,
+    windowSeconds: 10,
+    analysis: {
+      fftSize: 1024,
+      hopSize: 512,
+      freqStart: 0,
+      freqEnd: null,
+      columns: 0,
+      frames: 0
+    }
+  },
 }
 
 /**

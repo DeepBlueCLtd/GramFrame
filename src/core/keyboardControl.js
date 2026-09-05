@@ -13,6 +13,13 @@ import { isPanelOwner, findPinSetOwner } from '../modes/capabilities.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
 import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount, clearFocusedInstance, isNodeInsideAnyInstance } from './FocusManager.js'
 import { cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
+import { isPlaying, isPlayerActive } from '../player/playerView.js'
+
+/**
+ * Seconds a transport seek key moves by, plain and with Shift.
+ */
+const SEEK_STEP_SECONDS = 5
+const SEEK_STEP_SHIFT_SECONDS = 30
 
 /**
  * Movement increments in pixels
@@ -142,8 +149,21 @@ function handleGlobalKeyboardEvent(event) {
     return
   }
 
+  // Transport keys on a focused audio-sourced instance (spec 168, D13). None
+  // of these is an arrow key, so nudging is untouched, and none is bound on an
+  // image-backed instance, so nothing there changes (FR-021).
+  if (isPlayerActive(focusedInstance) && handleTransportKey(focusedInstance, event)) {
+    event.preventDefault()
+    return
+  }
+
   // Only handle arrow keys for movement
   if (!isArrowKey(event.key)) {
+    return
+  }
+
+  // Moving an annotation is inert while the recording plays (spec 168, FR-013)
+  if (isPlaying(focusedInstance)) {
     return
   }
 
@@ -177,6 +197,59 @@ function handleGlobalKeyboardEvent(event) {
     if (owner) {
       moveSelectedPinSet(focusedInstance, owner, selection.selectedId, movement)
     }
+  }
+}
+
+/**
+ * Act on a transport key. Space/K toggle, J/L seek, Home restarts, M mutes.
+ *
+ * A Space or Enter on a focused button is left to the button — the transport
+ * bar's own play button would otherwise be toggled twice.
+ * @param {GramFrame} instance - The focused audio-sourced instance
+ * @param {KeyboardEvent} event - The keydown
+ * @returns {boolean} True when the key was a transport key and was handled
+ */
+function handleTransportKey(instance, event) {
+  const controller = instance.player
+  if (!controller || !controller.isReady()) {
+    return false
+  }
+  const target = event.target
+  const onButton = target instanceof Element && target.tagName === 'BUTTON'
+  const step = event.shiftKey ? SEEK_STEP_SHIFT_SECONDS : SEEK_STEP_SECONDS
+  const player = instance.state.player
+  const playhead = player.playhead
+  switch (event.key) {
+    case ' ':
+    case 'Enter':
+      if (onButton) return false
+      controller.toggle().catch(error => {
+        console.warn('GramFrame: playback could not start:', error instanceof Error ? error.message : String(error))
+      })
+      return true
+    case 'k':
+    case 'K':
+      controller.toggle().catch(error => {
+        console.warn('GramFrame: playback could not start:', error instanceof Error ? error.message : String(error))
+      })
+      return true
+    case 'j':
+    case 'J':
+      controller.seek(playhead - step)
+      return true
+    case 'l':
+    case 'L':
+      controller.seek(playhead + step)
+      return true
+    case 'Home':
+      controller.restart()
+      return true
+    case 'm':
+    case 'M':
+      controller.setMute(!player.muted)
+      return true
+    default:
+      return false
   }
 }
 

@@ -4,7 +4,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
 (function() {
   // Inject CSS styles
   const style = document.createElement('style');
-  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #1a1a1a;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* Military-style table layout for proper resizing */\n.gram-frame-table {\n  display: table;\n  width: 100%;\n  height: 100%;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* Main panel with military frame */\n.gram-frame-main-panel {\n  padding: 15px;\n  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border: 3px solid #555;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 3px 6px rgba(0,0,0,0.5),\n    inset 0 -2px 4px rgba(255,255,255,0.1),\n    0 0 10px rgba(0,0,0,0.7);\n  position: relative;\n}\n\n.gram-frame-main-panel:before {\n  content: '';\n  position: absolute;\n  top: 5px;\n  left: 5px;\n  right: 5px;\n  bottom: 5px;\n  border: 1px solid #666;\n  border-radius: 4px;\n  pointer-events: none;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n.gram-frame-display-panel {\n  padding: 10px;\n  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border-top: 2px solid #555;\n}\n\n.gram-frame-readout {\n  flex: 0 1 auto;\n  width: 100%; /* Definite width so the unified layout's flex sizing applies */\n  padding: 0;\n  background: transparent;\n}\n\n/* Harmonics mode CSS removed - now using unified layout */\n\n/* Harmonics layout container - two columns */\n\n/* Left column for controls - 40% width */\n.gram-frame-harmonics-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  flex: 0 0 40%;\n  max-width: 40%;\n}\n\n/* Top row in left column */\n.gram-frame-harmonics-top-row {\n  display: flex;\n  gap: 10px;\n  align-items: stretch;\n}\n\n/* Right column for table - 60% width */\n.gram-frame-harmonics-table-column {\n  flex: 0 0 60%;\n  max-width: 60%;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n}\n\n/* Make color picker more compact in harmonics mode */\n.gram-frame-harmonics-mode .gram-frame-color-picker {\n  margin: 0;\n}\n\n/* Harmonic panel layout - always visible in unified layout */\n\n/* Military-style display windows */\n.gram-frame-led {\n  font-family: 'Courier New', monospace;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  color: #00ff00; /* LED green */\n  padding: 6px 0px;\n  border: 0px solid #333;\n  border-radius: 4px;\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 auto;\n  min-width: 100px;\n  text-align: center;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  position: relative;\n  font-size: 11px;\n  height: fit-content;\n}\n\n.gram-frame-led:before {\n  content: '';\n  position: absolute;\n  top: 2px;\n  left: 2px;\n  right: 2px;\n  bottom: 2px;\n  border: 1px solid #444;\n  border-radius: 2px;\n  pointer-events: none;\n}\n\n/* LED label */\n.gram-frame-led-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 4px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* LED value */\n.gram-frame-led-value {\n  font-size: 14px;\n  font-weight: bold;\n  text-shadow: 0 0 4px #00ff00;\n}\n\n/* Label-beside-value LED (the doppler speed readout).\n *\n * The default LED stacks its label above its value, which suits the short\n * \"Time (mm:ss)\" / \"Frequency (Hz)\" captions. \"Doppler Speed (kts)\" is long\n * enough to claim a row of its own, so stacking it spent height on a line that\n * was mostly empty either side of the value. Here the label sits to the LEFT of\n * the value and `width: min-content` wraps it, filling the width the stacked\n * form wasted. It breaks into two lines rather than three because MainUI.js\n * joins \"Doppler\" and \"Speed\" with a non-breaking space.\n *\n * The label stays ONE text node (\"Doppler Speed (kts)\"): the wrap is CSS, not\n * markup, so `.gram-frame-led-label:text-is(...)` still matches it (the test\n * helpers locate every LED that way). Do not split it into lines in JS. */\n.gram-frame-led-inline {\n  flex-direction: row;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  padding: 4px 6px;\n}\n\n.gram-frame-led-inline .gram-frame-led-label {\n  margin-bottom: 0;\n  width: min-content;\n  text-align: right;\n  line-height: 1.2;\n}\n\n/* Manual harmonic button. Sized to sit inside the panel header row beside the\n   \"Harmonics\" heading: at its old 6px/12px padding and 80px floor it stood\n   28px tall against the heading's 21px, which both pushed the heading down out\n   of line with the markers panel's and made the pair too wide for the 175px\n   column, so the button overlapped the heading. */\n.gram-frame-manual-button {\n  padding: 3px 6px;\n  min-width: 0;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 10px;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-manual-button:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-manual-button:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Style panel: colour band, symbol band, harmonics band */\n.gram-frame-color-picker {\n  margin-top: 0;\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  max-width: 200px;\n  flex-shrink: 0;\n}\n\n/* No `.gram-frame-color-picker-label` rule: the panel's \"Style\" heading is\n * gone (each band labels itself), so the caption it styled no longer exists. */\n\n.gram-frame-color-palette {\n  position: relative;\n}\n\n/* One band of the style panel, grouping controls that share a scope. */\n.gram-frame-style-group {\n  margin-bottom: 6px;\n}\n\n.gram-frame-style-group:last-child {\n  margin-bottom: 0;\n}\n\n/* Band caption. Same micro-caps treatment as the panel heading, but ranged left\n   so the bands read as a list beneath the centred title. */\n.gram-frame-style-group-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: left;\n  margin-bottom: 4px;\n}\n\n/* A band whose controls fit on one line puts its caption inline with them\n   rather than above. Used by the Symbol and Harmonics bands; the Colour band\n   has no caption at all — the gradient slider needs no naming. */\n.gram-frame-style-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.gram-frame-style-row .gram-frame-style-group-label {\n  margin-bottom: 0;\n}\n\n/* Fences the harmonics-only band off from the controls above it. Lighter than\n   the panel border (#333), which is invisible against the panel's near-black\n   fill — the rule has to be seen to do its job. */\n.gram-frame-style-divider {\n  border-top: 1px solid #4a4a4a;\n  margin: 8px 0 6px;\n}\n\n/* Symbol drop-down embedded to the right of the colour slider. Its `color` is\n   set inline to the selected colour so the glyphs render in that colour. */\n.gram-frame-symbol-select {\n  flex-shrink: 0;\n  padding: 2px 4px;\n  background: #0a0a0a;\n  border: 1px solid #555;\n  border-radius: 2px;\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n/* Harmonic-pin visibility toggle, in the panel's harmonics band.\n   TEMPORARY (symbol-size experiment): the \"Large\" toggle sits inline in the\n   symbol row and shares this styling. Remove that selector, the margin-left\n   override and the blocks below, together with the control once a symbol size\n   is agreed. */\n.gram-frame-pin-toggle,\n.gram-frame-large-symbols-toggle {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n  cursor: pointer;\n  user-select: none;\n}\n\n/* Push the size toggle to the far edge of the symbol row, clear of the\n   drop-down. */\n.gram-frame-large-symbols-toggle {\n  margin-left: auto;\n}\n\n.gram-frame-pin-toggle-input,\n.gram-frame-large-symbols-checkbox {\n  margin: 0;\n  cursor: pointer;\n  accent-color: #00ff00;\n}\n\n.gram-frame-pin-toggle-label,\n.gram-frame-large-symbols-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-pin-toggle-disabled {\n  cursor: default;\n  opacity: 0.45;\n}\n\n.gram-frame-pin-toggle-disabled .gram-frame-pin-toggle-input {\n  cursor: default;\n}\n\n/* The slider has the band to itself, so it spans the panel: a wider gradient is\n   an easier target. The canvas keeps its 140px backing store — the click\n   handler rescales by the rendered width, and the indicator is positioned in\n   percent, so both follow the CSS width. */\n.gram-frame-color-canvas {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  height: 20px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  cursor: pointer;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n.gram-frame-color-indicator {\n  position: absolute;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 3px;\n  height: 26px;\n  background: #fff;\n  border: 1px solid #000;\n  border-radius: 1px;\n  pointer-events: none;\n  box-shadow: 0 0 2px rgba(0,0,0,0.8);\n}\n\n/* Analysis mode layout styles */\n.gram-frame-analysis-layout {\n  height: 100%;\n}\n\n.gram-frame-analysis-controls {\n  align-self: flex-start;\n}\n\n.gram-frame-analysis-leds {\n  /* Side-by-side LEDs container */\n}\n\n.gram-frame-analysis-leds .gram-frame-led {\n  /* Ensure LEDs in the horizontal container are sized properly */\n  font-size: 9px; /* Slightly smaller to fit side-by-side */\n}\n\n.gram-frame-analysis-leds .gram-frame-led-label {\n  font-size: 8px; /* Smaller label text */\n  color: #00ff00;\n}\n\n.gram-frame-analysis-markers {\n  height: 100%;\n}\n\n/* Unified table styles for both markers and harmonics */\n\n/*\n * Fixed-height home for a markers/harmonics table.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the readout row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n.gram-frame-table-container {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  box-sizing: border-box;\n  padding: 0;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow:\n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows\n     are added or removed (no reflow of the table columns). */\n  overflow-y: scroll;\n  overflow-x: hidden;\n  /* Dark-theme scrollbar (Firefox) */\n  scrollbar-width: thin;\n  scrollbar-color: #555 #111;\n}\n\n/* Dark-theme scrollbar (WebKit/Blink) */\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 10px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: #555;\n  border-radius: 5px;\n  border: 2px solid #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: #6a6a6a;\n}\n\n/*\n * Separate (not collapsed) borders: sticky header cells are unreliable with\n * border-collapse, so each cell draws its own right/bottom edge and the first\n * column/header row close the outer edges. Visually identical to the collapsed\n * 1px grid, because border-spacing is zero.\n *\n * Element-qualified because the `gram-frame-table` class is also carried by the\n * component's outer frame <div> (display: table), which must keep its own\n * border. Zeroing the border here matters for the sticky header too — a border\n * on the table box offsets the header cells from the scrollport, which makes\n * them jump when the body first scrolls.\n */\ntable.gram-frame-table {\n  width: 100%;\n  /*\n   * Natural height, NOT the 100% the shared class sets for the outer frame.\n   * A table told to fill its container distributes the surplus across its rows,\n   * so a two-row table drew 50px rows, a six-row table 31px ones, and every row\n   * visibly shrank as the next was added. Rows now stay the height their\n   * content needs and the leftover space simply sits below them.\n   */\n  height: auto;\n  border: 0;\n  border-collapse: separate;\n  border-spacing: 0;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-table th,\n.gram-frame-table td {\n  border: 0;\n  border-right: 1px solid #444;\n  border-bottom: 1px solid #444;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  border-left: 1px solid #444;\n}\n\n.gram-frame-table th {\n  background: #222;\n  color: #00ff00;\n  /*\n   * Horizontal padding and letter-spacing are deliberately tight (feature 231):\n   * the markers table gained a fifth column in the same 160px, and at 4px/0.5px\n   * the headers no longer fitted their own text. The narrow columns are the\n   * constraint here, not the label copy.\n   */\n  padding: 4px 1px;\n  text-align: center;\n  border-top: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0;\n  /* Header row stays pinned while the body scrolls beneath it. The z-index sits\n     above the positioned body rows, including a selected row's cells (11). */\n  position: sticky;\n  top: 0;\n  z-index: 20;\n}\n\n.gram-frame-table td {\n  /* Matches the header's tight horizontal padding — see the note above. */\n  padding: 4px 1px;\n  text-align: center;\n  background: #1a1a1a;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n  transition: all 0.2s ease;\n  position: relative;\n}\n\n.gram-frame-table tbody tr:hover {\n  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.05),\n    inset 0 -1px 2px rgba(0,0,0,0.2),\n    0 0 4px rgba(255,255,255,0.1);\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: transparent;\n}\n\n/* Legacy markers styles - kept for compatibility */\n.gram-frame-markers-container {\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-markers-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin: 0 0 8px 0;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-markers-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-markers-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-markers-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-color-swatch {\n  margin: 0 auto;\n  display: block;\n}\n\n.gram-frame-marker-delete-btn {\n  padding: 2px 6px;\n  border-radius: 2px;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-delete-btn:hover {\n  background-color: #ff4444 !important;\n  color: #fff !important;\n}\n\n/*\n * The Label column shows an abbreviated label (see formatMarkerLabelForTable),\n * so it should never wrap or stretch the row; anything unexpectedly long is\n * clipped rather than allowed to reflow the table.\n *\n * It is also the positioning context for the label button in its top-right\n * corner. The button was stacked above Delete in the actions cell until every\n * marker row had to be tall enough for two controls; out of the flow it costs\n * the row no height, and it now sits in the column it edits.\n */\n.gram-frame-marker-label-cell {\n  position: relative;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n/* Deliberately NOT a positioning context: the button anchors to the CELL, which\n   is the box whose top-right corner it wants. This wrapper is only as tall as\n   the label text and sits vertically centred in the cell, so positioning\n   against it would park the button halfway down instead. */\n.gram-frame-marker-label-content {\n  position: static;\n}\n\n/* Reserves the button's corner so a longer abbreviation is clipped short of it\n   rather than running underneath. */\n.gram-frame-marker-label-text {\n  display: block;\n  padding-right: 14px;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-marker-label-btn {\n  position: absolute;\n  top: 1px;\n  right: 0;\n  background: none;\n  border: none;\n  color: #8ab4d8;\n  cursor: pointer;\n  padding: 1px 2px;\n  border-radius: 2px;\n  line-height: 0;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-label-btn:hover {\n  background-color: #8ab4d8;\n  color: #1a1a1a;\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/*\n * A marker's on-gram label. Legibility comes from the white rounded plate drawn\n * behind it (issue #243) — the geometry and colours are presentation attributes\n * set by plateLabel(), see src/utils/labelPlate.js. Never a click target: the\n * marker underneath is.\n */\n.gram-frame-marker-label {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  user-select: none;\n}\n\n/*\n * The white plate behind any on-gram label, and the group holding the two. Both\n * are transparent to the pointer so the plate never intercepts a click meant\n * for the feature it annotates, or for the gram beneath it.\n */\n.gram-frame-label-plate,\n.gram-frame-label-plated {\n  pointer-events: none;\n}\n\n/* Military-style mode selection header */\n.gram-frame-mode-header {\n  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border-bottom: 2px solid #555;\n  display: flex;\n  align-items: flex-start;\n  justify-content: flex-start;\n}\n\n/*\n * The mode buttons, stacked one per row.\n *\n * The gap and the button paddings below were tightened when Sidebands became a\n * fifth mode (issue #241): at the old sizes a fifth row made the whole control\n * panel ~40px taller in every mode whose guidance text is short, which pushed\n * the spectrogram itself that far down the page. Five rows now occupy what four\n * did, so adding the mode cost the gram no vertical space.\n */\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  justify-content: center;\n  align-items: stretch;\n  flex: 0 0 auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-mode-group {\n  display: flex;\n  align-items: center;\n  gap: 2px;\n  width: 100%;\n  flex-wrap: nowrap;\n}\n\n/* Simplified left panel - no sub-columns needed */\n\n/* Guidance panel */\n/*\n * The guidance panel fills its column and scrolls, rather than growing the\n * control row to fit its text.\n *\n * Same mechanism as the tables beside it (an absolutely positioned child of a\n * relative column), and for the same reason: the guidance column is what gives\n * way when a host is too narrow for the whole row, and the narrower it gets the\n * taller its text wraps. Letting that set the row height pushed the row — and\n * the spectrogram under it — down the page, by as much as 80px on a 1280px host\n * once a fourth table joined the row (issue #241).\n *\n * The row is now as tall as the readouts and the mode buttons need and no\n * taller, in every mode. Two things follow: the gram sits at a constant height\n * instead of moving as the analyst switches mode, and a host too narrow for the\n * full guidance text costs reading length here rather than gram height.\n */\n.gram-frame-guidance-column {\n  position: relative;\n}\n\n.gram-frame-guidance {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  overflow-y: auto;\n  box-sizing: border-box;\n  padding: 8px 12px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  color: #ccc;\n  font-size: 12px;\n  line-height: 1.4;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-guidance h4 {\n  margin: 0 0 6px 0;\n  font-size: 11px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* Aside inside a guidance heading (e.g. Mouse-Wheel \"(available in all modes)\").\n   Dropping the heading's uppercase and letter-spacing is what lets the qualifier\n   share the heading's line instead of wrapping onto a second one — it was a\n   bullet of its own until it moved up here, and a two-line heading would have\n   given back the height the move was meant to save. Dimmer than the heading so\n   the section still reads by its name first. */\n.gram-frame-guidance h4 .gram-frame-guidance-qualifier {\n  text-transform: none;\n  letter-spacing: 0;\n  font-weight: normal;\n  font-size: 10px;\n  color: #6a6;\n}\n\n.gram-frame-guidance p {\n  margin: 0 0 4px 0;\n}\n\n/* Military-style metal buttons */\n.gram-frame-mode-btn {\n  padding: 5px 6px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  flex: 1;\n  min-width: 0;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-command-btn {\n  padding: 6px 8px;\n  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #444;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 14px;\n  line-height: 1;\n  flex: 0 0 auto;\n  min-width: 32px;\n  height: 32px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-mode-btn:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-mode-btn.active {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n  border-color: #4a8a4a;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    inset 0 -1px 2px rgba(255,255,255,0.1),\n    0 0 4px rgba(74, 138, 74, 0.3);\n}\n\n.gram-frame-mode-btn:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  opacity: 0.6;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n.gram-frame-mode-btn:disabled:hover,\n.gram-frame-mode-btn.disabled:hover {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n  transform: none;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-command-btn:active:not(:disabled) {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-command-btn:disabled {\n  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n/* Clear gram button — trainer pages only */\n.gram-frame-clear-btn {\n  margin-top: 8px;\n  padding: 6px 10px;\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #6a3a3a;\n  border-radius: 4px;\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.5px;\n  cursor: pointer;\n  text-transform: uppercase;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.15),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  width: 100%;\n}\n\n.gram-frame-clear-btn:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.25),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-clear-btn:active {\n  transform: translateY(1px);\n  box-shadow:\n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Storage-failure banner — shown inside the component when a save or clear was\n   refused by browser storage (quota, private browsing). Non-blocking: it sits\n   above the controls, wraps rather than clips, and can be dismissed. */\n.gram-frame-storage-warning {\n  box-sizing: border-box;\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  margin: 0 0 8px 0;\n  padding: 8px 10px;\n  background-color: #fff8e1;\n  border: 1px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 13px;\n  line-height: 1.4;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-storage-warning-message {\n  flex: 1 1 auto;\n  min-width: 0;\n}\n\n.gram-frame-storage-warning-dismiss {\n  flex: 0 0 auto;\n  padding: 0 4px;\n  background: none;\n  border: none;\n  color: #663c00;\n  font-size: 16px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-storage-warning-dismiss:hover {\n  color: #a06000;\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Rate input UI styles removed - backend functionality preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line,\n.gram-frame-harmonic-mini-pin,\n.gram-frame-sideband-line,\n.gram-frame-sideband-mini-pin {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number,\n.gram-frame-sideband-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the white rounded plate drawn behind the digits\n   * (issue #243), set as presentation attributes by plateLabel() in\n   * src/utils/labelPlate.js. No drop-shadow: it only blurs the plate's edge.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* Legacy harmonic panel styles - now using unified table structure */\n\n.gram-frame-harmonic-spacing,\n.gram-frame-harmonic-rate,\n.gram-frame-sideband-freq,\n.gram-frame-sideband-spacing {\n  font-size: 14px;\n  font-weight: bold;\n}\n\n.gram-frame-harmonic-color,\n.gram-frame-sideband-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n.gram-frame-harmonic-delete,\n.gram-frame-sideband-delete {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ff6666;\n  border: 1px solid #555;\n  border-radius: 2px;\n  width: 20px;\n  height: 20px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  line-height: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.1s ease;\n}\n\n.gram-frame-harmonic-delete:hover,\n.gram-frame-sideband-delete:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  border-color: #777;\n}\n\n.gram-frame-harmonic-delete:active,\n.gram-frame-sideband-delete:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-harmonic-empty {\n  color: #666;\n  font-style: italic;\n  text-align: center;\n  padding: 20px;\n  font-size: 12px;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n/*\n * The vertical extensions are drawn after the f+/f- dots, so while they were\n * hit-testable they sat on top of the very markers the analyst was aiming at.\n * Doppler hit-testing is done in data space against the marker positions, not\n * by hitting an element, so nothing needs these to be targets.\n */\n.gram-frame-doppler-extension {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Cursor position readout styles */\n.gram-frame-cursor-readout {\n  display: flex;\n  gap: 15px;\n  margin-bottom: 10px;\n  padding: 8px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 1px solid #444;\n  border-radius: 4px;\n}\n\n.gram-frame-readout-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  min-width: 80px;\n}\n\n.gram-frame-readout-label {\n  font-size: 10px;\n  color: #aaa;\n  text-transform: uppercase;\n  margin-bottom: 2px;\n  font-weight: bold;\n}\n\n.gram-frame-readout-value {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: bold;\n  color: #00ff00;\n  background: #000;\n  padding: 4px 8px;\n  border: 1px solid #333;\n  border-radius: 2px;\n  text-align: center;\n  min-width: 60px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n/* Supporting note under a modal input (e.g. how to clear a marker label) */\n.gram-frame-modal-hint {\n  color: #999;\n  font-size: 11px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/* Unified Layout Styles */\n.gram-frame-unified-layout {\n  display: flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  gap: 2px; /* Match JavaScript gap */\n  width: 100%;\n  height: 100%;\n  overflow: hidden; /* Prevent columns from overflowing container */\n}\n\n.gram-frame-left-column {\n  position: relative; /* Enable absolute positioning for child elements */\n  display: flex;\n  flex-direction: row;\n  gap: 4px;\n  flex: 0 0 600px;\n  width: 600px;\n  overflow: hidden;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Left column sub-columns */\n.gram-frame-mode-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 130px;\n  width: 130px;\n  padding: 8px;\n  border: none;\n}\n\n.gram-frame-guidance-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 1;\n  min-width: 150px;\n  border: none;\n}\n\n.gram-frame-controls-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 210px;\n  width: 210px;\n  padding: 0px;\n  border: none;\n}\n\n/*\n * Markers column. Widened from a flat 160px when the Label column was added\n * (feature 231), and made elastic rather than fixed: it takes up to 235px where\n * the host has the width, and gives back down to 185px where it does not.\n *\n * The floor matters. Shrinking the LEFT column past ~620px rewraps the guidance\n * text onto extra lines and grows the whole control row ~50px taller, pushing\n * the gram down the page — so the markers column must not simply be pinned\n * wide. 185px is the floor because it is what the five columns need, and it is\n * funded by the harmonics column next door (200 → 175px) rather than by the\n * left column, leaving the narrow-window layout exactly as it was.\n *\n * These values — and the matching inline styles in\n * MainUI.createUnifiedLayout — must agree.\n */\n.gram-frame-middle-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 3 235px;\n  width: auto;\n  min-width: 185px;\n  max-width: 235px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/*\n * The two pin-set tables: harmonics (200 → 175px when the markers column gained\n * its Label column — see the markers-column note above), and sidebands beside\n * it. Both are always visible (issue #241).\n *\n * 175px each — the width the harmonics table has always had — so the two read as\n * a matched pair. Together with the markers table and the readouts beside them,\n * the control row now wants ~1090px; a host narrower than that squeezes the\n * guidance column, which scrolls rather than growing the row taller (see the\n * note on `.gram-frame-guidance`).\n */\n.gram-frame-right-column,\n.gram-frame-sidebands-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 175px;\n  min-width: 175px;\n  width: 175px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-cursor-leds {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 6px;\n  align-items: flex-start;\n  flex: 0 0 auto;\n  height: fit-content;\n}\n\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container,\n.gram-frame-sidebands-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n/*\n * Panel header: the heading, plus an optional action slot on the right (the\n * harmonics panel's + Manual button).\n *\n * The rule and the spacing live HERE and not on the h4, which is what keeps the\n * two panels consistent. When the underline was on the heading itself, the\n * markers h4 — a block filling its column — drew a full-width rule, while the\n * harmonics h4 — a flex item beside the button — drew one only as wide as the\n * word. `min-height` holds both rows to the same height so the two headings sit\n * on the same line as each other across the panel.\n */\n.gram-frame-panel-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 6px;\n  min-height: 22px;\n  margin: 0 0 8px 0;\n  padding-bottom: 4px;\n  border-bottom: 1px solid #444;\n  flex-shrink: 0;\n}\n\n.gram-frame-markers-persistent-container h4,\n.gram-frame-harmonics-persistent-container h4,\n.gram-frame-sidebands-persistent-container h4 {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  flex-shrink: 0;\n  color: #ddd;\n  font-size: 14px;\n  text-align: left;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n}\n\n.gram-frame-harmonics-button-container {\n  display: flex;\n  justify-content: center;\n  flex-shrink: 0;\n}\n\n/* Responsive behavior for smaller screens */\n@media (max-width: 1200px) {\n  .gram-frame-unified-layout {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .gram-frame-left-column,\n  .gram-frame-middle-column,\n  .gram-frame-right-column,\n  .gram-frame-sidebands-column {\n    flex: 0 0 auto;\n    min-height: 200px;\n  }\n}\n\n/* Selection highlighting for keyboard control */\n.gram-frame-selected-row {\n  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;\n  color: #aaffaa !important;\n  outline: 2px solid #4a8a4a !important;\n  outline-offset: -1px;\n  position: relative;\n  z-index: 10;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.15),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 0 8px rgba(74, 138, 74, 0.6),\n    0 0 2px rgba(74, 138, 74, 0.8) !important;\n}\n\n.gram-frame-selected-row td {\n  color: #aaffaa !important;\n  border-color: #4a8a4a !important;\n  position: relative;\n  z-index: 11;\n}\n\n/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n";
+  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #1a1a1a;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* Military-style table layout for proper resizing */\n.gram-frame-table {\n  display: table;\n  width: 100%;\n  height: 100%;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* Main panel with military frame */\n.gram-frame-main-panel {\n  padding: 15px;\n  background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border: 3px solid #555;\n  border-radius: 8px;\n  box-shadow: \n    inset 0 3px 6px rgba(0,0,0,0.5),\n    inset 0 -2px 4px rgba(255,255,255,0.1),\n    0 0 10px rgba(0,0,0,0.7);\n  position: relative;\n}\n\n.gram-frame-main-panel:before {\n  content: '';\n  position: absolute;\n  top: 5px;\n  left: 5px;\n  right: 5px;\n  bottom: 5px;\n  border: 1px solid #666;\n  border-radius: 4px;\n  pointer-events: none;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* An audio-sourced gram (spec 168) is analysed after the table is replaced:\n   the loading caption stays up, but reads the stage and percentage the setup\n   step writes into data-gram-progress on the main panel (FR-006). */\n.gram-frame-container.gram-frame-analysing .gram-frame-main-panel::after {\n  content: attr(data-gram-progress);\n}\n\n/* While the recording plays, annotation tools, pan and zoom are inert\n   (FR-013); the arrow rather than the crosshair says so. !important because\n   the modes set the cursor inline on the SVG root. */\n.gram-frame-container.gram-frame-playing .gram-frame-svg {\n  cursor: default !important;\n}\n\n/* The transport bar under an audio-sourced gram (spec 168, D13). */\n.gram-frame-transport {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  margin-top: 8px;\n  padding: 4px 6px;\n  background: rgba(20, 30, 45, 0.75);\n  border: 1px solid #555;\n  border-radius: 4px;\n  color: #e6f2ff;\n  font-family: 'Courier New', monospace;\n  font-size: 13px;\n}\n\n.gram-frame-transport-btn {\n  min-width: 30px;\n  height: 26px;\n  padding: 0 6px;\n  color: #e6f2ff;\n  background: rgba(40, 60, 90, 0.8);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  font-size: 13px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-transport-btn:hover {\n  background: rgba(60, 90, 130, 0.9);\n}\n\n.gram-frame-transport-btn[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.85);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n.gram-frame-transport-seek {\n  flex: 1 1 200px;\n  min-width: 120px;\n}\n\n.gram-frame-transport-volume {\n  flex: 0 0 80px;\n  width: 80px;\n}\n\n.gram-frame-transport-time {\n  flex: 0 0 auto;\n  min-width: 96px;\n  text-align: center;\n  color: #00ff00;\n  text-shadow: 0 0 4px rgba(0, 255, 0, 0.5);\n}\n\n.gram-frame-transport-rate {\n  height: 26px;\n  color: #e6f2ff;\n  background: rgba(40, 60, 90, 0.8);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  font-size: 12px;\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n.gram-frame-display-panel {\n  padding: 10px;\n  background: linear-gradient(180deg, #333 0%, #1a1a1a 50%, #000 100%);\n  border-top: 2px solid #555;\n}\n\n.gram-frame-readout {\n  flex: 0 1 auto;\n  width: 100%; /* Definite width so the unified layout's flex sizing applies */\n  padding: 0;\n  background: transparent;\n}\n\n/* Harmonics mode CSS removed - now using unified layout */\n\n/* Harmonics layout container - two columns */\n\n/* Left column for controls - 40% width */\n.gram-frame-harmonics-controls {\n  display: flex;\n  flex-direction: column;\n  gap: 10px;\n  flex: 0 0 40%;\n  max-width: 40%;\n}\n\n/* Top row in left column */\n.gram-frame-harmonics-top-row {\n  display: flex;\n  gap: 10px;\n  align-items: stretch;\n}\n\n/* Right column for table - 60% width */\n.gram-frame-harmonics-table-column {\n  flex: 0 0 60%;\n  max-width: 60%;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n}\n\n/* Make color picker more compact in harmonics mode */\n.gram-frame-harmonics-mode .gram-frame-color-picker {\n  margin: 0;\n}\n\n/* Harmonic panel layout - always visible in unified layout */\n\n/* Military-style display windows */\n.gram-frame-led {\n  font-family: 'Courier New', monospace;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  color: #00ff00; /* LED green */\n  padding: 6px 0px;\n  border: 0px solid #333;\n  border-radius: 4px;\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 auto;\n  min-width: 100px;\n  text-align: center;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  position: relative;\n  font-size: 11px;\n  height: fit-content;\n}\n\n.gram-frame-led:before {\n  content: '';\n  position: absolute;\n  top: 2px;\n  left: 2px;\n  right: 2px;\n  bottom: 2px;\n  border: 1px solid #444;\n  border-radius: 2px;\n  pointer-events: none;\n}\n\n/* LED label */\n.gram-frame-led-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin-bottom: 4px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* LED value */\n.gram-frame-led-value {\n  font-size: 14px;\n  font-weight: bold;\n  text-shadow: 0 0 4px #00ff00;\n}\n\n/* Label-beside-value LED (the doppler speed readout).\n *\n * The default LED stacks its label above its value, which suits the short\n * \"Time (mm:ss)\" / \"Frequency (Hz)\" captions. \"Doppler Speed (kts)\" is long\n * enough to claim a row of its own, so stacking it spent height on a line that\n * was mostly empty either side of the value. Here the label sits to the LEFT of\n * the value and `width: min-content` wraps it, filling the width the stacked\n * form wasted. It breaks into two lines rather than three because MainUI.js\n * joins \"Doppler\" and \"Speed\" with a non-breaking space.\n *\n * The label stays ONE text node (\"Doppler Speed (kts)\"): the wrap is CSS, not\n * markup, so `.gram-frame-led-label:text-is(...)` still matches it (the test\n * helpers locate every LED that way). Do not split it into lines in JS. */\n.gram-frame-led-inline {\n  flex-direction: row;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  padding: 4px 6px;\n}\n\n.gram-frame-led-inline .gram-frame-led-label {\n  margin-bottom: 0;\n  width: min-content;\n  text-align: right;\n  line-height: 1.2;\n}\n\n/* Manual harmonic button. Sized to sit inside the panel header row beside the\n   \"Harmonics\" heading: at its old 6px/12px padding and 80px floor it stood\n   28px tall against the heading's 21px, which both pushed the heading down out\n   of line with the markers panel's and made the pair too wide for the 175px\n   column, so the button overlapped the heading. */\n.gram-frame-manual-button {\n  padding: 3px 6px;\n  min-width: 0;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 10px;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-manual-button:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-manual-button:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Style panel: colour band, symbol band, harmonics band */\n.gram-frame-color-picker {\n  margin-top: 0;\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  max-width: 200px;\n  flex-shrink: 0;\n}\n\n/* No `.gram-frame-color-picker-label` rule: the panel's \"Style\" heading is\n * gone (each band labels itself), so the caption it styled no longer exists. */\n\n.gram-frame-color-palette {\n  position: relative;\n}\n\n/* One band of the style panel, grouping controls that share a scope. */\n.gram-frame-style-group {\n  margin-bottom: 6px;\n}\n\n.gram-frame-style-group:last-child {\n  margin-bottom: 0;\n}\n\n/* Band caption. Same micro-caps treatment as the panel heading, but ranged left\n   so the bands read as a list beneath the centred title. */\n.gram-frame-style-group-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: left;\n  margin-bottom: 4px;\n}\n\n/* A band whose controls fit on one line puts its caption inline with them\n   rather than above. Used by the Symbol and Harmonics bands; the Colour band\n   has no caption at all — the gradient slider needs no naming. */\n.gram-frame-style-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.gram-frame-style-row .gram-frame-style-group-label {\n  margin-bottom: 0;\n}\n\n/* Fences the harmonics-only band off from the controls above it. Lighter than\n   the panel border (#333), which is invisible against the panel's near-black\n   fill — the rule has to be seen to do its job. */\n.gram-frame-style-divider {\n  border-top: 1px solid #4a4a4a;\n  margin: 8px 0 6px;\n}\n\n/* Symbol drop-down embedded to the right of the colour slider. Its `color` is\n   set inline to the selected colour so the glyphs render in that colour. */\n.gram-frame-symbol-select {\n  flex-shrink: 0;\n  padding: 2px 4px;\n  background: #0a0a0a;\n  border: 1px solid #555;\n  border-radius: 2px;\n  font-size: 14px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n/* Harmonic-pin visibility toggle, in the panel's harmonics band.\n   TEMPORARY (symbol-size experiment): the \"Large\" toggle sits inline in the\n   symbol row and shares this styling. Remove that selector, the margin-left\n   override and the blocks below, together with the control once a symbol size\n   is agreed. */\n.gram-frame-pin-toggle,\n.gram-frame-large-symbols-toggle {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n  cursor: pointer;\n  user-select: none;\n}\n\n/* Push the size toggle to the far edge of the symbol row, clear of the\n   drop-down. */\n.gram-frame-large-symbols-toggle {\n  margin-left: auto;\n}\n\n.gram-frame-pin-toggle-input,\n.gram-frame-large-symbols-checkbox {\n  margin: 0;\n  cursor: pointer;\n  accent-color: #00ff00;\n}\n\n.gram-frame-pin-toggle-label,\n.gram-frame-large-symbols-label {\n  font-size: 10px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n.gram-frame-pin-toggle-disabled {\n  cursor: default;\n  opacity: 0.45;\n}\n\n.gram-frame-pin-toggle-disabled .gram-frame-pin-toggle-input {\n  cursor: default;\n}\n\n/* The slider has the band to itself, so it spans the panel: a wider gradient is\n   an easier target. The canvas keeps its 140px backing store — the click\n   handler rescales by the rendered width, and the indicator is positioned in\n   percent, so both follow the CSS width. */\n.gram-frame-color-canvas {\n  display: block;\n  width: 100%;\n  box-sizing: border-box;\n  height: 20px;\n  border: 1px solid #555;\n  border-radius: 2px;\n  cursor: pointer;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);\n}\n\n.gram-frame-color-indicator {\n  position: absolute;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  width: 3px;\n  height: 26px;\n  background: #fff;\n  border: 1px solid #000;\n  border-radius: 1px;\n  pointer-events: none;\n  box-shadow: 0 0 2px rgba(0,0,0,0.8);\n}\n\n/* Analysis mode layout styles */\n.gram-frame-analysis-layout {\n  height: 100%;\n}\n\n.gram-frame-analysis-controls {\n  align-self: flex-start;\n}\n\n.gram-frame-analysis-leds {\n  /* Side-by-side LEDs container */\n}\n\n.gram-frame-analysis-leds .gram-frame-led {\n  /* Ensure LEDs in the horizontal container are sized properly */\n  font-size: 9px; /* Slightly smaller to fit side-by-side */\n}\n\n.gram-frame-analysis-leds .gram-frame-led-label {\n  font-size: 8px; /* Smaller label text */\n  color: #00ff00;\n}\n\n.gram-frame-analysis-markers {\n  height: 100%;\n}\n\n/* Unified table styles for both markers and harmonics */\n\n/*\n * Fixed-height home for a markers/harmonics table.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the readout row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n.gram-frame-table-container {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  box-sizing: border-box;\n  padding: 0;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow:\n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n  /* Permanent vertical scrollbar so the gutter never appears/disappears as rows\n     are added or removed (no reflow of the table columns). */\n  overflow-y: scroll;\n  overflow-x: hidden;\n  /* Dark-theme scrollbar (Firefox) */\n  scrollbar-width: thin;\n  scrollbar-color: #555 #111;\n}\n\n/* Dark-theme scrollbar (WebKit/Blink) */\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 10px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: #555;\n  border-radius: 5px;\n  border: 2px solid #111;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: #6a6a6a;\n}\n\n/*\n * Separate (not collapsed) borders: sticky header cells are unreliable with\n * border-collapse, so each cell draws its own right/bottom edge and the first\n * column/header row close the outer edges. Visually identical to the collapsed\n * 1px grid, because border-spacing is zero.\n *\n * Element-qualified because the `gram-frame-table` class is also carried by the\n * component's outer frame <div> (display: table), which must keep its own\n * border. Zeroing the border here matters for the sticky header too — a border\n * on the table box offsets the header cells from the scrollport, which makes\n * them jump when the body first scrolls.\n */\ntable.gram-frame-table {\n  width: 100%;\n  /*\n   * Natural height, NOT the 100% the shared class sets for the outer frame.\n   * A table told to fill its container distributes the surplus across its rows,\n   * so a two-row table drew 50px rows, a six-row table 31px ones, and every row\n   * visibly shrank as the next was added. Rows now stay the height their\n   * content needs and the leftover space simply sits below them.\n   */\n  height: auto;\n  border: 0;\n  border-collapse: separate;\n  border-spacing: 0;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-table th,\n.gram-frame-table td {\n  border: 0;\n  border-right: 1px solid #444;\n  border-bottom: 1px solid #444;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  border-left: 1px solid #444;\n}\n\n.gram-frame-table th {\n  background: #222;\n  color: #00ff00;\n  /*\n   * Horizontal padding and letter-spacing are deliberately tight (feature 231):\n   * the markers table gained a fifth column in the same 160px, and at 4px/0.5px\n   * the headers no longer fitted their own text. The narrow columns are the\n   * constraint here, not the label copy.\n   */\n  padding: 4px 1px;\n  text-align: center;\n  border-top: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0;\n  /* Header row stays pinned while the body scrolls beneath it. The z-index sits\n     above the positioned body rows, including a selected row's cells (11). */\n  position: sticky;\n  top: 0;\n  z-index: 20;\n}\n\n.gram-frame-table td {\n  /* Matches the header's tight horizontal padding — see the note above. */\n  padding: 4px 1px;\n  text-align: center;\n  background: #1a1a1a;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n  transition: all 0.2s ease;\n  position: relative;\n}\n\n.gram-frame-table tbody tr:hover {\n  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.05),\n    inset 0 -1px 2px rgba(0,0,0,0.2),\n    0 0 4px rgba(255,255,255,0.1);\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: transparent;\n}\n\n/* Legacy markers styles - kept for compatibility */\n.gram-frame-markers-container {\n  padding: 8px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-markers-label {\n  font-size: 10px;\n  color: #00ff00;\n  margin: 0 0 8px 0;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n  text-align: center;\n}\n\n.gram-frame-markers-table {\n  width: 100%;\n  border-collapse: collapse;\n  font-size: 10px;\n  color: #ccc;\n  table-layout: fixed;\n}\n\n.gram-frame-markers-table th {\n  background: #222;\n  color: #00ff00;\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  font-weight: bold;\n  text-transform: uppercase;\n  letter-spacing: 0.5px;\n}\n\n.gram-frame-markers-table td {\n  padding: 4px;\n  text-align: center;\n  border: 1px solid #444;\n  background: #1a1a1a;\n}\n\n.gram-frame-color-swatch {\n  margin: 0 auto;\n  display: block;\n}\n\n.gram-frame-marker-delete-btn {\n  padding: 2px 6px;\n  border-radius: 2px;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-delete-btn:hover {\n  background-color: #ff4444 !important;\n  color: #fff !important;\n}\n\n/*\n * The Label column shows an abbreviated label (see formatMarkerLabelForTable),\n * so it should never wrap or stretch the row; anything unexpectedly long is\n * clipped rather than allowed to reflow the table.\n *\n * It is also the positioning context for the label button in its top-right\n * corner. The button was stacked above Delete in the actions cell until every\n * marker row had to be tall enough for two controls; out of the flow it costs\n * the row no height, and it now sits in the column it edits.\n */\n.gram-frame-marker-label-cell {\n  position: relative;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n/* Deliberately NOT a positioning context: the button anchors to the CELL, which\n   is the box whose top-right corner it wants. This wrapper is only as tall as\n   the label text and sits vertically centred in the cell, so positioning\n   against it would park the button halfway down instead. */\n.gram-frame-marker-label-content {\n  position: static;\n}\n\n/* Reserves the button's corner so a longer abbreviation is clipped short of it\n   rather than running underneath. */\n.gram-frame-marker-label-text {\n  display: block;\n  padding-right: 14px;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-marker-label-btn {\n  position: absolute;\n  top: 1px;\n  right: 0;\n  background: none;\n  border: none;\n  color: #8ab4d8;\n  cursor: pointer;\n  padding: 1px 2px;\n  border-radius: 2px;\n  line-height: 0;\n  transition: background-color 0.2s;\n}\n\n.gram-frame-marker-label-btn:hover {\n  background-color: #8ab4d8;\n  color: #1a1a1a;\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/*\n * A marker's on-gram label. Legibility comes from the white rounded plate drawn\n * behind it (issue #243) — the geometry and colours are presentation attributes\n * set by plateLabel(), see src/utils/labelPlate.js. Never a click target: the\n * marker underneath is.\n */\n.gram-frame-marker-label {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  user-select: none;\n}\n\n/*\n * The white plate behind any on-gram label, and the group holding the two. Both\n * are transparent to the pointer so the plate never intercepts a click meant\n * for the feature it annotates, or for the gram beneath it.\n */\n.gram-frame-label-plate,\n.gram-frame-label-plated {\n  pointer-events: none;\n}\n\n/* Military-style mode selection header */\n.gram-frame-mode-header {\n  background: linear-gradient(180deg, #444 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border-bottom: 2px solid #555;\n  display: flex;\n  align-items: flex-start;\n  justify-content: flex-start;\n}\n\n/*\n * The mode buttons, stacked one per row.\n *\n * The gap and the button paddings below were tightened when Sidebands became a\n * fifth mode (issue #241): at the old sizes a fifth row made the whole control\n * panel ~40px taller in every mode whose guidance text is short, which pushed\n * the spectrogram itself that far down the page. Five rows now occupy what four\n * did, so adding the mode cost the gram no vertical space.\n */\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  justify-content: center;\n  align-items: stretch;\n  flex: 0 0 auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-mode-group {\n  display: flex;\n  align-items: center;\n  gap: 2px;\n  width: 100%;\n  flex-wrap: nowrap;\n}\n\n/* Simplified left panel - no sub-columns needed */\n\n/* Guidance panel */\n/*\n * The guidance panel fills its column and scrolls, rather than growing the\n * control row to fit its text.\n *\n * Same mechanism as the tables beside it (an absolutely positioned child of a\n * relative column), and for the same reason: the guidance column is what gives\n * way when a host is too narrow for the whole row, and the narrower it gets the\n * taller its text wraps. Letting that set the row height pushed the row — and\n * the spectrogram under it — down the page, by as much as 80px on a 1280px host\n * once a fourth table joined the row (issue #241).\n *\n * The row is now as tall as the readouts and the mode buttons need and no\n * taller, in every mode. Two things follow: the gram sits at a constant height\n * instead of moving as the analyst switches mode, and a host too narrow for the\n * full guidance text costs reading length here rather than gram height.\n */\n.gram-frame-guidance-column {\n  position: relative;\n}\n\n.gram-frame-guidance {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  left: 0;\n  overflow-y: auto;\n  box-sizing: border-box;\n  padding: 8px 12px;\n  background: linear-gradient(135deg, #1a1a1a 0%, #000 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  color: #ccc;\n  font-size: 12px;\n  line-height: 1.4;\n  box-shadow: \n    inset 0 2px 6px rgba(0,0,0,0.8),\n    inset 0 -1px 2px rgba(255,255,255,0.05),\n    0 2px 4px rgba(0,0,0,0.5);\n}\n\n.gram-frame-guidance h4 {\n  margin: 0 0 6px 0;\n  font-size: 11px;\n  color: #00ff00;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  font-weight: bold;\n}\n\n/* Aside inside a guidance heading (e.g. Mouse-Wheel \"(available in all modes)\").\n   Dropping the heading's uppercase and letter-spacing is what lets the qualifier\n   share the heading's line instead of wrapping onto a second one — it was a\n   bullet of its own until it moved up here, and a two-line heading would have\n   given back the height the move was meant to save. Dimmer than the heading so\n   the section still reads by its name first. */\n.gram-frame-guidance h4 .gram-frame-guidance-qualifier {\n  text-transform: none;\n  letter-spacing: 0;\n  font-weight: normal;\n  font-size: 10px;\n  color: #6a6;\n}\n\n.gram-frame-guidance p {\n  margin: 0 0 4px 0;\n}\n\n/* Military-style metal buttons */\n.gram-frame-mode-btn {\n  padding: 5px 6px;\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  color: #ddd;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n  flex: 1;\n  min-width: 0;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-command-btn {\n  padding: 6px 8px;\n  background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #444;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 14px;\n  line-height: 1;\n  flex: 0 0 auto;\n  min-width: 32px;\n  height: 32px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.2),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n}\n\n.gram-frame-mode-btn:hover {\n  background: linear-gradient(180deg, #7a7a7a 0%, #5a5a5a 50%, #3a3a3a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-mode-btn.active {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n  border-color: #4a8a4a;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    inset 0 -1px 2px rgba(255,255,255,0.1),\n    0 0 4px rgba(74, 138, 74, 0.3);\n}\n\n.gram-frame-mode-btn:active {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  opacity: 0.6;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n.gram-frame-mode-btn:disabled:hover,\n.gram-frame-mode-btn.disabled:hover {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n  transform: none;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  background: linear-gradient(180deg, #6a6a6a 0%, #4a4a4a 50%, #2a2a2a 100%);\n  box-shadow: \n    inset 0 1px 2px rgba(255,255,255,0.3),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-command-btn:active:not(:disabled) {\n  transform: translateY(1px);\n  box-shadow: \n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n.gram-frame-command-btn:disabled {\n  background: linear-gradient(180deg, #333 0%, #222 50%, #111 100%);\n  color: #666;\n  border-color: #333;\n  cursor: not-allowed;\n  box-shadow: \n    inset 0 1px 2px rgba(0,0,0,0.3),\n    0 1px 2px rgba(0,0,0,0.1);\n}\n\n/* Clear gram button — trainer pages only */\n.gram-frame-clear-btn {\n  margin-top: 8px;\n  padding: 6px 10px;\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ddd;\n  border: 2px solid #6a3a3a;\n  border-radius: 4px;\n  font-family: inherit;\n  font-size: 12px;\n  font-weight: 600;\n  letter-spacing: 0.5px;\n  cursor: pointer;\n  text-transform: uppercase;\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.15),\n    inset 0 -1px 2px rgba(0,0,0,0.3),\n    0 2px 4px rgba(0,0,0,0.3);\n  transition: all 0.1s ease;\n  width: 100%;\n}\n\n.gram-frame-clear-btn:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  box-shadow:\n    inset 0 1px 2px rgba(255,255,255,0.25),\n    inset 0 -1px 2px rgba(0,0,0,0.4),\n    0 3px 6px rgba(0,0,0,0.4);\n}\n\n.gram-frame-clear-btn:active {\n  transform: translateY(1px);\n  box-shadow:\n    inset 0 2px 4px rgba(0,0,0,0.4),\n    0 1px 2px rgba(0,0,0,0.2);\n}\n\n/* Storage-failure banner — shown inside the component when a save or clear was\n   refused by browser storage (quota, private browsing). Non-blocking: it sits\n   above the controls, wraps rather than clips, and can be dismissed. */\n.gram-frame-storage-warning {\n  box-sizing: border-box;\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  margin: 0 0 8px 0;\n  padding: 8px 10px;\n  background-color: #fff8e1;\n  border: 1px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 13px;\n  line-height: 1.4;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-storage-warning-message {\n  flex: 1 1 auto;\n  min-width: 0;\n}\n\n.gram-frame-storage-warning-dismiss {\n  flex: 0 0 auto;\n  padding: 0 4px;\n  background: none;\n  border: none;\n  color: #663c00;\n  font-size: 16px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-storage-warning-dismiss:hover {\n  color: #a06000;\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Rate input UI styles removed - backend functionality preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line,\n.gram-frame-harmonic-mini-pin,\n.gram-frame-sideband-line,\n.gram-frame-sideband-mini-pin {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number,\n.gram-frame-sideband-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the white rounded plate drawn behind the digits\n   * (issue #243), set as presentation attributes by plateLabel() in\n   * src/utils/labelPlate.js. No drop-shadow: it only blurs the plate's edge.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* Legacy harmonic panel styles - now using unified table structure */\n\n.gram-frame-harmonic-spacing,\n.gram-frame-harmonic-rate,\n.gram-frame-sideband-freq,\n.gram-frame-sideband-spacing {\n  font-size: 14px;\n  font-weight: bold;\n}\n\n.gram-frame-harmonic-color,\n.gram-frame-sideband-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n.gram-frame-harmonic-delete,\n.gram-frame-sideband-delete {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ff6666;\n  border: 1px solid #555;\n  border-radius: 2px;\n  width: 20px;\n  height: 20px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  line-height: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.1s ease;\n}\n\n.gram-frame-harmonic-delete:hover,\n.gram-frame-sideband-delete:hover {\n  background: linear-gradient(180deg, #8a5a5a 0%, #6a3a3a 50%, #4a2a2a 100%);\n  border-color: #777;\n}\n\n.gram-frame-harmonic-delete:active,\n.gram-frame-sideband-delete:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-harmonic-empty {\n  color: #666;\n  font-style: italic;\n  text-align: center;\n  padding: 20px;\n  font-size: 12px;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n/*\n * The vertical extensions are drawn after the f+/f- dots, so while they were\n * hit-testable they sat on top of the very markers the analyst was aiming at.\n * Doppler hit-testing is done in data space against the marker positions, not\n * by hitting an element, so nothing needs these to be targets.\n */\n.gram-frame-doppler-extension {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Cursor position readout styles */\n.gram-frame-cursor-readout {\n  display: flex;\n  gap: 15px;\n  margin-bottom: 10px;\n  padding: 8px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 1px solid #444;\n  border-radius: 4px;\n}\n\n.gram-frame-readout-item {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  min-width: 80px;\n}\n\n.gram-frame-readout-label {\n  font-size: 10px;\n  color: #aaa;\n  text-transform: uppercase;\n  margin-bottom: 2px;\n  font-weight: bold;\n}\n\n.gram-frame-readout-value {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: bold;\n  color: #00ff00;\n  background: #000;\n  padding: 4px 8px;\n  border: 1px solid #333;\n  border-radius: 2px;\n  text-align: center;\n  min-width: 60px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n/* Supporting note under a modal input (e.g. how to clear a marker label) */\n.gram-frame-modal-hint {\n  color: #999;\n  font-size: 11px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/* Unified Layout Styles */\n.gram-frame-unified-layout {\n  display: flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  gap: 2px; /* Match JavaScript gap */\n  width: 100%;\n  height: 100%;\n  overflow: hidden; /* Prevent columns from overflowing container */\n}\n\n.gram-frame-left-column {\n  position: relative; /* Enable absolute positioning for child elements */\n  display: flex;\n  flex-direction: row;\n  gap: 4px;\n  flex: 0 0 600px;\n  width: 600px;\n  overflow: hidden;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/* Left column sub-columns */\n.gram-frame-mode-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 130px;\n  width: 130px;\n  padding: 8px;\n  border: none;\n}\n\n.gram-frame-guidance-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 1;\n  min-width: 150px;\n  border: none;\n}\n\n.gram-frame-controls-column {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  flex: 0 0 210px;\n  width: 210px;\n  padding: 0px;\n  border: none;\n}\n\n/*\n * Markers column. Widened from a flat 160px when the Label column was added\n * (feature 231), and made elastic rather than fixed: it takes up to 235px where\n * the host has the width, and gives back down to 185px where it does not.\n *\n * The floor matters. Shrinking the LEFT column past ~620px rewraps the guidance\n * text onto extra lines and grows the whole control row ~50px taller, pushing\n * the gram down the page — so the markers column must not simply be pinned\n * wide. 185px is the floor because it is what the five columns need, and it is\n * funded by the harmonics column next door (200 → 175px) rather than by the\n * left column, leaving the narrow-window layout exactly as it was.\n *\n * These values — and the matching inline styles in\n * MainUI.createUnifiedLayout — must agree.\n */\n.gram-frame-middle-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 3 235px;\n  width: auto;\n  min-width: 185px;\n  max-width: 235px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n/*\n * The two pin-set tables: harmonics (200 → 175px when the markers column gained\n * its Label column — see the markers-column note above), and sidebands beside\n * it. Both are always visible (issue #241).\n *\n * 175px each — the width the harmonics table has always had — so the two read as\n * a matched pair. Together with the markers table and the readouts beside them,\n * the control row now wants ~1090px; a host narrower than that squeezes the\n * guidance column, which scrolls rather than growing the row taller (see the\n * note on `.gram-frame-guidance`).\n */\n.gram-frame-right-column,\n.gram-frame-sidebands-column {\n  display: flex;\n  flex-direction: column;\n  flex: 0 0 175px;\n  min-width: 175px;\n  width: 175px;\n  padding: 5px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #0a0a0a 100%);\n  border: 2px solid #333;\n  border-radius: 4px;\n  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);\n}\n\n.gram-frame-cursor-leds {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 6px;\n  align-items: flex-start;\n  flex: 0 0 auto;\n  height: fit-content;\n}\n\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container,\n.gram-frame-sidebands-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n/*\n * Panel header: the heading, plus an optional action slot on the right (the\n * harmonics panel's + Manual button).\n *\n * The rule and the spacing live HERE and not on the h4, which is what keeps the\n * two panels consistent. When the underline was on the heading itself, the\n * markers h4 — a block filling its column — drew a full-width rule, while the\n * harmonics h4 — a flex item beside the button — drew one only as wide as the\n * word. `min-height` holds both rows to the same height so the two headings sit\n * on the same line as each other across the panel.\n */\n.gram-frame-panel-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 6px;\n  min-height: 22px;\n  margin: 0 0 8px 0;\n  padding-bottom: 4px;\n  border-bottom: 1px solid #444;\n  flex-shrink: 0;\n}\n\n.gram-frame-markers-persistent-container h4,\n.gram-frame-harmonics-persistent-container h4,\n.gram-frame-sidebands-persistent-container h4 {\n  margin: 0;\n  padding: 0;\n  border: 0;\n  flex-shrink: 0;\n  color: #ddd;\n  font-size: 14px;\n  text-align: left;\n  text-transform: uppercase;\n  letter-spacing: 1px;\n}\n\n.gram-frame-harmonics-button-container {\n  display: flex;\n  justify-content: center;\n  flex-shrink: 0;\n}\n\n/* Responsive behavior for smaller screens */\n@media (max-width: 1200px) {\n  .gram-frame-unified-layout {\n    flex-direction: column;\n    gap: 8px;\n  }\n  \n  .gram-frame-left-column,\n  .gram-frame-middle-column,\n  .gram-frame-right-column,\n  .gram-frame-sidebands-column {\n    flex: 0 0 auto;\n    min-height: 200px;\n  }\n}\n\n/* Selection highlighting for keyboard control */\n.gram-frame-selected-row {\n  background: linear-gradient(135deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%) !important;\n  color: #aaffaa !important;\n  outline: 2px solid #4a8a4a !important;\n  outline-offset: -1px;\n  position: relative;\n  z-index: 10;\n  box-shadow: \n    inset 0 2px 4px rgba(255,255,255,0.15),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 0 8px rgba(74, 138, 74, 0.6),\n    0 0 2px rgba(74, 138, 74, 0.8) !important;\n}\n\n.gram-frame-selected-row td {\n  color: #aaffaa !important;\n  border-color: #4a8a4a !important;\n  position: relative;\n  z-index: 11;\n}\n\n/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n";
   document.head.appendChild(style);
 
   "use strict";
@@ -102,6 +102,36 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       // ID of selected item
       selectedIndex: null
       // Index in table for display purposes
+    },
+    // The spectrograph player (spec 168). A core slice rather than a mode's: it
+    // describes what the instance is built on, as `imageDetails` does, not how
+    // the analyst is interacting with it. Inert on image-backed instances so
+    // every listener sees one shape.
+    player: {
+      active: false,
+      ready: false,
+      progress: 0,
+      source: "",
+      duration: 0,
+      sampleRate: 0,
+      channels: 0,
+      playhead: 0,
+      playing: false,
+      ended: false,
+      loop: false,
+      rate: 1,
+      volume: 1,
+      muted: false,
+      viewTop: 0,
+      windowSeconds: 10,
+      analysis: {
+        fftSize: 1024,
+        hopSize: 512,
+        freqStart: 0,
+        freqEnd: null,
+        columns: 0,
+        frames: 0
+      }
     }
   };
   const globalStateListeners = [];
@@ -988,7 +1018,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const margins = viewport.margins;
     const zoomLevel = viewport.zoom.level;
     const { renderWidth, renderHeight } = getRenderDimensions(viewport);
-    if (zoomLevel === 1) {
+    const stretched = viewport.imageDetails.timeStretch !== void 0;
+    if (zoomLevel === 1 && !stretched) {
       return { timeMin, timeMax, freqMin, freqMax };
     }
     const {
@@ -999,8 +1030,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     } = getImageBounds(viewport, spectrogramImage);
     const visibleLeft = Math.max(0, margins.left - imageLeft);
     const visibleRight = Math.min(imageWidth, margins.left + renderWidth - imageLeft);
-    const visibleTop = Math.max(0, margins.top - imageTop);
-    const visibleBottom = Math.min(imageHeight, margins.top + renderHeight - imageTop);
+    const visibleTop = stretched ? margins.top - imageTop : Math.max(0, margins.top - imageTop);
+    const visibleBottom = stretched ? margins.top + renderHeight - imageTop : Math.min(imageHeight, margins.top + renderHeight - imageTop);
     const freqRange = freqMax - freqMin;
     const timeRange = timeMax - timeMin;
     const visibleFreqMin = freqMin + visibleLeft / imageWidth * freqRange;
@@ -1469,6 +1500,383 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       this.reset();
     }
   }
+  function formatTime(seconds) {
+    const sign = seconds < 0 ? "-" : "";
+    const magnitude = Math.abs(seconds);
+    const minutes = Math.floor(magnitude / 60);
+    const remainingSeconds = Math.floor(magnitude % 60);
+    const paddedMinutes = minutes.toString().padStart(2, "0");
+    const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
+    return `${sign}${paddedMinutes}:${paddedSeconds}`;
+  }
+  function renderAxes(instance) {
+    if (!instance.ui.axesGroup) {
+      return;
+    }
+    instance.ui.axesGroup.innerHTML = "";
+    const viewport = instance.state;
+    const { naturalWidth, naturalHeight } = viewport.imageDetails;
+    const margins = viewport.margins;
+    if (!naturalWidth || !naturalHeight) {
+      return;
+    }
+    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
+    const visibleRange = calculateVisibleDataRange(viewport, instance.ui.spectrogramImage);
+    renderFrequencyAxis(instance, margins, renderWidth, renderHeight, visibleRange.freqMin, visibleRange.freqMax);
+    renderTimeAxis(instance, margins, renderWidth, renderHeight, visibleRange.timeMin, visibleRange.timeMax);
+  }
+  function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin, timeMax) {
+    const axisX = margins.left;
+    const axisStartY = margins.top;
+    const axisEndY = margins.top + naturalHeight;
+    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    axisLine.setAttribute("x1", String(axisX));
+    axisLine.setAttribute("y1", String(axisStartY));
+    axisLine.setAttribute("x2", String(axisX));
+    axisLine.setAttribute("y2", String(axisEndY));
+    axisLine.setAttribute("class", "gram-frame-axis-line");
+    instance.ui.axesGroup.appendChild(axisLine);
+    const timeRange = timeMax - timeMin;
+    const tickCount = 5;
+    const tickInterval = timeRange / (tickCount - 1);
+    for (let i = 0; i < tickCount; i++) {
+      const time = timeMin + i * tickInterval;
+      const y = axisEndY - i / (tickCount - 1) * naturalHeight;
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("x1", String(axisX - 8));
+      tick.setAttribute("y1", String(y));
+      tick.setAttribute("x2", String(axisX));
+      tick.setAttribute("y2", String(y));
+      tick.setAttribute("class", "gram-frame-axis-tick");
+      instance.ui.axesGroup.appendChild(tick);
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", String(axisX - 12));
+      label.setAttribute("y", String(y + 4));
+      label.setAttribute("text-anchor", "end");
+      label.setAttribute("class", "gram-frame-axis-label");
+      label.textContent = formatTime(time);
+      instance.ui.axesGroup.appendChild(label);
+    }
+  }
+  function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
+    const range = max - min;
+    const targetMajorTicks = Math.max(2, Math.floor(containerSize / targetSpacing));
+    const rawMajorInterval = range / (targetMajorTicks - 1);
+    function niceNum(value, round) {
+      const exponent = Math.floor(Math.log10(value));
+      const fraction = value / Math.pow(10, exponent);
+      let niceFraction;
+      {
+        if (fraction <= 1) niceFraction = 1;
+        else if (fraction <= 2) niceFraction = 2;
+        else if (fraction <= 5) niceFraction = 5;
+        else niceFraction = 10;
+      }
+      return niceFraction * Math.pow(10, exponent);
+    }
+    const majorInterval = niceNum(rawMajorInterval);
+    let minorInterval;
+    const majorFraction = majorInterval / Math.pow(10, Math.floor(Math.log10(majorInterval)));
+    if (majorFraction === 1) {
+      minorInterval = majorInterval / 5;
+    } else if (majorFraction === 2) {
+      minorInterval = majorInterval / 2;
+    } else if (majorFraction === 5) {
+      minorInterval = majorInterval / 5;
+    } else {
+      minorInterval = majorInterval / 2;
+    }
+    const majorStart = Math.ceil(min / majorInterval) * majorInterval;
+    const minorStart = Math.ceil(min / minorInterval) * minorInterval;
+    const expectedMajorTicks = Math.ceil(range / majorInterval) + 2;
+    const expectedMinorTicks = Math.ceil(range / minorInterval) + 2;
+    const maxTicks = Math.max(200, expectedMajorTicks + expectedMinorTicks);
+    return {
+      majorInterval,
+      minorInterval,
+      majorStart,
+      minorStart,
+      expectedMajorTicks,
+      expectedMinorTicks,
+      maxTicks
+    };
+  }
+  function formatFrequencyLabels(frequency) {
+    return Math.round(frequency) + "Hz";
+  }
+  function renderAxisLine(instance, axisConfig) {
+    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    axisLine.setAttribute("x1", String(axisConfig.startX));
+    axisLine.setAttribute("y1", String(axisConfig.y));
+    axisLine.setAttribute("x2", String(axisConfig.endX));
+    axisLine.setAttribute("y2", String(axisConfig.y));
+    axisLine.setAttribute("class", "gram-frame-axis-line");
+    instance.ui.axesGroup.appendChild(axisLine);
+  }
+  function renderAxisTicks(instance, tickData, axisConfig) {
+    tickData.forEach((tickInfo) => {
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("x1", String(tickInfo.x));
+      tick.setAttribute("y1", String(axisConfig.y));
+      tick.setAttribute("x2", String(tickInfo.x));
+      tick.setAttribute("y2", String(axisConfig.y + tickInfo.height));
+      tick.setAttribute("class", tickInfo.className);
+      instance.ui.axesGroup.appendChild(tick);
+    });
+  }
+  function renderAxisLabels(instance, labelData, axisConfig) {
+    labelData.forEach((labelInfo) => {
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", String(labelInfo.x));
+      label.setAttribute("y", String(axisConfig.y + 25));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", labelInfo.className);
+      label.textContent = labelInfo.text;
+      instance.ui.axesGroup.appendChild(label);
+    });
+  }
+  function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
+    const axisY = margins.top + _naturalHeight;
+    const axisStartX = margins.left;
+    const axisEndX = margins.left + naturalWidth;
+    const rate = instance.state.rate;
+    const displayFreqMin = freqMin / rate;
+    const displayFreqMax = freqMax / rate;
+    const freqRange = displayFreqMax - displayFreqMin;
+    const axisConfig = { y: axisY, startX: axisStartX, endX: axisEndX };
+    renderAxisLine(instance, axisConfig);
+    const tickCalculation = calculateAxisTicks(displayFreqMin, displayFreqMax, naturalWidth);
+    const minorTickData = [];
+    const majorTickData = [];
+    const labelData = [];
+    const numMinorTicks = Math.floor((displayFreqMax - tickCalculation.minorStart) / tickCalculation.minorInterval) + 1;
+    if (numMinorTicks <= tickCalculation.maxTicks) {
+      for (let i = 0; i < numMinorTicks; i++) {
+        const freq = tickCalculation.minorStart + i * tickCalculation.minorInterval;
+        if (freq > displayFreqMax) break;
+        if (Math.abs(freq % tickCalculation.majorInterval) < 0.01) continue;
+        const x = axisStartX + (freq - displayFreqMin) / freqRange * naturalWidth;
+        minorTickData.push({ x, height: 4, className: "gram-frame-axis-tick-minor" });
+      }
+    }
+    const numMajorTicks = Math.floor((displayFreqMax - tickCalculation.majorStart) / tickCalculation.majorInterval) + 1;
+    if (numMajorTicks <= tickCalculation.maxTicks) {
+      for (let i = 0; i < numMajorTicks; i++) {
+        const freq = tickCalculation.majorStart + i * tickCalculation.majorInterval;
+        if (freq > displayFreqMax) break;
+        const x = axisStartX + (freq - displayFreqMin) / freqRange * naturalWidth;
+        majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick-major" });
+        labelData.push({
+          x,
+          text: formatFrequencyLabels(freq),
+          className: "gram-frame-axis-label-major"
+        });
+      }
+    } else {
+      const tickCount = 5;
+      for (let i = 0; i < tickCount; i++) {
+        const freq = displayFreqMin + i * freqRange / (tickCount - 1);
+        const x = axisStartX + i / (tickCount - 1) * naturalWidth;
+        majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick" });
+        labelData.push({
+          x,
+          text: formatFrequencyLabels(freq),
+          className: "gram-frame-axis-label"
+        });
+      }
+    }
+    renderAxisTicks(instance, minorTickData, axisConfig);
+    renderAxisTicks(instance, majorTickData, axisConfig);
+    renderAxisLabels(instance, labelData, axisConfig);
+  }
+  function updateSVGLayout(instance) {
+    const viewport = instance.state;
+    const { naturalWidth, naturalHeight } = viewport.imageDetails;
+    const margins = viewport.margins;
+    if (!naturalWidth || !naturalHeight) {
+      return;
+    }
+    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
+    const axesWidth = renderWidth;
+    const axesHeight = renderHeight;
+    const totalWidth = axesWidth + margins.left + margins.right;
+    const totalHeight = axesHeight + margins.top + margins.bottom;
+    instance.ui.container.style.width = "auto";
+    instance.ui.container.style.height = "auto";
+    instance.ui.container.style.aspectRatio = "unset";
+    instance.ui.svg.style.width = `${totalWidth}px`;
+    instance.ui.svg.style.height = `${totalHeight}px`;
+    instance.ui.svg.setAttribute("viewBox", `0 0 ${totalWidth} ${totalHeight}`);
+    instance.ui.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    instance.ui.spectrogramImage.setAttribute("x", String(margins.left));
+    instance.ui.spectrogramImage.setAttribute("y", String(margins.top));
+    instance.ui.spectrogramImage.setAttribute("width", String(axesWidth));
+    instance.ui.spectrogramImage.setAttribute("height", String(axesHeight));
+    if (instance.ui.imageClipRect) {
+      instance.ui.imageClipRect.setAttribute("x", String(margins.left));
+      instance.ui.imageClipRect.setAttribute("y", String(margins.top));
+      instance.ui.imageClipRect.setAttribute("width", String(axesWidth));
+      instance.ui.imageClipRect.setAttribute("height", String(axesHeight));
+    }
+    if (instance.ui.cursorClipRect) {
+      instance.ui.cursorClipRect.setAttribute("x", String(margins.left));
+      instance.ui.cursorClipRect.setAttribute("y", String(margins.top));
+      instance.ui.cursorClipRect.setAttribute("width", String(axesWidth));
+      instance.ui.cursorClipRect.setAttribute("height", String(axesHeight));
+    }
+    applyZoomTransform(instance);
+  }
+  function applyZoomTransform(instance) {
+    const viewport = instance.state;
+    const { level, centerX, centerY } = viewport.zoom;
+    const margins = viewport.margins;
+    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
+    if (!instance.ui.spectrogramImage) {
+      return;
+    }
+    if (viewport.imageDetails.timeStretch !== void 0) {
+      applyStretchedTransform(instance, viewport, renderWidth, renderHeight);
+      return;
+    }
+    if (level === 1) {
+      instance.ui.spectrogramImage.setAttribute("x", String(margins.left));
+      instance.ui.spectrogramImage.setAttribute("y", String(margins.top));
+      instance.ui.spectrogramImage.setAttribute("width", String(renderWidth));
+      instance.ui.spectrogramImage.setAttribute("height", String(renderHeight));
+      instance.ui.spectrogramImage.removeAttribute("transform");
+      renderAxes(instance);
+      if (instance.featureRenderer) {
+        instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      return;
+    }
+    const centerImageX = centerX * renderWidth;
+    const centerImageY = centerY * renderHeight;
+    const zoomedWidth = renderWidth * level;
+    const zoomedHeight = renderHeight * level;
+    const newX = margins.left + centerImageX - centerImageX * level;
+    const newY = margins.top + centerImageY - centerImageY * level;
+    instance.ui.spectrogramImage.setAttribute("x", String(newX));
+    instance.ui.spectrogramImage.setAttribute("y", String(newY));
+    instance.ui.spectrogramImage.setAttribute("width", String(zoomedWidth));
+    instance.ui.spectrogramImage.setAttribute("height", String(zoomedHeight));
+    renderAxes(instance);
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+  }
+  function applyStretchedTransform(instance, viewport, renderWidth, renderHeight) {
+    const { zoom, margins, config, player, imageDetails } = viewport;
+    const { level, centerX } = zoom;
+    const stretch = imageDetails.timeStretch || 1;
+    const image = instance.ui.spectrogramImage;
+    const width = renderWidth * level;
+    const height = renderHeight * stretch * level;
+    const x = margins.left + centerX * renderWidth - centerX * renderWidth * level;
+    const span = config.timeMax - config.timeMin;
+    const aboveView = span > 0 ? (config.timeMax - player.viewTop) / span : 1;
+    const y = margins.top - aboveView * height;
+    image.setAttribute("x", String(x));
+    image.setAttribute("y", String(y));
+    image.setAttribute("width", String(width));
+    image.setAttribute("height", String(height));
+    image.removeAttribute("transform");
+    if (instance.ui.imageClipRect) {
+      const playheadY = span > 0 ? y + (config.timeMax - player.playhead) / span * height : margins.top;
+      const top = Math.max(margins.top, playheadY);
+      const bottom = margins.top + renderHeight;
+      instance.ui.imageClipRect.setAttribute("y", String(top));
+      instance.ui.imageClipRect.setAttribute("height", String(Math.max(0, bottom - top)));
+    }
+    renderAxes(instance);
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+  }
+  const PLAYER_RENDER_WIDTH = 900;
+  const PLAYER_RENDER_HEIGHT = 400;
+  function baseRenderSize(instance) {
+    if (isPlayerActive(instance)) {
+      return { width: PLAYER_RENDER_WIDTH, height: PLAYER_RENDER_HEIGHT };
+    }
+    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
+    return { width: naturalWidth, height: naturalHeight };
+  }
+  const followHandles = /* @__PURE__ */ new WeakMap();
+  function playerOf(instance) {
+    return instance.state.player;
+  }
+  function isPlayerActive(instance) {
+    const player = playerOf(instance);
+    return !!(player && player.active);
+  }
+  function isPlaying(instance) {
+    return isPlayerActive(instance) && playerOf(instance).playing;
+  }
+  function isTimeRevealed(instance, time) {
+    const player = playerOf(instance);
+    if (!player || !player.active) {
+      return true;
+    }
+    const epsilon = player.sampleRate > 0 ? player.analysis.hopSize / player.sampleRate : 0;
+    return time <= player.playhead + epsilon;
+  }
+  function visibleWindowSeconds(instance) {
+    const { player, zoom } = instance.state;
+    return player.windowSeconds / zoom.level;
+  }
+  function clampViewTop(instance, seconds) {
+    const { playhead } = playerOf(instance);
+    const lower = Math.min(visibleWindowSeconds(instance), playhead);
+    return Math.max(lower, Math.min(playhead, seconds));
+  }
+  function applyView(instance) {
+    if (instance.ui.svg) {
+      applyZoomTransform(instance);
+    }
+  }
+  function syncViewToPlayhead(instance) {
+    const controller = instance.player;
+    if (!controller) {
+      return;
+    }
+    const player = playerOf(instance);
+    const duration = player.duration;
+    const current = controller.audio.currentTime;
+    player.playhead = Math.max(0, Math.min(duration, Number.isFinite(current) ? current : 0));
+    player.viewTop = clampViewTop(instance, player.playhead);
+    applyView(instance);
+    dispatch(instance, { frame: true });
+  }
+  function startFollow(instance) {
+    if (followHandles.has(instance) || typeof requestAnimationFrame !== "function") {
+      return;
+    }
+    const step = () => {
+      if (!isPlaying(instance)) {
+        followHandles.delete(instance);
+        return;
+      }
+      syncViewToPlayhead(instance);
+      followHandles.set(instance, requestAnimationFrame(step));
+    };
+    followHandles.set(instance, requestAnimationFrame(step));
+  }
+  function stopFollow(instance) {
+    const handle = followHandles.get(instance);
+    if (handle !== void 0 && typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(handle);
+    }
+    followHandles.delete(instance);
+    syncViewToPlayhead(instance);
+  }
+  function updatePlayingClass(instance) {
+    if (instance.ui.container) {
+      instance.ui.container.classList.toggle("gram-frame-playing", isPlaying(instance));
+    }
+  }
+  const SEEK_STEP_SECONDS = 5;
+  const SEEK_STEP_SHIFT_SECONDS = 30;
   const MOVEMENT_INCREMENTS = {
     normal: 1,
     // Arrow keys alone: 1-pixel increments
@@ -1542,7 +1950,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       return;
     }
+    if (isPlayerActive(focusedInstance) && handleTransportKey(focusedInstance, event)) {
+      event.preventDefault();
+      return;
+    }
     if (!isArrowKey(event.key)) {
+      return;
+    }
+    if (isPlaying(focusedInstance)) {
       return;
     }
     const selection = focusedInstance.state.selection;
@@ -1560,6 +1975,49 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (owner) {
         moveSelectedPinSet(focusedInstance, owner, selection.selectedId, movement);
       }
+    }
+  }
+  function handleTransportKey(instance, event) {
+    const controller = instance.player;
+    if (!controller || !controller.isReady()) {
+      return false;
+    }
+    const target = event.target;
+    const onButton = target instanceof Element && target.tagName === "BUTTON";
+    const step = event.shiftKey ? SEEK_STEP_SHIFT_SECONDS : SEEK_STEP_SECONDS;
+    const player = instance.state.player;
+    const playhead = player.playhead;
+    switch (event.key) {
+      case " ":
+      case "Enter":
+        if (onButton) return false;
+        controller.toggle().catch((error) => {
+          console.warn("GramFrame: playback could not start:", error instanceof Error ? error.message : String(error));
+        });
+        return true;
+      case "k":
+      case "K":
+        controller.toggle().catch((error) => {
+          console.warn("GramFrame: playback could not start:", error instanceof Error ? error.message : String(error));
+        });
+        return true;
+      case "j":
+      case "J":
+        controller.seek(playhead - step);
+        return true;
+      case "l":
+      case "L":
+        controller.seek(playhead + step);
+        return true;
+      case "Home":
+        controller.restart();
+        return true;
+      case "m":
+      case "M":
+        controller.setMute(!player.muted);
+        return true;
+      default:
+        return false;
     }
   }
   function isArrowKey(key) {
@@ -2009,13 +2467,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function createFlexColumn(className, gap = "10px") {
     return createFlexLayout(className, gap, "column");
   }
-  function formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    const paddedMinutes = minutes.toString().padStart(2, "0");
-    const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
-    return `${paddedMinutes}:${paddedSeconds}`;
-  }
   function createUnifiedLayout(instance) {
     const unifiedLayoutContainer = (
       /** @type {HTMLDivElement} */
@@ -2161,6 +2612,87 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function updatePersistentPanels(instance) {
     Object.values(instance.modes).filter(isPanelOwner).forEach((mode) => mode.refreshPanel());
   }
+  function isPowerOfTwo(n) {
+    return Number.isInteger(n) && n >= 2 && (n & n - 1) === 0;
+  }
+  function createFFT(size) {
+    if (!isPowerOfTwo(size)) {
+      throw new Error(`FFT size must be a power of two, got ${size}`);
+    }
+    const bits = Math.log2(size);
+    const reversed = new Uint32Array(size);
+    for (let i = 0; i < size; i++) {
+      let r = 0;
+      let x = i;
+      for (let b = 0; b < bits; b++) {
+        r = r << 1 | x & 1;
+        x >>= 1;
+      }
+      reversed[i] = r;
+    }
+    const half = size / 2;
+    const cos = new Float32Array(half);
+    const sin = new Float32Array(half);
+    for (let k = 0; k < half; k++) {
+      const angle = -2 * Math.PI * k / size;
+      cos[k] = Math.cos(angle);
+      sin[k] = Math.sin(angle);
+    }
+    function forward(re, im) {
+      if (re.length !== size || im.length !== size) {
+        throw new Error(`FFT of size ${size} given arrays of length ${re.length}/${im.length}`);
+      }
+      for (let i = 0; i < size; i++) {
+        const j = reversed[i];
+        if (j > i) {
+          let t = re[i];
+          re[i] = re[j];
+          re[j] = t;
+          t = im[i];
+          im[i] = im[j];
+          im[j] = t;
+        }
+      }
+      for (let span = 2; span <= size; span <<= 1) {
+        const halfSpan = span >> 1;
+        const stride = size / span;
+        for (let start = 0; start < size; start += span) {
+          for (let k = 0; k < halfSpan; k++) {
+            const wr = cos[k * stride];
+            const wi = sin[k * stride];
+            const a = start + k;
+            const b = a + halfSpan;
+            const xr = re[b] * wr - im[b] * wi;
+            const xi = re[b] * wi + im[b] * wr;
+            re[b] = re[a] - xr;
+            im[b] = im[a] - xi;
+            re[a] += xr;
+            im[a] += xi;
+          }
+        }
+      }
+    }
+    return { size, forward };
+  }
+  function readParameterRows(configTable) {
+    const params = /* @__PURE__ */ new Map();
+    configTable.querySelectorAll("tr").forEach((row, index) => {
+      var _a, _b;
+      try {
+        const cells = row.querySelectorAll("td");
+        if (cells.length === 2) {
+          const name = ((_a = cells[0].textContent) == null ? void 0 : _a.trim()) || "";
+          const text = ((_b = cells[1].textContent) == null ? void 0 : _b.trim()) || "";
+          if (name) {
+            params.set(name, { text, row: index + 1 });
+          }
+        }
+      } catch (error) {
+        console.warn(`GramFrame: Error parsing row ${index + 1}:`, error instanceof Error ? error.message : String(error));
+      }
+    });
+    return params;
+  }
   function parseConfigValue(text) {
     if (typeof text !== "string") {
       return null;
@@ -2172,74 +2704,116 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const value = Number(trimmed);
     return Number.isFinite(value) ? value : null;
   }
-  function extractConfigData(instance) {
-    if (!instance.configTable) {
-      console.warn("GramFrame: No config table provided for configuration extraction");
-      return;
+  function numberParam(params, name) {
+    const cell = params.get(name);
+    if (!cell) {
+      return null;
     }
-    const imgElement = instance.configTable.querySelector("img");
-    if (!imgElement) {
-      throw new Error("No image element found in config table: the first row must contain an <img> with the spectrogram");
+    const value = parseConfigValue(cell.text);
+    if (value === null) {
+      console.warn(`GramFrame: Ignoring ${name} in row ${cell.row} — "${cell.text}" is not a single numeric value`);
+      return null;
     }
+    return value;
+  }
+  function extractImageConfig(instance, imgElement, params) {
     const srcAttribute = imgElement.getAttribute("src");
     if (!srcAttribute || !srcAttribute.trim()) {
       throw new Error("Image element has no src attribute: the spectrogram <img> must point at an image");
     }
     instance.state.imageDetails.url = imgElement.src;
-    try {
-      const rows = instance.configTable.querySelectorAll("tr");
-      let timeStart = null;
-      let timeEnd = null;
-      let freqStart = null;
-      let freqEnd = null;
-      rows.forEach((row, index) => {
-        var _a, _b;
-        try {
-          const cells = row.querySelectorAll("td");
-          if (cells.length === 2) {
-            const param = ((_a = cells[0].textContent) == null ? void 0 : _a.trim()) || "";
-            if (param !== "time-start" && param !== "time-end" && param !== "freq-start" && param !== "freq-end") {
-              return;
-            }
-            const valueText = ((_b = cells[1].textContent) == null ? void 0 : _b.trim()) || "";
-            const value = parseConfigValue(valueText);
-            if (value === null) {
-              console.warn(`GramFrame: Ignoring ${param} in row ${index + 1} — "${valueText}" is not a single numeric value`);
-              return;
-            }
-            if (param === "time-start") {
-              timeStart = value;
-            } else if (param === "time-end") {
-              timeEnd = value;
-            } else if (param === "freq-start") {
-              freqStart = value;
-            } else if (param === "freq-end") {
-              freqEnd = value;
-            }
-          }
-        } catch (error) {
-          console.warn(`GramFrame: Error parsing row ${index + 1}:`, error instanceof Error ? error.message : String(error));
-        }
-      });
-      if (timeStart === null || timeEnd === null) {
-        throw new Error("Missing required time configuration: both time-start and time-end must be present with valid numeric values");
-      }
-      if (timeStart >= timeEnd) {
-        throw new Error(`Invalid time range: start (${timeStart}) must be less than end (${timeEnd})`);
-      }
-      instance.state.config.timeMin = timeStart;
-      instance.state.config.timeMax = timeEnd;
-      if (freqStart === null || freqEnd === null) {
-        throw new Error("Missing required frequency configuration: both freq-start and freq-end must be present with valid numeric values");
-      }
-      if (freqStart >= freqEnd) {
-        throw new Error(`Invalid frequency range: start (${freqStart}) must be less than end (${freqEnd})`);
-      }
-      instance.state.config.freqMin = freqStart;
-      instance.state.config.freqMax = freqEnd;
-    } catch (error) {
-      throw error;
+    const timeStart = numberParam(params, "time-start");
+    const timeEnd = numberParam(params, "time-end");
+    const freqStart = numberParam(params, "freq-start");
+    const freqEnd = numberParam(params, "freq-end");
+    const config = instance.state.config;
+    if (timeStart === null || timeEnd === null) {
+      throw new Error("Missing required time configuration: both time-start and time-end must be present with valid numeric values");
     }
+    if (timeStart >= timeEnd) {
+      throw new Error(`Invalid time range: start (${timeStart}) must be less than end (${timeEnd})`);
+    }
+    config.timeMin = timeStart;
+    config.timeMax = timeEnd;
+    if (freqStart === null || freqEnd === null) {
+      throw new Error("Missing required frequency configuration: both freq-start and freq-end must be present with valid numeric values");
+    }
+    if (freqStart >= freqEnd) {
+      throw new Error(`Invalid frequency range: start (${freqStart}) must be less than end (${freqEnd})`);
+    }
+    config.freqMin = freqStart;
+    config.freqMax = freqEnd;
+  }
+  function extractAudioConfig(instance, audioElement, params) {
+    const src = audioElement.getAttribute("src") ? audioElement.src : "";
+    if (!src) {
+      throw new Error("Audio element has no src attribute");
+    }
+    const state = instance.state;
+    const player = state.player;
+    player.active = true;
+    player.source = src;
+    state.imageDetails.url = src;
+    if (params.has("time-start") || params.has("time-end")) {
+      console.warn("GramFrame: time-start/time-end are ignored on an audio-sourced gram — the recording defines the time range");
+    }
+    const fftSize = numberParam(params, "fft-size");
+    if (fftSize !== null) {
+      if (!isPowerOfTwo(fftSize) || fftSize < 64 || fftSize > 8192) {
+        throw new Error(`Invalid fft-size: ${fftSize} — must be a power of two between 64 and 8192`);
+      }
+      player.analysis.fftSize = fftSize;
+    }
+    const hopSize = numberParam(params, "hop-size");
+    if (hopSize !== null) {
+      if (!Number.isInteger(hopSize) || hopSize < 1) {
+        throw new Error(`Invalid hop-size: ${hopSize} — must be a whole number of samples, 1 or more`);
+      }
+      player.analysis.hopSize = hopSize;
+    } else {
+      player.analysis.hopSize = player.analysis.fftSize / 2;
+    }
+    const freqStart = numberParam(params, "freq-start");
+    if (freqStart !== null) {
+      if (freqStart < 0) {
+        throw new Error(`Invalid freq-start: ${freqStart} — must not be negative`);
+      }
+      player.analysis.freqStart = freqStart;
+    }
+    const freqEnd = numberParam(params, "freq-end");
+    if (freqEnd !== null) {
+      if (freqEnd <= player.analysis.freqStart) {
+        throw new Error(`Invalid frequency range: freq-end (${freqEnd}) must be greater than freq-start (${player.analysis.freqStart})`);
+      }
+      player.analysis.freqEnd = freqEnd;
+    }
+    const windowSeconds = numberParam(params, "window-seconds");
+    if (windowSeconds !== null) {
+      if (!(windowSeconds > 0)) {
+        throw new Error(`Invalid window-seconds: ${windowSeconds} — must be greater than 0`);
+      }
+      player.windowSeconds = windowSeconds;
+    }
+  }
+  function extractConfigData(instance) {
+    if (!instance.configTable) {
+      console.warn("GramFrame: No config table provided for configuration extraction");
+      return;
+    }
+    const params = readParameterRows(instance.configTable);
+    const audioElement = instance.configTable.querySelector("audio");
+    const imgElement = instance.configTable.querySelector("img");
+    if (audioElement) {
+      if (imgElement) {
+        console.warn("GramFrame: the config table holds both an <audio> and an <img>; the audio is used and the image ignored");
+      }
+      extractAudioConfig(instance, audioElement, params);
+      return;
+    }
+    if (!imgElement) {
+      throw new Error("No image element found in config table: the first row must contain an <img> with the spectrogram");
+    }
+    extractImageConfig(instance, imgElement, params);
   }
   function createComponentStructure(instanceId) {
     const container = document.createElement("div");
@@ -2325,258 +2899,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     extractConfigData(instance);
     return setupComponentTable(instance, configTable);
   }
-  function renderAxes(instance) {
-    if (!instance.ui.axesGroup) {
-      return;
-    }
-    instance.ui.axesGroup.innerHTML = "";
-    const viewport = instance.state;
-    const { naturalWidth, naturalHeight } = viewport.imageDetails;
-    const margins = viewport.margins;
-    if (!naturalWidth || !naturalHeight) {
-      return;
-    }
-    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
-    const visibleRange = calculateVisibleDataRange(viewport, instance.ui.spectrogramImage);
-    renderFrequencyAxis(instance, margins, renderWidth, renderHeight, visibleRange.freqMin, visibleRange.freqMax);
-    renderTimeAxis(instance, margins, renderWidth, renderHeight, visibleRange.timeMin, visibleRange.timeMax);
-  }
-  function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin, timeMax) {
-    const axisX = margins.left;
-    const axisStartY = margins.top;
-    const axisEndY = margins.top + naturalHeight;
-    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    axisLine.setAttribute("x1", String(axisX));
-    axisLine.setAttribute("y1", String(axisStartY));
-    axisLine.setAttribute("x2", String(axisX));
-    axisLine.setAttribute("y2", String(axisEndY));
-    axisLine.setAttribute("class", "gram-frame-axis-line");
-    instance.ui.axesGroup.appendChild(axisLine);
-    const timeRange = timeMax - timeMin;
-    const tickCount = 5;
-    const tickInterval = timeRange / (tickCount - 1);
-    for (let i = 0; i < tickCount; i++) {
-      const time = timeMin + i * tickInterval;
-      const y = axisEndY - i / (tickCount - 1) * naturalHeight;
-      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      tick.setAttribute("x1", String(axisX - 8));
-      tick.setAttribute("y1", String(y));
-      tick.setAttribute("x2", String(axisX));
-      tick.setAttribute("y2", String(y));
-      tick.setAttribute("class", "gram-frame-axis-tick");
-      instance.ui.axesGroup.appendChild(tick);
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("x", String(axisX - 12));
-      label.setAttribute("y", String(y + 4));
-      label.setAttribute("text-anchor", "end");
-      label.setAttribute("class", "gram-frame-axis-label");
-      label.textContent = formatTime(time);
-      instance.ui.axesGroup.appendChild(label);
-    }
-  }
-  function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
-    const range = max - min;
-    const targetMajorTicks = Math.max(2, Math.floor(containerSize / targetSpacing));
-    const rawMajorInterval = range / (targetMajorTicks - 1);
-    function niceNum(value, round) {
-      const exponent = Math.floor(Math.log10(value));
-      const fraction = value / Math.pow(10, exponent);
-      let niceFraction;
-      {
-        if (fraction <= 1) niceFraction = 1;
-        else if (fraction <= 2) niceFraction = 2;
-        else if (fraction <= 5) niceFraction = 5;
-        else niceFraction = 10;
-      }
-      return niceFraction * Math.pow(10, exponent);
-    }
-    const majorInterval = niceNum(rawMajorInterval);
-    let minorInterval;
-    const majorFraction = majorInterval / Math.pow(10, Math.floor(Math.log10(majorInterval)));
-    if (majorFraction === 1) {
-      minorInterval = majorInterval / 5;
-    } else if (majorFraction === 2) {
-      minorInterval = majorInterval / 2;
-    } else if (majorFraction === 5) {
-      minorInterval = majorInterval / 5;
-    } else {
-      minorInterval = majorInterval / 2;
-    }
-    const majorStart = Math.ceil(min / majorInterval) * majorInterval;
-    const minorStart = Math.ceil(min / minorInterval) * minorInterval;
-    const expectedMajorTicks = Math.ceil(range / majorInterval) + 2;
-    const expectedMinorTicks = Math.ceil(range / minorInterval) + 2;
-    const maxTicks = Math.max(200, expectedMajorTicks + expectedMinorTicks);
-    return {
-      majorInterval,
-      minorInterval,
-      majorStart,
-      minorStart,
-      expectedMajorTicks,
-      expectedMinorTicks,
-      maxTicks
-    };
-  }
-  function formatFrequencyLabels(frequency) {
-    return Math.round(frequency) + "Hz";
-  }
-  function renderAxisLine(instance, axisConfig) {
-    const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    axisLine.setAttribute("x1", String(axisConfig.startX));
-    axisLine.setAttribute("y1", String(axisConfig.y));
-    axisLine.setAttribute("x2", String(axisConfig.endX));
-    axisLine.setAttribute("y2", String(axisConfig.y));
-    axisLine.setAttribute("class", "gram-frame-axis-line");
-    instance.ui.axesGroup.appendChild(axisLine);
-  }
-  function renderAxisTicks(instance, tickData, axisConfig) {
-    tickData.forEach((tickInfo) => {
-      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      tick.setAttribute("x1", String(tickInfo.x));
-      tick.setAttribute("y1", String(axisConfig.y));
-      tick.setAttribute("x2", String(tickInfo.x));
-      tick.setAttribute("y2", String(axisConfig.y + tickInfo.height));
-      tick.setAttribute("class", tickInfo.className);
-      instance.ui.axesGroup.appendChild(tick);
-    });
-  }
-  function renderAxisLabels(instance, labelData, axisConfig) {
-    labelData.forEach((labelInfo) => {
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("x", String(labelInfo.x));
-      label.setAttribute("y", String(axisConfig.y + 25));
-      label.setAttribute("text-anchor", "middle");
-      label.setAttribute("class", labelInfo.className);
-      label.textContent = labelInfo.text;
-      instance.ui.axesGroup.appendChild(label);
-    });
-  }
-  function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, freqMin, freqMax) {
-    const axisY = margins.top + _naturalHeight;
-    const axisStartX = margins.left;
-    const axisEndX = margins.left + naturalWidth;
-    const rate = instance.state.rate;
-    const displayFreqMin = freqMin / rate;
-    const displayFreqMax = freqMax / rate;
-    const freqRange = displayFreqMax - displayFreqMin;
-    const axisConfig = { y: axisY, startX: axisStartX, endX: axisEndX };
-    renderAxisLine(instance, axisConfig);
-    const tickCalculation = calculateAxisTicks(displayFreqMin, displayFreqMax, naturalWidth);
-    const minorTickData = [];
-    const majorTickData = [];
-    const labelData = [];
-    const numMinorTicks = Math.floor((displayFreqMax - tickCalculation.minorStart) / tickCalculation.minorInterval) + 1;
-    if (numMinorTicks <= tickCalculation.maxTicks) {
-      for (let i = 0; i < numMinorTicks; i++) {
-        const freq = tickCalculation.minorStart + i * tickCalculation.minorInterval;
-        if (freq > displayFreqMax) break;
-        if (Math.abs(freq % tickCalculation.majorInterval) < 0.01) continue;
-        const x = axisStartX + (freq - displayFreqMin) / freqRange * naturalWidth;
-        minorTickData.push({ x, height: 4, className: "gram-frame-axis-tick-minor" });
-      }
-    }
-    const numMajorTicks = Math.floor((displayFreqMax - tickCalculation.majorStart) / tickCalculation.majorInterval) + 1;
-    if (numMajorTicks <= tickCalculation.maxTicks) {
-      for (let i = 0; i < numMajorTicks; i++) {
-        const freq = tickCalculation.majorStart + i * tickCalculation.majorInterval;
-        if (freq > displayFreqMax) break;
-        const x = axisStartX + (freq - displayFreqMin) / freqRange * naturalWidth;
-        majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick-major" });
-        labelData.push({
-          x,
-          text: formatFrequencyLabels(freq),
-          className: "gram-frame-axis-label-major"
-        });
-      }
-    } else {
-      const tickCount = 5;
-      for (let i = 0; i < tickCount; i++) {
-        const freq = displayFreqMin + i * freqRange / (tickCount - 1);
-        const x = axisStartX + i / (tickCount - 1) * naturalWidth;
-        majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick" });
-        labelData.push({
-          x,
-          text: formatFrequencyLabels(freq),
-          className: "gram-frame-axis-label"
-        });
-      }
-    }
-    renderAxisTicks(instance, minorTickData, axisConfig);
-    renderAxisTicks(instance, majorTickData, axisConfig);
-    renderAxisLabels(instance, labelData, axisConfig);
-  }
-  function updateSVGLayout(instance) {
-    const viewport = instance.state;
-    const { naturalWidth, naturalHeight } = viewport.imageDetails;
-    const margins = viewport.margins;
-    if (!naturalWidth || !naturalHeight) {
-      return;
-    }
-    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
-    const axesWidth = renderWidth;
-    const axesHeight = renderHeight;
-    const totalWidth = axesWidth + margins.left + margins.right;
-    const totalHeight = axesHeight + margins.top + margins.bottom;
-    instance.ui.container.style.width = "auto";
-    instance.ui.container.style.height = "auto";
-    instance.ui.container.style.aspectRatio = "unset";
-    instance.ui.svg.style.width = `${totalWidth}px`;
-    instance.ui.svg.style.height = `${totalHeight}px`;
-    instance.ui.svg.setAttribute("viewBox", `0 0 ${totalWidth} ${totalHeight}`);
-    instance.ui.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-    instance.ui.spectrogramImage.setAttribute("x", String(margins.left));
-    instance.ui.spectrogramImage.setAttribute("y", String(margins.top));
-    instance.ui.spectrogramImage.setAttribute("width", String(axesWidth));
-    instance.ui.spectrogramImage.setAttribute("height", String(axesHeight));
-    if (instance.ui.imageClipRect) {
-      instance.ui.imageClipRect.setAttribute("x", String(margins.left));
-      instance.ui.imageClipRect.setAttribute("y", String(margins.top));
-      instance.ui.imageClipRect.setAttribute("width", String(axesWidth));
-      instance.ui.imageClipRect.setAttribute("height", String(axesHeight));
-    }
-    if (instance.ui.cursorClipRect) {
-      instance.ui.cursorClipRect.setAttribute("x", String(margins.left));
-      instance.ui.cursorClipRect.setAttribute("y", String(margins.top));
-      instance.ui.cursorClipRect.setAttribute("width", String(axesWidth));
-      instance.ui.cursorClipRect.setAttribute("height", String(axesHeight));
-    }
-    applyZoomTransform(instance);
-  }
-  function applyZoomTransform(instance) {
-    const viewport = instance.state;
-    const { level, centerX, centerY } = viewport.zoom;
-    const margins = viewport.margins;
-    const { renderWidth, renderHeight } = getRenderDimensions(viewport);
-    if (!instance.ui.spectrogramImage) {
-      return;
-    }
-    if (level === 1) {
-      instance.ui.spectrogramImage.setAttribute("x", String(margins.left));
-      instance.ui.spectrogramImage.setAttribute("y", String(margins.top));
-      instance.ui.spectrogramImage.setAttribute("width", String(renderWidth));
-      instance.ui.spectrogramImage.setAttribute("height", String(renderHeight));
-      instance.ui.spectrogramImage.removeAttribute("transform");
-      renderAxes(instance);
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      return;
-    }
-    const centerImageX = centerX * renderWidth;
-    const centerImageY = centerY * renderHeight;
-    const zoomedWidth = renderWidth * level;
-    const zoomedHeight = renderHeight * level;
-    const newX = margins.left + centerImageX - centerImageX * level;
-    const newY = margins.top + centerImageY - centerImageY * level;
-    instance.ui.spectrogramImage.setAttribute("x", String(newX));
-    instance.ui.spectrogramImage.setAttribute("y", String(newY));
-    instance.ui.spectrogramImage.setAttribute("width", String(zoomedWidth));
-    instance.ui.spectrogramImage.setAttribute("height", String(zoomedHeight));
-    renderAxes(instance);
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
-  }
   function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes = {}) {
     const modesContainer = document.createElement("div");
     modesContainer.className = "gram-frame-modes";
@@ -2595,28 +2917,28 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         modeGroup.appendChild(cmdButton);
         commandButtons[modeType].push(cmdButton);
       });
-      const button = document.createElement("button");
-      button.className = "gram-frame-mode-btn";
-      button.textContent = getModeDisplayName(modeType);
-      button.dataset.mode = modeType;
+      const button2 = document.createElement("button");
+      button2.className = "gram-frame-mode-btn";
+      button2.textContent = getModeDisplayName(modeType);
+      button2.dataset.mode = modeType;
       if (modeType === state.mode) {
-        button.classList.add("active");
+        button2.classList.add("active");
       }
       const modeInstanceForDisabled = modes[modeType];
       if (modeInstanceForDisabled && typeof modeInstanceForDisabled.isEnabled === "function") {
         if (!modeInstanceForDisabled.isEnabled()) {
-          button.disabled = true;
-          button.classList.add("disabled");
+          button2.disabled = true;
+          button2.classList.add("disabled");
         }
       }
-      button.addEventListener("click", (event) => {
+      button2.addEventListener("click", (event) => {
         event.preventDefault();
-        if (!button.disabled) {
+        if (!button2.disabled) {
           modeSwitchCallback(modeType);
         }
       });
-      modeButtons[modeType] = button;
-      modeGroup.appendChild(button);
+      modeButtons[modeType] = button2;
+      modeGroup.appendChild(button2);
       const postButtons = commandButtonDefs.slice(Math.floor(commandButtonDefs.length / 2));
       postButtons.forEach((buttonDef) => {
         const cmdButton = createCommandButton(buttonDef);
@@ -2637,19 +2959,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     };
   }
   function createCommandButton(buttonDef) {
-    const button = document.createElement("button");
-    button.className = "gram-frame-command-btn";
-    button.textContent = buttonDef.label;
-    button.title = buttonDef.title;
+    const button2 = document.createElement("button");
+    button2.className = "gram-frame-command-btn";
+    button2.textContent = buttonDef.label;
+    button2.title = buttonDef.title;
     if (buttonDef.isEnabled) {
-      button.disabled = !buttonDef.isEnabled();
+      button2.disabled = !buttonDef.isEnabled();
     }
-    button.addEventListener("click", (event) => {
+    button2.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
       buttonDef.action();
     });
-    return button;
+    return button2;
   }
   function updateCommandButtonStates(commandButtons, modes) {
     Object.keys(commandButtons).forEach((modeType) => {
@@ -2657,10 +2979,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (modeInstance && typeof modeInstance.getCommandButtons === "function") {
         const buttonDefs = modeInstance.getCommandButtons();
         const buttons = commandButtons[modeType];
-        buttons.forEach((button, index) => {
+        buttons.forEach((button2, index) => {
           const buttonDef = buttonDefs[index];
           if (buttonDef && buttonDef.isEnabled) {
-            button.disabled = !buttonDef.isEnabled();
+            button2.disabled = !buttonDef.isEnabled();
           }
         });
       }
@@ -2669,30 +2991,30 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function updateModeButtonStates(modeButtons, modes) {
     Object.keys(modeButtons).forEach((modeType) => {
       const modeInstance = modes[modeType];
-      const button = modeButtons[modeType];
-      if (modeInstance && typeof modeInstance.isEnabled === "function" && button) {
+      const button2 = modeButtons[modeType];
+      if (modeInstance && typeof modeInstance.isEnabled === "function" && button2) {
         const isEnabled = modeInstance.isEnabled();
-        button.disabled = !isEnabled;
+        button2.disabled = !isEnabled;
         if (isEnabled) {
-          button.classList.remove("disabled");
+          button2.classList.remove("disabled");
         } else {
-          button.classList.add("disabled");
+          button2.classList.add("disabled");
         }
       }
     });
   }
   const BOTTOM_GAP = 16;
   function isLandscape(instance) {
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
-    return naturalWidth > 0 && naturalHeight > 0 && naturalWidth > naturalHeight;
+    const { width, height } = baseRenderSize(instance);
+    return width > 0 && height > 0 && width > height;
   }
   function computeAvailableRenderSize(instance) {
     const margins = instance.state.margins;
-    const { naturalWidth, naturalHeight } = instance.state.imageDetails;
+    const { width: baseWidth, height: baseHeight } = baseRenderSize(instance);
     const cell = instance.ui.mainCell;
     const svg = instance.ui.svg;
     if (!cell || !svg) {
-      return { width: naturalWidth, height: naturalHeight };
+      return { width: baseWidth, height: baseHeight };
     }
     const cellStyle = window.getComputedStyle(cell);
     const padL = parseFloat(cellStyle.paddingLeft) || 0;
@@ -2702,10 +3024,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     const width = cell.clientWidth - padL - padR - svgBorderX - margins.left - margins.right;
     const svgRect = svg.getBoundingClientRect();
     const imageTopViewport = svgRect.top + margins.top;
-    const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP;
+    const transport = isPlayerActive(instance) ? cell.querySelector(".gram-frame-transport") : null;
+    const transportHeight = transport instanceof HTMLElement ? transport.offsetHeight + (parseFloat(window.getComputedStyle(transport).marginTop) || 0) : 0;
+    const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP - transportHeight;
     return {
-      width: Math.max(naturalWidth, Math.round(width)),
-      height: Math.max(naturalHeight, Math.round(height))
+      width: Math.max(baseWidth, Math.round(width)),
+      height: Math.max(baseHeight, Math.round(height))
     };
   }
   function applyExpandLayout(instance) {
@@ -2721,8 +3045,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         imageDetails.renderHeight = settled.height;
       }
     } else {
-      imageDetails.renderWidth = imageDetails.naturalWidth;
-      imageDetails.renderHeight = imageDetails.naturalHeight;
+      const base = baseRenderSize(instance);
+      imageDetails.renderWidth = base.width;
+      imageDetails.renderHeight = base.height;
     }
     updateSVGLayout(instance);
     renderAxes(instance);
@@ -2731,11 +3056,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     dispatch(instance);
   }
-  function updateToggleButton(button, expanded) {
-    button.setAttribute("aria-pressed", expanded ? "true" : "false");
-    button.setAttribute("aria-label", expanded ? "Collapse image" : "Expand image");
-    button.title = expanded ? "Collapse image" : "Expand image";
-    button.textContent = expanded ? "⤢" : "⤡";
+  function updateToggleButton(button2, expanded) {
+    button2.setAttribute("aria-pressed", expanded ? "true" : "false");
+    button2.setAttribute("aria-label", expanded ? "Collapse image" : "Expand image");
+    button2.title = expanded ? "Collapse image" : "Expand image";
+    button2.textContent = expanded ? "⤢" : "⤡";
   }
   function setImageExpanded(instance, expanded) {
     if (!isLandscape(instance)) {
@@ -2761,27 +3086,36 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     if (!isLandscape(instance)) {
       return null;
     }
-    const button = document.createElement("button");
-    button.className = "gram-frame-expand-toggle";
-    button.type = "button";
-    updateToggleButton(button, instance.state.imageExpanded === true);
-    button.addEventListener("click", (e) => {
+    const button2 = document.createElement("button");
+    button2.className = "gram-frame-expand-toggle";
+    button2.type = "button";
+    updateToggleButton(button2, instance.state.imageExpanded === true);
+    button2.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
       setImageExpanded(instance, !instance.state.imageExpanded);
     });
-    instance.ui.mainCell.appendChild(button);
-    instance.ui.expandToggleButton = button;
-    return button;
+    instance.ui.mainCell.appendChild(button2);
+    instance.ui.expandToggleButton = button2;
+    return button2;
   }
   function zoomIn(instance) {
     const zoom = instance.state.zoom;
     const newLevel = Math.min(zoom.level * 1.5, 10);
-    setZoom(instance, newLevel, zoom.centerX, zoom.centerY);
+    zoomAboutViewCentre(instance, newLevel);
   }
   function zoomOut(instance) {
     const zoom = instance.state.zoom;
     const newLevel = Math.max(zoom.level / 1.5, 1);
+    zoomAboutViewCentre(instance, newLevel);
+  }
+  function zoomAboutViewCentre(instance, newLevel) {
+    const { zoom, player } = instance.state;
+    if (isPlayerActive(instance)) {
+      const centreTime = player.viewTop - visibleWindowSeconds(instance) / 2;
+      zoom.level = newLevel;
+      player.viewTop = clampViewTop(instance, centreTime + visibleWindowSeconds(instance) / 2);
+    }
     setZoom(instance, newLevel, zoom.centerX, zoom.centerY);
   }
   function zoomReset(instance) {
@@ -2814,7 +3148,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     };
   }
   function panByNormalized(instance, deltaX, deltaY) {
-    const zoom = instance.state.zoom;
+    const { zoom, player } = instance.state;
+    if (isPlayerActive(instance)) {
+      player.viewTop = clampViewTop(instance, player.viewTop + deltaY * player.windowSeconds);
+      const newCenterX2 = zoom.level > 1 ? Math.max(0, Math.min(1, zoom.centerX + deltaX)) : zoom.centerX;
+      setZoom(instance, zoom.level, newCenterX2, zoom.centerY);
+      return;
+    }
     if (zoom.level <= 1) {
       return;
     }
@@ -2823,19 +3163,29 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     setZoom(instance, zoom.level, newCenterX, newCenterY);
   }
   function zoomAtImagePoint(instance, factor, imageX, imageY) {
-    const currentLevel = instance.state.zoom.level;
+    const state = instance.state;
+    const { zoom, player, imageDetails } = state;
+    const currentLevel = zoom.level;
     const newLevel = Math.max(1, Math.min(currentLevel * factor, 10));
     if (newLevel === currentLevel) {
+      return;
+    }
+    const { naturalWidth, naturalHeight } = imageDetails;
+    const renderWidth = imageDetails.renderWidth || naturalWidth;
+    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    if (isPlayerActive(instance)) {
+      const pointerTime = imageToData(imageX, imageY, state).time;
+      const fraction = (player.viewTop - pointerTime) / visibleWindowSeconds(instance);
+      zoom.level = newLevel;
+      player.viewTop = clampViewTop(instance, pointerTime + fraction * visibleWindowSeconds(instance));
+      const centerX2 = newLevel <= 1 ? 0.5 : Math.max(0, Math.min(1, imageX / renderWidth));
+      setZoom(instance, newLevel, centerX2, 0.5);
       return;
     }
     if (newLevel <= 1) {
       zoomReset(instance);
       return;
     }
-    const imageDetails = instance.state.imageDetails;
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
     const centerX = Math.max(0, Math.min(1, imageX / renderWidth));
     const centerY = Math.max(0, Math.min(1, imageY / renderHeight));
     setZoom(instance, newLevel, centerX, centerY);
@@ -2882,6 +3232,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     };
   }
   function handleWheel(instance, event) {
+    if (isPlaying(instance)) {
+      return;
+    }
     const result = screenToDataWithZoom(instance, event);
     if (!result) {
       return;
@@ -2985,9 +3338,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     };
     Object.keys(instance.ui.modeButtons || {}).forEach((mode) => {
-      const button = instance.ui.modeButtons[mode];
-      if (button) {
-        listen(button, "click", () => {
+      const button2 = instance.ui.modeButtons[mode];
+      if (button2) {
+        listen(button2, "click", () => {
           instance._switchMode(
             /** @type {ModeType} */
             mode
@@ -3039,6 +3392,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   function handleMouseDown(instance, event) {
     setFocusedInstance(instance);
+    if (event.button === 0 && isPlayerActive(instance) && seekFromTimeAxisClick(instance, event)) {
+      event.preventDefault();
+      return;
+    }
+    if (isPlaying(instance)) {
+      return;
+    }
     if (event.button === 1) {
       event.preventDefault();
       wheelPanHandler(instance).startDrag(null, event);
@@ -3058,6 +3418,24 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
     }
   }
+  function seekFromTimeAxisClick(instance, event) {
+    if (!instance.player || !instance.player.isReady()) {
+      return false;
+    }
+    const state = instance.state;
+    const svgRect = instance.ui.svg.getBoundingClientRect();
+    const point = screenToSVG(event.clientX - svgRect.left, event.clientY - svgRect.top, instance.ui.svg);
+    const { renderHeight } = getRenderDimensions(state);
+    const { margins } = state;
+    const onAxisBand = point.x >= 0 && point.x < margins.left && point.y >= margins.top && point.y <= margins.top + renderHeight;
+    if (!onAxisBand) {
+      return false;
+    }
+    const visible = calculateVisibleDataRange(state, instance.ui.spectrogramImage);
+    const fraction = (point.y - margins.top) / renderHeight;
+    instance.player.seek(visible.timeMax - fraction * (visible.timeMax - visible.timeMin));
+    return true;
+  }
   function handleMouseUp(instance, event) {
     const wheelPan = wheelPanHandler(instance);
     if (wheelPan.isDragging()) {
@@ -3067,6 +3445,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return;
     }
     if (event.button !== 0) {
+      return;
+    }
+    if (isPlaying(instance)) {
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -3090,6 +3471,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function handleContextMenu(instance, event) {
     if (hasActiveDrag(instance)) {
       event.preventDefault();
+      return;
+    }
+    if (isPlaying(instance)) {
       return;
     }
     const result = screenToDataWithZoom(instance, event);
@@ -3277,6 +3661,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         zoom: this.instance.state.zoom,
         rate: this.instance.state.rate
       };
+    }
+    /**
+     * Whether a feature at this time may be drawn.
+     *
+     * On an audio-sourced gram (spec 168, FR-018) only times that have been
+     * played or sought past are revealed; on an image-backed instance every
+     * time is. The one thing a mode learns about the player, and it learns it
+     * through the base class rather than by reading `state.player` itself.
+     * @param {number} time - Seconds
+     * @returns {boolean} True when a feature there should be rendered
+     */
+    isTimeRevealed(time) {
+      return isTimeRevealed(this.instance, time);
     }
     /**
      * Update cursor style for drag operations.
@@ -3642,22 +4039,22 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   const SVG_NS = "http://www.w3.org/2000/svg";
   function createMarkerDeleteButton() {
-    const button = document.createElement("button");
-    button.textContent = "×";
-    button.className = "gram-frame-marker-delete-btn";
-    button.style.background = "none";
-    button.style.border = "none";
-    button.style.color = "#ff4444";
-    button.style.cursor = "pointer";
-    button.style.fontSize = "16px";
-    button.style.fontWeight = "bold";
-    return button;
+    const button2 = document.createElement("button");
+    button2.textContent = "×";
+    button2.className = "gram-frame-marker-delete-btn";
+    button2.style.background = "none";
+    button2.style.border = "none";
+    button2.style.color = "#ff4444";
+    button2.style.cursor = "pointer";
+    button2.style.fontSize = "16px";
+    button2.style.fontWeight = "bold";
+    return button2;
   }
   function createMarkerLabelButton(marker) {
-    const button = document.createElement("button");
-    button.className = "gram-frame-marker-label-btn";
-    button.title = marker.label ? `Edit label: ${marker.label}` : "Add label";
-    button.setAttribute("aria-label", button.title);
+    const button2 = document.createElement("button");
+    button2.className = "gram-frame-marker-label-btn";
+    button2.title = marker.label ? `Edit label: ${marker.label}` : "Add label";
+    button2.setAttribute("aria-label", button2.title);
     const icon = document.createElementNS(SVG_NS, "svg");
     icon.setAttribute("viewBox", "0 0 16 16");
     icon.setAttribute("width", "13");
@@ -3676,8 +4073,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     hole.setAttribute("fill", "currentColor");
     icon.appendChild(body);
     icon.appendChild(hole);
-    button.appendChild(icon);
-    return button;
+    button2.appendChild(icon);
+    return button2;
   }
   function createMarkerLabelCell(marker) {
     const content = document.createElement("div");
@@ -3902,7 +4299,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const existingMarkers = this.instance.ui.cursorGroup.querySelectorAll(".gram-frame-analysis-marker");
       existingMarkers.forEach((marker) => marker.remove());
       this.markers.forEach((marker) => {
-        this.renderMarker(marker);
+        if (this.isTimeRevealed(marker.time)) {
+          this.renderMarker(marker);
+        }
       });
     }
     /**
@@ -4968,7 +5367,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         `.gram-frame-harmonic-symbol[${names.setIdAttribute}]`
       );
       existingSymbols.forEach((symbol) => symbol.remove());
-      this.sets.forEach((set) => this.renderSet(set));
+      this.sets.forEach((set) => {
+        if (this.isTimeRevealed(set.anchorTime)) {
+          this.renderSet(set);
+        }
+      });
     }
     /**
      * Render a single set as vertical pin lines.
@@ -5100,12 +5503,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return "5.000";
   }
   function createHarmonicDeleteButton(harmonicSet) {
-    const button = document.createElement("button");
-    button.className = "gram-frame-harmonic-delete";
-    button.setAttribute("data-harmonic-id", harmonicSet.id);
-    button.title = "Delete harmonic set";
-    button.textContent = "×";
-    return button;
+    const button2 = document.createElement("button");
+    button2.className = "gram-frame-harmonic-delete";
+    button2.setAttribute("data-harmonic-id", harmonicSet.id);
+    button2.title = "Delete harmonic set";
+    button2.textContent = "×";
+    return button2;
   }
   function createHarmonicPanel(container, instance) {
     const table = createDiffingTable(container, {
@@ -5503,14 +5906,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {HTMLElement} The manual button element
      */
     createManualButton() {
-      const button = document.createElement("button");
-      button.className = "gram-frame-manual-button";
-      button.textContent = "+ Manual";
-      button.title = "Manually add a set of harmonics at a specific spacing";
-      button.addEventListener("click", () => {
+      const button2 = document.createElement("button");
+      button2.className = "gram-frame-manual-button";
+      button2.textContent = "+ Manual";
+      button2.title = "Manually add a set of harmonics at a specific spacing";
+      button2.addEventListener("click", () => {
         this.showManualHarmonicModal();
       });
-      return button;
+      return button2;
     }
     /**
      * Show manual harmonic modal dialog
@@ -5562,12 +5965,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return colorDiv;
   }
   function createSidebandDeleteButton(sidebandSet) {
-    const button = document.createElement("button");
-    button.className = "gram-frame-sideband-delete";
-    button.setAttribute("data-sideband-id", sidebandSet.id);
-    button.title = "Delete sideband set";
-    button.textContent = "×";
-    return button;
+    const button2 = document.createElement("button");
+    button2.className = "gram-frame-sideband-delete";
+    button2.setAttribute("data-sideband-id", sidebandSet.id);
+    button2.title = "Delete sideband set";
+    button2.textContent = "×";
+    return button2;
   }
   function createSidebandPanel(container, instance) {
     const table = createDiffingTable(container, {
@@ -6194,13 +6597,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Reset doppler-specific state
      */
     resetState() {
-      this.instance.state.doppler.fPlus = null;
-      this.instance.state.doppler.fMinus = null;
-      this.instance.state.doppler.fZero = null;
-      this.instance.state.doppler.speed = null;
-      this.instance.state.doppler.color = null;
-      this.instance.state.doppler.tempFirst = null;
-      this.instance.state.doppler.previewEnd = null;
+      const doppler = this.instance.state.doppler;
+      doppler.fPlus = null;
+      doppler.fMinus = null;
+      doppler.fZero = null;
+      doppler.speed = null;
+      doppler.color = null;
+      doppler.tempFirst = null;
+      doppler.previewEnd = null;
       this.dragHandler.reset();
       markAnnotationsChanged(this.instance);
       dispatch(this.instance, { frame: true });
@@ -6209,8 +6613,9 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Clean up doppler-specific state when switching away from doppler mode
      */
     cleanup() {
-      this.instance.state.doppler.tempFirst = null;
-      this.instance.state.doppler.previewEnd = null;
+      const doppler = this.instance.state.doppler;
+      doppler.tempFirst = null;
+      doppler.previewEnd = null;
       this.dragHandler.reset();
     }
     /**
@@ -6298,7 +6703,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const existingFeatures = this.instance.ui.cursorGroup.querySelectorAll(".doppler-feature, .gram-frame-doppler-preview, .gram-frame-doppler-curve, .gram-frame-doppler-extension, .gram-frame-doppler-fPlus, .gram-frame-doppler-fMinus, .gram-frame-doppler-crosshair");
       existingFeatures.forEach((element) => element.remove());
       const doppler = this.instance.state.doppler;
-      if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
+      if (doppler.fPlus && doppler.fMinus && doppler.fZero && [doppler.fPlus, doppler.fMinus, doppler.fZero].every((marker) => this.isTimeRevealed(marker.time))) {
         this.renderMarkers();
         this.renderDopplerCurve();
         if (doppler.tempFirst) {
@@ -6481,17 +6886,26 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {DragTarget|null} A pan-kind target, or null to decline
      */
     resolvePanDrag() {
-      if (this.instance.state.zoom.level <= 1) {
+      if (!this.canPan()) {
         return null;
       }
       return { kind: "pan", id: null, type: null };
+    }
+    /**
+     * Whether there is anything to pan: an image zoomed in, or an audio-sourced
+     * gram at any zoom — its view is a window onto the recording, so a paused
+     * analyst can always scroll back through what has played (spec 168, FR-016).
+     * @returns {boolean} True when a drag would move the view
+     */
+    canPan() {
+      return this.instance.state.zoom.level > 1 || isPlayerActive(this.instance);
     }
     /**
      * The cursor pan mode rests at: a grab hand when there is something to pan.
      * @returns {string} Cursor style
      */
     idleCursor() {
-      return this.instance.state.zoom.level > 1 ? PAN_IDLE_CURSOR : IDLE_CURSOR;
+      return this.canPan() ? PAN_IDLE_CURSOR : IDLE_CURSOR;
     }
     /**
      * Record where the pan began, in screen pixels.
@@ -6508,7 +6922,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @param {MouseEvent} [event] - Originating mousemove
      */
     onPanMove(event) {
-      if (!event || this.instance.state.zoom.level <= 1) {
+      if (!event || !this.canPan()) {
         return;
       }
       const deltaX = event.clientX - this.lastPointer.x;
@@ -6527,7 +6941,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * Activate pan mode
      */
     activate() {
-      if (this.instance.state.zoom.level > 1) {
+      if (this.canPan()) {
         this.updateCursorStyle(PAN_IDLE_CURSOR);
       }
       this.dragHandler.reset();
@@ -6659,6 +7073,25 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       minVersion: 86,
       test: function() {
         return typeof Element !== "undefined" && !!Element.prototype && typeof Element.prototype.replaceChildren === "function";
+      }
+    },
+    {
+      // The spectrograph player (spec 168, FR-008) plays through an <audio>
+      // element. Present since Chrome 3; listed so a browser without it gets the
+      // warning rather than a player that cannot play.
+      name: "HTMLAudioElement",
+      minVersion: 3,
+      test: function() {
+        return typeof HTMLAudioElement === "function" || typeof HTMLAudioElement === "object";
+      }
+    },
+    {
+      // The player encodes the analysed spectrogram as a PNG through a canvas
+      // (spec 168, D6). Present since Chrome 1.
+      name: "HTMLCanvasElement.prototype.toDataURL",
+      minVersion: 1,
+      test: function() {
+        return typeof HTMLCanvasElement !== "undefined" && !!HTMLCanvasElement.prototype && typeof HTMLCanvasElement.prototype.toDataURL === "function";
       }
     }
   ];
@@ -6966,9 +7399,36 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return modeUIWithButtons;
   }
   function setupSpectrogramIfAvailable(instance) {
-    if (instance.state.imageDetails.url) {
+    if (instance.state.imageDetails.url && !instance.state.player.active) {
       setupSpectrogramImage(instance, instance.state.imageDetails.url);
     }
+  }
+  function createErrorIndicator(errorMsg) {
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "gramframe-error-indicator";
+    errorDiv.style.cssText = `
+    position: relative;
+    background-color: #ffe6e6;
+    border: 2px solid #ff6b6b;
+    border-radius: 4px;
+    padding: 10px;
+    margin: 10px 0;
+    color: #d32f2f;
+    font-family: monospace;
+    font-size: 14px;
+  `;
+    const strongElement = document.createElement("strong");
+    strongElement.textContent = "GramFrame Initialization Error:";
+    const errorText = document.createElement("div");
+    errorText.textContent = errorMsg;
+    const smallElement = document.createElement("small");
+    smallElement.textContent = "Check the browser console for detailed error information.";
+    errorDiv.appendChild(strongElement);
+    errorDiv.appendChild(document.createElement("br"));
+    errorDiv.appendChild(errorText);
+    errorDiv.appendChild(document.createElement("br"));
+    errorDiv.appendChild(smallElement);
+    return errorDiv;
   }
   function isDebugEnabled() {
     return typeof window !== "undefined" && /** @type {any} */
@@ -7144,6 +7604,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         return removeGlobalStateListener(callback);
       },
       /**
+       * The transport of an audio-sourced instance (spec 168, FR-020).
+       * @param {number} [index=0] - Which live instance, in page order
+       * @returns {PlayerController|null} Its player, or null when the instance is image-backed or absent
+       */
+      getPlayer(index = 0) {
+        const instance = this._getInstances()[index];
+        return instance && instance.player ? instance.player : null;
+      },
+      /**
        * Get the current expand state of the first GramFrame instance.
        * @returns {boolean} True if the image is currently expanded
        */
@@ -7200,30 +7669,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       _addErrorIndicator(table, errorMsg) {
         try {
           table.classList.add("gram-frame-config-error");
-          const errorDiv = document.createElement("div");
-          errorDiv.className = "gramframe-error-indicator";
-          errorDiv.style.cssText = `
-          position: relative;
-          background-color: #ffe6e6;
-          border: 2px solid #ff6b6b;
-          border-radius: 4px;
-          padding: 10px;
-          margin: 10px 0;
-          color: #d32f2f;
-          font-family: monospace;
-          font-size: 14px;
-        `;
-          const strongElement = document.createElement("strong");
-          strongElement.textContent = "GramFrame Initialization Error:";
-          const errorText = document.createElement("div");
-          errorText.textContent = errorMsg;
-          const smallElement = document.createElement("small");
-          smallElement.textContent = "Check the browser console for detailed error information.";
-          errorDiv.appendChild(strongElement);
-          errorDiv.appendChild(document.createElement("br"));
-          errorDiv.appendChild(errorText);
-          errorDiv.appendChild(document.createElement("br"));
-          errorDiv.appendChild(smallElement);
+          const errorDiv = createErrorIndicator(errorMsg);
           if (table.parentNode) {
             table.parentNode.insertBefore(errorDiv, table.nextSibling);
           }
@@ -7236,6 +7682,831 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attachDebugAPI(api);
     }
     return api;
+  }
+  function sidecarKey(src) {
+    const path = src.split("#")[0].split("?")[0];
+    return decodeURIComponent(path.split("/").pop() || path);
+  }
+  function base64ToArrayBuffer(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+  function loadSidecar(src, doc) {
+    const key = sidecarKey(src);
+    const registry = (
+      /** @type {SidecarRegistry|undefined} */
+      /** @type {any} */
+      window.GramFrameAudio
+    );
+    if (registry && typeof registry[key] === "string") {
+      return Promise.resolve(base64ToArrayBuffer(registry[key]));
+    }
+    const sidecarUrl = `${src.split("#")[0]}.js`;
+    return new Promise((resolve, reject) => {
+      const script = doc.createElement("script");
+      script.async = true;
+      script.src = sidecarUrl;
+      const cleanup = () => {
+        script.onload = null;
+        script.onerror = null;
+        if (script.parentNode) script.parentNode.removeChild(script);
+      };
+      script.onload = () => {
+        cleanup();
+        const loaded = (
+          /** @type {SidecarRegistry|undefined} */
+          /** @type {any} */
+          window.GramFrameAudio
+        );
+        if (loaded && typeof loaded[key] === "string") {
+          resolve(base64ToArrayBuffer(loaded[key]));
+        } else {
+          reject(new Error(
+            `${sidecarUrl} loaded but did not register "${key}". Regenerate it with: node scripts/wav2js.mjs <file.wav>`
+          ));
+        }
+      };
+      script.onerror = () => {
+        cleanup();
+        reject(new Error(
+          `Could not load ${src} (fetch is unavailable on this page — file:// or a network error) and no sidecar was found at ${sidecarUrl}. For file:// distribution generate one with: node scripts/wav2js.mjs <file.wav>`
+        ));
+      };
+      doc.head.appendChild(script);
+    });
+  }
+  function looksLikeWav(bytes) {
+    if (bytes.byteLength < 12) return false;
+    const head = new Uint8Array(bytes, 0, 12);
+    let text = "";
+    for (let i = 0; i < head.length; i++) text += String.fromCharCode(head[i]);
+    return text.startsWith("RIFF") && text.slice(8) === "WAVE";
+  }
+  async function loadAudioBytes(src, options = {}) {
+    const doc = options.doc || document;
+    let fetched = null;
+    try {
+      const response = await fetch(src);
+      if (response.ok) {
+        fetched = await response.arrayBuffer();
+        if (looksLikeWav(fetched)) {
+          return fetched;
+        }
+        console.warn(`GramFrame: fetch of ${src} returned ${fetched.byteLength} bytes that are not a WAV; trying the sidecar`);
+      } else {
+        console.warn(`GramFrame: fetch of ${src} returned ${response.status}; trying the sidecar`);
+      }
+    } catch (error) {
+      console.warn(`GramFrame: fetch of ${src} failed (${error instanceof Error ? error.message : String(error)}); trying the sidecar`);
+    }
+    try {
+      return await loadSidecar(src, doc);
+    } catch (sidecarError) {
+      if (fetched) {
+        return fetched;
+      }
+      throw sidecarError;
+    }
+  }
+  const FORMAT_PCM = 1;
+  const FORMAT_IEEE_FLOAT = 3;
+  const FORMAT_EXTENSIBLE = 65534;
+  function fourCC(view, offset) {
+    return String.fromCharCode(
+      view.getUint8(offset),
+      view.getUint8(offset + 1),
+      view.getUint8(offset + 2),
+      view.getUint8(offset + 3)
+    );
+  }
+  function decodeWav(buffer) {
+    if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 12) {
+      throw new Error("Not a WAV file: too short to hold a RIFF header");
+    }
+    const view = new DataView(buffer);
+    if (fourCC(view, 0) !== "RIFF" || fourCC(view, 8) !== "WAVE") {
+      throw new Error(`Not a WAV file: expected a RIFF/WAVE header, found "${fourCC(view, 0)}"/"${fourCC(view, 8)}"`);
+    }
+    let format = null;
+    let data = null;
+    let offset = 12;
+    while (offset + 8 <= view.byteLength) {
+      const id = fourCC(view, offset);
+      const size = view.getUint32(offset + 4, true);
+      const body = offset + 8;
+      if (id === "fmt ") {
+        if (size < 16) {
+          throw new Error(`Malformed WAV: "fmt " chunk is ${size} bytes, expected at least 16`);
+        }
+        let formatTag2 = view.getUint16(body, true);
+        const channels2 = view.getUint16(body + 2, true);
+        const sampleRate2 = view.getUint32(body + 4, true);
+        const bitsPerSample2 = view.getUint16(body + 14, true);
+        if (formatTag2 === FORMAT_EXTENSIBLE) {
+          if (size < 26) {
+            throw new Error("Malformed WAV: WAVE_FORMAT_EXTENSIBLE header is truncated");
+          }
+          formatTag2 = view.getUint16(body + 24, true);
+        }
+        format = { formatTag: formatTag2, channels: channels2, sampleRate: sampleRate2, bitsPerSample: bitsPerSample2 };
+      } else if (id === "data") {
+        const available = view.byteLength - body;
+        const length = size === 0 || size === 4294967295 || size > available ? available : size;
+        data = { offset: body, length };
+      }
+      offset = body + size + size % 2;
+    }
+    if (!format) {
+      throw new Error('Malformed WAV: no "fmt " chunk');
+    }
+    if (!data) {
+      throw new Error('Malformed WAV: no "data" chunk');
+    }
+    if (format.channels < 1) {
+      throw new Error("Malformed WAV: channel count is 0");
+    }
+    if (format.sampleRate < 1) {
+      throw new Error("Malformed WAV: sample rate is 0");
+    }
+    const { formatTag, channels, sampleRate, bitsPerSample } = format;
+    const isFloat = formatTag === FORMAT_IEEE_FLOAT;
+    if (formatTag !== FORMAT_PCM && !isFloat) {
+      throw new Error(`Unsupported WAV format tag ${formatTag}: only PCM (1) and IEEE float (3) are supported`);
+    }
+    if (isFloat && bitsPerSample !== 32) {
+      throw new Error(`Unsupported WAV: ${bitsPerSample}-bit float; only 32-bit float is supported`);
+    }
+    if (!isFloat && ![8, 16, 24, 32].includes(bitsPerSample)) {
+      throw new Error(`Unsupported WAV: ${bitsPerSample}-bit PCM; only 8, 16, 24 and 32-bit PCM are supported`);
+    }
+    const bytesPerSample = bitsPerSample / 8;
+    const frameBytes = bytesPerSample * channels;
+    const frameCount = Math.floor(data.length / frameBytes);
+    if (frameCount === 0) {
+      throw new Error('Malformed WAV: the "data" chunk holds no complete sample frame');
+    }
+    const samples = new Float32Array(frameCount);
+    const scale = 1 / channels;
+    let pos = data.offset;
+    if (isFloat) {
+      for (let i = 0; i < frameCount; i++) {
+        let sum = 0;
+        for (let c = 0; c < channels; c++) {
+          sum += view.getFloat32(pos, true);
+          pos += 4;
+        }
+        samples[i] = sum * scale;
+      }
+    } else if (bitsPerSample === 16) {
+      const k = scale / 32768;
+      for (let i = 0; i < frameCount; i++) {
+        let sum = 0;
+        for (let c = 0; c < channels; c++) {
+          sum += view.getInt16(pos, true);
+          pos += 2;
+        }
+        samples[i] = sum * k;
+      }
+    } else if (bitsPerSample === 8) {
+      const k = scale / 128;
+      for (let i = 0; i < frameCount; i++) {
+        let sum = 0;
+        for (let c = 0; c < channels; c++) {
+          sum += view.getUint8(pos) - 128;
+          pos += 1;
+        }
+        samples[i] = sum * k;
+      }
+    } else if (bitsPerSample === 24) {
+      const k = scale / 8388608;
+      for (let i = 0; i < frameCount; i++) {
+        let sum = 0;
+        for (let c = 0; c < channels; c++) {
+          const raw = view.getUint8(pos) | view.getUint8(pos + 1) << 8 | view.getUint8(pos + 2) << 16;
+          sum += raw << 8 >> 8;
+          pos += 3;
+        }
+        samples[i] = sum * k;
+      }
+    } else {
+      const k = scale / 2147483648;
+      for (let i = 0; i < frameCount; i++) {
+        let sum = 0;
+        for (let c = 0; c < channels; c++) {
+          sum += view.getInt32(pos, true);
+          pos += 4;
+        }
+        samples[i] = sum * k;
+      }
+    }
+    return { samples, sampleRate, channels, duration: frameCount / sampleRate };
+  }
+  function planAnalysis(request) {
+    const { sampleRate, sampleCount, fftSize, hopSize } = request;
+    if (!isPowerOfTwo(fftSize)) {
+      throw new Error(`fft-size must be a power of two, got ${fftSize}`);
+    }
+    if (!Number.isInteger(hopSize) || hopSize < 1) {
+      throw new Error(`hop-size must be a positive integer, got ${hopSize}`);
+    }
+    const frames = Math.floor((sampleCount - fftSize) / hopSize) + 1;
+    if (frames < 1) {
+      throw new Error(`The recording (${sampleCount} samples) is shorter than one analysis frame (${fftSize} samples)`);
+    }
+    const nyquist = sampleRate / 2;
+    const binWidth = sampleRate / fftSize;
+    const requestedEnd = request.freqEnd === null || request.freqEnd === void 0 ? nyquist : request.freqEnd;
+    const clamped = requestedEnd > nyquist;
+    const freqEndTarget = clamped ? nyquist : requestedEnd;
+    if (request.freqStart < 0) {
+      throw new Error(`freq-start must not be negative, got ${request.freqStart}`);
+    }
+    if (request.freqStart >= freqEndTarget) {
+      throw new Error(`freq-start (${request.freqStart}) must be below freq-end (${freqEndTarget})`);
+    }
+    const firstBin = Math.ceil(request.freqStart / binWidth);
+    const lastBin = Math.min(fftSize / 2, Math.floor(freqEndTarget / binWidth));
+    const columns = lastBin - firstBin + 1;
+    if (columns < 1) {
+      throw new Error(`The frequency range ${request.freqStart}–${freqEndTarget} Hz holds no whole bin at ${binWidth} Hz per bin; widen it or raise fft-size`);
+    }
+    return {
+      sampleRate,
+      fftSize,
+      hopSize,
+      frames,
+      binWidth,
+      firstBin,
+      lastBin,
+      columns,
+      freqStart: firstBin * binWidth,
+      freqEnd: lastBin * binWidth,
+      clamped
+    };
+  }
+  function analyseFrames(samples, plan, grid, scratch, from, to) {
+    const { fftSize, hopSize, firstBin, columns } = plan;
+    const { fft, window: window2, re, im } = scratch;
+    for (let f = from; f < to; f++) {
+      const offset = f * hopSize;
+      for (let i = 0; i < fftSize; i++) {
+        re[i] = samples[offset + i] * window2[i];
+        im[i] = 0;
+      }
+      fft.forward(re, im);
+      const row = f * columns;
+      for (let k = 0; k < columns; k++) {
+        const bin = firstBin + k;
+        grid[row + k] = re[bin] * re[bin] + im[bin] * im[bin];
+      }
+    }
+  }
+  function makeScratch(plan) {
+    const { fftSize } = plan;
+    const window2 = new Float32Array(fftSize);
+    for (let i = 0; i < fftSize; i++) {
+      window2[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (fftSize - 1));
+    }
+    return {
+      fft: createFFT(fftSize),
+      window: window2,
+      re: new Float32Array(fftSize),
+      im: new Float32Array(fftSize)
+    };
+  }
+  async function analyse(samples, plan, options = {}) {
+    const sliceMs = options.sliceMs === void 0 ? 12 : options.sliceMs;
+    const onProgress = options.onProgress || (() => {
+    });
+    const yieldToLoop = options.yieldToLoop || (() => new Promise((resolve) => setTimeout(resolve, 0)));
+    const now = typeof performance !== "undefined" && performance.now ? () => performance.now() : () => Date.now();
+    const grid = new Float32Array(plan.frames * plan.columns);
+    const scratch = makeScratch(plan);
+    const batch = Math.max(1, Math.round(4096 / plan.fftSize) * 8);
+    let frame = 0;
+    while (frame < plan.frames) {
+      const sliceStart = now();
+      do {
+        const to = Math.min(plan.frames, frame + batch);
+        analyseFrames(samples, plan, grid, scratch, frame, to);
+        frame = to;
+      } while (frame < plan.frames && now() - sliceStart < sliceMs);
+      onProgress(frame / plan.frames);
+      if (frame < plan.frames) {
+        await yieldToLoop();
+      }
+    }
+    return grid;
+  }
+  const COLOUR_LUT = buildLut([
+    [0, [0, 0, 110]],
+    [0.45, [30, 70, 210]],
+    [0.68, [225, 215, 40]],
+    [0.88, [255, 140, 0]],
+    [1, [220, 20, 20]]
+  ]);
+  function buildLut(stops) {
+    const lut = new Uint8Array(256 * 3);
+    for (let i = 0; i < 256; i++) {
+      const t = i / 255;
+      let s = 0;
+      while (s < stops.length - 2 && t > stops[s + 1][0]) s++;
+      const [p0, c0] = stops[s];
+      const [p1, c1] = stops[s + 1];
+      const f = p1 === p0 ? 0 : Math.max(0, Math.min(1, (t - p0) / (p1 - p0)));
+      for (let ch = 0; ch < 3; ch++) {
+        lut[i * 3 + ch] = Math.round(c0[ch] + (c1[ch] - c0[ch]) * f);
+      }
+    }
+    return lut;
+  }
+  function levelsToPixels(levels, frames, columns) {
+    const pixels = new Uint8ClampedArray(frames * columns * 4);
+    for (let f = 0; f < frames; f++) {
+      const y = frames - 1 - f;
+      const rowIn = f * columns;
+      const rowOut = y * columns * 4;
+      for (let k = 0; k < columns; k++) {
+        const level = levels[rowIn + k] * 3;
+        const p = rowOut + k * 4;
+        pixels[p] = COLOUR_LUT[level];
+        pixels[p + 1] = COLOUR_LUT[level + 1];
+        pixels[p + 2] = COLOUR_LUT[level + 2];
+        pixels[p + 3] = 255;
+      }
+    }
+    return pixels;
+  }
+  const MAX_GRAM_ROWS = 32768;
+  const MAX_GRAM_COLUMNS = 4096;
+  function checkGramSize(frames, columns, plan) {
+    if (frames > MAX_GRAM_ROWS) {
+      let hop = plan.hopSize;
+      while (Math.ceil(frames * plan.hopSize / hop) > MAX_GRAM_ROWS) hop *= 2;
+      throw new Error(
+        `The analysed spectrogram would be ${frames} rows tall, above the ${MAX_GRAM_ROWS}-row limit. Set hop-size to ${hop} (or shorten the recording).`
+      );
+    }
+    if (columns > MAX_GRAM_COLUMNS) {
+      throw new Error(
+        `The analysed spectrogram would be ${columns} columns wide, above the ${MAX_GRAM_COLUMNS}-column limit. Lower fft-size (currently ${plan.fftSize}) or narrow freq-start/freq-end.`
+      );
+    }
+  }
+  function powerToLevels(grid) {
+    const n = grid.length;
+    const stride = Math.max(1, Math.floor(n / 1e6));
+    const sampleCount = Math.floor((n - 1) / stride) + 1;
+    const sample = new Float32Array(sampleCount);
+    for (let i = 0, j = 0; i < n; i += stride, j++) {
+      sample[j] = 10 * Math.log10(grid[i] + 1e-12);
+    }
+    sample.sort();
+    const floor = sample[Math.floor(0.05 * (sampleCount - 1))];
+    let ceiling = sample[Math.floor(0.999 * (sampleCount - 1))];
+    if (ceiling <= floor) {
+      ceiling = floor + 1;
+    }
+    const scale = 255 / (ceiling - floor);
+    const levels = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      const db = 10 * Math.log10(grid[i] + 1e-12);
+      const v = (db - floor) * scale;
+      levels[i] = v <= 0 ? 0 : v >= 255 ? 255 : Math.round(v);
+    }
+    return levels;
+  }
+  function paintGram(levels, frames, columns) {
+    const canvas = document.createElement("canvas");
+    canvas.width = columns;
+    canvas.height = frames;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error(`Could not create a ${columns}×${frames} canvas to paint the spectrogram`);
+    }
+    const image = context.createImageData(columns, frames);
+    image.data.set(levelsToPixels(levels, frames, columns));
+    context.putImageData(image, 0, 0);
+    const url = canvas.toDataURL("image/png");
+    if (!url || !url.startsWith("data:image/png")) {
+      throw new Error(`The browser could not encode a ${columns}×${frames} spectrogram image`);
+    }
+    return url;
+  }
+  const RATES = [[0.5, "0.5×"], [1, "1×"], [1.5, "1.5×"], [2, "2×"]];
+  function button(className, title, text) {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = `gram-frame-transport-btn ${className}`;
+    el.title = title;
+    el.setAttribute("aria-label", title);
+    el.textContent = text;
+    return el;
+  }
+  function createTransportBar(instance) {
+    const controller = instance.player;
+    if (!controller) {
+      throw new Error("GramFrame: the transport bar needs a player");
+    }
+    const state = instance.state;
+    const player = state.player;
+    const bar = document.createElement("div");
+    bar.className = "gram-frame-transport";
+    bar.setAttribute("role", "group");
+    bar.setAttribute("aria-label", "Playback controls");
+    const play = button("gram-frame-transport-play", "Play", "▶");
+    const restart = button("gram-frame-transport-restart", "Restart", "⏮");
+    const seek = document.createElement("input");
+    seek.type = "range";
+    seek.className = "gram-frame-transport-seek";
+    seek.min = "0";
+    seek.max = String(player.duration);
+    seek.step = "0.01";
+    seek.value = "0";
+    seek.title = "Seek";
+    seek.setAttribute("aria-label", "Seek");
+    const time = document.createElement("span");
+    time.className = "gram-frame-transport-time";
+    time.textContent = `${formatTime(0)} / ${formatTime(player.duration)}`;
+    const loop = button("gram-frame-transport-loop", "Loop", "🔁");
+    loop.setAttribute("aria-pressed", "false");
+    const rate = document.createElement("select");
+    rate.className = "gram-frame-transport-rate";
+    rate.title = "Playback rate";
+    rate.setAttribute("aria-label", "Playback rate");
+    RATES.forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = String(value);
+      option.textContent = label;
+      if (value === 1) option.selected = true;
+      rate.appendChild(option);
+    });
+    const mute = button("gram-frame-transport-mute", "Mute", "🔊");
+    mute.setAttribute("aria-pressed", "false");
+    const volume = document.createElement("input");
+    volume.type = "range";
+    volume.className = "gram-frame-transport-volume";
+    volume.min = "0";
+    volume.max = "1";
+    volume.step = "0.01";
+    volume.value = "1";
+    volume.title = "Volume";
+    volume.setAttribute("aria-label", "Volume");
+    [play, restart, seek, time, loop, rate, mute, volume].forEach((el) => bar.appendChild(el));
+    bar.addEventListener("mousedown", () => setFocusedInstance(instance));
+    play.addEventListener("click", () => {
+      controller.toggle().catch((error) => {
+        console.warn("GramFrame: playback could not start:", error instanceof Error ? error.message : String(error));
+      });
+    });
+    restart.addEventListener("click", () => controller.restart());
+    let scrubbing = false;
+    seek.addEventListener("pointerdown", () => {
+      scrubbing = true;
+    });
+    seek.addEventListener("pointerup", () => {
+      scrubbing = false;
+    });
+    seek.addEventListener("pointercancel", () => {
+      scrubbing = false;
+    });
+    seek.addEventListener("input", () => controller.seek(parseFloat(seek.value)));
+    seek.addEventListener("change", () => {
+      scrubbing = false;
+      controller.seek(parseFloat(seek.value));
+    });
+    loop.addEventListener("click", () => controller.setLoop(!player.loop));
+    rate.addEventListener("change", () => controller.setRate(parseFloat(rate.value)));
+    mute.addEventListener("click", () => controller.setMute(!player.muted));
+    volume.addEventListener("input", () => controller.setVolume(parseFloat(volume.value)));
+    const reflect = (snapshot) => {
+      const p = snapshot.player;
+      play.textContent = p.playing ? "❚❚" : "▶";
+      play.title = p.playing ? "Pause" : "Play";
+      play.setAttribute("aria-label", play.title);
+      play.setAttribute("aria-pressed", p.playing ? "true" : "false");
+      if (!scrubbing) {
+        seek.max = String(p.duration);
+        seek.value = String(p.playhead);
+      }
+      time.textContent = `${formatTime(p.playhead)} / ${formatTime(p.duration)}`;
+      loop.setAttribute("aria-pressed", p.loop ? "true" : "false");
+      rate.value = String(p.rate);
+      mute.setAttribute("aria-pressed", p.muted ? "true" : "false");
+      mute.textContent = p.muted ? "🔇" : "🔊";
+      mute.title = p.muted ? "Unmute" : "Mute";
+      mute.setAttribute("aria-label", mute.title);
+      if (document.activeElement !== volume) {
+        volume.value = String(p.volume);
+      }
+    };
+    reflect(state);
+    instance.stateListeners.push(reflect);
+    instance.ui.mainCell.appendChild(bar);
+    return bar;
+  }
+  class PlayerController {
+    /**
+     * @param {GramFrame} instance - The owning instance
+     * @param {HTMLAudioElement} audio - The element to drive
+     */
+    constructor(instance, audio) {
+      this.instance = instance;
+      this.audio = audio;
+      this.playerState = instance.state.player;
+      this._listeners = [];
+      this._onVisibility = null;
+      this._bind();
+    }
+    /**
+     * Mirror the element's events into state.
+     */
+    _bind() {
+      const { audio } = this;
+      const on = (type, handler) => {
+        audio.addEventListener(type, handler);
+        this._listeners.push({ type, handler });
+      };
+      on("play", () => {
+        const player = this.playerState;
+        player.playing = true;
+        player.ended = false;
+        updatePlayingClass(this.instance);
+        startFollow(this.instance);
+        dispatch(this.instance);
+      });
+      on("pause", () => {
+        this.playerState.playing = false;
+        updatePlayingClass(this.instance);
+        stopFollow(this.instance);
+        dispatch(this.instance);
+      });
+      on("ended", () => {
+        const player = this.playerState;
+        player.playing = false;
+        player.ended = true;
+        updatePlayingClass(this.instance);
+        stopFollow(this.instance);
+        dispatch(this.instance);
+      });
+      on("seeked", () => syncViewToPlayhead(this.instance));
+      on("timeupdate", () => {
+        if (this.playerState.playing) {
+          syncViewToPlayhead(this.instance);
+        }
+      });
+      on("volumechange", () => {
+        const player = this.playerState;
+        player.volume = audio.volume;
+        player.muted = audio.muted;
+        dispatch(this.instance);
+      });
+      on("ratechange", () => {
+        this.playerState.rate = audio.playbackRate;
+        dispatch(this.instance);
+      });
+      if (typeof document !== "undefined") {
+        this._onVisibility = () => {
+          if (document.visibilityState === "visible" && this.playerState.playing) {
+            syncViewToPlayhead(this.instance);
+          }
+        };
+        document.addEventListener("visibilitychange", this._onVisibility);
+      }
+    }
+    /**
+     * Whether the gram is analysed and the transport may be used.
+     * @returns {boolean} True once ready
+     */
+    isReady() {
+      return this.playerState.ready;
+    }
+    /**
+     * Start playback from the playhead.
+     *
+     * The view snaps to the playhead first (Story 4, AS-4): a paused analyst who
+     * panned away resumes where the audio is, not where they were looking. The
+     * element's promise is returned as-is, so an autoplay refusal
+     * (`NotAllowedError`) rejects rather than failing silently (FR-023).
+     * @returns {Promise<void>} Resolves when playback starts
+     */
+    play() {
+      if (!this.isReady()) {
+        return Promise.reject(new Error("GramFrame: the recording is still being analysed"));
+      }
+      this.playerState.ended = false;
+      syncViewToPlayhead(this.instance);
+      const result = this.audio.play();
+      return result && typeof result.then === "function" ? result : Promise.resolve();
+    }
+    /**
+     * Pause playback. The follow loop ends after one final sync.
+     */
+    pause() {
+      this.audio.pause();
+    }
+    /**
+     * Play if paused, pause if playing.
+     * @returns {Promise<void>} The `play()` promise, or resolved when pausing
+     */
+    toggle() {
+      if (this.audio.paused) {
+        return this.play();
+      }
+      this.pause();
+      return Promise.resolve();
+    }
+    /**
+     * Move the playhead. Reveals rows up to the target and puts the view there,
+     * without starting playback (spec edge case "seek while paused").
+     * @param {number} seconds - Target time; clamped to the recording
+     */
+    seek(seconds) {
+      if (!this.isReady()) {
+        return;
+      }
+      const duration = this.playerState.duration;
+      const target = Math.max(0, Math.min(duration, Number.isFinite(seconds) ? seconds : 0));
+      this.playerState.ended = false;
+      this.audio.currentTime = target;
+      const player = this.playerState;
+      player.playhead = target;
+      syncViewToPlayhead(this.instance);
+    }
+    /**
+     * Return to the start. Keeps playing if it was playing.
+     */
+    restart() {
+      this.seek(0);
+    }
+    /**
+     * @param {boolean} loop - Whether to restart at the end
+     */
+    setLoop(loop) {
+      this.audio.loop = !!loop;
+      this.playerState.loop = !!loop;
+      dispatch(this.instance);
+    }
+    /**
+     * @param {number} rate - Playback rate; the gram is never re-analysed (FR-022)
+     */
+    setRate(rate) {
+      if (Number.isFinite(rate) && rate > 0) {
+        this.audio.playbackRate = rate;
+        this.playerState.rate = rate;
+        dispatch(this.instance);
+      }
+    }
+    /**
+     * @param {number} volume - 0..1
+     */
+    setVolume(volume) {
+      if (Number.isFinite(volume)) {
+        const clamped = Math.max(0, Math.min(1, volume));
+        this.audio.volume = clamped;
+        this.playerState.volume = clamped;
+        dispatch(this.instance);
+      }
+    }
+    /**
+     * @param {boolean} muted - Whether to silence output; the gram still scrolls (AS-5.5)
+     */
+    setMute(muted) {
+      this.audio.muted = !!muted;
+      this.playerState.muted = !!muted;
+      dispatch(this.instance);
+    }
+    /**
+     * Pause, detach every listener and drop the element.
+     */
+    destroy() {
+      try {
+        this.audio.pause();
+      } catch (_e) {
+      }
+      stopFollow(this.instance);
+      this._listeners.forEach(({ type, handler }) => this.audio.removeEventListener(type, handler));
+      this._listeners = [];
+      if (this._onVisibility) {
+        document.removeEventListener("visibilitychange", this._onVisibility);
+        this._onVisibility = null;
+      }
+      this.audio.removeAttribute("src");
+      if (this.audio.parentNode) {
+        this.audio.parentNode.removeChild(this.audio);
+      }
+    }
+  }
+  function createTransport(instance) {
+    const audio = document.createElement("audio");
+    audio.className = "gram-frame-audio-element";
+    audio.preload = "auto";
+    audio.src = instance.state.player.source;
+    audio.style.display = "none";
+    instance.ui.container.appendChild(audio);
+    const controller = new PlayerController(instance, audio);
+    instance.player = controller;
+    return controller;
+  }
+  function setProgress(instance, fraction, stage) {
+    instance.state.player.progress = fraction;
+    if (instance.ui.mainCell) {
+      instance.ui.mainCell.dataset.gramProgress = `${stage} ${Math.round(fraction * 100)}%`;
+    }
+  }
+  function failAudioSetup(instance, error) {
+    var _a, _b;
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`GramFrame: could not prepare the audio-sourced gram (${(_a = instance.configTable.querySelector("audio")) == null ? void 0 : _a.getAttribute("src")}): ${message}`, error);
+    const container = instance.ui.container;
+    const parent = container && container.parentNode;
+    const next = container ? container.nextSibling : null;
+    instance.destroy();
+    const table = instance.configTable;
+    if (parent) {
+      parent.insertBefore(table, next);
+      table.classList.add("gram-frame-config-error");
+      const source = ((_b = table.querySelector("audio")) == null ? void 0 : _b.getAttribute("src")) || "";
+      parent.insertBefore(createErrorIndicator(`Audio-sourced gram failed (${source}): ${message}`), table.nextSibling);
+    }
+  }
+  async function setupAudioSource(instance) {
+    const state = instance.state;
+    const player = state.player;
+    const container = instance.ui.container;
+    container.classList.add("gram-frame-audio", "gram-frame-analysing");
+    setProgress(instance, 0, "Loading audio");
+    try {
+      const bytes = await loadAudioBytes(player.source);
+      setProgress(instance, 0.1, "Decoding audio");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const decoded = decodeWav(bytes);
+      player.duration = decoded.duration;
+      player.sampleRate = decoded.sampleRate;
+      player.channels = decoded.channels;
+      setProgress(instance, 0.2, "Analysing audio");
+      const plan = planAnalysis({
+        sampleRate: decoded.sampleRate,
+        sampleCount: decoded.samples.length,
+        fftSize: player.analysis.fftSize,
+        hopSize: player.analysis.hopSize,
+        freqStart: player.analysis.freqStart,
+        freqEnd: player.analysis.freqEnd
+      });
+      if (plan.clamped) {
+        console.warn(`GramFrame: freq-end ${player.analysis.freqEnd} Hz is above this recording's Nyquist frequency (${decoded.sampleRate / 2} Hz); clamped to ${plan.freqEnd} Hz`);
+      }
+      checkGramSize(plan.frames, plan.columns, plan);
+      const grid = await analyse(decoded.samples, plan, {
+        onProgress: (fraction) => setProgress(instance, 0.2 + 0.7 * fraction, "Analysing audio")
+      });
+      setProgress(instance, 0.9, "Painting spectrogram");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const url = paintGram(powerToLevels(grid), plan.frames, plan.columns);
+      if (!container.isConnected) {
+        return;
+      }
+      const imageDetails = state.imageDetails;
+      imageDetails.naturalWidth = plan.columns;
+      imageDetails.naturalHeight = plan.frames;
+      imageDetails.renderWidth = PLAYER_RENDER_WIDTH;
+      imageDetails.renderHeight = PLAYER_RENDER_HEIGHT;
+      imageDetails.timeStretch = decoded.duration / player.windowSeconds;
+      instance.ui.spectrogramImage.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
+      state.config.timeMin = 0;
+      state.config.timeMax = decoded.duration;
+      state.config.freqMin = plan.freqStart;
+      state.config.freqMax = plan.freqEnd;
+      player.analysis.freqStart = plan.freqStart;
+      player.analysis.freqEnd = plan.freqEnd;
+      player.analysis.columns = plan.columns;
+      player.analysis.frames = plan.frames;
+      player.playhead = 0;
+      player.viewTop = 0;
+      player.progress = 1;
+      player.ready = true;
+      createTransport(instance);
+      createTransportBar(instance);
+      container.classList.remove("gram-frame-loading", "gram-frame-analysing");
+      delete instance.ui.mainCell.dataset.gramProgress;
+      updateSVGLayout(instance);
+      createExpandToggle(instance);
+      instance._restoreAnnotations();
+      updatePersistentPanels(instance);
+      if (instance.featureRenderer) {
+        instance.featureRenderer.renderAllPersistentFeatures();
+      }
+      instance._setupStorageSaveListener();
+      dispatch(instance);
+    } catch (error) {
+      if (container.isConnected) {
+        failAudioSetup(instance, error);
+      }
+    }
   }
   class GramFrame {
     /**
@@ -7309,6 +8580,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       __publicField(this, "currentMode");
       /** @type {FeatureRenderer} */
       __publicField(this, "featureRenderer");
+      /**
+       * The transport of an audio-sourced instance (spec 168), or null on an
+       * image-backed one. A grouped sub-object like `ui` and `interaction`: the
+       * audio element, its controller and the follow loop share one lifetime.
+       * @type {PlayerController|null}
+       */
+      __publicField(this, "player", null);
       this.configTable = configTable;
       if (!isBrowserSupported()) {
         showCompatibilityWarning(configTable);
@@ -7398,12 +8676,16 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (this.persistence._isTrainerContext) {
         this._addClearGramButton();
       }
-      this._restoreAnnotations();
-      updatePersistentPanels(this);
-      if (this.featureRenderer) {
-        this.featureRenderer.renderAllPersistentFeatures();
+      if (this.state.player.active) {
+        setupAudioSource(this);
+      } else {
+        this._restoreAnnotations();
+        updatePersistentPanels(this);
+        if (this.featureRenderer) {
+          this.featureRenderer.renderAllPersistentFeatures();
+        }
+        this._setupStorageSaveListener();
       }
-      this._setupStorageSaveListener();
       dispatch(this);
     }
     /**
@@ -7617,6 +8899,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       cleanupEventListeners(this);
       cleanupKeyboardControl(this);
+      if (this.player) {
+        this.player.destroy();
+        this.player = null;
+      }
       if (this.ui.container && this.ui.container.parentNode) {
         this.ui.container.parentNode.removeChild(this.ui.container);
       }
@@ -7638,12 +8924,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       if (this.ui.modeButtons) {
         Object.keys(this.ui.modeButtons).forEach((m) => {
-          const button = this.ui.modeButtons[m];
-          if (button) {
+          const button2 = this.ui.modeButtons[m];
+          if (button2) {
             if (m === mode) {
-              button.classList.add("active");
+              button2.classList.add("active");
             } else {
-              button.classList.remove("active");
+              button2.classList.remove("active");
             }
           }
         });
