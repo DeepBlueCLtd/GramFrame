@@ -45,6 +45,20 @@ const initialState = {
   // can tell an annotation change from a cursor move without re-serialising
   // the annotations on each notification (spec 166, AS-4.3).
   annotationRevision: 0,
+  // Which annotations this tab has deleted, by id, with when.
+  //
+  // A deletion is the one annotation change that cannot be represented by the
+  // record's contents: "absent" and "deleted" look identical, so a merge that
+  // only unions what each tab still holds resurrects everything either tab has
+  // ever removed. These are the tombstones that make deletion survive a merge
+  // (issue #269). In-memory and persisted, pruned by age on save.
+  tombstones: {
+    markers: {},
+    harmonicSets: {},
+    sidebandSets: {},
+    // A single curve, so a boolean-with-a-time rather than a map.
+    doppler: null
+  },
   imageDetails: {
     url: '',
     naturalWidth: 0,  // Original dimensions of the image
@@ -257,6 +271,61 @@ export function commitAnnotationChange(instance, refreshPanel = null, dispatchOp
   }
 
   dispatch(instance, dispatchOptions)
+}
+
+/**
+ * This instance's tombstone set, created on first use.
+ *
+ * Destructured rather than reached into field by field, which keeps the two
+ * recorders below to one access apiece and reads better besides. `state.js`
+ * is the module that owns state, so touching it here is the point rather than
+ * a reach-in.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {AnnotationTombstones|null} Its tombstones, or null if there is no state
+ */
+function tombstoneBag(instance) {
+  const { state } = instance || /** @type {any} */ ({})
+  if (!state) {
+    return null
+  }
+  if (!state.tombstones) {
+    state.tombstones = { markers: {}, harmonicSets: {}, sidebandSets: {}, doppler: null }
+  }
+  return state.tombstones
+}
+
+/**
+ * Record that this tab deleted an annotation, so the deletion survives a merge
+ * with another tab's copy of the same record (issue #269).
+ *
+ * Without this, "I never had it" and "I deleted it" are the same state, and a
+ * union-based merge cannot tell them apart: every feature either tab removed
+ * would come back on the next save.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {'markers'|'harmonicSets'|'sidebandSets'} collection - Which family the feature belongs to
+ * @param {string} id - The deleted feature's id
+ * @returns {void}
+ */
+export function recordDeletion(instance, collection, id) {
+  const bag = tombstoneBag(instance)
+  if (bag && id) {
+    bag[collection][id] = new Date().toISOString()
+  }
+}
+
+/**
+ * Record that this tab deleted the doppler curve.
+ *
+ * Separate from {@link recordDeletion} because there is only ever one curve and
+ * it carries no id: the tombstone is a time, not a set of them.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {void}
+ */
+export function recordDopplerDeletion(instance) {
+  const bag = tombstoneBag(instance)
+  if (bag) {
+    bag.doppler = new Date().toISOString()
+  }
 }
 
 /**

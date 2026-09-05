@@ -22,7 +22,7 @@
 /// <reference path="../../types.js" />
 
 import { BaseMode } from '../BaseMode.js'
-import { commitAnnotationChange } from '../../core/state.js'
+import { commitAnnotationChange, recordDeletion } from '../../core/state.js'
 import {
   dataToSVG,
   getImageBounds,
@@ -164,6 +164,19 @@ export class PinSetMode extends BaseMode {
    */
   get selectionType() {
     throw new Error(`${this.constructor.name} must implement the "selectionType" getter`)
+  }
+
+  /**
+   * Which stored collection this mode's sets live in, and therefore which
+   * tombstone family a deletion belongs to (issue #269).
+   *
+   * Derived from `selectionType` rather than declared again: the two are the
+   * same fact -- `harmonicSet` sets live in `harmonicSets` -- and a subclass
+   * that had to state both could state them inconsistently.
+   * @returns {'harmonicSets'|'sidebandSets'} Stored collection name
+   */
+  get tombstoneCollection() {
+    return /** @type {'harmonicSets'|'sidebandSets'} */ (`${this.selectionType}s`)
   }
 
   /**
@@ -498,6 +511,10 @@ export class PinSetMode extends BaseMode {
     }
 
     this.sets.splice(setIndex, 1)
+    // Deleting is the one change a merge cannot infer from the result, so it is
+    // recorded explicitly (issue #269). `tombstoneCollection` is the subclass's
+    // name for its family, matching the stored record's key.
+    recordDeletion(this.instance, this.tombstoneCollection, id)
 
     // Default tier, not frame tier: a deletion is a one-off, and listeners
     // (storage among them) should see it on the next microtask rather than

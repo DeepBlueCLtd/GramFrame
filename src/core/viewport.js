@@ -145,7 +145,13 @@ export function panByNormalized(instance, deltaX, deltaY) {
     // height is `window-seconds`, at any zoom level, and the clamp keeps the
     // window inside what has been played (spec 168, FR-016). Horizontally the
     // frequency axis pans as an image does, once zoomed in.
-    player.viewTop = clampViewTop(instance, player.viewTop + deltaY * player.windowSeconds)
+    //
+    // `deltaY` is a centre delta in image-pixel space, where y runs downwards;
+    // time runs *upwards* (the newest frame is the top row), so moving the
+    // centre up the image — a negative `deltaY` — moves `viewTop` later. Hence
+    // the negation: without it a downward drag scrolled back in time while the
+    // content moved up, the opposite of every other axis (issue #286).
+    player.viewTop = clampViewTop(instance, player.viewTop - deltaY * player.windowSeconds)
     const newCenterX = zoom.level > 1.0 ? Math.max(0, Math.min(1, zoom.centerX + deltaX)) : zoom.centerX
     setZoom(instance, zoom.level, newCenterX, zoom.centerY)
     return

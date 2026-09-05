@@ -15,7 +15,7 @@
 
 /// <reference path="../types.js" />
 
-import { formatTime } from '../utils/timeFormatter.js'
+import { formatAxisTime } from '../utils/timeFormatter.js'
 import { calculateVisibleDataRange, getRenderDimensions } from '../utils/coordinates.js'
 
 /**
@@ -100,7 +100,8 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
   const axisX = margins.left
   const axisStartY = margins.top
   const axisEndY = margins.top + naturalHeight
-  
+  const timeRange = timeMax - timeMin
+
   // Draw main axis line (vertical)
   const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   axisLine.setAttribute('x1', String(axisX))
@@ -109,18 +110,61 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
   axisLine.setAttribute('y2', String(axisEndY))
   axisLine.setAttribute('class', 'gram-frame-axis-line')
   instance.ui.axesGroup.appendChild(axisLine)
-  
-  // Calculate tick positions
-  const timeRange = timeMax - timeMin
-  const tickCount = 5 // Reasonable number of ticks
-  const tickInterval = timeRange / (tickCount - 1)
-  
-  for (let i = 0; i < tickCount; i++) {
-    const time = timeMin + (i * tickInterval)
-    // Note: Y coordinates are inverted (higher times at top)
-    const y = axisEndY - (i / (tickCount - 1)) * naturalHeight
-    
-    // Draw tick mark (horizontal extending left)
+
+  if (!(timeRange > 0)) {
+    return
+  }
+
+  // The same nice-number engine the frequency axis uses (R9-07). A fixed five
+  // ticks put labels wherever the range happened to divide -- 2.5 s apart on a
+  // 0-10 s gram, and at 10x zoom five ticks inside one second, which all
+  // printed the same `mm:ss`. Nice intervals land on round times and change
+  // count with the span instead.
+  //
+  // 40 px between labels rather than the frequency axis's 80: these are
+  // stacked vertically, where the constraint is the height of a line of text,
+  // not the width of "3000Hz". At 80 a 200 px axis got two labels, which is
+  // sparser than the five it is replacing.
+  const { majorInterval, minorInterval, majorStart, minorStart, maxTicks } =
+    calculateAxisTicks(timeMin, timeMax, naturalHeight, 40)
+
+  /**
+   * Where a time sits on the axis. Y is inverted: later times are higher up.
+   * @param {number} time - Time in seconds
+   * @returns {number} SVG y coordinate
+   */
+  const yFor = (time) => axisEndY - ((time - timeMin) / timeRange) * naturalHeight
+
+  // Minor ticks: unlabelled, and skipped where they coincide with a major one.
+  const minorCount = Math.floor((timeMax - minorStart) / minorInterval) + 1
+  if (minorCount > 0 && minorCount <= maxTicks) {
+    for (let i = 0; i < minorCount; i++) {
+      const time = minorStart + (i * minorInterval)
+      if (time > timeMax) break
+      const offsetFromMajor = Math.abs(((time - majorStart) % majorInterval) / majorInterval)
+      if (offsetFromMajor < 0.001 || offsetFromMajor > 0.999) continue
+
+      const y = yFor(time)
+      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+      tick.setAttribute('x1', String(axisX - 4))
+      tick.setAttribute('y1', String(y))
+      tick.setAttribute('x2', String(axisX))
+      tick.setAttribute('y2', String(y))
+      tick.setAttribute('class', 'gram-frame-axis-tick-minor')
+      instance.ui.axesGroup.appendChild(tick)
+    }
+  }
+
+  // Major ticks, each labelled at a precision its own interval justifies.
+  const majorCount = Math.floor((timeMax - majorStart) / majorInterval) + 1
+  if (majorCount <= 0 || majorCount > maxTicks) {
+    return
+  }
+  for (let i = 0; i < majorCount; i++) {
+    const time = majorStart + (i * majorInterval)
+    if (time > timeMax) break
+    const y = yFor(time)
+
     const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
     tick.setAttribute('x1', String(axisX - 8))
     tick.setAttribute('y1', String(y))
@@ -128,17 +172,15 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
     tick.setAttribute('y2', String(y))
     tick.setAttribute('class', 'gram-frame-axis-tick')
     instance.ui.axesGroup.appendChild(tick)
-    
-    // Draw label
+
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
     label.setAttribute('x', String(axisX - 12))
     label.setAttribute('y', String(y + 4)) // Slight vertical offset for better alignment
     label.setAttribute('text-anchor', 'end')
     label.setAttribute('class', 'gram-frame-axis-label')
-    label.textContent = formatTime(time)
+    label.textContent = formatAxisTime(time, majorInterval)
     instance.ui.axesGroup.appendChild(label)
   }
-  
 }
 
 /**
@@ -219,12 +261,42 @@ function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
 }
 
 /**
- * Format frequency labels with appropriate units
+ * Format a frequency-axis label at a precision the tick interval justifies.
+ *
+ * Rounding to whole hertz duplicated labels on a narrow band: a gram spanning
+ * a few hertz gets sub-hertz tick intervals, and every tick then printed the
+ * same integer (R9-07). As on the time axis, the interval decides the
+ * precision, so a label is never finer than the tick it names.
  * @param {number} frequency - Frequency value
+ * @param {number} [interval] - Spacing between major ticks in Hz
  * @returns {string} Formatted label
  */
-function formatFrequencyLabels(frequency) {
-  return Math.round(frequency) + 'Hz'
+function formatFrequencyLabels(frequency, interval = 1) {
+  return formatAtInterval(frequency, interval) + 'Hz'
+}
+
+/**
+ * Render a value at the smallest precision that writes its tick interval
+ * exactly, capped at three decimals.
+ *
+ * Shared by the frequency axis and, through `formatAxisTime`, by the time
+ * axis: both had the same defect for the same reason, a fixed precision
+ * chosen without reference to the tick spacing.
+ * @param {number} value - Value to render
+ * @param {number} interval - Spacing between ticks, in the same unit
+ * @returns {string} The value, at a precision the interval justifies
+ */
+function formatAtInterval(value, interval) {
+  if (!Number.isFinite(interval) || interval <= 0) {
+    return String(Math.round(value))
+  }
+  for (let decimals = 0; decimals < 3; decimals++) {
+    const scaled = interval * Math.pow(10, decimals)
+    if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
+      return value.toFixed(decimals)
+    }
+  }
+  return value.toFixed(3)
 }
 
 /**
@@ -340,21 +412,22 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
       majorTickData.push({ x, height: 8, className: 'gram-frame-axis-tick-major' })
       labelData.push({
         x,
-        text: formatFrequencyLabels(freq),
+        text: formatFrequencyLabels(freq, tickCalculation.majorInterval),
         className: 'gram-frame-axis-label-major'
       })
     }
   } else {
     // Fallback to simple tick spacing for extremely dense cases
     const tickCount = 5
+    const fallbackInterval = freqRange / (tickCount - 1)
     for (let i = 0; i < tickCount; i++) {
-      const freq = displayFreqMin + (i * freqRange / (tickCount - 1))
+      const freq = displayFreqMin + (i * fallbackInterval)
       const x = axisStartX + (i / (tickCount - 1)) * naturalWidth
       
       majorTickData.push({ x, height: 8, className: 'gram-frame-axis-tick' })
       labelData.push({
         x,
-        text: formatFrequencyLabels(freq),
+        text: formatFrequencyLabels(freq, fallbackInterval),
         className: 'gram-frame-axis-label'
       })
     }
