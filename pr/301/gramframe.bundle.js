@@ -179,16 +179,6 @@
       instance.state.annotationRevision = (instance.state.annotationRevision || 0) + 1;
     }
   }
-  function commitAnnotationChange(instance, refreshPanel = null, dispatchOptions = void 0) {
-    markAnnotationsChanged(instance);
-    if (typeof refreshPanel === "function") {
-      refreshPanel();
-    }
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
-    dispatch(instance, dispatchOptions);
-  }
   function tombstoneBag(instance) {
     const { state } = instance || /** @type {any} */
     {};
@@ -1181,6 +1171,16 @@
       }
     };
     return row;
+  }
+  function commitAnnotationChange(instance, refreshPanel = null, dispatchOptions = void 0) {
+    markAnnotationsChanged(instance);
+    if (typeof refreshPanel === "function") {
+      refreshPanel();
+    }
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+    dispatch(instance, dispatchOptions);
   }
   function renderSize(imageDetails) {
     return {
