@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Two grams beside host form fields - R9-09</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Two grams on a training page with its own fields</h1>
+
+  <!-- The exact shape R9-09 is about. With one gram the Tab hijack was already
+       fixed (BH-3); with two or more, every Tab was consumed and cycled a
+       custom highlight between the grams, so these fields could not be reached
+       by keyboard at all until the analyst clicked elsewhere. -->
+  <label for="before-field">Before the grams</label>
+  <input id="before-field" type="text">
+
+  <table class="gram-config">
+    <tr><td colspan="2"><img src="../../sample/mock-gram.png" alt="Spectrogram A"></td></tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100</td></tr>
+  </table>
+
+  <table class="gram-config">
+    <tr><td colspan="2"><img src="../../sample/mock-gram.png" alt="Spectrogram B"></td></tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100</td></tr>
+  </table>
+
+  <label for="after-field">After the grams</label>
+  <input id="after-field" type="text">
+</body>
+</html>
