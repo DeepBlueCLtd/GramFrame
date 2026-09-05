@@ -72,3 +72,58 @@ test('TRAINER_FLAG_SELECTOR is exported and matches all three flag forms', async
   expect(result.selector).toContain('[data-gf-persistent]')
   expect(result.matches).toBe(3)
 })
+
+// ──────────────────────────────────────────────────────────────
+// describeUserContext(): the same decision, with its evidence (issue #229)
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * Set document.body.innerHTML to `html`, import the storage module, and return
+ * the result of describeUserContext().
+ * @param {import('@playwright/test').Page} page
+ * @param {string} html - markup to place in the body before detection
+ * @returns {Promise<{context: string, matchedBy: string, reason: string}>}
+ */
+async function describeWith(page, html) {
+  return page.evaluate(async (markup) => {
+    document.body.innerHTML = markup
+    const mod = await import('/src/core/storage.js')
+    return mod.describeUserContext()
+  }, html)
+}
+
+test('describeUserContext names the flag element that made the page a trainer page', async ({ page }) => {
+  const result = await describeWith(page, '<p class="p edition-instructor gf-persistent">Instructor note</p>')
+  expect(result.context).toBe('trainer')
+  expect(result.matchedBy).toBe('flag')
+  expect(result.reason).toContain('<p class="gf-persistent">')
+})
+
+test('describeUserContext reports every flag form the element carries', async ({ page }) => {
+  const result = await describeWith(page, '<span id="gf-persistent" data-gf-persistent hidden></span>')
+  expect(result.matchedBy).toBe('flag')
+  expect(result.reason).toContain('span id="gf-persistent" data-gf-persistent')
+})
+
+test('describeUserContext distinguishes the legacy ANALYSIS anchor from an explicit flag', async ({ page }) => {
+  const result = await describeWith(page, '<a href="#">ANALYSIS</a>')
+  expect(result.context).toBe('trainer')
+  expect(result.matchedBy).toBe('legacy-anchor')
+  expect(result.reason).toContain('ANALYSIS')
+})
+
+test('describeUserContext says nothing matched on a student page', async ({ page }) => {
+  const result = await describeWith(page, '<p>Ordinary student page content</p>')
+  expect(result.context).toBe('student')
+  expect(result.matchedBy).toBe('none')
+  expect(result.reason).toContain('no gf-persistent flag')
+})
+
+test('detectUserContext agrees with describeUserContext', async ({ page }) => {
+  const pair = await page.evaluate(async () => {
+    document.body.innerHTML = '<span data-gf-persistent></span>'
+    const mod = await import('/src/core/storage.js')
+    return { detect: mod.detectUserContext(), describe: mod.describeUserContext().context }
+  })
+  expect(pair.detect).toBe(pair.describe)
+})

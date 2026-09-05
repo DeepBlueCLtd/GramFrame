@@ -211,6 +211,37 @@ If a red error box appears below the table:
 - For `file://` protocol, ensure the image is in an accessible directory
 - Check browser console for 404 errors
 
+### Clear Gram Button Missing, or Annotations Not Persisting
+
+Both symptoms have the same cause: the page was detected as a **student** page
+(see [Annotation Persistence](#annotation-persistence-trainer-vs-student)).
+Nothing removes the button after the component starts, so a page that once had
+it and now does not was never a trainer page to begin with — the flag is
+missing from that page, or arrived too late.
+
+To check, on the page in question:
+
+- Inspect the component's container: it carries `data-gf-context="trainer"` or
+  `data-gf-context="student"`.
+- Open the browser console. Each instance logs one line on start-up, e.g.
+  `GramFrame: instance 0 is on a student page (no gf-persistent flag … and no
+  "ANALYSIS" anchor was on the page when the component initialised)`. On a
+  trainer page the line names the element that matched.
+
+Common reasons a page in an instructor publication comes out as student:
+
+- The topic has no `gf-persistent` flag — it was omitted, or profiled out.
+  Every topic needs its own flag; detection does not carry over between pages.
+- The page relies on the legacy `ANALYSIS` anchor and that navigation link is
+  built by script after `DOMContentLoaded`. Detection runs once, at start-up,
+  and is not re-evaluated — use an explicit flag in the topic body instead.
+- The flag sits inside the `gram-config` table, which is removed when the first
+  gram on the page is built, so a second gram on the same page does not see it.
+  Put the flag outside the table.
+
+Note that on a student page annotations go to `sessionStorage` and expire after
+24 hours, so a missing button also means the work will not persist.
+
 ### Multiple Instances Interfering
 
 Each instance is fully independent. If instances seem to interfere:

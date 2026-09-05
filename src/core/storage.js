@@ -113,28 +113,84 @@ export function isAnnotationExpired(savedAt, nowMs) {
 }
 
 /**
- * Detect whether the current page is a trainer or student context.
+ * What trainer/student detection found on the page, and why. The `reason` is
+ * the diagnostic: it names the element that made the page a trainer page (or
+ * says nothing did), so a page that unexpectedly came out as student can be
+ * explained from the console rather than by reading the markup (issue #229).
+ * @typedef {Object} UserContextDetection
+ * @property {'trainer' | 'student'} context - The detected context
+ * @property {'flag' | 'legacy-anchor' | 'none'} matchedBy - What decided it
+ * @property {string} reason - Human-readable account of the decision
+ */
+
+/**
+ * Detect whether the current page is a trainer or student context, and say
+ * what decided it.
  * A page is treated as trainer context if EITHER condition holds:
  *   - an explicit persistence flag (id, class, or data-attribute) is present
  *     anywhere on the page (see TRAINER_FLAG_SELECTOR), OR
  *   - (legacy) an anchor element with exact text "ANALYSIS" is present.
  * All other pages are student context.
- * @returns {'trainer' | 'student'}
+ *
+ * Detection runs once, when the instance is constructed, and is never
+ * re-evaluated: a flag that arrives later (a navigation built by script after
+ * `DOMContentLoaded`) or that lives inside the `gram-config` table (removed
+ * when the table is replaced) is not seen, and the page silently becomes a
+ * student page — no "Clear gram" button, and session-only storage. The
+ * `reason` exists so that outcome is visible when it happens (issue #229).
+ * @returns {UserContextDetection}
  */
-export function detectUserContext() {
+export function describeUserContext() {
   // Explicit persistence flag: id, class, or data-attribute form.
-  if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
-    return 'trainer'
+  const flag = document.querySelector(TRAINER_FLAG_SELECTOR)
+  if (flag) {
+    return {
+      context: 'trainer',
+      matchedBy: 'flag',
+      reason: `matched the persistence flag on <${describeFlagElement(flag)}>`
+    }
   }
   // Legacy detection: an anchor whose exact text is "ANALYSIS"
   const anchors = document.querySelectorAll('a')
   for (let i = 0; i < anchors.length; i++) {
     const text = anchors[i].textContent
     if (text && text.trim() === 'ANALYSIS') {
-      return 'trainer'
+      return {
+        context: 'trainer',
+        matchedBy: 'legacy-anchor',
+        reason: 'matched the legacy "ANALYSIS" anchor (no gf-persistent flag on the page)'
+      }
     }
   }
-  return 'student'
+  return {
+    context: 'student',
+    matchedBy: 'none',
+    reason: 'no gf-persistent flag (id, class or data-attribute) and no "ANALYSIS" anchor was on the page when the component initialised'
+  }
+}
+
+/**
+ * Detect whether the current page is a trainer or student context.
+ * See {@link describeUserContext} for the rules; this is the same decision
+ * without the explanation.
+ * @returns {'trainer' | 'student'}
+ */
+export function detectUserContext() {
+  return describeUserContext().context
+}
+
+/**
+ * Describe the flag element that decided trainer context, in the form it was
+ * authored: tag name plus whichever of the three flag forms it carries.
+ * @param {Element} el - The element TRAINER_FLAG_SELECTOR matched
+ * @returns {string} e.g. `p class="gf-persistent"` or `span data-gf-persistent`
+ */
+function describeFlagElement(el) {
+  const parts = [el.tagName.toLowerCase()]
+  if (el.id === 'gf-persistent') parts.push('id="gf-persistent"')
+  if (el.classList.contains('gf-persistent')) parts.push('class="gf-persistent"')
+  if (el.hasAttribute('data-gf-persistent')) parts.push('data-gf-persistent')
+  return parts.join(' ')
 }
 
 /**

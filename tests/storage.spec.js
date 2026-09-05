@@ -462,6 +462,53 @@ test.describe('US3: Clear gram button', () => {
     const clearBtn = page.locator('.gram-frame-clear-btn')
     await expect(clearBtn).toHaveCount(0)
   })
+
+  // Issue #229: the detected context must be visible from outside, because a
+  // trainer page that came out as student loses the button and its permanent
+  // storage with no other sign. The container carries the context and one
+  // console line names what decided it.
+  test('trainer page stamps data-gf-context="trainer" and logs what matched', async ({ page }) => {
+    /** @type {string[]} */
+    const infoLines = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'info') infoLines.push(msg.text())
+    })
+    await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+
+    await expect(page.locator('.gram-frame-container')).toHaveAttribute('data-gf-context', 'trainer')
+    const line = infoLines.find((t) => t.includes('is on a trainer page'))
+    expect(line, `expected a GramFrame context line among: ${infoLines.join(' | ')}`).toBeTruthy()
+    expect(line).toContain('legacy "ANALYSIS" anchor')
+    expect(line).toContain('"Clear gram" button is shown')
+  })
+
+  test('student page stamps data-gf-context="student" and logs that nothing matched', async ({ page }) => {
+    /** @type {string[]} */
+    const infoLines = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'info') infoLines.push(msg.text())
+    })
+    await gotoFixture(page, '/tests/fixtures/student-page.html')
+
+    await expect(page.locator('.gram-frame-container')).toHaveAttribute('data-gf-context', 'student')
+    const line = infoLines.find((t) => t.includes('is on a student page'))
+    expect(line, `expected a GramFrame context line among: ${infoLines.join(' | ')}`).toBeTruthy()
+    expect(line).toContain('no gf-persistent flag')
+    expect(line).toContain('no "Clear gram" button')
+  })
+
+  test('the class flag is named in the context line', async ({ page }) => {
+    /** @type {string[]} */
+    const infoLines = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'info') infoLines.push(msg.text())
+    })
+    await gotoFixture(page, '/tests/fixtures/persistent-class-page.html')
+
+    await expect(page.locator('.gram-frame-container')).toHaveAttribute('data-gf-context', 'trainer')
+    const line = infoLines.find((t) => t.includes('is on a trainer page'))
+    expect(line).toContain('<span class="gf-persistent">')
+  })
 })
 
 // ──────────────────────────────────────────────────────────────
