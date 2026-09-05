@@ -107,7 +107,12 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `initialization/` - `DOMSetup.js`, `UISetup.js`, `EventBindings.js`, `ModeInitialization.js`
 - `src/modes/` - Mode system architecture:
   - `BaseMode.js` - Abstract base class for all modes
-  - `ModeFactory.js` - Mode instantiation factory
+  - `ModeFactory.js` - Mode instantiation factory. `createMode`,
+    `getModeInitialStates` and `getAvailableModes` all read `modeRoster.js`;
+    only `MODE_CLASSES` names the classes
+  - `modeRoster.js` - The one list of which modes exist and what each is
+    called. A leaf module with no imports, so the UI can read it without
+    pulling in every mode class (issue #263)
   - `analysis/AnalysisMode.js` - Analysis mode with marker persistence
   - `harmonics/HarmonicsMode.js` - Harmonics calculation mode (a `PinSetMode`)
   - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog. Like
@@ -161,7 +166,6 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     conversion, zoom-, expand-, render-size- and margin-aware. Also owns
     `getRenderDimensions` and `calculateVisibleDataRange`, which live here rather
     than in a component so `rendering/` and `core/` can use them without a cycle
-  - `calculations.js` - Mathematical calculations
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
   - `markerLabel.js` - Marker label normalisation and table abbreviation
