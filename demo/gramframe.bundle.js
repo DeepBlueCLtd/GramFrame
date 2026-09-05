@@ -3153,7 +3153,7 @@
   function panByNormalized(instance, deltaX, deltaY) {
     const { zoom, player } = instance.state;
     if (isPlayerActive(instance)) {
-      player.viewTop = clampViewTop(instance, player.viewTop + deltaY * player.windowSeconds);
+      player.viewTop = clampViewTop(instance, player.viewTop - deltaY * player.windowSeconds);
       const newCenterX2 = zoom.level > 1 ? Math.max(0, Math.min(1, zoom.centerX + deltaX)) : zoom.centerX;
       setZoom(instance, zoom.level, newCenterX2, zoom.centerY);
       return;
