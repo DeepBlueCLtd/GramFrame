@@ -8,7 +8,7 @@
 ## Interaction
 - Drag to place harmonic cursors (unlimited)
 - Toggle between modes via buttons
-- Input box for 'rate' divisor (e.g., shaft rate)
+- Input box for the frequency-rate divisor (e.g., a shaft rate)
 
 ## Display
 - Green LED-style readouts

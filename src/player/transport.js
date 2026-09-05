@@ -94,7 +94,7 @@ class PlayerController {
       dispatch(this.instance)
     })
     on('ratechange', () => {
-      this.playerState.rate = audio.playbackRate
+      this.playerState.playbackRate = audio.playbackRate
       dispatch(this.instance)
     })
 
@@ -192,12 +192,12 @@ class PlayerController {
   }
 
   /**
-   * @param {number} rate - Playback rate; the gram is never re-analysed (FR-022)
+   * @param {number} playbackRate - Playback speed; the gram is never re-analysed (FR-022)
    */
-  setRate(rate) {
-    if (Number.isFinite(rate) && rate > 0) {
-      this.audio.playbackRate = rate
-      this.playerState.rate = rate
+  setPlaybackRate(playbackRate) {
+    if (Number.isFinite(playbackRate) && playbackRate > 0) {
+      this.audio.playbackRate = playbackRate
+      this.playerState.playbackRate = playbackRate
       dispatch(this.instance)
     }
   }

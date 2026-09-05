@@ -76,7 +76,7 @@ Then generate a `.dita` file with the following structure:
 ---
 
 ## 🧩 Optional Enhancements
-- Store the `rate` or other config values as DITA metadata or `data-` attributes
+- Store the `frequencyRate` or other config values as DITA metadata or `data-` attributes
 - Assign consistent `id` attributes to `<table>` or `<topic>` elements
 - Add `<prolog>` info for traceability
 

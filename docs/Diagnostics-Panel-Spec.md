@@ -5,7 +5,7 @@ A separate developer-facing HTML page that:
 - Loads a test config table
 - Registers a `stateListener`
 - Displays:
-  - Mode, rate, cursor positions
+  - Mode, frequency rate, cursor positions
   - Harmonic frequencies
   - Image/canvas dimensions
   - Timestamps, version

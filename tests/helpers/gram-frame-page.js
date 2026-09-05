@@ -295,16 +295,6 @@ class GramFramePage {
     }
   }
 
-  /**
-   * Set the rate value - DEPRECATED: Rate input has been removed from UI
-   * @param {number} _rate - The rate value to set (unused)
-   * @returns {Promise<void>}
-   */
-  async setRate(_rate) {
-    // Rate input has been removed from UI
-    // This method is kept as a stub to prevent test failures
-    // but it no longer performs any action
-  }
 
   /**
    * Verify that the image has been loaded in the SVG

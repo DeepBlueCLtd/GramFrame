@@ -262,7 +262,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   text-shadow: 0 0 4px rgba(0, 255, 0, 0.5);
 }
 
-.gram-frame-transport-rate {
+.gram-frame-transport-playback-rate {
   height: 26px;
   color: #e6f2ff;
   background: rgba(40, 60, 90, 0.8);
@@ -1355,7 +1355,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   margin: 0;
 }
 
-/* Rate input UI styles removed - backend functionality preserved */
+/* Frequency-rate input UI styles removed - the backend value is preserved */
 
 /* SVG cursor styles removed - using CSS cursor only */
 
@@ -1434,7 +1434,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 /* Legacy harmonic panel styles - now using unified table structure */
 
 .gram-frame-harmonic-spacing,
-.gram-frame-harmonic-rate,
+.gram-frame-harmonic-ratio,
 .gram-frame-sideband-freq,
 .gram-frame-sideband-spacing {
   font-size: 14px;

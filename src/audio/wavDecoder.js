@@ -4,7 +4,7 @@
  * The component decodes its own audio rather than calling
  * `AudioContext.decodeAudioData` for two reasons the spike measured
  * (research.md §1.5): the Web Audio path resamples every file to the context's
- * rate — a 22,050 Hz recording came back at 44,100 Hz, silently halving the
+ * own sample rate — a 22,050 Hz recording came back at 44,100 Hz, silently halving
  * frequency resolution of every bin — and it needs an `AudioContext`, which
  * the player otherwise has no use for. A WAV header is 44 bytes of documented
  * layout; reading it is cheaper than working around either.

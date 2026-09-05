@@ -72,13 +72,13 @@ Derived display properties:
 
 This panel displays a summary of all active sets:
 
-| Color | Spacing (Hz) | Rate |
+| Color | Spacing (Hz) | Ratio |
 |-------|--------------|------|
 | 🔶    | 215.4        | 3.65 |
 | 🟢    | 302.7        | 1.73 |
 
 - **Spacing**: Interval between harmonics
-- **Rate**: Calculated as `cursor frequency / spacing`
+- **Ratio**: Calculated as `cursor frequency / spacing`
 - Delete button shown to right of each harmonic set in the panel.
 
 ---
@@ -101,7 +101,7 @@ This panel displays a summary of all active sets:
    - Assign distinct colors
 
 4. **Add Side Panel**
-   - Display list of harmonic sets with spacing/rate
+   - Display list of harmonic sets with spacing/ratio
    - Implement delete buttons
 
 5. **Add Hover & Visual Feedback**
@@ -127,13 +127,13 @@ This panel displays a summary of all active sets:
 
 ### Edge Cases
 - ✅ Correct behavior when frequency axis origin > 0
-- ✅ Correct spacing/rate calculation when clicking 10th harmonic
+- ✅ Correct spacing/ratio calculation when clicking 10th harmonic
 - ✅ No overlap artifacts when multiple sets are close together
 
 ### Visual
 - ✅ Color coding is distinct and readable
 - ✅ Lines update smoothly on drag
-- ✅ Side panel accurately reflects spacing and rate
+- ✅ Side panel accurately reflects spacing and ratio
 
 ---
 

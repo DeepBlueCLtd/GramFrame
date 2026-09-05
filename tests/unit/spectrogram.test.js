@@ -22,13 +22,13 @@ function analyseSync(samples, plan) {
  * A mono tone.
  * @param {number} hz - Frequency
  * @param {number} seconds - Length
- * @param {number} rate - Sample rate
+ * @param {number} sampleRate - Sample sampleRate
  * @returns {Float32Array} Samples
  */
-function tone(hz, seconds, rate) {
-  const n = Math.round(seconds * rate)
+function tone(hz, seconds, sampleRate) {
+  const n = Math.round(seconds * sampleRate)
   const out = new Float32Array(n)
-  for (let i = 0; i < n; i++) out[i] = Math.sin(2 * Math.PI * hz * i / rate)
+  for (let i = 0; i < n; i++) out[i] = Math.sin(2 * Math.PI * hz * i / sampleRate)
   return out
 }
 
@@ -74,9 +74,9 @@ describe('planAnalysis (data-model §4)', () => {
 
 describe('analyse — a known tone lands in the expected bin (SC-007)', () => {
   test('300 Hz at 8 kHz / 1024 peaks in bin 38 on every frame', async () => {
-    const rate = 8000
-    const plan = planAnalysis({ sampleRate: rate, sampleCount: rate * 2, fftSize: 1024, hopSize: 512, freqStart: 0, freqEnd: null })
-    const grid = await analyseSync(tone(300, 2, rate), plan)
+    const sampleRate = 8000
+    const plan = planAnalysis({ sampleRate: sampleRate, sampleCount: sampleRate * 2, fftSize: 1024, hopSize: 512, freqStart: 0, freqEnd: null })
+    const grid = await analyseSync(tone(300, 2, sampleRate), plan)
     expect(grid.length).toBe(plan.frames * plan.columns)
     const expectedBin = Math.round(300 / plan.binWidth)
     expect(expectedBin).toBe(38)
@@ -91,9 +91,9 @@ describe('analyse — a known tone lands in the expected bin (SC-007)', () => {
   })
 
   test('the crop shifts the bin index by firstBin', async () => {
-    const rate = 8000
-    const plan = planAnalysis({ sampleRate: rate, sampleCount: rate, fftSize: 1024, hopSize: 512, freqStart: 200, freqEnd: 1000 })
-    const grid = await analyseSync(tone(300, 1, rate), plan)
+    const sampleRate = 8000
+    const plan = planAnalysis({ sampleRate: sampleRate, sampleCount: sampleRate, fftSize: 1024, hopSize: 512, freqStart: 200, freqEnd: 1000 })
+    const grid = await analyseSync(tone(300, 1, sampleRate), plan)
     let bestK = -1; let best = -1
     for (let k = 0; k < plan.columns; k++) if (grid[k] > best) { best = grid[k]; bestK = k }
     expect(bestK + plan.firstBin).toBe(38)
@@ -108,9 +108,9 @@ describe('analyse — a known tone lands in the expected bin (SC-007)', () => {
 
 describe('analyse — the sliced path', () => {
   test('matches analyseSync exactly and reports monotonic progress ending at 1', async () => {
-    const rate = 8000
-    const samples = tone(440, 3, rate)
-    const plan = planAnalysis({ sampleRate: rate, sampleCount: samples.length, fftSize: 512, hopSize: 256, freqStart: 0, freqEnd: null })
+    const sampleRate = 8000
+    const samples = tone(440, 3, sampleRate)
+    const plan = planAnalysis({ sampleRate: sampleRate, sampleCount: samples.length, fftSize: 512, hopSize: 256, freqStart: 0, freqEnd: null })
     /** @type {number[]} */
     const progress = []
     let yields = 0

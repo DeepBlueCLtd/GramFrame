@@ -365,10 +365,10 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
   const axisStartX = margins.left
   const axisEndX = margins.left + naturalWidth
   
-  // Calculate display frequency range (scaled by rate)
-  const rate = instance.state.rate
-  const displayFreqMin = freqMin / rate
-  const displayFreqMax = freqMax / rate
+  // Calculate display frequency range (scaled by the frequency rate)
+  const frequencyRate = instance.state.frequencyRate
+  const displayFreqMin = freqMin / frequencyRate
+  const displayFreqMax = freqMax / frequencyRate
   const freqRange = displayFreqMax - displayFreqMin
   
   // Prepare axis configuration

@@ -21,7 +21,7 @@ All runtime data for a GramFrame instance lives in a single `state` object. See 
   previousMode: null,         // Previous mode name, or null
 
   // Global settings
-  rate: 1,                    // Frequency divider for calculations
+  frequencyRate: 1,           // Frequency divider for calculations
   selectedColor: '#ff6b6b',   // Active color for new features
 
   // Cursor
@@ -135,7 +135,7 @@ Listeners are stored in two places:
 State is mutated directly on `instance.state` by:
 - **Event handlers** (`src/core/events.js`) — cursor position
 - **Mode handlers** (e.g., `AnalysisMode.handleMouseDown`) — markers, harmonic sets
-- **UI interactions** — mode switching (`_switchMode`), rate changes (`_setRate`)
+- **UI interactions** — mode switching (`_switchMode`)
 - **Zoom operations** (`src/core/viewport.js`) — zoom level and center
 
 After mutation, `notifyStateListeners(instance.state, instance.stateListeners)` broadcasts the change.
@@ -195,7 +195,7 @@ All GramFrame runtime state is **ephemeral**. Nothing persists across browser se
 - Harmonic sets
 - Doppler curve data
 - Mode selection
-- Rate value
+- Frequency rate
 - Zoom level and pan position
 - Color selection
 
@@ -206,7 +206,7 @@ Some data survives **mode switches** within a single session:
 - **Analysis markers** — Visible across all modes via FeatureRenderer
 - **Harmonic sets** — Visible across all modes via FeatureRenderer
 - **Doppler curves** — Visible across all modes via FeatureRenderer
-- **Rate value** — Shared across all modes
+- **Frequency rate** — Shared across all modes
 - **Selected color** — Shared across all modes
 
 ### When a Saved Record Cannot Be Restored
@@ -258,7 +258,7 @@ To trace where any piece of data lives:
 1. **Is it config?** → Set during initialization from HTML table, lives in `state.config` or `state.imageDetails`
 2. **Is it cursor-related?** → Updated on every mouse event, lives in `state.cursorPosition`
 3. **Is it mode-specific?** → Stored in `state.[modeName]` (e.g., `state.analysis.markers`), updated by the mode's event handlers
-4. **Is it UI state?** → `state.mode`, `state.rate`, `state.selectedColor`, `state.zoom` — updated by UI interaction handlers
+4. **Is it UI state?** → `state.mode`, `state.frequencyRate`, `state.selectedColor`, `state.zoom` — updated by UI interaction handlers
 
 ## Related Documentation
 

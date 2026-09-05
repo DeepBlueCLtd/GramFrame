@@ -175,7 +175,7 @@ test.describe('Story 4 — pause, annotate, resume', () => {
     test.setTimeout(30000)
     const { gfp, set } = await pauseAndAnnotate(page)
     // 2× so the 4 s to the end and the 7.6 s back to the set fit the test
-    await page.evaluate(() => { const p = window.GramFrame.getPlayer(0); p.setLoop(true); p.setRate(2) })
+    await page.evaluate(() => { const p = window.GramFrame.getPlayer(0); p.setLoop(true); p.setPlaybackRate(2) })
     await page.evaluate(() => window.GramFrame.getPlayer(0).seek(16))
     await page.locator('.gram-frame-transport-play').click()
     await gfp.waitForState(s => s.player.playing, { message: 'playback' })

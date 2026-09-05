@@ -4,7 +4,7 @@
 - [ ] Table replaced with canvas after load
 - [ ] Dragging places cursor, shows frequency
 - [ ] Toggle mode buttons work
-- [ ] Rate input updates harmonic lines
+- [ ] Frequency-rate input updates harmonic lines
 - [ ] Labels show correct 2x, 3x, etc.
 
 ## Diagnostics

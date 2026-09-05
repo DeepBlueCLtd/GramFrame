@@ -42,11 +42,11 @@ These help identify sources like rotating machinery, where harmonic structure re
 
 ---
 
-## 🔹 Step 5: Rate Input
+## 🔹 Step 5: Frequency-Rate Input
 
-🎯 **Target:** The "Rate" input box
+🎯 **Target:** The frequency-rate input box
 
-You can enter a **rate** here (e.g., 12.5 Hz for shaft or cylinder rate).  
+You can enter a **frequency rate** here (e.g., 12.5 Hz for a shaft rate or a cylinder rate).  
 Harmonic frequencies will be divided by this value — useful for matching measured tones to known machinery rates.
 
 ---

@@ -22,9 +22,9 @@ The most basic use case: a trainee needs to know the precise frequency and time 
 
 ### Harmonic Identification
 
-Many sonar contacts produce tonal signals at integer multiples of a fundamental frequency (harmonics). A propeller shaft rotating at a given rate, for example, produces energy at 1x, 2x, 3x, and higher multiples of its blade rate. In **Analysis mode**, dragging across the spectrogram displays vertical lines at these harmonic intervals, allowing the trainee to visually confirm whether observed tonals share a common mechanical source.
+Many sonar contacts produce tonal signals at integer multiples of a fundamental frequency (harmonics). A propeller shaft rotating at a given shaft rate, for example, produces energy at 1x, 2x, 3x, and higher multiples of its blade rate. In **Analysis mode**, dragging across the spectrogram displays vertical lines at these harmonic intervals, allowing the trainee to visually confirm whether observed tonals share a common mechanical source.
 
-In **Harmonics mode**, users can create persistent harmonic overlays with configurable spacing. Multiple harmonic sets can coexist on the display, each in a distinct colour, enabling comparison of different potential source frequencies. A rate input acts as a frequency divider, allowing the trainee to work in terms of shaft rate or blade rate rather than raw Hz.
+In **Harmonics mode**, users can create persistent harmonic overlays with configurable spacing. Multiple harmonic sets can coexist on the display, each in a distinct colour, enabling comparison of different potential source frequencies. A frequency-rate input acts as a divider, allowing the trainee to work in terms of shaft rate or blade rate rather than raw Hz.
 
 ### Doppler Speed Estimation
 

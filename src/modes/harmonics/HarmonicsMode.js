@@ -226,7 +226,7 @@ export class HarmonicsMode extends PinSetMode {
    * Update mode-specific LED values and labels based on current state
    */
   updateModeSpecificLEDs() {
-    // Update harmonic panel to show current rate values
+    // Update harmonic panel to show current ratio values
     this.updatePanel()
   }
 

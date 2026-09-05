@@ -142,7 +142,7 @@ The component creates an SVG element overlaying the spectrogram image. Key SVG g
 Axes are rendered by `renderAxes(instance)` in `src/components/table.js`:
 
 - **Time axis** (vertical, left side): 5 evenly-spaced ticks with formatted time labels
-- **Frequency axis** (horizontal, bottom): Uses a "nice numbers" algorithm (`calculateAxisTicks`) for major/minor tick intervals, applies rate scaling to displayed frequencies
+- **Frequency axis** (horizontal, bottom): Uses a "nice numbers" algorithm (`calculateAxisTicks`) for major/minor tick intervals, applies frequency-rate scaling to displayed frequencies
 
 `updateSVGLayout(instance)` sets the SVG `width`, `height`, and `viewBox` to the image's natural dimensions plus margins, and positions the `<image>` element at `(margins.left, margins.top)`.
 
@@ -180,7 +180,7 @@ else re-derives a transform inline.
 |----------|-------|--------|-------|
 | `screenToSVG(screenX, screenY, svg)` | Browser-relative px | SVG viewBox coordinates | Uses `viewBox` scale factors |
 | `svgToImage(svgX, svgY, viewport, image?)` | SVG coordinates | Image-relative px | Expressed against the base render size |
-| `imageToData(imageX, imageY, viewport)` | Image-relative px | `{freq, time}` | Rate acts as frequency divider, applied here only |
+| `imageToData(imageX, imageY, viewport)` | Image-relative px | `{freq, time}` | The frequency rate acts as a divider, applied here only |
 | `dataToSVG(dataPoint, viewport, image?)` | `{freq, time}` | SVG coordinates | Positions against the live image element |
 | `screenToData(clientX, clientY, svg, viewport, image?)` | Client px | `{svg, image, data}` | The composition pointer and wheel handlers use |
 | `getImageBounds(viewport, image?)` | — | `{left, top, width, height}` | Element attributes when present |
@@ -215,7 +215,7 @@ All runtime data lives in a single `state` object on each `GramFrame` instance. 
   instanceId: '',
   mode: 'analysis',           // Current active mode
   previousMode: null,         // For mode switching history
-  rate: 1,                    // Frequency divider
+  frequencyRate: 1,           // Frequency divider
   selectedColor: '#ff6b6b',   // Active color for new features
   cursorPosition: null,       // Current cursor {x, y, svgX, svgY, freq, time}
   imageDetails: { url, naturalWidth, naturalHeight },
