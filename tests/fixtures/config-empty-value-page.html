@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Config with an empty value cell - R9-03</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Config table with an empty time-start cell</h1>
+  <!-- An empty cell used to fall back to '0', pass the range check, and draw a
+       normal-looking 0-60 s axis. -->
+  <table class="gram-config">
+    <tr>
+      <td colspan="2"><img src="../../sample/mock-gram.png" alt="Sample Spectrogram"></td>
+    </tr>
+    <tr><td>time-start</td><td></td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100</td></tr>
+  </table>
+</body>
+</html>

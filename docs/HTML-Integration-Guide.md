@@ -58,7 +58,7 @@ The first row must contain an `<img>` element with the spectrogram image (using 
 ### Validation Rules
 
 - All four parameters (`time-start`, `time-end`, `freq-start`, `freq-end`) are **required**
-- Values must be valid numbers (parsed with `parseFloat`)
+- Values must be a single valid number — the whole cell is parsed, so `1,5`, `10 Hz` and an empty cell are all rejected rather than being read as `1`, `10` and `0`
 - Start values must be strictly less than end values
 - The first row must contain an `<img>` element, and that element must have a non-empty `src` attribute
 - If validation fails, the original table is preserved and an error indicator is shown
