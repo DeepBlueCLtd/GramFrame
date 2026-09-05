@@ -339,6 +339,7 @@
  * @property {CursorPosition|null} cursorPosition - Current cursor position data
  * @property {Array<CursorPosition>} cursors - Array of cursor positions (future use)
  * @property {number} annotationRevision - Bumped by every annotation mutation; lets the storage listener skip pure cursor moves
+ * @property {AnnotationTombstones} tombstones - Which annotations this tab deleted, so deletion survives a multi-tab merge (issue #269)
  * @property {HarmonicsState} harmonics - Harmonics mode state
  * @property {SidebandsState} sidebands - Sidebands mode state
  * @property {DopplerState} doppler - Doppler mode state
@@ -418,6 +419,16 @@
  * @property {StoredHarmonicsData} harmonics - Stored harmonics mode annotations
  * @property {StoredSidebandsData} [sidebands] - Stored sidebands mode annotations; ABSENT in records written before sidebands existed
  * @property {StoredDopplerData} doppler - Stored doppler mode annotations
+ * @property {AnnotationTombstones} [tombstones] - Deletions this record carries; ABSENT in records written before multi-tab merging (issue #269)
+ */
+
+/**
+ * Deletions, so a merge can tell "never had it" from "removed it".
+ * @typedef {Object} AnnotationTombstones
+ * @property {Object<string, string>} markers - Deleted marker ids to ISO deletion times
+ * @property {Object<string, string>} harmonicSets - Deleted harmonic set ids to ISO deletion times
+ * @property {Object<string, string>} sidebandSets - Deleted sideband set ids to ISO deletion times
+ * @property {string|null} doppler - When the single doppler curve was deleted, or null
  */
 
 /**
@@ -588,6 +599,7 @@
  * @typedef {Object} GramFramePersistence
  * @property {number} _storageInstanceIndex - Index distinguishing instances on one page
  * @property {boolean} _isTrainerContext - Whether this page is trainer material
+ * @property {((event: StorageEvent) => void)|null} [_crossTabHandler] - The `storage` listener that merges another tab's save into this one (issue #269)
  */
 
 /**

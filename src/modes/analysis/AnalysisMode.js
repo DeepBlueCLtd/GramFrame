@@ -1,5 +1,5 @@
 import { BaseMode } from '../BaseMode.js'
-import { dispatch, markAnnotationsChanged } from '../../core/state.js'
+import { dispatch, markAnnotationsChanged, recordDeletion } from '../../core/state.js'
 import { createDiffingTable } from '../../components/DiffingTable.js'
 import { showMarkerLabelModal } from '../../components/MarkerLabelModal.js'
 
@@ -646,6 +646,9 @@ export class AnalysisMode extends BaseMode {
       }
       
       markers.splice(index, 1)
+      // Deleting is the one change a merge cannot infer from the result, so it
+      // is recorded explicitly (issue #269).
+      recordDeletion(this.instance, 'markers', markerId)
       markAnnotationsChanged(this.instance)
 
       // Update markers table
