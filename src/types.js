@@ -740,6 +740,8 @@
  * @property {function(): void} [__test__forceUpdate] - Test method to force update
  * @property {function(): GramFrame[]} [__test__getInstances] - Test method to get instances
  * @property {function(string): GramFrame|null} [__test__getInstance] - Test method to get instance by ID
+ * @property {function(): StateListener[]} [__test__getGlobalStateListeners] - The live global listener registry, as the running component sees it (debug pages only)
+ * @property {function(): void} [__test__clearGlobalStateListeners] - Empty the running component's global listener registry (debug pages only)
  */
 
 /**

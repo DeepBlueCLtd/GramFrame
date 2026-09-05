@@ -221,6 +221,12 @@
     }
     return false;
   }
+  function getGlobalStateListeners() {
+    return [...globalStateListeners];
+  }
+  function clearGlobalStateListeners() {
+    globalStateListeners.length = 0;
+  }
   const SVG_NS$3 = "http://www.w3.org/2000/svg";
   const DEFAULT_SYMBOL = "cross";
   const SYMBOL_CATALOG = ["cross", "circle", "square", "diamond", "triangle", "triangle-down", "star"];
@@ -6279,13 +6285,14 @@
     }
   }
   const MS_TO_KNOTS = 1.94384;
+  const DEFAULT_SPEED_OF_SOUND = 1500;
   function calculateMidpoint(fPlus, fMinus) {
     return {
       time: (fPlus.time + fMinus.time) / 2,
       freq: (fPlus.freq + fMinus.freq) / 2
     };
   }
-  function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1481) {
+  function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = DEFAULT_SPEED_OF_SOUND) {
     const f0 = fZero ? fZero.freq : calculateMidpoint(fPlus, fMinus).freq;
     const deltaF = (fPlus.freq - fMinus.freq) / 2;
     const speed = speedOfSound / f0 * deltaF;
@@ -7447,6 +7454,12 @@
     };
     api.__test__getInstance = function(instanceId) {
       return this._getInstances().find((instance) => instance.instanceId === instanceId) || null;
+    };
+    api.__test__getGlobalStateListeners = function() {
+      return getGlobalStateListeners();
+    };
+    api.__test__clearGlobalStateListeners = function() {
+      clearGlobalStateListeners();
     };
   }
   function createGramFrameAPI(GramFrame2) {
