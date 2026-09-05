@@ -37,6 +37,20 @@
     // can tell an annotation change from a cursor move without re-serialising
     // the annotations on each notification (spec 166, AS-4.3).
     annotationRevision: 0,
+    // Which annotations this tab has deleted, by id, with when.
+    //
+    // A deletion is the one annotation change that cannot be represented by the
+    // record's contents: "absent" and "deleted" look identical, so a merge that
+    // only unions what each tab still holds resurrects everything either tab has
+    // ever removed. These are the tombstones that make deletion survive a merge
+    // (issue #269). In-memory and persisted, pruned by age on save.
+    tombstones: {
+      markers: {},
+      harmonicSets: {},
+      sidebandSets: {},
+      // A single curve, so a boolean-with-a-time rather than a map.
+      doppler: null
+    },
     imageDetails: {
       url: "",
       naturalWidth: 0,
@@ -174,6 +188,29 @@
       instance.featureRenderer.renderAllPersistentFeatures();
     }
     dispatch(instance, dispatchOptions);
+  }
+  function tombstoneBag(instance) {
+    const { state } = instance || /** @type {any} */
+    {};
+    if (!state) {
+      return null;
+    }
+    if (!state.tombstones) {
+      state.tombstones = { markers: {}, harmonicSets: {}, sidebandSets: {}, doppler: null };
+    }
+    return state.tombstones;
+  }
+  function recordDeletion(instance, collection, id) {
+    const bag = tombstoneBag(instance);
+    if (bag && id) {
+      bag[collection][id] = (/* @__PURE__ */ new Date()).toISOString();
+    }
+  }
+  function recordDopplerDeletion(instance) {
+    const bag = tombstoneBag(instance);
+    if (bag) {
+      bag.doppler = (/* @__PURE__ */ new Date()).toISOString();
+    }
   }
   const pendingDispatches = /* @__PURE__ */ new WeakMap();
   function dispatch(instance, options = {}) {
@@ -742,9 +779,108 @@
       analysis: { markers },
       harmonics: { harmonicSets },
       sidebands: { sidebandSets },
-      doppler
+      doppler,
+      // Carried through rather than validated field by field: a tombstone is an
+      // id and a time, and a damaged one costs at most one resurrected feature.
+      // Dropping the set wholesale would resurrect every deletion in it, which is
+      // the failure this exists to prevent (issue #269).
+      tombstones: tombstonesOf(data)
     };
     return { annotations, dropped };
+  }
+  const TOMBSTONE_TTL_MS = 7 * 24 * 60 * 60 * 1e3;
+  function tombstonesOf(source) {
+    const raw = source && source.tombstones;
+    if (!raw || typeof raw !== "object") {
+      return { markers: {}, harmonicSets: {}, sidebandSets: {}, doppler: null };
+    }
+    return {
+      markers: raw.markers && typeof raw.markers === "object" ? raw.markers : {},
+      harmonicSets: raw.harmonicSets && typeof raw.harmonicSets === "object" ? raw.harmonicSets : {},
+      sidebandSets: raw.sidebandSets && typeof raw.sidebandSets === "object" ? raw.sidebandSets : {},
+      doppler: isNonEmptyString(raw.doppler) ? raw.doppler : null
+    };
+  }
+  function mergeTombstoneMap(mine, theirs) {
+    const merged = { ...theirs };
+    for (const [id, at] of Object.entries(mine || {})) {
+      merged[id] = merged[id] && merged[id] < at ? merged[id] : at;
+    }
+    return merged;
+  }
+  function pruneTombstoneMap(map, now) {
+    const kept = {};
+    for (const [id, at] of Object.entries(map || {})) {
+      const when = Date.parse(at);
+      if (!Number.isFinite(when) || now - when < TOMBSTONE_TTL_MS) {
+        kept[id] = at;
+      }
+    }
+    return kept;
+  }
+  function mergeCollection(mine, theirs, tombstones, mineIsNewer) {
+    const byId = /* @__PURE__ */ new Map();
+    const older = mineIsNewer ? theirs : mine;
+    const newer = mineIsNewer ? mine : theirs;
+    for (const feature of older || []) {
+      if (feature && feature.id) byId.set(feature.id, feature);
+    }
+    for (const feature of newer || []) {
+      if (feature && feature.id) byId.set(feature.id, feature);
+    }
+    return Array.from(byId.values()).filter((feature) => !(feature.id in tombstones));
+  }
+  function mergeStoredAnnotations(mine, theirs, now = Date.now()) {
+    if (!mine) return theirs;
+    if (!theirs) return mine;
+    const mineAt = Date.parse(mine.savedAt || "");
+    const theirsAt = Date.parse(theirs.savedAt || "");
+    const mineIsNewer = !Number.isFinite(theirsAt) || Number.isFinite(mineAt) && mineAt >= theirsAt;
+    const myTombs = tombstonesOf(mine);
+    const theirTombs = tombstonesOf(theirs);
+    const tombstones = {
+      markers: pruneTombstoneMap(mergeTombstoneMap(myTombs.markers, theirTombs.markers), now),
+      harmonicSets: pruneTombstoneMap(mergeTombstoneMap(myTombs.harmonicSets, theirTombs.harmonicSets), now),
+      sidebandSets: pruneTombstoneMap(mergeTombstoneMap(myTombs.sidebandSets, theirTombs.sidebandSets), now),
+      doppler: myTombs.doppler && theirTombs.doppler ? myTombs.doppler < theirTombs.doppler ? myTombs.doppler : theirTombs.doppler : myTombs.doppler || theirTombs.doppler
+    };
+    const newer = mineIsNewer ? mine : theirs;
+    const older = mineIsNewer ? theirs : mine;
+    const newerDoppler = newer.doppler || null;
+    const olderDoppler = older.doppler || null;
+    const newerHasCurve = !!(newerDoppler && (newerDoppler.fPlus || newerDoppler.fMinus || newerDoppler.fZero));
+    const doppler = tombstones.doppler ? { fPlus: null, fMinus: null, fZero: null, color: null } : newerHasCurve ? newerDoppler : olderDoppler || newerDoppler;
+    return {
+      version: newer.version,
+      savedAt: newer.savedAt,
+      gram: newer.gram || older.gram,
+      analysis: {
+        markers: mergeCollection(
+          mine.analysis && mine.analysis.markers,
+          theirs.analysis && theirs.analysis.markers,
+          tombstones.markers,
+          mineIsNewer
+        )
+      },
+      harmonics: {
+        harmonicSets: mergeCollection(
+          mine.harmonics && mine.harmonics.harmonicSets,
+          theirs.harmonics && theirs.harmonics.harmonicSets,
+          tombstones.harmonicSets,
+          mineIsNewer
+        )
+      },
+      sidebands: {
+        sidebandSets: mergeCollection(
+          mine.sidebands && mine.sidebands.sidebandSets,
+          theirs.sidebands && theirs.sidebands.sidebandSets,
+          tombstones.sidebandSets,
+          mineIsNewer
+        )
+      },
+      doppler: doppler || { fPlus: null, fMinus: null, fZero: null, color: null },
+      tombstones
+    };
   }
   function buildGramFingerprint(state) {
     const url = state.imageDetails && state.imageDetails.url || "";
@@ -767,84 +903,127 @@
     try {
       const storage = getStorage(context || detectUserContext());
       if (!storage) return false;
-      if (!hasPersistableAnnotations(state)) {
+      if (!hasPersistableAnnotations(state) && !hasTombstones(state)) {
         const key2 = buildStorageKey(instanceIndex);
         storage.removeItem(key2);
         return true;
       }
-      const data = {
-        version: SCHEMA_VERSION,
-        savedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        // `gram` is an ADDITIVE field (which gram this record belongs to). It
-        // MUST NOT trigger a SCHEMA_VERSION bump: legacy records simply lack it
-        // and restore without the identity check (BH-6, BH-23).
-        gram: buildGramFingerprint(state),
-        analysis: {
-          markers: (state.analysis && state.analysis.markers || []).map((m) => {
-            const label = normalizeMarkerLabel(m.label);
-            return {
-              id: m.id,
-              color: m.color,
-              time: m.time,
-              freq: m.freq,
-              // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
-              // SCHEMA_VERSION bump: legacy records simply lack it and default to
-              // 'cross' (no drawn symbol) on restore.
-              symbol: m.symbol || "cross",
-              // `label` is likewise ADDITIVE (feature 231) and MUST NOT bump
-              // SCHEMA_VERSION. Written only when the marker carries one, so an
-              // unlabelled marker's record is identical to what it was before
-              // labels existed, and restores as unlabelled.
-              ...label ? { label } : {}
-            };
-          })
-        },
-        harmonics: {
-          harmonicSets: (state.harmonics && state.harmonics.harmonicSets || []).map((hs) => ({
-            id: hs.id,
-            color: hs.color,
-            anchorTime: hs.anchorTime,
-            spacing: hs.spacing,
-            // `symbol` is an ADDITIVE field (feature 157-harmonic-pin-symbols). It
-            // MUST NOT trigger a SCHEMA_VERSION bump: the strict version guard in
-            // loadAnnotations would otherwise discard all pre-existing v1 records.
-            // Legacy records simply lack this key and default to 'cross' (the
-            // symbol-less default, feature 161) on restore.
-            symbol: hs.symbol || "cross",
-            // `showPin` is likewise ADDITIVE (harmonic-pin toggle) and MUST NOT
-            // bump SCHEMA_VERSION. Records written before it simply lack the key
-            // and restore as `true` (pin shown), matching their original look.
-            showPin: hs.showPin !== false
-          }))
-        },
-        // `sidebands` is an ADDITIVE section (issue #241). It MUST NOT trigger a
-        // SCHEMA_VERSION bump: the strict version guard in loadAnnotations would
-        // otherwise discard every pre-existing v1 record. Records written before
-        // sidebands existed simply lack the key and restore with none.
-        sidebands: {
-          sidebandSets: (state.sidebands && state.sidebands.sidebandSets || []).map((sb) => ({
-            id: sb.id,
-            color: sb.color,
-            anchorTime: sb.anchorTime,
-            fundamentalFreq: sb.fundamentalFreq,
-            spacing: sb.spacing,
-            symbol: sb.symbol || "cross",
-            showPin: sb.showPin !== false
-          }))
-        },
-        doppler: {
-          fPlus: state.doppler && state.doppler.fPlus ? { time: state.doppler.fPlus.time, freq: state.doppler.fPlus.freq } : null,
-          fMinus: state.doppler && state.doppler.fMinus ? { time: state.doppler.fMinus.time, freq: state.doppler.fMinus.freq } : null,
-          fZero: state.doppler && state.doppler.fZero ? { time: state.doppler.fZero.time, freq: state.doppler.fZero.freq } : null,
-          color: state.doppler && state.doppler.color || null
-        }
-      };
+      const data = snapshotAnnotations(state);
       const key = buildStorageKey(instanceIndex);
-      storage.setItem(key, JSON.stringify(data));
+      const existing = readMergeableRecord(storage, key, data.gram);
+      const merged = existing ? mergeStoredAnnotations(data, existing) : data;
+      storage.setItem(key, JSON.stringify(merged));
       return true;
     } catch (error) {
       console.warn("GramFrame: Failed to save annotations — they exist in memory only:", error);
       return false;
+    }
+  }
+  function hasTombstones(state) {
+    const tombs = tombstonesOf(state);
+    return Object.keys(tombs.markers).length > 0 || Object.keys(tombs.harmonicSets).length > 0 || Object.keys(tombs.sidebandSets).length > 0 || !!tombs.doppler;
+  }
+  function snapshotAnnotations(state) {
+    const data = {
+      version: SCHEMA_VERSION,
+      savedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      // `gram` is an ADDITIVE field (which gram this record belongs to). It
+      // MUST NOT trigger a SCHEMA_VERSION bump: legacy records simply lack it
+      // and restore without the identity check (BH-6, BH-23).
+      gram: buildGramFingerprint(state),
+      analysis: {
+        markers: (state.analysis && state.analysis.markers || []).map((m) => {
+          const label = normalizeMarkerLabel(m.label);
+          return {
+            id: m.id,
+            color: m.color,
+            time: m.time,
+            freq: m.freq,
+            // `symbol` is an ADDITIVE field (feature 161). It MUST NOT trigger a
+            // SCHEMA_VERSION bump: legacy records simply lack it and default to
+            // 'cross' (no drawn symbol) on restore.
+            symbol: m.symbol || "cross",
+            // `label` is likewise ADDITIVE (feature 231) and MUST NOT bump
+            // SCHEMA_VERSION. Written only when the marker carries one, so an
+            // unlabelled marker's record is identical to what it was before
+            // labels existed, and restores as unlabelled.
+            ...label ? { label } : {}
+          };
+        })
+      },
+      harmonics: {
+        harmonicSets: (state.harmonics && state.harmonics.harmonicSets || []).map((hs) => ({
+          id: hs.id,
+          color: hs.color,
+          anchorTime: hs.anchorTime,
+          spacing: hs.spacing,
+          // `symbol` is an ADDITIVE field (feature 157-harmonic-pin-symbols). It
+          // MUST NOT trigger a SCHEMA_VERSION bump: the strict version guard in
+          // loadAnnotations would otherwise discard all pre-existing v1 records.
+          // Legacy records simply lack this key and default to 'cross' (the
+          // symbol-less default, feature 161) on restore.
+          symbol: hs.symbol || "cross",
+          // `showPin` is likewise ADDITIVE (harmonic-pin toggle) and MUST NOT
+          // bump SCHEMA_VERSION. Records written before it simply lack the key
+          // and restore as `true` (pin shown), matching their original look.
+          showPin: hs.showPin !== false
+        }))
+      },
+      // `sidebands` is an ADDITIVE section (issue #241). It MUST NOT trigger a
+      // SCHEMA_VERSION bump: the strict version guard in loadAnnotations would
+      // otherwise discard every pre-existing v1 record. Records written before
+      // sidebands existed simply lack the key and restore with none.
+      sidebands: {
+        sidebandSets: (state.sidebands && state.sidebands.sidebandSets || []).map((sb) => ({
+          id: sb.id,
+          color: sb.color,
+          anchorTime: sb.anchorTime,
+          fundamentalFreq: sb.fundamentalFreq,
+          spacing: sb.spacing,
+          symbol: sb.symbol || "cross",
+          showPin: sb.showPin !== false
+        }))
+      },
+      doppler: {
+        fPlus: state.doppler && state.doppler.fPlus ? { time: state.doppler.fPlus.time, freq: state.doppler.fPlus.freq } : null,
+        fMinus: state.doppler && state.doppler.fMinus ? { time: state.doppler.fMinus.time, freq: state.doppler.fMinus.freq } : null,
+        fZero: state.doppler && state.doppler.fZero ? { time: state.doppler.fZero.time, freq: state.doppler.fZero.freq } : null,
+        color: state.doppler && state.doppler.color || null
+      },
+      // `tombstones` is an ADDITIVE field (issue #269). It MUST NOT trigger a
+      // SCHEMA_VERSION bump: records written before multi-tab merging simply
+      // lack it and merge as having deleted nothing, which is true of them.
+      tombstones: tombstonesOf(state)
+    };
+    return data;
+  }
+  function mergeForeignRecord(raw, state) {
+    let theirs = null;
+    try {
+      theirs = JSON.parse(raw);
+    } catch (error) {
+      console.warn("GramFrame: ignoring an unreadable record from another tab:", error);
+      return null;
+    }
+    if (!theirs || theirs.version !== SCHEMA_VERSION) {
+      return null;
+    }
+    if (theirs.gram && !fingerprintMatches(theirs.gram, buildGramFingerprint(state))) {
+      return null;
+    }
+    return mergeStoredAnnotations(snapshotAnnotations(state), theirs);
+  }
+  function readMergeableRecord(storage, key, expectedGram) {
+    try {
+      const raw = storage.getItem(key);
+      if (!raw) return null;
+      const existing = JSON.parse(raw);
+      if (!existing || existing.version !== SCHEMA_VERSION) return null;
+      if (expectedGram && !fingerprintMatches(existing.gram, expectedGram)) return null;
+      return existing;
+    } catch (error) {
+      console.warn("GramFrame: could not read the stored record to merge with — saving without merging:", error);
+      return null;
     }
   }
   function loadResult(outcome, annotations = null, dropped = 0) {
@@ -1202,14 +1381,17 @@
     }
     currentFocusedInstance = null;
   }
-  function isNodeInsideAnyInstance(node) {
+  function instanceContaining(node) {
     if (!(node instanceof Node)) {
-      return false;
+      return null;
     }
     pruneDisconnectedInstances();
-    return Array.from(registeredInstances).some(
+    return Array.from(registeredInstances).find(
       (instance) => !!(instance.ui && instance.ui.container && instance.ui.container.contains(node))
-    );
+    ) || null;
+  }
+  function isNodeInsideAnyInstance(node) {
+    return instanceContaining(node) !== null;
   }
   function addFocusIndicator(instance) {
     if (instance.ui.container) {
@@ -1219,28 +1401,6 @@
   function removeFocusIndicator(instance) {
     if (instance.ui.container) {
       instance.ui.container.classList.remove("gram-frame-focused");
-    }
-  }
-  function focusNextInstance() {
-    pruneDisconnectedInstances();
-    if (registeredInstances.size <= 1) return;
-    const instancesArray = Array.from(registeredInstances);
-    const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1;
-    const nextIndex = (currentIndex + 1) % instancesArray.length;
-    const next = instancesArray[nextIndex];
-    if (next) {
-      setFocusedInstance(next);
-    }
-  }
-  function focusPreviousInstance() {
-    pruneDisconnectedInstances();
-    if (registeredInstances.size <= 1) return;
-    const instancesArray = Array.from(registeredInstances);
-    const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1;
-    const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1;
-    const next = instancesArray[prevIndex];
-    if (next) {
-      setFocusedInstance(next);
     }
   }
   const HOVER_BRACKETS = [
@@ -1522,6 +1682,31 @@
     const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
     return `${sign}${paddedMinutes}:${paddedSeconds}`;
   }
+  function formatAxisTime(seconds, interval) {
+    const decimals = decimalsForInterval(interval);
+    if (decimals === 0) {
+      return formatTime(seconds);
+    }
+    const sign = seconds < 0 ? "-" : "";
+    const magnitude = Math.abs(seconds);
+    const minutes = Math.floor(magnitude / 60);
+    const remainingSeconds = magnitude % 60;
+    const paddedMinutes = minutes.toString().padStart(2, "0");
+    const secondsText = remainingSeconds.toFixed(decimals).padStart(decimals + 3, "0");
+    return `${sign}${paddedMinutes}:${secondsText}`;
+  }
+  function decimalsForInterval(interval) {
+    if (!Number.isFinite(interval) || interval <= 0) {
+      return 0;
+    }
+    for (let decimals = 0; decimals < 3; decimals++) {
+      const scaled = interval * Math.pow(10, decimals);
+      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
+        return decimals;
+      }
+    }
+    return 3;
+  }
   function renderAxes(instance) {
     if (!instance.ui.axesGroup) {
       return;
@@ -1542,6 +1727,7 @@
     const axisX = margins.left;
     const axisStartY = margins.top;
     const axisEndY = margins.top + naturalHeight;
+    const timeRange = timeMax - timeMin;
     const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
     axisLine.setAttribute("x1", String(axisX));
     axisLine.setAttribute("y1", String(axisStartY));
@@ -1549,12 +1735,36 @@
     axisLine.setAttribute("y2", String(axisEndY));
     axisLine.setAttribute("class", "gram-frame-axis-line");
     instance.ui.axesGroup.appendChild(axisLine);
-    const timeRange = timeMax - timeMin;
-    const tickCount = 5;
-    const tickInterval = timeRange / (tickCount - 1);
-    for (let i = 0; i < tickCount; i++) {
-      const time = timeMin + i * tickInterval;
-      const y = axisEndY - i / (tickCount - 1) * naturalHeight;
+    if (!(timeRange > 0)) {
+      return;
+    }
+    const { majorInterval, minorInterval, majorStart, minorStart, maxTicks } = calculateAxisTicks(timeMin, timeMax, naturalHeight, 40);
+    const yFor = (time) => axisEndY - (time - timeMin) / timeRange * naturalHeight;
+    const minorCount = Math.floor((timeMax - minorStart) / minorInterval) + 1;
+    if (minorCount > 0 && minorCount <= maxTicks) {
+      for (let i = 0; i < minorCount; i++) {
+        const time = minorStart + i * minorInterval;
+        if (time > timeMax) break;
+        const offsetFromMajor = Math.abs((time - majorStart) % majorInterval / majorInterval);
+        if (offsetFromMajor < 1e-3 || offsetFromMajor > 0.999) continue;
+        const y = yFor(time);
+        const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        tick.setAttribute("x1", String(axisX - 4));
+        tick.setAttribute("y1", String(y));
+        tick.setAttribute("x2", String(axisX));
+        tick.setAttribute("y2", String(y));
+        tick.setAttribute("class", "gram-frame-axis-tick-minor");
+        instance.ui.axesGroup.appendChild(tick);
+      }
+    }
+    const majorCount = Math.floor((timeMax - majorStart) / majorInterval) + 1;
+    if (majorCount <= 0 || majorCount > maxTicks) {
+      return;
+    }
+    for (let i = 0; i < majorCount; i++) {
+      const time = majorStart + i * majorInterval;
+      if (time > timeMax) break;
+      const y = yFor(time);
       const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
       tick.setAttribute("x1", String(axisX - 8));
       tick.setAttribute("y1", String(y));
@@ -1567,7 +1777,7 @@
       label.setAttribute("y", String(y + 4));
       label.setAttribute("text-anchor", "end");
       label.setAttribute("class", "gram-frame-axis-label");
-      label.textContent = formatTime(time);
+      label.textContent = formatAxisTime(time, majorInterval);
       instance.ui.axesGroup.appendChild(label);
     }
   }
@@ -1614,8 +1824,20 @@
       maxTicks
     };
   }
-  function formatFrequencyLabels(frequency) {
-    return Math.round(frequency) + "Hz";
+  function formatFrequencyLabels(frequency, interval = 1) {
+    return formatAtInterval(frequency, interval) + "Hz";
+  }
+  function formatAtInterval(value, interval) {
+    if (!Number.isFinite(interval) || interval <= 0) {
+      return String(Math.round(value));
+    }
+    for (let decimals = 0; decimals < 3; decimals++) {
+      const scaled = interval * Math.pow(10, decimals);
+      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
+        return value.toFixed(decimals);
+      }
+    }
+    return value.toFixed(3);
   }
   function renderAxisLine(instance, axisConfig) {
     const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -1681,19 +1903,20 @@
         majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick-major" });
         labelData.push({
           x,
-          text: formatFrequencyLabels(freq),
+          text: formatFrequencyLabels(freq, tickCalculation.majorInterval),
           className: "gram-frame-axis-label-major"
         });
       }
     } else {
       const tickCount = 5;
+      const fallbackInterval = freqRange / (tickCount - 1);
       for (let i = 0; i < tickCount; i++) {
-        const freq = displayFreqMin + i * freqRange / (tickCount - 1);
+        const freq = displayFreqMin + i * fallbackInterval;
         const x = axisStartX + i / (tickCount - 1) * naturalWidth;
         majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick" });
         labelData.push({
           x,
-          text: formatFrequencyLabels(freq),
+          text: formatFrequencyLabels(freq, fallbackInterval),
           className: "gram-frame-axis-label"
         });
       }
@@ -1898,6 +2121,7 @@
   };
   let globalKeyboardHandler = null;
   let globalMousedownHandler = null;
+  let globalFocusinHandler = null;
   let keyboardHandlerInitialized = false;
   function initializeKeyboardControl(instance) {
     registerInstance(instance);
@@ -1910,6 +2134,13 @@
         }
       };
       document.addEventListener("mousedown", globalMousedownHandler);
+      globalFocusinHandler = (event) => {
+        const owner = instanceContaining(event.target);
+        if (owner) {
+          setFocusedInstance(owner);
+        }
+      };
+      document.addEventListener("focusin", globalFocusinHandler);
       keyboardHandlerInitialized = true;
     }
   }
@@ -1923,6 +2154,10 @@
       if (globalMousedownHandler) {
         document.removeEventListener("mousedown", globalMousedownHandler);
         globalMousedownHandler = null;
+      }
+      if (globalFocusinHandler) {
+        document.removeEventListener("focusin", globalFocusinHandler);
+        globalFocusinHandler = null;
       }
       keyboardHandlerInitialized = false;
     }
@@ -1943,15 +2178,6 @@
     }
     const focusedInstance = getFocusedInstance();
     if (event.key === "Tab") {
-      if (!focusedInstance || getRegisteredInstanceCount() <= 1) {
-        return;
-      }
-      if (event.shiftKey) {
-        focusPreviousInstance();
-      } else {
-        focusNextInstance();
-      }
-      event.preventDefault();
       return;
     }
     if (!focusedInstance) {
@@ -2418,18 +2644,23 @@
     const percentage = x / width * 100;
     indicator.style.left = `${Math.max(0, Math.min(100, percentage))}%`;
   }
-  function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  }
+  const MODE_ROSTER = [
+    { name: "pan", displayName: "Pan" },
+    // "Cross Cursor" on screen, `analysis` in the code and in stored records.
+    // The two names have coexisted since before this review; renaming the button
+    // is issue #271, not this one.
+    { name: "analysis", displayName: "Cross Cursor" },
+    { name: "harmonics", displayName: "Harmonics" },
+    { name: "sideband", displayName: "Sidebands" },
+    { name: "doppler", displayName: "Doppler" }
+  ];
+  const MODE_NAMES = MODE_ROSTER.map((entry) => entry.name);
   function getModeDisplayName(mode) {
-    const displayNames = {
-      "analysis": "Cross Cursor",
-      "harmonics": "Harmonics",
-      "sideband": "Sidebands",
-      "doppler": "Doppler",
-      "pan": "Pan"
-    };
-    return displayNames[mode] || capitalizeFirstLetter(mode);
+    const entry = MODE_ROSTER.find((candidate) => candidate.name === mode);
+    if (entry) {
+      return entry.displayName;
+    }
+    return typeof mode === "string" && mode.length > 0 ? mode.charAt(0).toUpperCase() + mode.slice(1) : String(mode);
   }
   function createLEDDisplay(label, value) {
     const led = document.createElement("div");
@@ -2910,7 +3141,7 @@
   function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes = {}) {
     const modesContainer = document.createElement("div");
     modesContainer.className = "gram-frame-modes";
-    const modeTypes = ["pan", "analysis", "harmonics", "sideband", "doppler"];
+    const modeTypes = MODE_NAMES;
     const modeButtons = {};
     const commandButtons = {};
     modeTypes.forEach((modeType) => {
@@ -4524,6 +4755,7 @@
           this.instance.interaction.clearSelection();
         }
         markers.splice(index, 1);
+        recordDeletion(this.instance, "markers", markerId);
         commitAnnotationChange(this.instance, () => this.updateMarkersTable(), { frame: true });
       }
     }
@@ -4755,6 +4987,21 @@
      */
     get selectionType() {
       throw new Error(`${this.constructor.name} must implement the "selectionType" getter`);
+    }
+    /**
+     * Which stored collection this mode's sets live in, and therefore which
+     * tombstone family a deletion belongs to (issue #269).
+     *
+     * Derived from `selectionType` rather than declared again: the two are the
+     * same fact -- `harmonicSet` sets live in `harmonicSets` -- and a subclass
+     * that had to state both could state them inconsistently.
+     * @returns {'harmonicSets'|'sidebandSets'} Stored collection name
+     */
+    get tombstoneCollection() {
+      return (
+        /** @type {'harmonicSets'|'sidebandSets'} */
+        `${this.selectionType}s`
+      );
     }
     /**
      * Prefix for generated set ids, and the DOM naming stem for this mode's pins.
@@ -5035,6 +5282,7 @@
         this.instance.interaction.clearSelection();
       }
       this.sets.splice(setIndex, 1);
+      recordDeletion(this.instance, this.tombstoneCollection, id);
       commitAnnotationChange(this.instance, () => this.updatePanel());
     }
     /**
@@ -6617,6 +6865,7 @@
       doppler.tempFirst = null;
       doppler.previewEnd = null;
       this.dragHandler.reset();
+      recordDopplerDeletion(this.instance);
       markAnnotationsChanged(this.instance);
       dispatch(this.instance, { frame: true });
     }
@@ -7166,6 +7415,13 @@
     configTable.parentNode.replaceChild(warning, configTable);
     return warning;
   }
+  const MODE_CLASSES = {
+    pan: PanMode,
+    analysis: AnalysisMode,
+    harmonics: HarmonicsMode,
+    sideband: SidebandMode,
+    doppler: DopplerMode
+  };
   class ModeFactory {
     /**
      * Create a mode instance based on mode name
@@ -7180,20 +7436,11 @@
     static createMode(modeName, instance) {
       var _a;
       try {
-        switch (modeName) {
-          case "analysis":
-            return new AnalysisMode(instance);
-          case "harmonics":
-            return new HarmonicsMode(instance);
-          case "sideband":
-            return new SidebandMode(instance);
-          case "doppler":
-            return new DopplerMode(instance);
-          case "pan":
-            return new PanMode(instance);
-          default:
-            throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, sideband, doppler, pan`);
+        const ModeClass = Object.prototype.hasOwnProperty.call(MODE_CLASSES, modeName) ? MODE_CLASSES[modeName] : null;
+        if (!ModeClass) {
+          throw new Error(`Invalid mode name: ${modeName}. Valid modes are: ${MODE_NAMES.join(", ")}`);
         }
+        return new ModeClass(instance);
       } catch (error) {
         console.error(`CRITICAL ERROR: Failed to create mode "${modeName}":`, error);
         console.error("Error details:", {
@@ -7223,18 +7470,21 @@
      * rather than importing the mode classes itself, which is what breaks the
      * state ⇄ modes cycle (spec 167, FR-002, ADR-014).
      *
-     * Merge order is fixed and explicit: analysis, harmonics, sideband, doppler, pan.
+     * Merge order is the roster's, so it cannot drift from the roster the rest
+     * of the component uses. The order is immaterial in practice -- each mode
+     * contributes a slice named after itself -- but a collision between two
+     * modes would resolve by it, and `assertNoCoreKeyCollision` covers the core
+     * keys either way.
      * @returns {Partial<GramFrameState>} Merged mode slices
      */
     static getModeInitialStates() {
-      const slices = Object.assign(
-        {},
-        AnalysisMode.getInitialState(),
-        HarmonicsMode.getInitialState(),
-        SidebandMode.getInitialState(),
-        DopplerMode.getInitialState(),
-        PanMode.getInitialState()
-      );
+      const slices = Object.assign({}, ...MODE_NAMES.map((name) => {
+        const ModeClass = (
+          /** @type {any} */
+          MODE_CLASSES[name]
+        );
+        return typeof ModeClass.getInitialState === "function" ? ModeClass.getInitialState() : {};
+      }));
       assertNoCoreKeyCollision(slices);
       return slices;
     }
@@ -7243,7 +7493,7 @@
      * @returns {ModeType[]} Array of mode names
      */
     static getAvailableModes() {
-      return ["analysis", "harmonics", "sideband", "doppler", "pan"];
+      return [...MODE_NAMES];
     }
     /**
      * Validate if a mode name is supported
@@ -8575,7 +8825,7 @@
      * Where this instance's annotations are saved, and under which context.
      * @type {GramFramePersistence}
      */
-    persistence = { _storageInstanceIndex: 0, _isTrainerContext: false };
+    persistence = { _storageInstanceIndex: 0, _isTrainerContext: false, _crossTabHandler: null };
     // Core properties
     /** @type {GramFrameState} */
     state;
@@ -8702,6 +8952,7 @@
           this.featureRenderer.renderAllPersistentFeatures();
         }
         this._setupStorageSaveListener();
+        this._setupCrossTabListener();
       }
       dispatch(this);
     }
@@ -8747,6 +8998,7 @@
      * Clear all annotations from state and storage
      */
     _clearGram() {
+      var _a, _b, _c;
       Object.values(this.modes || {}).forEach((modeInstance) => {
         if (modeInstance && modeInstance.dragHandler) {
           modeInstance.dragHandler.cancelDrag();
@@ -8758,6 +9010,10 @@
       if (this.interaction.clearSelection) {
         this.interaction.clearSelection();
       }
+      (((_a = this.state.analysis) == null ? void 0 : _a.markers) || []).forEach((marker) => recordDeletion(this, "markers", marker.id));
+      (((_b = this.state.harmonics) == null ? void 0 : _b.harmonicSets) || []).forEach((set) => recordDeletion(this, "harmonicSets", set.id));
+      (((_c = this.state.sidebands) == null ? void 0 : _c.sidebandSets) || []).forEach((set) => recordDeletion(this, "sidebandSets", set.id));
+      recordDopplerDeletion(this);
       const fresh = createInitialState(ModeFactory.getModeInitialStates());
       this.state.analysis = fresh.analysis;
       this.state.harmonics = fresh.harmonics;
@@ -8816,6 +9072,9 @@
       }
       if (!saved) return;
       markAnnotationsChanged(this);
+      if (saved.tombstones) {
+        this.state.tombstones = saved.tombstones;
+      }
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
         this.state.analysis.markers = saved.analysis.markers.map((m) => ({
           ...m,
@@ -8845,15 +9104,126 @@
         if (saved.doppler.color) {
           this.state.doppler.color = saved.doppler.color;
         }
-        const { fPlus, fMinus, fZero } = this.state.doppler;
-        if (fPlus && fMinus && fZero) {
-          const speed = calculateDopplerSpeed(fPlus, fMinus, fZero);
-          this.state.doppler.speed = Number.isFinite(speed) ? speed : null;
-          if (this.ui.speedLED && this.state.doppler.speed !== null) {
-            setLEDValue(this.ui.speedLED, (this.state.doppler.speed * MS_TO_KNOTS).toFixed(1));
-          }
-        }
+        this._refreshDopplerSpeed();
       }
+    }
+    /**
+     * Recompute the doppler speed from the curve now in state, and show it.
+     *
+     * Speed is derived, not persisted, so every path that puts a curve into
+     * state without a drag has to do this: a restored curve otherwise read 0.0
+     * until a marker was nudged (BH-15). Guarded against f₀ = 0, which divides
+     * to Infinity (BH-8). Shared by the restore path and the cross-tab merge,
+     * which have exactly the same problem.
+     * @returns {void}
+     */
+    _refreshDopplerSpeed() {
+      const { fPlus, fMinus, fZero } = this.state.doppler;
+      if (!fPlus || !fMinus || !fZero) {
+        this.state.doppler.speed = null;
+        return;
+      }
+      const speed = calculateDopplerSpeed(fPlus, fMinus, fZero);
+      this.state.doppler.speed = Number.isFinite(speed) ? speed : null;
+      if (this.ui.speedLED && this.state.doppler.speed !== null) {
+        setLEDValue(this.ui.speedLED, (this.state.doppler.speed * MS_TO_KNOTS).toFixed(1));
+      }
+    }
+    /**
+     * Adopt another tab's save into this tab, live.
+     *
+     * The `storage` event fires in every *other* tab of the origin when one
+     * writes, so this is how the tab that did not save learns about it. Without
+     * it, merging on save would still keep both tabs' work in the record -- the
+     * data would be safe -- but each screen would show only its own half until
+     * someone reloaded, which reads exactly like the loss it replaced.
+     *
+     * The merge itself is the same one the save path uses, so the two cannot
+     * disagree about what a union means. What arrives is treated as another
+     * tab's record, not as authority: a foreign gram, an unreadable payload or a
+     * different schema version is ignored here for the same reasons the load
+     * path refuses it.
+     * @returns {void}
+     */
+    _setupCrossTabListener() {
+      const key = buildStorageKey(this.persistence._storageInstanceIndex);
+      const onStorage = (event) => {
+        if (!event.key || event.key !== key || !event.newValue) {
+          return;
+        }
+        this._adoptForeignRecord(event.newValue);
+      };
+      window.addEventListener("storage", onStorage);
+      this.persistence._crossTabHandler = onStorage;
+    }
+    /**
+     * Merge a record another tab just wrote into this tab's live state.
+     * @param {string} raw - The record as stored
+     * @returns {boolean} True if anything changed on screen
+     */
+    _adoptForeignRecord(raw) {
+      const merged = mergeForeignRecord(raw, this.state);
+      if (!merged) {
+        return false;
+      }
+      const before = JSON.stringify(snapshotAnnotations(this.state));
+      this._applyMergedAnnotations(merged);
+      if (JSON.stringify(snapshotAnnotations(this.state)) === before) {
+        return false;
+      }
+      if (this.state.selection && this.state.selection.selectedId && !this._selectionStillExists()) {
+        this.interaction.clearSelection();
+      }
+      markAnnotationsChanged(this);
+      updatePersistentPanels(this);
+      if (this.featureRenderer) {
+        this.featureRenderer.renderAllPersistentFeatures();
+      }
+      dispatch(this);
+      return true;
+    }
+    /**
+     * Replace this instance's annotations with a merged record's.
+     * @param {StoredAnnotations} merged - The merged record
+     * @returns {void}
+     */
+    _applyMergedAnnotations(merged) {
+      var _a, _b, _c;
+      this.state.analysis.markers = (((_a = merged.analysis) == null ? void 0 : _a.markers) || []).map((m) => ({
+        ...m,
+        symbol: m.symbol || "cross"
+      }));
+      this.state.harmonics.harmonicSets = (((_b = merged.harmonics) == null ? void 0 : _b.harmonicSets) || []).map((hs) => ({
+        ...hs,
+        symbol: hs.symbol || "cross",
+        showPin: hs.showPin !== false
+      }));
+      this.state.sidebands.sidebandSets = (((_c = merged.sidebands) == null ? void 0 : _c.sidebandSets) || []).map((sb) => ({
+        ...sb,
+        symbol: sb.symbol || "cross",
+        showPin: sb.showPin !== false
+      }));
+      const doppler = merged.doppler || { fPlus: null, fMinus: null, fZero: null, color: null };
+      this.state.doppler.fPlus = doppler.fPlus || null;
+      this.state.doppler.fMinus = doppler.fMinus || null;
+      this.state.doppler.fZero = doppler.fZero || null;
+      this.state.doppler.color = doppler.color || null;
+      this._refreshDopplerSpeed();
+      if (merged.tombstones) {
+        this.state.tombstones = merged.tombstones;
+      }
+    }
+    /**
+     * Whether the current selection still names a feature that exists.
+     * @returns {boolean} True when the selection is still valid
+     */
+    _selectionStillExists() {
+      const { selectedType, selectedId } = this.state.selection || {};
+      if (!selectedType || !selectedId) {
+        return true;
+      }
+      const family = selectedType === "marker" ? this.state.analysis.markers || [] : selectedType === "harmonicSet" ? this.state.harmonics.harmonicSets || [] : this.state.sidebands.sidebandSets || [];
+      return family.some((feature) => feature.id === selectedId);
     }
     /**
      * Set up a state listener that saves annotations on relevant state changes
@@ -8916,6 +9286,10 @@
       }
       cleanupEventListeners(this);
       cleanupKeyboardControl(this);
+      if (this.persistence._crossTabHandler) {
+        window.removeEventListener("storage", this.persistence._crossTabHandler);
+        this.persistence._crossTabHandler = null;
+      }
       if (this.player) {
         this.player.destroy();
         this.player = null;
