@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Player Page - sidecar fallback</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Sidecar fallback</h1>
+  <!--
+    The .wav at this path does not exist, so fetch fails (a 404 here; a CORS
+    refusal on a file:// page) and the loader must fall back to the sidecar
+    tone-20s.wav.js beside it, which does (spec 168, D2; research.md §5.3).
+  -->
+  <div class="component-container">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="./audio/sidecar-only/tone-20s.wav"></audio></td></tr>
+      <tr><td>window-seconds</td><td>5</td></tr>
+    </table>
+  </div>
+  <div class="diagnostics-panel" style="display:none;"><pre id="state-display">Loading...</pre></div>
+</body>
+</html>

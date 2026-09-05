@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Player Page - ignored and clamped rows</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <!-- time-start/time-end are ignored on an audio table (FR-004); freq-end
+       above the 4 kHz Nyquist of this 8 kHz file is clamped (spec edge case). -->
+  <div class="component-container">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>60</td></tr>
+      <tr><td>freq-end</td><td>9000</td></tr>
+    </table>
+  </div>
+  <div class="diagnostics-panel" style="display:none;"><pre id="state-display">Loading...</pre></div>
+</body>
+</html>

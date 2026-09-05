@@ -958,7 +958,13 @@ export class PinSetMode extends BaseMode {
     )
     existingSymbols.forEach(symbol => symbol.remove())
 
-    this.sets.forEach(set => this.renderSet(set))
+    // On an audio-sourced gram a set anchored beyond the playhead waits until
+    // its moment has been played (spec 168, FR-018).
+    this.sets.forEach(set => {
+      if (this.isTimeRevealed(set.anchorTime)) {
+        this.renderSet(set)
+      }
+    })
   }
 
   /**

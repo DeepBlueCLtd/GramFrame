@@ -4,13 +4,15 @@
 
 /// <reference path="../types.js" />
 
-import { screenToData, isWithinImage } from '../utils/coordinates.js'
+import { screenToData, isWithinImage, screenToSVG } from '../utils/coordinates.js'
 import { BaseDragHandler, hasActiveDrag, cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
 import { dispatch } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 import { setFocusedInstance } from './FocusManager.js'
 import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized } from './viewport.js'
 import { IDLE_CURSOR, PAN_DRAG_CURSOR } from '../utils/cursors.js'
+import { isPlaying, isPlayerActive } from '../player/playerView.js'
+import { calculateVisibleDataRange, getRenderDimensions } from '../utils/coordinates.js'
 
 /**
  * Per-notch multiplicative zoom factor for Ctrl+wheel zoom (smoother than the
@@ -62,6 +64,9 @@ function screenToDataWithZoom(instance, event) {
  * @param {WheelEvent} event - Wheel event
  */
 function handleWheel(instance, event) {
+  if (isPlaying(instance)) {
+    return // Pan and zoom are inert while the recording plays (spec 168, FR-013)
+  }
   const result = screenToDataWithZoom(instance, event)
   if (!result) {
     return // Not over the spectrogram image - leave the page scroll alone
@@ -293,6 +298,21 @@ function handleMouseDown(instance, event) {
   // Set focus when user interacts with this instance
   setFocusedInstance(instance)
 
+  // A click on the time axis of an audio-sourced gram seeks there
+  // (spec 168, FR-020), whether playing or paused: it is a transport action,
+  // not an annotation one.
+  if (event.button === 0 && isPlayerActive(instance) && seekFromTimeAxisClick(instance, event)) {
+    event.preventDefault()
+    return
+  }
+
+  // While the recording plays, every pointer interaction with the gram other
+  // than hovering is inert — no annotation, no pan, no zoom (spec 168,
+  // FR-013). Decided here so no mode has to know about the player.
+  if (isPlaying(instance)) {
+    return
+  }
+
   // Middle (wheel) button starts a global pan and is never delegated to a mode,
   // so it can never place a cursor/marker/harmonic/doppler point.
   if (event.button === 1) {
@@ -328,6 +348,35 @@ function handleMouseDown(instance, event) {
 }
 
 /**
+ * Seek an audio-sourced gram to the time under a click on its time axis.
+ *
+ * The axis band is the left margin beside the axes area. The time is read
+ * off the visible range the axis is drawn from, so it agrees with the labels.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {MouseEvent} event - The mousedown
+ * @returns {boolean} True when the click was on the axis and a seek was made
+ */
+function seekFromTimeAxisClick(instance, event) {
+  if (!instance.player || !instance.player.isReady()) {
+    return false
+  }
+  const state = instance.state
+  const svgRect = instance.ui.svg.getBoundingClientRect()
+  const point = screenToSVG(event.clientX - svgRect.left, event.clientY - svgRect.top, instance.ui.svg)
+  const { renderHeight } = getRenderDimensions(state)
+  const { margins } = state
+  const onAxisBand = point.x >= 0 && point.x < margins.left &&
+    point.y >= margins.top && point.y <= margins.top + renderHeight
+  if (!onAxisBand) {
+    return false
+  }
+  const visible = calculateVisibleDataRange(state, instance.ui.spectrogramImage)
+  const fraction = (point.y - margins.top) / renderHeight
+  instance.player.seek(visible.timeMax - fraction * (visible.timeMax - visible.timeMin))
+  return true
+}
+
+/**
  * Handle mouse up events on SVG
  * @param {GramFrame} instance - GramFrame instance
  * @param {MouseEvent} event - Mouse event
@@ -349,6 +398,10 @@ function handleMouseUp(instance, event) {
   // only a left-button release may end one (BH-12).
   if (event.button !== 0) {
     return
+  }
+
+  if (isPlaying(instance)) {
+    return // Inert while playing (spec 168, FR-013); no drag can be running
   }
 
   const result = screenToDataWithZoom(instance, event)
@@ -404,6 +457,10 @@ function handleContextMenu(instance, event) {
   if (hasActiveDrag(instance)) {
     event.preventDefault()
     return
+  }
+
+  if (isPlaying(instance)) {
+    return // Deleting is an annotation action; inert while playing (spec 168, FR-013)
   }
 
   const result = screenToDataWithZoom(instance, event)

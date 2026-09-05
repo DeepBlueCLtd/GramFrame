@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Player Page - failures beside a healthy instance</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Failures</h1>
+  <!--
+    Three tables (spec 168, FR-007). The first names a file that is not a WAV,
+    the second a file that does not exist (and has no sidecar), the third a
+    good file with a hop-size that would make the gram 160,000 rows tall. All
+    three must fail with the standard error indicator; the fourth, healthy,
+    table must be unaffected (AS-2.4).
+  -->
+  <div class="component-container">
+    <table class="gram-config" id="not-a-wav">
+      <tr><td colspan="2"><audio src="./audio/not-a-wav.txt"></audio></td></tr>
+    </table>
+    <table class="gram-config" id="missing">
+      <tr><td colspan="2"><audio src="./audio/does-not-exist.wav"></audio></td></tr>
+    </table>
+    <table class="gram-config" id="oversize">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>hop-size</td><td>1</td></tr>
+    </table>
+    <table class="gram-config" id="healthy">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>window-seconds</td><td>5</td></tr>
+    </table>
+  </div>
+  <div class="diagnostics-panel" style="display:none;"><pre id="state-display">Loading...</pre></div>
+</body>
+</html>

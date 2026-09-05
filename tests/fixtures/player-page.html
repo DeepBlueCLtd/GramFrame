@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player Page - audio-sourced gram</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <!-- Development/test page: expose GramFrame's __test__* API (spec 165, GF-23). -->
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Player Page</h1>
+  <!--
+    One audio-sourced instance (spec 168). tone-20s.wav is synthetic: a 300 Hz
+    tone with harmonics at 600 and 900 Hz, a chirp from 1500 to 3000 Hz over
+    the 20 s, and a little noise, at 8 kHz — so the expected bins are known.
+    The window is 5 s so a full window of scrolling takes a short test.
+  -->
+  <div class="component-container">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>window-seconds</td><td>5</td></tr>
+      <tr><td>fft-size</td><td>1024</td></tr>
+      <tr><td>freq-end</td><td>3000</td></tr>
+    </table>
+  </div>
+
+  <div class="diagnostics-panel" style="display:none;">
+    <pre id="state-display">Loading...</pre>
+  </div>
+</body>
+</html>

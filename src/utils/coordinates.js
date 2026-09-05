@@ -117,7 +117,11 @@ export function calculateVisibleDataRange(viewport, spectrogramImage = null) {
   // Base render size (defaults to natural; grows when expanded)
   const { renderWidth, renderHeight } = getRenderDimensions(viewport)
 
-  if (zoomLevel === 1.0) {
+  // An audio-sourced gram is drawn time-stretched and scrolled (spec 168, D7),
+  // so its visible range is never simply the configured range — not even at
+  // zoom 1. The shortcut is for image-backed instances only.
+  const stretched = viewport.imageDetails.timeStretch !== undefined
+  if (zoomLevel === 1.0 && !stretched) {
     // No zoom - return full range
     return { timeMin, timeMax, freqMin, freqMax }
   }
@@ -134,8 +138,14 @@ export function calculateVisibleDataRange(viewport, spectrogramImage = null) {
   // Calculate visible bounds in image coordinates (full image extent = render size)
   const visibleLeft = Math.max(0, margins.left - imageLeft)
   const visibleRight = Math.min(imageWidth, margins.left + renderWidth - imageLeft)
-  const visibleTop = Math.max(0, margins.top - imageTop)
-  const visibleBottom = Math.min(imageHeight, margins.top + renderHeight - imageTop)
+  // Vertically, a stretched gram's axes area can extend past the image — the
+  // blank time before the recording began, or below its end when the file is
+  // shorter than the window — and the axis must label that span too, so the
+  // time range is extrapolated rather than clamped to the image.
+  const visibleTop = stretched ? margins.top - imageTop : Math.max(0, margins.top - imageTop)
+  const visibleBottom = stretched
+    ? margins.top + renderHeight - imageTop
+    : Math.min(imageHeight, margins.top + renderHeight - imageTop)
 
   // Convert to data coordinates
   const freqRange = freqMax - freqMin

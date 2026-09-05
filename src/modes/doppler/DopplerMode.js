@@ -396,13 +396,14 @@ export class DopplerMode extends BaseMode {
    * Reset doppler-specific state
    */
   resetState() {
-    this.instance.state.doppler.fPlus = null
-    this.instance.state.doppler.fMinus = null
-    this.instance.state.doppler.fZero = null
-    this.instance.state.doppler.speed = null
-    this.instance.state.doppler.color = null
-    this.instance.state.doppler.tempFirst = null
-    this.instance.state.doppler.previewEnd = null
+    const doppler = this.instance.state.doppler
+    doppler.fPlus = null
+    doppler.fMinus = null
+    doppler.fZero = null
+    doppler.speed = null
+    doppler.color = null
+    doppler.tempFirst = null
+    doppler.previewEnd = null
     this.dragHandler.reset()
     // Deleting the curve is an annotation mutation: masked today by the
     // signature's doppler identity fields, but the mark is the contract (BH-24).
@@ -416,8 +417,9 @@ export class DopplerMode extends BaseMode {
    */
   cleanup() {
     // Only clear transient placement geometry, preserve marker positions
-    this.instance.state.doppler.tempFirst = null
-    this.instance.state.doppler.previewEnd = null
+    const doppler = this.instance.state.doppler
+    doppler.tempFirst = null
+    doppler.previewEnd = null
     this.dragHandler.reset()
   }
   
@@ -523,8 +525,11 @@ export class DopplerMode extends BaseMode {
     
     const doppler = this.instance.state.doppler
     
-    // Render preview during placement OR final markers and curves
-    if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
+    // Render preview during placement OR final markers and curves. On an
+    // audio-sourced gram the curve waits until every marker's time has been
+    // played (spec 168, FR-018); on an image every time is revealed.
+    if (doppler.fPlus && doppler.fMinus && doppler.fZero &&
+        [doppler.fPlus, doppler.fMinus, doppler.fZero].every(marker => this.isTimeRevealed(marker.time))) {
       this.renderMarkers()
       this.renderDopplerCurve()
       

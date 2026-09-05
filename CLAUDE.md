@@ -57,6 +57,7 @@ curl -d "status here" ntfy.sh/iancc2025
 - **Entry Point**: `src/index.js` - Main module export and global registration
 - **State Management**: `src/core/state.js` - Centralized state with listener pattern
 - **Mode System**: Modular architecture with five modes — Pan (default), Analysis, Harmonics, Sidebands and Doppler
+- **Spectrograph Player**: `src/audio/` (decode and analyse a WAV into the gram image) and `src/player/` (the transport and the scrolling view) make an audio-sourced instance; the modes measure it through the unchanged coordinate pipeline (spec 168, ADR-019)
 - **Feature Rendering**: `src/core/FeatureRenderer.js` - Cross-mode feature coordination
 - **Mode Factory**: `src/modes/ModeFactory.js` - Centralized mode instantiation
 
@@ -77,6 +78,17 @@ Every path below exists; keep this list in step with `src/` when adding modules.
 - `src/types.js` - JSDoc type definitions
 - `src/globals.d.ts` - Build-time defines (the injected version)
 - `src/gramframe.css` - Component styling
+- `src/audio/` - The signal chain of an audio-sourced instance; pure, Vitest-covered:
+  - `wavDecoder.js` - RIFF/WAVE → mono `Float32Array` (PCM 8/16/24/32 and float)
+  - `fft.js` - Radix-2 FFT with cached tables
+  - `spectrogram.js` - Hann-windowed frames → power grid, in ≤ 12 ms slices
+  - `colourMap.js` - The colour table and the newest-row-on-top pixel layout
+  - `gramImage.js` - Percentile-normalised levels, the size cap, canvas → PNG data URL
+  - `audioSource.js` - `fetch`, falling back to the `<name>.wav.js` sidecar over `file://`
+- `src/player/` - The player around that chain:
+  - `audioSetup.js` - The audio twin of `spectrogramImage.js`: load → analyse → paint → ready, then the deferred annotation restore
+  - `transport.js` - The `<audio>` element and `instance.player` (play/pause/seek/loop/rate/volume/mute)
+  - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow loop and the reveal rule
 - `src/core/` - Core system modules:
   - `state.js` - State management and listeners
   - `events.js` - Mouse/wheel event handling and listener teardown
@@ -120,6 +132,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `PinToggle.js` - Harmonic-pin visibility toggle
   - `ExpandToggle.js` - Expand/collapse the image to fill the space
   - `StorageWarning.js` - Non-blocking banner when a save fails
+  - `TransportBar.js` - The playback controls under an audio-sourced gram
+  - `ErrorIndicator.js` - The standard initialisation-error box, shared by the API and the audio setup
   - `LEDDisplay.js` - Digital display component
   - `table.js` - Component scaffold: builds the DOM structure and replaces the
     config table. Nothing else — its five other responsibilities were split out
@@ -151,7 +165,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `version.js` - Version constant (injected at build time)
 - `src/api/` - External API interface
 - `tests/` - Playwright suite, `tests/unit/` Vitest lane, `tests/smoke/` WebKit smoke, `tests/fixtures/` test pages
-- `sample/` - Sample HTML files for testing
+- `sample/` - Sample HTML files for testing; `sample/audio/` holds four CC BY 4.0 machinery recordings (see its `ATTRIBUTION.md`) and `sample/player.html` plays them
+- `scripts/wav2js.mjs` - Wraps a WAV as a `<script>`-loadable sidecar for `file://` pages
 - `docs/archive/` - Development-history artefacts (not part of the component)
 - `debug.html` - Development debug page
 
@@ -260,6 +275,29 @@ There is no visual/screenshot regression testing — see
   `instance.persistence` (storage context). `state`, `configTable`,
   `stateListeners`, `instanceId`, `modes`, `currentMode` and `featureRenderer`
   stay flat — `state` deliberately so, since it is the broadcast state
+
+### Audio-sourced instances (spec 168)
+- The config table's first row holds `<audio src>` instead of `<img>`; five optional
+  rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`) set the
+  analysis. `core/configuration.js` parses both kinds
+- The gram is one tall image of the whole recording: `config = [0, duration] ×
+  [freq-start, freq-end]`, natural size = bins × frames, rendered at 900 × 400.
+  `imageDetails.timeStretch` draws it `duration / window-seconds` times taller than
+  the axes, and `state.player.viewTop` (the time at the top edge) positions it; both
+  are applied in `svgLayout.applyZoomTransform`. Every transform in
+  `utils/coordinates.js` reads the live element bounds, so nothing else changes
+- Reveal: `viewTop ≤ playhead` always; the image clip's top edge is the playhead's
+  row; `BaseMode.isTimeRevealed(t)` is the one thing a mode knows about the player
+- While playing, `core/events.js` returns before delegating pointer events to the
+  mode and `keyboardControl.js` skips nudges (FR-013); hover readouts still run
+- Samples cannot be fetched over `file://` (research.md §3.1): the loader falls back
+  to a `<name>.wav.js` sidecar from `scripts/wav2js.mjs`. Web Audio is not used —
+  the decoder is ours and playback is the `<audio>` element
+- Annotation restore and the storage-save listener wait for `player.ready`, because
+  the storage fingerprint needs the duration
+- The expand toggle is mounted on a player at ready. `ExpandToggle` measures and
+  restores from `baseRenderSize(instance)` (the 900 × 400 player area, not the
+  bins × frames natural size) and leaves room for the transport bar
 
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything

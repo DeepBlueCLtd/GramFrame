@@ -53,6 +53,11 @@ jobs:
           cp preview-student.html _site/demo/student.html
           cp preview-trainer.html _site/demo/trainer.html
           cp preview-demo-gram.html _site/demo/demo-gram.html
+          # Spectrograph player (spec 168): the bundle-based page and its four
+          # recordings. Served over HTTPS, so no .wav.js sidecars are needed.
+          mkdir -p _site/demo/audio
+          cp sample/audio/*.wav _site/demo/audio/
+          cp preview-player.html _site/demo/player.html
           # Landing page for /demo/
           cat > _site/demo/index.html << 'LANDING'
           <!DOCTYPE html>
@@ -73,6 +78,7 @@ jobs:
               .badge-student { background: #0d47a1; }
               .badge-trainer { background: #1b5e20; }
               .badge-optimised { background: #6a1b9a; }
+              .badge-player { background: #e65100; }
             </style>
           </head>
           <body>
@@ -90,6 +96,10 @@ jobs:
               <a class="card" href="demo-gram.html">
                 <h2>Optimised Demo Gram <span class="badge badge-optimised">9KB</span></h2>
                 <p>The same component on a purpose-built synthetic gram - 9KB instead of 482KB, with a harmonic stack, sidebands, a Doppler curve and broadband transients drawn in. Cuts the release archive from 561KB to 88KB.</p>
+              </a>
+              <a class="card" href="player.html">
+                <h2>Spectrograph Player <span class="badge badge-player">audio</span></h2>
+                <p>Four machinery recordings analysed in the browser and shown as a scrolling, audible waterfall. Pause to annotate; the annotations ride the gram when play resumes.</p>
               </a>
             </div>
           </body>
@@ -137,6 +147,11 @@ jobs:
           cp preview-student.html preview/student.html
           cp preview-trainer.html preview/trainer.html
           cp preview-demo-gram.html preview/demo-gram.html
+          # Spectrograph player (spec 168): the page plus its four recordings.
+          # Served over HTTPS, so the .wav.js sidecars are not needed here.
+          mkdir -p preview/audio
+          cp sample/audio/*.wav preview/audio/
+          cp preview-player.html preview/player.html
           # Create landing page that links to both demos
           cat > preview/index.html << 'LANDING'
           <!DOCTYPE html>
@@ -157,6 +172,7 @@ jobs:
               .badge-student { background: #0d47a1; }
               .badge-trainer { background: #1b5e20; }
               .badge-optimised { background: #6a1b9a; }
+              .badge-player { background: #e65100; }
             </style>
           </head>
           <body>
@@ -174,6 +190,10 @@ jobs:
               <a class="card" href="demo-gram.html">
                 <h2>Optimised Demo Gram <span class="badge badge-optimised">9KB</span></h2>
                 <p>The same component on a purpose-built synthetic gram - 9KB instead of 482KB, with a harmonic stack, sidebands, a Doppler curve and broadband transients drawn in. Cuts the release archive from 561KB to 88KB.</p>
+              </a>
+              <a class="card" href="player.html">
+                <h2>Spectrograph Player <span class="badge badge-player">audio</span></h2>
+                <p>Four machinery recordings analysed in the browser and shown as a scrolling, audible waterfall. Pause to annotate; the annotations ride the gram when play resumes.</p>
               </a>
             </div>
           </body>

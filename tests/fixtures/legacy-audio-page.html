@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Legacy Browser Page - no audio element</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <!--
+    Simulate a browser without <audio> support (spec 168, FR-008): the guard
+    must show the standard compatibility warning and never start decoding.
+    The classic inline script runs before the deferred GramFrame module.
+  -->
+  <script>
+    try { delete window.HTMLAudioElement } catch (e) { window.HTMLAudioElement = undefined }
+  </script>
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Legacy audio page</h1>
+  <div class="component-container">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+    </table>
+  </div>
+</body>
+</html>

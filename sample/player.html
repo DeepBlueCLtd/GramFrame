@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GramFrame — Spectrograph Player samples</title>
+  <link rel="stylesheet" href="../src/gramframe.css" />
+  <!-- Development/test page: expose GramFrame's __test__* API (spec 165, GF-23). -->
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../src/main.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; margin: 0; color: #333; }
+    h1 { border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+    h2 { margin-top: 36px; }
+    p.note { font-size: 13px; color: #555; max-width: 80ch; }
+    .player { margin: 12px 0 32px; }
+    code { background: #f2f2f2; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Spectrograph Player samples</h1>
+  <p class="note">
+    Each table below names a WAV instead of an image (spec 168). GramFrame
+    decodes the recording, analyses it in the browser and shows the spectrogram
+    as a waterfall: press ▶ and the newest sound enters at the top while the
+    picture slides down. Pause to use the annotation tools; they scroll with
+    the gram when you resume. Keys on a focused player: <code>Space</code>
+    play/pause, <code>J</code>/<code>L</code> seek ±5 s, <code>Home</code>
+    restart, <code>M</code> mute. Recordings: Work With Sounds via Wikimedia
+    Commons, CC BY 4.0 — see <a href="audio/ATTRIBUTION.md">ATTRIBUTION.md</a>.
+    Each WAV has a <code>.wav.js</code> sidecar beside it so this page also
+    works when opened from the file system.
+  </p>
+
+  <h2>Hot-bulb diesel engine (1932)</h2>
+  <div class="player">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="audio/hot-bulb-diesel-engine.wav" controls></audio></td></tr>
+      <tr><td>window-seconds</td><td>10</td></tr>
+      <tr><td>freq-end</td><td>2000</td></tr>
+    </table>
+  </div>
+
+  <h2>Icebreaker engine room</h2>
+  <div class="player">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="audio/icebreaker-ship-engine-room.wav" controls></audio></td></tr>
+      <tr><td>window-seconds</td><td>10</td></tr>
+      <tr><td>fft-size</td><td>2048</td></tr>
+      <tr><td>freq-end</td><td>1500</td></tr>
+    </table>
+  </div>
+
+  <h2>Air compressor</h2>
+  <div class="player">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="audio/air-compressor.wav" controls></audio></td></tr>
+      <tr><td>window-seconds</td><td>8</td></tr>
+      <tr><td>freq-end</td><td>4000</td></tr>
+    </table>
+  </div>
+
+  <h2>Francis water turbine</h2>
+  <div class="player">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="audio/francis-water-turbine.wav" controls></audio></td></tr>
+      <tr><td>window-seconds</td><td>10</td></tr>
+      <tr><td>freq-end</td><td>1000</td></tr>
+    </table>
+  </div>
+
+  <div class="diagnostics-panel" style="display:none;"><pre id="state-display">Loading...</pre></div>
+</body>
+</html>

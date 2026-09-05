@@ -1,6 +1,6 @@
 # HTML Integration Guide
 
-**Last updated**: 2026-03-26
+**Last updated**: 2026-09-05
 
 This guide explains how to embed GramFrame spectrogram viewers in HTML pages. GramFrame auto-discovers configuration tables and replaces them with interactive SVG overlays.
 
@@ -62,6 +62,89 @@ The first row must contain an `<img>` element with the spectrogram image (using 
 - Start values must be strictly less than end values
 - The first row must contain an `<img>` element, and that element must have a non-empty `src` attribute
 - If validation fails, the original table is preserved and an error indicator is shown
+
+## Audio-Sourced Grams (the Spectrograph Player)
+
+A config table may name a WAV recording instead of an image. GramFrame then
+decodes the file in the browser, analyses it into a spectrogram, and shows it
+as a *waterfall*: press play and the newest sound enters at the top of the gram
+while everything already shown slides down, in step with the audio. Pause, and
+every annotation tool works on what has been played; the annotations scroll
+with the gram when play resumes.
+
+```html
+<table class="gram-config">
+  <tr><td colspan="2"><audio src="audio/diesel-generator.wav" controls></audio></td></tr>
+  <tr><td>window-seconds</td><td>10</td></tr>
+  <tr><td>freq-end</td><td>4000</td></tr>
+</table>
+```
+
+The first row holds an `<audio>` element in place of the `<img>`. Adding
+`controls` to it is optional but recommended: before GramFrame runs, or on a
+page where it cannot, the browser shows a plain audio player. Every other row
+is optional.
+
+| Parameter | Type | Default | Meaning |
+|-----------|------|---------|---------|
+| `fft-size` | integer, power of two (64–8192) | 1024 | Samples per analysis frame. Larger gives finer frequency resolution and coarser time resolution |
+| `hop-size` | integer ≥ 1 | `fft-size / 2` | Samples between frames — the height of one gram row in samples. Larger makes the gram shorter |
+| `freq-start` | Hz | 0 | Lowest frequency shown |
+| `freq-end` | Hz | half the sample rate | Highest frequency shown. Above the recording's Nyquist frequency it is clamped, with a console warning |
+| `window-seconds` | seconds > 0 | 10 | How much of the recording the unzoomed view spans |
+
+`time-start` and `time-end` are ignored on an audio table, with a console
+warning: the recording defines its own time range, `0` to its duration.
+
+### What the recording may be
+
+WAV only: PCM 8, 16, 24 or 32-bit or 32-bit float, mono or stereo (stereo is
+mixed to mono for both analysis and playback). Keep recordings to a few
+minutes. The analysed gram is capped at 32,768 rows by 4,096 columns; a
+recording that would exceed the cap is refused with the standard error
+indicator, and the message names the `hop-size` that would bring it inside.
+Three minutes at 44.1 kHz with the defaults is about 15,500 rows.
+
+### Serving over `file://`
+
+A page opened from the file system cannot fetch a sibling WAV — browsers block
+it. Generate a *sidecar* next to each recording once:
+
+```bash
+node scripts/wav2js.mjs audio/diesel-generator.wav
+# writes audio/diesel-generator.wav.js
+```
+
+Ship the `.wav.js` beside the `.wav`. GramFrame looks for it only when the
+fetch fails, so pages served over HTTP never load it. The sidecar is the WAV
+base64-encoded (about a third larger), so a five-minute 44.1 kHz recording
+costs some 35 MB on disk; 22,050 Hz material halves that and still covers
+everything below 11 kHz.
+
+### Playback and keys
+
+The bar under the gram offers play/pause, restart, a seek slider, loop, rate
+(0.5× to 2×), mute and volume; a click on the time axis also seeks. When a
+player has keyboard focus (click on it), `Space` or `K` toggles play,
+`J`/`L` seek 5 s back or forward (30 s with `Shift`), `Home` restarts and `M`
+mutes. Arrow keys keep nudging a selected annotation. Image-backed grams are
+unaffected by any of these.
+
+Changing the rate changes the audible pitch (the browser's default); the gram
+is never re-analysed, so the frequency readouts stay true.
+
+The expand toggle (⤡) at the top-left of the gram works as it does on an
+image: it grows the axes area to fill the window, with the transport bar kept
+in view, and shows the most detail the screen allows. Zoom and pan compose
+with it.
+
+From script, `GramFrame.getPlayer(index)` returns the player of the
+`index`-th instance (`null` for an image-backed one) with `play()`, `pause()`,
+`seek(seconds)`, `restart()`, `setLoop()`, `setRate()`, `setVolume()` and
+`setMute()`. `play()` returns the element's promise, which rejects if the
+browser refuses to start audio without a user gesture. The broadcast state
+carries a `player` object with the duration, playhead, transport flags and
+the analysis parameters in force.
 
 ## Multiple Instances
 
@@ -199,7 +282,8 @@ yarn build:standalone
 ### Error Indicator Shown
 
 If a red error box appears below the table:
-- **"No image element found"** — First row must contain an `<img>` tag
+- **"No image element found"** — First row must contain an `<img>` tag (or an `<audio>` for a player)
+- **"Audio-sourced gram failed"** — the recording could not be fetched or decoded, or its gram would exceed the size cap; the message says which. Over `file://`, check the `.wav.js` sidecar is beside the WAV
 - **"Image element has no src"** — The `<img>` needs a valid `src` attribute
 - **"Missing required time/frequency configuration"** — All four parameters must be present
 - **"Invalid time/frequency range"** — Start value must be less than end value

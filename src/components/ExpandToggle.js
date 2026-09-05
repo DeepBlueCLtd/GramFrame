@@ -4,6 +4,11 @@
  * A small floating button at the top-left of the image region that expands a
  * landscape gram to fill the available space and restores it. Portrait/square
  * images (verniers) receive no toggle. Expand state is in-memory only.
+ *
+ * An audio-sourced gram (spec 168) always gets the toggle: its natural size is
+ * bins × frames — portrait, and thousands of rows tall — but it is drawn at a
+ * fixed landscape axes area, and that base size, not the natural one, is what
+ * expand grows from and collapse returns to.
  */
 
 /// <reference path="../types.js" />
@@ -11,6 +16,7 @@
 import { updateSVGLayout } from './svgLayout.js'
 import { renderAxes } from '../rendering/axes.js'
 import { dispatch } from '../core/state.js'
+import { baseRenderSize, isPlayerActive } from '../player/playerView.js'
 
 // Small gap left between the expanded image and the viewport bottom (px).
 const BOTTOM_GAP = 16
@@ -22,8 +28,8 @@ const BOTTOM_GAP = 16
  * @returns {boolean} True if the image is landscape
  */
 export function isLandscape(instance) {
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
-  return naturalWidth > 0 && naturalHeight > 0 && naturalWidth > naturalHeight
+  const { width, height } = baseRenderSize(instance)
+  return width > 0 && height > 0 && width > height
 }
 
 /**
@@ -39,12 +45,12 @@ export function isLandscape(instance) {
  */
 function computeAvailableRenderSize(instance) {
   const margins = instance.state.margins
-  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  const { width: baseWidth, height: baseHeight } = baseRenderSize(instance)
 
   const cell = instance.ui.mainCell
   const svg = instance.ui.svg
   if (!cell || !svg) {
-    return { width: naturalWidth, height: naturalHeight }
+    return { width: baseWidth, height: baseHeight }
   }
 
   const cellStyle = window.getComputedStyle(cell)
@@ -62,12 +68,17 @@ function computeAvailableRenderSize(instance) {
   // Image region top in viewport coordinates (the image sits at y = margins.top).
   const svgRect = svg.getBoundingClientRect()
   const imageTopViewport = svgRect.top + margins.top
-  const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP
+  // A player's transport bar sits under the SVG and must stay on screen too.
+  const transport = isPlayerActive(instance) ? cell.querySelector('.gram-frame-transport') : null
+  const transportHeight = transport instanceof HTMLElement
+    ? transport.offsetHeight + (parseFloat(window.getComputedStyle(transport).marginTop) || 0)
+    : 0
+  const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP - transportHeight
 
-  // Never shrink below the natural size — expand only ever grows the image.
+  // Never shrink below the base size — expand only ever grows the image.
   return {
-    width: Math.max(naturalWidth, Math.round(width)),
-    height: Math.max(naturalHeight, Math.round(height))
+    width: Math.max(baseWidth, Math.round(width)),
+    height: Math.max(baseHeight, Math.round(height))
   }
 }
 
@@ -93,8 +104,9 @@ function applyExpandLayout(instance) {
       imageDetails.renderHeight = settled.height
     }
   } else {
-    imageDetails.renderWidth = imageDetails.naturalWidth
-    imageDetails.renderHeight = imageDetails.naturalHeight
+    const base = baseRenderSize(instance)
+    imageDetails.renderWidth = base.width
+    imageDetails.renderHeight = base.height
   }
 
   updateSVGLayout(instance)
