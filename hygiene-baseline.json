@@ -5,7 +5,7 @@
   "moduleLineDefault": 350,
   "moduleLineCaps": {
     "src/api/GramFrameAPI.js": 418,
-    "src/core/events.js": 496,
+    "src/core/events.js": 484,
     "src/core/keyboardControl.js": 695,
     "src/core/state.js": 354,
     "src/core/storage.js": 727,
@@ -22,7 +22,7 @@
   "unusedExportModules": 5,
   "waitForTimeoutOccurrences": 1,
   "_comment_instanceSurface": "specs/167-structural-refactor Story 5. instanceStateReachIns counts lines containing `instance.state` under src/; instanceFields counts class-field declarations between `export class GramFrame` and its constructor in src/main.js.",
-  "instanceStateReachIns": 157,
+  "instanceStateReachIns": 154,
   "_comment_instanceFields_168": "Raised 11 -> 12 by spec 168: `player` is a fifth grouped sub-object (the audio element, its controller and follow loop share one lifetime), not a flat field returning to the surface.",
   "instanceFields": 12
 }

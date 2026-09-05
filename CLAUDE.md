@@ -88,7 +88,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
 - `src/player/` - The player around that chain:
   - `audioSetup.js` - The audio twin of `spectrogramImage.js`: load → analyse → paint → ready, then the deferred annotation restore
   - `transport.js` - The `<audio>` element and `instance.player` (play/pause/seek/loop/rate/volume/mute)
-  - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow loop and the reveal rule
+  - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow
+    loop, the reveal rule, and the time read off a click on the time axis
 - `src/core/` - Core system modules:
   - `state.js` - State management and listeners
   - `events.js` - Mouse/wheel event handling and listener teardown
@@ -99,6 +100,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     last-writer-wins; deletions travel as tombstones, because a union cannot
     otherwise tell "never had it" from "deleted it" (issue #269)
   - `keyboardControl.js` - Arrow-key control, selection and restyling
+  - `regionZoom.js` - Region zoom: the Shift + left-drag gesture (spec 170).
+    Resolved in `events.js` ahead of mode delegation, like every other
+    cross-mode navigation gesture, so no part of it can reach a mode and place
+    a feature. Holds the selection's two corners in a module-private session —
+    never in `state`, so nothing is broadcast or persisted
   - `FocusManager.js` - Which instance receives keyboard input. It follows DOM
     focus and clicks; Tab is never intercepted, so the host page keeps its own
     keyboard navigation however many grams are on it (issue #261)
@@ -155,6 +161,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `spectrogramImage.js` - Spectrogram image load and scaling
   - `svgLayout.js` - SVG layout, viewBox and zoom-transform application
 - `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
+  - `regionOverlay.js` - The region-zoom rubber band, its dimmed surround and
+    its live span readout. Draws only; the geometry arrives already
+    aspect-locked and clamped
   - `axes.js` - The axis engine: `renderAxes` and its private tick/label helpers.
     Both axes use the same nice-number tick engine and label at a precision their
     own tick interval justifies, so no label is finer than its tick and none
@@ -166,6 +175,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     conversion, zoom-, expand-, render-size- and margin-aware. Also owns
     `getRenderDimensions` and `calculateVisibleDataRange`, which live here rather
     than in a component so `rendering/` and `core/` can use them without a cycle
+  - `regionGeometry.js` - The region-zoom geometry: the selectable area, the
+    aspect lock and the clamp to the gram's edge. Pure functions over the
+    viewport, so the two rules an analyst feels are covered without a browser
+  - `axisFormat.js` - The one statement of "the tick interval decides the
+    precision", shared by both axes and by the region-zoom span readout
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
   - `markerLabel.js` - Marker label normalisation and table abbreviation
@@ -177,7 +191,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     on, and the geometry the placement rules leave room for it with (issue #243)
   - `secureHTML.js` - Guidance-panel rendering without innerHTML
   - `timeFormatter.js` - Time formatting utilities
-  - `wheelGuidance.js` - Wheel navigation guidance text
+  - `navigationGuidance.js` - The cross-mode navigation guidance text (wheel
+    zoom and pan, the wheel-button drag, Shift + drag region zoom)
   - `version.js` - Version constant (injected at build time)
 - `src/api/` - External API interface
 - `tests/` - Playwright suite, `tests/unit/` Vitest lane, `tests/smoke/` WebKit smoke, `tests/fixtures/` test pages
@@ -267,6 +282,10 @@ There is no visual/screenshot regression testing — see
 - The version is injected from package.json by a Vite define; no build or test
   run writes to a tracked file
 - Zoom resizes the image element (viewBox stays fixed) — see ADR-015
+- `zoom.centerX/centerY` are not the centre of the view but the *anchor*: the
+  image point that keeps its unzoomed screen position through the transform. A
+  caller that wants a given point centred solves for the anchor —
+  `viewport.js:zoomToRegion` does, via `anchorForCentre`
 - Drag state has one owner (`BaseDragHandler`) and one read-only projection
   (`state.drag`); modes never write drag fields into state
 - The engine hands `cursorFor(kind, phase)` a phase name (`idle`/`hover`/`drag`),
@@ -321,6 +340,14 @@ There is no visual/screenshot regression testing — see
   bins × frames natural size) and leaves room for the transport bar
 
 ### Mode-Specific Features
+- **Region zoom (every mode)**: Shift + left-drag a box to zoom to it (spec
+  170). The box is locked to the axes area's aspect ratio *while it is drawn*,
+  because zoom is one isotropic level plus a centre and an arbitrary rectangle
+  cannot become the view; the dimmed surround is what makes the lock read as
+  deliberate. It clamps at 10× rather than refusing, and a release over the
+  axis margins completes it — deliberately unlike a feature drag, which is
+  cancelled off-image, because selecting to the very edge is a normal thing to
+  want. The **Fit** button beside `+`/`−` is the one-click way back out
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
 - **Analysis Mode**: Persistent draggable markers with cross-mode visibility and optional
   plated text labels (upper-right of a crosshair, centred above a shaped symbol —
@@ -349,6 +376,7 @@ There is no visual/screenshot regression testing — see
 - Unchanged — Web Storage (`localStorage` trainer / `sessionStorage` student). No persisted-shape change in this phase. (167-structural-refactor)
 
 ## Recent Changes
+- 170-region-zoom: Shift-drag a box to zoom into it, in every mode, plus a Fit button and a live aspect-locked selection overlay
 - 167-structural-refactor: Planned Phase 3 — strict type gate burn-down (540 errors), state⇄modes decoupling, table.js split, capability seams, shrunk instance surface
 - 166-consolidation: Planned Phase 2 consolidation — one coordinate pipeline, one drag engine, batched notifications, one diffing table, deterministic tests
 - 165-quick-fixes: Truthful published state and loud failures, dead-code sweep, docs corrected against the code

@@ -14,6 +14,7 @@
 
 import { applyZoomTransform } from '../components/svgLayout.js'
 import { dispatch } from '../core/state.js'
+import { screenToSVG, calculateVisibleDataRange, getRenderDimensions } from '../utils/coordinates.js'
 
 /**
  * The size an audio-sourced gram is drawn at before any expand or zoom.
@@ -198,4 +199,37 @@ export function updatePlayingClass(instance) {
   if (instance.ui.container) {
     instance.ui.container.classList.toggle('gram-frame-playing', isPlaying(instance))
   }
+}
+
+/**
+ * Seek an audio-sourced gram to the time under a click on its time axis
+ * (spec 168, FR-020).
+ *
+ * The axis band is the left margin beside the axes area. The time is read off
+ * the visible range the axis is drawn from, so it agrees with the labels.
+ * Lives here rather than in `core/events.js`, which called it: reading a time
+ * off the axis is this module's geometry, and it is the transport half of the
+ * same question `viewTop` answers.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {MouseEvent} event - The mousedown
+ * @returns {boolean} True when the click was on the axis and a seek was made
+ */
+export function seekFromTimeAxisClick(instance, event) {
+  if (!instance.player || !instance.player.isReady()) {
+    return false
+  }
+  const state = instance.state
+  const svgRect = instance.ui.svg.getBoundingClientRect()
+  const point = screenToSVG(event.clientX - svgRect.left, event.clientY - svgRect.top, instance.ui.svg)
+  const { renderHeight } = getRenderDimensions(state)
+  const { margins } = state
+  const onAxisBand = point.x >= 0 && point.x < margins.left &&
+    point.y >= margins.top && point.y <= margins.top + renderHeight
+  if (!onAxisBand) {
+    return false
+  }
+  const visible = calculateVisibleDataRange(state, instance.ui.spectrogramImage)
+  const fraction = (point.y - margins.top) / renderHeight
+  instance.player.seek(visible.timeMax - fraction * (visible.timeMax - visible.timeMin))
+  return true
 }

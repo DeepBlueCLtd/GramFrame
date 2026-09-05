@@ -215,7 +215,7 @@
 
 /**
  * What kind of drag is in progress.
- * @typedef {'move'|'create'|'place'|'pan'} DragKind
+ * @typedef {'move'|'create'|'place'|'pan'|'region'} DragKind
  */
 
 /**

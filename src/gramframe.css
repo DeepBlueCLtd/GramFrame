@@ -1907,3 +1907,34 @@ table.gram-frame-table {
   stroke: #aaffaa !important;
 }
 
+/* Region zoom (spec 170) --------------------------------------------------- */
+
+/* While Shift is held over the gram, the cursor advertises that a region
+   selection is available (FR-021). `!important` because the active mode writes
+   `style.cursor` on the same element every mousemove, and an inline value would
+   otherwise win whichever ran last. */
+.gram-frame-svg.gram-frame-region-ready {
+  cursor: zoom-in !important;
+}
+
+/* The gram outside the selection, dimmed so the target region reads as the
+   subject (FR-004). One even-odd-filled path: the outer subpath is the
+   selectable area, the inner one the selection. */
+.gram-frame-region-dim {
+  fill: #000;
+  fill-opacity: 0.45;
+  pointer-events: none;
+}
+
+/* The rubber band itself: a plain white outline, which reads cleanly because
+   everything outside it is dimmed. */
+.gram-frame-region-box {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.gram-frame-region-selection {
+  pointer-events: none;
+}

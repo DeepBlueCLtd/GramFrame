@@ -252,6 +252,70 @@ class GramFramePage {
   }
 
   /**
+   * Perform a Shift + left drag on the SVG, in SVG-relative coordinates — the
+   * region-zoom gesture (spec 170).
+   * @param {number} startX - Starting X coordinate relative to the SVG
+   * @param {number} startY - Starting Y coordinate relative to the SVG
+   * @param {number} endX - Ending X coordinate relative to the SVG
+   * @param {number} endY - Ending Y coordinate relative to the SVG
+   * @param {{release?: boolean}} [opts] - Pass `release: false` to leave the button down mid-drag
+   * @returns {Promise<void>}
+   */
+  async shiftDragSVG(startX, startY, endX, endY, opts = {}) {
+    const svgBox = await this.svg.boundingBox()
+    if (!svgBox) {
+      return
+    }
+    await this.page.keyboard.down('Shift')
+    await this.page.mouse.move(svgBox.x + startX, svgBox.y + startY)
+    await this.page.mouse.down()
+    await this.page.mouse.move(svgBox.x + endX, svgBox.y + endY, { steps: 5 })
+    if (opts.release === false) {
+      return // Caller releases Shift and the button itself
+    }
+    await this.page.mouse.up()
+    await this.page.keyboard.up('Shift')
+  }
+
+  /**
+   * The data range currently visible, read off the live image element rather
+   * than recomputed from state — the same numbers the axes are drawn from.
+   * @returns {Promise<{freqMin: number, freqMax: number, timeMin: number, timeMax: number}>} Visible range
+   */
+  async visibleDataRange() {
+    const state = await this.getState()
+    const box = await this.page.evaluate(() => {
+      const image = document.querySelector('.gram-frame-svg image')
+      return {
+        x: Number(image.getAttribute('x')),
+        y: Number(image.getAttribute('y')),
+        width: Number(image.getAttribute('width')),
+        height: Number(image.getAttribute('height'))
+      }
+    })
+    const { margins, config, imageDetails } = state
+    const renderWidth = imageDetails.renderWidth || imageDetails.naturalWidth
+    const renderHeight = imageDetails.renderHeight || imageDetails.naturalHeight
+    const freqRange = config.freqMax - config.freqMin
+    const timeRange = config.timeMax - config.timeMin
+    return {
+      freqMin: config.freqMin + ((margins.left - box.x) / box.width) * freqRange,
+      freqMax: config.freqMin + ((margins.left + renderWidth - box.x) / box.width) * freqRange,
+      timeMax: config.timeMax - ((margins.top - box.y) / box.height) * timeRange,
+      timeMin: config.timeMax - ((margins.top + renderHeight - box.y) / box.height) * timeRange
+    }
+  }
+
+  /**
+   * The command button with the given label, e.g. `Fit`, `+` or `−`.
+   * @param {string} label - The button's visible text
+   * @returns {import('@playwright/test').Locator} The button
+   */
+  commandButton(label) {
+    return this.page.locator('.gram-frame-command-btn', { hasText: label }).first()
+  }
+
+  /**
    * Verify the value of an LED display
    * @param {string} label - The label of the LED display (e.g., "Frequency", "Time", "Mode")
    * @param {RegExp} expectedValueRegex - Regular expression to match the expected value

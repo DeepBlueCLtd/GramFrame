@@ -1,9 +1,9 @@
 import { BaseMode } from '../BaseMode.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getVersion } from '../../utils/version.js'
-import { pixelDeltaToNormalizedPan, panByNormalized, zoomIn, zoomOut } from '../../core/viewport.js'
+import { pixelDeltaToNormalizedPan, panByNormalized, zoomIn, zoomOut, fitView, isZoomedIn, zoomLevel } from '../../core/viewport.js'
 import { IDLE_CURSOR, PAN_IDLE_CURSOR, PAN_DRAG_CURSOR } from '../../utils/cursors.js'
-import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
+import { NAVIGATION_GUIDANCE } from '../../utils/navigationGuidance.js'
 import { isPlayerActive } from '../../player/playerView.js'
 
 /**
@@ -57,7 +57,7 @@ export class PanMode extends BaseMode {
    * @returns {boolean} True when a drag would move the view
    */
   canPan() {
-    return this.instance.state.zoom.level > 1.0 || isPlayerActive(this.instance)
+    return isZoomedIn(this.instance) || isPlayerActive(this.instance)
   }
 
   /**
@@ -166,8 +166,8 @@ export class PanMode extends BaseMode {
   /**
    * Get guidance content for pan mode.
    *
-   * Pan is the initial mode, so its guidance carries the global mouse-wheel
-   * instructions (which apply in every mode) as their own titled section, plus a
+   * Pan is the initial mode, so its guidance carries the global navigation
+   * gestures (which apply in every mode) as their own titled section, plus a
    * section for the pan-specific interactions.
    *
    * "available in all modes" is a heading qualifier, not a bullet: it qualifies
@@ -180,15 +180,15 @@ export class PanMode extends BaseMode {
     return {
       sections: [
         {
-          title: 'Mouse-Wheel',
+          title: 'Navigation',
           qualifier: 'available in all modes',
-          items: WHEEL_NAV_GUIDANCE
+          items: NAVIGATION_GUIDANCE
         },
         {
           title: 'Pan Mode',
           items: [
             'Click and drag to pan the view (when zoomed in)',
-            'Use + / − to zoom in and out',
+            'Use + / − to zoom in and out, Fit to show the whole gram',
             `GramFrame v${getVersion()}`
           ]
         }
@@ -226,13 +226,21 @@ export class PanMode extends BaseMode {
         label: '−',
         title: 'Zoom Out',
         action: () => zoomOut(this.instance),
-        isEnabled: () => this.instance.state.zoom.level > 1.0
+        isEnabled: () => isZoomedIn(this.instance)
       },
       {
         label: '+',
         title: 'Zoom In',
         action: () => zoomIn(this.instance),
-        isEnabled: () => this.instance.state.zoom.level < 10.0
+        isEnabled: () => zoomLevel(this.instance) < 10.0
+      },
+      {
+        // The exit from a region zoom: one gesture in, one click out (spec 170,
+        // FR-014). Disabled at 1x, where the whole gram is already shown (FR-015).
+        label: 'Fit',
+        title: 'Fit Whole Gram',
+        action: () => fitView(this.instance),
+        isEnabled: () => isZoomedIn(this.instance)
       }
     ]
   }

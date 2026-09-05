@@ -11,18 +11,40 @@ import { applyZoomTransform, updateSVGLayout } from '../components/svgLayout.js'
 import { renderAxes } from '../rendering/axes.js'
 import { updateCommandButtonStates, updateModeButtonStates } from '../components/ModeButtons.js'
 import { dispatch } from './state.js'
-import { screenToSVG, imageToData } from '../utils/coordinates.js'
+import { screenToSVG, imageToData, getRenderDimensions } from '../utils/coordinates.js'
 import { refreshExpandedLayout } from '../components/ExpandToggle.js'
 import { isPlayerActive, clampViewTop, visibleWindowSeconds } from '../player/playerView.js'
+
+/** The zoom range the view is held within. Region zoom clamps to it like every other path. */
+const MIN_ZOOM = 1.0
+const MAX_ZOOM = 10.0
+
+/**
+ * The current zoom level. One reader, rather than the five copies of
+ * `instance.state.zoom.level` that had accumulated across this module,
+ * `core/events.js` and `PanMode`.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {number} Zoom level, 1.0 when not zoomed
+ */
+export function zoomLevel(instance) {
+  return instance.state.zoom.level
+}
+
+/**
+ * Whether the view is zoomed in, and so has something to pan.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {boolean} True above 1x
+ */
+export function isZoomedIn(instance) {
+  return zoomLevel(instance) > MIN_ZOOM
+}
 
 /**
  * Zoom in by increasing zoom level
  * @param {GramFrame} instance - GramFrame instance
  */
 export function zoomIn(instance) {
-  const zoom = instance.state.zoom
-  const newLevel = Math.min(zoom.level * 1.5, 10.0) // Max 10x zoom
-  zoomAboutViewCentre(instance, newLevel)
+  zoomAboutViewCentre(instance, Math.min(zoomLevel(instance) * 1.5, MAX_ZOOM))
 }
 
 /**
@@ -30,9 +52,7 @@ export function zoomIn(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function zoomOut(instance) {
-  const zoom = instance.state.zoom
-  const newLevel = Math.max(zoom.level / 1.5, 1.0) // Min 1x zoom
-  zoomAboutViewCentre(instance, newLevel)
+  zoomAboutViewCentre(instance, Math.max(zoomLevel(instance) / 1.5, MIN_ZOOM))
 }
 
 /**
@@ -56,17 +76,13 @@ function zoomAboutViewCentre(instance, newLevel) {
 }
 
 /**
- * Reset zoom to 1x.
- *
- * Module-private since spec 167: its only caller is `zoomAtImagePoint` below,
- * which recentres when a zoom-out lands back at 1×. The instance-level
- * `_zoomReset` forwarder that used to export it out of here went with Pan
- * mode's move onto this seam (FR-007, AS-4.3). Export it again the moment a
- * caller outside this module needs it.
+ * Reset zoom to 1x, from `zoomAtImagePoint` when a zoom-out lands back at 1×.
+ * Module-private since spec 167; `fitView` below is the exported way out for
+ * callers elsewhere, and on a player it does the extra work a reset needs.
  * @param {GramFrame} instance - GramFrame instance
  */
 function zoomReset(instance) {
-  setZoom(instance, 1.0, 0.5, 0.5)
+  setZoom(instance, MIN_ZOOM, 0.5, 0.5)
 }
 
 /**
@@ -124,10 +140,10 @@ export function pixelDeltaToNormalizedPan(instance, dxPx, dyPx) {
 
   // Convert to normalized coordinates (adjust for zoom level); negate so content
   // follows the drag.
-  const zoomLevel = instance.state.zoom.level
+  const level = zoomLevel(instance)
   return {
-    normalizedDeltaX: -(svgDeltaX / renderWidth) / zoomLevel,
-    normalizedDeltaY: -(svgDeltaY / renderHeight) / zoomLevel
+    normalizedDeltaX: -(svgDeltaX / renderWidth) / level,
+    normalizedDeltaY: -(svgDeltaY / renderHeight) / level
   }
 }
 
@@ -178,7 +194,7 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
   const state = instance.state
   const { zoom, player, imageDetails } = state
   const currentLevel = zoom.level
-  const newLevel = Math.max(1.0, Math.min(currentLevel * factor, 10.0))
+  const newLevel = Math.max(MIN_ZOOM, Math.min(currentLevel * factor, MAX_ZOOM))
   if (newLevel === currentLevel) {
     return // Already at the min/max limit
   }
@@ -193,18 +209,97 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
     const fraction = (player.viewTop - pointerTime) / visibleWindowSeconds(instance)
     zoom.level = newLevel
     player.viewTop = clampViewTop(instance, pointerTime + fraction * visibleWindowSeconds(instance))
-    const centerX = newLevel <= 1.0 ? 0.5 : Math.max(0, Math.min(1, imageX / renderWidth))
+    const centerX = newLevel <= MIN_ZOOM ? 0.5 : Math.max(0, Math.min(1, imageX / renderWidth))
     setZoom(instance, newLevel, centerX, 0.5)
     return
   }
 
-  if (newLevel <= 1.0) {
+  if (newLevel <= MIN_ZOOM) {
     zoomReset(instance)
     return
   }
   const centerX = Math.max(0, Math.min(1, imageX / renderWidth))
   const centerY = Math.max(0, Math.min(1, imageY / renderHeight))
   setZoom(instance, newLevel, centerX, centerY)
+}
+
+/**
+ * Zoom so a selected region of the gram fills the visible area (spec 170, FR-006).
+ *
+ * The region arrives in image render-pixel space, already locked to the axes
+ * area's aspect ratio by the gesture that drew it — which is what makes a
+ * single isotropic level able to honour both of its dimensions at once.
+ *
+ * `zoom.centerX/centerY` are not the view's centre but its *anchor*: the
+ * image point that keeps its unzoomed screen position through the transform
+ * (see `applyZoomTransform`). Putting the selection's centre at the centre of
+ * the axes area therefore means solving for the anchor rather than assigning
+ * the centre, which is what {@link anchorForCentre} does.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {{x: number, y: number, width: number, height: number}} region - Region in image render pixels
+ */
+export function zoomToRegion(instance, region) {
+  const state = instance.state
+  const { zoom, player } = state
+  const { renderWidth, renderHeight } = getRenderDimensions(state)
+  if (!(region.width > 0) || !(region.height > 0)) {
+    return
+  }
+
+  // Clamped rather than refused: a selection finer than 10x shows more than was
+  // drawn, which is the safe direction to fail (FR-007).
+  const level = Math.max(MIN_ZOOM, Math.min(renderWidth / region.width, MAX_ZOOM))
+  const centreX = (region.x + region.width / 2) / renderWidth
+
+  if (isPlayerActive(instance)) {
+    // Vertically a player's view is a time window, not a normalised centre
+    // (spec 168, D7). Hold the selection's mid-time at the middle of the new
+    // window; the clamp keeps unplayed time out of view (FR-013).
+    const centreTime = imageToData(0, region.y + region.height / 2, state).time
+    zoom.level = level
+    player.viewTop = clampViewTop(instance, centreTime + visibleWindowSeconds(instance) / 2)
+    setZoom(instance, level, anchorForCentre(centreX, level), 0.5)
+    return
+  }
+
+  const centreY = (region.y + region.height / 2) / renderHeight
+  setZoom(instance, level, anchorForCentre(centreX, level), anchorForCentre(centreY, level))
+}
+
+/**
+ * The zoom anchor that puts a given normalised image position at the centre of
+ * the visible area.
+ *
+ * At level L the view spans 1/L of the image starting at `anchor · (1 − 1/L)`,
+ * so wanting `centre` in the middle fixes the anchor. Clamped to [0, 1] — the
+ * range that keeps the view inside the image, as `panByNormalized` does.
+ * @param {number} centre - Desired centre, normalized (0-1) against the base render size
+ * @param {number} level - Target zoom level
+ * @returns {number} Anchor for `setZoom`
+ */
+function anchorForCentre(centre, level) {
+  if (level <= MIN_ZOOM) {
+    return 0.5
+  }
+  const visibleFraction = 1 / level
+  return Math.max(0, Math.min(1, (centre - visibleFraction / 2) / (1 - visibleFraction)))
+}
+
+/**
+ * Show the whole gram again in one action (spec 170, FR-014).
+ *
+ * On an audio-sourced gram "the whole gram" is the configured `window-seconds`
+ * window rather than the entire recording, so this returns the zoom to 1x and
+ * leaves the window where it is, re-clamped (AS-3.3).
+ * @param {GramFrame} instance - GramFrame instance
+ */
+export function fitView(instance) {
+  const { zoom, player } = instance.state
+  if (isPlayerActive(instance)) {
+    zoom.level = MIN_ZOOM
+    player.viewTop = clampViewTop(instance, player.viewTop)
+  }
+  setZoom(instance, MIN_ZOOM, 0.5, 0.5)
 }
 
 /**
