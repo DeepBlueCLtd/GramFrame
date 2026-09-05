@@ -1,4 +1,6 @@
 import { describe, test, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { calculateMidpoint, calculateDopplerSpeed } from '../../src/utils/doppler.js'
 
 /**
@@ -25,24 +27,26 @@ describe('calculateDopplerSpeed', () => {
   const fMinus = { time: 20, freq: 99 }
 
   test('known value: Δf=1 around f₀=100 at the default c gives c/100', () => {
-    // Δf = (101-99)/2 = 1, f₀ = midpoint = 100, default c = 1481 m/s
-    // (the JSDoc default of 1500 is stale — the code uses 1481).
-    expect(calculateDopplerSpeed(fPlus, fMinus)).toBeCloseTo(14.81, 10)
+    // Δf = (101-99)/2 = 1, f₀ = midpoint = 100, default c = 1500 m/s
+    // (nominal seawater — the code, the JSDoc and Doppler-Calc.md agree, R9-04).
+    expect(calculateDopplerSpeed(fPlus, fMinus)).toBeCloseTo(15, 10)
   })
 
   test('an explicit f₀ overrides the midpoint', () => {
     // Same Δf, but f₀ = 200 → half the speed of the midpoint case
     const speed = calculateDopplerSpeed(fPlus, fMinus, { time: 15, freq: 200 })
-    expect(speed).toBeCloseTo(1481 / 200, 10)
+    expect(speed).toBeCloseTo(1500 / 200, 10)
   })
 
   test('custom speed of sound scales linearly', () => {
-    expect(calculateDopplerSpeed(fPlus, fMinus, null, 1500)).toBeCloseTo(15, 10)
+    // A value that is not the default, so this still proves the parameter is
+    // read rather than accidentally re-asserting the default.
+    expect(calculateDopplerSpeed(fPlus, fMinus, null, 1481)).toBeCloseTo(14.81, 10)
   })
 
   test('speed is reported as a magnitude when f⁺ and f⁻ are swapped', () => {
     const swapped = calculateDopplerSpeed(fMinus, fPlus)
-    expect(swapped).toBeCloseTo(14.81, 10)
+    expect(swapped).toBeCloseTo(15, 10)
     expect(swapped).toBeGreaterThan(0)
   })
 
@@ -58,5 +62,51 @@ describe('calculateDopplerSpeed', () => {
     // should change deliberately with it.
     const speed = calculateDopplerSpeed(fPlus, fMinus, { time: 0, freq: 0 })
     expect(Number.isFinite(speed)).toBe(false)
+  })
+})
+
+
+describe('the speed of sound agrees across code, JSDoc and specification (R9-04)', () => {
+  // The defect this replaces was not a wrong number but three different ones:
+  // 1481 in the code, 1500 in the function's own JSDoc, and 1500 in
+  // Doppler-Calc.md. Whichever value the customer chooses, they must not drift
+  // apart again — and only a test that reads all three can say so.
+  const EXPECTED_C = 1500
+
+  /**
+   * Read a repository file.
+   * @param {string} relativePath - Path relative to the repository root
+   * @returns {string} File contents
+   */
+  const readSource = (relativePath) =>
+    readFileSync(fileURLToPath(new URL(`../../${relativePath}`, import.meta.url)), 'utf8')
+
+  test('the code constant is the agreed value', () => {
+    const source = readSource('src/utils/doppler.js')
+    expect(source).toContain(`const DEFAULT_SPEED_OF_SOUND = ${EXPECTED_C}`)
+  })
+
+  test('the JSDoc default matches the code constant', () => {
+    const source = readSource('src/utils/doppler.js')
+    // The signature must not carry a literal of its own to drift from.
+    expect(source).toContain('speedOfSound = DEFAULT_SPEED_OF_SOUND')
+    expect(source).toMatch(new RegExp(`@param \\{number\\} \\[speedOfSound\\][^\\n]*${EXPECTED_C}`))
+  })
+
+  test('the specification states the same value', () => {
+    expect(readSource('docs/Doppler-Calc.md')).toContain(`${EXPECTED_C} m/s`)
+  })
+
+  test('the specification no longer claims the readout is in m/s', () => {
+    const doc = readSource('docs/Doppler-Calc.md')
+    // The LED is labelled "Speed (kts)"; the doc used to say m/s.
+    expect(doc).toMatch(/Displays computed speed in \*\*knots\*\*/)
+  })
+
+  test('the behaviour matches what all three say', () => {
+    // The assertions above are textual; this one is the behaviour they claim.
+    // Δf = 1 over f₀ = 100 gives exactly c/100.
+    expect(calculateDopplerSpeed({ time: 0, freq: 101 }, { time: 1, freq: 99 }))
+      .toBeCloseTo(EXPECTED_C / 100, 10)
   })
 })
