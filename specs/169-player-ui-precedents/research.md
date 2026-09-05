@@ -1,8 +1,10 @@
 # Research: Spectrograph Player — UI and capability precedents (feature 169)
 
 **Date**: 2026-09-05 · **Time box**: 2.5 working days; spent about one · **Status**: complete
-**Deliverable**: this `research.md` only (product owner, 2026-09-05) — no spec, plan,
-prototype or issues; the document recommends, it does not decide.
+**Deliverable**: this `research.md`, plus [gallery.md](./gallery.md) — schematics of the
+layout archetypes, links to every surveyed system's own published screenshot, and a
+list of systems not surveyed (added at the product owner's request, 2026-09-05). No
+spec, plan, prototype or issues; the document recommends, it does not decide.
 **Decision**: **build on what exists.** The player's shape is right and in two places leads every
 precedent surveyed; adopt the eight small changes in §7.1 — three of which are
 corrections to statements spec 168 makes about its own code — hold the seven larger,
@@ -119,6 +121,9 @@ Everything the survey scores against, with where it lives. Read on `main` at
 | Flagged reversible by spec 168 | the reveal rule (FR-011/016/018); frequency zoom while playing | `spec.md:470-485` |
 
 ## 3. Precedents surveyed
+
+See [gallery.md](./gallery.md) for schematics of the five layout archetypes described
+below, and for a link to each system's own published screenshot.
 
 The eight groups of the 46-row checklist every precedent was ticked against:
 **A** waterfall and scroll model (6 rows) · **B** transport and playback (9) ·
