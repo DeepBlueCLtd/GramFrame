@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "hygiene": "node scripts/hygiene.js",
     "lint": "eslint . --max-warnings 0",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "check:bundle-floor": "node scripts/check-bundle-floor.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",

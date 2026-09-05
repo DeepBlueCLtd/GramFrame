@@ -48,6 +48,12 @@ jobs:
             exit 1
           fi
 
+      # The bundle must parse on the floor the runtime guard advertises: a
+      # parse error kills the IIFE before the guard can say "please update
+      # your browser" (R9-06).
+      - name: Assert the bundle stays within the advertised browser floor
+        run: yarn check:bundle-floor
+
   playwright:
     name: Playwright tests
     needs: checks
