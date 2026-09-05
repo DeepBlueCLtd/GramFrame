@@ -264,7 +264,7 @@
   function clearGlobalStateListeners() {
     globalStateListeners.length = 0;
   }
-  const SVG_NS$3 = "http://www.w3.org/2000/svg";
+  const SVG_NS$4 = "http://www.w3.org/2000/svg";
   const DEFAULT_SYMBOL = "cross";
   const SYMBOL_CATALOG = ["cross", "circle", "square", "diamond", "triangle", "triangle-down", "star"];
   const SYMBOL_DISPLAY_NAMES = {
@@ -304,6 +304,9 @@
     }
     return pts;
   }
+  function isSymbolLess(symbolType) {
+    return resolveSymbolType(symbolType) === "cross";
+  }
   function createSymbolMark(symbolType, cx, cy, size, color) {
     const r = size / 2;
     const resolved = resolveSymbolType(symbolType);
@@ -313,7 +316,7 @@
     let el;
     switch (resolved) {
       case "square": {
-        el = document.createElementNS(SVG_NS$3, "rect");
+        el = document.createElementNS(SVG_NS$4, "rect");
         el.setAttribute("x", String(cx - r));
         el.setAttribute("y", String(cy - r));
         el.setAttribute("width", String(2 * r));
@@ -321,7 +324,7 @@
         break;
       }
       case "diamond": {
-        el = document.createElementNS(SVG_NS$3, "polygon");
+        el = document.createElementNS(SVG_NS$4, "polygon");
         el.setAttribute("points", toPoints([
           [cx, cy - r],
           [cx + r, cy],
@@ -331,7 +334,7 @@
         break;
       }
       case "triangle": {
-        el = document.createElementNS(SVG_NS$3, "polygon");
+        el = document.createElementNS(SVG_NS$4, "polygon");
         el.setAttribute("points", toPoints([
           [cx, cy - r],
           [cx + r, cy + r],
@@ -340,7 +343,7 @@
         break;
       }
       case "triangle-down": {
-        el = document.createElementNS(SVG_NS$3, "polygon");
+        el = document.createElementNS(SVG_NS$4, "polygon");
         el.setAttribute("points", toPoints([
           [cx, cy + r],
           [cx + r, cy - r],
@@ -349,13 +352,13 @@
         break;
       }
       case "star": {
-        el = document.createElementNS(SVG_NS$3, "polygon");
+        el = document.createElementNS(SVG_NS$4, "polygon");
         el.setAttribute("points", toPoints(starPoints(cx, cy, r, r * 0.5)));
         break;
       }
       case "circle":
       default: {
-        el = document.createElementNS(SVG_NS$3, "circle");
+        el = document.createElementNS(SVG_NS$4, "circle");
         el.setAttribute("cx", String(cx));
         el.setAttribute("cy", String(cy));
         el.setAttribute("r", String(r));
@@ -370,7 +373,7 @@
   function createColorIndicator(symbol, color, size = 16) {
     const mark = createSymbolMark(symbol, size / 2, size / 2, size * 0.75, color);
     if (mark) {
-      const svg = document.createElementNS(SVG_NS$3, "svg");
+      const svg = document.createElementNS(SVG_NS$4, "svg");
       svg.setAttribute("class", "gram-frame-symbol-swatch");
       svg.setAttribute("width", String(size));
       svg.setAttribute("height", String(size));
@@ -464,7 +467,7 @@
     label.appendChild(text);
     return label;
   }
-  const SVG_NS$2 = "http://www.w3.org/2000/svg";
+  const SVG_NS$3 = "http://www.w3.org/2000/svg";
   const LABEL_PLATE_CLASS = "gram-frame-label-plate";
   const LABEL_PLATE_GROUP_CLASS = "gram-frame-label-plated";
   const LABEL_PLATE_FILL = "#fff";
@@ -540,7 +543,7 @@
     text.removeAttribute("stroke");
     text.removeAttribute("stroke-width");
     text.removeAttribute("paint-order");
-    const plate = document.createElementNS(SVG_NS$2, "rect");
+    const plate = document.createElementNS(SVG_NS$3, "rect");
     plate.setAttribute("class", LABEL_PLATE_CLASS);
     plate.setAttribute("x", String(box.x));
     plate.setAttribute("y", String(box.y));
@@ -551,7 +554,7 @@
     plate.setAttribute("fill", fill);
     const group = (
       /** @type {SVGGElement} */
-      document.createElementNS(SVG_NS$2, "g")
+      document.createElementNS(SVG_NS$3, "g")
     );
     group.setAttribute("class", LABEL_PLATE_GROUP_CLASS);
     group.appendChild(plate);
@@ -3355,6 +3358,10 @@
       zoom.level = newLevel;
       player.viewTop = clampViewTop(instance, centreTime + visibleWindowSeconds(instance) / 2);
     }
+    if (newLevel <= 1) {
+      zoomReset(instance);
+      return;
+    }
     setZoom(instance, newLevel, zoom.centerX, zoom.centerY);
   }
   function zoomReset(instance) {
@@ -4269,6 +4276,49 @@
   function getUniformTolerance(viewport, spectrogramImage) {
     return calculateDataTolerance(viewport, spectrogramImage, DEFAULT_TOLERANCE);
   }
+  const SVG_NS$2 = "http://www.w3.org/2000/svg";
+  const CROSSHAIR_SIZE = 15;
+  const MARKER_SYMBOL_SIZE = 14;
+  function drawsCrosshair(marker) {
+    return isSymbolLess(marker.symbol);
+  }
+  function markerSymbolSize(marker) {
+    return MARKER_SYMBOL_SIZE * resolveSymbolScale(marker);
+  }
+  function createCrosshair(marker, cx, cy) {
+    const arm = (x1, y1, x2, y2) => {
+      const line = document.createElementNS(SVG_NS$2, "line");
+      line.setAttribute("x1", String(x1));
+      line.setAttribute("y1", String(y1));
+      line.setAttribute("x2", String(x2));
+      line.setAttribute("y2", String(y2));
+      line.setAttribute("stroke", marker.color);
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("stroke-linecap", "round");
+      return line;
+    };
+    const circle = document.createElementNS(SVG_NS$2, "circle");
+    circle.setAttribute("cx", String(cx));
+    circle.setAttribute("cy", String(cy));
+    circle.setAttribute("r", "3");
+    circle.setAttribute("fill", marker.color);
+    circle.setAttribute("stroke", "#fff");
+    circle.setAttribute("stroke-width", "1");
+    return [
+      arm(cx - CROSSHAIR_SIZE, cy, cx + CROSSHAIR_SIZE, cy),
+      arm(cx, cy - CROSSHAIR_SIZE, cx, cy + CROSSHAIR_SIZE),
+      circle
+    ];
+  }
+  function createMarkerMarks(marker, cx, cy) {
+    const symbolMark = createSymbolMark(marker.symbol, cx, cy, markerSymbolSize(marker), marker.color);
+    if (!symbolMark) {
+      return createCrosshair(marker, cx, cy);
+    }
+    symbolMark.setAttribute("class", "gram-frame-marker-symbol");
+    symbolMark.setAttribute("data-marker-id", marker.id);
+    return [symbolMark];
+  }
   const SVG_NS$1 = "http://www.w3.org/2000/svg";
   function createMarkerLabel(marker, cx, cy, symbolSize) {
     if (!marker.label) {
@@ -4340,14 +4390,6 @@
     return content;
   }
   class AnalysisMode extends BaseMode {
-    /**
-     * Base pixel size (width/height) of a marker's symbol mark when it carries a
-     * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
-     * The drawn size is this scaled by the temporary "Large" toggle, so a
-     * marker's symbol tracks the harmonic pins' symbols.
-     * @type {number}
-     */
-    static MARKER_SYMBOL_SIZE = 14;
     /**
      * Initialize AnalysisMode with drag handler
      * @param {GramFrame} instance - GramFrame instance
@@ -4580,40 +4622,9 @@
       const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
       markerGroup.setAttribute("class", "gram-frame-analysis-marker");
       markerGroup.setAttribute("data-marker-id", marker.id);
-      const symbolSize = AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker);
-      const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color);
-      if (symbolMark) {
-        symbolMark.setAttribute("class", "gram-frame-marker-symbol");
-        symbolMark.setAttribute("data-marker-id", marker.id);
-        markerGroup.appendChild(symbolMark);
-      } else {
-        const crosshairSize = 15;
-        const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        hLine.setAttribute("x1", String(currentX - crosshairSize));
-        hLine.setAttribute("y1", String(currentY));
-        hLine.setAttribute("x2", String(currentX + crosshairSize));
-        hLine.setAttribute("y2", String(currentY));
-        hLine.setAttribute("stroke", marker.color);
-        hLine.setAttribute("stroke-width", "2");
-        hLine.setAttribute("stroke-linecap", "round");
-        const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        vLine.setAttribute("x1", String(currentX));
-        vLine.setAttribute("y1", String(currentY - crosshairSize));
-        vLine.setAttribute("x2", String(currentX));
-        vLine.setAttribute("y2", String(currentY + crosshairSize));
-        vLine.setAttribute("stroke", marker.color);
-        vLine.setAttribute("stroke-width", "2");
-        vLine.setAttribute("stroke-linecap", "round");
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("cx", String(currentX));
-        circle.setAttribute("cy", String(currentY));
-        circle.setAttribute("r", "3");
-        circle.setAttribute("fill", marker.color);
-        circle.setAttribute("stroke", "#fff");
-        circle.setAttribute("stroke-width", "1");
-        markerGroup.appendChild(hLine);
-        markerGroup.appendChild(vLine);
-        markerGroup.appendChild(circle);
+      const symbolSize = markerSymbolSize(marker);
+      for (const mark of createMarkerMarks(marker, currentX, currentY)) {
+        markerGroup.appendChild(mark);
       }
       const label = createMarkerLabel(marker, currentX, currentY, symbolSize);
       if (label) {
@@ -4806,10 +4817,13 @@
         )) {
           return true;
         }
+        if (!drawsCrosshair(candidate)) {
+          return false;
+        }
         const markerPoint = { freq: candidate.freq, time: candidate.time };
         const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage);
         const clickSVG = dataToSVG(position, this.getViewport(), this.instance.ui.spectrogramImage);
-        const crosshairSize = 15;
+        const crosshairSize = CROSSHAIR_SIZE;
         const lineThickness = 3;
         const onHorizontalLine = Math.abs(clickSVG.y - markerSVG.y) <= lineThickness && Math.abs(clickSVG.x - markerSVG.x) <= crosshairSize;
         const onVerticalLine = Math.abs(clickSVG.x - markerSVG.x) <= lineThickness && Math.abs(clickSVG.y - markerSVG.y) <= crosshairSize;
@@ -9354,8 +9368,7 @@
     }
   }
   const GramFrameAPI = createGramFrameAPI(GramFrame);
-  document.addEventListener("DOMContentLoaded", () => {
-    window.GramFrame = GramFrameAPI;
+  const bootstrap = () => {
     GramFrameAPI.init();
     const stateDisplay = document.getElementById("state-display");
     if (stateDisplay) {
@@ -9366,6 +9379,11 @@
         }
       );
     }
-  });
+  };
   window.GramFrame = GramFrameAPI;
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootstrap);
+  } else {
+    bootstrap();
+  }
 })();

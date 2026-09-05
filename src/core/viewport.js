@@ -52,14 +52,28 @@ function zoomAboutViewCentre(instance, newLevel) {
     zoom.level = newLevel
     player.viewTop = clampViewTop(instance, centreTime + visibleWindowSeconds(instance) / 2)
   }
+
+  // At 1x the whole image is visible, so the centre no longer positions
+  // anything -- but it is still state, and the next zoom-in reads it back.
+  // Keeping a corner centre here is what made `-` back to 1x and then `+`
+  // jump to the corner the wheel last zoomed into. The wheel path already
+  // recentres (`zoomAtImagePoint` -> `zoomReset`); this is the same rule on
+  // the button path (issue #270).
+  if (newLevel <= 1.0) {
+    zoomReset(instance)
+    return
+  }
+
   setZoom(instance, newLevel, zoom.centerX, zoom.centerY)
 }
 
 /**
  * Reset zoom to 1x.
  *
- * Module-private since spec 167: its only caller is `zoomAtImagePoint` below,
- * which recentres when a zoom-out lands back at 1×. The instance-level
+ * Module-private since spec 167. Called by `zoomAtImagePoint` below and by
+ * `zoomAboutViewCentre` above, both of which recentre when a zoom-out lands
+ * back at 1× -- one rule, whether the analyst used the wheel or the buttons
+ * (issue #270). The instance-level
  * `_zoomReset` forwarder that used to export it out of here went with Pan
  * mode's move onto this seam (FR-007, AS-4.3). Export it again the moment a
  * caller outside this module needs it.
