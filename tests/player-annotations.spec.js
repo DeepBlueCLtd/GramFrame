@@ -119,17 +119,20 @@ test.describe('Story 4 — pause, annotate, resume', () => {
     const cx = box.x + MARGINS.left + 400
     const cy = box.y + MARGINS.top + 100
 
-    // Drag downward: content follows, the view moves earlier (80 px = 1 s)
-    await page.mouse.move(cx, cy)
+    // Drag upward: the gram follows the pointer, so rows from earlier in the
+    // recording rise into view and the top edge moves back in time. Time runs
+    // upwards on the gram, so "back" is the *up* drag, matching a static image
+    // (issue #286). 80 px = 1 s.
+    await page.mouse.move(cx, cy + 160)
     await page.mouse.down()
-    await page.mouse.move(cx, cy + 160, { steps: 5 })
+    await page.mouse.move(cx, cy, { steps: 5 })
     await page.mouse.up()
     await gfp.waitForState(s => Math.abs(s.player.viewTop - 6) < 0.1, { message: 'the view to pan to 6 s' })
 
-    // Drag upward far beyond the playhead: clamps at 8
-    await page.mouse.move(cx, cy + 160)
+    // Drag downward far beyond the playhead: clamps at 8
+    await page.mouse.move(cx, cy)
     await page.mouse.down()
-    await page.mouse.move(cx, cy - 300, { steps: 5 })
+    await page.mouse.move(cx, cy + 300, { steps: 5 })
     await page.mouse.up()
     await gfp.waitForState(s => s.player.viewTop === 8, { message: 'the view to clamp at the playhead' })
     expect((await gfp.getState()).player.playhead).toBe(8)
@@ -139,9 +142,9 @@ test.describe('Story 4 — pause, annotate, resume', () => {
     const { gfp } = await pauseAndAnnotate(page)
     await gfp.clickMode('Pan')
     const box = await gfp.svg.boundingBox()
-    await page.mouse.move(box.x + 400, box.y + 100)
+    await page.mouse.move(box.x + 400, box.y + 260)
     await page.mouse.down()
-    await page.mouse.move(box.x + 400, box.y + 260, { steps: 5 })
+    await page.mouse.move(box.x + 400, box.y + 100, { steps: 5 })
     await page.mouse.up()
     await gfp.waitForState(s => s.player.viewTop < 7, { message: 'the view to pan away from the playhead' })
 
