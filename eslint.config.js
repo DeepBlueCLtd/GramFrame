@@ -81,13 +81,11 @@ export default [
     // rather than in review.
     files: ['src/modes/**/*.js'],
     rules: {
+      // Matched by pattern, not by two hand-listed relative depths: a mode one
+      // directory deeper used to walk straight past the guard (issue #268).
       'no-restricted-imports': ['error', {
-        paths: [{
-          name: '../../core/state.js',
-          importNames: ['notifyStateListeners', 'deliverToListeners'],
-          message: 'Modes must notify through dispatch() so notifications stay coalesced (spec 166, FR-005).',
-        }, {
-          name: '../core/state.js',
+        patterns: [{
+          group: ['**/core/state.js'],
           importNames: ['notifyStateListeners', 'deliverToListeners'],
           message: 'Modes must notify through dispatch() so notifications stay coalesced (spec 166, FR-005).',
         }],

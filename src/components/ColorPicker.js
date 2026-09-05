@@ -20,6 +20,7 @@
 import { createSymbolSelect, createLargeSymbolToggle } from './SymbolPicker.js'
 import { createPinToggle } from './PinToggle.js'
 import { getActiveStyle } from '../core/keyboardControl.js'
+import { dispatch } from '../core/state.js'
 
 /**
  * Standard color palette used for color picker gradient and calculations
@@ -163,6 +164,9 @@ export function createColorPicker(instance) {
     // otherwise set the colour for the next created feature (feature 161).
     if (!instance.interaction.applyColorToSelectedFeature || !instance.interaction.applyColorToSelectedFeature(color)) {
       state.selectedColor = color
+      // Dispatch: this is a state change listeners care about, and only the
+      // "Large" toggle used to say so (issue #268, BH-30).
+      dispatch(instance)
     }
 
     // Tint the symbol drop-down with the newly selected colour
