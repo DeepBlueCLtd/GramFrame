@@ -804,36 +804,64 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return false;
     }
   }
+  function loadResult(outcome, annotations = null, dropped = 0) {
+    return { annotations, outcome, dropped };
+  }
   function loadAnnotations(instanceIndex, context, expectedGram) {
     try {
       const resolvedContext = context || detectUserContext();
       const storage = getStorage(resolvedContext);
-      if (!storage) return null;
+      if (!storage) return loadResult("none");
       const key = buildStorageKey(instanceIndex);
       const raw = storage.getItem(key);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
+      if (!raw) return loadResult("none");
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (parseError) {
+        console.warn("GramFrame: Stored annotations could not be parsed — leaving the record in place:", parseError);
+        return loadResult("unreadable");
+      }
       if (!data || data.version !== SCHEMA_VERSION) {
         console.warn("GramFrame: Ignoring stored annotations — unrecognised schema version:", data && data.version);
-        return null;
+        return loadResult("unknown-version");
       }
       if (resolvedContext === "student" && isAnnotationExpired(data.savedAt, Date.now())) {
         console.info("GramFrame: Discarding student annotations — older than the 24-hour persistence limit");
         storage.removeItem(key);
-        return null;
+        return loadResult("expired");
       }
       if (expectedGram && !fingerprintMatches(data.gram, expectedGram)) {
         console.warn("GramFrame: Ignoring stored annotations — they belong to a different spectrogram (image or axis ranges differ).");
-        return null;
+        return loadResult("wrong-gram");
       }
       const { annotations, dropped } = sanitizeStoredAnnotations(data);
       if (dropped > 0) {
         console.warn(`GramFrame: Discarded ${dropped} invalid stored annotation entr${dropped === 1 ? "y" : "ies"} — restoring the rest.`);
+        return loadResult("partial", annotations, dropped);
       }
-      return annotations;
+      return loadResult("restored", annotations);
     } catch (error) {
       console.warn("GramFrame: Failed to load stored annotations — data discarded:", error);
-      return null;
+      return loadResult("unreadable");
+    }
+  }
+  function describeLoadOutcome(outcome, dropped = 0) {
+    switch (outcome) {
+      case "partial":
+        return `${dropped} saved annotation${dropped === 1 ? "" : "s"} could not be restored and ${dropped === 1 ? "was" : "were"} skipped — the rest are shown.`;
+      case "unreadable":
+        return "Saved annotations could not be read and were not restored — the stored data is damaged. It has been left in browser storage, so nothing has been overwritten yet.";
+      case "unknown-version":
+        return "Saved annotations were not restored — they were written by a different version of this component. They have been left in browser storage.";
+      case "wrong-gram":
+        return "Saved annotations were not restored — they belong to a different spectrogram. They have been left in browser storage.";
+      case "expired":
+        return "Saved annotations were not restored — they were more than 24 hours old and have been discarded.";
+      case "none":
+      case "restored":
+      default:
+        return null;
     }
   }
   function clearAnnotations(instanceIndex, context) {
@@ -7455,15 +7483,27 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       return this.persistence._isTrainerContext ? "trainer" : "student";
     }
     /**
-     * Restore saved annotations from browser storage into state
+     * Restore saved annotations from browser storage into state.
+     *
+     * A load that does not restore what was stored is reported to the analyst
+     * through the same banner a failed *save* uses (R9-01). The two paths were
+     * asymmetric: a quota-full save said so in a sentence, while a damaged,
+     * superseded or wrongly-fingerprinted record produced an empty gram and a
+     * console line nobody reads — and the next save then overwrote the record
+     * for good. The banner clears itself as soon as a save succeeds, which is
+     * the point at which the analyst has knowingly started again.
      */
     _restoreAnnotations() {
-      const saved = loadAnnotations(
+      const { annotations: saved, outcome, dropped } = loadAnnotations(
         this.persistence._storageInstanceIndex,
         this._storageContext(),
         // Refuse records fingerprinted for a different gram (BH-6, BH-23)
         buildGramFingerprint(this.state)
       );
+      const message = describeLoadOutcome(outcome, dropped);
+      if (message) {
+        showStorageWarning(this, message);
+      }
       if (!saved) return;
       markAnnotationsChanged(this);
       if (saved.analysis && Array.isArray(saved.analysis.markers)) {
