@@ -16,22 +16,34 @@ export function extractConfigData(instance) {
     return
   }
   
-  try {
-    // Get image URL from the first row
-    const imgElement = instance.configTable.querySelector('img')
-    if (!imgElement) {
-      throw new Error('No image element found in config table')
-    }
-    
-    if (!imgElement.src) {
-      throw new Error('Image element has no src attribute')
-    }
-    
-    // Image loading removed - storing URL only for reference
-    instance.state.imageDetails.url = imgElement.src
-  } catch (error) {
-    console.error('GramFrame: Error setting up image:', error instanceof Error ? error.message : String(error))
+  // Image configuration. These errors PROPAGATE, exactly like the range errors
+  // below: `createGramFrameAPI` catches them, restores the config table and
+  // renders the red error indicator with the message (R9-02).
+  //
+  // They used to be caught and logged here. That produced the component's worst
+  // failure mode: construction completed with `imageDetails.url = ''`, nothing
+  // ever asked the browser for an image, and the CSS loading caption sat on a
+  // complete, working-looking component saying "Loading spectrogram" forever —
+  // with only a console line to say why. A missing `<img>` (wrong row order) and
+  // an empty `src` (a template left unfilled) are the two mistakes an author is
+  // most likely to make while assembling a lesson, and were the only two config
+  // mistakes the component did not report on the page.
+  const imgElement = instance.configTable.querySelector('img')
+  if (!imgElement) {
+    throw new Error('No image element found in config table: the first row must contain an <img> with the spectrogram')
   }
+
+  // `getAttribute`, not the `src` property: for `<img src="">` the property
+  // resolves the empty string against the document URL and comes back truthy,
+  // so the property check passed and the component went on to request the page
+  // itself as its spectrogram.
+  const srcAttribute = imgElement.getAttribute('src')
+  if (!srcAttribute || !srcAttribute.trim()) {
+    throw new Error('Image element has no src attribute: the spectrogram <img> must point at an image')
+  }
+
+  // Image loading removed - storing URL only for reference
+  instance.state.imageDetails.url = imgElement.src
   
   // Extract min/max values from the table rows with error handling
   try {

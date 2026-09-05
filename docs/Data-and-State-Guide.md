@@ -180,6 +180,8 @@ HTML table (class="gram-config")
 | freq-start >= freq-end | "Invalid frequency range: start must be less than end" |
 | Non-numeric value | Warning logged, row skipped |
 
+The two image checks throw like the range checks do (R9-02). They used to be caught and logged, which built a complete, working-looking component whose image area said "Loading spectrogram" forever. `<img src="">` counts as missing: the check reads the `src` **attribute**, because the `src` property resolves the empty string against the document URL and comes back truthy.
+
 ## Persistence Overview
 
 ### What Is Ephemeral (Lost on Page Reload)

@@ -169,3 +169,70 @@ test.describe('Storage failures are visible (GF-16)', () => {
     expect(readSource('src/core/storage.js')).not.toMatch(/}\s*catch\s*{/)
   })
 })
+
+
+// ──────────────────────────────────────────────────────────────
+// R9-02 (issue #254) — a config table whose image cannot be resolved reports
+// on the page instead of loading forever
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * Assert that a fixture reports its config error in place, the way a bad
+ * time/frequency range already did.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} fixture - Fixture path, relative to the base URL
+ * @param {RegExp} expectedMessage - What the indicator must say
+ * @returns {Promise<void>}
+ */
+async function expectConfigErrorIndicator(page, fixture, expectedMessage) {
+  await page.goto(fixture)
+
+  const indicator = page.locator('.gramframe-error-indicator')
+  await expect(indicator).toHaveCount(1)
+  await expect(indicator).toBeVisible()
+  await expect(indicator).toContainText(expectedMessage)
+
+  // No half-working component beside it, and no permanent "Loading
+  // spectrogram" caption: the config table is restored where it was.
+  await expect(page.locator('.gram-frame-container')).toHaveCount(0)
+  await expect(page.locator('table.gram-config')).toHaveCount(1)
+
+  // A config mistake, not a browser-compatibility one.
+  await expect(page.locator('.gram-frame-compat-warning')).toHaveCount(0)
+}
+
+test.describe('Image configuration fails loudly (R9-02)', () => {
+  test('a config table with no <img> shows the error indicator', async ({ page }) => {
+    await expectConfigErrorIndicator(page, '/tests/fixtures/config-no-image-page.html', /No image element found/)
+  })
+
+  test('an <img> with no src attribute shows the error indicator', async ({ page }) => {
+    await expectConfigErrorIndicator(page, '/tests/fixtures/config-missing-src-attr-page.html', /no src attribute/)
+  })
+
+  test('an <img> with an empty src shows the error indicator', async ({ page }) => {
+    // `img.src` resolves "" against the document URL and comes back truthy, so
+    // the old property check passed this table and the component went on to
+    // request the page itself as its spectrogram.
+    await expectConfigErrorIndicator(page, '/tests/fixtures/config-empty-src-page.html', /no src attribute/)
+  })
+
+  test('the failure is logged as well as shown', async ({ page }) => {
+    /** @type {string[]} */
+    const errors = []
+    page.on('console', msg => {
+      if (msg.type() === 'error') errors.push(msg.text())
+    })
+
+    await page.goto('/tests/fixtures/config-no-image-page.html')
+    await expect(page.locator('.gramframe-error-indicator')).toHaveCount(1)
+
+    expect(errors.some(text => text.includes('No image element found'))).toBe(true)
+  })
+
+  test('a valid table is unaffected', async ({ page }) => {
+    await page.goto('/tests/fixtures/trainer-page.html')
+    await page.locator('.gram-frame-container').waitFor()
+    await expect(page.locator('.gramframe-error-indicator')).toHaveCount(0)
+  })
+})

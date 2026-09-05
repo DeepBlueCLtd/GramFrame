@@ -60,7 +60,7 @@ The first row must contain an `<img>` element with the spectrogram image (using 
 - All four parameters (`time-start`, `time-end`, `freq-start`, `freq-end`) are **required**
 - Values must be valid numbers (parsed with `parseFloat`)
 - Start values must be strictly less than end values
-- The `<img>` element must have a `src` attribute
+- The first row must contain an `<img>` element, and that element must have a non-empty `src` attribute
 - If validation fails, the original table is preserved and an error indicator is shown
 
 ## Multiple Instances
