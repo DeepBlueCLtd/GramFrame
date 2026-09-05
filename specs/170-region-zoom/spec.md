@@ -120,10 +120,10 @@ target region reads as the subject, and the frequency and time span of the
 selection is shown live as they drag.
 
 **Why this priority**: P1 is usable with a plain outline, so this is an
-enhancement rather than a prerequisite. It earns its place by showing what the
-selection will actually become — the dashed second outline and the dimmed
-surround together say "this much, plus this" — and by letting an analyst dial
-in a span numerically before committing.
+enhancement rather than a prerequisite. It earns its place by making the
+selection read as the subject while it is drawn, by saying what it will
+actually become — that is the dashed second outline — and by letting an analyst
+dial in a span numerically before committing.
 
 **Independent Test**: Begin a Shift-drag and hold; the outlined rectangle, the
 dashed outline of the resulting view, the dimmed surround and a live span
@@ -355,10 +355,16 @@ and what was rejected, so a later reader can tell a decision from an accident.
    nothing at all (leaves the one-gesture-in / six-clicks-out asymmetry).
 4. **Feedback: outline, dimmed surround and live span readout.** Rejected:
    outline plus dimming without the readout (you cannot tell what span you are
-   committing to); plain outline only (competes with gram content). With the
-   amendment to decision 2 the dimming follows the *resulting view* rather than
-   the selection, since that is the true boundary between what will be on
-   screen and what will not.
+   committing to); plain outline only (competes with gram content).
+
+   The amendment to decision 2 added a second, dashed outline for the resulting
+   view, and first moved the dimming onto that outline — the argument being
+   that the dimmed edge should mark the true boundary between what will be on
+   screen and what will not. **Reverted after using it**: a mask of a different
+   shape from the box under the pointer reads as a second thing moving, which
+   is distracting during the very gesture it is meant to support. The dimming
+   is back on the selection (FR-004 as originally written); the dashed outline
+   still states the consequence.
 
 ## Risks and Open Questions
 

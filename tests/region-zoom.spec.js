@@ -215,6 +215,34 @@ test.describe('Feature 170 — Region zoom', () => {
       await page.keyboard.up('Shift')
     })
 
+    test('the dimming traces the selection, not the view it will produce (FR-004)', async ({ page }) => {
+      // A wide, shallow band: the resulting view is much taller than the box,
+      // so the two candidates for the mask are far apart and the assertion is
+      // not accidentally satisfied by them coinciding.
+      const a = await gfp.imageSVGPoint(0.15, 0.5)
+      const b = await gfp.imageSVGPoint(0.7, 0.56)
+      await gfp.shiftDragSVG(a.x, a.y, b.x, b.y, { release: false })
+
+      const box = page.locator(BOX)
+      const left = Number(await box.getAttribute('x'))
+      const top = Number(await box.getAttribute('y'))
+      const right = left + Number(await box.getAttribute('width'))
+      const bottom = top + Number(await box.getAttribute('height'))
+
+      // The dim path is the selectable area with the clear region punched out
+      // of it, even-odd. Its inner subpath must be the selection's own corners.
+      const d = await page.locator(DIM).getAttribute('d')
+      expect(d).toContain(`M${left} ${top}H${right}V${bottom}H${left}Z`)
+
+      // ...and the view is genuinely taller, so this was not a free pass.
+      const view = page.locator(VIEW)
+      await expect(view).toBeVisible()
+      expect(Number(await view.getAttribute('height'))).toBeGreaterThan(bottom - top + 10)
+
+      await page.mouse.up()
+      await page.keyboard.up('Shift')
+    })
+
     test('the second outline is drawn only when it would say something (AS-3.2)', async ({ page }) => {
       // A box a quarter of the gram across and a quarter down is close to the
       // view's own shape, so the resulting view is the selection give or take

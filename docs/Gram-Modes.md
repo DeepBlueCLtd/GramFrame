@@ -16,9 +16,10 @@ Behaviour common to every mode:
   every mode and at any zoom level. Draw it in any proportions you like: the
   view that results is scaled so the whole box fits, centred, which means it
   shows a little more of the gram either side of a wide band, or above and
-  below a narrow one. A dashed outline shows that resulting view as you drag,
-  the surround dims to match, and the span you are choosing is shown live.
-  Escape cancels; a Shift-click that barely moves does nothing.
+  below a narrow one. The gram outside your box dims so it reads as the subject,
+  a dashed outline shows the wider view that will result, and the span you are
+  choosing is shown live. Escape cancels; a Shift-click that barely moves does
+  nothing.
 - Switching mode clears the current selection, so the colour/symbol controls
   target the next feature you create rather than restyling the last one.
 

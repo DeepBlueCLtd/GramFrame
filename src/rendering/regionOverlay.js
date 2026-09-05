@@ -9,10 +9,15 @@
  *
  * Two rectangles, not one. The solid one is the box the analyst is drawing; the
  * dashed one is the view it will produce, which is larger on whichever axis is
- * the looser fit (`contain` — see `regionGeometry.js`). The dimming follows the
- * *view*, because that is the honest boundary between what will be on screen
- * and what will not. When the selection happens to match the view's shape the
- * two coincide and only one outline is drawn.
+ * the looser fit (`contain` — see `regionGeometry.js`). When the selection
+ * happens to match the view's shape the two coincide and only one is drawn.
+ *
+ * The dimming follows the **selection**. It first followed the view instead, on
+ * the reasoning that the dimmed edge should be the honest boundary between what
+ * will be on screen and what will not — but in the hand that reads as a second
+ * shape moving under the pointer, and the box being drawn is the thing the
+ * analyst is aiming. The dashed outline still states the consequence; the mask
+ * stays out of its way.
  */
 
 /// <reference path="../types.js" />
@@ -94,11 +99,10 @@ export function createRegionOverlay() {
 export function renderRegionOverlay(overlay, view) {
   const { rect, bounds } = view
 
-  // One path holding the selectable area and the resulting view, filled
-  // even-odd, so the surround dims in a single element and what will be on
-  // screen stays clear.
+  // One path holding the selectable area and the selection, filled even-odd, so
+  // the surround dims in a single element and the box being drawn stays clear.
   const outer = `M${bounds.left} ${bounds.top}H${bounds.right}V${bounds.bottom}H${bounds.left}Z`
-  overlay.children[0].setAttribute('d', `${outer}${boxPath(view.view)}`)
+  overlay.children[0].setAttribute('d', `${outer}${boxPath(rect)}`)
 
   sizeRect(/** @type {SVGRectElement} */ (overlay.children[1]), view.view)
   sizeRect(/** @type {SVGRectElement} */ (overlay.children[2]), rect)
@@ -148,18 +152,19 @@ function sameRect(a, b) {
 
 /**
  * The span readout — of the selection, which is what the analyst is choosing —
- * placed above the resulting view, or below it when that is hard against the
- * top edge of the gram.
+ * placed just above it, or below when the box is hard against the top edge of
+ * the gram. It sits with the selection rather than with the resulting view, for
+ * the same reason the dimming does: that is the box being aimed.
  * @param {RegionOverlayView} view - The selection being drawn
  * @returns {SVGTextElement} The readout text element
  */
-function readoutText({ rect, view, bounds, freqSpan, timeSpan }) {
+function readoutText({ rect, bounds, freqSpan, timeSpan }) {
   const text = /** @type {SVGTextElement} */ (document.createElementNS(SVG_NS, 'text'))
-  const above = view.y - 6
+  const above = rect.y - 6
   text.setAttribute('class', 'gram-frame-region-readout')
   text.setAttribute('x', String(rect.x + rect.width / 2))
   text.setAttribute('y', String(above - READOUT_FONT_SIZE < bounds.top
-    ? view.y + view.height + READOUT_FONT_SIZE + 4
+    ? rect.y + rect.height + READOUT_FONT_SIZE + 4
     : above))
   text.setAttribute('text-anchor', 'middle')
   text.setAttribute('font-size', String(READOUT_FONT_SIZE))

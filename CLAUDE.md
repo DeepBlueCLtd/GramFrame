@@ -364,8 +364,11 @@ There is no visual/screenshot regression testing — see
   what each axis needs, and the slack axis shows more of the gram beside the
   selection. (`contain`, not `cover`; cropping what was deliberately framed is
   the wrong way for a measurement tool to fail.) The overlay draws that
-  resulting view as a second dashed outline and dims outside *it*, so what you
-  draw is still what you get plus a stated remainder. It clamps at 10× rather
+  resulting view as a second dashed outline, so what you draw is still what you
+  get plus a stated remainder. The dimming stays on the **selection**: it
+  followed the dashed view at first, but a mask that is a different shape from
+  the box under the pointer reads as a second thing moving, and the box being
+  drawn is the one being aimed. It clamps at 10× rather
   than refusing — visibly, since the preview is capped by the same limit — and
   a release over the axis margins completes it, deliberately unlike a feature
   drag, which is cancelled off-image, because selecting to the very edge is a
