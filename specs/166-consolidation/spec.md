@@ -2,7 +2,7 @@
 
 **Feature Branch**: `166-consolidation`
 **Created**: 2026-07-31
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: [Findings Register](../../docs/analysis/Findings-Register.md) (re-verified 2026-07-31) — GF-01ᴿ, GF-07, GF-08, GF-17, GF-18, GF-20, GF-26ᴺ, GF-27, GF-28ᴿ.
 
 ## Context

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `164-quality-ratchets`
 **Created**: 2026-07-31
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: [Findings Register](../../docs/analysis/Findings-Register.md) (re-verified 2026-07-31) — GF-25, GF-27 (containment), GF-31, GF-33, GF-34.
 
 ## Context

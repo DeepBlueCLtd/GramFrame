@@ -2,7 +2,7 @@
 
 **Feature Branch**: `163-pan-tooltip-version`  
 **Created**: 2026-07-24  
-**Status**: Draft  
+**Status**: Complete — implemented and merged
 **Input**: GH issue #198 (Review feedback) — bullet 7: "Drop version number from PanMode tooltip. We recently added a tooltip to the Pan Mode button, to show the version number. I'd forgotten that we already show the version in the pan mode guidance. We should drop showing the version in the pan mode tooltip."
 
 ## User Scenarios & Testing *(mandatory)*

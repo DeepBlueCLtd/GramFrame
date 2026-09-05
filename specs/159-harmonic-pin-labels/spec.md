@@ -2,7 +2,7 @@
 
 **Feature Branch**: `159-harmonic-pin-labels`  
 **Created**: 2026-07-24  
-**Status**: Draft  
+**Status**: Complete — implemented and merged
 **Input**: GH issue #198 (Review feedback) — bullets 1 & 2: "For harmonics, show all pins, but infrequent labels" and "Move harmonic label vertically above symbol/pin".
 
 ## User Scenarios & Testing *(mandatory)*

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `158-harmonic-pin-sampling`  
 **Created**: 2026-07-17  
-**Status**: Draft  
+**Status**: Complete — implemented and merged
 **Input**: User description: "GH issue 183 — Harmonic pins illegible at very low intervals"
 
 ## User Scenarios & Testing *(mandatory)*

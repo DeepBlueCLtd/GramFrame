@@ -2,7 +2,7 @@
 
 **Feature Branch**: `167-structural-refactor`
 **Created**: 2026-07-31
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: [Findings Register](../../docs/analysis/Findings-Register.md) (re-verified 2026-07-31) — GF-03, GF-05, GF-06, GF-09, GF-10, GF-11, GF-13, GF-30 (residual), GF-32.
 
 ## Context

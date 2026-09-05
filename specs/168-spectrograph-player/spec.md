@@ -2,7 +2,7 @@
 
 **Feature Branch**: `168-spectrograph-player`
 **Created**: 2026-09-05
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: [GitHub Issue #170 — JS spectrograph player](https://github.com/DeepBlueCLtd/GramFrame/issues/170),
 elaborated through a structured interview on 2026-09-05 (decisions recorded
 under [Interview Decisions](#interview-decisions)).

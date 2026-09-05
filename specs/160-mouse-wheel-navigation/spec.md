@@ -2,7 +2,7 @@
 
 **Feature Branch**: `160-mouse-wheel-navigation`  
 **Created**: 2026-07-24  
-**Status**: Draft  
+**Status**: Complete — implemented and merged
 **Input**: GH issue #198 (Review feedback) — bullet 3: "Introduce mouse wheel support ... scroll to pan horizontally, ctrl-scroll to zoom in/out in both directions, wheel-click drag to pan ... we'll also need to add guidance for this."
 
 ## User Scenarios & Testing *(mandatory)*

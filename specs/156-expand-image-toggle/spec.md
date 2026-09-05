@@ -2,7 +2,7 @@
 
 **Feature Branch**: `156-expand-image-toggle`
 **Created**: 2026-06-25
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: User description: "Add toggle for expand image" (GitHub Issue #171)
 
 > We should introduce a toggle that allows a user to expand the image to fill the
