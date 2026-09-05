@@ -25,6 +25,7 @@
 /// <reference path="../types.js" />
 
 import { savePinPreference } from '../core/storage.js'
+import { dispatch } from '../core/state.js'
 import { showStorageWarning, clearStorageWarning } from './StorageWarning.js'
 
 /**
@@ -66,6 +67,9 @@ export function createPinToggle(instance) {
       } else {
         showStorageWarning(instance, 'The pin preference could not be saved — it applies to this page only.')
       }
+      // Dispatch: this is a state change listeners care about, and only the
+      // "Large" toggle used to say so (issue #268, BH-30).
+      dispatch(instance)
     }
   })
 

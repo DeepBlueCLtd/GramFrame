@@ -59,7 +59,7 @@ curl -d "status here" ntfy.sh/iancc2025
 - **Main Class**: `GramFrame` in `src/main.js` - Central component managing all functionality
 - **Entry Point**: `src/index.js` - Main module export and global registration
 - **State Management**: `src/core/state.js` - Centralized state with listener pattern
-- **Mode System**: Modular architecture with five modes — Pan (default), Analysis, Harmonics, Sidebands and Doppler
+- **Mode System**: Modular architecture with five modes — Pan (default), Analysis, Harmonics, Sidebands and Doppler. `analysis` is the code and storage name; the button an analyst sees reads **Cross Cursor** (`modeRoster.js`, and see [Gram-Modes.md](docs/Gram-Modes.md))
 - **Spectrograph Player**: `src/audio/` (decode and analyse a WAV into the gram image) and `src/player/` (the transport and the scrolling view) make an audio-sourced instance; the modes measure it through the unchanged coordinate pipeline (spec 168, ADR-019)
 - **Feature Rendering**: `src/core/FeatureRenderer.js` - Cross-mode feature coordination
 - **Mode Factory**: `src/modes/ModeFactory.js` - Centralized mode instantiation

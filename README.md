@@ -1,6 +1,6 @@
 # Spectrogram Interaction Component
 
-This component provides an interactive overlay for sonar spectrogram images, enabling users to place harmonic cursors, adjust scaling via a rate input, and switch between multiple analysis modes.
+This component provides an interactive overlay for sonar spectrogram images, enabling users to place analysis markers, harmonic and sideband cursors and doppler curves, and to switch between five interaction modes.
 
 ## Key Features
 
