@@ -167,6 +167,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     repeats its neighbour (issue #259)
   - `symbols.js` - Marker/harmonic symbol shapes
   - `labels.js` - Marker label placement and element (feature 231)
+  - `markerGlyph.js` - What an analysis marker is drawn as: the crosshair, or the
+    shaped symbol that replaces it. `drawsCrosshair` is the one answer to "does
+    this marker have arms?", so the hit test asks it rather than re-deriving the
+    rule and drifting from the drawing (issue #273)
 - `src/utils/` - Utility modules:
   - `coordinates.js` - The canonical coordinate module: every screen/SVG/image/data
     conversion, zoom-, expand-, render-size- and margin-aware. Also owns
@@ -335,7 +339,9 @@ There is no visual/screenshot regression testing — see
 
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
-- **Analysis Mode**: Persistent draggable markers with cross-mode visibility and optional
+- **Analysis Mode**: Persistent draggable markers whose grab region follows exactly
+  what is drawn — a symbol marker has no crosshair arms to grab (issue #273) — with
+  cross-mode visibility and optional
   plated text labels (upper-right of a crosshair, centred above a shaped symbol —
   below an upward-pointing triangle, whose apex points at the data above it)
 - **Harmonics Mode**: Real-time harmonic calculation and display

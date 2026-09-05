@@ -919,10 +919,8 @@ export class GramFrame {
 // Create and setup the GramFrame API
 const GramFrameAPI = createGramFrameAPI(GramFrame)
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-  // @ts-ignore - Adding to global window object
-  window.GramFrame = GramFrameAPI
+/** Replace the config tables and, on the debug page, wire the state display. */
+const bootstrap = () => {
   GramFrameAPI.init()
   // Connect to state display if we're on the debug page
   const stateDisplay = document.getElementById('state-display')
@@ -931,11 +929,20 @@ document.addEventListener('DOMContentLoaded', () => {
       stateDisplay.textContent = JSON.stringify(state, null, 2)
     })
   }
-})
+}
 
-// Export the API
+// Export the API. Before the bootstrap below, which may run synchronously.
 // @ts-ignore - Adding to global window object
 window.GramFrame = GramFrameAPI
+
+// Initialize on page load -- or immediately, when the document is already
+// parsed. A page that injects the bundle late used to register a listener for
+// a `DOMContentLoaded` already gone, replacing nothing (issue #272).
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap)
+} else {
+  bootstrap()
+}
 
 // Hot Module Replacement (HMR) support for Task 1.4
 // @ts-ignore - Vite HMR API
