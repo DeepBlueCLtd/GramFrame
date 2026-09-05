@@ -407,9 +407,204 @@ export function sanitizeStoredAnnotations(data) {
     analysis: { markers },
     harmonics: { harmonicSets },
     sidebands: { sidebandSets },
-    doppler
+    doppler,
+    // Carried through rather than validated field by field: a tombstone is an
+    // id and a time, and a damaged one costs at most one resurrected feature.
+    // Dropping the set wholesale would resurrect every deletion in it, which is
+    // the failure this exists to prevent (issue #269).
+    tombstones: tombstonesOf(data)
   }
   return { annotations, dropped }
+}
+
+/**
+ * How long a tombstone is kept, in milliseconds.
+ *
+ * A tombstone only has to outlive the window in which another tab might still
+ * be holding the deleted feature in memory. Seven days is far longer than any
+ * plausible tab lifetime and keeps the record from growing without bound on a
+ * gram that is edited for months.
+ * @type {number}
+ */
+const TOMBSTONE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * Read tombstones off a stored record or off live state, tolerating absence
+ * and damage. Both carry the same shape under the same key.
+ * @param {any} source - A stored record or a GramFrameState
+ * @returns {AnnotationTombstones} Its tombstones, or an empty set
+ */
+function tombstonesOf(source) {
+  const raw = source && source.tombstones
+  if (!raw || typeof raw !== 'object') {
+    return { markers: {}, harmonicSets: {}, sidebandSets: {}, doppler: null }
+  }
+  return {
+    markers: (raw.markers && typeof raw.markers === 'object') ? raw.markers : {},
+    harmonicSets: (raw.harmonicSets && typeof raw.harmonicSets === 'object') ? raw.harmonicSets : {},
+    sidebandSets: (raw.sidebandSets && typeof raw.sidebandSets === 'object') ? raw.sidebandSets : {},
+    doppler: isNonEmptyString(raw.doppler) ? raw.doppler : null
+  }
+}
+
+/**
+ * Combine two tombstone maps, keeping the earlier deletion time for an id both
+ * sides removed.
+ * @param {Object<string, string>} mine - This tab's deletions
+ * @param {Object<string, string>} theirs - The other tab's deletions
+ * @returns {Object<string, string>} The union
+ */
+function mergeTombstoneMap(mine, theirs) {
+  /** @type {Object<string, string>} */
+  const merged = { ...theirs }
+  for (const [id, at] of Object.entries(mine || {})) {
+    merged[id] = (merged[id] && merged[id] < at) ? merged[id] : at
+  }
+  return merged
+}
+
+/**
+ * Drop tombstones older than the TTL.
+ * @param {Object<string, string>} map - Deleted ids to ISO times
+ * @param {number} now - Current epoch milliseconds
+ * @returns {Object<string, string>} The surviving tombstones
+ */
+function pruneTombstoneMap(map, now) {
+  /** @type {Object<string, string>} */
+  const kept = {}
+  for (const [id, at] of Object.entries(map || {})) {
+    const when = Date.parse(at)
+    // An unparseable time is kept rather than dropped: forgetting a deletion
+    // resurrects work the analyst threw away, which is the worse mistake.
+    if (!Number.isFinite(when) || now - when < TOMBSTONE_TTL_MS) {
+      kept[id] = at
+    }
+  }
+  return kept
+}
+
+/**
+ * Merge one collection of identified features from two records.
+ * @param {any[]|undefined} mine - This tab's features
+ * @param {any[]|undefined} theirs - The other tab's features
+ * @param {Object<string, string>} tombstones - Combined deletions for this collection
+ * @param {boolean} mineIsNewer - Whether this tab's record was saved more recently
+ * @returns {any[]} The merged collection
+ */
+function mergeCollection(mine, theirs, tombstones, mineIsNewer) {
+  /** @type {Map<string, any>} */
+  const byId = new Map()
+  // The older side goes in first so the newer side's version of a feature both
+  // sides hold overwrites it. Two tabs that edited the same feature cannot both
+  // be honoured, and the record's own `savedAt` is the only ordering either of
+  // them agrees on.
+  const older = mineIsNewer ? theirs : mine
+  const newer = mineIsNewer ? mine : theirs
+  for (const feature of (older || [])) {
+    if (feature && feature.id) byId.set(feature.id, feature)
+  }
+  for (const feature of (newer || [])) {
+    if (feature && feature.id) byId.set(feature.id, feature)
+  }
+  return Array.from(byId.values()).filter(feature => !(feature.id in tombstones))
+}
+
+/**
+ * Merge this tab's annotations with the record another tab has already stored.
+ *
+ * Two trainer tabs on the same page used to be last-writer-wins: each save
+ * wrote the whole record from the saving tab's state, so markers added in one
+ * tab were erased by the next save from the other, silently (R9-18). This is
+ * the merge that replaces it.
+ *
+ * The rules, and what each costs:
+ *
+ * - **Union by id.** A feature either tab holds survives. This is what makes
+ *   two tabs additive instead of destructive.
+ * - **A deletion beats a concurrent edit.** A feature one tab deleted stays
+ *   deleted, even if the other tab edited it in the meantime -- the tombstone
+ *   is unconditional. The alternative, resurrecting a feature because someone
+ *   recoloured it elsewhere, is the more surprising of the two, and an analyst
+ *   who deletes something expects it to stay deleted.
+ * - **On a feature both tabs changed, the more recently saved record wins,
+ *   whole.** Field-level merging would need per-field times this format does
+ *   not carry, and inventing them would let a stale tab reinstate an old
+ *   colour on top of a new position. `savedAt` is the one ordering both sides
+ *   already agree on.
+ * - **The doppler curve is one object, so it is last-writer-wins as a whole**,
+ *   and a tombstone from either side clears it.
+ *
+ * Legacy records carry no tombstones and merge as if they had none, which is
+ * correct: they were written before any deletion could be recorded.
+ * @param {StoredAnnotations|null} mine - What this tab would write
+ * @param {StoredAnnotations|null} theirs - What is already stored, if anything
+ * @param {number} [now] - Current epoch milliseconds, for tombstone pruning
+ * @returns {StoredAnnotations|null} The merged record
+ */
+export function mergeStoredAnnotations(mine, theirs, now = Date.now()) {
+  if (!mine) return theirs
+  if (!theirs) return mine
+
+  // Ordering by `savedAt`. A record with no usable time is treated as older:
+  // the tab that can prove when it wrote is the one to trust.
+  const mineAt = Date.parse(mine.savedAt || '')
+  const theirsAt = Date.parse(theirs.savedAt || '')
+  const mineIsNewer = !Number.isFinite(theirsAt) || (Number.isFinite(mineAt) && mineAt >= theirsAt)
+
+  const myTombs = tombstonesOf(mine)
+  const theirTombs = tombstonesOf(theirs)
+  const tombstones = {
+    markers: pruneTombstoneMap(mergeTombstoneMap(myTombs.markers, theirTombs.markers), now),
+    harmonicSets: pruneTombstoneMap(mergeTombstoneMap(myTombs.harmonicSets, theirTombs.harmonicSets), now),
+    sidebandSets: pruneTombstoneMap(mergeTombstoneMap(myTombs.sidebandSets, theirTombs.sidebandSets), now),
+    doppler: myTombs.doppler && theirTombs.doppler
+      ? (myTombs.doppler < theirTombs.doppler ? myTombs.doppler : theirTombs.doppler)
+      : (myTombs.doppler || theirTombs.doppler)
+  }
+
+  const newer = mineIsNewer ? mine : theirs
+  const older = mineIsNewer ? theirs : mine
+
+  // The doppler curve: deleted by either side, or the newer side's, or
+  // whichever side has one at all.
+  const newerDoppler = newer.doppler || null
+  const olderDoppler = older.doppler || null
+  const newerHasCurve = !!(newerDoppler && (newerDoppler.fPlus || newerDoppler.fMinus || newerDoppler.fZero))
+  const doppler = tombstones.doppler
+    ? { fPlus: null, fMinus: null, fZero: null, color: null }
+    : (newerHasCurve ? newerDoppler : (olderDoppler || newerDoppler))
+
+  return {
+    version: newer.version,
+    savedAt: newer.savedAt,
+    gram: newer.gram || older.gram,
+    analysis: {
+      markers: mergeCollection(
+        mine.analysis && mine.analysis.markers,
+        theirs.analysis && theirs.analysis.markers,
+        tombstones.markers,
+        mineIsNewer
+      )
+    },
+    harmonics: {
+      harmonicSets: mergeCollection(
+        mine.harmonics && mine.harmonics.harmonicSets,
+        theirs.harmonics && theirs.harmonics.harmonicSets,
+        tombstones.harmonicSets,
+        mineIsNewer
+      )
+    },
+    sidebands: {
+      sidebandSets: mergeCollection(
+        mine.sidebands && mine.sidebands.sidebandSets,
+        theirs.sidebands && theirs.sidebands.sidebandSets,
+        tombstones.sidebandSets,
+        mineIsNewer
+      )
+    },
+    doppler: doppler || { fPlus: null, fMinus: null, fZero: null, color: null },
+    tombstones
+  }
 }
 
 /**
@@ -475,15 +670,65 @@ export function saveAnnotations(state, instanceIndex, context) {
     const storage = getStorage(context || detectUserContext())
     if (!storage) return false
 
-    if (!hasPersistableAnnotations(state)) {
-      // No annotations — remove any existing entry rather than storing empty data
+    if (!hasPersistableAnnotations(state) && !hasTombstones(state)) {
+      // No annotations and nothing deleted — remove any existing entry rather
+      // than storing empty data.
       const key = buildStorageKey(instanceIndex)
       storage.removeItem(key)
       return true
     }
 
-    /** @type {StoredAnnotations} */
-    const data = {
+    // With annotations gone but deletions recorded, the record is still worth
+    // writing: it is now nothing *but* tombstones, and removing it would throw
+    // them away. Another tab still holding those features would then merge them
+    // straight back in on its next save, which is the resurrection this whole
+    // mechanism exists to prevent (issue #269).
+
+    const data = snapshotAnnotations(state)
+
+    const key = buildStorageKey(instanceIndex)
+
+    // Read-merge-write, not write. Another tab may have saved since this one
+    // loaded, and overwriting its record is the silent data loss R9-18
+    // records. A damaged or foreign record is left to the load path to report:
+    // merging into it would be writing on top of something we refused to read.
+    const existing = readMergeableRecord(storage, key, data.gram)
+    const merged = existing ? mergeStoredAnnotations(data, existing) : data
+
+    storage.setItem(key, JSON.stringify(merged))
+    return true
+  } catch (error) {
+    console.warn('GramFrame: Failed to save annotations — they exist in memory only:', error)
+    return false
+  }
+}
+
+/**
+ * Whether this state carries any deletion worth persisting.
+ * @param {GramFrameState} state - Current component state
+ * @returns {boolean} True when at least one tombstone exists
+ */
+function hasTombstones(state) {
+  const tombs = tombstonesOf(state)
+  return Object.keys(tombs.markers).length > 0 ||
+    Object.keys(tombs.harmonicSets).length > 0 ||
+    Object.keys(tombs.sidebandSets).length > 0 ||
+    !!tombs.doppler
+}
+
+/**
+ * The record this tab would write for its current state.
+ *
+ * Extracted so the save path and the cross-tab merge build the same shape from
+ * the same code: a merge compares live state against a stored record, and the
+ * two disagreeing about what "the same annotation" looks like would be a
+ * silent corruption rather than a visible bug.
+ * @param {GramFrameState} state - Current component state
+ * @returns {StoredAnnotations} This tab's annotations, as they would be stored
+ */
+export function snapshotAnnotations(state) {
+  /** @type {StoredAnnotations} */
+  const data = {
       version: SCHEMA_VERSION,
       savedAt: new Date().toISOString(),
       // `gram` is an ADDITIVE field (which gram this record belongs to). It
@@ -548,15 +793,68 @@ export function saveAnnotations(state, instanceIndex, context) {
         fMinus: state.doppler && state.doppler.fMinus ? { time: state.doppler.fMinus.time, freq: state.doppler.fMinus.freq } : null,
         fZero: state.doppler && state.doppler.fZero ? { time: state.doppler.fZero.time, freq: state.doppler.fZero.freq } : null,
         color: state.doppler && state.doppler.color || null
-      }
+      },
+      // `tombstones` is an ADDITIVE field (issue #269). It MUST NOT trigger a
+      // SCHEMA_VERSION bump: records written before multi-tab merging simply
+      // lack it and merge as having deleted nothing, which is true of them.
+      tombstones: tombstonesOf(state)
     }
+  return data
+}
 
-    const key = buildStorageKey(instanceIndex)
-    storage.setItem(key, JSON.stringify(data))
-    return true
+/**
+ * Merge a record another tab just wrote into this tab's annotations.
+ *
+ * The gates are the load path's, for the load path's reasons: an unreadable
+ * payload, another build's schema, or a different gram is not this tab's to
+ * adopt (R9-01, BH-6). Returns null when there is nothing to adopt.
+ * @param {string} raw - The record as the other tab stored it
+ * @param {GramFrameState} state - This tab's current state
+ * @returns {StoredAnnotations|null} The merged annotations, or null
+ */
+export function mergeForeignRecord(raw, state) {
+  /** @type {any} */
+  let theirs = null
+  try {
+    theirs = JSON.parse(raw)
   } catch (error) {
-    console.warn('GramFrame: Failed to save annotations — they exist in memory only:', error)
-    return false
+    console.warn('GramFrame: ignoring an unreadable record from another tab:', error)
+    return null
+  }
+  if (!theirs || theirs.version !== SCHEMA_VERSION) {
+    return null
+  }
+  if (theirs.gram && !fingerprintMatches(theirs.gram, buildGramFingerprint(state))) {
+    return null
+  }
+  return mergeStoredAnnotations(snapshotAnnotations(state), theirs)
+}
+
+/**
+ * The record already in storage, if it is one this tab may safely merge with.
+ *
+ * Deliberately conservative. A record that cannot be parsed, was written by
+ * another build, or belongs to a different gram is not merged into -- the load
+ * path refuses those and tells the analyst why (R9-01), and merging into
+ * something we declined to read would overwrite it with a half-understood
+ * union. In those cases the save proceeds as a plain write, which is what it
+ * did before merging existed.
+ * @param {Storage} storage - The store being written to
+ * @param {string} key - This instance's storage key
+ * @param {StoredGramFingerprint|undefined} expectedGram - The saving tab's gram
+ * @returns {StoredAnnotations|null} The mergeable record, or null
+ */
+function readMergeableRecord(storage, key, expectedGram) {
+  try {
+    const raw = storage.getItem(key)
+    if (!raw) return null
+    const existing = JSON.parse(raw)
+    if (!existing || existing.version !== SCHEMA_VERSION) return null
+    if (expectedGram && !fingerprintMatches(existing.gram, expectedGram)) return null
+    return existing
+  } catch (error) {
+    console.warn('GramFrame: could not read the stored record to merge with — saving without merging:', error)
+    return null
   }
 }
 

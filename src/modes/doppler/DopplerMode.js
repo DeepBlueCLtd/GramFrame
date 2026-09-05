@@ -1,7 +1,7 @@
 import { BaseMode } from '../BaseMode.js'
 import { setLEDValue } from '../../components/LEDDisplay.js'
 import { updateLEDDisplays } from '../../components/UIComponents.js'
-import { dispatch, markAnnotationsChanged } from '../../core/state.js'
+import { dispatch, markAnnotationsChanged, recordDopplerDeletion } from '../../core/state.js'
 // Rendering imports removed - no display element
 import { calculateDopplerSpeed, calculateMidpoint, MS_TO_KNOTS } from '../../utils/doppler.js'
 import { dataToSVG } from '../../utils/coordinates.js'
@@ -407,6 +407,9 @@ export class DopplerMode extends BaseMode {
     this.dragHandler.reset()
     // Deleting the curve is an annotation mutation: masked today by the
     // signature's doppler identity fields, but the mark is the contract (BH-24).
+    // The tombstone is what stops another tab's copy of the curve coming back
+    // on the next merge (issue #269).
+    recordDopplerDeletion(this.instance)
     markAnnotationsChanged(this.instance)
 
     dispatch(this.instance, { frame: true })
