@@ -1,5 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
 
+/// <reference path="../src/types.js" />
+
 /**
  * @fileoverview Tests for the state listener mechanism
  * Tests state listener registration, removal, error handling, and callback execution
@@ -24,7 +26,7 @@ test.describe('State Listener Mechanism', () => {
     await page.waitForSelector('.gram-frame-container')
     
     // Create a promise that will resolve when the state listener is called
-    /** @type {Promise<import('../src/types.js').GramFrameState>} */
+    /** @type {Promise<GramFrameState>} */
     const statePromise = page.evaluate(() => {
       return new Promise(resolve => {
         // Add a state listener
@@ -35,7 +37,7 @@ test.describe('State Listener Mechanism', () => {
     })
     
     // Wait for the state listener to be called
-    /** @type {import('../src/types.js').GramFrameState} */
+    /** @type {GramFrameState} */
     const state = await statePromise
     
     // Verify that the state has the expected properties
@@ -72,7 +74,7 @@ test.describe('State Listener Mechanism', () => {
       }
       
       // Create a listener
-      /** @type {import('../src/types.js').StateListener} */
+      /** @type {StateListener} */
       const listener = _state => {
         if (testResult.removalResult) {
           testResult.callbackCalledAfterRemoval = true
@@ -122,7 +124,7 @@ test.describe('State Listener Mechanism', () => {
       let errorThrown = ''
       
       // Create a listener that throws an error
-      /** @type {import('../src/types.js').StateListener} */
+      /** @type {StateListener} */
       const listener = _state => {
         throw new Error('Test error in listener')
       }

@@ -23,6 +23,33 @@ import { mergeStoredAnnotations } from '../../src/core/storage.js'
 const noTombstones = () => ({ markers: {}, harmonicSets: {}, sidebandSets: {}, doppler: null })
 
 /**
+ * The ids in a list of features, sorted -- what most of these cases assert.
+ * @param {any[]} features - Markers or pin sets
+ * @returns {string[]} Their ids, sorted
+ */
+const ids = features => features.map((/** @type {any} */ f) => f.id).sort()
+
+/**
+ * Merge two records, asserting the result is there.
+ *
+ * `mergeStoredAnnotations` is typed `StoredAnnotations|null` because a merge of
+ * two absent records is absent. Every case here supplies at least one record,
+ * so a null return is itself a failure -- asserted once, here, rather than
+ * guarded at each of the fifty-odd reads below (R9-10, issue #262).
+ * @param {any} mine - What this tab would write
+ * @param {any} theirs - What is already stored
+ * @param {number} [now] - Current epoch milliseconds, for tombstone pruning
+ * @returns {any} The merged record
+ */
+function merge(mine, theirs, now = undefined) {
+  const merged = now === undefined
+    ? mergeStoredAnnotations(mine, theirs)
+    : mergeStoredAnnotations(mine, theirs, now)
+  expect(merged).not.toBeNull()
+  return merged
+}
+
+/**
  * A stored record, with only the parts a test cares about spelled out.
  * @param {any} [overrides] - Fields to set
  * @returns {any} A record
@@ -59,8 +86,8 @@ describe('union by id — the point of merging at all', () => {
     const mine = record({ analysis: { markers: [marker('a')] } })
     const theirs = record({ analysis: { markers: [marker('b')] } })
 
-    const merged = mergeStoredAnnotations(mine, theirs)
-    expect(merged.analysis.markers.map(m => m.id).sort()).toEqual(['a', 'b'])
+    const merged = merge(mine, theirs)
+    expect(ids(merged.analysis.markers)).toEqual(['a', 'b'])
   })
 
   it('keeps both tabs\' harmonic and sideband sets', () => {
@@ -73,25 +100,25 @@ describe('union by id — the point of merging at all', () => {
       sidebands: { sidebandSets: [{ id: 's2', spacing: 8 }] }
     })
 
-    const merged = mergeStoredAnnotations(mine, theirs)
-    expect(merged.harmonics.harmonicSets.map(h => h.id).sort()).toEqual(['h1', 'h2'])
-    expect(merged.sidebands.sidebandSets.map(s => s.id).sort()).toEqual(['s1', 's2'])
+    const merged = merge(mine, theirs)
+    expect(ids(merged.harmonics.harmonicSets)).toEqual(['h1', 'h2'])
+    expect(ids(merged.sidebands.sidebandSets)).toEqual(['s1', 's2'])
   })
 
   it('does not duplicate a feature both tabs hold', () => {
     const mine = record({ analysis: { markers: [marker('a'), marker('b')] } })
     const theirs = record({ analysis: { markers: [marker('b'), marker('c')] } })
 
-    const merged = mergeStoredAnnotations(mine, theirs)
-    expect(merged.analysis.markers.map(m => m.id).sort()).toEqual(['a', 'b', 'c'])
+    const merged = merge(mine, theirs)
+    expect(ids(merged.analysis.markers)).toEqual(['a', 'b', 'c'])
   })
 
   it('is symmetric in what survives, whichever side is "mine"', () => {
     const a = record({ savedAt: '2026-09-05T10:00:00.000Z', analysis: { markers: [marker('a')] } })
     const b = record({ savedAt: '2026-09-05T11:00:00.000Z', analysis: { markers: [marker('b')] } })
 
-    const forward = mergeStoredAnnotations(a, b).analysis.markers.map(m => m.id).sort()
-    const backward = mergeStoredAnnotations(b, a).analysis.markers.map(m => m.id).sort()
+    const forward = ids(merge(a, b).analysis.markers)
+    const backward = ids(merge(b, a).analysis.markers)
     expect(forward).toEqual(backward)
   })
 })
@@ -106,7 +133,7 @@ describe('a deletion beats a concurrent edit', () => {
     })
     const theirs = record({ analysis: { markers: [marker('a')] } })
 
-    expect(mergeStoredAnnotations(mine, theirs).analysis.markers).toEqual([])
+    expect(merge(mine, theirs).analysis.markers).toEqual([])
   })
 
   it('stays deleted even when the other tab edited it and saved later', () => {
@@ -123,7 +150,7 @@ describe('a deletion beats a concurrent edit', () => {
       analysis: { markers: [marker('a', { color: '#0000ff' })] }
     })
 
-    expect(mergeStoredAnnotations(mine, theirs).analysis.markers).toEqual([])
+    expect(merge(mine, theirs).analysis.markers).toEqual([])
   })
 
   it('carries the tombstone forward so a third save cannot resurrect it', () => {
@@ -133,18 +160,18 @@ describe('a deletion beats a concurrent edit', () => {
     })
     const theirs = record({ analysis: { markers: [marker('a')] } })
 
-    const merged = mergeStoredAnnotations(mine, theirs)
+    const merged = merge(mine, theirs)
     expect(merged.tombstones.markers.a).toBe('2026-09-05T10:30:00.000Z')
     // ...and merging that result with a tab that still holds the marker keeps
     // it deleted.
-    expect(mergeStoredAnnotations(merged, theirs).analysis.markers).toEqual([])
+    expect(merge(merged, theirs).analysis.markers).toEqual([])
   })
 
   it('keeps the earlier time when both tabs deleted the same feature', () => {
     const mine = record({ tombstones: { ...noTombstones(), markers: { a: '2026-09-05T11:00:00.000Z' } } })
     const theirs = record({ tombstones: { ...noTombstones(), markers: { a: '2026-09-05T10:00:00.000Z' } } })
 
-    expect(mergeStoredAnnotations(mine, theirs).tombstones.markers.a).toBe('2026-09-05T10:00:00.000Z')
+    expect(merge(mine, theirs).tombstones.markers.a).toBe('2026-09-05T10:00:00.000Z')
   })
 
   it('forgets a tombstone once it is older than the TTL', () => {
@@ -152,7 +179,7 @@ describe('a deletion beats a concurrent edit', () => {
     const mine = record({ tombstones: { ...noTombstones(), markers: { old: '2026-09-01T00:00:00.000Z' } } })
     const theirs = record({ tombstones: { ...noTombstones(), markers: { recent: '2026-09-19T00:00:00.000Z' } } })
 
-    const merged = mergeStoredAnnotations(mine, theirs, now)
+    const merged = merge(mine, theirs, now)
     expect(Object.keys(merged.tombstones.markers)).toEqual(['recent'])
   })
 
@@ -162,7 +189,7 @@ describe('a deletion beats a concurrent edit', () => {
     const mine = record({ tombstones: { ...noTombstones(), markers: { a: 'not a date' } } })
     const theirs = record({ analysis: { markers: [marker('a')] } })
 
-    const merged = mergeStoredAnnotations(mine, theirs, Date.parse('2027-01-01T00:00:00.000Z'))
+    const merged = merge(mine, theirs, Date.parse('2027-01-01T00:00:00.000Z'))
     expect(merged.analysis.markers).toEqual([])
   })
 })
@@ -178,7 +205,7 @@ describe('a feature both tabs changed resolves to the newer record, whole', () =
       analysis: { markers: [marker('a', { color: '#222222', freq: 22 })] }
     })
 
-    const [merged] = mergeStoredAnnotations(mine, theirs).analysis.markers
+    const [merged] = merge(mine, theirs).analysis.markers
     expect(merged.color).toBe('#111111')
     expect(merged.freq).toBe(11)
   })
@@ -193,7 +220,7 @@ describe('a feature both tabs changed resolves to the newer record, whole', () =
       analysis: { markers: [marker('a', { color: '#222222' })] }
     })
 
-    expect(mergeStoredAnnotations(mine, theirs).analysis.markers[0].color).toBe('#222222')
+    expect(merge(mine, theirs).analysis.markers[0].color).toBe('#222222')
   })
 
   it('does not mix fields from the two versions', () => {
@@ -208,7 +235,7 @@ describe('a feature both tabs changed resolves to the newer record, whole', () =
       analysis: { markers: [marker('a', { color: '#222222', freq: 22, label: 'theirs' })] }
     })
 
-    expect(mergeStoredAnnotations(mine, theirs).analysis.markers[0]).toEqual(
+    expect(merge(mine, theirs).analysis.markers[0]).toEqual(
       marker('a', { color: '#111111', freq: 11, label: 'mine' })
     )
   })
@@ -217,7 +244,7 @@ describe('a feature both tabs changed resolves to the newer record, whole', () =
     const mine = record({ savedAt: 'nonsense', analysis: { markers: [marker('a', { color: '#111111' })] } })
     const theirs = record({ savedAt: '2026-09-05T10:00:00.000Z', analysis: { markers: [marker('a', { color: '#222222' })] } })
 
-    expect(mergeStoredAnnotations(mine, theirs).analysis.markers[0].color).toBe('#222222')
+    expect(merge(mine, theirs).analysis.markers[0].color).toBe('#222222')
   })
 })
 
@@ -226,21 +253,21 @@ describe('the doppler curve is one object', () => {
     const mine = record({ doppler: curve(30) })
     const theirs = record()
 
-    expect(mergeStoredAnnotations(mine, theirs).doppler.fPlus.freq).toBe(30)
+    expect(merge(mine, theirs).doppler.fPlus.freq).toBe(30)
   })
 
   it('takes the more recently saved curve when both have one', () => {
     const mine = record({ savedAt: '2026-09-05T12:00:00.000Z', doppler: curve(30) })
     const theirs = record({ savedAt: '2026-09-05T10:00:00.000Z', doppler: curve(40) })
 
-    expect(mergeStoredAnnotations(mine, theirs).doppler.fPlus.freq).toBe(30)
+    expect(merge(mine, theirs).doppler.fPlus.freq).toBe(30)
   })
 
   it('clears the curve when either tab deleted it', () => {
     const mine = record({ tombstones: { ...noTombstones(), doppler: '2026-09-05T10:30:00.000Z' } })
     const theirs = record({ savedAt: '2026-09-05T12:00:00.000Z', doppler: curve(40) })
 
-    expect(mergeStoredAnnotations(mine, theirs).doppler.fPlus).toBeNull()
+    expect(merge(mine, theirs).doppler.fPlus).toBeNull()
   })
 })
 
@@ -249,8 +276,8 @@ describe('legacy and degenerate records', () => {
     const legacy = { version: 1, savedAt: '2026-08-01T00:00:00.000Z', analysis: { markers: [marker('old')] }, harmonics: { harmonicSets: [] }, doppler: {} }
     const mine = record({ analysis: { markers: [marker('new')] } })
 
-    const merged = mergeStoredAnnotations(mine, legacy)
-    expect(merged.analysis.markers.map(m => m.id).sort()).toEqual(['new', 'old'])
+    const merged = merge(mine, legacy)
+    expect(ids(merged.analysis.markers)).toEqual(['new', 'old'])
     expect(merged.tombstones).toEqual(noTombstones())
   })
 
@@ -258,21 +285,21 @@ describe('legacy and degenerate records', () => {
     const mine = record({ tombstones: /** @type {any} */ ('not an object') })
     const theirs = record({ analysis: { markers: [marker('a')] } })
 
-    expect(mergeStoredAnnotations(mine, theirs).analysis.markers.map(m => m.id)).toEqual(['a'])
+    expect(ids(merge(mine, theirs).analysis.markers)).toEqual(['a'])
   })
 
   it('returns the other side when one is missing', () => {
     const mine = record({ analysis: { markers: [marker('a')] } })
-    expect(mergeStoredAnnotations(mine, null)).toBe(mine)
-    expect(mergeStoredAnnotations(null, mine)).toBe(mine)
+    expect(merge(mine, null)).toBe(mine)
+    expect(merge(null, mine)).toBe(mine)
   })
 
   it('survives a record with sections missing entirely', () => {
     const sparse = { version: 1, savedAt: '2026-09-05T11:00:00.000Z' }
     const mine = record({ analysis: { markers: [marker('a')] } })
 
-    const merged = mergeStoredAnnotations(mine, /** @type {any} */ (sparse))
-    expect(merged.analysis.markers.map(m => m.id)).toEqual(['a'])
+    const merged = merge(mine, /** @type {any} */ (sparse))
+    expect(ids(merged.analysis.markers)).toEqual(['a'])
     expect(merged.sidebands.sidebandSets).toEqual([])
   })
 })

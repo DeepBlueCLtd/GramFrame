@@ -25,7 +25,10 @@ function readSource(relativePath) {
   return readFileSync(fileURLToPath(new URL(`../../${relativePath}`, import.meta.url)), 'utf8')
 }
 
-/** One sample of each feature, to prove the pattern actually matches it. */
+/**
+ * One sample of each feature, to prove the pattern actually matches it.
+ * @type {Record<string, string>}
+ */
 const SAMPLES = {
   'logical assignment (??=)': 'a ??= b',
   'logical assignment (||=)': 'a ||= b',

@@ -22,7 +22,7 @@ const BRACKET_CURSOR = /^url\("data:image\/svg\+xml/
  * The SVG root is deliberately the only element checked: `cursor` is resolved
  * on whatever the pointer hits, and features are drawn over the image, so the
  * root is the one place a value reaches every one of them by inheritance.
- * @param {import('./helpers/gram-frame-page.js').default} gramFramePage - Page object
+ * @param {import('./helpers/gram-frame-page.js').GramFramePage} gramFramePage - Page object
  * @returns {Promise<string>} The inline cursor style
  */
 async function svgCursor(gramFramePage) {

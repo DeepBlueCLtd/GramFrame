@@ -1,5 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
 import {
+
+/// <reference path="../src/types.js" />
   expectValidMetadata,
   expectValidMode
 } from './helpers/state-assertions.js'
@@ -22,7 +24,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     /**
      * Test proper button states during mode switching
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should maintain proper button states during mode switching', async ({ gramFramePage }) => {
@@ -62,7 +64,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     /**
      * Test Doppler marker persistence across mode switches
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should persist Doppler markers across mode switches', async ({ gramFramePage }) => {
@@ -75,7 +77,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.up()
       
       // Store original Doppler state
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
       
       // Skip if no Doppler markers were created
@@ -83,7 +85,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
         return
       }
       
-      /** @type {{fPlus: import('../src/types.js').DataCoordinates, fMinus: import('../src/types.js').DataCoordinates, fZero: import('../src/types.js').DataCoordinates | null}} */
+      /** @type {{fPlus: DataCoordinates, fMinus: DataCoordinates, fZero: DataCoordinates | null}} */
       const originalDoppler = {
         fPlus: { ...state.doppler.fPlus },
         fMinus: { ...state.doppler.fMinus },
@@ -109,7 +111,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     /**
      * Test maintaining all feature types simultaneously
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should maintain all feature types simultaneously', async ({ gramFramePage }) => {
@@ -135,7 +137,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.up()
       
       // Verify all features coexist
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       
       // Check analysis markers
@@ -159,7 +161,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
       for (const mode of modes) {
         await gramFramePage.clickMode(mode)
         
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const currentState = await gramFramePage.getState()
         
         // Verify analysis markers persist
@@ -185,7 +187,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     /**
      * Test Cross Cursor marker visibility in all modes
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should show Cross Cursor markers in all modes', async ({ gramFramePage }) => {
@@ -241,7 +243,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     /**
      * Test keyboard event consistency across modes
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle keyboard events consistently across modes', async ({ gramFramePage }) => {
@@ -259,7 +261,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
         await gramFramePage.page.keyboard.press('ArrowRight')
         
         // Verify state remains valid
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const state = await gramFramePage.getState()
         expectValidMode(state, mode.toLowerCase())
         expectValidMetadata(state)
@@ -280,7 +282,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     /**
      * Test recovery from interrupted operations during mode switch
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should recover from interrupted operations during mode switch', async ({ gramFramePage }) => {
@@ -297,7 +299,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.up()
       
       // Verify system handles this gracefully
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expectValidMode(state, 'doppler')
       expectValidMetadata(state)
@@ -311,7 +313,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     /**
      * Test mode switching during error conditions
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle mode switching during error conditions', async ({ gramFramePage }) => {
@@ -327,14 +329,14 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
         await gramFramePage.clickMode('Cross Cursor')
         
         // Verify system recovers
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const state = await gramFramePage.getState()
         expectValidMode(state, 'analysis')
         expectValidMetadata(state)
         expect(state.analysis.markers).toBeDefined()
       } catch (_error) {
         // Even if errors occur, system should remain in valid state
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const state = await gramFramePage.getState()
         expectValidMetadata(state)
       }
@@ -348,7 +350,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
     /**
      * Test state listener synchronization across mode changes
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should synchronize state listeners across mode changes', async ({ gramFramePage }) => {

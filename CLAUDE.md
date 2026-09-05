@@ -15,8 +15,11 @@ yarn build
 # Run all tests
 yarn test
 
-# Type checking
+# Type checking (src/, tests/helpers, tests/unit, scripts/ — must be zero)
 yarn typecheck
+
+# The Playwright specs, counted as a ratchet by `yarn hygiene`
+yarn typecheck:specs
 ```
 
 ### Test Commands
@@ -92,6 +95,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     loop, the reveal rule, and the time read off a click on the time axis
 - `src/core/` - Core system modules:
   - `state.js` - State management and listeners
+  - `annotationCommit.js` - `commitAnnotationChange`: the one cadence every annotation
+    mutation performs — mark it changed, refresh the panel showing it, re-render the
+    overlay, dispatch (R9-13). A leaf over `state.js`; nothing in `state.js` imports back
   - `events.js` - Mouse/wheel event handling and listener teardown
   - `viewport.js` - Zoom, pan and axis updates
   - `configuration.js` - Config table parsing
@@ -262,6 +268,13 @@ There is no visual/screenshot regression testing — see
 - Rate affects frequency calculations (acts as frequency divider)
 - Axes have configurable margins (left: 60px, bottom: 50px)
 - Harmonics are calculated dynamically during drag interactions
+- `commitAnnotationChange()` in `src/core/state.js` is the cadence every
+  annotation mutation follows — bump the revision, refresh the owning panel,
+  re-render the overlay, dispatch. The caller passes only its own panel
+  refresh, because that is the one part that differs (issue #264)
+- A pin set's spacing floor is `MIN_PIN_SPACING`, and it is the same under the
+  mouse and under the arrow keys. `PinSetMode.nudgeFreqUpdates` is not
+  overridden by a subclass to raise it
 - Every notification goes through `dispatch()` in `src/core/state.js`, which
   coalesces on a microtask by default and at animation-frame cadence for
   pointer/wheel/drag paths; `notifyStateListeners` is not exported to modes and

@@ -1,5 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
 import {
+
+/// <reference path="../src/types.js" />
   expectValidMetadata,
   expectValidMode,
   expectValidConfig,
@@ -31,7 +33,7 @@ const TIME_SPAN = 60
  * enough that its bottom edge can sit below the viewport, and a drag towards a
  * point outside the window leaves the SVG — which correctly cancels the drag,
  * but for reasons that have nothing to do with what is being tested.
- * @param {import('./helpers/gram-frame-page.js').default} gfp - Page helper
+ * @param {import('./helpers/gram-frame-page.js').GramFramePage} gfp - Page helper
  * @returns {Promise<{x: number, y: number, width: number, height: number}>} Client rect
  */
 async function gramRect(gfp) {
@@ -65,10 +67,10 @@ function dataAt(fx, fy) {
 /**
  * Drag out a Doppler curve between two fractions of the gram, and wait for the
  * placement to land.
- * @param {import('./helpers/gram-frame-page.js').default} gfp - Page helper
+ * @param {import('./helpers/gram-frame-page.js').GramFramePage} gfp - Page helper
  * @param {[number, number]} from - Start fraction [across, down]
  * @param {[number, number]} to - End fraction [across, down]
- * @returns {Promise<import('../src/types.js').GramFrameState>} State after placement
+ * @returns {Promise<GramFrameState>} State after placement
  */
 async function placeCurve(gfp, from, to) {
   const rect = await gramRect(gfp)
@@ -86,7 +88,7 @@ async function placeCurve(gfp, from, to) {
 
 /**
  * Drag a rendered Doppler marker by a client-pixel offset.
- * @param {import('./helpers/gram-frame-page.js').default} gfp - Page helper
+ * @param {import('./helpers/gram-frame-page.js').GramFramePage} gfp - Page helper
  * @param {'fPlus'|'fMinus'|'crosshair'} marker - Which marker's element to grab
  * @param {number} dx - Horizontal offset in client px
  * @param {number} dy - Vertical offset in client px

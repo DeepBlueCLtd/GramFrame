@@ -17,7 +17,7 @@ import {
 /** A 1x zoomed 800x400 gram spanning 0-60s and 0-1000Hz, with the usual margins. */
 const viewport = {
   margins: { left: 60, bottom: 50, right: 15, top: 15 },
-  imageDetails: { naturalWidth: 800, naturalHeight: 400, renderWidth: 800, renderHeight: 400 },
+  imageDetails: { url: 'gram.png', naturalWidth: 800, naturalHeight: 400, renderWidth: 800, renderHeight: 400 },
   config: { timeMin: 0, timeMax: 60, freqMin: 0, freqMax: 1000 },
   rate: 1,
   zoom: { level: 1, centerX: 0.5, centerY: 0.5 }

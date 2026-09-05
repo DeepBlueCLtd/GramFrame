@@ -51,7 +51,7 @@ test.describe('Feature 170 — Region zoom', () => {
       const { freqMin, freqMax, timeMin, timeMax } = before.config
       const freqRange = freqMax - freqMin
       const timeRange = timeMax - timeMin
-      const { renderWidth, renderHeight } = before.imageDetails
+      const { renderWidth, renderHeight } = await gfp.renderSize()
 
       // A box from 10% to 58% of the gram on both axes: equal fractions, so the
       // aspect lock has nothing to correct and the drawn box is the box. It
@@ -176,8 +176,9 @@ test.describe('Feature 170 — Region zoom', () => {
 
       const first = await readout.textContent()
       const c = await gfp.imageSVGPoint(0.4, 0.4)
-      await page.mouse.move((await gfp.svg.boundingBox()).x + c.x, (await gfp.svg.boundingBox()).y + c.y)
-      await expect(readout).not.toHaveText(first)
+      const svgBox = await gfp.svgBox()
+      await page.mouse.move(svgBox.x + c.x, svgBox.y + c.y)
+      await expect(readout).not.toHaveText(first || '')
 
       await page.mouse.up()
       await page.keyboard.up('Shift')
@@ -185,8 +186,8 @@ test.describe('Feature 170 — Region zoom', () => {
     })
 
     test('the box keeps the gram’s proportions (AS-3.2, FR-003)', async ({ page }) => {
-      const state = await gfp.getState()
-      const gramAspect = state.imageDetails.renderWidth / state.imageDetails.renderHeight
+      const { renderWidth, renderHeight } = await gfp.renderSize()
+      const gramAspect = renderWidth / renderHeight
 
       // A wide, shallow sweep: the pointer's larger dimension wins.
       const a = await gfp.imageSVGPoint(0.1, 0.5)
@@ -253,7 +254,7 @@ test.describe('Feature 170 — Region zoom', () => {
       await gfp.shiftDragSVG(a.x, a.y, b.x, b.y, { release: false })
       await expect(page.locator(BOX)).toBeVisible()
 
-      const svgBox = await gfp.svg.boundingBox()
+      const svgBox = await gfp.svgBox()
       await page.mouse.move(svgBox.x - 40, svgBox.y - 40)
       await expect(page.locator(BOX)).toHaveCount(0)
 

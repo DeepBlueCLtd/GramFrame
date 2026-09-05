@@ -20,22 +20,41 @@ const BOX = '.gram-frame-region-box'
  * `imageSVGPoint` cannot serve here: a player's image is the whole recording,
  * drawn several times the height of the axes and scrolled, so a fraction of the
  * image element is nowhere near the same fraction of the view.
- * @param {import('@playwright/test').Page} page - Playwright page
- * @param {import('../src/types.js').GramFrameState} state - Current state
+ * @param {GramFramePage} gfp - The page helper
  * @param {number} fx - Fraction across the axes area
  * @param {number} fy - Fraction down the axes area
  * @returns {Promise<{x: number, y: number}>} Point relative to the SVG element
  */
-async function viewPoint(page, state, fx, fy) {
-  const scale = await page.evaluate(() => {
-    const svg = document.querySelector('.gram-frame-svg')
+async function viewPoint(gfp, fx, fy) {
+  const scale = await gfp.page.evaluate(() => {
+    const svg = /** @type {SVGSVGElement|null} */ (document.querySelector('.gram-frame-svg'))
+    if (!svg) {
+      throw new Error('viewPoint: the component is not on the page')
+    }
     return svg.getBoundingClientRect().width / svg.viewBox.baseVal.width
   })
-  const { renderWidth, renderHeight } = state.imageDetails
+  const { margins } = await gfp.getState()
+  const { renderWidth, renderHeight } = await gfp.renderSize()
   return {
-    x: (state.margins.left + fx * renderWidth) * scale,
-    y: (state.margins.top + fy * renderHeight) * scale
+    x: (margins.left + fx * renderWidth) * scale,
+    y: (margins.top + fy * renderHeight) * scale
   }
+}
+
+/**
+ * Move the playhead, so a paused view sits well inside the recording.
+ * @param {import('@playwright/test').Page} page - Playwright page
+ * @param {number} seconds - Where to seek to
+ * @returns {Promise<void>} Resolves once the seek has been issued
+ */
+async function seekTo(page, seconds) {
+  await page.evaluate((to) => {
+    const player = window.GramFrame.getPlayer(0)
+    if (!player) {
+      throw new Error('seekTo: the player is not ready')
+    }
+    player.seek(to)
+  }, seconds)
 }
 
 /**
@@ -58,7 +77,7 @@ async function gotoPlayer(page) {
 test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
   test('the window and the frequency range match the selection (AS-4.1)', async ({ page }) => {
     const gfp = await gotoPlayer(page)
-    await page.evaluate(() => window.GramFrame.getPlayer(0).seek(15))
+    await seekTo(page, 15)
     await gfp.waitForState(s => s.player.viewTop === 15, { message: 'seek to 15 s' })
 
     const before = await gfp.getState()
@@ -66,8 +85,8 @@ test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
     expect(before.zoom.level).toBe(1.0)
 
     // The middle half of the view, vertically and horizontally.
-    const a = await viewPoint(page, before, 0.25, 0.25)
-    const b = await viewPoint(page, before, 0.75, 0.75)
+    const a = await viewPoint(gfp, 0.25, 0.25)
+    const b = await viewPoint(gfp, 0.75, 0.75)
     await gfp.shiftDragSVG(a.x, a.y, b.x, b.y)
 
     const after = await gfp.getState()
@@ -85,13 +104,12 @@ test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
 
   test('no unplayed time is revealed (AS-4.2, FR-013)', async ({ page }) => {
     const gfp = await gotoPlayer(page)
-    await page.evaluate(() => window.GramFrame.getPlayer(0).seek(6))
+    await seekTo(page, 6)
     await gfp.waitForState(s => s.player.viewTop === 6, { message: 'seek to 6 s' })
 
     // Select the top strip of the view — the newest time, right at the playhead.
-    const state = await gfp.getState()
-    const a = await viewPoint(page, state, 0.2, 0.02)
-    const b = await viewPoint(page, state, 0.8, 0.25)
+    const a = await viewPoint(gfp, 0.2, 0.02)
+    const b = await viewPoint(gfp, 0.8, 0.25)
     await gfp.shiftDragSVG(a.x, a.y, b.x, b.y)
 
     const after = await gfp.getState()
@@ -100,7 +118,7 @@ test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
 
   test('Fit returns the configured window, still within what has played (AS-3.3)', async ({ page }) => {
     const gfp = await gotoPlayer(page)
-    await page.evaluate(() => window.GramFrame.getPlayer(0).seek(15))
+    await seekTo(page, 15)
     await gfp.waitForState(s => s.player.viewTop === 15, { message: 'seek to 15 s' })
 
     await gfp.setZoom(4.0, 0.3, 0.5)
@@ -118,8 +136,8 @@ test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
     await gfp.waitForState(s => s.player.playing, { message: 'playback to start' })
 
     const before = await gfp.getState()
-    const a = await viewPoint(page, before, 0.25, 0.3)
-    const b = await viewPoint(page, before, 0.75, 0.8)
+    const a = await viewPoint(gfp, 0.25, 0.3)
+    const b = await viewPoint(gfp, 0.75, 0.8)
     await gfp.shiftDragSVG(a.x, a.y, b.x, b.y)
 
     await expect(page.locator(BOX)).toHaveCount(0)

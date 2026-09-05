@@ -1,5 +1,7 @@
 import { expect } from '@playwright/test'
 
+/// <reference path="../../src/types.js" />
+
 /**
  * Page object model for the GramFrame component
  * Encapsulates interactions with the GramFrame component for testing
@@ -96,7 +98,7 @@ class GramFramePage {
 
   /**
    * Get the current state of the component
-   * @returns {Promise<import('../../src/types.js').GramFrameState>} The parsed state object
+   * @returns {Promise<GramFrameState>} The parsed state object
    */
   async getState() {
     // Notifications are coalesced (spec 166, US4) and the debug page's state
@@ -223,6 +225,9 @@ class GramFramePage {
     return await this.page.evaluate(({ atFracX, atFracY }) => {
       const svg = document.querySelector('.gram-frame-svg')
       const img = document.querySelector('.gram-frame-svg image')
+      if (!svg || !img) {
+        throw new Error('imageSVGPoint: the component is not on the page')
+      }
       const svgRect = svg.getBoundingClientRect()
       const imgRect = img.getBoundingClientRect()
       return {
@@ -278,6 +283,39 @@ class GramFramePage {
   }
 
   /**
+   * The base render size the axes area spans, as plain numbers.
+   *
+   * `imageDetails.renderWidth/renderHeight` default to the image's natural size
+   * and are only set once it has loaded, so state types them as optional. This
+   * resolves the fallback once, where the component does, rather than in every
+   * caller.
+   * @returns {Promise<{renderWidth: number, renderHeight: number}>} Base render size
+   */
+  async renderSize() {
+    const { imageDetails } = await this.getState()
+    return {
+      renderWidth: imageDetails.renderWidth || imageDetails.naturalWidth,
+      renderHeight: imageDetails.renderHeight || imageDetails.naturalHeight
+    }
+  }
+
+  /**
+   * The SVG element's bounding box, asserted present.
+   *
+   * `boundingBox()` is null for an element that is not rendered; every caller
+   * here has already waited for the component, so the null is a broken test
+   * rather than a case to handle.
+   * @returns {Promise<{x: number, y: number, width: number, height: number}>} Bounding box
+   */
+  async svgBox() {
+    const box = await this.svg.boundingBox()
+    if (!box) {
+      throw new Error('svgBox: the component SVG is not rendered')
+    }
+    return box
+  }
+
+  /**
    * The data range currently visible, read off the live image element rather
    * than recomputed from state — the same numbers the axes are drawn from.
    * @returns {Promise<{freqMin: number, freqMax: number, timeMin: number, timeMax: number}>} Visible range
@@ -286,6 +324,9 @@ class GramFramePage {
     const state = await this.getState()
     const box = await this.page.evaluate(() => {
       const image = document.querySelector('.gram-frame-svg image')
+      if (!image) {
+        throw new Error('visibleDataRange: the component is not on the page')
+      }
       return {
         x: Number(image.getAttribute('x')),
         y: Number(image.getAttribute('y')),
@@ -293,9 +334,8 @@ class GramFramePage {
         height: Number(image.getAttribute('height'))
       }
     })
-    const { margins, config, imageDetails } = state
-    const renderWidth = imageDetails.renderWidth || imageDetails.naturalWidth
-    const renderHeight = imageDetails.renderHeight || imageDetails.naturalHeight
+    const { margins, config } = state
+    const { renderWidth, renderHeight } = await this.renderSize()
     const freqRange = config.freqMax - config.freqMin
     const timeRange = config.timeMax - config.timeMin
     return {
@@ -399,7 +439,7 @@ class GramFramePage {
         expect(state).toHaveProperty(key)
         // For nested objects, recursively check properties
         for (const [nestedKey, nestedValue] of Object.entries(value)) {
-          expect(state[key]).toHaveProperty(nestedKey, nestedValue)
+          expect(/** @type {Record<string, any>} */ (state)[key]).toHaveProperty(nestedKey, nestedValue)
         }
       } else {
         expect(state).toHaveProperty(key, value)
@@ -546,7 +586,7 @@ class GramFramePage {
   /**
    * Get the current state from the debug page state display
    * Alias for getState for consistency
-   * @returns {Promise<import('../../src/types.js').GramFrameState>} The parsed state object
+   * @returns {Promise<GramFrameState>} The parsed state object
    */
   async getCurrentState() {
     return this.getState()
@@ -836,10 +876,14 @@ class GramFramePage {
       const rect = svg.getBoundingClientRect()
       const borderLeft = parseFloat(window.getComputedStyle(svg).borderLeftWidth) || 0
       return Array.from(document.querySelectorAll(selector)).map((line) => {
-        const point = svg.createSVGPoint()
+        const point = /** @type {SVGSVGElement} */ (svg).createSVGPoint()
         point.x = Number(line.getAttribute('x1'))
         point.y = Number(line.getAttribute('y1'))
-        const screen = point.matrixTransform(line.getScreenCTM())
+        const ctm = /** @type {SVGGraphicsElement} */ (line).getScreenCTM()
+        if (!ctm) {
+          throw new Error('getHarmonicPinPixels: a pin line is not rendered')
+        }
+        const screen = point.matrixTransform(ctm)
         return {
           harmonic: Number(line.getAttribute('data-harmonic-number')),
           x: screen.x - rect.left - borderLeft
@@ -917,7 +961,9 @@ class GramFramePage {
     const id = await this.page.evaluate(([t, f]) => {
       // @ts-ignore - test-only global
       const instances = window.GramFrame.__test__getInstances()
-      const instance = instances[0]
+      // Mode-specific placement seams are not on `BaseMode`; the test API is
+      // reaching past the abstraction on purpose.
+      const instance = /** @type {any} */ (instances[0])
       instance.modes['analysis'].createMarkerAtPosition({ time: t, freq: f })
       const markers = instance.state.analysis.markers
       return markers[markers.length - 1].id
@@ -925,7 +971,7 @@ class GramFramePage {
     // Return only once the new marker is visible in broadcast state, so callers
     // can read it back immediately.
     await this.waitForState(
-      (state) => (state.analysis?.markers ?? []).some((m) => m.id === id),
+      (state) => (state.analysis?.markers ?? []).some((/** @type {any} */ m) => m.id === id),
       { message: `marker ${id} to appear in state` }
     )
     return id
@@ -941,14 +987,14 @@ class GramFramePage {
     const id = await this.page.evaluate(([time, space]) => {
       // @ts-ignore - test-only global
       const instances = window.GramFrame.__test__getInstances()
-      const instance = instances[0]
+      const instance = /** @type {any} */ (instances[0])
       const set = instance.modes['harmonics'].addHarmonicSet(time, space)
       return set.id
     }, [anchorTime, spacing])
     // Return only once the new set is visible in broadcast state, so callers can
     // read it back immediately.
     await this.waitForState(
-      (state) => (state.harmonics?.harmonicSets ?? []).some((s) => s.id === id),
+      (state) => (state.harmonics?.harmonicSets ?? []).some((/** @type {any} */ s) => s.id === id),
       { message: `harmonic set ${id} to appear in state` }
     )
     return id
@@ -965,11 +1011,11 @@ class GramFramePage {
     const id = await this.page.evaluate(([time, fundamental, space]) => {
       // @ts-ignore - test-only global
       const instances = window.GramFrame.__test__getInstances()
-      const set = instances[0].modes['sideband'].addSidebandSet(time, fundamental, space)
+      const set = /** @type {any} */ (instances[0]).modes['sideband'].addSidebandSet(time, fundamental, space)
       return set.id
     }, [anchorTime, fundamentalFreq, spacing])
     await this.waitForState(
-      (state) => (state.sidebands?.sidebandSets ?? []).some((s) => s.id === id),
+      (state) => (state.sidebands?.sidebandSets ?? []).some((/** @type {any} */ s) => s.id === id),
       { message: `sideband set ${id} to appear in state` }
     )
     return id
@@ -984,7 +1030,7 @@ class GramFramePage {
   async waitForSidebandSetCount(n, opts = {}) {
     await this.waitForState(
       (state) => (state.sidebands?.sidebandSets?.length ?? 0) === n,
-      { ...opts, message: `${n} sideband set(s)` }
+      { ...(typeof opts === 'number' ? { timeout: opts } : opts), message: `${n} sideband set(s)` }
     )
   }
 
@@ -1071,7 +1117,7 @@ class GramFramePage {
 
     const expected = label.trim() === '' ? undefined : label.trim()
     await this.waitForState(
-      (state) => state.analysis.markers.find((m) => m.id === markerId)?.label === expected,
+      (state) => state.analysis.markers.find((/** @type {any} */ m) => m.id === markerId)?.label === expected,
       { message: `marker ${markerId} to carry label ${JSON.stringify(expected)}` }
     )
   }

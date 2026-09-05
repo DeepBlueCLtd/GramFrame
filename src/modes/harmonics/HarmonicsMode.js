@@ -155,20 +155,6 @@ export class HarmonicsMode extends PinSetMode {
   }
 
   /**
-   * Nudging a harmonic set's spacing with the arrow keys.
-   *
-   * The 1 Hz floor is inherited from before the pin machinery was shared: a
-   * harmonic set nudged below it draws so many pins that the keypress is
-   * indistinguishable from a hang, and the analyst has no way back.
-   * @param {PinSet} set - Harmonic set being nudged
-   * @param {number} freqDelta - What the keypress is worth in Hz, signed
-   * @returns {Partial<PinSet>} Spacing update
-   */
-  nudgeFreqUpdates(set, freqDelta) {
-    return { spacing: Math.max(1.0, set.spacing + freqDelta) }
-  }
-
-  /**
    * Get guidance content for harmonics mode
    * @returns {Object} Structured guidance content
    */
