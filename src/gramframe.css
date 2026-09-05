@@ -1153,7 +1153,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-command-btn {
-  padding: 6px 8px;
+  padding: 6px 4px;
   background: linear-gradient(180deg, #5a5a5a 0%, #3a3a3a 50%, #1a1a1a 100%);
   color: #ddd;
   border: 2px solid #444;
@@ -1163,8 +1163,11 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   font-size: 14px;
   line-height: 1;
   flex: 0 0 auto;
-  min-width: 32px;
-  height: 32px;
+  /* Square, and the same height as the mode button beside it: Pan's row holds
+     four controls across the column, so every pixel of width is spoken for and
+     a taller command button made that one row stand proud of the other four. */
+  min-width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1920,3 +1923,86 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   stroke: #aaffaa !important;
 }
 
+/* Region zoom (spec 170) --------------------------------------------------- */
+
+/* While Shift is held over the gram, the cursor advertises that a region
+   selection is available (FR-021). `!important` because the active mode writes
+   `style.cursor` on the same element every mousemove, and an inline value would
+   otherwise win whichever ran last. */
+.gram-frame-svg.gram-frame-region-ready {
+  cursor: zoom-in !important;
+}
+
+/* The gram outside the selection, dimmed so the target region reads as the
+   subject (FR-004). One even-odd-filled path: the outer subpath is the
+   selectable area, the inner one the selection. */
+.gram-frame-region-dim {
+  fill: #000;
+  fill-opacity: 0.45;
+  pointer-events: none;
+}
+
+/* The rubber band itself: a plain white outline, which reads cleanly because
+   everything outside the resulting view is dimmed. */
+.gram-frame-region-box {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+/* What will actually be on screen after the zoom: the selection grown on
+   whichever axis is the looser fit. Dashed and dimmer, so it reads as a
+   consequence of the solid box rather than as a second thing to aim. Hidden
+   when it coincides with the selection. */
+.gram-frame-region-view {
+  fill: none;
+  stroke: #fff;
+  stroke-opacity: 0.65;
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+
+.gram-frame-region-selection {
+  pointer-events: none;
+}
+
+/* Icon buttons (issue #310) ------------------------------------------------ */
+
+/* The glyph inherits the button's colour, so it follows it through hover,
+   active and disabled exactly as a word would. */
+.gram-frame-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  color: inherit;
+  pointer-events: none;
+}
+
+.gram-frame-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A mode button's height comes from its line of text; a glyph is taller than
+   that, so the padding comes back off to keep Pan's row level with the four
+   word rows below it. */
+.gram-frame-mode-btn.gram-frame-icon-btn {
+  padding: 3px 6px;
+}
+
+/* The word an icon stands for: gone from the page, present in the accessibility
+   tree, and still the button's accessible name. */
+.gram-frame-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

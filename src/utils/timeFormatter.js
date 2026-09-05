@@ -2,6 +2,8 @@
  * @fileoverview Time formatting utilities for GramFrame
  */
 
+import { decimalsForInterval } from './axisFormat.js'
+
 /**
  * Formats elapsed time in seconds to mm:ss format
  * @param {number} seconds - The elapsed time in seconds
@@ -57,32 +59,4 @@ export function formatAxisTime(seconds, interval) {
   const secondsText = remainingSeconds.toFixed(decimals).padStart(decimals + 3, '0')
 
   return `${sign}${paddedMinutes}:${secondsText}`
-}
-
-/**
- * How many decimal places a tick interval needs to be written exactly.
- *
- * The question is not "is the interval sub-second" but "can this interval be
- * written at this precision without losing anything". A 2.5 s interval is
- * greater than a second and still needs a decimal place: writing it at whole
- * seconds is exactly the `00:00 00:02 00:05 00:07 00:10` defect, where three
- * of five labels understate their own tick.
- *
- * Capped at three. A millisecond is finer than any gram this component is
- * asked to render, and an unbounded cap would turn a floating-point interval
- * like 0.30000000000000004 into a label nobody can read.
- * @param {number} interval - Spacing between ticks in seconds
- * @returns {number} Decimal places, 0-3
- */
-function decimalsForInterval(interval) {
-  if (!Number.isFinite(interval) || interval <= 0) {
-    return 0
-  }
-  for (let decimals = 0; decimals < 3; decimals++) {
-    const scaled = interval * Math.pow(10, decimals)
-    if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
-      return decimals
-    }
-  }
-  return 3
 }
