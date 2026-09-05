@@ -133,6 +133,11 @@ unaffected by any of these.
 Changing the rate changes the audible pitch (the browser's default); the gram
 is never re-analysed, so the frequency readouts stay true.
 
+The expand toggle (⤡) at the top-left of the gram works as it does on an
+image: it grows the axes area to fill the window, with the transport bar kept
+in view, and shows the most detail the screen allows. Zoom and pan compose
+with it.
+
 From script, `GramFrame.getPlayer(index)` returns the player of the
 `index`-th instance (`null` for an image-backed one) with `play()`, `pause()`,
 `seek(seconds)`, `restart()`, `setLoop()`, `setRate()`, `setVolume()` and

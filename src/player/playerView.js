@@ -16,6 +16,32 @@ import { applyZoomTransform } from '../components/svgLayout.js'
 import { dispatch } from '../core/state.js'
 
 /**
+ * The size an audio-sourced gram is drawn at before any expand or zoom.
+ *
+ * An analysed gram's natural size (bins × frames) is a poor display size — a
+ * few hundred pixels wide and thousands tall — so, unlike an image, it is
+ * always rendered at a fixed landscape axes area. Everything that treats the
+ * natural size as a floor or a resting size (the expand toggle) uses this on
+ * a player instead.
+ */
+export const PLAYER_RENDER_WIDTH = 900
+export const PLAYER_RENDER_HEIGHT = 400
+
+/**
+ * The size the gram rests at: the image's natural size, or on an audio-sourced
+ * instance the fixed player axes area.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {{width: number, height: number}} Base render size
+ */
+export function baseRenderSize(instance) {
+  if (isPlayerActive(instance)) {
+    return { width: PLAYER_RENDER_WIDTH, height: PLAYER_RENDER_HEIGHT }
+  }
+  const { naturalWidth, naturalHeight } = instance.state.imageDetails
+  return { width: naturalWidth, height: naturalHeight }
+}
+
+/**
  * Per-instance follow-loop handles.
  * @type {WeakMap<object, number>}
  */

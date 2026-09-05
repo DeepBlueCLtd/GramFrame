@@ -24,14 +24,8 @@ import { createErrorIndicator } from '../components/ErrorIndicator.js'
 import { createTransportBar } from '../components/TransportBar.js'
 import { dispatch } from '../core/state.js'
 import { createTransport } from './transport.js'
-
-/**
- * The size the gram is drawn at. An analysed gram's natural size (bins ×
- * frames) is a poor display size — a few hundred pixels wide and thousands
- * tall — so unlike an image it is always rendered at a fixed axes area.
- */
-const PLAYER_RENDER_WIDTH = 900
-const PLAYER_RENDER_HEIGHT = 400
+import { PLAYER_RENDER_WIDTH, PLAYER_RENDER_HEIGHT } from './playerView.js'
+import { createExpandToggle } from '../components/ExpandToggle.js'
 
 /**
  * Show progress in the gram area while the recording is prepared (FR-006).
@@ -156,6 +150,11 @@ export async function setupAudioSource(instance) {
     delete instance.ui.mainCell.dataset.gramProgress
 
     updateSVGLayout(instance)
+
+    // The expand toggle, as an image instance mounts it on load: a player's
+    // axes area is landscape whatever shape the analysed gram is, and filling
+    // the window is where the rows are tallest and the detail clearest.
+    createExpandToggle(instance)
 
     // The four calls the constructor makes for an image instance, deferred to
     // here because the storage fingerprint needs the duration (D12).

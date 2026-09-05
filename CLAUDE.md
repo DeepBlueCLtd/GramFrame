@@ -295,6 +295,9 @@ There is no visual/screenshot regression testing — see
   the decoder is ours and playback is the `<audio>` element
 - Annotation restore and the storage-save listener wait for `player.ready`, because
   the storage fingerprint needs the duration
+- The expand toggle is mounted on a player at ready. `ExpandToggle` measures and
+  restores from `baseRenderSize(instance)` (the 900 × 400 player area, not the
+  bins × frames natural size) and leaves room for the transport bar
 
 ### Mode-Specific Features
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
