@@ -11,6 +11,8 @@
 import {
   addGlobalStateListener,
   removeGlobalStateListener,
+  getGlobalStateListeners,
+  clearGlobalStateListeners,
   dispatch,
   flushDispatch
 } from '../core/state.js'
@@ -82,6 +84,38 @@ function attachDebugAPI(api) {
    */
   api.__test__getInstance = function (instanceId) {
     return this._getInstances().find(instance => instance.instanceId === instanceId) || null
+  }
+
+  /**
+   * The live global listener registry, as the running component sees it.
+   *
+   * A test cannot get at this with `await import('/src/core/state.js')` from
+   * the page (R9-27). Once the dev server has processed a hot update it serves
+   * the module to the app with a cache-busting query — `state.js?t=…` — and a
+   * bare specifier then resolves to a *second, distinct* module instance with
+   * its own empty `globalStateListeners` array. The registry the test reads is
+   * not the registry the app writes, so the assertion fails against a warm
+   * `yarn dev` and passes against a cold one: exactly the "a test that fails
+   * once is a bug" trap Testing-Strategy.md warns about.
+   *
+   * Going through the API instead means going through the module graph the
+   * component itself was constructed from, whatever URL that arrived under.
+   * @returns {StateListener[]} A copy of the registered global listeners
+   */
+  api.__test__getGlobalStateListeners = function () {
+    return getGlobalStateListeners()
+  }
+
+  /**
+   * Empty the global listener registry the running component uses.
+   *
+   * Same module-identity reason as `__test__getGlobalStateListeners`: the HMR
+   * accept handler's save/clear/restore cycle can only be exercised against
+   * the app's own registry.
+   * @returns {void}
+   */
+  api.__test__clearGlobalStateListeners = function () {
+    clearGlobalStateListeners()
   }
 }
 

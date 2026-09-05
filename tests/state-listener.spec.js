@@ -363,13 +363,17 @@ test.describe('HMR listener preservation survives the dispatcher (spec 166, T063
 
       // Exactly what the HMR accept handler does: snapshot the global
       // listeners, clear the registry, then restore them.
-      // @ts-ignore - module import in the page
-      const state = await import('/src/core/state.js')
-      const saved = state.getGlobalStateListeners()
-      state.clearGlobalStateListeners()
+      //
+      // Reached through the debug API rather than `await import(...)` (R9-27):
+      // once the dev server has processed a hot update it serves the module to
+      // the app as `state.js?t=…`, and a bare specifier resolves to a second,
+      // distinct module instance whose registry is empty. This test used to
+      // pass against a cold `yarn dev` and fail against a warm one.
+      const saved = window.GramFrame.__test__getGlobalStateListeners()
+      window.GramFrame.__test__clearGlobalStateListeners()
       saved.forEach((l) => window.GramFrame.addStateListener(l))
 
-      const preserved = state.getGlobalStateListeners().length
+      const preserved = window.GramFrame.__test__getGlobalStateListeners().length
 
       // The restored listener still receives notifications through the
       // dispatcher, which is what the batching change could have broken.
@@ -396,13 +400,15 @@ test.describe('One listener registry (spec 167, AS-2.3)', () => {
     const result = await page.evaluate(async () => {
       const listener = () => {}
 
-      // @ts-ignore - module import in the page
-      const state = await import('/src/core/state.js')
+      // The registry the *running component* uses, not a fresh module instance
+      // a bare `import('/src/core/state.js')` would create under a warm dev
+      // server (R9-27).
+      const globals = () => window.GramFrame.__test__getGlobalStateListeners()
       const instances = window.GramFrame.__test__getInstances()
 
       window.GramFrame.addStateListener(listener)
       const afterAdd = {
-        global: state.getGlobalStateListeners().filter((l) => l === listener).length,
+        global: globals().filter((l) => l === listener).length,
         // Instances used to receive a *copy* of every global listener, so this
         // was one per instance. The whole point of the change is that it is 0.
         perInstance: instances.map((i) => i.stateListeners.filter((l) => l === listener).length)
@@ -410,7 +416,7 @@ test.describe('One listener registry (spec 167, AS-2.3)', () => {
 
       const removed = window.GramFrame.removeStateListener(listener)
       const afterRemove = {
-        global: state.getGlobalStateListeners().filter((l) => l === listener).length,
+        global: globals().filter((l) => l === listener).length,
         perInstance: instances.map((i) => i.stateListeners.filter((l) => l === listener).length)
       }
 
