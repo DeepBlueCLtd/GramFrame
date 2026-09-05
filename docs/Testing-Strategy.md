@@ -13,7 +13,7 @@ aspirational.
 | WebKit smoke | Playwright (WebKit) | `npx playwright test --config playwright.smoke.config.ts` | The component initialises and renders in a non-Chromium engine (`tests/smoke/`) |
 | Types | `tsc --noEmit` over JSDoc | `yarn typecheck` | Type errors without a TypeScript build |
 | Lint | ESLint | `yarn lint` | Style and correctness rules |
-| Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports and `waitForTimeout` counts, each capped at a committed baseline that only ever falls |
+| Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports, `waitForTimeout` counts, the instance surface, and module line counts — each capped at a committed baseline that only ever falls |
 
 Playwright is configured in `playwright.config.ts`: it boots the Vite dev
 server and runs `tests/**` except `tests/unit/` and `tests/smoke/`, with

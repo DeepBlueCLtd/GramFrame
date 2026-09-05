@@ -254,6 +254,11 @@ There is no visual/screenshot regression testing — see
 - State is deep-copied before passing to listeners to prevent mutations — once
   per delivery, and not at all when no listener is registered
 - HMR preserves state listeners across hot reloads
+- Module size is a ratchet, not a wish. `hygiene-baseline.json` caps every module
+  currently over the ~350-line SC-004 heuristic at its present size, and anything
+  without a cap must stay under the default — so a new module cannot grow past
+  the line and then be grandfathered in. Shrink one by ten lines or more and
+  `yarn hygiene` asks you to lower its cap in the same PR (issue #265)
 - Build output is unminified for field debugging (`minify: false` in vite.config.js)
 - TypeScript checking with JSDoc annotations (no TypeScript compilation).
   `strict: true` with **no** per-flag disables since spec 167 — `noImplicitAny`,
