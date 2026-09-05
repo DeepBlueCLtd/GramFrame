@@ -49,8 +49,10 @@ jobs:
           mkdir -p _site/demo
           cp dist/gramframe.bundle.js _site/demo/
           cp sample/mock-gram.png _site/demo/
+          cp sample/demo-gram.png _site/demo/
           cp preview-student.html _site/demo/student.html
           cp preview-trainer.html _site/demo/trainer.html
+          cp preview-demo-gram.html _site/demo/demo-gram.html
           # Landing page for /demo/
           cat > _site/demo/index.html << 'LANDING'
           <!DOCTYPE html>
@@ -70,6 +72,7 @@ jobs:
               .badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; color: #fff; }
               .badge-student { background: #0d47a1; }
               .badge-trainer { background: #1b5e20; }
+              .badge-optimised { background: #6a1b9a; }
             </style>
           </head>
           <body>
@@ -83,6 +86,10 @@ jobs:
               <a class="card" href="trainer.html">
                 <h2>Trainer Page <span class="badge badge-trainer">localStorage</span></h2>
                 <p>Annotations persist permanently. Includes "Clear gram" button to reset.</p>
+              </a>
+              <a class="card" href="demo-gram.html">
+                <h2>Optimised Demo Gram <span class="badge badge-optimised">9KB</span></h2>
+                <p>The same component on a purpose-built synthetic gram - 9KB instead of 482KB, with a harmonic stack, sidebands, a Doppler curve and broadband transients drawn in. Cuts the release archive from 561KB to 88KB.</p>
               </a>
             </div>
           </body>
@@ -126,8 +133,10 @@ jobs:
           mkdir -p preview
           cp dist/gramframe.bundle.js preview/
           cp sample/mock-gram.png preview/
+          cp sample/demo-gram.png preview/
           cp preview-student.html preview/student.html
           cp preview-trainer.html preview/trainer.html
+          cp preview-demo-gram.html preview/demo-gram.html
           # Create landing page that links to both demos
           cat > preview/index.html << 'LANDING'
           <!DOCTYPE html>
@@ -147,6 +156,7 @@ jobs:
               .badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; color: #fff; }
               .badge-student { background: #0d47a1; }
               .badge-trainer { background: #1b5e20; }
+              .badge-optimised { background: #6a1b9a; }
             </style>
           </head>
           <body>
@@ -160,6 +170,10 @@ jobs:
               <a class="card" href="trainer.html">
                 <h2>Trainer Page <span class="badge badge-trainer">localStorage</span></h2>
                 <p>Annotations persist permanently. Includes "Clear gram" button to reset.</p>
+              </a>
+              <a class="card" href="demo-gram.html">
+                <h2>Optimised Demo Gram <span class="badge badge-optimised">9KB</span></h2>
+                <p>The same component on a purpose-built synthetic gram - 9KB instead of 482KB, with a harmonic stack, sidebands, a Doppler curve and broadband transients drawn in. Cuts the release archive from 561KB to 88KB.</p>
               </a>
             </div>
           </body>
