@@ -239,41 +239,6 @@ export function markAnnotationsChanged(instance) {
 }
 
 /**
- * Commit an annotation mutation: mark it, refresh what shows it, broadcast it.
- *
- * The cadence every annotation change has to perform -- bump the revision so
- * the storage listener notices, refresh the owning panel or table, re-render
- * the persistent overlay, dispatch -- was copy-pasted at sixteen call sites
- * (R9-13). Four steps repeated by hand is four chances to forget one, and the
- * one that goes missing silently is the revision bump: everything still looks
- * right on screen and nothing is saved.
- *
- * The caller supplies its own panel refresh because that is the only part that
- * genuinely differs -- a markers table, a pin-set panel, or every panel at
- * once. Everything else is fixed.
- *
- * Call it *after* any selection change the mutation implies: panels render the
- * selection, so refreshing before it is set draws the row unselected.
- * @param {GramFrame} instance - GramFrame instance
- * @param {(() => void)|null} [refreshPanel] - Refresh the panel or table showing this feature
- * @param {DispatchOptions} [dispatchOptions] - Passed through to `dispatch`; `{ frame: true }` for a continuous gesture
- * @returns {void}
- */
-export function commitAnnotationChange(instance, refreshPanel = null, dispatchOptions = undefined) {
-  markAnnotationsChanged(instance)
-
-  if (typeof refreshPanel === 'function') {
-    refreshPanel()
-  }
-
-  if (instance.featureRenderer) {
-    instance.featureRenderer.renderAllPersistentFeatures()
-  }
-
-  dispatch(instance, dispatchOptions)
-}
-
-/**
  * This instance's tombstone set, created on first use.
  *
  * Destructured rather than reached into field by field, which keeps the two

@@ -1,5 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
-import { dispatch, markAnnotationsChanged, commitAnnotationChange, recordDeletion } from '../../core/state.js'
+import { dispatch, markAnnotationsChanged, recordDeletion } from '../../core/state.js'
+import { commitAnnotationChange } from '../../core/annotationCommit.js'
 import { createDiffingTable } from '../../components/DiffingTable.js'
 import { showMarkerLabelModal } from '../../components/MarkerLabelModal.js'
 

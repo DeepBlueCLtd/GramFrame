@@ -22,7 +22,8 @@
 /// <reference path="../../types.js" />
 
 import { BaseMode } from '../BaseMode.js'
-import { commitAnnotationChange, recordDeletion } from '../../core/state.js'
+import { recordDeletion } from '../../core/state.js'
+import { commitAnnotationChange } from '../../core/annotationCommit.js'
 import {
   dataToSVG,
   getImageBounds,

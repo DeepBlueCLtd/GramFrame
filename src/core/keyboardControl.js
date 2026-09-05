@@ -7,7 +7,8 @@
 
 /// <reference path="../types.js" />
 
-import { dispatch, markAnnotationsChanged, commitAnnotationChange } from './state.js'
+import { dispatch, markAnnotationsChanged } from './state.js'
+import { commitAnnotationChange } from './annotationCommit.js'
 import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coordinates.js'
 import { isPanelOwner, findPinSetOwner } from '../modes/capabilities.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'

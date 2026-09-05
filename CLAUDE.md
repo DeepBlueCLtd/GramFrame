@@ -91,6 +91,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow loop and the reveal rule
 - `src/core/` - Core system modules:
   - `state.js` - State management and listeners
+  - `annotationCommit.js` - `commitAnnotationChange`: the one cadence every annotation
+    mutation performs — mark it changed, refresh the panel showing it, re-render the
+    overlay, dispatch (R9-13). A leaf over `state.js`; nothing in `state.js` imports back
   - `events.js` - Mouse/wheel event handling and listener teardown
   - `viewport.js` - Zoom, pan and axis updates
   - `configuration.js` - Config table parsing
