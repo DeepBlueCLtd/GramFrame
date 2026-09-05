@@ -123,6 +123,13 @@ jobs:
           echo "📋 Standalone build contents:"
           ls -la dist/
 
+      # The shipped artifact must parse on the floor the runtime guard
+      # advertises; a parse error kills the IIFE before the guard runs (R9-06).
+      - name: Assert the bundle stays within the advertised browser floor
+        run: |
+          echo "🌐 Checking the bundle's syntax floor..."
+          yarn check:bundle-floor
+
       - name: Run tests
         run: |
           echo "🧪 Running tests..."

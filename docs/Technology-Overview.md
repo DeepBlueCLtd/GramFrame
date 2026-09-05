@@ -114,6 +114,14 @@ GramFrame can persist annotations (markers, harmonic sets, Doppler curves) to `l
 
 `yarn build:standalone` produces a single IIFE file (`gramframe.bundle.js`) with CSS inlined. This bundle works over the `file://` protocol without a web server, which is essential for offline or air-gapped deployment scenarios. A single `<script>` tag is all that is needed.
 
+### Browser Floor
+
+Both builds set `build.target` to `chrome${MIN_BROWSER_VERSION}`, derived in `vite.config.js` from the same `REQUIRED_APIS` list `src/core/browserCompatibility.js` derives its "please update your browser" message from — currently Chrome/Edge 86.
+
+Deriving rather than hardcoding matters because the two must not drift. The compatibility guard is written in ES5 so it can *run* on an old engine, but it ships inside the same IIFE as everything else: one piece of syntax the engine cannot parse takes the whole script down before the guard executes, and the analyst gets a blank page with no message — on exactly the machine the guard exists for.
+
+`yarn check:bundle-floor` (`scripts/check-bundle-floor.js`) is the belt to that braces, run in CI after both the PR build and the release build. It scans the built bundle for a known list of post-baseline syntax and APIs, each tagged with the Chrome version that introduced it, and fails on anything above the floor. Raising `MIN_BROWSER_VERSION` relaxes it automatically.
+
 ### Development Server
 
 `yarn dev` starts a Vite dev server with Hot Module Reload. Code changes trigger automatic browser refresh while preserving component state (markers, mode, zoom level). Debug pages (`debug.html`, `debug-trainer.html`) provide live state inspection.
