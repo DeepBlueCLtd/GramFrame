@@ -40,7 +40,7 @@
   - Extend from `f+` and `f-` to the top and bottom of the panel (respectively)
   - Help visually anchor the engagement period
 - **Speed Readout Box**:
-  - Displays computed speed in m/s
+  - Displays computed speed in **knots** — the LED is labelled `Speed (kts)`. The speed is *computed* in m/s and converted for display (`MS_TO_KNOTS = 1.94384`), which is why the state field below is in m/s
   - Updates live during drag operations
 
 ---
@@ -58,7 +58,7 @@ Let:
 - `f+` = frequency at end of engagement
 - `f−` = frequency at start
 - `f₀` = frequency at inflexion (cross-hair position)
-- `c` = speed of sound in water (default: 1500 m/s)
+- `c` = speed of sound in water (1500 m/s, nominal seawater). Nothing in `src/` overrides it, so this is the value behind every reading an analyst sees; it is `DEFAULT_SPEED_OF_SOUND` in `src/utils/doppler.js`
 
 Computed values:
 ```
@@ -80,7 +80,7 @@ type DopplerFit = {
   fPlus: DopplerPoint;
   fMinus: DopplerPoint;
   fZero: DopplerPoint;
-  speed: number;      // in m/s
+  speed: number;      // in m/s — converted to knots only for display
 };
 ```
 
