@@ -127,7 +127,17 @@ test.describe('Story 3 — play: the gram scrolls while the audio is heard', () 
 
   test('AS-3.4: hover readouts stay live during playback', async ({ page }) => {
     const gfp = await gotoAndPlay(page)
-    await gfp.waitForState(s => s.player.playhead > 2, { message: 'two seconds to play' })
+    // The centre of the axes area shows `viewTop - WINDOW/2`, and while playing
+    // `viewTop` is the playhead — so that row is only part of the recording once
+    // more than half a window has played. Waiting for 2s of a 5s window aimed at
+    // -0.5s..0s, before the recording starts, where the component correctly
+    // reports nothing and `cursorPosition` is null: the readout poll then timed
+    // out and the run was called flaky (issue #304). Waiting past WINDOW/2 aims
+    // at a row that exists. The margin covers the playhead advancing between the
+    // wait and the hover.
+    await gfp.waitForState(s => s.player.playhead > WINDOW / 2 + 1, {
+      message: `past half a window (${WINDOW / 2}s), so the centre row exists`
+    })
     // Hover the centre of the axes area: 1500 Hz, and a time inside the window
     const reading = await gfp.readDataAtPixel(MARGINS.left + RENDER.width / 2, MARGINS.top + RENDER.height / 2)
     expect(reading).not.toBeNull()
