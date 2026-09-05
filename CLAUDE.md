@@ -105,7 +105,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `ModeFactory.js` - Mode instantiation factory
   - `analysis/AnalysisMode.js` - Analysis mode with marker persistence
   - `harmonics/HarmonicsMode.js` - Harmonics calculation mode (a `PinSetMode`)
-  - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog
+  - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog. Like
+    `MarkerLabelModal`, built with `createElement` and class-scoped selectors —
+    no page-global ids escape into the host document; Escape is bound on the
+    document so it works wherever the focus is; and closing hands focus back to
+    the button that opened it (issue #260)
   - `sideband/SidebandMode.js` - Sidebands mode: a pin set whose origin the
     analyst places (a `PinSetMode`)
   - `doppler/DopplerMode.js` - Doppler speed calculation mode
