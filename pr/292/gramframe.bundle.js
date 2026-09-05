@@ -6285,13 +6285,14 @@
     }
   }
   const MS_TO_KNOTS = 1.94384;
+  const DEFAULT_SPEED_OF_SOUND = 1500;
   function calculateMidpoint(fPlus, fMinus) {
     return {
       time: (fPlus.time + fMinus.time) / 2,
       freq: (fPlus.freq + fMinus.freq) / 2
     };
   }
-  function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = 1481) {
+  function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound = DEFAULT_SPEED_OF_SOUND) {
     const f0 = fZero ? fZero.freq : calculateMidpoint(fPlus, fMinus).freq;
     const deltaF = (fPlus.freq - fMinus.freq) / 2;
     const speed = speedOfSound / f0 * deltaF;
