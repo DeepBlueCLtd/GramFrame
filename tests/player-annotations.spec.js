@@ -192,7 +192,7 @@ test.describe('Story 4 — pause, annotate, resume', () => {
     expect(sample.x).not.toBeNull()
     const expected = expectedSVG(set.anchorTime, set.spacing, sample.viewTop)
     expect(Math.abs(sample.x - expected.x)).toBeLessThan(1)
-    // The pin is centred on its anchor time
-    expect(Math.abs((sample.y1 + sample.y2) / 2 - expected.y)).toBeLessThan(2)
+    // The pin hangs from its anchor time: its top edge is the anchor (issue #284)
+    expect(Math.abs(sample.y1 - expected.y)).toBeLessThan(2)
   })
 })

@@ -39,7 +39,7 @@ HarmonicSet {
 
 Derived display properties:
 - Line positions: `x = spacing * n` where `n` is constrained to the set of harmonics that will fit on the current image.
-- Line vertical placement: centered on `anchorTime`, limited to 20% of full SVG height
+- Line vertical placement: hangs from `anchorTime` (the top of the line is the anchor, capped by the symbol), limited to 20% of full SVG height
 
 ---
 
