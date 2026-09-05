@@ -11,7 +11,7 @@ import { dispatch, markAnnotationsChanged } from './state.js'
 import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coordinates.js'
 import { isPanelOwner, findPinSetOwner } from '../modes/capabilities.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
-import { registerInstance, unregisterInstance, getFocusedInstance, focusNextInstance, focusPreviousInstance, setFocusedInstance, getRegisteredInstanceCount, clearFocusedInstance, isNodeInsideAnyInstance } from './FocusManager.js'
+import { registerInstance, unregisterInstance, getFocusedInstance, setFocusedInstance, getRegisteredInstanceCount, clearFocusedInstance, isNodeInsideAnyInstance, instanceContaining } from './FocusManager.js'
 import { cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
 import { isPlaying, isPlayerActive } from '../player/playerView.js'
 
@@ -36,6 +36,8 @@ const MOVEMENT_INCREMENTS = {
 let globalKeyboardHandler = null
 /** @type {((event: MouseEvent) => void)|null} */
 let globalMousedownHandler = null
+/** @type {((event: FocusEvent) => void)|null} */
+let globalFocusinHandler = null
 let keyboardHandlerInitialized = false
 
 /**
@@ -58,6 +60,18 @@ export function initializeKeyboardControl(instance) {
       }
     }
     document.addEventListener('mousedown', globalMousedownHandler)
+    // Keyboard focus follows DOM focus (R9-09). The component's own controls
+    // are real buttons and already in the host page's tab order, so tabbing
+    // into a gram is how a keyboard user reaches it — and that should make it
+    // the gram the arrow keys act on, exactly as clicking it does. This is
+    // what replaces the Tab-cycling that used to swallow the key page-wide.
+    globalFocusinHandler = (/** @type {FocusEvent} */ event) => {
+      const owner = instanceContaining(event.target)
+      if (owner) {
+        setFocusedInstance(owner)
+      }
+    }
+    document.addEventListener('focusin', globalFocusinHandler)
     keyboardHandlerInitialized = true
   }
 }
@@ -83,6 +97,10 @@ export function cleanupKeyboardControl(instance) {
     if (globalMousedownHandler) {
       document.removeEventListener('mousedown', globalMousedownHandler)
       globalMousedownHandler = null
+    }
+    if (globalFocusinHandler) {
+      document.removeEventListener('focusin', globalFocusinHandler)
+      globalFocusinHandler = null
     }
     keyboardHandlerInitialized = false
   }
@@ -121,20 +139,23 @@ function handleGlobalKeyboardEvent(event) {
   // Get the currently focused instance
   const focusedInstance = getFocusedInstance()
 
-  // Handle Tab navigation between instances — but only when there is actually
-  // somewhere to cycle to. With one instance, swallowing Tab just breaks the
-  // host page's keyboard navigation (BH-3).
+  // Tab is the host page's, always (R9-09).
+  //
+  // This handler used to consume it whenever two or more instances were
+  // registered and one was focused, cycling a *custom* focus between grams
+  // while DOM focus stayed on <body>. On the two-gram page that meant four
+  // Tabs toggled the highlight between the instances and never reached the
+  // page's next input: the component captured the host's keyboard navigation
+  // until the user clicked elsewhere. The single-instance case was fixed in
+  // August; this is the multi-instance half of BH-3.
+  //
+  // Nothing is lost by letting it through. The component's controls are real
+  // buttons already in the tab order, so Tab walks into a gram, through its
+  // controls and out the other side — and the `focusin` handler above makes
+  // whichever gram the focus lands in the one the arrow keys act on. That is
+  // the behaviour the cycling was approximating, except it now moves DOM focus
+  // too, so a keyboard user can actually reach the controls.
   if (event.key === 'Tab') {
-    if (!focusedInstance || getRegisteredInstanceCount() <= 1) {
-      return // Let Tab work normally for form navigation
-    }
-
-    if (event.shiftKey) {
-      focusPreviousInstance()
-    } else {
-      focusNextInstance()
-    }
-    event.preventDefault()
     return
   }
   if (!focusedInstance) {

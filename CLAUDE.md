@@ -99,7 +99,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     last-writer-wins; deletions travel as tombstones, because a union cannot
     otherwise tell "never had it" from "deleted it" (issue #269)
   - `keyboardControl.js` - Arrow-key control, selection and restyling
-  - `FocusManager.js` - Which instance receives keyboard input
+  - `FocusManager.js` - Which instance receives keyboard input. It follows DOM
+    focus and clicks; Tab is never intercepted, so the host page keeps its own
+    keyboard navigation however many grams are on it (issue #261)
   - `FeatureRenderer.js` - Cross-mode feature rendering
   - `browserCompatibility.js` - Legacy-browser feature detection and warning
   - `initialization/` - `DOMSetup.js`, `UISetup.js`, `EventBindings.js`, `ModeInitialization.js`
