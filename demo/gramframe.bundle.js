@@ -1,6 +1,3 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 (function() {
   // Inject CSS styles
   const style = document.createElement('style');
@@ -4086,7 +4083,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     content.appendChild(createMarkerLabelButton(marker));
     return content;
   }
-  const _AnalysisMode = class _AnalysisMode extends BaseMode {
+  class AnalysisMode extends BaseMode {
+    /**
+     * Base pixel size (width/height) of a marker's symbol mark when it carries a
+     * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
+     * The drawn size is this scaled by the temporary "Large" toggle, so a
+     * marker's symbol tracks the harmonic pins' symbols.
+     * @type {number}
+     */
+    static MARKER_SYMBOL_SIZE = 14;
     /**
      * Initialize AnalysisMode with drag handler
      * @param {GramFrame} instance - GramFrame instance
@@ -4319,7 +4324,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
       markerGroup.setAttribute("class", "gram-frame-analysis-marker");
       markerGroup.setAttribute("data-marker-id", marker.id);
-      const symbolSize = _AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker);
+      const symbolSize = AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker);
       const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color);
       if (symbolMark) {
         symbolMark.setAttribute("class", "gram-frame-marker-symbol");
@@ -4599,16 +4604,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     resetState() {
     }
-  };
-  /**
-   * Base pixel size (width/height) of a marker's symbol mark when it carries a
-   * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
-   * The drawn size is this scaled by the temporary "Large" toggle, so a
-   * marker's symbol tracks the harmonic pins' symbols.
-   * @type {number}
-   */
-  __publicField(_AnalysisMode, "MARKER_SYMBOL_SIZE", 14);
-  let AnalysisMode = _AnalysisMode;
+  }
   const MAX_VISIBLE_PINS = 25;
   const NICE_STEPS = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1e3, 2500, 5e3];
   function countMultiples(minHarmonic, maxHarmonic, step) {
@@ -4635,7 +4631,64 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     return { step, harmonics };
   }
   const MIN_PIN_SPACING = 0.1;
-  const _PinSetMode = class _PinSetMode extends BaseMode {
+  class PinSetMode extends BaseMode {
+    /**
+     * Base pixel size (width/height) of a pin's symbol mark. The effective size is
+     * this scaled by the "Large" symbol-size experiment toggle — use
+     * {@link PinSetMode#symbolSize} rather than reading this directly.
+     * @type {number}
+     */
+    static SYMBOL_SIZE = 10;
+    /**
+     * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
+     *
+     * The resulting height is a fixed pixel length, not a span of time: it is
+     * derived from the viewport's base render size (which tracks expand, not zoom)
+     * rather than from the zoomed image element. Pins therefore keep the same
+     * on-screen height at every zoom level, growing/shrinking only when the
+     * component itself is resized.
+     * @type {number}
+     */
+    static PIN_HEIGHT_RATIO = 0.2;
+    /**
+     * Height (px) of a mini-pin: the stub line drawn under each member of a set
+     * whose full pin is hidden.
+     *
+     * Fixed rather than derived, by design (spec: issue #232). It is half the
+     * height of a "Large" symbol mark (SYMBOL_SIZE * LARGE_SYMBOL_SCALE = 20px),
+     * which is enough to tie each pin to the data beneath it without reinstating
+     * the clutter the pin toggle exists to remove.
+     * @type {number}
+     */
+    static MINI_PIN_HEIGHT = 10;
+    /**
+     * Maximum pin lines rendered per set. At the 0.1 Hz minimum spacing a
+     * standard 0–20 kHz config has 200,000 visible members; drawing an SVG line
+     * for each — rebuilt on every drag frame — locked the browser (BH-2). Past
+     * this cap the drawn lines are a regular sample of the range; well beyond
+     * typical screen widths, adjacent pins merge on screen anyway, so the thinning
+     * is invisible until the set is already a solid block.
+     * @type {number}
+     */
+    static MAX_PIN_LINES = 1e3;
+    /**
+     * Font size (px) of a pin's number label. The plate the label sits on is
+     * sized from it too, so it also fixes how much room the stack leaves above
+     * and below the text (see `utils/labelPlate.js`).
+     * @type {number}
+     */
+    static LABEL_FONT_SIZE = 12;
+    /**
+     * Vertical gap (px) between the edge of the pin label's plate and its symbol.
+     * @type {number}
+     */
+    static LABEL_GAP = 3;
+    /**
+     * Minimum padding (px) kept between the top of a pin's label and the top edge
+     * of the spectrogram image.
+     * @type {number}
+     */
+    static STACK_TOP_PAD = 1;
     /**
      * Wire up the one drag handler both pin-set drags run through.
      *
@@ -4922,7 +4975,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     addSet(geometry) {
       const id = `${this.pinNames.idPrefix}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-      const palette = _PinSetMode.SET_COLORS;
+      const palette = PinSetMode.SET_COLORS;
       const color = this.instance.state.selectedColor || palette[this.sets.length % palette.length];
       const set = (
         /** @type {PinSet} */
@@ -5040,7 +5093,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const labelled = this.labelledIndices(minIndex, maxIndex);
         const pinDrawn = set.showPin !== false;
         const lineFrom = pinDrawn ? lineTop : stack.symbolBottom;
-        const lineTo = lineFrom + (pinDrawn ? lineHeight : _PinSetMode.MINI_PIN_HEIGHT);
+        const lineTo = lineFrom + (pinDrawn ? lineHeight : PinSetMode.MINI_PIN_HEIGHT);
         const tolerance = getUniformTolerance(this.getViewport(), this.instance.ui.spectrogramImage);
         const cursorSVG = dataToSVG(
           { freq, time },
@@ -5115,7 +5168,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     pinLineDimensions(set) {
       const { renderHeight } = getRenderDimensions(this.instance.state);
-      const lineHeight = renderHeight * _PinSetMode.PIN_HEIGHT_RATIO;
+      const lineHeight = renderHeight * PinSetMode.PIN_HEIGHT_RATIO;
       const anchorPoint = { freq: this.freqForIndex(set, 1), time: set.anchorTime };
       const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.ui.spectrogramImage);
       const lineTop = anchorSVG.y;
@@ -5140,7 +5193,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {number} Symbol diameter in px
      */
     symbolSize(set) {
-      return _PinSetMode.SYMBOL_SIZE * resolveSymbolScale(set);
+      return PinSetMode.SYMBOL_SIZE * resolveSymbolScale(set);
     }
     /**
      * Compute the shared vertical layout of a pin's label/symbol stack.
@@ -5164,13 +5217,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      */
     labelStackPositions(lineTop, imageTop, set) {
       const r = this.symbolSize(set) / 2;
-      const gap = _PinSetMode.LABEL_GAP;
-      const plate = labelPlateExtents(_PinSetMode.LABEL_FONT_SIZE);
+      const gap = PinSetMode.LABEL_GAP;
+      const plate = labelPlateExtents(PinSetMode.LABEL_FONT_SIZE);
       const below = labelSitsBelowSymbol(set.symbol);
       let symbolCy = lineTop - r;
       let labelY = below ? symbolCy + r + gap + plate.above : symbolCy - r - gap - plate.below;
       const stackTop = below ? symbolCy - r : labelY - plate.above;
-      const minTop = imageTop + _PinSetMode.STACK_TOP_PAD;
+      const minTop = imageTop + PinSetMode.STACK_TOP_PAD;
       if (stackTop < minTop) {
         const shift = minTop - stackTop;
         symbolCy += shift;
@@ -5203,7 +5256,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const r = this.symbolSize(set) / 2;
       const below = labelSitsBelowSymbol(set.symbol);
       const symbolBottom = symbolCy + r;
-      const plate = labelPlateExtents(_PinSetMode.LABEL_FONT_SIZE);
+      const plate = labelPlateExtents(PinSetMode.LABEL_FONT_SIZE);
       return {
         // The top of the label's plate — unless the label hangs below, in which
         // case the symbol leads the stack.
@@ -5227,7 +5280,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {number} Half-width in SVG pixels
      */
     labelStackHalfWidth(set, index) {
-      const fontSize = _PinSetMode.LABEL_FONT_SIZE;
+      const fontSize = PinSetMode.LABEL_FONT_SIZE;
       const plate = labelPlateRect({
         x: 0,
         y: 0,
@@ -5281,7 +5334,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
      * @returns {SVGLineElement} SVG line element
      */
     createMiniPin(index, set, lineX, top) {
-      const miniPin = this.createPinLine(index, set, lineX, top, _PinSetMode.MINI_PIN_HEIGHT);
+      const miniPin = this.createPinLine(index, set, lineX, top, PinSetMode.MINI_PIN_HEIGHT);
       miniPin.setAttribute("class", this.pinNames.miniPinClass);
       return miniPin;
     }
@@ -5317,7 +5370,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       label.setAttribute("x", String(lineX));
       label.setAttribute("y", String(labelY));
       label.setAttribute("text-anchor", "middle");
-      label.setAttribute("font-size", String(_PinSetMode.LABEL_FONT_SIZE));
+      label.setAttribute("font-size", String(PinSetMode.LABEL_FONT_SIZE));
       label.setAttribute("font-weight", "bold");
       label.setAttribute("font-family", "Arial, sans-serif");
       label.textContent = this.labelTextFor(index);
@@ -5406,7 +5459,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const { symbolCy, labelY } = this.labelStackPositions(lineTop, imageTop, set);
       const pinDrawn = set.showPin !== false;
       const visibleCount = maxIndex - minIndex + 1;
-      const stride = Math.max(1, Math.ceil(visibleCount / _PinSetMode.MAX_PIN_LINES));
+      const stride = Math.max(1, Math.ceil(visibleCount / PinSetMode.MAX_PIN_LINES));
       const miniPinTop = symbolCy + this.symbolSize(set) / 2;
       for (let index = minIndex; index <= maxIndex; index += stride) {
         const lineX = this.pinX(set, index);
@@ -5423,70 +5476,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         this.instance.ui.cursorGroup.appendChild(label);
       });
     }
-  };
-  /**
-   * Base pixel size (width/height) of a pin's symbol mark. The effective size is
-   * this scaled by the "Large" symbol-size experiment toggle — use
-   * {@link PinSetMode#symbolSize} rather than reading this directly.
-   * @type {number}
-   */
-  __publicField(_PinSetMode, "SYMBOL_SIZE", 10);
-  /**
-   * Height of a pin line, as a fraction of the *base* (unzoomed) render height.
-   *
-   * The resulting height is a fixed pixel length, not a span of time: it is
-   * derived from the viewport's base render size (which tracks expand, not zoom)
-   * rather than from the zoomed image element. Pins therefore keep the same
-   * on-screen height at every zoom level, growing/shrinking only when the
-   * component itself is resized.
-   * @type {number}
-   */
-  __publicField(_PinSetMode, "PIN_HEIGHT_RATIO", 0.2);
-  /**
-   * Height (px) of a mini-pin: the stub line drawn under each member of a set
-   * whose full pin is hidden.
-   *
-   * Fixed rather than derived, by design (spec: issue #232). It is half the
-   * height of a "Large" symbol mark (SYMBOL_SIZE * LARGE_SYMBOL_SCALE = 20px),
-   * which is enough to tie each pin to the data beneath it without reinstating
-   * the clutter the pin toggle exists to remove.
-   * @type {number}
-   */
-  __publicField(_PinSetMode, "MINI_PIN_HEIGHT", 10);
-  /**
-   * Maximum pin lines rendered per set. At the 0.1 Hz minimum spacing a
-   * standard 0–20 kHz config has 200,000 visible members; drawing an SVG line
-   * for each — rebuilt on every drag frame — locked the browser (BH-2). Past
-   * this cap the drawn lines are a regular sample of the range; well beyond
-   * typical screen widths, adjacent pins merge on screen anyway, so the thinning
-   * is invisible until the set is already a solid block.
-   * @type {number}
-   */
-  __publicField(_PinSetMode, "MAX_PIN_LINES", 1e3);
-  /**
-   * Font size (px) of a pin's number label. The plate the label sits on is
-   * sized from it too, so it also fixes how much room the stack leaves above
-   * and below the text (see `utils/labelPlate.js`).
-   * @type {number}
-   */
-  __publicField(_PinSetMode, "LABEL_FONT_SIZE", 12);
-  /**
-   * Vertical gap (px) between the edge of the pin label's plate and its symbol.
-   * @type {number}
-   */
-  __publicField(_PinSetMode, "LABEL_GAP", 3);
-  /**
-   * Minimum padding (px) kept between the top of a pin's label and the top edge
-   * of the spectrogram image.
-   * @type {number}
-   */
-  __publicField(_PinSetMode, "STACK_TOP_PAD", 1);
-  /**
-   * Colour palette used when the style panel offers no explicit choice.
-   * @type {string[]}
-   */
-  __publicField(_PinSetMode, "SET_COLORS", ["#ff6b6b", "#2ecc71", "#f39c12", "#9b59b6", "#ffc93c", "#ff9ff3", "#45b7d1", "#e67e22"]);
-  let PinSetMode = _PinSetMode;
+    /**
+     * Colour palette used when the style panel offers no explicit choice.
+     * @type {string[]}
+     */
+    static SET_COLORS = ["#ff6b6b", "#2ecc71", "#f39c12", "#9b59b6", "#ffc93c", "#ff9ff3", "#45b7d1", "#e67e22"];
+  }
   const panelTables$1 = /* @__PURE__ */ new WeakMap();
   function createSymbolSwatch(harmonicSet) {
     return createColorIndicator(harmonicSet.symbol, harmonicSet.color);
@@ -6020,7 +6015,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     table.update(instance.state.sidebands.sidebandSets);
   }
-  const _SidebandMode = class _SidebandMode extends PinSetMode {
+  class SidebandMode extends PinSetMode {
+    /**
+     * Number of sidebands a newly placed set spreads across the frequency axis.
+     *
+     * The seed spacing is the axis span divided by this, so a set dropped in the
+     * middle of the gram shows about this many members — an equal count each side
+     * when the fundamental is central, and more on the roomier side when it is
+     * not. It is only a starting point: the analyst drags a sideband onto the
+     * data immediately afterwards, which is what actually sets the spacing.
+     * @type {number}
+     */
+    static INITIAL_SIDEBAND_COUNT = 8;
     /**
      * Initialize SidebandMode
      * @param {GramFrame} instance - GramFrame instance
@@ -6121,7 +6127,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     createSetTarget(dataCoords) {
       const { freqMin, freqMax } = this.instance.state.config;
       const span = Math.abs(freqMax - freqMin);
-      const initialSpacing = Math.max(span / _SidebandMode.INITIAL_SIDEBAND_COUNT, MIN_PIN_SPACING);
+      const initialSpacing = Math.max(span / SidebandMode.INITIAL_SIDEBAND_COUNT, MIN_PIN_SPACING);
       const sidebandSet = this.addSidebandSet(dataCoords.time, dataCoords.freq, initialSpacing);
       if (!sidebandSet) {
         return null;
@@ -6271,19 +6277,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         }
       };
     }
-  };
-  /**
-   * Number of sidebands a newly placed set spreads across the frequency axis.
-   *
-   * The seed spacing is the axis span divided by this, so a set dropped in the
-   * middle of the gram shows about this many members — an equal count each side
-   * when the fundamental is central, and more on the roomier side when it is
-   * not. It is only a starting point: the analyst drags a sideband onto the
-   * data immediately afterwards, which is what actually sets the spacing.
-   * @type {number}
-   */
-  __publicField(_SidebandMode, "INITIAL_SIDEBAND_COUNT", 8);
-  let SidebandMode = _SidebandMode;
+  }
   const MS_TO_KNOTS = 1.94384;
   function calculateMidpoint(fPlus, fMinus) {
     return {
@@ -8512,83 +8506,83 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   }
   class GramFrame {
     /**
+     * Every DOM element handle this component owns.
+     *
+     * Grouped rather than kept as 28 flat fields (spec 167, US5): they share a
+     * lifetime — built during construction, torn down together — and reading
+     * `instance.ui.svg` says which of the instance's concerns you are reaching
+     * into, where `instance.svg` said only that you were reaching.
+     * @type {GramFrameUI}
+     */
+    ui;
+    /**
+     * Selection, restyling and the transient pointer state behind them.
+     * @type {GramFrameInteraction}
+     */
+    interaction = {
+      setSelection: () => {
+      },
+      clearSelection: () => {
+      },
+      updateSelectionVisuals: () => {
+      },
+      applyColorToSelectedFeature: () => false,
+      applySymbolToSelectedFeature: () => false,
+      applyPinToSelectedFeature: () => false,
+      applyLargeSymbolsToSelectedFeature: () => false,
+      removeHarmonicSet: () => {
+      },
+      removeSidebandSet: () => {
+      },
+      // Replaced by the colour picker when it mounts; a no-op until then, so a
+      // caller arriving early does nothing rather than throwing.
+      syncStyleControls: () => {
+      },
+      _symbolControl: null,
+      _pinControl: null,
+      _largeSymbolsControl: null,
+      _registeredListeners: [],
+      _wheelPanHandler: null,
+      _wheelPanLast: null
+    };
+    /**
+     * How the component watches for size changes.
+     * @type {GramFrameViewport}
+     */
+    viewport = { resizeObserver: null, _boundHandleResize: null };
+    /**
+     * Where this instance's annotations are saved, and under which context.
+     * @type {GramFramePersistence}
+     */
+    persistence = { _storageInstanceIndex: 0, _isTrainerContext: false };
+    // Core properties
+    /** @type {GramFrameState} */
+    state;
+    /** @type {HTMLTableElement} */
+    configTable;
+    /** @type {StateListener[]} */
+    stateListeners;
+    /** @type {string} */
+    instanceId;
+    // Mode system
+    /** @type {Object<string, BaseMode>} */
+    modes;
+    /** @type {BaseMode} */
+    currentMode;
+    /** @type {FeatureRenderer} */
+    featureRenderer;
+    /**
+     * The transport of an audio-sourced instance (spec 168), or null on an
+     * image-backed one. A grouped sub-object like `ui` and `interaction`: the
+     * audio element, its controller and the follow loop share one lifetime.
+     * @type {PlayerController|null}
+     */
+    player = null;
+    /**
      * Creates a new GramFrame instance
      * @param {HTMLTableElement} configTable - Configuration table element to replace
      */
     constructor(configTable) {
-      /**
-       * Every DOM element handle this component owns.
-       *
-       * Grouped rather than kept as 28 flat fields (spec 167, US5): they share a
-       * lifetime — built during construction, torn down together — and reading
-       * `instance.ui.svg` says which of the instance's concerns you are reaching
-       * into, where `instance.svg` said only that you were reaching.
-       * @type {GramFrameUI}
-       */
-      __publicField(this, "ui");
-      /**
-       * Selection, restyling and the transient pointer state behind them.
-       * @type {GramFrameInteraction}
-       */
-      __publicField(this, "interaction", {
-        setSelection: () => {
-        },
-        clearSelection: () => {
-        },
-        updateSelectionVisuals: () => {
-        },
-        applyColorToSelectedFeature: () => false,
-        applySymbolToSelectedFeature: () => false,
-        applyPinToSelectedFeature: () => false,
-        applyLargeSymbolsToSelectedFeature: () => false,
-        removeHarmonicSet: () => {
-        },
-        removeSidebandSet: () => {
-        },
-        // Replaced by the colour picker when it mounts; a no-op until then, so a
-        // caller arriving early does nothing rather than throwing.
-        syncStyleControls: () => {
-        },
-        _symbolControl: null,
-        _pinControl: null,
-        _largeSymbolsControl: null,
-        _registeredListeners: [],
-        _wheelPanHandler: null,
-        _wheelPanLast: null
-      });
-      /**
-       * How the component watches for size changes.
-       * @type {GramFrameViewport}
-       */
-      __publicField(this, "viewport", { resizeObserver: null, _boundHandleResize: null });
-      /**
-       * Where this instance's annotations are saved, and under which context.
-       * @type {GramFramePersistence}
-       */
-      __publicField(this, "persistence", { _storageInstanceIndex: 0, _isTrainerContext: false });
-      // Core properties
-      /** @type {GramFrameState} */
-      __publicField(this, "state");
-      /** @type {HTMLTableElement} */
-      __publicField(this, "configTable");
-      /** @type {StateListener[]} */
-      __publicField(this, "stateListeners");
-      /** @type {string} */
-      __publicField(this, "instanceId");
-      // Mode system
-      /** @type {Object<string, BaseMode>} */
-      __publicField(this, "modes");
-      /** @type {BaseMode} */
-      __publicField(this, "currentMode");
-      /** @type {FeatureRenderer} */
-      __publicField(this, "featureRenderer");
-      /**
-       * The transport of an audio-sourced instance (spec 168), or null on an
-       * image-backed one. A grouped sub-object like `ui` and `interaction`: the
-       * audio element, its controller and the follow loop share one lifetime.
-       * @type {PlayerController|null}
-       */
-      __publicField(this, "player", null);
       this.configTable = configTable;
       if (!isBrowserSupported()) {
         showCompatibilityWarning(configTable);
