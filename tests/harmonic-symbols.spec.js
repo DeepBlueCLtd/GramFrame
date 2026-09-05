@@ -139,8 +139,8 @@ test.describe('US1: Symbols on harmonic pins', () => {
     await gramFramePage.selectSymbol('diamond')
 
     await gramFramePage.page.locator('.gram-frame-manual-button').click()
-    await gramFramePage.page.locator('#harmonic-spacing-input').fill('25')
-    await gramFramePage.page.locator('#add-button').click()
+    await gramFramePage.page.locator('.gram-frame-harmonic-spacing-input').fill('25')
+    await gramFramePage.page.locator('.gram-frame-manual-harmonic-modal .gram-frame-modal-add').click()
     await gramFramePage.waitForHarmonicSetCount(1)
 
     const state = await gramFramePage.getState()

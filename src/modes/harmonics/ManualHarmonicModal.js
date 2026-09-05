@@ -1,4 +1,24 @@
+/**
+ * The manual harmonic-spacing dialog.
+ *
+ * Built with `createElement` and class-scoped selectors, like
+ * `MarkerLabelModal` (R9-08). It used to be the single `innerHTML` template in
+ * the tree, and it injected four page-global ids -- `harmonic-spacing-input`,
+ * `spacing-error`, `cancel-button`, `add-button`. `cancel-button` and
+ * `add-button` in particular are names a host training page could easily use
+ * itself, and a page with two grams had two of each. Ids that generic have no
+ * business escaping a component that is dropped into someone else's document.
+ *
+ * The label wraps its input rather than pointing at one by id, so the
+ * association needs no unique name at all.
+ */
+
+/// <reference path="../../types.js" />
+
 import { calculateVisibleDataRange } from '../../utils/coordinates.js'
+
+/** Smallest spacing the dialog will accept, in Hz. */
+const MIN_MANUAL_SPACING = 0.1
 
 /**
  * Calculate the center of the visible time period based on current zoom state
@@ -20,88 +40,122 @@ function calculateVisibleTimePeriodCenter(state, instance) {
 }
 
 /**
- * Manual Harmonic Modal
- * Extracted from HarmonicsMode.showManualHarmonicModal
+ * Show the manual harmonic-spacing dialog.
  *
+ * Self-closing: it removes itself on Add, Cancel, Escape, or a click on the
+ * backdrop, and returns focus to whatever opened it.
  * @param {GramFrameState} state - Current harmonics mode state
  * @param {Function} addHarmonicSet - Function to add a harmonic set (anchorTime, spacing)
  * @param {GramFrame} instance - GramFrame instance for accessing zoom state
+ * @returns {HTMLDivElement} The overlay element, for callers that need to dismiss it
  */
 export function showManualHarmonicModal(state, addHarmonicSet, instance) {
-  // Create modal overlay
   const overlay = document.createElement('div')
-  overlay.className = 'gram-frame-modal-overlay'
+  overlay.className = 'gram-frame-modal-overlay gram-frame-manual-harmonic-modal'
 
-  // Create modal dialog
   const modal = document.createElement('div')
   modal.className = 'gram-frame-modal'
 
-  // Create modal content
-  modal.innerHTML = `
-    <div class="gram-frame-modal-header">
-      <h3>Add Manual Harmonics</h3>
-    </div>
-    <div class="gram-frame-modal-body">
-      <label for="harmonic-spacing-input">Harmonic spacing (Hz):</label>
-      <input type="number" id="harmonic-spacing-input" min="0.1" step="0.1" placeholder="Enter spacing in Hz">
-      <div class="gram-frame-modal-error" id="spacing-error" style="display: none; color: red; font-size: 12px; margin-top: 5px;">
-        Please enter a number ≥ 0.1
-      </div>
-    </div>
-    <div class="gram-frame-modal-footer">
-      <button class="gram-frame-modal-cancel" id="cancel-button">Cancel</button>
-      <button class="gram-frame-modal-add" id="add-button" disabled>Add</button>
-    </div>
-  `
+  const header = document.createElement('div')
+  header.className = 'gram-frame-modal-header'
+  const heading = document.createElement('h3')
+  heading.textContent = 'Add Manual Harmonics'
+  header.appendChild(heading)
 
+  const body = document.createElement('div')
+  body.className = 'gram-frame-modal-body'
+  const inputGroup = document.createElement('div')
+  inputGroup.className = 'gram-frame-modal-input-group'
+
+  // The label wraps the input, so the two are associated without an id that
+  // could collide with the host page's own.
+  const inputLabel = document.createElement('label')
+  inputLabel.appendChild(document.createTextNode('Harmonic spacing (Hz):'))
+
+  const spacingInput = document.createElement('input')
+  spacingInput.type = 'number'
+  spacingInput.className = 'gram-frame-harmonic-spacing-input'
+  spacingInput.min = String(MIN_MANUAL_SPACING)
+  spacingInput.step = String(MIN_MANUAL_SPACING)
+  spacingInput.placeholder = 'Enter spacing in Hz'
+  inputLabel.appendChild(spacingInput)
+
+  const errorDiv = document.createElement('div')
+  errorDiv.className = 'gram-frame-modal-error gram-frame-spacing-error'
+  errorDiv.style.display = 'none'
+  errorDiv.textContent = `Please enter a number ≥ ${MIN_MANUAL_SPACING}`
+
+  inputGroup.appendChild(inputLabel)
+  inputGroup.appendChild(errorDiv)
+  body.appendChild(inputGroup)
+
+  const footer = document.createElement('div')
+  footer.className = 'gram-frame-modal-footer'
+  const cancelButton = document.createElement('button')
+  cancelButton.type = 'button'
+  cancelButton.className = 'gram-frame-modal-btn gram-frame-modal-cancel'
+  cancelButton.textContent = 'Cancel'
+  const addButton = document.createElement('button')
+  addButton.type = 'button'
+  addButton.className = 'gram-frame-modal-btn gram-frame-modal-add'
+  addButton.textContent = 'Add'
+  addButton.disabled = true
+  footer.appendChild(cancelButton)
+  footer.appendChild(addButton)
+
+  modal.appendChild(header)
+  modal.appendChild(body)
+  modal.appendChild(footer)
   overlay.appendChild(modal)
+
+  // Remembered before the dialog steals focus, so it can be given back.
+  const opener = /** @type {HTMLElement|null} */ (document.activeElement)
+
   document.body.appendChild(overlay)
 
-  // Get modal elements
-  const spacingInput = /** @type {HTMLInputElement} */ (modal.querySelector('#harmonic-spacing-input'))
-  const errorDiv = /** @type {HTMLDivElement} */ (modal.querySelector('#spacing-error'))
-  const cancelButton = /** @type {HTMLButtonElement} */ (modal.querySelector('#cancel-button'))
-  const addButton = /** @type {HTMLButtonElement} */ (modal.querySelector('#add-button'))
-
-  // Input validation
+  /**
+   * Enable Add only for a spacing the harmonic machinery can actually draw,
+   * and say why when it cannot.
+   */
   const validateInput = () => {
     const value = parseFloat(spacingInput.value)
-    const isValid = !isNaN(value) && value >= 0.1
+    const isValid = !isNaN(value) && value >= MIN_MANUAL_SPACING
 
     if (spacingInput.value.trim() === '') {
-      // Empty input - hide error, disable button
       errorDiv.style.display = 'none'
       addButton.disabled = true
     } else if (!isValid) {
-      // Invalid input - show error, disable button
       errorDiv.style.display = 'block'
       addButton.disabled = true
     } else {
-      // Valid input - hide error, enable button
       errorDiv.style.display = 'none'
       addButton.disabled = false
     }
   }
 
-  // Add input event listeners
-  spacingInput.addEventListener('input', validateInput)
-  spacingInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !addButton.disabled) {
-      addHarmonic()
-    } else if (e.key === 'Escape') {
-      closeModal()
-    }
-  })
-
-  // Close modal function
+  /**
+   * Remove the dialog and hand focus back to whatever opened it.
+   *
+   * Without the restore, `document.activeElement` was left on `<body>` after
+   * every Save or Cancel, so a keyboard user was returned to the top of the
+   * document rather than to the button they pressed (R9-08).
+   */
   function closeModal() {
-    document.body.removeChild(overlay)
+    document.removeEventListener('keydown', onDocumentKeydown, true)
+    if (overlay.parentNode) {
+      overlay.parentNode.removeChild(overlay)
+    }
+    if (opener && typeof opener.focus === 'function' && opener.isConnected) {
+      opener.focus()
+    }
   }
 
-  // Add harmonic function
+  /**
+   * Commit the entered spacing and close.
+   */
   function addHarmonic() {
     const spacing = parseFloat(spacingInput.value)
-    if (!isNaN(spacing) && spacing >= 0.1) {
+    if (!isNaN(spacing) && spacing >= MIN_MANUAL_SPACING) {
       // Determine anchor time: use cursor position if available, otherwise center of visible time period
       let anchorTime
       if (state.cursorPosition) {
@@ -115,7 +169,32 @@ export function showManualHarmonicModal(state, addHarmonicSet, instance) {
     }
   }
 
-  // Event listeners
+  /**
+   * Escape closes the dialog wherever the focus happens to be.
+   *
+   * Bound on the document, in the capture phase, rather than on the input:
+   * Escape used to work only while the text field had focus, so tabbing to
+   * Cancel and pressing it left the dialog open with no way out but the mouse.
+   * The listener is removed on close, and the event is stopped so it cannot
+   * also reach the component's own document-level key handling.
+   * @param {KeyboardEvent} e - The key event
+   */
+  function onDocumentKeydown(e) {
+    if (e.key === 'Escape') {
+      e.stopPropagation()
+      e.preventDefault()
+      closeModal()
+    }
+  }
+
+  spacingInput.addEventListener('input', validateInput)
+  spacingInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !addButton.disabled) {
+      addHarmonic()
+    }
+  })
+  document.addEventListener('keydown', onDocumentKeydown, true)
+
   cancelButton.addEventListener('click', closeModal)
   addButton.addEventListener('click', addHarmonic)
   overlay.addEventListener('click', (e) => {
@@ -124,6 +203,7 @@ export function showManualHarmonicModal(state, addHarmonicSet, instance) {
     }
   })
 
-  // Focus the input
   spacingInput.focus()
+
+  return overlay
 }
