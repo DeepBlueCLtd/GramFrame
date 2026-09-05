@@ -225,6 +225,28 @@ Some data survives **mode switches** within a single session:
 
 Anything other than `none` or `restored` means the analyst is looking at a gram that does not show what they saved, so `_restoreAnnotations()` routes `describeLoadOutcome()`'s sentence through the same `showStorageWarning` banner a failed *save* raises (R9-01). Before this, a refusal produced an empty gram and a console line — and the next save overwrote the record for good.
 
+### Two Tabs on the Same Gram
+
+Saving is read-merge-write, not write (issue #269). Each save re-reads the stored record and merges this tab's annotations into it, so a second tab's work is never overwritten. A `storage` listener adopts the other direction: when another tab saves, this one merges the incoming record into live state and re-renders, so both screens converge without a reload.
+
+The two halves are independent on purpose. The merge on save is authoritative — it holds even if the event never arrives, which is what makes the *data* safe. The listener is what makes it *visible*.
+
+The merge rules, and what each costs:
+
+| Rule | Consequence |
+|---|---|
+| Union by id | A feature either tab holds survives — the point of merging at all |
+| A tombstone is unconditional | A feature one tab deleted stays deleted, even if the other edited it concurrently. That edit is lost; resurrecting a feature because someone recoloured it elsewhere is the more surprising outcome |
+| A feature both tabs changed resolves to the more recently saved record's version, **whole** | No half-and-half features. Field-level merging would need per-field times the format does not carry |
+| The doppler curve is one object | Last-writer-wins as a whole; a tombstone from either side clears it |
+
+Deletions are recorded as **tombstones** (`state.tombstones`, persisted in the record) because "I never had it" and "I deleted it" are otherwise the same state, and a union would resurrect everything either tab ever removed. They are pruned after seven days — far longer than any plausible tab lifetime.
+
+Two consequences worth knowing:
+
+- **"Clear gram" leaves a tombstone-only record**, rather than removing the key. It has to: a second tab holding those annotations would otherwise merge them back on its next save and silently undo the clear. The record contains no annotations, only the ids of what was removed.
+- A record written before merging existed carries no tombstones and merges as having deleted nothing, which is true of it.
+
 ### Configuration Is Read-Only
 
 Config values (`timeMin`, `timeMax`, `freqMin`, `freqMax`) are parsed once from the HTML table during initialization and never change afterward. The image URL is similarly fixed.

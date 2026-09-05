@@ -13,6 +13,8 @@ import {
   dispatch,
   flushDispatch,
   markAnnotationsChanged,
+  recordDeletion,
+  recordDopplerDeletion,
   getGlobalStateListeners,
   clearGlobalStateListeners
 } from './core/state.js'
@@ -56,6 +58,9 @@ import {
   saveAnnotations,
   loadAnnotations,
   describeLoadOutcome,
+  buildStorageKey,
+  snapshotAnnotations,
+  mergeForeignRecord,
   clearAnnotations,
   describeUserContext,
   loadPinPreference,
@@ -131,7 +136,7 @@ export class GramFrame {
    * Where this instance's annotations are saved, and under which context.
    * @type {GramFramePersistence}
    */
-  persistence = { _storageInstanceIndex: 0, _isTrainerContext: false };
+  persistence = { _storageInstanceIndex: 0, _isTrainerContext: false, _crossTabHandler: null };
 
   // Core properties
   /** @type {GramFrameState} */
@@ -317,6 +322,9 @@ export class GramFrame {
 
       // Register storage save listener
       this._setupStorageSaveListener()
+
+      // ...and the listener that notices another tab saving (issue #269)
+      this._setupCrossTabListener()
     }
 
     // Final state notification
@@ -398,6 +406,14 @@ export class GramFrame {
     // mode and session-level style choices — is preserved. `drag` is not
     // touched: the engine owns it and the cancel loop above has already
     // republished it idle.
+    // Tombstone everything before it goes, so "Clear gram" reaches another tab
+    // too. Without this a second tab holding the same annotations would merge
+    // them straight back in on its next save (issue #269).
+    ;(this.state.analysis?.markers || []).forEach(marker => recordDeletion(this, 'markers', marker.id))
+    ;(this.state.harmonics?.harmonicSets || []).forEach(set => recordDeletion(this, 'harmonicSets', set.id))
+    ;(this.state.sidebands?.sidebandSets || []).forEach(set => recordDeletion(this, 'sidebandSets', set.id))
+    recordDopplerDeletion(this)
+
     const fresh = createInitialState(ModeFactory.getModeInitialStates())
     this.state.analysis = fresh.analysis
     this.state.harmonics = fresh.harmonics
@@ -476,6 +492,12 @@ export class GramFrame {
 
     markAnnotationsChanged(this)
 
+    // Adopt the record's tombstones, so deletions made in an earlier session
+    // are still deletions and this tab does not merge them back (issue #269).
+    if (saved.tombstones) {
+      this.state.tombstones = saved.tombstones
+    }
+
     // Merge analysis markers. Legacy records (persisted before feature 161)
     // have no `symbol`; default those to 'cross' (the symbol-less crosshair).
     if (saved.analysis && Array.isArray(saved.analysis.markers)) {
@@ -517,19 +539,148 @@ export class GramFrame {
         this.state.doppler.color = saved.doppler.color
       }
 
-      // Speed is derived, not persisted, so recompute it here: nothing else on
-      // the load path does, and a restored curve otherwise read 0.0 until a
-      // marker was nudged (BH-15). Guarded against f₀ = 0, which divides to
-      // Infinity (BH-8).
-      const { fPlus, fMinus, fZero } = this.state.doppler
-      if (fPlus && fMinus && fZero) {
-        const speed = calculateDopplerSpeed(fPlus, fMinus, fZero)
-        this.state.doppler.speed = Number.isFinite(speed) ? speed : null
-        if (this.ui.speedLED && this.state.doppler.speed !== null) {
-          setLEDValue(this.ui.speedLED, (this.state.doppler.speed * MS_TO_KNOTS).toFixed(1))
-        }
-      }
+      this._refreshDopplerSpeed()
     }
+  }
+
+  /**
+   * Recompute the doppler speed from the curve now in state, and show it.
+   *
+   * Speed is derived, not persisted, so every path that puts a curve into
+   * state without a drag has to do this: a restored curve otherwise read 0.0
+   * until a marker was nudged (BH-15). Guarded against f₀ = 0, which divides
+   * to Infinity (BH-8). Shared by the restore path and the cross-tab merge,
+   * which have exactly the same problem.
+   * @returns {void}
+   */
+  _refreshDopplerSpeed() {
+    const { fPlus, fMinus, fZero } = this.state.doppler
+    if (!fPlus || !fMinus || !fZero) {
+      this.state.doppler.speed = null
+      return
+    }
+    const speed = calculateDopplerSpeed(fPlus, fMinus, fZero)
+    this.state.doppler.speed = Number.isFinite(speed) ? speed : null
+    if (this.ui.speedLED && this.state.doppler.speed !== null) {
+      setLEDValue(this.ui.speedLED, (this.state.doppler.speed * MS_TO_KNOTS).toFixed(1))
+    }
+  }
+
+  /**
+   * Adopt another tab's save into this tab, live.
+   *
+   * The `storage` event fires in every *other* tab of the origin when one
+   * writes, so this is how the tab that did not save learns about it. Without
+   * it, merging on save would still keep both tabs' work in the record -- the
+   * data would be safe -- but each screen would show only its own half until
+   * someone reloaded, which reads exactly like the loss it replaced.
+   *
+   * The merge itself is the same one the save path uses, so the two cannot
+   * disagree about what a union means. What arrives is treated as another
+   * tab's record, not as authority: a foreign gram, an unreadable payload or a
+   * different schema version is ignored here for the same reasons the load
+   * path refuses it.
+   * @returns {void}
+   */
+  _setupCrossTabListener() {
+    const key = buildStorageKey(this.persistence._storageInstanceIndex)
+
+    /** @param {StorageEvent} event - The other tab's write */
+    const onStorage = (event) => {
+      // `key === null` is a `clear()`, which this component never issues and
+      // whose meaning for one gram is ambiguous. Left alone deliberately.
+      if (!event.key || event.key !== key || !event.newValue) {
+        return
+      }
+      this._adoptForeignRecord(event.newValue)
+    }
+
+    window.addEventListener('storage', onStorage)
+    this.persistence._crossTabHandler = onStorage
+  }
+
+  /**
+   * Merge a record another tab just wrote into this tab's live state.
+   * @param {string} raw - The record as stored
+   * @returns {boolean} True if anything changed on screen
+   */
+  _adoptForeignRecord(raw) {
+    const merged = mergeForeignRecord(raw, this.state)
+    if (!merged) {
+      return false
+    }
+
+    // Compared through the stored shape rather than the live one: it is the
+    // shape the merge speaks, and it leaves out the derived and transient
+    // fields (speed, drag bookkeeping) that would make every event look like a
+    // change.
+    const before = JSON.stringify(snapshotAnnotations(this.state))
+    this._applyMergedAnnotations(merged)
+    if (JSON.stringify(snapshotAnnotations(this.state)) === before) {
+      return false
+    }
+
+    // A selection can be left pointing at something the other tab deleted.
+    if (this.state.selection && this.state.selection.selectedId && !this._selectionStillExists()) {
+      this.interaction.clearSelection()
+    }
+
+    markAnnotationsChanged(this)
+    updatePersistentPanels(this)
+    if (this.featureRenderer) {
+      this.featureRenderer.renderAllPersistentFeatures()
+    }
+    dispatch(this)
+    return true
+  }
+
+  /**
+   * Replace this instance's annotations with a merged record's.
+   * @param {StoredAnnotations} merged - The merged record
+   * @returns {void}
+   */
+  _applyMergedAnnotations(merged) {
+    this.state.analysis.markers = (merged.analysis?.markers || []).map(m => ({
+      ...m,
+      symbol: m.symbol || 'cross'
+    }))
+    this.state.harmonics.harmonicSets = (merged.harmonics?.harmonicSets || []).map(hs => ({
+      ...hs,
+      symbol: hs.symbol || 'cross',
+      showPin: hs.showPin !== false
+    }))
+    this.state.sidebands.sidebandSets = (merged.sidebands?.sidebandSets || []).map(sb => ({
+      ...sb,
+      symbol: sb.symbol || 'cross',
+      showPin: sb.showPin !== false
+    }))
+    const doppler = merged.doppler || { fPlus: null, fMinus: null, fZero: null, color: null }
+    this.state.doppler.fPlus = doppler.fPlus || null
+    this.state.doppler.fMinus = doppler.fMinus || null
+    this.state.doppler.fZero = doppler.fZero || null
+    this.state.doppler.color = doppler.color || null
+    this._refreshDopplerSpeed()
+    if (merged.tombstones) {
+      this.state.tombstones = merged.tombstones
+    }
+  }
+
+  /**
+   * Whether the current selection still names a feature that exists.
+   * @returns {boolean} True when the selection is still valid
+   */
+  _selectionStillExists() {
+    const { selectedType, selectedId } = this.state.selection || {}
+    if (!selectedType || !selectedId) {
+      return true
+    }
+    /** @type {Array<{id: string}>} */
+    const family = selectedType === 'marker'
+      ? (this.state.analysis.markers || [])
+      : selectedType === 'harmonicSet'
+        ? (this.state.harmonics.harmonicSets || [])
+        : (this.state.sidebands.sidebandSets || [])
+    return family.some(feature => feature.id === selectedId)
   }
 
   /**
@@ -639,6 +790,11 @@ export class GramFrame {
 
     cleanupEventListeners(this)
     cleanupKeyboardControl(this)
+
+    if (this.persistence._crossTabHandler) {
+      window.removeEventListener('storage', this.persistence._crossTabHandler)
+      this.persistence._crossTabHandler = null
+    }
 
     // Stop the audio and its follow loop before the DOM goes (spec 168)
     if (this.player) {

@@ -434,9 +434,25 @@ test.describe('US3: Clear gram button', () => {
     // Verify the markers table above the gram is also cleared (not just the SVG)
     expect(await markerRows.count()).toBe(0)
 
-    // Verify storage is cleared
-    const keys = await gfp.getStorageKeys('local')
-    expect(keys.length).toBe(0)
+    // Verify storage holds no annotations.
+    //
+    // Not "no key": clearing now leaves a record that is nothing but
+    // tombstones (issue #269). It has to. Another tab holding the same
+    // annotations would otherwise merge them straight back in on its next
+    // save, and the clear would silently undo itself. What the trainer asked
+    // for — that none of their work is in storage — is what is asserted here.
+    const record = await page.evaluate(() => {
+      const raw = localStorage.getItem('gramframe::' + window.location.pathname)
+      return raw ? JSON.parse(raw) : null
+    })
+    if (record) {
+      expect(record.analysis.markers).toEqual([])
+      expect(record.harmonics.harmonicSets).toEqual([])
+      expect(record.sidebands?.sidebandSets ?? []).toEqual([])
+      expect(record.doppler.fPlus).toBeNull()
+      expect(Object.keys(record.tombstones.markers).length).toBeGreaterThan(0)
+    }
+    void gfp
   })
 
   // T021

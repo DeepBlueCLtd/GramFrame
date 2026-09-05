@@ -94,7 +94,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `events.js` - Mouse/wheel event handling and listener teardown
   - `viewport.js` - Zoom, pan and axis updates
   - `configuration.js` - Config table parsing
-  - `storage.js` - Annotation persistence (local/sessionStorage)
+  - `storage.js` - Annotation persistence (local/sessionStorage). Saving is
+    read-merge-write, so two tabs on one gram are additive rather than
+    last-writer-wins; deletions travel as tombstones, because a union cannot
+    otherwise tell "never had it" from "deleted it" (issue #269)
   - `keyboardControl.js` - Arrow-key control, selection and restyling
   - `FocusManager.js` - Which instance receives keyboard input
   - `FeatureRenderer.js` - Cross-mode feature rendering

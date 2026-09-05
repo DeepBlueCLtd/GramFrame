@@ -49,6 +49,15 @@ const FROZEN_INITIAL_STATE = {
   cursorPosition: null,
   cursors: [],
   annotationRevision: 0,
+  // Added by the multi-tab merge (issue #269). The constant is otherwise the
+  // shape frozen before the registration seam landed; a core key added since
+  // is recorded here with why, rather than left to make the comparison fail.
+  tombstones: {
+    markers: {},
+    harmonicSets: {},
+    sidebandSets: {},
+    doppler: null
+  },
   imageDetails: {
     url: '',
     naturalWidth: 0,
