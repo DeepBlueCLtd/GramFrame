@@ -2166,18 +2166,15 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       console.warn("GramFrame: No config table provided for configuration extraction");
       return;
     }
-    try {
-      const imgElement = instance.configTable.querySelector("img");
-      if (!imgElement) {
-        throw new Error("No image element found in config table");
-      }
-      if (!imgElement.src) {
-        throw new Error("Image element has no src attribute");
-      }
-      instance.state.imageDetails.url = imgElement.src;
-    } catch (error) {
-      console.error("GramFrame: Error setting up image:", error instanceof Error ? error.message : String(error));
+    const imgElement = instance.configTable.querySelector("img");
+    if (!imgElement) {
+      throw new Error("No image element found in config table: the first row must contain an <img> with the spectrogram");
     }
+    const srcAttribute = imgElement.getAttribute("src");
+    if (!srcAttribute || !srcAttribute.trim()) {
+      throw new Error("Image element has no src attribute: the spectrogram <img> must point at an image");
+    }
+    instance.state.imageDetails.url = imgElement.src;
     try {
       const rows = instance.configTable.querySelectorAll("tr");
       let timeStart = null;
