@@ -16,10 +16,10 @@ The release workflow (`.github/workflows/release.yml`) is triggered when you pus
 2. **Build Process**: Runs typecheck, installs dependencies, and builds the project
 3. **Testing**: Executes the full test suite to ensure quality
 4. **Asset Bundling**: Creates a release archive with:
-   - Built `dist/` folder with compiled assets
-   - Sample `index.html` for testing
-   - Mock spectrogram image (`mock-gram.png`)
-   - `VERIFY.md` guide for release verification
+   - The standalone bundle (`gramframe.bundle.js`) — the only build users need
+   - Sample `index.html` for testing (a copy of `test-release.html`)
+   - Synthetic demo spectrogram (`demo-gram.png`)
+   - Generated `README.md` quick-start guide
 5. **Release Creation**: Automatically generates release notes and creates GitHub release
 6. **Notification**: Sends completion status via ntfy
 
@@ -82,13 +82,28 @@ git push origin v1.0.0
 
 ## Release Assets
 
-Each release includes a compressed archive (`gramframe-{version}.tar.gz`) containing:
+Each release includes a compressed archive (`gramframe-{version}.zip`, ~88KB) containing:
 
 ### Component Files
-- **`gramframe.bundle.js`** - Complete standalone component (~185KB, file:// protocol compatible)
+- **`gramframe.bundle.js`** - Complete standalone component (~347KB unminified per
+  [ADR-010](ADRs/ADR-010-Unminified-Production-Build.md); ~78KB once deflated into the archive)
 - **`index.html`** - Ready-to-use HTML sample page
-- **`mock-gram.png`** - Test spectrogram image for verification
+- **`demo-gram.png`** - Synthetic demo spectrogram (~9KB) for verification
 - **`README.md`** - Usage guide with integration examples
+
+### Why the demo gram is synthetic
+
+The archive was 561KB, 86% of which was `sample/mock-gram.png` — a 482KB
+photographic image included solely so the demo page rendered. A zip cannot
+compress a PNG, so it was the whole download. `sample/demo-gram.png` is drawn
+instead: a harmonic stack, a carrier with sidebands, a Doppler curve, isolated
+tonals and broadband transients, so the demo exercises every mode in ~9KB. It
+is generated once by `scripts/make-demo-gram.js` and committed — that script is
+not part of any build. Run it by hand and commit the new PNG if the demo needs
+to change.
+
+The release workflow fails if the archive exceeds 150,000 bytes, so a large
+asset cannot creep back in unnoticed.
 
 ## Release Notes Generation
 

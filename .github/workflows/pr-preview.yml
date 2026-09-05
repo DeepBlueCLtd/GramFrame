@@ -41,6 +41,10 @@ jobs:
           cp debug-trainer.html _site/
           cp debug-multiple.html _site/
           cp test-release.html _site/
+          # test-release.html loads ./demo-gram.png relative to itself, so the
+          # gram has to sit beside it at the site root (it never did, leaving
+          # that page with a broken image).
+          cp sample/demo-gram.png _site/
           # Standalone demo pages
           mkdir -p _site/demo
           cp dist/gramframe.bundle.js _site/demo/
