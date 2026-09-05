@@ -122,7 +122,7 @@ test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
     await gfp.waitForState(s => s.player.viewTop === 15, { message: 'seek to 15 s' })
 
     await gfp.setZoom(4.0, 0.3, 0.5)
-    await gfp.commandButton('Fit').click()
+    await gfp.commandButton('Fit Whole Gram').click()
     await gfp.waitForZoomLevel(1.0)
 
     const state = await gfp.getState()

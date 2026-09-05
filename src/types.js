@@ -403,13 +403,6 @@
  */
 
 /**
- * Screen coordinates
- * @typedef {Object} ScreenCoordinates
- * @property {number} x - Screen x coordinate
- * @property {number} y - Screen y coordinate
- */
-
-/**
  * Stored annotation set persisted in browser storage for a single GramFrame instance
  * @typedef {Object} StoredAnnotations
  * @property {number} version - Schema version (currently 1)
@@ -550,8 +543,9 @@
 /**
  * Command button definition for modes
  * @typedef {Object} CommandButton
- * @property {string} label - Button text/symbol
+ * @property {string} label - Button text/symbol, and its accessible name when an icon is shown
  * @property {string} title - Button tooltip
+ * @property {string} [icon] - Name of a glyph in `components/icons.js` to show in place of the label
  * @property {function(): void} action - Button click handler
  * @property {function(): boolean} [isEnabled] - Optional function to determine if button should be enabled
  */

@@ -101,7 +101,7 @@ test.describe('Feature 170 — Region zoom', () => {
         expect(state.sidebands?.sidebandSets ?? [], `${mode} created a sideband set`).toHaveLength(0)
         expect(state.doppler?.fPlus ?? null, `${mode} placed a doppler point`).toBeNull()
 
-        await gfp.commandButton('Fit').click()
+        await gfp.commandButton('Fit Whole Gram').click()
       }
     })
 
@@ -145,7 +145,7 @@ test.describe('Feature 170 — Region zoom', () => {
   test.describe('US2 — Fit', () => {
     test('one click returns the whole gram (AS-2.1, SC-003)', async () => {
       await gfp.setZoom(6.0, 0.2, 0.8)
-      await gfp.commandButton('Fit').click()
+      await gfp.commandButton('Fit Whole Gram').click()
       await gfp.waitForZoomLevel(1.0)
 
       const state = await gfp.getState()
@@ -153,11 +153,11 @@ test.describe('Feature 170 — Region zoom', () => {
     })
 
     test('is present but disabled when the whole gram is shown (AS-2.2, FR-015)', async () => {
-      await expect(gfp.commandButton('Fit')).toBeVisible()
-      await expect(gfp.commandButton('Fit')).toBeDisabled()
+      await expect(gfp.commandButton('Fit Whole Gram')).toBeVisible()
+      await expect(gfp.commandButton('Fit Whole Gram')).toBeDisabled()
 
       await gfp.setZoom(2.0)
-      await expect(gfp.commandButton('Fit')).toBeEnabled()
+      await expect(gfp.commandButton('Fit Whole Gram')).toBeEnabled()
     })
   })
 

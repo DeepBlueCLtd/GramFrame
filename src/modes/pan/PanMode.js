@@ -188,7 +188,10 @@ export class PanMode extends BaseMode {
           title: 'Pan Mode',
           items: [
             'Click and drag to pan the view (when zoomed in)',
-            'Use + / − to zoom in and out, Fit to show the whole gram',
+            // Named by shape, not by the glyph itself: a character in the
+            // guidance would depend on the reader's font, which is the reason
+            // the button draws its own (issue #310).
+            'Use + / − to zoom, and the corner-frame button to fit the whole gram',
             `GramFrame v${getVersion()}`
           ]
         }
@@ -238,6 +241,7 @@ export class PanMode extends BaseMode {
         // The exit from a region zoom: one gesture in, one click out (spec 170,
         // FR-014). Disabled at 1x, where the whole gram is already shown (FR-015).
         label: 'Fit',
+        icon: 'fit',
         title: 'Fit Whole Gram',
         action: () => fitView(this.instance),
         isEnabled: () => isZoomedIn(this.instance)

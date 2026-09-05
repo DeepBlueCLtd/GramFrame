@@ -147,7 +147,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
 - `src/components/` - UI component modules:
   - `UIComponents.js` - LED displays, colour picker and layout helpers
   - `MainUI.js` - Unified layout and persistent panels
-  - `ModeButtons.js` - Mode switching interface
+  - `ModeButtons.js` - Mode switching interface. A group is the mode button
+    followed by that mode's commands
+  - `icons.js` - The button glyphs (the pan hand, the fit frame), drawn as
+    inline SVG in `currentColor` so they follow the button's states as text
+    does, and always paired with a visually hidden word
   - `HarmonicPanel.js` - Harmonics display panel
   - `SidebandPanel.js` - Sidebands display panel (its own column beside the
     harmonics panel; both are always visible)
@@ -360,8 +364,14 @@ There is no visual/screenshot regression testing — see
   deliberate. It clamps at 10× rather than refusing, and a release over the
   axis margins completes it — deliberately unlike a feature drag, which is
   cancelled off-image, because selecting to the very edge is a normal thing to
-  want. The **Fit** button beside `+`/`−` is the one-click way back out
+  want. The **fit** button beside `+`/`−` is the one-click way back out
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
+- **The control row**: each mode's group is `[mode button] [its commands]`, and
+  Pan's is the only group with commands — zoom out, zoom in, fit — so it is the
+  only row where four controls share the column. Pan and fit therefore show
+  glyphs rather than words (`components/icons.js`), each keeping its word in a
+  visually hidden span so the accessible name, and every test selector, is
+  still "Pan" and "Fit" (issue #310)
 - **Analysis Mode**: Persistent draggable markers with cross-mode visibility and optional
   plated text labels (upper-right of a crosshair, centred above a shaped symbol —
   below an upward-pointing triangle, whose apex points at the data above it)

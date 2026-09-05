@@ -33,9 +33,14 @@ mode, so a first stray click never leaves an annotation behind.
 
 - Click and drag to pan the view (only meaningful when zoomed in).
 - `+` / `−` command buttons zoom in and out; panning clamps at the image edges.
-- **Fit** returns the whole gram in one click, and is disabled when it is
-  already showing. On an audio-sourced gram "the whole gram" is the configured
-  `window-seconds` window, not the entire recording.
+- The **fit** button (four corner brackets) returns the whole gram in one click,
+  and is disabled when it is already showing. On an audio-sourced gram "the
+  whole gram" is the configured `window-seconds` window, not the entire
+  recording.
+- Pan's own button shows a hand rather than a word. Its row is the only one
+  carrying command buttons, and four controls do not fit across the column with
+  a word among them; the hand is also what the cursor becomes over a gram you
+  can drag. Every other mode is still named in full.
 - Selectable at any zoom level, including fully zoomed out.
 
 ---

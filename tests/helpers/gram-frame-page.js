@@ -347,12 +347,15 @@ class GramFramePage {
   }
 
   /**
-   * The command button with the given label, e.g. `Fit`, `+` or `−`.
-   * @param {string} label - The button's visible text
+   * The command button with the given tooltip, e.g. `Fit Whole Gram`.
+   *
+   * By tooltip rather than by face, for the same reason as {@link clickMode}:
+   * `Fit` shows a corner-frame glyph and keeps its word out of sight.
+   * @param {string} title - The button's tooltip
    * @returns {import('@playwright/test').Locator} The button
    */
-  commandButton(label) {
-    return this.page.locator('.gram-frame-command-btn', { hasText: label }).first()
+  commandButton(title) {
+    return this.page.locator(`.gram-frame-command-btn[title="${title}" i]`).first()
   }
 
   /**
@@ -382,8 +385,16 @@ class GramFramePage {
    * @returns {Promise<void>}
    */
   async clickMode(mode) {
-    // Wait for button to be available and interactable
-    const modeButton = this.page.locator(`.gram-frame-mode-btn:text("${mode}")`)
+    // By attribute rather than by rendered text. Pan's button shows a hand
+    // glyph and keeps its word in a visually hidden span (issue #310), which
+    // `:text()` — a *visible*-text engine — cannot see, and the buttons are
+    // drawn `text-transform: uppercase`, which makes their accessible names an
+    // unreliable thing to match on. `title` is the display name and `data-mode`
+    // the internal one, so callers can keep passing either, in any case, as
+    // they did before.
+    const modeButton = this.page.locator(
+      `.gram-frame-mode-btn[title="${mode}" i], .gram-frame-mode-btn[data-mode="${mode}" i]`
+    ).first()
     await modeButton.waitFor({ state: 'visible' })
     const modeType = await modeButton.getAttribute('data-mode')
     await modeButton.click()

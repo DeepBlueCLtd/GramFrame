@@ -17,7 +17,7 @@
     "src/modes/shared/BaseDragHandler.js": 357,
     "src/modes/shared/PinSetMode.js": 1046,
     "src/rendering/axes.js": 403,
-    "src/types.js": 780
+    "src/types.js": 774
   },
   "circularDependencies": 0,
   "unusedExportModules": 4,
