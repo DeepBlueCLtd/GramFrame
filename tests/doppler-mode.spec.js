@@ -208,8 +208,9 @@ test.describe('Doppler Mode', () => {
     test('speed follows the Doppler formula over f+, f- and f₀', async ({ gramFramePage }) => {
       const { doppler } = await placeCurve(gramFramePage, [0.3, 0.2], [0.7, 0.8])
 
-      // v = (c / f₀) × Δf, with c = 1481 m/s and Δf = (f+ − f−) / 2.
-      const expected = Math.abs((1481 / doppler.fZero.freq) * ((doppler.fPlus.freq - doppler.fMinus.freq) / 2))
+      // v = (c / f₀) × Δf, with c = 1500 m/s (nominal seawater, R9-04) and
+      // Δf = (f+ − f−) / 2.
+      const expected = Math.abs((1500 / doppler.fZero.freq) * ((doppler.fPlus.freq - doppler.fMinus.freq) / 2))
 
       expect(doppler.speed).toBeCloseTo(expected, 6)
     })
@@ -225,7 +226,7 @@ test.describe('Doppler Mode', () => {
       expect(after.doppler.fPlus.freq).toBeLessThan(before.doppler.fPlus.freq)
       expect(after.doppler.speed).not.toBeCloseTo(before.doppler.speed, 3)
       const expected = Math.abs(
-        (1481 / after.doppler.fZero.freq) * ((after.doppler.fPlus.freq - after.doppler.fMinus.freq) / 2)
+        (1500 / after.doppler.fZero.freq) * ((after.doppler.fPlus.freq - after.doppler.fMinus.freq) / 2)
       )
       expect(after.doppler.speed).toBeCloseTo(expected, 6)
     })

@@ -134,11 +134,18 @@ class GramFramePage {
   }
 
   /**
-   * Drag from one position to another on the SVG
-   * @param {number} startX - Starting X coordinate
-   * @param {number} startY - Starting Y coordinate
-   * @param {number} endX - Ending X coordinate
-   * @param {number} endY - Ending Y coordinate
+   * Drag from one position to another, in **viewport** coordinates.
+   *
+   * Unlike almost every other method here — `clickSVG`, `moveMouse`,
+   * `startDragSVG`, `endDragSVG`, `imageSVGPoint` — these are page coordinates,
+   * not SVG-relative ones. Add the SVG's own `boundingBox()` offset before
+   * calling. Passing SVG-relative values lands the drag somewhere else
+   * entirely, which does not throw: the drag simply grabs nothing and the test
+   * passes for the wrong reason.
+   * @param {number} startX - Starting X coordinate, relative to the viewport
+   * @param {number} startY - Starting Y coordinate, relative to the viewport
+   * @param {number} endX - Ending X coordinate, relative to the viewport
+   * @param {number} endY - Ending Y coordinate, relative to the viewport
    * @returns {Promise<void>}
    */
   async dragSVG(startX, startY, endX, endY) {
@@ -738,6 +745,42 @@ class GramFramePage {
     return this.page.evaluate((selector) => {
       const lines = Array.from(document.querySelectorAll(selector))
       return lines.map((line) => Number(line.getAttribute('data-harmonic-number')))
+    }, this.harmonicLineSelector(setId))
+  }
+
+  /**
+   * Where each rendered harmonic pin actually sits, as a pixel this page object
+   * can hover.
+   *
+   * Reported in the SVG element's padding-box coordinates, which is what
+   * `readDataAtPixel` and `moveMouse` take. The conversion goes through the
+   * line's own `getScreenCTM()`, so it is correct under the zoom transform and
+   * under any ancestor group transform, rather than assuming SVG user units are
+   * CSS pixels.
+   *
+   * This is the seam that lets a test ask "what frequency is this pin drawn
+   * at?" without recomputing the answer with the code under test (R9-25).
+   * @param {string} [setId] - Restrict to one harmonic set
+   * @returns {Promise<Array<{harmonic: number, x: number}>>} Pin number and hoverable x, in document order
+   */
+  async getHarmonicPinPixels(setId) {
+    return this.page.evaluate((selector) => {
+      const svg = document.querySelector('.gram-frame-svg')
+      if (!svg) {
+        return []
+      }
+      const rect = svg.getBoundingClientRect()
+      const borderLeft = parseFloat(window.getComputedStyle(svg).borderLeftWidth) || 0
+      return Array.from(document.querySelectorAll(selector)).map((line) => {
+        const point = svg.createSVGPoint()
+        point.x = Number(line.getAttribute('x1'))
+        point.y = Number(line.getAttribute('y1'))
+        const screen = point.matrixTransform(line.getScreenCTM())
+        return {
+          harmonic: Number(line.getAttribute('data-harmonic-number')),
+          x: screen.x - rect.left - borderLeft
+        }
+      })
     }, this.harmonicLineSelector(setId))
   }
 

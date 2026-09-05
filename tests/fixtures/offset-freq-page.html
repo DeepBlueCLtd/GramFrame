@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gram whose frequency axis starts above zero</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>200–400 Hz gram</h1>
+  <!-- A harmonic set's origin is always 0 Hz, so on a gram that starts above
+       zero the visible harmonics are a window part-way up the series (the 7th
+       to the 13th at 30 Hz spacing). That is the case where an off-by-one in
+       `freqForIndex` shows up as a wrong *frequency* rather than a wrong count,
+       which is what R9-25 found unasserted. -->
+  <div class="component-container">
+    <table class="gram-config">
+      <tr>
+        <td colspan="2"><img src="../../sample/mock-gram.png" alt="Sample Spectrogram"></td>
+      </tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>60</td></tr>
+      <tr><td>freq-start</td><td>200</td></tr>
+      <tr><td>freq-end</td><td>400</td></tr>
+    </table>
+  </div>
+
+  <!-- The page object reads published state from here, exactly as debug.html
+       does, so the standard helpers work against this fixture. -->
+  <div class="diagnostics-panel" style="display:none;">
+    <pre id="state-display">Loading...</pre>
+  </div>
+
+  <script type="module">
+    document.addEventListener('DOMContentLoaded', () => {
+      const stateDisplay = document.getElementById('state-display')
+      window.GramFrame.addStateListener((state) => {
+        stateDisplay.textContent = JSON.stringify(state, null, 2)
+      })
+    })
+  </script>
+</body>
+</html>
