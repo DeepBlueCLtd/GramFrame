@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { MODE_NAMES, getModeDisplayName } from '../../src/modes/modeRoster.js'
+import { MODE_NAMES, getModeDisplayName, getModeIcon } from '../../src/modes/modeRoster.js'
 
 /**
  * @fileoverview Unit tests for the mode → display-name map. Pins the full
@@ -71,6 +71,18 @@ describe('the roster is the only place the mode list is written (R9-12)', () => 
     expect(factory).toContain('return [...MODE_NAMES]')
     expect(factory).toContain('MODE_NAMES.join(\', \')')
     expect(factory).toContain('MODE_NAMES.map(name =>')
+  })
+
+  test('an icon replaces a mode button’s face, never its name', () => {
+    // Pan's button shows a hand (issue #310), but "Pan" is still what the mode
+    // is called everywhere it is spoken or read: the button's accessible name,
+    // and any readout of the current mode.
+    expect(getModeIcon('pan')).toBe('hand')
+    expect(getModeDisplayName('pan')).toBe('Pan')
+    // The other four are words, and say so by having no icon at all.
+    expect(['analysis', 'harmonics', 'sideband', 'doppler'].map(getModeIcon))
+      .toEqual([undefined, undefined, undefined, undefined])
+    expect(getModeIcon('waterfall')).toBeUndefined()
   })
 
   test('the roster module imports nothing, so the UI can use it without a cycle', () => {

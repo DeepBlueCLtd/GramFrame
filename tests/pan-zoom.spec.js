@@ -144,10 +144,10 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
   test.describe('US4 — Guidance', () => {
     const guidance = () => gfp.page.locator('.gram-frame-guidance')
 
-    test('Pan mode (the initial mode) shows Mouse-Wheel and Pan Mode sections', async () => {
+    test('Pan mode (the initial mode) shows Navigation and Pan Mode sections', async () => {
       // Default mode is Pan, so its guidance is shown on load.
       const text = await guidance().textContent()
-      expect(text).toContain('Mouse-Wheel')
+      expect(text).toContain('Navigation')
       expect(text).toContain('Pan Mode')
       expect(text).toContain('Ctrl')
       expect(text?.toLowerCase()).toContain('available in all modes')
@@ -158,7 +158,7 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
     test('other modes do not repeat the wheel guidance', async () => {
       await gfp.clickMode('Cross Cursor')
       const text = await guidance().textContent()
-      expect(text).not.toContain('Mouse-Wheel')
+      expect(text).not.toContain('Navigation')
       expect(text?.toLowerCase()).not.toContain('wheel-button drag')
     })
   })

@@ -23,6 +23,14 @@ Behaviour common to every mode:
   modes once placed — only the mode that *creates* them changes.
 - Ctrl+wheel zooms about the pointer, wheel scrolls along frequency when zoomed
   in, and a middle-button drag pans — in every mode.
+- **Shift + drag** a box over the gram to zoom straight into that region, in
+  every mode and at any zoom level. Draw it in any proportions you like: the
+  view that results is scaled so the whole box fits, centred, which means it
+  shows a little more of the gram either side of a wide band, or above and
+  below a narrow one. The gram outside your box dims so it reads as the subject,
+  a dashed outline shows the wider view that will result, and the span you are
+  choosing is shown live. Escape cancels; a Shift-click that barely moves does
+  nothing.
 - Switching mode clears the current selection, so the colour/symbol controls
   target the next feature you create rather than restyling the last one.
 
@@ -39,6 +47,14 @@ mode, so a first stray click never leaves an annotation behind.
 
 - Click and drag to pan the view (only meaningful when zoomed in).
 - `+` / `−` command buttons zoom in and out; panning clamps at the image edges.
+- The **fit** button (four corner brackets) returns the whole gram in one click,
+  and is disabled when it is already showing. On an audio-sourced gram "the
+  whole gram" is the configured `window-seconds` window, not the entire
+  recording.
+- Pan's own button shows a hand rather than a word. Its row is the only one
+  carrying command buttons, and four controls do not fit across the column with
+  a word among them; the hand is also what the cursor becomes over a gram you
+  can drag. Every other mode is still named in full.
 - Selectable at any zoom level, including fully zoomed out.
 
 ---

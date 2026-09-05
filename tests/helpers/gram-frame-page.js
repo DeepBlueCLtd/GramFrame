@@ -257,6 +257,108 @@ class GramFramePage {
   }
 
   /**
+   * Perform a Shift + left drag on the SVG, in SVG-relative coordinates — the
+   * region-zoom gesture (spec 170).
+   * @param {number} startX - Starting X coordinate relative to the SVG
+   * @param {number} startY - Starting Y coordinate relative to the SVG
+   * @param {number} endX - Ending X coordinate relative to the SVG
+   * @param {number} endY - Ending Y coordinate relative to the SVG
+   * @param {{release?: boolean}} [opts] - Pass `release: false` to leave the button down mid-drag
+   * @returns {Promise<void>}
+   */
+  async shiftDragSVG(startX, startY, endX, endY, opts = {}) {
+    const svgBox = await this.svg.boundingBox()
+    if (!svgBox) {
+      return
+    }
+    await this.page.keyboard.down('Shift')
+    await this.page.mouse.move(svgBox.x + startX, svgBox.y + startY)
+    await this.page.mouse.down()
+    await this.page.mouse.move(svgBox.x + endX, svgBox.y + endY, { steps: 5 })
+    if (opts.release === false) {
+      return // Caller releases Shift and the button itself
+    }
+    await this.page.mouse.up()
+    await this.page.keyboard.up('Shift')
+  }
+
+  /**
+   * The base render size the axes area spans, as plain numbers.
+   *
+   * `imageDetails.renderWidth/renderHeight` default to the image's natural size
+   * and are only set once it has loaded, so state types them as optional. This
+   * resolves the fallback once, where the component does, rather than in every
+   * caller.
+   * @returns {Promise<{renderWidth: number, renderHeight: number}>} Base render size
+   */
+  async renderSize() {
+    const { imageDetails } = await this.getState()
+    return {
+      renderWidth: imageDetails.renderWidth || imageDetails.naturalWidth,
+      renderHeight: imageDetails.renderHeight || imageDetails.naturalHeight
+    }
+  }
+
+  /**
+   * The SVG element's bounding box, asserted present.
+   *
+   * `boundingBox()` is null for an element that is not rendered; every caller
+   * here has already waited for the component, so the null is a broken test
+   * rather than a case to handle.
+   * @returns {Promise<{x: number, y: number, width: number, height: number}>} Bounding box
+   */
+  async svgBox() {
+    const box = await this.svg.boundingBox()
+    if (!box) {
+      throw new Error('svgBox: the component SVG is not rendered')
+    }
+    return box
+  }
+
+  /**
+   * The data range currently visible, read off the live image element rather
+   * than recomputed from state — the same numbers the axes are drawn from.
+   * @returns {Promise<{freqMin: number, freqMax: number, timeMin: number, timeMax: number}>} Visible range
+   */
+  async visibleDataRange() {
+    const state = await this.getState()
+    const box = await this.page.evaluate(() => {
+      const image = document.querySelector('.gram-frame-svg image')
+      if (!image) {
+        throw new Error('visibleDataRange: the component is not on the page')
+      }
+      return {
+        x: Number(image.getAttribute('x')),
+        y: Number(image.getAttribute('y')),
+        width: Number(image.getAttribute('width')),
+        height: Number(image.getAttribute('height'))
+      }
+    })
+    const { margins, config } = state
+    const { renderWidth, renderHeight } = await this.renderSize()
+    const freqRange = config.freqMax - config.freqMin
+    const timeRange = config.timeMax - config.timeMin
+    return {
+      freqMin: config.freqMin + ((margins.left - box.x) / box.width) * freqRange,
+      freqMax: config.freqMin + ((margins.left + renderWidth - box.x) / box.width) * freqRange,
+      timeMax: config.timeMax - ((margins.top - box.y) / box.height) * timeRange,
+      timeMin: config.timeMax - ((margins.top + renderHeight - box.y) / box.height) * timeRange
+    }
+  }
+
+  /**
+   * The command button with the given tooltip, e.g. `Fit Whole Gram`.
+   *
+   * By tooltip rather than by face, for the same reason as {@link clickMode}:
+   * `Fit` shows a corner-frame glyph and keeps its word out of sight.
+   * @param {string} title - The button's tooltip
+   * @returns {import('@playwright/test').Locator} The button
+   */
+  commandButton(title) {
+    return this.page.locator(`.gram-frame-command-btn[title="${title}" i]`).first()
+  }
+
+  /**
    * Verify the value of an LED display
    * @param {string} label - The label of the LED display (e.g., "Frequency", "Time", "Mode")
    * @param {RegExp} expectedValueRegex - Regular expression to match the expected value
@@ -283,8 +385,16 @@ class GramFramePage {
    * @returns {Promise<void>}
    */
   async clickMode(mode) {
-    // Wait for button to be available and interactable
-    const modeButton = this.page.locator(`.gram-frame-mode-btn:text("${mode}")`)
+    // By attribute rather than by rendered text. Pan's button shows a hand
+    // glyph and keeps its word in a visually hidden span (issue #310), which
+    // `:text()` — a *visible*-text engine — cannot see, and the buttons are
+    // drawn `text-transform: uppercase`, which makes their accessible names an
+    // unreliable thing to match on. `title` is the display name and `data-mode`
+    // the internal one, so callers can keep passing either, in any case, as
+    // they did before.
+    const modeButton = this.page.locator(
+      `.gram-frame-mode-btn[title="${mode}" i], .gram-frame-mode-btn[data-mode="${mode}" i]`
+    ).first()
     await modeButton.waitFor({ state: 'visible' })
     const modeType = await modeButton.getAttribute('data-mode')
     await modeButton.click()
