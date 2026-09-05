@@ -304,7 +304,7 @@
  * @property {ImageDetails} imageDetails - Image dimensions
  * @property {Config} config - Time/frequency range configuration
  * @property {ZoomState} zoom - Current zoom state
- * @property {number} rate - Frequency divider, applied on the data side only
+ * @property {number} frequencyRate - Frequency divider, applied on the data side only
  */
 
 /**
@@ -331,7 +331,7 @@
  * @property {string} instanceId - Unique instance identifier
  * @property {ModeType} mode - Current analysis mode
  * @property {ModeType|null} previousMode - Previous analysis mode
- * @property {number} rate - Rate value affecting frequency calculations (Hz/s)
+ * @property {number} frequencyRate - Divides frequency on the data side, so a reading is expressed against this scale rather than raw Hz
  * @property {string} selectedColor - Colour for the NEXT created feature (when nothing is selected); when a feature is selected the picker restyles it instead
  * @property {SymbolType} selectedSymbol - Symbol for the NEXT created harmonic set or marker (when nothing is selected); when a feature is selected the picker restyles it instead
  * @property {boolean} showHarmonicPin - Pin visibility for the NEXT created harmonic set; session preference, on by default
@@ -380,7 +380,7 @@
  * @property {boolean} playing - Whether audio is playing
  * @property {boolean} ended - Whether playback reached the end (cleared by play/seek/restart)
  * @property {boolean} loop - Whether playback restarts at the end
- * @property {number} rate - Playback rate (1 = real time)
+ * @property {number} playbackRate - Playback speed (1 = real time)
  * @property {number} volume - 0..1
  * @property {boolean} muted - Whether output is muted
  * @property {number} viewTop - Time at the top edge of the visible window, seconds
@@ -610,7 +610,7 @@
  * @property {HTMLDivElement} modeCell - Mode header cell
  * @property {HTMLDivElement} mainCell - Main display cell
  * @property {HTMLElement|null} modeLED - Mode LED; never assigned today, so always null
- * @property {HTMLElement|null} rateLED - Rate LED; never assigned today, so always null
+ * @property {HTMLElement|null} frequencyRateLED - Frequency-rate LED; never assigned today, so always null
  * @property {HTMLElement} colorPicker - Style panel (colour, symbol, size, pin)
  * @property {SVGSVGElement} svg - Root SVG
  * @property {SVGGElement} cursorGroup - Group holding cursors and persistent features
@@ -760,7 +760,7 @@
  * Expected harmonic set properties for test verification
  * @typedef {Object} TestHarmonicSetProps
  * @property {number} [fundamentalFreq] - Expected fundamental frequency
- * @property {number} [rate] - Expected rate
+ * @property {number} [frequencyRate] - Expected frequency rate
  * @property {string} [color] - Expected color
  */
 

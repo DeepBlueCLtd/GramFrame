@@ -1,7 +1,7 @@
 /**
  * The transport bar under an audio-sourced gram (spec 168, Story 5, D13).
  *
- * Play/pause, restart, a seek slider with a time readout, loop, rate, mute and
+ * Play/pause, restart, a seek slider with a time readout, loop, playback rate, mute and
  * volume. Every control drives the `PlayerController`, and the bar is redrawn
  * from `state.player` by a state listener — so a change made through the
  * keyboard, the public API or the browser itself (the recording ending) shows
@@ -17,7 +17,7 @@ import { setFocusedInstance } from '../core/FocusManager.js'
  * Rates offered by the select, as `[value, label]`.
  * @type {Array<[number, string]>}
  */
-const RATES = [[0.5, '0.5×'], [1, '1×'], [1.5, '1.5×'], [2, '2×']]
+const PLAYBACK_RATES = [[0.5, '0.5×'], [1, '1×'], [1.5, '1.5×'], [2, '2×']]
 
 /**
  * Make a button.
@@ -74,16 +74,16 @@ export function createTransportBar(instance) {
   const loop = button('gram-frame-transport-loop', 'Loop', '🔁')
   loop.setAttribute('aria-pressed', 'false')
 
-  const rate = document.createElement('select')
-  rate.className = 'gram-frame-transport-rate'
-  rate.title = 'Playback rate'
-  rate.setAttribute('aria-label', 'Playback rate')
-  RATES.forEach(([value, label]) => {
+  const playbackRate = document.createElement('select')
+  playbackRate.className = 'gram-frame-transport-playback-rate'
+  playbackRate.title = 'Playback rate'
+  playbackRate.setAttribute('aria-label', 'Playback rate')
+  PLAYBACK_RATES.forEach(([value, label]) => {
     const option = document.createElement('option')
     option.value = String(value)
     option.textContent = label
     if (value === 1) option.selected = true
-    rate.appendChild(option)
+    playbackRate.appendChild(option)
   })
 
   const mute = button('gram-frame-transport-mute', 'Mute', '🔊')
@@ -99,7 +99,7 @@ export function createTransportBar(instance) {
   volume.title = 'Volume'
   volume.setAttribute('aria-label', 'Volume')
 
-  ;[play, restart, seek, time, loop, rate, mute, volume].forEach(el => bar.appendChild(el))
+  ;[play, restart, seek, time, loop, playbackRate, mute, volume].forEach(el => bar.appendChild(el))
 
   // --- wiring ---------------------------------------------------------------
   // Using the bar is interacting with the instance: it takes keyboard focus,
@@ -122,7 +122,7 @@ export function createTransportBar(instance) {
   seek.addEventListener('change', () => { scrubbing = false; controller.seek(parseFloat(seek.value)) })
 
   loop.addEventListener('click', () => controller.setLoop(!player.loop))
-  rate.addEventListener('change', () => controller.setRate(parseFloat(rate.value)))
+  playbackRate.addEventListener('change', () => controller.setPlaybackRate(parseFloat(playbackRate.value)))
   mute.addEventListener('click', () => controller.setMute(!player.muted))
   volume.addEventListener('input', () => controller.setVolume(parseFloat(volume.value)))
 
@@ -142,7 +142,7 @@ export function createTransportBar(instance) {
     }
     time.textContent = `${formatTime(p.playhead)} / ${formatTime(p.duration)}`
     loop.setAttribute('aria-pressed', p.loop ? 'true' : 'false')
-    rate.value = String(p.rate)
+    playbackRate.value = String(p.playbackRate)
     mute.setAttribute('aria-pressed', p.muted ? 'true' : 'false')
     mute.textContent = p.muted ? '🔇' : '🔊'
     mute.title = p.muted ? 'Unmute' : 'Mute'

@@ -52,7 +52,7 @@ export function setLEDValue(led, value) {
 }
 
 /**
- * Update global LED displays (mode and rate only)
+ * Update global LED displays (mode and frequency rate only)
  * Mode-specific LEDs are now managed by individual modes
  * @param {GramFrame} instance - GramFrame instance with global LEDs
  * @param {GramFrameState} state - Current state object
@@ -63,9 +63,9 @@ export function updateLEDDisplays(instance, state) {
     setLEDValue(instance.ui.modeLED, getModeDisplayName(state.mode))
   }
   
-  // Update global rate LED display
-  if (instance.ui.rateLED) {
-    setLEDValue(instance.ui.rateLED, `${state.rate}`)
+  // Update global frequency-rate LED display
+  if (instance.ui.frequencyRateLED) {
+    setLEDValue(instance.ui.frequencyRateLED, `${state.frequencyRate}`)
   }
   
   // Color picker visibility is now managed by individual modes

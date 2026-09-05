@@ -311,7 +311,7 @@ export function fitView(instance) {
 
 /**
  * Update zoom control button states based on current zoom level. Module-private
- * since the dead `_setRate`/`_updateAxes`/`_updateZoomControlStates` forwarder
+ * since the dead `_setFrequencyRate`/`_updateAxes`/`_updateZoomControlStates` forwarder
  * chain in main.js was deleted (L1): its only caller is `setZoom` above.
  * @param {GramFrame} instance - GramFrame instance
  */

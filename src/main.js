@@ -252,13 +252,13 @@ export class GramFrame {
       guidancePanel: initialModeUI.guidancePanel,
       // Mounted later, or not at all: the harmonics and sidebands panels
       // arrive with their modes' UI, the expand toggle only for a landscape
-      // image, and nothing assigns the mode/rate LEDs at all — every read of
+      // image, and nothing assigns the mode/frequency-rate LEDs at all — every read of
       // them is guarded.
       harmonicPanel: null,
       sidebandPanel: null,
       expandToggleButton: null,
       modeLED: null,
-      rateLED: null
+      frequencyRateLED: null
     }
 
     setupSpectrogramIfAvailable(this)
@@ -450,7 +450,7 @@ export class GramFrame {
     updatePersistentPanels(this)
 
     // Refresh LED displays to reflect the cleared state. The speed LED is set
-    // directly: updateLEDDisplays covers only the mode/rate LEDs, so the
+    // directly: updateLEDDisplays covers only the mode/frequency-rate LEDs, so the
     // deleted curve's speed used to survive a "Clear gram" (BH-19).
     updateLEDDisplays(this, this.state)
     if (this.ui.speedLED) {

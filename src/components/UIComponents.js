@@ -2,7 +2,7 @@
  * UI Components for GramFrame
  * 
  * This module provides functions for creating and managing UI elements
- * including LED displays, mode switching buttons, and rate input controls.
+ * including LED displays, mode switching buttons, and frequency-rate input controls.
  */
 
 /// <reference path="../types.js" />
@@ -14,7 +14,7 @@ import { createLEDDisplay, updateLEDDisplays } from './LEDDisplay.js'
 // module rather than reaching into the individual component modules.
 export { createLEDDisplay, updateLEDDisplays, createColorPicker }
 
-// Rate input UI component removed - backend rate functionality preserved
+// Frequency-rate input UI component removed - the backend frequencyRate is preserved
 
 /**
  * Creates a flex layout container with standard styling

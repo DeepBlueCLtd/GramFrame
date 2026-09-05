@@ -39,7 +39,7 @@
  * @property {AxesMargins} margins - Axes margins
  * @property {ImageDetails} imageDetails - Image dimensions
  * @property {Config} config - Time/frequency configuration
- * @property {number} rate - Frequency divider
+ * @property {number} frequencyRate - Frequency divider
  * @property {ZoomState} zoom - Current zoom state
  */
 
@@ -210,8 +210,8 @@ export function svgToImage(svgX, svgY, viewport, spectrogramImage = null) {
 /**
  * Convert image-relative coordinates to data coordinates.
  *
- * `rate` is applied here and only here — it divides frequency, so SVG and image
- * space stay rate-free.
+ * `frequencyRate` is applied here and only here — it divides frequency, so SVG
+ * and image space carry no frequency scaling at all.
  *
  * @param {number} imageX - Image X coordinate, in render pixels
  * @param {number} imageY - Image Y coordinate, in render pixels
@@ -219,7 +219,7 @@ export function svgToImage(svgX, svgY, viewport, spectrogramImage = null) {
  * @returns {DataCoordinates} Data coordinates
  */
 export function imageToData(imageX, imageY, viewport) {
-  const { config, imageDetails, rate } = viewport
+  const { config, imageDetails, frequencyRate } = viewport
   const { freqMin, freqMax, timeMin, timeMax } = config
   const { width, height } = renderSize(imageDetails)
 
@@ -228,17 +228,18 @@ export function imageToData(imageX, imageY, viewport) {
   // Y-axis = time (vertical), increasing upward with Y=0 at the top
   const time = timeMax - (imageY / height) * (timeMax - timeMin)
 
-  return { freq: rawFreq / rate, time }
+  return { freq: rawFreq / frequencyRate, time }
 }
 
 /**
  * Convert data coordinates to SVG coordinates.
  *
  * Note the deliberate asymmetry with {@link imageToData}: this takes frequency
- * in the raw configured scale and does not re-apply `rate`. That matches every
- * caller — features store the frequency they were created with — and matches
- * the behaviour pinned before consolidation. With the rate control removed from
- * the UI, `rate` is 1 in practice; the asymmetry is recorded here rather than
+ * in the raw configured scale and does not re-apply `frequencyRate`. That
+ * matches every caller — features store the frequency they were created with —
+ * and matches the behaviour pinned before consolidation. With the frequency-rate
+ * control removed from the UI it is 1 in practice; the asymmetry is recorded
+ * here rather than
  * silently "fixed", because changing it would move rendered features.
  *
  * @param {DataCoordinates} dataPoint - Data point with time and frequency

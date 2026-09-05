@@ -210,7 +210,7 @@ export function setupEventListeners(instance) {
     }
   })
 
-  // Rate input UI events removed - backend rate functionality preserved
+  // Frequency-rate input UI events removed - the backend frequencyRate is preserved
 
   // Window resize event
   listen(window, 'resize', instance.viewport._boundHandleResize)
