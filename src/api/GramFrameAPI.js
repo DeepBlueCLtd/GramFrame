@@ -144,7 +144,6 @@ export function createGramFrameAPI(GramFrame) {
       const configTables = container.querySelectorAll('table.gram-config')
       /** @type {GramFrame[]} */
       const instances = []
-      const errors = []
 
       // Legacy-browser guard: check the required JS/DOM APIs are present before
       // any GramFrame is constructed. On an unsupported browser, show a clear
@@ -184,8 +183,6 @@ export function createGramFrameAPI(GramFrame) {
         } catch (error) {
           const errorMsg = `Failed to initialize GramFrame for table ${index + 1}: ${error instanceof Error ? error.message : String(error)}`
           console.error('GramFrame Error:', errorMsg, error)
-          errors.push({ table, error: errorMsg, index })
-
           // Undo a partial replacement so the page is left in a truthful state:
           // the config table back where it was, no dead component beside it.
           this._restoreConfigTable(/** @type {HTMLTableElement} */ (table), originalParent, originalNextSibling)

@@ -39,11 +39,18 @@
         <ol>
             <li>Verify the spectrogram component loads above</li>
             <li>Test mouse hover for cursor display</li>
-            <li>Try switching modes (Cross Cursor, Harmonics, Doppler, Pan)</li>
+            <li>Try switching modes (Pan, Cross Cursor, Harmonics, Sidebands, Doppler)</li>
             <li>Test marker creation by clicking in Cross Cursor mode</li>
+            <li>Place a sideband set and check its panel fills beside the harmonics one</li>
         </ol>
     </div>
     
+    <!--
+      `mock-gram.png` and `gramframe.bundle.js` are copied in beside this file
+      when a release is built (.github/workflows/release.yml). Opened straight
+      from the repository neither is present, so the page shows "Spectrogram
+      image could not be loaded" — that is expected here, not a fault.
+    -->
     <!-- Load GramFrame component -->
     <script src="./gramframe.bundle.js"></script>
 </body>
