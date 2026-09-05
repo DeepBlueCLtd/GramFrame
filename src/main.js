@@ -48,8 +48,6 @@ import { ModeFactory } from './modes/ModeFactory.js'
 
 import { createGramFrameAPI } from './api/GramFrameAPI.js'
 
-// Cursor indicators removed - using CSS cursor only
-
 import {
   cleanupEventListeners
 } from './core/events.js'
@@ -375,19 +373,27 @@ export class GramFrame {
   }
 
   /**
-   * Clear all annotations from state and storage
+   * Cancel any feature drag in progress, through the engine — the single owner
+   * of the drag record. Writing `state.drag` directly instead left the engine
+   * saying *dragging* while the projection said *idle*, and the next publish
+   * resurrected the stale drag (M4). One place now, not two (issue #268).
+   * @returns {void}
    */
-  _clearGram() {
-    // Cancel any drag in progress through the engine — the single owner of the
-    // drag record — exactly as _switchMode does. Writing state.drag directly
-    // here left the engine's private dragState saying *dragging* while the
-    // projection said *idle*, and the next projection publish resurrected the
-    // stale drag (M4).
+  _cancelAllDrags() {
     Object.values(this.modes || {}).forEach(modeInstance => {
       if (modeInstance && modeInstance.dragHandler) {
         modeInstance.dragHandler.cancelDrag()
       }
     })
+  }
+
+  /**
+   * Clear all annotations from state and storage
+   */
+  _clearGram() {
+    // Clearing the gram also cancels a wheel pan, which a mode switch does not:
+    // the shared helper covers the feature drags both paths cancel.
+    this._cancelAllDrags()
     if (this.interaction._wheelPanHandler) {
       this.interaction._wheelPanHandler.cancelDrag()
     }
@@ -823,13 +829,7 @@ export class GramFrame {
     // Update state
     this.state.mode = mode
     
-    // Cancel any drag in progress, so the engine — the single owner of the drag
-    // record — clears it rather than a second place unwinding it by hand.
-    Object.values(this.modes || {}).forEach(modeInstance => {
-      if (modeInstance && modeInstance.dragHandler) {
-        modeInstance.dragHandler.cancelDrag()
-      }
-    })
+    this._cancelAllDrags()
 
     // Choosing a mode signals the analyst is about to add something new, so drop
     // any selected marker/harmonic. This returns the colour/symbol controls to
@@ -840,7 +840,6 @@ export class GramFrame {
       this.interaction.clearSelection()
     }
 
-    // Cursor styling removed - no display element
     
     // Update UI
     if (this.ui.modeButtons) {
@@ -907,9 +906,7 @@ export class GramFrame {
       this.featureRenderer.renderAllPersistentFeatures()
     }
     
-    // Cursor indicators removed - using CSS cursor only
     
-    // CSS now handles cursor behavior properly, no need for explicit reset
     
     // Notify listeners
     dispatch(this)
@@ -919,10 +916,8 @@ export class GramFrame {
 // Create and setup the GramFrame API
 const GramFrameAPI = createGramFrameAPI(GramFrame)
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-  // @ts-ignore - Adding to global window object
-  window.GramFrame = GramFrameAPI
+/** Replace the config tables and, on the debug page, wire the state display. */
+const bootstrap = () => {
   GramFrameAPI.init()
   // Connect to state display if we're on the debug page
   const stateDisplay = document.getElementById('state-display')
@@ -931,11 +926,20 @@ document.addEventListener('DOMContentLoaded', () => {
       stateDisplay.textContent = JSON.stringify(state, null, 2)
     })
   }
-})
+}
 
-// Export the API
+// Export the API. Before the bootstrap below, which may run synchronously.
 // @ts-ignore - Adding to global window object
 window.GramFrame = GramFrameAPI
+
+// Initialize on page load -- or immediately, when the document is already
+// parsed. A page that injects the bundle late used to register a listener for
+// a `DOMContentLoaded` already gone, replacing nothing (issue #272).
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap)
+} else {
+  bootstrap()
+}
 
 // Hot Module Replacement (HMR) support for Task 1.4
 // @ts-ignore - Vite HMR API

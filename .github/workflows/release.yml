@@ -271,7 +271,7 @@ jobs:
             - **File Protocol Compatible**: Works directly from file system (double-click HTML files)
             - **Self-Contained**: Single JavaScript file with all dependencies bundled
             - **Auto-Detection**: Automatically enhances HTML tables with class \`gram-config\`
-            - **Complete Modes**: Pan, Analysis, Harmonics, and Doppler interaction modes
+            - **Complete Modes**: Pan, Cross Cursor, Harmonics, Sidebands and Doppler interaction modes
             - **Training Ready**: Perfect for distributing spectrogram training materials"
           else
             echo "Generating changelog from $PREVIOUS_TAG to $CURRENT_TAG"

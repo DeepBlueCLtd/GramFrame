@@ -146,6 +146,20 @@ function starPoints(cx, cy, outerR, innerR) {
 }
 
 /**
+ * Does this symbol draw no shape at all?
+ *
+ * True exactly when {@link createSymbolMark} returns null -- the symbol-less
+ * `cross` style. Callers that need to know what was drawn without drawing it
+ * (marker hit-testing, for one) ask here rather than re-deriving the rule and
+ * drifting from it (issue #273).
+ * @param {SymbolType|string|null|undefined} symbolType - Candidate symbol id
+ * @returns {boolean} True when nothing is drawn for this symbol
+ */
+export function isSymbolLess(symbolType) {
+  return resolveSymbolType(symbolType) === 'cross'
+}
+
+/**
  * Create a filled SVG mark for a harmonic-set symbol.
  *
  * Pure: performs no DOM insertion and reads no state. Returns a detached SVG

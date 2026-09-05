@@ -106,8 +106,9 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   border-radius: 8px;
 }
 
-/* Military-style table layout for proper resizing */
-.gram-frame-table {
+/* Military-style table layout for proper resizing (the outer frame, not the
+   diffing <table> — see `gram-frame-layout` in table.js) */
+.gram-frame-layout {
   display: table;
   width: 100%;
   height: 100%;
@@ -781,10 +782,24 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
  * on the table box offsets the header cells from the scrollport, which makes
  * them jump when the body first scrolls.
  */
-table.gram-frame-table {
+.gram-frame-table {
+  /*
+   * The gradient, radius and shadow used to arrive by accident: this table and
+   * the outer frame div shared one class, so the frame's rule painted both and
+   * this rule only overrode what differed. With the frame renamed to
+   * `gram-frame-layout` (issue #268) the inheritance is gone, so the three
+   * declarations it was actually relying on are stated here. Same pixels, now
+   * on purpose.
+   */
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,0.1),
+    inset 0 -2px 4px rgba(0,0,0,0.3),
+    0 4px 8px rgba(0,0,0,0.5);
   width: 100%;
   /*
-   * Natural height, NOT the 100% the shared class sets for the outer frame.
+   * Natural height, NOT the 100% `gram-frame-layout` sets for the outer frame.
    * A table told to fill its container distributes the surplus across its rows,
    * so a two-row table drew 50px rows, a six-row table 31px ones, and every row
    * visibly shrank as the next was added. Rows now stay the height their
@@ -1895,8 +1910,6 @@ table.gram-frame-table {
   position: relative;
   z-index: 11;
 }
-
-/* Enhanced table row interactivity - now handled by unified .gram-frame-table styles */
 
 /* Selected Doppler marker highlighting */
 .gram-frame-selected-doppler-marker {

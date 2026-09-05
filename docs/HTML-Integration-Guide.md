@@ -203,6 +203,23 @@ GramFrame.removeStateListener(listener)
 
 State is deep-copied before being passed to listeners, so you cannot accidentally mutate internal state.
 
+## Expand API
+
+A landscape gram can be expanded to fill the space around it. The toggle is a
+button on the component; these two methods drive the same state from a host
+page:
+
+```javascript
+// Is the first instance currently expanded?
+const expanded = GramFrame.getExpandState()
+
+// Expand (or collapse) every landscape instance on the page
+GramFrame.setExpandState(true)
+```
+
+Expand state is in-memory only — deliberately not persisted, so a reload starts
+collapsed.
+
 ## Annotation Persistence (Trainer vs. Student)
 
 GramFrame can persist annotations (analysis markers, harmonic sets, sideband sets, doppler
@@ -276,8 +293,13 @@ yarn build:standalone
 ### Table Not Replaced
 
 - Verify the table has `class="gram-config"` (exact class name)
-- Ensure the script is loaded before `DOMContentLoaded` fires
 - Check the browser console for error messages
+
+The script may be loaded at any point — before `DOMContentLoaded` or long after.
+A bundle injected late initialises immediately instead of waiting for an event
+that has already fired (issue #272), so a lazily-appended `<script>`, a deferred
+loader, or a DITA/HTML5 output that scripts its own includes all work. To add
+tables after that, call `GramFrame.detectAndReplaceConfigTables(container)`.
 
 ### Error Indicator Shown
 

@@ -1,8 +1,7 @@
 /**
- * Viewport module for GramFrame
- * 
- * This module handles zoom and pan functionality for the spectrogram viewport,
- * including coordinate transformations and zoom state management.
+ * Zoom and pan for the spectrogram viewport: the levels, the centres, and the
+ * conversions between them. It decides transforms; `components/svgLayout.js`
+ * applies them.
  */
 
 /// <reference path="../types.js" />
@@ -40,7 +39,7 @@ export function isZoomedIn(instance) {
 }
 
 /**
- * Zoom in by increasing zoom level
+ * Zoom in one step.
  * @param {GramFrame} instance - GramFrame instance
  */
 export function zoomIn(instance) {
@@ -48,7 +47,7 @@ export function zoomIn(instance) {
 }
 
 /**
- * Zoom out by decreasing zoom level
+ * Zoom out one step.
  * @param {GramFrame} instance - GramFrame instance
  */
 export function zoomOut(instance) {
@@ -72,17 +71,17 @@ function zoomAboutViewCentre(instance, newLevel) {
     zoom.level = newLevel
     player.viewTop = clampViewTop(instance, centreTime + visibleWindowSeconds(instance) / 2)
   }
-  setZoom(instance, newLevel, zoom.centerX, zoom.centerY)
-}
 
-/**
- * Reset zoom to 1x, from `zoomAtImagePoint` when a zoom-out lands back at 1×.
- * Module-private since spec 167; `fitView` below is the exported way out for
- * callers elsewhere, and on a player it does the extra work a reset needs.
- * @param {GramFrame} instance - GramFrame instance
- */
-function zoomReset(instance) {
-  setZoom(instance, MIN_ZOOM, 0.5, 0.5)
+  // At 1x the whole image is visible, so the centre positions nothing -- but it
+  // is still state, and the next zoom-in reads it back. Keeping a corner centre
+  // here is what made `-` to 1x then `+` jump to wherever the wheel last zoomed
+  // into. `fitView` is the one recentring rule, on every path (issue #270).
+  if (newLevel <= MIN_ZOOM) {
+    fitView(instance)
+    return
+  }
+
+  setZoom(instance, newLevel, zoom.centerX, zoom.centerY)
 }
 
 /**
@@ -209,7 +208,7 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
   }
 
   if (newLevel <= MIN_ZOOM) {
-    zoomReset(instance)
+    fitView(instance)
     return
   }
   const centerX = Math.max(0, Math.min(1, imageX / renderWidth))
@@ -290,9 +289,14 @@ function anchorForCentre(centre, level) {
 }
 
 /**
- * Show the whole gram again in one action (spec 170, FR-014). On an
- * audio-sourced gram "the whole gram" is the configured `window-seconds` window
- * rather than the whole recording, so this returns to 1x and leaves the window
+ * Show the whole gram again: the Fit button (spec 170, FR-014), and the
+ * recentring `zoomAtImagePoint` and `zoomAboutViewCentre` both do when a
+ * zoom-out lands back at 1× — one rule on every path (issue #270). It was a
+ * separate private `zoomReset` until the merge bringing #270 in showed the two
+ * were the same function bar the player clamp.
+ *
+ * On an audio-sourced gram "the whole gram" is the configured `window-seconds`
+ * window, not the whole recording, so this returns to 1x and leaves the window
  * where it is, re-clamped (AS-3.3).
  * @param {GramFrame} instance - GramFrame instance
  */
@@ -312,16 +316,13 @@ export function fitView(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 function updateZoomControlStates(instance) {
-  // Update command button states for all modes (zoom buttons are now in pan mode)
   if (instance.ui.commandButtons && instance.modes) {
     updateCommandButtonStates(instance.ui.commandButtons, instance.modes)
   }
-  
-  // Update mode button states (enabled/disabled)
   if (instance.ui.modeButtons && instance.modes) {
     updateModeButtonStates(instance.ui.modeButtons, instance.modes)
-    
-    // Switch away from pan mode if currently active but now disabled
+
+    // Leave pan mode if the zoom change has just disabled it.
     const { mode, previousMode } = instance.state
     if (mode === 'pan' && instance.modes.pan && !instance.modes.pan.isEnabled() && previousMode) {
       instance._switchMode(previousMode)

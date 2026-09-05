@@ -99,7 +99,8 @@ import { formatTime } from '../../utils/timeFormatter.js'
 import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinToleranceRadius } from '../../utils/tolerance.js'
-import { createSymbolMark, createColorIndicator, resolveSymbolScale } from '../../rendering/symbols.js'
+import { createColorIndicator } from '../../rendering/symbols.js'
+import { createMarkerMarks, markerSymbolSize, drawsCrosshair, CROSSHAIR_SIZE } from '../../rendering/markerGlyph.js'
 import { createMarkerLabel } from '../../rendering/labels.js'
 import { formatMarkerLabelForTable, normalizeMarkerLabel } from '../../utils/markerLabel.js'
 
@@ -108,15 +109,6 @@ import { formatMarkerLabelForTable, normalizeMarkerLabel } from '../../utils/mar
  * Provides crosshair rendering, basic time/frequency display, and persistent markers
  */
 export class AnalysisMode extends BaseMode {
-  /**
-   * Base pixel size (width/height) of a marker's symbol mark when it carries a
-   * shaped symbol (feature 161). Roughly matches the crosshair's visual weight.
-   * The drawn size is this scaled by the temporary "Large" toggle, so a
-   * marker's symbol tracks the harmonic pins' symbols.
-   * @type {number}
-   */
-  static MARKER_SYMBOL_SIZE = 14
-
   /**
    * Initialize AnalysisMode with drag handler
    * @param {GramFrame} instance - GramFrame instance
@@ -393,56 +385,11 @@ export class AnalysisMode extends BaseMode {
     markerGroup.setAttribute('class', 'gram-frame-analysis-marker')
     markerGroup.setAttribute('data-marker-id', marker.id)
 
-    // A marker carrying a shaped symbol is drawn as that colour-coded symbol
-    // (feature 161, FR-009); a marker with the `cross` (symbol-less) style
-    // continues to render as the crosshair.
-    const symbolSize = AnalysisMode.MARKER_SYMBOL_SIZE * resolveSymbolScale(marker)
-    const symbolMark = createSymbolMark(marker.symbol, currentX, currentY, symbolSize, marker.color)
-
-    if (symbolMark) {
-      // Use a marker-specific class so the harmonics renderer's symbol cleanup
-      // (which clears `.gram-frame-harmonic-symbol` from the overlay) never
-      // removes a marker's symbol. `data-symbol`/fill from createSymbolMark are
-      // preserved. (Fixes symbols vanishing when a harmonic set is present.)
-      symbolMark.setAttribute('class', 'gram-frame-marker-symbol')
-      symbolMark.setAttribute('data-marker-id', marker.id)
-      markerGroup.appendChild(symbolMark)
-    } else {
-      // Crosshair rendering (cross style / default)
-      const crosshairSize = 15
-
-      // Horizontal line
-      const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      hLine.setAttribute('x1', String(currentX - crosshairSize))
-      hLine.setAttribute('y1', String(currentY))
-      hLine.setAttribute('x2', String(currentX + crosshairSize))
-      hLine.setAttribute('y2', String(currentY))
-      hLine.setAttribute('stroke', marker.color)
-      hLine.setAttribute('stroke-width', '2')
-      hLine.setAttribute('stroke-linecap', 'round')
-
-      // Vertical line
-      const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-      vLine.setAttribute('x1', String(currentX))
-      vLine.setAttribute('y1', String(currentY - crosshairSize))
-      vLine.setAttribute('x2', String(currentX))
-      vLine.setAttribute('y2', String(currentY + crosshairSize))
-      vLine.setAttribute('stroke', marker.color)
-      vLine.setAttribute('stroke-width', '2')
-      vLine.setAttribute('stroke-linecap', 'round')
-
-      // Center circle
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-      circle.setAttribute('cx', String(currentX))
-      circle.setAttribute('cy', String(currentY))
-      circle.setAttribute('r', '3')
-      circle.setAttribute('fill', marker.color)
-      circle.setAttribute('stroke', '#fff')
-      circle.setAttribute('stroke-width', '1')
-
-      markerGroup.appendChild(hLine)
-      markerGroup.appendChild(vLine)
-      markerGroup.appendChild(circle)
+    // What a marker looks like -- symbol or crosshair -- is the rendering
+    // layer's business, beside the symbol and label renderers (issue #273).
+    const symbolSize = markerSymbolSize(marker)
+    for (const mark of createMarkerMarks(marker, currentX, currentY)) {
+      markerGroup.appendChild(mark)
     }
 
     // The marker's label, if it carries one (feature 231). Appended last so the
@@ -702,10 +649,13 @@ export class AnalysisMode extends BaseMode {
         return true
       }
       
-      // Additionally check if we're on the crosshair lines
-      // The crosshair extends 15 pixels in each direction in SVG space
-      // We need to convert this to data space for comparison
-      
+      // Additionally check the crosshair arms -- but only on a marker that
+      // draws them. Testing them for every marker made a symbol marker
+      // grabbable along an invisible 30x30 px cross (issue #273).
+      if (!drawsCrosshair(candidate)) {
+        return false
+      }
+
       // Convert marker position to SVG coordinates
       const markerPoint = { freq: candidate.freq, time: candidate.time }
       const markerSVG = dataToSVG(markerPoint, this.getViewport(), this.instance.ui.spectrogramImage)
@@ -713,7 +663,7 @@ export class AnalysisMode extends BaseMode {
       // Convert click position to SVG coordinates
       const clickSVG = dataToSVG(position, this.getViewport(), this.instance.ui.spectrogramImage)
       
-      const crosshairSize = 15 // pixels in SVG space
+      const crosshairSize = CROSSHAIR_SIZE // pixels in SVG space
       const lineThickness = 3 // effective hit area around the line (half of stroke-width + tolerance)
       
       // Check horizontal line: Y must be close, X must be within crosshair extent

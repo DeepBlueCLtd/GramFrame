@@ -1,9 +1,20 @@
 # Gram Component Interaction Modes
 
-GramFrame has **five** interaction modes: **Pan**, **Cross Cursor** (the
-analysis mode), **Harmonics**, **Sidebands** and **Doppler**. This document
-describes what each one does for an analyst; for how they are built see
+GramFrame has **five** interaction modes: **Pan**, **Cross Cursor**,
+**Harmonics**, **Sidebands** and **Doppler**. This document describes what each
+one does for an analyst; for how they are built see
 [Tech-Architecture.md](Tech-Architecture.md).
+
+### One mode, two names
+
+The second mode is **Cross Cursor** everywhere an analyst sees it — the button,
+the guidance panel, this document. In the code and in stored records it is
+`analysis`: the mode class, the state slice, the storage key. Both names are
+correct in their own place, and the split is deliberate rather than an oversight
+— renaming the stored key would invalidate every saved record. Developer-facing
+documents (CLAUDE.md, the architecture notes) therefore say *Analysis*, and this
+one says *Cross Cursor*. Renaming the button is a product decision, not a
+documentation one (issue #271).
 
 Behaviour common to every mode:
 

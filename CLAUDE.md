@@ -59,7 +59,7 @@ curl -d "status here" ntfy.sh/iancc2025
 - **Main Class**: `GramFrame` in `src/main.js` - Central component managing all functionality
 - **Entry Point**: `src/index.js` - Main module export and global registration
 - **State Management**: `src/core/state.js` - Centralized state with listener pattern
-- **Mode System**: Modular architecture with five modes — Pan (default), Analysis, Harmonics, Sidebands and Doppler
+- **Mode System**: Modular architecture with five modes — Pan (default), Analysis, Harmonics, Sidebands and Doppler. `analysis` is the code and storage name; the button an analyst sees reads **Cross Cursor** (`modeRoster.js`, and see [Gram-Modes.md](docs/Gram-Modes.md))
 - **Spectrograph Player**: `src/audio/` (decode and analyse a WAV into the gram image) and `src/player/` (the transport and the scrolling view) make an audio-sourced instance; the modes measure it through the unchanged coordinate pipeline (spec 168, ADR-019)
 - **Feature Rendering**: `src/core/FeatureRenderer.js` - Cross-mode feature coordination
 - **Mode Factory**: `src/modes/ModeFactory.js` - Centralized mode instantiation
@@ -180,6 +180,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     repeats its neighbour (issue #259)
   - `symbols.js` - Marker/harmonic symbol shapes
   - `labels.js` - Marker label placement and element (feature 231)
+  - `markerGlyph.js` - What an analysis marker is drawn as: the crosshair, or the
+    shaped symbol that replaces it. `drawsCrosshair` is the one answer to "does
+    this marker have arms?", so the hit test asks it rather than re-deriving the
+    rule and drifting from the drawing (issue #273)
 - `src/utils/` - Utility modules:
   - `coordinates.js` - The canonical coordinate module: every screen/SVG/image/data
     conversion, zoom-, expand-, render-size- and margin-aware. Also owns
@@ -380,7 +384,9 @@ There is no visual/screenshot regression testing — see
   glyphs rather than words (`components/icons.js`), each keeping its word in a
   visually hidden span so the accessible name, and every test selector, is
   still "Pan" and "Fit" (issue #310)
-- **Analysis Mode**: Persistent draggable markers with cross-mode visibility and optional
+- **Analysis Mode**: Persistent draggable markers whose grab region follows exactly
+  what is drawn — a symbol marker has no crosshair arms to grab (issue #273) — with
+  cross-mode visibility and optional
   plated text labels (upper-right of a crosshair, centred above a shaped symbol —
   below an upward-pointing triangle, whose apex points at the data above it)
 - **Harmonics Mode**: Real-time harmonic calculation and display

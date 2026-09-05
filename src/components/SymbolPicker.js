@@ -70,6 +70,9 @@ export function createSymbolSelect(instance) {
     // otherwise set the style for the next created feature.
     if (!instance.interaction.applySymbolToSelectedFeature || !instance.interaction.applySymbolToSelectedFeature(symbol)) {
       state.selectedSymbol = symbol
+      // Dispatch: this is a state change listeners care about, and only the
+      // "Large" toggle used to say so (issue #268, BH-30).
+      dispatch(instance)
     }
   })
 

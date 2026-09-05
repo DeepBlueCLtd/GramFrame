@@ -30,9 +30,12 @@ function createComponentStructure(instanceId) {
   const container = document.createElement('div')
   container.className = 'gram-frame-container gram-frame-loading'
 
-  // Create table structure for proper resizing
+  // The outer CSS-table layout that makes the panel resize properly. Named
+  // `gram-frame-layout`, not `gram-frame-table`: that name belongs to the
+  // diffing `<table>` in DiffingTable.js, and one class on two unrelated
+  // elements made every selector using it a coin toss (issue #268, L11).
   const table = document.createElement('div')
-  table.className = 'gram-frame-table'
+  table.className = 'gram-frame-layout'
   container.appendChild(table)
 
   // Create mode header row

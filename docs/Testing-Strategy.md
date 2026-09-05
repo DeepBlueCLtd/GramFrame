@@ -21,6 +21,10 @@ server and runs `tests/**` except `tests/unit/` and `tests/smoke/`, with
 `retries: 0` everywhere — a test that fails once is a bug, locally and in CI
 alike. Only the WebKit smoke lane (`playwright.smoke.config.ts`) retries.
 
+WebKit is exercised **only** by that smoke lane — everything else runs in
+Chromium. Running it locally needs its browser first: `npx playwright install
+webkit`.
+
 ## What the end-to-end suite covers
 
 Each spec file targets one feature area; the file names say which. Interaction
