@@ -236,3 +236,68 @@ test.describe('Image configuration fails loudly (R9-02)', () => {
     await expect(page.locator('.gramframe-error-indicator')).toHaveCount(0)
   })
 })
+
+
+// ──────────────────────────────────────────────────────────────
+// R9-03 / BH-20 (issue #255) — a value cell holds one whole number, or the
+// component says so instead of drawing an axis nobody asked for
+// ──────────────────────────────────────────────────────────────
+
+test.describe('Config values are parsed strictly (R9-03)', () => {
+  test('an empty value cell is rejected instead of validating as 0', async ({ page }) => {
+    await page.goto('/tests/fixtures/config-empty-value-page.html')
+
+    const indicator = page.locator('.gramframe-error-indicator')
+    await expect(indicator).toHaveCount(1)
+    await expect(indicator).toContainText(/Missing required time configuration/)
+
+    // The whole point: no plausible-looking gram with the wrong axes.
+    await expect(page.locator('.gram-frame-container')).toHaveCount(0)
+  })
+
+  test('a decimal comma is rejected instead of being truncated', async ({ page }) => {
+    // parseFloat("1,5") is 1, so this used to draw a silent 0-1 s axis on a
+    // gram the author meant to run to 1.5 s.
+    await page.goto('/tests/fixtures/config-decimal-comma-page.html')
+
+    const indicator = page.locator('.gramframe-error-indicator')
+    await expect(indicator).toHaveCount(1)
+    await expect(indicator).toContainText(/Missing required time configuration/)
+    await expect(page.locator('.gram-frame-container')).toHaveCount(0)
+  })
+
+  test('a value with a trailing unit is rejected rather than silently truncated', async ({ page }) => {
+    await page.goto('/tests/fixtures/config-trailing-units-page.html')
+
+    await expect(page.locator('.gramframe-error-indicator')).toHaveCount(1)
+    await expect(page.locator('.gramframe-error-indicator')).toContainText(/Missing required frequency configuration/)
+  })
+
+  test('the rejected cell is named on the console, with its row', async ({ page }) => {
+    /** @type {string[]} */
+    const warnings = []
+    page.on('console', msg => {
+      if (msg.type() === 'warning') warnings.push(msg.text())
+    })
+
+    await page.goto('/tests/fixtures/config-decimal-comma-page.html')
+    await expect(page.locator('.gramframe-error-indicator')).toHaveCount(1)
+
+    expect(warnings.some(text => text.includes('time-end') && text.includes('1,5'))).toBe(true)
+  })
+
+  test('decimals, signs, exponents and padding still parse', async ({ page }) => {
+    await page.goto('/tests/fixtures/config-decimal-point-page.html')
+    await page.locator('.gram-frame-container').waitFor()
+
+    await expect(page.locator('.gramframe-error-indicator')).toHaveCount(0)
+
+    const config = await page.evaluate(
+      () => window.GramFrame.__test__getInstances()[0].state.config
+    )
+    expect(config.timeMin).toBe(-2.5)
+    expect(config.timeMax).toBe(7.25)
+    expect(config.freqMin).toBe(0.5)
+    expect(config.freqMax).toBe(1000)
+  })
+})

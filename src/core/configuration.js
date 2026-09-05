@@ -7,6 +7,36 @@
 // Display utilities removed - no rendering
 
 /**
+ * Parse a configuration cell's text as a number, strictly.
+ *
+ * Strict because both loose readings produce a plausible gram with the wrong
+ * axes and nothing on screen to say so (R9-03, BH-20). Every marker and every
+ * harmonic ratio the analyst then reads is wrong by a factor they cannot see:
+ *
+ * - An **empty cell** used to fall back to `'0'`, so a missing `time-start`
+ *   silently validated as 0 and drew a normal-looking axis.
+ * - `parseFloat` stops at the first character it cannot use, so a
+ *   European-locale `1,5` became `1` and `10 Hz` became `10`. `Number` consumes
+ *   the whole string or nothing.
+ *
+ * `Number('')` is 0 and `Number(' ')` is 0, so the blank check must come first.
+ * `Infinity` and `NaN` are rejected by the finiteness check.
+ * @param {string | null | undefined} text - Raw cell text
+ * @returns {number | null} The value, or null if the cell does not hold one number
+ */
+function parseConfigValue(text) {
+  if (typeof text !== 'string') {
+    return null
+  }
+  const trimmed = text.trim()
+  if (trimmed === '') {
+    return null
+  }
+  const value = Number(trimmed)
+  return Number.isFinite(value) ? value : null
+}
+
+/**
  * Extract configuration data from HTML table and set up image loading
  * @param {GramFrame} instance - GramFrame instance
  */
@@ -62,15 +92,24 @@ export function extractConfigData(instance) {
         const cells = row.querySelectorAll('td')
         if (cells.length === 2) {
           const param = cells[0].textContent?.trim() || ''
-          const valueText = cells[1].textContent?.trim() || '0'
-          
-          const value = parseFloat(valueText)
-          
-          if (isNaN(value)) {
-            console.warn(`GramFrame: Invalid numeric value in row ${index + 1}: value="${valueText}"`)
+          if (param !== 'time-start' && param !== 'time-end' && param !== 'freq-start' && param !== 'freq-end') {
+            // Not one of the four parameters. A config table may carry rows of
+            // its own; only the recognised ones are required to hold numbers.
             return
           }
-          
+
+          const valueText = cells[1].textContent?.trim() || ''
+          const value = parseConfigValue(valueText)
+
+          if (value === null) {
+            // Left unset on purpose. A rejected value must not be replaced by a
+            // guess: falling through leaves the parameter null, and the
+            // "must be present with valid numeric values" error below reports it
+            // on the page instead of drawing an axis nobody asked for.
+            console.warn(`GramFrame: Ignoring ${param} in row ${index + 1} — "${valueText}" is not a single numeric value`)
+            return
+          }
+
           if (param === 'time-start') {
             timeStart = value
           } else if (param === 'time-end') {

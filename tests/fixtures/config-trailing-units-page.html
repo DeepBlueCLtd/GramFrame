@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Config with a unit suffix - R9-03</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Config table whose freq-end carries its unit</h1>
+  <!-- parseFloat("100 Hz") is 100, which happens to be right here but is the
+       same silent truncation as the decimal comma; the author gets told. -->
+  <table class="gram-config">
+    <tr>
+      <td colspan="2"><img src="../../sample/mock-gram.png" alt="Sample Spectrogram"></td>
+    </tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100 Hz</td></tr>
+  </table>
+</body>
+</html>
