@@ -6,6 +6,7 @@
 
 /** @typedef {import('./modes/BaseMode.js').BaseMode} BaseMode */
 /** @typedef {import('./core/FeatureRenderer.js').FeatureRenderer} FeatureRenderer */
+/** @typedef {ReturnType<typeof import('./player/transport.js').createTransport>} PlayerController */
 
 import {
   createInitialState,
@@ -77,6 +78,8 @@ import {
   showCompatibilityWarning
 } from './core/browserCompatibility.js'
 
+import { setupAudioSource } from './player/audioSetup.js'
+
 /**
  * GramFrame class - Main component implementation
  */
@@ -146,6 +149,14 @@ export class GramFrame {
   currentMode;
   /** @type {FeatureRenderer} */
   featureRenderer;
+
+  /**
+   * The transport of an audio-sourced instance (spec 168), or null on an
+   * image-backed one. A grouped sub-object like `ui` and `interaction`: the
+   * audio element, its controller and the follow loop share one lifetime.
+   * @type {PlayerController|null}
+   */
+  player = null;
 
   /**
    * Creates a new GramFrame instance
@@ -270,19 +281,29 @@ export class GramFrame {
       this._addClearGramButton()
     }
 
-    // Restore saved annotations before first render
-    this._restoreAnnotations()
+    if (this.state.player.active) {
+      // An audio-sourced instance (spec 168) has no time range until its
+      // recording is decoded, and the storage fingerprint needs one. Restore,
+      // the panel refresh and the save listener all wait for `player.ready`;
+      // `setupAudioSource` makes the same four calls then. It runs after this
+      // constructor returns (its first await sees to that), so everything it
+      // touches exists by the time it does.
+      setupAudioSource(this)
+    } else {
+      // Restore saved annotations before first render
+      this._restoreAnnotations()
 
-    // Reflect restored annotations in the persistent control panels (the
-    // markers, harmonics and sidebands tables) and in the SVG overlays. Without this, reloaded
-    // annotations render over the spectrogram but leave the panel tables empty.
-    updatePersistentPanels(this)
-    if (this.featureRenderer) {
-      this.featureRenderer.renderAllPersistentFeatures()
+      // Reflect restored annotations in the persistent control panels (the
+      // markers, harmonics and sidebands tables) and in the SVG overlays. Without this, reloaded
+      // annotations render over the spectrogram but leave the panel tables empty.
+      updatePersistentPanels(this)
+      if (this.featureRenderer) {
+        this.featureRenderer.renderAllPersistentFeatures()
+      }
+
+      // Register storage save listener
+      this._setupStorageSaveListener()
     }
-
-    // Register storage save listener
-    this._setupStorageSaveListener()
 
     // Final state notification
     dispatch(this)
@@ -590,6 +611,12 @@ export class GramFrame {
 
     cleanupEventListeners(this)
     cleanupKeyboardControl(this)
+
+    // Stop the audio and its follow loop before the DOM goes (spec 168)
+    if (this.player) {
+      this.player.destroy()
+      this.player = null
+    }
 
     // Remove from DOM if still attached
     if (this.ui.container && this.ui.container.parentNode) {

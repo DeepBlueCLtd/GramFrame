@@ -8,13 +8,17 @@
  * @returns {string} Time formatted as mm:ss
  */
 export function formatTime(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
+  // Negative times exist on an audio-sourced gram before play starts: the view
+  // holds `[-window, 0]`, and its axis reads "-00:10" … "00:00" (spec 168).
+  const sign = seconds < 0 ? '-' : '';
+  const magnitude = Math.abs(seconds);
+  const minutes = Math.floor(magnitude / 60);
+  const remainingSeconds = Math.floor(magnitude % 60);
   
   // Pad both minutes and seconds with leading zero if needed
   const paddedMinutes = minutes.toString().padStart(2, '0');
   const paddedSeconds = remainingSeconds.toString().padStart(2, '0');
   
-  return `${paddedMinutes}:${paddedSeconds}`;
+  return `${sign}${paddedMinutes}:${paddedSeconds}`;
 }
 

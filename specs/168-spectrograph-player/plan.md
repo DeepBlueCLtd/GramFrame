@@ -34,7 +34,7 @@ looks for only when `fetch` fails (research §5.3).
 **Project Type**: Single-project browser component
 **Performance Goals**: SC-002 ready-to-play ≤ 5 s for 3 min @ 44.1 kHz with no main-thread slice > 100 ms (spike: 1.9 s, 14 ms); SC-003 top row within 100 ms of `currentTime`, ≥ 30 fps scrolling at `window-seconds` 10 (spike: 61 fps)
 **Constraints**: single-file bundle; no runtime network; `file://`; declarative config; multiple independent instances; every existing Playwright spec passes unchanged (SC-004); no hygiene baseline rises
-**Scale/Scope**: WAV ≤ 5 min, ≤ 96 kHz stereo; gram ≤ 32,768 rows × 4,096 columns (research §5.2); ~1,100 lines of new `src/`, ~9 new modules, one new `state` slice
+**Scale/Scope**: WAV ≤ 5 min, ≤ 96 kHz stereo; gram ≤ 32,768 rows × 4,096 columns (research §5.2); ~1,300 lines of new `src/`, 11 new modules, one new `state` slice; standalone bundle +49 KB unminified / +12.8 KB gzipped (SC-006, measured)
 
 ## Constitution Check
 

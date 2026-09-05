@@ -163,9 +163,9 @@ the source is the candidate's README, source tree or registry record linked in
 | (d) per-frame magnitudes or an overlay-able surface | ◐ draws to its own canvas; magnitudes reachable only by reading plugin internals | ◐ draws to a caller canvas; frame data not exposed | ✗ canvas only | ✗ | ✓ returns arrays | ✓ arrays | ✓ arrays | ✓ magnitudes are ours |
 | (e) scrolling waterfall, or the access to build one | ✗ time runs horizontally; scrolling is the waveform's | ✓ waterfall is its purpose, but real-time streaming, not seek-anywhere | ✗ | ✗ | n/a | n/a | n/a | ✓ tall image + viewport (§5.2) |
 | (f) browser support ≥ GramFrame baseline (Chrome/Edge 86) | ✓ | ◐ ES2020+, `OffscreenCanvas` in places | ✓ | ✓ | ◐ WASM SIMD paths | ✓ | ✓ | ✓ nothing newer than canvas + `<audio>` |
-| (g) bundle size added | ≈ 90 KB min for the two parts we would use | ≈ 500 KB with `webfft` | 14 KB | 300 KB | 10 MB | 22 KB | 40 KB | **≈ 8 KB** unminified |
+| (g) bundle size added | ≈ 90 KB min for the two parts we would use | ≈ 500 KB with `webfft` | 14 KB | 300 KB | 10 MB | 22 KB | 40 KB | **≈ 8 KB** unminified for decoder + FFT; the whole player (analysis, view, transport, bar) measured **+49 KB** unminified, **+12.8 KB** gzipped, on the standalone bundle (346,985 → 396,153 bytes) |
 | (h) maintenance signal | ✓ active 2026-07, large community | ◐ 8 months old, single organisation | ✗ last release 2019 | ✓ active | ✗ 2021 | ✗ 2021, one author | ✓ 2026-07, scijs | ✓ ours |
-| (i) licence and distribution implications | BSD-3: notice + licence text must ship with the bundle | MIT: notice must ship | MIT | **AGPL**: distributing published material with it bundled obliges source disclosure of the combined work under AGPL — incompatible with the product's distribution | **AGPL**: as left | MIT | MIT | none |
+| (i) licence and distribution implications | BSD-3: notice + licence text must ship with the bundle | MIT: notice must ship | MIT | AGPL: the combined work's source must be offered to recipients — acceptable, since the component is to be open-sourced (product owner, 2026-09-05), but every training package would carry that obligation | AGPL: as left | MIT | MIT | none |
 | (j) deterministic (same input → same pixels/values) | ◐ worker + colour map are deterministic; rendering is tied to the waveform's zoom state | ◐ colour maps deterministic; real-time input path is not | ✗ real-time | ✗ | ✓ | ✓ | ✓ | ✓ integer PCM in, fixed window, fixed colour map |
 
 **Reading the table.** Every rendering library fails (e), (d) or (b): they
@@ -173,8 +173,10 @@ paint their own canvas with time on the horizontal axis (or as a live stream),
 and none of them can get at the samples over `file://` any better than we
 can. The FFT libraries pass everything but add a dependency to a zero-dependency
 project to save writing a routine that the spike measured at 1.9 s for the
-worst case in FR-005's scope. The two AGPL packages are excluded on (i) before
-anything else.
+worst case in FR-005's scope. The two AGPL packages fail on merit — audiomotion-analyzer is not a
+spectrogram at all, essentia.js is a 10 MB toolkit fetched at runtime — and
+not on licence: the product owner has confirmed the component is to be
+open-sourced, so a copyleft dependency would not have been a bar in itself.
 
 ## 5. Decision: build
 

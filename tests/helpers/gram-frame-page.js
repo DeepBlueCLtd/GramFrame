@@ -387,6 +387,22 @@ class GramFramePage {
   }
 
   /**
+   * Wait until an audio-sourced instance has analysed its recording and is
+   * ready to play (spec 168). Analysis of the fixture takes well under a
+   * second; the timeout allows for a cold dev server.
+   * @param {{timeout?: number}} [opts] - Optional timeout override
+   * @returns {Promise<void>}
+   */
+  async waitForPlayerReady(opts = {}) {
+    await this.page.locator('.gram-frame-container').first().waitFor({ timeout: 10000 })
+    await this.waitForState((state) => !!(state.player && state.player.ready), {
+      timeout: 15000,
+      ...opts,
+      message: 'the audio-sourced instance to become ready'
+    })
+  }
+
+  /**
    * Wait until the component reports the given mode.
    * @param {string} mode - Mode identifier ('pan', 'analysis', 'harmonics', 'doppler')
    * @param {{timeout?: number}} [opts] - Optional timeout override

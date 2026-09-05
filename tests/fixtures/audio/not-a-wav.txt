@@ -1,0 +1,1 @@
+This is not a WAV file. It exists so the player fixture can exercise the decode-failure path.

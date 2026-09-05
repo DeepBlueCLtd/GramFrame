@@ -91,6 +91,34 @@ const FROZEN_INITIAL_STATE = {
     selectedId: null,
     selectedIndex: null
   },
+  // Added with the spectrograph player (spec 168): a core slice, so it sits
+  // with the core keys rather than after the mode slices.
+  player: {
+    active: false,
+    ready: false,
+    progress: 0,
+    source: '',
+    duration: 0,
+    sampleRate: 0,
+    channels: 0,
+    playhead: 0,
+    playing: false,
+    ended: false,
+    loop: false,
+    rate: 1,
+    volume: 1,
+    muted: false,
+    viewTop: 0,
+    windowSeconds: 10,
+    analysis: {
+      fftSize: 1024,
+      hopSize: 512,
+      freqStart: 0,
+      freqEnd: null,
+      columns: 0,
+      frames: 0
+    }
+  },
   // --- contributed by the modes, in registration order --------------------
   // Pan contributes no slice, which is why there are four and not five.
   analysis: {

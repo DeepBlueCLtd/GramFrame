@@ -4,6 +4,7 @@ import { getVersion } from '../../utils/version.js'
 import { pixelDeltaToNormalizedPan, panByNormalized, zoomIn, zoomOut } from '../../core/viewport.js'
 import { IDLE_CURSOR, PAN_IDLE_CURSOR, PAN_DRAG_CURSOR } from '../../utils/cursors.js'
 import { WHEEL_NAV_GUIDANCE } from '../../utils/wheelGuidance.js'
+import { isPlayerActive } from '../../player/playerView.js'
 
 /**
  * Pan mode - allows users to pan around the spectrogram when zoomed in
@@ -43,10 +44,20 @@ export class PanMode extends BaseMode {
    * @returns {DragTarget|null} A pan-kind target, or null to decline
    */
   resolvePanDrag() {
-    if (this.instance.state.zoom.level <= 1.0) {
+    if (!this.canPan()) {
       return null
     }
     return { kind: 'pan', id: null, type: null }
+  }
+
+  /**
+   * Whether there is anything to pan: an image zoomed in, or an audio-sourced
+   * gram at any zoom — its view is a window onto the recording, so a paused
+   * analyst can always scroll back through what has played (spec 168, FR-016).
+   * @returns {boolean} True when a drag would move the view
+   */
+  canPan() {
+    return this.instance.state.zoom.level > 1.0 || isPlayerActive(this.instance)
   }
 
   /**
@@ -54,7 +65,7 @@ export class PanMode extends BaseMode {
    * @returns {string} Cursor style
    */
   idleCursor() {
-    return this.instance.state.zoom.level > 1.0 ? PAN_IDLE_CURSOR : IDLE_CURSOR
+    return this.canPan() ? PAN_IDLE_CURSOR : IDLE_CURSOR
   }
 
   /**
@@ -74,7 +85,7 @@ export class PanMode extends BaseMode {
    * @param {MouseEvent} [event] - Originating mousemove
    */
   onPanMove(event) {
-    if (!event || this.instance.state.zoom.level <= 1.0) {
+    if (!event || !this.canPan()) {
       return
     }
 
@@ -99,8 +110,8 @@ export class PanMode extends BaseMode {
    * Activate pan mode
    */
   activate() {
-    // Set cursor to grab if zoomed
-    if (this.instance.state.zoom.level > 1.0) {
+    // Set cursor to grab if there is something to pan
+    if (this.canPan()) {
       this.updateCursorStyle(PAN_IDLE_CURSOR)
     }
 

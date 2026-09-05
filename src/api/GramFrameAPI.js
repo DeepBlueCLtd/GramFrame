@@ -6,6 +6,8 @@
 
 /// <reference path="../types.js" />
 
+/** @typedef {ReturnType<typeof import('../player/transport.js').createTransport>} PlayerController */
+
 import {
   addGlobalStateListener,
   removeGlobalStateListener,
@@ -14,6 +16,7 @@ import {
 } from '../core/state.js'
 import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
 import { isBrowserSupported, showCompatibilityWarning, looksLikeMissingApiError } from '../core/browserCompatibility.js'
+import { createErrorIndicator } from '../components/ErrorIndicator.js'
 
 /**
  * Whether the host page opted into the debug/test API surface.
@@ -279,6 +282,16 @@ export function createGramFrameAPI(GramFrame) {
     },
     
     /**
+     * The transport of an audio-sourced instance (spec 168, FR-020).
+     * @param {number} [index=0] - Which live instance, in page order
+     * @returns {PlayerController|null} Its player, or null when the instance is image-backed or absent
+     */
+    getPlayer(index = 0) {
+      const instance = this._getInstances()[index]
+      return instance && instance.player ? instance.player : null
+    },
+
+    /**
      * Get the current expand state of the first GramFrame instance.
      * @returns {boolean} True if the image is currently expanded
      */
@@ -348,37 +361,8 @@ export function createGramFrameAPI(GramFrame) {
         // pre-conversion placeholder styling and let its config show plainly
         table.classList.add('gram-frame-config-error')
 
-        // Create error overlay
-        const errorDiv = document.createElement('div')
-        errorDiv.className = 'gramframe-error-indicator'
-        errorDiv.style.cssText = `
-          position: relative;
-          background-color: #ffe6e6;
-          border: 2px solid #ff6b6b;
-          border-radius: 4px;
-          padding: 10px;
-          margin: 10px 0;
-          color: #d32f2f;
-          font-family: monospace;
-          font-size: 14px;
-        `
-        
-        // Create content safely without innerHTML
-        const strongElement = document.createElement('strong')
-        strongElement.textContent = 'GramFrame Initialization Error:'
-        
-        const errorText = document.createElement('div')
-        errorText.textContent = errorMsg
-        
-        const smallElement = document.createElement('small')
-        smallElement.textContent = 'Check the browser console for detailed error information.'
-        
-        errorDiv.appendChild(strongElement)
-        errorDiv.appendChild(document.createElement('br'))
-        errorDiv.appendChild(errorText)
-        errorDiv.appendChild(document.createElement('br'))
-        errorDiv.appendChild(smallElement)
-        
+        const errorDiv = createErrorIndicator(errorMsg)
+
         // Insert error indicator after the table
         if (table.parentNode) {
           table.parentNode.insertBefore(errorDiv, table.nextSibling)

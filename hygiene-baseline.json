@@ -5,6 +5,7 @@
   "unusedExportModules": 5,
   "waitForTimeoutOccurrences": 1,
   "_comment_instanceSurface": "specs/167-structural-refactor Story 5. instanceStateReachIns counts lines containing `instance.state` under src/; instanceFields counts class-field declarations between `export class GramFrame` and its constructor in src/main.js.",
-  "instanceStateReachIns": 160,
-  "instanceFields": 11
+  "instanceStateReachIns": 158,
+  "_comment_instanceFields_168": "Raised 11 -> 12 by spec 168: `player` is a fifth grouped sub-object (the audio element, its controller and follow loop share one lifetime), not a flat field returning to the surface.",
+  "instanceFields": 12
 }

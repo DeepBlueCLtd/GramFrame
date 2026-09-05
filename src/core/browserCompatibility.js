@@ -53,6 +53,27 @@ export const REQUIRED_APIS = [
         !!Element.prototype &&
         typeof Element.prototype.replaceChildren === 'function'
     }
+  },
+  {
+    // The spectrograph player (spec 168, FR-008) plays through an <audio>
+    // element. Present since Chrome 3; listed so a browser without it gets the
+    // warning rather than a player that cannot play.
+    name: 'HTMLAudioElement',
+    minVersion: 3,
+    test: function () {
+      return typeof HTMLAudioElement === 'function' || typeof HTMLAudioElement === 'object'
+    }
+  },
+  {
+    // The player encodes the analysed spectrogram as a PNG through a canvas
+    // (spec 168, D6). Present since Chrome 1.
+    name: 'HTMLCanvasElement.prototype.toDataURL',
+    minVersion: 1,
+    test: function () {
+      return typeof HTMLCanvasElement !== 'undefined' &&
+        !!HTMLCanvasElement.prototype &&
+        typeof HTMLCanvasElement.prototype.toDataURL === 'function'
+    }
   }
 ]
 

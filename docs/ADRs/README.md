@@ -24,6 +24,7 @@ rather than being edited into agreement with today's code.
 | [016](ADR-016-Image-Resize-Zoom.md) | Zoom by resizing the image element | Accepted |
 | [017](ADR-017-Mode-Capability-Interfaces.md) | Mode capability interfaces | Accepted |
 | [018](ADR-018-Table-Split.md) | Splitting `components/table.js` | Accepted |
+| [019](ADR-019-Audio-Sourced-Instances.md) | Audio-sourced instances — the spectrograph player | Accepted |
 
 ## The gap at 014, since filled
 

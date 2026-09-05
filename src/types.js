@@ -41,6 +41,7 @@
  * @property {number} naturalHeight - Original height of the image in pixels
  * @property {number} [renderWidth] - Base render width the image/axes/overlay are drawn at (before zoom); defaults to naturalWidth
  * @property {number} [renderHeight] - Base render height the image/axes/overlay are drawn at (before zoom); defaults to naturalHeight
+ * @property {number} [timeStretch] - Vertical stretch of the base render on an audio-sourced instance: the image element is drawn this many times taller than the axes area so the view holds `window-seconds` of the recording (spec 168, D7). Absent or 1 on image-backed instances
  */
 
 /**
@@ -350,6 +351,40 @@
  * @property {AxesMargins} margins - Axes margin configuration
  * @property {ZoomState} zoom - Zoom state configuration
  * @property {boolean} [imageExpanded] - Whether the image is expanded to fill available space (in-memory only)
+ * @property {PlayerState} player - Audio-sourced instance state; inert (`active: false`) on image-backed instances (spec 168)
+ */
+
+/**
+ * The analysis parameters an audio-sourced instance runs with (spec 168, FR-004).
+ * @typedef {Object} AnalysisParams
+ * @property {number} fftSize - Frame length in samples, a power of two
+ * @property {number} hopSize - Samples between frame starts
+ * @property {number} freqStart - Lowest retained frequency, Hz
+ * @property {number|null} freqEnd - Highest retained frequency, Hz; null until the sample rate is known (default Nyquist)
+ * @property {number} columns - Retained bins = the gram's natural width (0 until analysed)
+ * @property {number} frames - Analysis frames = the gram's natural height (0 until analysed)
+ */
+
+/**
+ * Everything the spectrograph player broadcasts (spec 168, FR-009; data-model.md §1).
+ * @typedef {Object} PlayerState
+ * @property {boolean} active - True iff the config table's first row held an `<audio>`
+ * @property {boolean} ready - True once the gram is painted and the transport is live
+ * @property {number} progress - 0..1 through load → decode → analyse → paint
+ * @property {string} source - The `<audio>` element's resolved src
+ * @property {number} duration - Recording length in seconds, from the decoded file
+ * @property {number} sampleRate - Hz, from the WAV header
+ * @property {number} channels - Channel count as stored in the file
+ * @property {number} playhead - Playback position in seconds, as last sampled
+ * @property {boolean} playing - Whether audio is playing
+ * @property {boolean} ended - Whether playback reached the end (cleared by play/seek/restart)
+ * @property {boolean} loop - Whether playback restarts at the end
+ * @property {number} rate - Playback rate (1 = real time)
+ * @property {number} volume - 0..1
+ * @property {boolean} muted - Whether output is muted
+ * @property {number} viewTop - Time at the top edge of the visible window, seconds
+ * @property {number} windowSeconds - Seconds of audio the unzoomed view spans
+ * @property {AnalysisParams} analysis - The analysis parameters in force
  */
 
 /**
@@ -696,6 +731,7 @@
  * @property {function(StateListener): boolean} removeStateListener - Remove state listener
  * @property {function(): boolean} [getExpandState] - Get current expand state (first instance)
  * @property {function(boolean): void} [setExpandState] - Expand/collapse landscape instances
+ * @property {function(number=): ReturnType<typeof import('./player/transport.js').createTransport>|null} getPlayer - The transport of an audio-sourced instance, or null (spec 168)
  * @property {function(HTMLTableElement, string): void} _addErrorIndicator - Add error indicator to table
  * @property {function(HTMLTableElement, Node|null, Node|null): void} _restoreConfigTable - Put a config table back after a failed init
  * @property {function(): GramFrame[]} _getInstances - The API's single instance registry

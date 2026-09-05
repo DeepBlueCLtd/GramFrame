@@ -74,3 +74,11 @@ reporting or debugging an issue:
 
 Released builds show the real version (e.g. `v0.1.12`); local development builds
 show `vDEV` until `yarn generate-version` runs.
+
+## Spectrograph player
+
+A config table may name a WAV instead of an image. The recording is decoded and
+analysed in the browser and shown as a scrolling, audible waterfall; pause to
+annotate, and the annotations ride the gram when play resumes. See the
+*Audio-Sourced Grams* section of `docs/HTML-Integration-Guide.md`, the four
+sample recordings under `sample/audio/`, and `sample/player.html`.
