@@ -3904,28 +3904,28 @@
     const inputGroup = document.createElement("div");
     inputGroup.className = "gram-frame-modal-input-group";
     const inputLabel = document.createElement("label");
-    inputLabel.setAttribute("for", "gram-frame-marker-label-input");
-    inputLabel.textContent = "Label:";
+    inputLabel.appendChild(document.createTextNode("Label:"));
     const input = document.createElement("input");
     input.type = "text";
-    input.id = "gram-frame-marker-label-input";
     input.className = "gram-frame-marker-label-input";
     input.maxLength = MAX_MARKER_LABEL_LENGTH;
     input.placeholder = "Enter a label for this marker";
     input.value = currentLabel || "";
+    inputLabel.appendChild(input);
     const hint = document.createElement("div");
     hint.className = "gram-frame-modal-hint";
     hint.textContent = "Leave empty to remove the label.";
     inputGroup.appendChild(inputLabel);
-    inputGroup.appendChild(input);
     inputGroup.appendChild(hint);
     body.appendChild(inputGroup);
     const footer = document.createElement("div");
     footer.className = "gram-frame-modal-footer";
     const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
     cancelButton.className = "gram-frame-modal-btn gram-frame-modal-cancel";
     cancelButton.textContent = "Cancel";
     const saveButton = document.createElement("button");
+    saveButton.type = "button";
     saveButton.className = "gram-frame-modal-btn gram-frame-modal-add gram-frame-modal-save";
     saveButton.textContent = "Save";
     footer.appendChild(cancelButton);
@@ -3934,10 +3934,25 @@
     modal.appendChild(body);
     modal.appendChild(footer);
     overlay.appendChild(modal);
+    const opener = (
+      /** @type {HTMLElement|null} */
+      document.activeElement
+    );
     document.body.appendChild(overlay);
     function closeModal() {
+      document.removeEventListener("keydown", onDocumentKeydown, true);
       if (overlay.parentNode) {
         overlay.parentNode.removeChild(overlay);
+      }
+      if (opener && typeof opener.focus === "function" && opener.isConnected) {
+        opener.focus();
+      }
+    }
+    function onDocumentKeydown(e) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        e.preventDefault();
+        closeModal();
       }
     }
     function save() {
@@ -3947,10 +3962,9 @@
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         save();
-      } else if (e.key === "Escape") {
-        closeModal();
       }
     });
+    document.addEventListener("keydown", onDocumentKeydown, true);
     cancelButton.addEventListener("click", closeModal);
     saveButton.addEventListener("click", save);
     overlay.addEventListener("click", (e) => {
@@ -5558,6 +5572,7 @@
     }
     table.update(instance.state.harmonics.harmonicSets);
   }
+  const MIN_MANUAL_SPACING = 0.1;
   function calculateVisibleTimePeriodCenter(state, instance) {
     const ZOOM_EPSILON = 1e-3;
     if (Math.abs(state.zoom.level - 1) < ZOOM_EPSILON) {
@@ -5568,46 +5583,59 @@
   }
   function showManualHarmonicModal(state, addHarmonicSet, instance) {
     const overlay = document.createElement("div");
-    overlay.className = "gram-frame-modal-overlay";
+    overlay.className = "gram-frame-modal-overlay gram-frame-manual-harmonic-modal";
     const modal = document.createElement("div");
     modal.className = "gram-frame-modal";
-    modal.innerHTML = `
-    <div class="gram-frame-modal-header">
-      <h3>Add Manual Harmonics</h3>
-    </div>
-    <div class="gram-frame-modal-body">
-      <label for="harmonic-spacing-input">Harmonic spacing (Hz):</label>
-      <input type="number" id="harmonic-spacing-input" min="0.1" step="0.1" placeholder="Enter spacing in Hz">
-      <div class="gram-frame-modal-error" id="spacing-error" style="display: none; color: red; font-size: 12px; margin-top: 5px;">
-        Please enter a number ≥ 0.1
-      </div>
-    </div>
-    <div class="gram-frame-modal-footer">
-      <button class="gram-frame-modal-cancel" id="cancel-button">Cancel</button>
-      <button class="gram-frame-modal-add" id="add-button" disabled>Add</button>
-    </div>
-  `;
+    const header = document.createElement("div");
+    header.className = "gram-frame-modal-header";
+    const heading = document.createElement("h3");
+    heading.textContent = "Add Manual Harmonics";
+    header.appendChild(heading);
+    const body = document.createElement("div");
+    body.className = "gram-frame-modal-body";
+    const inputGroup = document.createElement("div");
+    inputGroup.className = "gram-frame-modal-input-group";
+    const inputLabel = document.createElement("label");
+    inputLabel.appendChild(document.createTextNode("Harmonic spacing (Hz):"));
+    const spacingInput = document.createElement("input");
+    spacingInput.type = "number";
+    spacingInput.className = "gram-frame-harmonic-spacing-input";
+    spacingInput.min = String(MIN_MANUAL_SPACING);
+    spacingInput.step = String(MIN_MANUAL_SPACING);
+    spacingInput.placeholder = "Enter spacing in Hz";
+    inputLabel.appendChild(spacingInput);
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "gram-frame-modal-error gram-frame-spacing-error";
+    errorDiv.style.display = "none";
+    errorDiv.textContent = `Please enter a number ≥ ${MIN_MANUAL_SPACING}`;
+    inputGroup.appendChild(inputLabel);
+    inputGroup.appendChild(errorDiv);
+    body.appendChild(inputGroup);
+    const footer = document.createElement("div");
+    footer.className = "gram-frame-modal-footer";
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.className = "gram-frame-modal-btn gram-frame-modal-cancel";
+    cancelButton.textContent = "Cancel";
+    const addButton = document.createElement("button");
+    addButton.type = "button";
+    addButton.className = "gram-frame-modal-btn gram-frame-modal-add";
+    addButton.textContent = "Add";
+    addButton.disabled = true;
+    footer.appendChild(cancelButton);
+    footer.appendChild(addButton);
+    modal.appendChild(header);
+    modal.appendChild(body);
+    modal.appendChild(footer);
     overlay.appendChild(modal);
+    const opener = (
+      /** @type {HTMLElement|null} */
+      document.activeElement
+    );
     document.body.appendChild(overlay);
-    const spacingInput = (
-      /** @type {HTMLInputElement} */
-      modal.querySelector("#harmonic-spacing-input")
-    );
-    const errorDiv = (
-      /** @type {HTMLDivElement} */
-      modal.querySelector("#spacing-error")
-    );
-    const cancelButton = (
-      /** @type {HTMLButtonElement} */
-      modal.querySelector("#cancel-button")
-    );
-    const addButton = (
-      /** @type {HTMLButtonElement} */
-      modal.querySelector("#add-button")
-    );
     const validateInput = () => {
       const value = parseFloat(spacingInput.value);
-      const isValid = !isNaN(value) && value >= 0.1;
+      const isValid = !isNaN(value) && value >= MIN_MANUAL_SPACING;
       if (spacingInput.value.trim() === "") {
         errorDiv.style.display = "none";
         addButton.disabled = true;
@@ -5619,20 +5647,18 @@
         addButton.disabled = false;
       }
     };
-    spacingInput.addEventListener("input", validateInput);
-    spacingInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !addButton.disabled) {
-        addHarmonic();
-      } else if (e.key === "Escape") {
-        closeModal();
-      }
-    });
     function closeModal() {
-      document.body.removeChild(overlay);
+      document.removeEventListener("keydown", onDocumentKeydown, true);
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+      if (opener && typeof opener.focus === "function" && opener.isConnected) {
+        opener.focus();
+      }
     }
     function addHarmonic() {
       const spacing = parseFloat(spacingInput.value);
-      if (!isNaN(spacing) && spacing >= 0.1) {
+      if (!isNaN(spacing) && spacing >= MIN_MANUAL_SPACING) {
         let anchorTime;
         if (state.cursorPosition) {
           anchorTime = state.cursorPosition.time;
@@ -5643,6 +5669,20 @@
         closeModal();
       }
     }
+    function onDocumentKeydown(e) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        e.preventDefault();
+        closeModal();
+      }
+    }
+    spacingInput.addEventListener("input", validateInput);
+    spacingInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !addButton.disabled) {
+        addHarmonic();
+      }
+    });
+    document.addEventListener("keydown", onDocumentKeydown, true);
     cancelButton.addEventListener("click", closeModal);
     addButton.addEventListener("click", addHarmonic);
     overlay.addEventListener("click", (e) => {
@@ -5651,6 +5691,7 @@
       }
     });
     spacingInput.focus();
+    return overlay;
   }
   class HarmonicsMode extends PinSetMode {
     /**

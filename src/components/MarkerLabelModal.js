@@ -9,6 +9,9 @@
  * Built with `createElement` rather than `innerHTML`: the current label is user
  * text being put back into the DOM, and `textContent`/`value` assignment keeps
  * that unambiguously inert.
+ *
+ * The label wraps its input rather than pointing at one by id, so no
+ * page-global name escapes into the host document (R9-08).
  */
 
 /// <reference path="../types.js" />
@@ -46,32 +49,32 @@ export function showMarkerLabelModal(currentLabel, onSave) {
   inputGroup.className = 'gram-frame-modal-input-group'
 
   const inputLabel = document.createElement('label')
-  inputLabel.setAttribute('for', 'gram-frame-marker-label-input')
-  inputLabel.textContent = 'Label:'
+  inputLabel.appendChild(document.createTextNode('Label:'))
 
   const input = document.createElement('input')
   input.type = 'text'
-  input.id = 'gram-frame-marker-label-input'
   input.className = 'gram-frame-marker-label-input'
   input.maxLength = MAX_MARKER_LABEL_LENGTH
   input.placeholder = 'Enter a label for this marker'
   input.value = currentLabel || ''
+  inputLabel.appendChild(input)
 
   const hint = document.createElement('div')
   hint.className = 'gram-frame-modal-hint'
   hint.textContent = 'Leave empty to remove the label.'
 
   inputGroup.appendChild(inputLabel)
-  inputGroup.appendChild(input)
   inputGroup.appendChild(hint)
   body.appendChild(inputGroup)
 
   const footer = document.createElement('div')
   footer.className = 'gram-frame-modal-footer'
   const cancelButton = document.createElement('button')
+  cancelButton.type = 'button'
   cancelButton.className = 'gram-frame-modal-btn gram-frame-modal-cancel'
   cancelButton.textContent = 'Cancel'
   const saveButton = document.createElement('button')
+  saveButton.type = 'button'
   saveButton.className = 'gram-frame-modal-btn gram-frame-modal-add gram-frame-modal-save'
   saveButton.textContent = 'Save'
   footer.appendChild(cancelButton)
@@ -81,14 +84,44 @@ export function showMarkerLabelModal(currentLabel, onSave) {
   modal.appendChild(body)
   modal.appendChild(footer)
   overlay.appendChild(modal)
+
+  // Remembered before the dialog steals focus, so it can be given back.
+  const opener = /** @type {HTMLElement|null} */ (document.activeElement)
+
   document.body.appendChild(overlay)
 
   /**
-   * Remove the dialog from the page.
+   * Remove the dialog and hand focus back to whatever opened it.
+   *
+   * Without the restore, `document.activeElement` was left on `<body>` after
+   * every Save or Cancel, so a keyboard user was returned to the top of the
+   * document rather than to the Label button they pressed (R9-08).
    */
   function closeModal() {
+    document.removeEventListener('keydown', onDocumentKeydown, true)
     if (overlay.parentNode) {
       overlay.parentNode.removeChild(overlay)
+    }
+    if (opener && typeof opener.focus === 'function' && opener.isConnected) {
+      opener.focus()
+    }
+  }
+
+  /**
+   * Escape closes the dialog wherever the focus happens to be.
+   *
+   * Bound on the document, in the capture phase, rather than on the input:
+   * Escape used to work only while the text field had focus, so tabbing to
+   * Cancel and pressing it left the dialog open with no way out but the mouse.
+   * The listener is removed on close, and the event is stopped so it cannot
+   * also reach the component's own document-level key handling.
+   * @param {KeyboardEvent} e - The key event
+   */
+  function onDocumentKeydown(e) {
+    if (e.key === 'Escape') {
+      e.stopPropagation()
+      e.preventDefault()
+      closeModal()
     }
   }
 
@@ -103,10 +136,9 @@ export function showMarkerLabelModal(currentLabel, onSave) {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       save()
-    } else if (e.key === 'Escape') {
-      closeModal()
     }
   })
+  document.addEventListener('keydown', onDocumentKeydown, true)
   cancelButton.addEventListener('click', closeModal)
   saveButton.addEventListener('click', save)
   overlay.addEventListener('click', (e) => {
