@@ -5,8 +5,8 @@ import { test, expect } from './helpers/fixtures.js'
  *
  * Pin lines are sized in screen pixels, not in time units: their height is
  * derived from the base (unzoomed) render height, so zooming in/out leaves the
- * on-screen height unchanged while the pin stays centred on the anchor time of
- * the original click.
+ * on-screen height unchanged while the pin keeps hanging from the anchor time
+ * of the original click (its top edge — the symbol/pin junction — is the click).
  *
  * Debug config spans freq 0-100 Hz over time 0-60 s. A 10 Hz set anchored at
  * t=30 s keeps harmonic 5 (50 Hz) near the centre of the image, so it stays
@@ -24,7 +24,7 @@ const CENTRE_HARMONIC = 5
  * @param {import('./helpers/gram-frame-page.js').GramFramePage} gfp - Page helper
  * @param {string} setId - Harmonic set id
  * @param {number} harmonicNumber - Which pin to measure
- * @returns {Promise<{lineHeight: number, lineCy: number, image: {top: number, height: number}}>}
+ * @returns {Promise<{lineHeight: number, lineTop: number, image: {top: number, height: number}}>}
  */
 async function readPinGeometry(gfp, setId, harmonicNumber) {
   return gfp.page.evaluate(([id, num]) => {
@@ -35,7 +35,7 @@ async function readPinGeometry(gfp, setId, harmonicNumber) {
     const lineRect = line.getBoundingClientRect()
     return {
       lineHeight: lineRect.height,
-      lineCy: (lineRect.top + lineRect.bottom) / 2,
+      lineTop: lineRect.top,
       image: { top: imageRect.top, height: imageRect.height }
     }
   }, [setId, harmonicNumber])
@@ -64,16 +64,17 @@ test.describe('Harmonic pin height', () => {
     }
   })
 
-  test('pin stays centred on its anchor time while zooming', async ({ gramFramePage }) => {
+  test('pin keeps hanging from its anchor time while zooming', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
 
     for (const level of [1.0, 2.0, 4.0]) {
       await gramFramePage.setZoom(level, 0.5, 0.5)
 
-      const { lineCy, image } = await readPinGeometry(gramFramePage, setId, CENTRE_HARMONIC)
+      const { lineTop, image } = await readPinGeometry(gramFramePage, setId, CENTRE_HARMONIC)
       // Where the anchor time falls on the (zoomed) image; time axis runs bottom-up.
-      const expectedCy = image.top + (1 - ANCHOR_TIME / 60) * image.height
-      expect(lineCy).toBeCloseTo(expectedCy, 0)
+      // The top of the pin — not its centre — is the anchor (issue #284).
+      const expectedTop = image.top + (1 - ANCHOR_TIME / 60) * image.height
+      expect(lineTop).toBeCloseTo(expectedTop, 0)
     }
   })
 
@@ -82,7 +83,7 @@ test.describe('Harmonic pin height', () => {
     await gramFramePage.setZoom(4.0, 0.5, 0.5)
 
     // Hit-testing works in the same pixel space as rendering: the anchor time is
-    // inside the pin, a point well below it (in the now-stretched time axis) is not.
+    // the top of the pin, a point well below it (in the now-stretched time axis) is not.
     const hit = await gramFramePage.page.evaluate(([id, num]) => {
       // @ts-ignore - test-only global
       const instance = window.GramFrame.__test__getInstances()[0]

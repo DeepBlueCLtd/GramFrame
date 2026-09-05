@@ -141,9 +141,11 @@ test.describe('Harmonic set hotspot', () => {
   test('with the pin hidden, the blank span below the label does not grab the set', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(ANCHOR_TIME, SPACING)
 
-    // The anchor time is the vertical centre of the pin line — and the only
-    // place a pin-less set used to be grabbable, well below its digits.
-    const probe = () => probeAtData(gramFramePage, CENTRE_HARMONIC * SPACING, ANCHOR_TIME)
+    // The pin hangs from the anchor time (issue #284), so a point a little way
+    // down the line is on the tall pin but past the mini-pin stub — and was the
+    // only place a pin-less set used to be grabbable, well below its digits.
+    // 6 s is 40 px of the 80 px pin at the base render height; the stub is 10 px.
+    const probe = () => probeAtData(gramFramePage, CENTRE_HARMONIC * SPACING, ANCHOR_TIME - 6)
 
     // While the pin is drawn, that point is on the line and grabs the set...
     expect(await probe()).toBe(setId)
