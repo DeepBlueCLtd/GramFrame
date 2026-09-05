@@ -6,7 +6,7 @@
 
 /// <reference path="../types.js" />
 
-import { getModeDisplayName } from '../utils/calculations.js'
+import { MODE_NAMES, getModeDisplayName } from '../modes/modeRoster.js'
 
 /** @typedef {import('../modes/BaseMode.js').BaseMode} BaseMode */
 
@@ -23,9 +23,11 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
   const modesContainer = document.createElement('div')
   modesContainer.className = 'gram-frame-modes'
   
-  // Create mode buttons
+  // Create mode buttons, in the roster's order (R9-12). This list used to be
+  // written out here, so landing Sidebands meant editing a component that has
+  // no business knowing which modes exist.
   /** @type {ModeType[]} */
-  const modeTypes = ['pan', 'analysis', 'harmonics', 'sideband', 'doppler']
+  const modeTypes = MODE_NAMES
   /** @type {Object<string, HTMLButtonElement>} */
   const modeButtons = {}
   /** @type {Object<string, HTMLButtonElement[]>} */

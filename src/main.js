@@ -39,7 +39,7 @@ import {
   setZoom,
   handleResize
 } from './core/viewport.js'
-import { getModeDisplayName } from './utils/calculations.js'
+import { getModeDisplayName } from './modes/modeRoster.js'
 import { updateGuidancePanel } from './utils/secureHTML.js'
 
 import { ModeFactory } from './modes/ModeFactory.js'
