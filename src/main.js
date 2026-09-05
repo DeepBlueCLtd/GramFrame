@@ -54,6 +54,7 @@ import {
 import {
   saveAnnotations,
   loadAnnotations,
+  describeLoadOutcome,
   clearAnnotations,
   describeUserContext,
   loadPinPreference,
@@ -427,15 +428,29 @@ export class GramFrame {
   }
 
   /**
-   * Restore saved annotations from browser storage into state
+   * Restore saved annotations from browser storage into state.
+   *
+   * A load that does not restore what was stored is reported to the analyst
+   * through the same banner a failed *save* uses (R9-01). The two paths were
+   * asymmetric: a quota-full save said so in a sentence, while a damaged,
+   * superseded or wrongly-fingerprinted record produced an empty gram and a
+   * console line nobody reads — and the next save then overwrote the record
+   * for good. The banner clears itself as soon as a save succeeds, which is
+   * the point at which the analyst has knowingly started again.
    */
   _restoreAnnotations() {
-    const saved = loadAnnotations(
+    const { annotations: saved, outcome, dropped } = loadAnnotations(
       this.persistence._storageInstanceIndex,
       this._storageContext(),
       // Refuse records fingerprinted for a different gram (BH-6, BH-23)
       buildGramFingerprint(this.state)
     )
+
+    const message = describeLoadOutcome(outcome, dropped)
+    if (message) {
+      showStorageWarning(this, message)
+    }
+
     if (!saved) return
 
     markAnnotationsChanged(this)

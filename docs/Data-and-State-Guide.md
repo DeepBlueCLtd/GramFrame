@@ -205,6 +205,22 @@ Some data survives **mode switches** within a single session:
 - **Rate value** — Shared across all modes
 - **Selected color** — Shared across all modes
 
+### When a Saved Record Cannot Be Restored
+
+`loadAnnotations()` (`src/core/storage.js`) never throws and never deletes a record it merely failed to understand. It returns `{ annotations, outcome, dropped }`, where `outcome` is one of:
+
+| Outcome | Meaning | The record |
+|---|---|---|
+| `none` | Nothing stored for this gram, or storage unavailable | — |
+| `restored` | Everything stored was restored | kept |
+| `partial` | Restored, but `dropped` entries failed validation | kept |
+| `unreadable` | Could not be parsed | **left in place** |
+| `unknown-version` | Written by a different build (BH-21) | **left in place** |
+| `wrong-gram` | Fingerprinted for another spectrogram (BH-6, BH-23) | **left in place** |
+| `expired` | Student record past the 24-hour limit | deleted by design |
+
+Anything other than `none` or `restored` means the analyst is looking at a gram that does not show what they saved, so `_restoreAnnotations()` routes `describeLoadOutcome()`'s sentence through the same `showStorageWarning` banner a failed *save* raises (R9-01). Before this, a refusal produced an empty gram and a console line — and the next save overwrote the record for good.
+
 ### Configuration Is Read-Only
 
 Config values (`timeMin`, `timeMax`, `freqMin`, `freqMax`) are parsed once from the HTML table during initialization and never change afterward. The image URL is similarly fixed.
