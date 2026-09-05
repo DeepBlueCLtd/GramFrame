@@ -2,7 +2,7 @@
 
 **Feature Branch**: `161-reformat-markers-harmonics`  
 **Created**: 2026-07-24  
-**Status**: Draft  
+**Status**: Complete — implemented and merged
 **Input**: GH issue #198 (Review feedback) — bullets 4 & 5: "Introduce `cross` symbol style" and "Allow existing markers and harmonics to be reformatted".
 
 ## User Scenarios & Testing *(mandatory)*

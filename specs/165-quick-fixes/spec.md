@@ -2,7 +2,7 @@
 
 **Feature Branch**: `165-quick-fixes`
 **Created**: 2026-07-31
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: [Findings Register](../../docs/analysis/Findings-Register.md) (re-verified 2026-07-31) — GF-02, GF-04, GF-12, GF-14, GF-15, GF-16, GF-19, GF-21ᴿ, GF-22, GF-23, GF-24, GF-35, GF-36, GF-37, GF-38–GF-44.
 
 ## Context

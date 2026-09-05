@@ -2,7 +2,7 @@
 
 **Feature Branch**: `155-browser-storage`
 **Created**: 2026-03-27
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: User description: "Store user contributions in browser-storage" (GitHub Issue #159)
 
 ## User Scenarios & Testing *(mandatory)*

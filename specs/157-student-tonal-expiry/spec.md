@@ -2,7 +2,7 @@
 
 **Feature Branch**: `157-student-tonal-expiry`
 **Created**: 2026-07-17
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: User description: "GH issue 184 — Reduce persistence of tonals for students"
 
 ## Background *(context)*

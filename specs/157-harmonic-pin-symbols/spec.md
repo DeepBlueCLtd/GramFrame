@@ -2,7 +2,7 @@
 
 **Feature Branch**: `157-harmonic-pin-symbols`  
 **Created**: 2026-07-17  
-**Status**: Draft  
+**Status**: Complete — implemented and merged
 **Input**: User description: "GH issue 185 — Symbols on harmonic pins"
 
 ## User Scenarios & Testing *(mandatory)*

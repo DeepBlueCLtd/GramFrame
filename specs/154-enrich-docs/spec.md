@@ -2,7 +2,7 @@
 
 **Feature Branch**: `154-enrich-docs`
 **Created**: 2026-03-26
-**Status**: Draft
+**Status**: Complete — implemented and merged
 **Input**: User description: "I want to enrich the repository with architecture and system documentation that will help onboard new developers."
 
 ## Clarifications

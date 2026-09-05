@@ -2,7 +2,7 @@
 
 **Feature Branch**: `162-legacy-browser-check`  
 **Created**: 2026-07-24  
-**Status**: Draft  
+**Status**: Complete — implemented and merged
 **Input**: GH issue #198 (Review feedback) — bullet 6: a legacy Chrome (v84) lacked `replaceChildren` (needs v86), so GramFrame silently failed. Add an early check for the required JS/DOM APIs and show a clear "please update your browser" warning instead of failing silently.
 
 ## User Scenarios & Testing *(mandatory)*

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `claude/mouse-drag-zoom-ux-3asov4`
 **Created**: 2026-09-05
-**Status**: Draft
+**Status**: In progress — PR #308
 **Input**: User description, elaborated through a structured interview on
 2026-09-05 (decisions recorded under [Interview Decisions](#interview-decisions)).
 
