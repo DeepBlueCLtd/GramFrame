@@ -22,7 +22,7 @@
 /// <reference path="../../types.js" />
 
 import { BaseMode } from '../BaseMode.js'
-import { dispatch, markAnnotationsChanged } from '../../core/state.js'
+import { commitAnnotationChange } from '../../core/state.js'
 import {
   dataToSVG,
   getImageBounds,
@@ -455,19 +455,12 @@ export class PinSetMode extends BaseMode {
     })
 
     this.sets.push(set)
-    markAnnotationsChanged(this.instance)
 
-    // Auto-select the newly created set
+    // Auto-select the newly created set, before the commit refreshes the panel
+    // that draws the selection.
     this.instance.interaction.setSelection(this.selectionType, set.id, this.sets.length - 1)
 
-    this.updatePanel()
-
-    // Trigger re-render of persistent features to show the new set
-    if (this.instance.featureRenderer) {
-      this.instance.featureRenderer.renderAllPersistentFeatures()
-    }
-
-    dispatch(this.instance, { frame: true })
+    commitAnnotationChange(this.instance, () => this.updatePanel(), { frame: true })
 
     return set
   }
@@ -484,16 +477,8 @@ export class PinSetMode extends BaseMode {
     }
 
     Object.assign(this.sets[setIndex], updates)
-    markAnnotationsChanged(this.instance)
 
-    this.updatePanel()
-
-    // Trigger re-render of persistent features to show the updated set
-    if (this.instance.featureRenderer) {
-      this.instance.featureRenderer.renderAllPersistentFeatures()
-    }
-
-    dispatch(this.instance, { frame: true })
+    commitAnnotationChange(this.instance, () => this.updatePanel(), { frame: true })
   }
 
   /**
@@ -513,29 +498,27 @@ export class PinSetMode extends BaseMode {
     }
 
     this.sets.splice(setIndex, 1)
-    markAnnotationsChanged(this.instance)
-
-    this.updatePanel()
-
-    if (this.instance.featureRenderer) {
-      this.instance.featureRenderer.renderAllPersistentFeatures()
-    }
 
     // Default tier, not frame tier: a deletion is a one-off, and listeners
     // (storage among them) should see it on the next microtask rather than
     // waiting for a frame that only a continuous gesture needs.
-    dispatch(this.instance)
+    commitAnnotationChange(this.instance, () => this.updatePanel())
   }
 
   /**
-   * The frequency-axis half of a keyboard nudge: what an arrow key worth of
-   * horizontal movement changes.
+   * Nudging a set's spacing with the arrow keys.
    *
-   * The default adjusts the spacing, which is what both pin-set modes want. A
-   * mode overrides it to change the floor, or to nudge something else.
+   * The floor is `MIN_PIN_SPACING`, the same one `freqUpdatesForDrag` clamps a
+   * *drag* to. HarmonicsMode used to override this method for no other reason
+   * than to raise its own floor to 1 Hz, so the same set reached 0.1 Hz under
+   * the mouse and stopped at 1.0 Hz under the arrow keys -- the drift the
+   * August review predicted and the September one found (R9-13). The 1 Hz
+   * comment cited a hang; that class of failure is held by `MAX_PIN_LINES`
+   * now, which is what makes a full-width drag to the floor safe, and a
+   * keypress at a time is gentler than a drag.
    * @param {PinSet} set - The set being nudged
    * @param {number} freqDelta - What the keypress is worth in Hz, signed
-   * @returns {Partial<PinSet>} Updates to apply
+   * @returns {Partial<PinSet>} Spacing update
    */
   nudgeFreqUpdates(set, freqDelta) {
     return { spacing: Math.max(MIN_PIN_SPACING, set.spacing + freqDelta) }

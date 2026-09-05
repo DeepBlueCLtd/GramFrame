@@ -235,6 +235,13 @@ There is no visual/screenshot regression testing — see
 - Rate affects frequency calculations (acts as frequency divider)
 - Axes have configurable margins (left: 60px, bottom: 50px)
 - Harmonics are calculated dynamically during drag interactions
+- `commitAnnotationChange()` in `src/core/state.js` is the cadence every
+  annotation mutation follows — bump the revision, refresh the owning panel,
+  re-render the overlay, dispatch. The caller passes only its own panel
+  refresh, because that is the one part that differs (issue #264)
+- A pin set's spacing floor is `MIN_PIN_SPACING`, and it is the same under the
+  mouse and under the arrow keys. `PinSetMode.nudgeFreqUpdates` is not
+  overridden by a subclass to raise it
 - Every notification goes through `dispatch()` in `src/core/state.js`, which
   coalesces on a microtask by default and at animation-frame cadence for
   pointer/wheel/drag paths; `notifyStateListeners` is not exported to modes and
