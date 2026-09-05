@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Late-loaded bundle - R9-21</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <!--
+    Deliberately no script tag for the component (issue #272).
+
+    This page stands for a lesson page that injects the bundle after the
+    document has parsed -- a `<script>` appended on load, a deferred loader, a
+    DITA/HTML5 output that scripts its own includes. The spec adds the script
+    itself, once `DOMContentLoaded` has already fired, and asserts the config
+    table is still replaced.
+  -->
+</head>
+<body>
+  <h1>Config table, no component script</h1>
+  <div class="component-container">
+    <table class="gram-config">
+      <tr>
+        <td colspan="2"><img src="../../sample/mock-gram.png" alt="Sample Spectrogram"></td>
+      </tr>
+      <tr><td>time-start</td><td>0</td></tr>
+      <tr><td>time-end</td><td>60</td></tr>
+      <tr><td>freq-start</td><td>0</td></tr>
+      <tr><td>freq-end</td><td>100</td></tr>
+    </table>
+  </div>
+
+  <!--
+    The bootstrap in main.js wires this up when it finds it, so it is populated
+    on the late-loaded path exactly as on a normal page -- which is part of
+    what the spec checks.
+  -->
+  <div class="diagnostics-panel" style="display:none;">
+    <pre id="state-display">Loading...</pre>
+  </div>
+</body>
+</html>
