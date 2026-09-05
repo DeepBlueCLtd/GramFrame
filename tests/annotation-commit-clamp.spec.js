@@ -18,6 +18,22 @@ import { test, expect } from './helpers/fixtures.js'
 const MIN_PIN_SPACING = 0.1
 
 /**
+ * The set with this id, asserted present.
+ *
+ * `Array.prototype.find` is typed as possibly undefined, and every case here
+ * has already waited for the set to exist -- so a miss is a test failure, said
+ * once here rather than guarded at each read (R9-10, issue #262).
+ * @param {any[]} sets - Harmonic or sideband sets from state
+ * @param {string} id - The set's id
+ * @returns {any} The set
+ */
+function setById(sets, id) {
+  const found = sets.find((/** @type {any} */ s) => s.id === id)
+  expect(found, `no set with id ${id}`).toBeDefined()
+  return found
+}
+
+/**
  * Nudge the selected feature with repeated arrow presses.
  * @param {import('@playwright/test').Page} page
  * @param {string} key - Arrow key name
@@ -74,7 +90,7 @@ test.describe('Keyboard and mouse reach the same spacing floor (R9-13)', () => {
     await pressArrow(page, 'ArrowLeft', 40)
 
     const state = await gramFramePage.getState()
-    const set = state.harmonics.harmonicSets.find((/** @type {any} */ s) => s.id === setId)
+    const set = setById(state.harmonics.harmonicSets, setId)
 
     // Was 1.0: the arrow keys refused to go where the mouse could.
     expect(set.spacing).toBeLessThan(1.0)
@@ -91,7 +107,7 @@ test.describe('Keyboard and mouse reach the same spacing floor (R9-13)', () => {
     await pressArrow(page, 'ArrowLeft', 20)
 
     const state = await gramFramePage.getState()
-    const set = state.harmonics.harmonicSets.find((/** @type {any} */ s) => s.id === setId)
+    const set = setById(state.harmonics.harmonicSets, setId)
     expect(set.spacing).toBeGreaterThanOrEqual(MIN_PIN_SPACING)
     expect(Number.isFinite(set.spacing)).toBe(true)
   })
@@ -104,16 +120,16 @@ test.describe('Keyboard and mouse reach the same spacing floor (R9-13)', () => {
     await gramFramePage.waitForHarmonicSetCount(1)
     await selectAndFocusRow(gramFramePage, 'data-harmonic-id', harmonicId)
     await pressArrow(page, 'ArrowLeft', 40)
-    const harmonicSpacing = (await gramFramePage.getState())
-      .harmonics.harmonicSets.find((/** @type {any} */ s) => s.id === harmonicId).spacing
+    const harmonicSpacing = setById((await gramFramePage.getState())
+      .harmonics.harmonicSets, harmonicId).spacing
 
     await gramFramePage.clickMode('Sidebands')
     const sidebandId = await gramFramePage.addSidebandSet(30, 50, 3)
     await gramFramePage.waitForSidebandSetCount(1)
     await selectAndFocusRow(gramFramePage, 'data-sideband-id', sidebandId)
     await pressArrow(page, 'ArrowLeft', 40)
-    const sidebandSpacing = (await gramFramePage.getState())
-      .sidebands.sidebandSets.find((/** @type {any} */ s) => s.id === sidebandId).spacing
+    const sidebandSpacing = setById((await gramFramePage.getState())
+      .sidebands.sidebandSets, sidebandId).spacing
 
     // Two pin-set modes, one shared floor: the override that made them differ
     // is gone.
@@ -144,7 +160,8 @@ test.describe('Every annotation mutation is committed the same way (R9-13)', () 
 
     await gramFramePage.page.evaluate((id) => {
       const instance = window.GramFrame.__test__getInstances()[0]
-      instance.modes['analysis'].removeMarker(id)
+      const mode = /** @type {any} */ (instance.modes['analysis'])
+      mode.removeMarker(id)
     }, markerId)
     await gramFramePage.waitForMarkerCount(0)
     const afterDelete = await revision(gramFramePage)
@@ -162,14 +179,16 @@ test.describe('Every annotation mutation is committed the same way (R9-13)', () 
 
     await gramFramePage.page.evaluate((id) => {
       const instance = window.GramFrame.__test__getInstances()[0]
-      instance.modes['harmonics'].updateSet(id, { spacing: 15 })
+      const mode = /** @type {any} */ (instance.modes['harmonics'])
+      mode.updateSet(id, { spacing: 15 })
     }, setId)
     const afterUpdate = await revision(gramFramePage)
     expect(afterUpdate).toBeGreaterThan(afterCreate)
 
     await gramFramePage.page.evaluate((id) => {
       const instance = window.GramFrame.__test__getInstances()[0]
-      instance.modes['harmonics'].removeSet(id)
+      const mode = /** @type {any} */ (instance.modes['harmonics'])
+      mode.removeSet(id)
     }, setId)
     await gramFramePage.waitForHarmonicSetCount(0)
     expect(await revision(gramFramePage)).toBeGreaterThan(afterUpdate)
