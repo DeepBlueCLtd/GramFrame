@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Config with an empty image src - R9-02</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Config table whose &lt;img&gt; src was never filled in</h1>
+  <!-- A lesson template left unfilled. `img.src` resolves "" against the
+       document URL, so the property is truthy and only the attribute tells
+       the truth. -->
+  <table class="gram-config">
+    <tr>
+      <td colspan="2"><img src="" alt="Spectrogram"></td>
+    </tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100</td></tr>
+  </table>
+</body>
+</html>
