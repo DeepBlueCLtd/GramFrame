@@ -1,5 +1,6 @@
 import { BaseMode } from '../BaseMode.js'
 import { dispatch, markAnnotationsChanged, recordDeletion } from '../../core/state.js'
+import { commitAnnotationChange } from '../../core/annotationCommit.js'
 import { createDiffingTable } from '../../components/DiffingTable.js'
 import { showMarkerLabelModal } from '../../components/MarkerLabelModal.js'
 
@@ -613,22 +614,13 @@ export class AnalysisMode extends BaseMode {
     }
     
     this.instance.state.analysis.markers.push(marker)
-    markAnnotationsChanged(this.instance)
-    
-    // Auto-select the newly created marker
+
+    // Auto-select the newly created marker, before the commit refreshes the
+    // table that draws the selection.
     const index = this.instance.state.analysis.markers.length - 1
     this.instance.interaction.setSelection('marker', marker.id, index)
-    
-    // Update markers table
-    this.updateMarkersTable()
-    
-    // Re-render all persistent features to show the new marker
-    if (this.instance.featureRenderer) {
-      this.instance.featureRenderer.renderAllPersistentFeatures()
-    }
-    
-    // Notify listeners
-    dispatch(this.instance, { frame: true })
+
+    commitAnnotationChange(this.instance, () => this.updateMarkersTable(), { frame: true })
   }
 
   /**
@@ -649,18 +641,8 @@ export class AnalysisMode extends BaseMode {
       // Deleting is the one change a merge cannot infer from the result, so it
       // is recorded explicitly (issue #269).
       recordDeletion(this.instance, 'markers', markerId)
-      markAnnotationsChanged(this.instance)
 
-      // Update markers table
-      this.updateMarkersTable()
-      
-      // Re-render all persistent features to remove the marker
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures()
-      }
-      
-      // Notify listeners
-      dispatch(this.instance, { frame: true })
+      commitAnnotationChange(this.instance, () => this.updateMarkersTable(), { frame: true })
     }
   }
 
@@ -697,13 +679,7 @@ export class AnalysisMode extends BaseMode {
       // Absent rather than empty: "no label" has exactly one representation.
       delete marker.label
     }
-    markAnnotationsChanged(this.instance)
-
-    this.updateMarkersTable()
-    if (this.instance.featureRenderer) {
-      this.instance.featureRenderer.renderAllPersistentFeatures()
-    }
-    dispatch(this.instance)
+    commitAnnotationChange(this.instance, () => this.updateMarkersTable())
   }
 
   /**

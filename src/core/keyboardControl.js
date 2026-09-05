@@ -8,6 +8,7 @@
 /// <reference path="../types.js" />
 
 import { dispatch, markAnnotationsChanged } from './state.js'
+import { commitAnnotationChange } from './annotationCommit.js'
 import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coordinates.js'
 import { isPanelOwner, findPinSetOwner } from '../modes/capabilities.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
@@ -348,16 +349,8 @@ function moveSelectedMarker(instance, markerId, movement) {
   // Update marker position
   marker.freq = newData.freq
   marker.time = newData.time
-  markAnnotationsChanged(instance)
-  
-  // Re-render features and notify listeners
-  if (instance.featureRenderer) {
-    instance.featureRenderer.renderAllPersistentFeatures()
-  }
-  
-  refreshPanels(instance)
 
-  dispatch(instance)
+  commitAnnotationChange(instance, () => refreshPanels(instance))
 }
 
 /**

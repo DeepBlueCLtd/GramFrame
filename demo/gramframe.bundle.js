@@ -1172,6 +1172,16 @@
     };
     return row;
   }
+  function commitAnnotationChange(instance, refreshPanel = null, dispatchOptions = void 0) {
+    markAnnotationsChanged(instance);
+    if (typeof refreshPanel === "function") {
+      refreshPanel();
+    }
+    if (instance.featureRenderer) {
+      instance.featureRenderer.renderAllPersistentFeatures();
+    }
+    dispatch(instance, dispatchOptions);
+  }
   function renderSize(imageDetails) {
     return {
       width: imageDetails.renderWidth || imageDetails.naturalWidth,
@@ -2289,12 +2299,7 @@
     const newData = imageToData(clamped.x, clamped.y, instance.state);
     marker.freq = newData.freq;
     marker.time = newData.time;
-    markAnnotationsChanged(instance);
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
-    refreshPanels(instance);
-    dispatch(instance);
+    commitAnnotationChange(instance, () => refreshPanels(instance));
   }
   function moveSelectedPinSet(instance, owner, setId, movement) {
     const set = owner.sets.find((candidate) => candidate.id === setId);
@@ -4734,14 +4739,9 @@
         this.instance.state.analysis = { markers: [] };
       }
       this.instance.state.analysis.markers.push(marker);
-      markAnnotationsChanged(this.instance);
       const index = this.instance.state.analysis.markers.length - 1;
       this.instance.interaction.setSelection("marker", marker.id, index);
-      this.updateMarkersTable();
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(this.instance, { frame: true });
+      commitAnnotationChange(this.instance, () => this.updateMarkersTable(), { frame: true });
     }
     /**
      * Remove a marker by ID
@@ -4756,12 +4756,7 @@
         }
         markers.splice(index, 1);
         recordDeletion(this.instance, "markers", markerId);
-        markAnnotationsChanged(this.instance);
-        this.updateMarkersTable();
-        if (this.instance.featureRenderer) {
-          this.instance.featureRenderer.renderAllPersistentFeatures();
-        }
-        dispatch(this.instance, { frame: true });
+        commitAnnotationChange(this.instance, () => this.updateMarkersTable(), { frame: true });
       }
     }
     /**
@@ -4793,12 +4788,7 @@
       } else {
         delete marker.label;
       }
-      markAnnotationsChanged(this.instance);
-      this.updateMarkersTable();
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(this.instance);
+      commitAnnotationChange(this.instance, () => this.updateMarkersTable());
     }
     /**
      * Find marker at given position (with tolerance)
@@ -5261,13 +5251,8 @@
         }
       );
       this.sets.push(set);
-      markAnnotationsChanged(this.instance);
       this.instance.interaction.setSelection(this.selectionType, set.id, this.sets.length - 1);
-      this.updatePanel();
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(this.instance, { frame: true });
+      commitAnnotationChange(this.instance, () => this.updatePanel(), { frame: true });
       return set;
     }
     /**
@@ -5281,12 +5266,7 @@
         return;
       }
       Object.assign(this.sets[setIndex], updates);
-      markAnnotationsChanged(this.instance);
-      this.updatePanel();
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(this.instance, { frame: true });
+      commitAnnotationChange(this.instance, () => this.updatePanel(), { frame: true });
     }
     /**
      * Remove a set.
@@ -5303,22 +5283,22 @@
       }
       this.sets.splice(setIndex, 1);
       recordDeletion(this.instance, this.tombstoneCollection, id);
-      markAnnotationsChanged(this.instance);
-      this.updatePanel();
-      if (this.instance.featureRenderer) {
-        this.instance.featureRenderer.renderAllPersistentFeatures();
-      }
-      dispatch(this.instance);
+      commitAnnotationChange(this.instance, () => this.updatePanel());
     }
     /**
-     * The frequency-axis half of a keyboard nudge: what an arrow key worth of
-     * horizontal movement changes.
+     * Nudging a set's spacing with the arrow keys.
      *
-     * The default adjusts the spacing, which is what both pin-set modes want. A
-     * mode overrides it to change the floor, or to nudge something else.
+     * The floor is `MIN_PIN_SPACING`, the same one `freqUpdatesForDrag` clamps a
+     * *drag* to. HarmonicsMode used to override this method for no other reason
+     * than to raise its own floor to 1 Hz, so the same set reached 0.1 Hz under
+     * the mouse and stopped at 1.0 Hz under the arrow keys -- the drift the
+     * August review predicted and the September one found (R9-13). The 1 Hz
+     * comment cited a hang; that class of failure is held by `MAX_PIN_LINES`
+     * now, which is what makes a full-width drag to the floor safe, and a
+     * keypress at a time is gentler than a drag.
      * @param {PinSet} set - The set being nudged
      * @param {number} freqDelta - What the keypress is worth in Hz, signed
-     * @returns {Partial<PinSet>} Updates to apply
+     * @returns {Partial<PinSet>} Spacing update
      */
     nudgeFreqUpdates(set, freqDelta) {
       return { spacing: Math.max(MIN_PIN_SPACING, set.spacing + freqDelta) };
@@ -6067,19 +6047,6 @@
     freqUpdatesForDrag(_set, clickedIndex, currentPos) {
       const spacing = Math.max(currentPos.freq / (clickedIndex || 1), MIN_PIN_SPACING);
       return { spacing };
-    }
-    /**
-     * Nudging a harmonic set's spacing with the arrow keys.
-     *
-     * The 1 Hz floor is inherited from before the pin machinery was shared: a
-     * harmonic set nudged below it draws so many pins that the keypress is
-     * indistinguishable from a hang, and the analyst has no way back.
-     * @param {PinSet} set - Harmonic set being nudged
-     * @param {number} freqDelta - What the keypress is worth in Hz, signed
-     * @returns {Partial<PinSet>} Spacing update
-     */
-    nudgeFreqUpdates(set, freqDelta) {
-      return { spacing: Math.max(1, set.spacing + freqDelta) };
     }
     /**
      * Get guidance content for harmonics mode
