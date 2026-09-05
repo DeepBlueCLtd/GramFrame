@@ -1512,6 +1512,31 @@
     const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
     return `${sign}${paddedMinutes}:${paddedSeconds}`;
   }
+  function formatAxisTime(seconds, interval) {
+    const decimals = decimalsForInterval(interval);
+    if (decimals === 0) {
+      return formatTime(seconds);
+    }
+    const sign = seconds < 0 ? "-" : "";
+    const magnitude = Math.abs(seconds);
+    const minutes = Math.floor(magnitude / 60);
+    const remainingSeconds = magnitude % 60;
+    const paddedMinutes = minutes.toString().padStart(2, "0");
+    const secondsText = remainingSeconds.toFixed(decimals).padStart(decimals + 3, "0");
+    return `${sign}${paddedMinutes}:${secondsText}`;
+  }
+  function decimalsForInterval(interval) {
+    if (!Number.isFinite(interval) || interval <= 0) {
+      return 0;
+    }
+    for (let decimals = 0; decimals < 3; decimals++) {
+      const scaled = interval * Math.pow(10, decimals);
+      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
+        return decimals;
+      }
+    }
+    return 3;
+  }
   function renderAxes(instance) {
     if (!instance.ui.axesGroup) {
       return;
@@ -1532,6 +1557,7 @@
     const axisX = margins.left;
     const axisStartY = margins.top;
     const axisEndY = margins.top + naturalHeight;
+    const timeRange = timeMax - timeMin;
     const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
     axisLine.setAttribute("x1", String(axisX));
     axisLine.setAttribute("y1", String(axisStartY));
@@ -1539,12 +1565,36 @@
     axisLine.setAttribute("y2", String(axisEndY));
     axisLine.setAttribute("class", "gram-frame-axis-line");
     instance.ui.axesGroup.appendChild(axisLine);
-    const timeRange = timeMax - timeMin;
-    const tickCount = 5;
-    const tickInterval = timeRange / (tickCount - 1);
-    for (let i = 0; i < tickCount; i++) {
-      const time = timeMin + i * tickInterval;
-      const y = axisEndY - i / (tickCount - 1) * naturalHeight;
+    if (!(timeRange > 0)) {
+      return;
+    }
+    const { majorInterval, minorInterval, majorStart, minorStart, maxTicks } = calculateAxisTicks(timeMin, timeMax, naturalHeight, 40);
+    const yFor = (time) => axisEndY - (time - timeMin) / timeRange * naturalHeight;
+    const minorCount = Math.floor((timeMax - minorStart) / minorInterval) + 1;
+    if (minorCount > 0 && minorCount <= maxTicks) {
+      for (let i = 0; i < minorCount; i++) {
+        const time = minorStart + i * minorInterval;
+        if (time > timeMax) break;
+        const offsetFromMajor = Math.abs((time - majorStart) % majorInterval / majorInterval);
+        if (offsetFromMajor < 1e-3 || offsetFromMajor > 0.999) continue;
+        const y = yFor(time);
+        const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        tick.setAttribute("x1", String(axisX - 4));
+        tick.setAttribute("y1", String(y));
+        tick.setAttribute("x2", String(axisX));
+        tick.setAttribute("y2", String(y));
+        tick.setAttribute("class", "gram-frame-axis-tick-minor");
+        instance.ui.axesGroup.appendChild(tick);
+      }
+    }
+    const majorCount = Math.floor((timeMax - majorStart) / majorInterval) + 1;
+    if (majorCount <= 0 || majorCount > maxTicks) {
+      return;
+    }
+    for (let i = 0; i < majorCount; i++) {
+      const time = majorStart + i * majorInterval;
+      if (time > timeMax) break;
+      const y = yFor(time);
       const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
       tick.setAttribute("x1", String(axisX - 8));
       tick.setAttribute("y1", String(y));
@@ -1557,7 +1607,7 @@
       label.setAttribute("y", String(y + 4));
       label.setAttribute("text-anchor", "end");
       label.setAttribute("class", "gram-frame-axis-label");
-      label.textContent = formatTime(time);
+      label.textContent = formatAxisTime(time, majorInterval);
       instance.ui.axesGroup.appendChild(label);
     }
   }
@@ -1604,8 +1654,20 @@
       maxTicks
     };
   }
-  function formatFrequencyLabels(frequency) {
-    return Math.round(frequency) + "Hz";
+  function formatFrequencyLabels(frequency, interval = 1) {
+    return formatAtInterval(frequency, interval) + "Hz";
+  }
+  function formatAtInterval(value, interval) {
+    if (!Number.isFinite(interval) || interval <= 0) {
+      return String(Math.round(value));
+    }
+    for (let decimals = 0; decimals < 3; decimals++) {
+      const scaled = interval * Math.pow(10, decimals);
+      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
+        return value.toFixed(decimals);
+      }
+    }
+    return value.toFixed(3);
   }
   function renderAxisLine(instance, axisConfig) {
     const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -1671,19 +1733,20 @@
         majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick-major" });
         labelData.push({
           x,
-          text: formatFrequencyLabels(freq),
+          text: formatFrequencyLabels(freq, tickCalculation.majorInterval),
           className: "gram-frame-axis-label-major"
         });
       }
     } else {
       const tickCount = 5;
+      const fallbackInterval = freqRange / (tickCount - 1);
       for (let i = 0; i < tickCount; i++) {
-        const freq = displayFreqMin + i * freqRange / (tickCount - 1);
+        const freq = displayFreqMin + i * fallbackInterval;
         const x = axisStartX + i / (tickCount - 1) * naturalWidth;
         majorTickData.push({ x, height: 8, className: "gram-frame-axis-tick" });
         labelData.push({
           x,
-          text: formatFrequencyLabels(freq),
+          text: formatFrequencyLabels(freq, fallbackInterval),
           className: "gram-frame-axis-label"
         });
       }
