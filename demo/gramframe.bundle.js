@@ -1371,14 +1371,17 @@
     }
     currentFocusedInstance = null;
   }
-  function isNodeInsideAnyInstance(node) {
+  function instanceContaining(node) {
     if (!(node instanceof Node)) {
-      return false;
+      return null;
     }
     pruneDisconnectedInstances();
-    return Array.from(registeredInstances).some(
+    return Array.from(registeredInstances).find(
       (instance) => !!(instance.ui && instance.ui.container && instance.ui.container.contains(node))
-    );
+    ) || null;
+  }
+  function isNodeInsideAnyInstance(node) {
+    return instanceContaining(node) !== null;
   }
   function addFocusIndicator(instance) {
     if (instance.ui.container) {
@@ -1388,28 +1391,6 @@
   function removeFocusIndicator(instance) {
     if (instance.ui.container) {
       instance.ui.container.classList.remove("gram-frame-focused");
-    }
-  }
-  function focusNextInstance() {
-    pruneDisconnectedInstances();
-    if (registeredInstances.size <= 1) return;
-    const instancesArray = Array.from(registeredInstances);
-    const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1;
-    const nextIndex = (currentIndex + 1) % instancesArray.length;
-    const next = instancesArray[nextIndex];
-    if (next) {
-      setFocusedInstance(next);
-    }
-  }
-  function focusPreviousInstance() {
-    pruneDisconnectedInstances();
-    if (registeredInstances.size <= 1) return;
-    const instancesArray = Array.from(registeredInstances);
-    const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1;
-    const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1;
-    const next = instancesArray[prevIndex];
-    if (next) {
-      setFocusedInstance(next);
     }
   }
   const HOVER_BRACKETS = [
@@ -2130,6 +2111,7 @@
   };
   let globalKeyboardHandler = null;
   let globalMousedownHandler = null;
+  let globalFocusinHandler = null;
   let keyboardHandlerInitialized = false;
   function initializeKeyboardControl(instance) {
     registerInstance(instance);
@@ -2142,6 +2124,13 @@
         }
       };
       document.addEventListener("mousedown", globalMousedownHandler);
+      globalFocusinHandler = (event) => {
+        const owner = instanceContaining(event.target);
+        if (owner) {
+          setFocusedInstance(owner);
+        }
+      };
+      document.addEventListener("focusin", globalFocusinHandler);
       keyboardHandlerInitialized = true;
     }
   }
@@ -2155,6 +2144,10 @@
       if (globalMousedownHandler) {
         document.removeEventListener("mousedown", globalMousedownHandler);
         globalMousedownHandler = null;
+      }
+      if (globalFocusinHandler) {
+        document.removeEventListener("focusin", globalFocusinHandler);
+        globalFocusinHandler = null;
       }
       keyboardHandlerInitialized = false;
     }
@@ -2175,15 +2168,6 @@
     }
     const focusedInstance = getFocusedInstance();
     if (event.key === "Tab") {
-      if (!focusedInstance || getRegisteredInstanceCount() <= 1) {
-        return;
-      }
-      if (event.shiftKey) {
-        focusPreviousInstance();
-      } else {
-        focusNextInstance();
-      }
-      event.preventDefault();
       return;
     }
     if (!focusedInstance) {
