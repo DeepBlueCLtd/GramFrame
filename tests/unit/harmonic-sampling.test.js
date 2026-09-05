@@ -73,7 +73,7 @@ describe('harmonicSampling pure helper', () => {
 
     const overlapLow = 101
     const overlapHigh = 500
-    const inOverlap = (h) => h >= overlapLow && h <= overlapHigh
+    const inOverlap = (/** @type {any} */ h) => h >= overlapLow && h <= overlapHigh
     const aOverlap = a.harmonics.filter(inOverlap)
     const bOverlap = b.harmonics.filter(inOverlap)
     expect(aOverlap).toEqual(bOverlap)

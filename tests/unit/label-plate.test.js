@@ -112,8 +112,11 @@ describe('measureLabelWidth', () => {
 
   it('is zero-width for no text, and survives an absent one', () => {
     expect(measureLabelWidth('', FONT_SIZE)).toBe(0)
-    expect(measureLabelWidth(null, FONT_SIZE)).toBe(0)
-    expect(measureLabelWidth(undefined, FONT_SIZE)).toBe(0)
+    // The signature says `string`; these cases exist because callers pass a
+    // marker's optional label straight through, so the cast is the point of
+    // the test rather than a way around the checker.
+    expect(measureLabelWidth(/** @type {any} */ (null), FONT_SIZE)).toBe(0)
+    expect(measureLabelWidth(/** @type {any} */ (undefined), FONT_SIZE)).toBe(0)
   })
 
   it('estimates a plausible width for bold Arial digits', () => {

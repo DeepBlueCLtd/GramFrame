@@ -251,8 +251,10 @@ describe('the collision rule (contracts/mode-registration.md)', () => {
   })
 
   test('a mode contributing a new key has it composed in', () => {
-    const composed = createInitialState({ fifthMode: { placed: [] } })
-    expect(composed.fifthMode).toEqual({ placed: [] })
+    // A slice from a mode that does not exist yet: `Partial<GramFrameState>`
+    // cannot name it, which is exactly what makes this the additive case.
+    const composed = createInitialState(/** @type {any} */ ({ fifthMode: { placed: [] } }))
+    expect(/** @type {any} */ (composed).fifthMode).toEqual({ placed: [] })
   })
 })
 

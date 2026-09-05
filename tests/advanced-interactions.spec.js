@@ -1,5 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
 
+/// <reference path="../src/types.js" />
+
 /**
  * @fileoverview Comprehensive E2E tests for Advanced Mouse Interactions
  * Tests complex interaction patterns, edge cases, error conditions, and performance
@@ -32,7 +34,7 @@ test.describe('Advanced Mouse Interactions - Comprehensive E2E Tests', () => {
     /**
      * Test modifier key combinations behavior
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle modifier key combinations', async ({ gramFramePage }) => {
@@ -67,7 +69,7 @@ test.describe('Advanced Mouse Interactions - Comprehensive E2E Tests', () => {
       }
       
       // Verify markers were created (modifiers shouldn't prevent creation)
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expect(state.analysis?.markers?.length).toBeGreaterThan(0)
     })

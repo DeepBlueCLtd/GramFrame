@@ -45,8 +45,8 @@ function settleMicrotasks() {
 
 describe('notification dispatcher', () => {
   beforeEach(() => {
-    vi.stubGlobal('requestAnimationFrame', (cb) => setTimeout(cb, 16))
-    vi.stubGlobal('cancelAnimationFrame', (handle) => clearTimeout(handle))
+    vi.stubGlobal('requestAnimationFrame', (/** @type {any} */ cb) => setTimeout(cb, 16))
+    vi.stubGlobal('cancelAnimationFrame', (/** @type {any} */ handle) => clearTimeout(handle))
   })
 
   afterEach(() => {
@@ -54,8 +54,9 @@ describe('notification dispatcher', () => {
   })
 
   test('N2: exactly one deep copy per delivery', async () => {
+    /** @type {any[]} */
     const seen = []
-    const { instance, cloneCount } = makeInstance([(state) => seen.push(state)])
+    const { instance, cloneCount } = makeInstance([(/** @type {any} */ state) => seen.push(state)])
 
     dispatch(instance)
     await settleMicrotasks()
@@ -65,8 +66,9 @@ describe('notification dispatcher', () => {
   })
 
   test('N2: one copy serves every listener, however many there are', async () => {
+    /** @type {any[]} */
     const received = []
-    const listeners = [1, 2, 3].map(() => (state) => received.push(state))
+    const listeners = [1, 2, 3].map(() => (/** @type {any} */ state) => received.push(state))
     const { instance, cloneCount } = makeInstance(listeners)
 
     dispatch(instance)
@@ -103,8 +105,9 @@ describe('notification dispatcher', () => {
   })
 
   test('N3: the delivery carries the settled state, not an intermediate one', async () => {
+    /** @type {any[]} */
     const seen = []
-    const { instance } = makeInstance([(state) => seen.push(state.value)])
+    const { instance } = makeInstance([(/** @type {any} */ state) => seen.push(state.value)])
 
     instance.state.value = 1
     dispatch(instance)

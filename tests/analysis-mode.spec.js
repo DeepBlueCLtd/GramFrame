@@ -1,5 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
 import { 
+
+/// <reference path="../src/types.js" />
   expectValidMetadata, 
   expectValidMode, 
   expectValidCursorPosition,
@@ -20,7 +22,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
   /**
    * Setup before each test - switch to Cross Cursor mode
    * @param {TestParams} params - Test parameters
-   * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+   * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
    * @returns {Promise<void>}
    */
   test.beforeEach(async ({ gramFramePage }) => {
@@ -28,7 +30,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     await gramFramePage.clickMode('Cross Cursor')
     
     // Verify we're in analysis mode
-    /** @type {import('../src/types.js').GramFrameState} */
+    /** @type {GramFrameState} */
     const state = await gramFramePage.getState()
     expectValidMode(state, 'analysis')
   })
@@ -40,7 +42,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test cursor position and LED display updates on mouse hover
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should update cursor position and LED displays on mouse hover', async ({ gramFramePage }) => {
@@ -53,7 +55,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.moveMouseToSpectrogram(testX, testY)
       
       // Verify cursor position is updated in state
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expectValidCursorPosition(state, true)
       
@@ -71,7 +73,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test handling of rapid mouse movements
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle rapid mouse movements smoothly', async ({ gramFramePage }) => {
@@ -95,7 +97,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       })
 
       // Verify final state has valid cursor position
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expectValidCursorPosition(state, true)
     })
@@ -103,7 +105,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test cursor position clearing when mouse leaves spectrogram
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should clear cursor position when mouse leaves spectrogram', async ({ gramFramePage }) => {
@@ -111,7 +113,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.moveMouseToSpectrogram(200, 150)
       
       // Verify cursor position exists
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
       expectValidCursorPosition(state, true)
       
@@ -136,7 +138,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test marker creation on click
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should create marker on click', async ({ gramFramePage }) => {
@@ -149,12 +151,12 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.clickSpectrogram(clickX, clickY)
       
       // Verify marker was created in state
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expect(state.analysis?.markers).toBeDefined()
       expect(state.analysis.markers).toHaveLength(1)
       
-      /** @type {import('../src/types.js').AnalysisMarker} */
+      /** @type {AnalysisMarker} */
       const marker = state.analysis.markers[0]
       expect(marker).toHaveProperty('id')
       expect(marker).toHaveProperty('time')
@@ -167,7 +169,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test creating multiple markers at different positions
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should create multiple markers at different positions', async ({ gramFramePage }) => {
@@ -185,7 +187,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       }
       
       // Verify all markers were created
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(3)
       
@@ -206,7 +208,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test marker persistence when switching modes
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should persist markers when switching modes', async ({ gramFramePage }) => {
@@ -214,10 +216,10 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.clickSpectrogram(200, 150)
       
       // Verify marker exists
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(1)
-      /** @type {import('../src/types.js').AnalysisMarker} */
+      /** @type {AnalysisMarker} */
       const originalMarker = state.analysis.markers[0]
       
       // Switch to Harmonics mode
@@ -242,7 +244,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test maintaining markers across mode switches with multiple markers
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should maintain markers across mode switches with multiple markers', async ({ gramFramePage }) => {
@@ -259,9 +261,9 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       }
       
       // Store original markers
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
-      /** @type {import('../src/types.js').AnalysisMarker[]} */
+      /** @type {AnalysisMarker[]} */
       const originalMarkers = [...state.analysis.markers]
       expect(originalMarkers).toHaveLength(3)
       
@@ -289,7 +291,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test marker deletion via right-click
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should delete marker via right-click', async ({ gramFramePage }) => {
@@ -297,7 +299,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.clickSpectrogram(200, 150)
       
       // Verify marker exists
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(1)
 
@@ -318,7 +320,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test that right-click only deletes markers at the clicked position
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should only delete marker at right-clicked position', async ({ gramFramePage }) => {
@@ -327,7 +329,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.clickSpectrogram(300, 200)
       
       // Verify both markers exist
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(2)
       
@@ -345,7 +347,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       expect(state.analysis?.markers).toHaveLength(1)
       
       // The remaining marker should be at the second position
-      /** @type {import('../src/types.js').AnalysisMarker} */
+      /** @type {AnalysisMarker} */
       const remainingMarker = state.analysis.markers[0]
       // We can't easily verify exact position, but we know it's the second marker
       expect(remainingMarker).toBeDefined()
@@ -354,7 +356,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test that right-click on empty area doesn't affect markers
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should not delete markers when right-clicking on empty area', async ({ gramFramePage }) => {
@@ -362,7 +364,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.clickSpectrogram(200, 150)
       
       // Verify marker exists
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(1)
       
@@ -387,7 +389,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test that Cross Cursor markers show in other modes
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should show Cross Cursor markers in other modes', async ({ gramFramePage }) => {
@@ -418,7 +420,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test handling clicks at spectrogram boundaries
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle clicks at spectrogram boundaries', async ({ gramFramePage }) => {
@@ -442,7 +444,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         }
         
         // Verify markers were created (some boundary positions might not create markers)
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const state = await gramFramePage.getState()
         expect(state.analysis?.markers?.length).toBeGreaterThanOrEqual(1)
         expect(state.analysis?.markers?.length).toBeLessThanOrEqual(4)
@@ -452,7 +454,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test handling rapid successive clicks
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle rapid successive clicks', async ({ gramFramePage }) => {
@@ -471,12 +473,12 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       }
       
       // Verify all markers were created
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expect(state.analysis?.markers).toHaveLength(4)
       
       // Verify each marker has valid properties
-      state.analysis.markers.forEach(/** @param {import('../src/types.js').AnalysisMarker} marker */ marker => {
+      state.analysis.markers.forEach(/** @param {AnalysisMarker} marker */ marker => {
         expect(marker).toHaveProperty('id')
         expect(marker).toHaveProperty('time')
         expect(marker).toHaveProperty('freq')
@@ -487,7 +489,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test state consistency during concurrent operations
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should maintain state consistency during concurrent operations', async ({ gramFramePage }) => {
@@ -499,7 +501,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.clickMode('Cross Cursor') // Switch back
       
       // Verify final state is consistent
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expectValidMetadata(state)
       expectValidMode(state, 'analysis')
@@ -516,7 +518,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test accurate conversion from mouse coordinates to data coordinates
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should accurately convert mouse coordinates to data coordinates', async ({ gramFramePage }) => {
@@ -528,9 +530,9 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       
       await gramFramePage.clickSpectrogram(clickX, clickY)
       
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
-      /** @type {import('../src/types.js').AnalysisMarker} */
+      /** @type {AnalysisMarker} */
       const marker = state.analysis.markers[0]
       
       // Verify coordinates are within expected ranges based on config
@@ -543,7 +545,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
     /**
      * Test coordinate accuracy across different zoom levels
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should maintain coordinate accuracy across different zoom levels', async ({ gramFramePage }) => {
@@ -552,9 +554,9 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       try {
         // Create a marker at a specific position
         await gramFramePage.clickSpectrogram(200, 150)
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const initialState = await gramFramePage.getState()
-        /** @type {import('../src/types.js').AnalysisMarker} */
+        /** @type {AnalysisMarker} */
         const initialMarker = initialState.analysis.markers[0]
         
         // Attempt to zoom (if zoom controls exist)
@@ -567,9 +569,9 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
         await gramFramePage.page.waitForTimeout(500)
         
         // Verify marker position remains accurate
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const zoomedState = await gramFramePage.getState()
-        /** @type {import('../src/types.js').AnalysisMarker} */
+        /** @type {AnalysisMarker} */
         const zoomedMarker = zoomedState.analysis.markers[0]
         
         // Coordinates should remain the same in data space

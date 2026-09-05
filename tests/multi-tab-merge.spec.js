@@ -106,7 +106,8 @@ test.describe('Two tabs on the same gram (R9-18)', () => {
     await expect.poll(() => markerIds(b.gfp)).toEqual([doomed])
 
     await a.page.evaluate((id) => {
-      window.GramFrame.__test__getInstances()[0].modes['analysis'].removeMarker(id)
+      const analysis = /** @type {any} */ (window.GramFrame.__test__getInstances()[0].modes['analysis'])
+      analysis.removeMarker(id)
     }, doomed)
     await a.gfp.waitForMarkerCount(0)
 
@@ -172,7 +173,8 @@ test.describe('Two tabs on the same gram (R9-18)', () => {
 
     const doomed = await a.gfp.addMarker(10, 20)
     await a.page.evaluate((id) => {
-      window.GramFrame.__test__getInstances()[0].modes['analysis'].removeMarker(id)
+      const analysis = /** @type {any} */ (window.GramFrame.__test__getInstances()[0].modes['analysis'])
+      analysis.removeMarker(id)
     }, doomed)
     await a.gfp.waitForMarkerCount(0)
 

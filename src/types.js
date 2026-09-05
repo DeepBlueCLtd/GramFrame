@@ -763,45 +763,6 @@
  */
 
 /**
- * Mouse position object for tests
- * @typedef {Object} TestPosition
- * @property {number} x - X coordinate
- * @property {number} y - Y coordinate
- */
-
-/**
- * SVG bounds object for test calculations
- * @typedef {Object} TestSVGBounds
- * @property {number} x - Left boundary
- * @property {number} y - Top boundary  
- * @property {number} width - Width of SVG
- * @property {number} height - Height of SVG
- */
-
-/**
- * Test position result object
- * @typedef {Object} TestPositions
- * @property {TestPosition} topLeft - Top-left position
- * @property {TestPosition} topRight - Top-right position
- * @property {TestPosition} bottomLeft - Bottom-left position
- * @property {TestPosition} bottomRight - Bottom-right position
- * @property {TestPosition} center - Center position
- */
-
-/**
- * Test tolerance object for comparisons
- * @typedef {Object} TestTolerance
- * @property {number} [time] - Time tolerance
- * @property {number} [freq] - Frequency tolerance
- */
-
-/**
- * Test context object for fixtures
- * @typedef {Object} TestContext
- * @property {*} gramFramePage - GramFrame page object
- */
-
-/**
  * Expected harmonic set properties for test verification
  * @typedef {Object} TestHarmonicSetProps
  * @property {number} [fundamentalFreq] - Expected fundamental frequency

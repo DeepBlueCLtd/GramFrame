@@ -1,0 +1,5 @@
+{
+  "_comment": "The Playwright spec files, checked as a ratchet rather than a gate (R9-10). `tsconfig.json` covers src/, tests/helpers, tests/unit and scripts/ and must stay at zero errors; the specs carry ~500 more, mostly unguarded nulls from `boundingBox()` and `querySelector`. Counting them in `yarn hygiene` makes that debt visible and falling instead of invisible. When it reaches zero, fold `tests/**/*.js` into tsconfig.json and delete this file.",
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.js", "src/**/*.d.ts", "tests/**/*.js", "scripts/**/*.js"]
+}

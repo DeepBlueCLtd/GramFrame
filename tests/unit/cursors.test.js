@@ -5,6 +5,7 @@ import {
   PAN_DRAG_CURSOR,
   featureCursor
 } from '../../src/utils/cursors.js'
+import { present } from './helpers/present.js'
 
 /** The module's public surface is the phase accessor, so test through it. */
 const FEATURE_HOVER_CURSOR = featureCursor('hover')
@@ -90,7 +91,7 @@ function paintedSegments(svg) {
   expect(groups.length).toBe(2)
 
   return groups.flatMap((group) => {
-    const width = parseFloat(/stroke-width="([\d.]+)"/.exec(group)[1])
+    const width = parseFloat(present(/stroke-width="([\d.]+)"/.exec(group), 'a stroke-width')[1])
     const paths = group.match(/ d="([^"]+)"/g) || []
     return paths.flatMap((attr) =>
       pathSegments(attr.slice(4, -1)).map((seg) => ({ ...seg, width }))
@@ -141,8 +142,10 @@ describe('feature drag cursors', () => {
 
   test('both are 32x32 with the hotspot at the centre and a keyword fallback', () => {
     for (const value of [FEATURE_HOVER_CURSOR, FEATURE_DRAG_CURSOR]) {
-      const [, , hotspotX, hotspotY, fallback] =
-        /^url\("data:image\/svg\+xml,(.*)"\) (\d+) (\d+), (\w+)$/.exec(value)
+      const [, , hotspotX, hotspotY, fallback] = present(
+        /^url\("data:image\/svg\+xml,(.*)"\) (\d+) (\d+), (\w+)$/.exec(value),
+        'a data-URI cursor with a hotspot and a keyword fallback'
+      )
 
       expect(Number(hotspotX)).toBe(CENTRE)
       expect(Number(hotspotY)).toBe(CENTRE)
@@ -164,7 +167,8 @@ describe('feature drag cursors', () => {
 
     expect(halo).not.toBeNull()
     expect(core).not.toBeNull()
-    expect(parseFloat(halo[1])).toBeGreaterThan(parseFloat(core[1]))
+    expect(parseFloat(present(halo, 'the halo stroke')[1]))
+      .toBeGreaterThan(parseFloat(present(core, 'the core stroke')[1]))
   })
 
   test('hover and drag are distinguishable from each other and from idle', () => {

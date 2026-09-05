@@ -16,6 +16,7 @@ import { readFileSync } from 'node:fs'
 import { inflateSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { present } from './helpers/present.js'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const png = readFileSync(join(repoRoot, 'sample', 'demo-gram.png'))
@@ -26,7 +27,7 @@ const WIDTH = 800
 const HEIGHT = 400
 
 /** Walks the PNG chunk stream, returning each chunk's type and payload. */
-function readChunks(buffer) {
+function readChunks(/** @type {any} */ buffer) {
   const chunks = []
   let offset = PNG_SIGNATURE.length
   while (offset < buffer.length) {
@@ -39,11 +40,11 @@ function readChunks(buffer) {
 }
 
 const chunks = readChunks(png)
-const chunkOfType = (type) => chunks.find((c) => c.type === type)
+const chunkOfType = (/** @type {any} */ type) => chunks.find((c) => c.type === type)
 
 /** Undoes the per-row PNG filters, returning one palette index per pixel. */
 function decodeIndices() {
-  const raw = inflateSync(chunkOfType('IDAT').data)
+  const raw = inflateSync(present(chunkOfType('IDAT'), 'an IDAT chunk').data)
   const out = Buffer.alloc(WIDTH * HEIGHT)
   let prev = Buffer.alloc(WIDTH)
   for (let y = 0; y < HEIGHT; y++) {
@@ -75,8 +76,7 @@ function decodeIndices() {
 describe('sample/demo-gram.png', () => {
   it('is a valid PNG at the size the demo page renders', () => {
     expect(png.subarray(0, 8).equals(PNG_SIGNATURE)).toBe(true)
-    const ihdr = chunkOfType('IHDR')
-    expect(ihdr).toBeDefined()
+    const ihdr = present(chunkOfType('IHDR'), 'an IHDR chunk')
     expect(ihdr.data.readUInt32BE(0)).toBe(WIDTH)
     expect(ihdr.data.readUInt32BE(4)).toBe(HEIGHT)
     expect(ihdr.data[8]).toBe(8) // bit depth
@@ -84,8 +84,7 @@ describe('sample/demo-gram.png', () => {
   })
 
   it('is palette-indexed, which is most of why it is small', () => {
-    const plte = chunkOfType('PLTE')
-    expect(plte).toBeDefined()
+    const plte = present(chunkOfType('PLTE'), 'a PLTE chunk')
     expect(plte.data.length % 3).toBe(0)
     expect(plte.data.length / 3).toBeLessThanOrEqual(256)
   })

@@ -317,8 +317,8 @@ const TOL = 1e-9
  * @returns {any} Cell fixtures
  */
 function buildCell({ zoom, renderVariant, hasElement, marginVariant, rate }) {
-  const margins = MARGIN_VARIANTS[marginVariant]
-  const { renderWidth, renderHeight } = RENDER_VARIANTS[renderVariant]
+  const margins = /** @type {Record<string, {left: number, bottom: number, right: number, top: number}>} */ (MARGIN_VARIANTS)[marginVariant]
+  const { renderWidth, renderHeight } = /** @type {Record<string, {renderWidth: number, renderHeight: number}>} */ (RENDER_VARIANTS)[renderVariant]
   const imageDetails = {
     url: '',
     naturalWidth: NATURAL.width,
@@ -342,7 +342,7 @@ function buildCell({ zoom, renderVariant, hasElement, marginVariant, rate }) {
   }
 
   const spectrogramImage = hasElement
-    ? { getAttribute: (name) => attributes[name] ?? null }
+    ? { getAttribute: (/** @type {string} */ name) => /** @type {Record<string, string>} */ (attributes)[name] ?? null }
     : null
 
   const viewBoxWidth = margins.left + renderWidth + margins.right
@@ -377,7 +377,10 @@ function buildCell({ zoom, renderVariant, hasElement, marginVariant, rate }) {
   }
 }
 
-/** Every cell of the grid */
+/**
+ * Every cell of the grid.
+ * @type {any[]}
+ */
 const CELLS = []
 for (const zoom of ZOOM_LEVELS) {
   for (const renderVariant of Object.keys(RENDER_VARIANTS)) {

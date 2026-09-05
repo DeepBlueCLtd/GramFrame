@@ -14,8 +14,17 @@ import {
   CLOCK_SKEW_TOLERANCE_MS,
   describeLoadOutcome
 } from '../../src/core/storage.js'
+import { present } from './helpers/present.js'
 
-/** A fully valid stored record, for mutating per test. */
+/**
+ * A fully valid stored record, for mutating per test.
+ *
+ * Deliberately `any`: every test here builds a record and then breaks one
+ * field of it, including additive fields the inferred literal type would not
+ * carry. The types under test are `sanitizeStoredAnnotations`'s outputs, not
+ * this fixture's inputs.
+ * @returns {any} A stored-annotations record
+ */
 const validRecord = () => ({
   version: 1,
   savedAt: '2026-08-01T00:00:00.000Z',
@@ -48,7 +57,7 @@ describe('sanitizeStoredAnnotations (BH-1, BH-16)', () => {
     expect(dropped).toBe(0)
     expect(annotations.analysis.markers).toHaveLength(1)
     expect(annotations.harmonics.harmonicSets).toHaveLength(1)
-    expect(annotations.sidebands.sidebandSets).toHaveLength(1)
+    expect(present(annotations.sidebands, 'the sidebands section').sidebandSets).toHaveLength(1)
     expect(annotations.doppler.fPlus).toEqual({ time: 40, freq: 900 })
   })
 
@@ -159,7 +168,7 @@ describe('sanitizeStoredAnnotations: sideband sets (issue #241)', () => {
       // @ts-ignore deliberate corruption
       rec.sidebands.sidebandSets[0].spacing = spacing
       const { annotations, dropped } = sanitizeStoredAnnotations(rec)
-      expect(annotations.sidebands.sidebandSets).toHaveLength(0)
+      expect(present(annotations.sidebands, 'the sidebands section').sidebandSets).toHaveLength(0)
       expect(dropped).toBe(1)
     }
   })
@@ -169,7 +178,7 @@ describe('sanitizeStoredAnnotations: sideband sets (issue #241)', () => {
     // @ts-ignore deliberate corruption
     delete rec.sidebands.sidebandSets[0].fundamentalFreq
     const { annotations, dropped } = sanitizeStoredAnnotations(rec)
-    expect(annotations.sidebands.sidebandSets).toHaveLength(0)
+    expect(present(annotations.sidebands, 'the sidebands section').sidebandSets).toHaveLength(0)
     expect(dropped).toBe(1)
   })
 
@@ -177,7 +186,7 @@ describe('sanitizeStoredAnnotations: sideband sets (issue #241)', () => {
     const rec = validRecord()
     rec.sidebands.sidebandSets[0].fundamentalFreq = 0
     const { annotations, dropped } = sanitizeStoredAnnotations(rec)
-    expect(annotations.sidebands.sidebandSets).toHaveLength(1)
+    expect(present(annotations.sidebands, 'the sidebands section').sidebandSets).toHaveLength(1)
     expect(dropped).toBe(0)
   })
 
@@ -186,7 +195,7 @@ describe('sanitizeStoredAnnotations: sideband sets (issue #241)', () => {
     // @ts-ignore the section simply does not exist in older records
     delete rec.sidebands
     const { annotations, dropped } = sanitizeStoredAnnotations(rec)
-    expect(annotations.sidebands.sidebandSets).toEqual([])
+    expect(present(annotations.sidebands, 'the sidebands section').sidebandSets).toEqual([])
     expect(dropped).toBe(0)
   })
 
@@ -195,7 +204,7 @@ describe('sanitizeStoredAnnotations: sideband sets (issue #241)', () => {
     // @ts-ignore deliberate corruption
     rec.sidebands.sidebandSets = { id: 's1' }
     const { annotations, dropped } = sanitizeStoredAnnotations(rec)
-    expect(annotations.sidebands.sidebandSets).toEqual([])
+    expect(present(annotations.sidebands, 'the sidebands section').sidebandSets).toEqual([])
     expect(dropped).toBe(1)
   })
 })
