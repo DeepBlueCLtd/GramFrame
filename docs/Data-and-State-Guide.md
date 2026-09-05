@@ -164,7 +164,7 @@ HTML table (class="gram-config")
    - Extracts the `<img>` element's `src` URL
    - Iterates `<tr>` elements, looking for 2-cell rows
    - Matches cell text against known parameter names
-   - Parses values with `parseFloat()`
+   - Parses values with `Number()`, rejecting anything that is not one whole number
 4. Validation: both time and frequency ranges must be present, with start < end
 5. On validation failure, an error is thrown and displayed as a red indicator on the page
 
@@ -178,7 +178,9 @@ HTML table (class="gram-config")
 | Missing freq-start or freq-end | "Missing required frequency configuration" |
 | time-start >= time-end | "Invalid time range: start must be less than end" |
 | freq-start >= freq-end | "Invalid frequency range: start must be less than end" |
-| Non-numeric value | Warning logged, row skipped |
+| Empty, partial or non-numeric value for a recognised parameter | Warning naming the parameter and row; the parameter is left unset, so the "must be present with valid numeric values" error fires |
+
+Values are parsed with `Number()`, not `parseFloat()` (R9-03, BH-20). `parseFloat` stops at the first character it cannot use, so `1,5` (a European decimal comma) became `1` and `10 Hz` became `10`; and an empty cell used to fall back to `'0'`. Both produced a plausible gram with the wrong axes and nothing on screen to say so, which made every marker and every harmonic ratio the analyst read wrong by a factor they could not see. Decimals, leading signs, exponent notation and surrounding whitespace all still parse.
 
 The two image checks throw like the range checks do (R9-02). They used to be caught and logged, which built a complete, working-looking component whose image area said "Loading spectrogram" forever. `<img src="">` counts as missing: the check reads the `src` **attribute**, because the `src` property resolves the empty string against the document URL and comes back truthy.
 

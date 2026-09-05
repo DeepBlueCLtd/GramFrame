@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Config with a decimal comma - R9-03</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Config table with a European decimal comma</h1>
+  <!-- parseFloat("1,5") is 1, so this used to draw a 0-1 s axis silently. -->
+  <table class="gram-config">
+    <tr>
+      <td colspan="2"><img src="../../sample/mock-gram.png" alt="Sample Spectrogram"></td>
+    </tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>1,5</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100</td></tr>
+  </table>
+</body>
+</html>
