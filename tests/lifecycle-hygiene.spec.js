@@ -55,13 +55,18 @@ test.describe('Destroy removes what it installed (GF-14)', () => {
     await page.goto('/debug-multiple.html')
     await page.locator('.gram-frame-container').first().waitFor()
 
-    // Select a marker so the arrow-key path has something to move, and confirm
-    // the handler is live: it consumes the key press (preventDefault).
+    // Probed with ArrowRight on a selected marker rather than with Tab: Tab is
+    // the host page's key now and is deliberately never consumed (R9-09), so it
+    // can no longer tell a live handler from a dead one. Nudging a selection is
+    // the arrow-key path the handler actually owns.
     const consumedWhileAlive = await page.evaluate(() => {
       const instance = window.GramFrame.__test__getInstances()[0]
-      // Focusing an instance is what makes the shared handler act on Tab.
+      // Focusing an instance is what makes the shared handler act at all.
       instance.ui.svg.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
-      const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+      instance.modes['analysis'].createMarkerAtPosition({ time: 30, freq: 50 })
+      const marker = instance.state.analysis.markers[instance.state.analysis.markers.length - 1]
+      instance.interaction.setSelection('marker', marker.id)
+      const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
       document.dispatchEvent(event)
       return event.defaultPrevented
     })
@@ -70,7 +75,7 @@ test.describe('Destroy removes what it installed (GF-14)', () => {
     // Destroy every instance, then check no handler reacts any more.
     const consumedAfterDestroy = await page.evaluate(() => {
       window.GramFrame.__test__getInstances().slice().forEach(instance => instance.destroy())
-      const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+      const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
       document.dispatchEvent(event)
       return event.defaultPrevented
     })

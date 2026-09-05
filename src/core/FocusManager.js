@@ -120,21 +120,33 @@ export function clearFocusedInstance() {
 }
 
 /**
+ * The registered instance whose container holds a DOM node, if any.
+ *
+ * The one scan behind both "did this click land outside every gram" and "which
+ * gram did DOM focus just enter" (R9-09).
+ * @param {EventTarget|null} node - Event target to test
+ * @returns {GramFrame|null} The owning instance, or null
+ */
+export function instanceContaining(node) {
+  if (!(node instanceof Node)) {
+    return null
+  }
+  pruneDisconnectedInstances()
+  // Array.from rather than for-of over the Set: the tsc target predates
+  // downlevelIteration (same note as core/state.js).
+  return Array.from(registeredInstances).find(
+    instance => !!(instance.ui && instance.ui.container && instance.ui.container.contains(node))
+  ) || null
+}
+
+/**
  * Whether a DOM node sits inside any registered instance's container.
  * Used to decide if a click landed outside every GramFrame.
  * @param {EventTarget|null} node - Event target to test
  * @returns {boolean} True when the node is inside a registered instance
  */
 export function isNodeInsideAnyInstance(node) {
-  if (!(node instanceof Node)) {
-    return false
-  }
-  pruneDisconnectedInstances()
-  // Array.from rather than for-of over the Set: the tsc target predates
-  // downlevelIteration (same note as core/state.js).
-  return Array.from(registeredInstances).some(
-    instance => !!(instance.ui && instance.ui.container && instance.ui.container.contains(node))
-  )
+  return instanceContaining(node) !== null
 }
 
 /**
@@ -154,42 +166,5 @@ function addFocusIndicator(instance) {
 function removeFocusIndicator(instance) {
   if (instance.ui.container) {
     instance.ui.container.classList.remove('gram-frame-focused')
-  }
-}
-
-/**
- * Focus on the next instance in sequence (for Tab navigation)
- */
-export function focusNextInstance() {
-  pruneDisconnectedInstances()
-  if (registeredInstances.size <= 1) return
-  
-  const instancesArray = Array.from(registeredInstances)
-  // -1 when nothing is focused, which the arithmetic below already handles:
-  // it lands on the first instance.
-  const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1
-  const nextIndex = (currentIndex + 1) % instancesArray.length
-  
-  const next = instancesArray[nextIndex]
-  if (next) {
-    setFocusedInstance(next)
-  }
-}
-
-/**
- * Focus on the previous instance in sequence (for Shift+Tab navigation)
- */
-export function focusPreviousInstance() {
-  pruneDisconnectedInstances()
-  if (registeredInstances.size <= 1) return
-  
-  const instancesArray = Array.from(registeredInstances)
-  // -1 when nothing is focused, so this wraps to the last instance.
-  const currentIndex = currentFocusedInstance ? instancesArray.indexOf(currentFocusedInstance) : -1
-  const prevIndex = currentIndex === 0 ? instancesArray.length - 1 : currentIndex - 1
-  
-  const next = instancesArray[prevIndex]
-  if (next) {
-    setFocusedInstance(next)
   }
 }

@@ -99,13 +99,20 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     last-writer-wins; deletions travel as tombstones, because a union cannot
     otherwise tell "never had it" from "deleted it" (issue #269)
   - `keyboardControl.js` - Arrow-key control, selection and restyling
-  - `FocusManager.js` - Which instance receives keyboard input
+  - `FocusManager.js` - Which instance receives keyboard input. It follows DOM
+    focus and clicks; Tab is never intercepted, so the host page keeps its own
+    keyboard navigation however many grams are on it (issue #261)
   - `FeatureRenderer.js` - Cross-mode feature rendering
   - `browserCompatibility.js` - Legacy-browser feature detection and warning
   - `initialization/` - `DOMSetup.js`, `UISetup.js`, `EventBindings.js`, `ModeInitialization.js`
 - `src/modes/` - Mode system architecture:
   - `BaseMode.js` - Abstract base class for all modes
-  - `ModeFactory.js` - Mode instantiation factory
+  - `ModeFactory.js` - Mode instantiation factory. `createMode`,
+    `getModeInitialStates` and `getAvailableModes` all read `modeRoster.js`;
+    only `MODE_CLASSES` names the classes
+  - `modeRoster.js` - The one list of which modes exist and what each is
+    called. A leaf module with no imports, so the UI can read it without
+    pulling in every mode class (issue #263)
   - `analysis/AnalysisMode.js` - Analysis mode with marker persistence
   - `harmonics/HarmonicsMode.js` - Harmonics calculation mode (a `PinSetMode`)
   - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog. Like
@@ -159,7 +166,6 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     conversion, zoom-, expand-, render-size- and margin-aware. Also owns
     `getRenderDimensions` and `calculateVisibleDataRange`, which live here rather
     than in a component so `rendering/` and `core/` can use them without a cycle
-  - `calculations.js` - Mathematical calculations
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
   - `markerLabel.js` - Marker label normalisation and table abbreviation
@@ -255,6 +261,11 @@ There is no visual/screenshot regression testing — see
 - State is deep-copied before passing to listeners to prevent mutations — once
   per delivery, and not at all when no listener is registered
 - HMR preserves state listeners across hot reloads
+- Module size is a ratchet, not a wish. `hygiene-baseline.json` caps every module
+  currently over the ~350-line SC-004 heuristic at its present size, and anything
+  without a cap must stay under the default — so a new module cannot grow past
+  the line and then be grandfathered in. Shrink one by ten lines or more and
+  `yarn hygiene` asks you to lower its cap in the same PR (issue #265)
 - Build output is unminified for field debugging (`minify: false` in vite.config.js)
 - TypeScript checking with JSDoc annotations (no TypeScript compilation).
   `strict: true` with **no** per-flag disables since spec 167 — `noImplicitAny`,
