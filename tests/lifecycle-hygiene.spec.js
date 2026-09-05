@@ -63,9 +63,11 @@ test.describe('Destroy removes what it installed (GF-14)', () => {
       const instance = window.GramFrame.__test__getInstances()[0]
       // Focusing an instance is what makes the shared handler act at all.
       instance.ui.svg.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
-      instance.modes['analysis'].createMarkerAtPosition({ time: 30, freq: 50 })
-      const marker = instance.state.analysis.markers[instance.state.analysis.markers.length - 1]
-      instance.interaction.setSelection('marker', marker.id)
+      const analysis = /** @type {any} */ (instance.modes['analysis'])
+      analysis.createMarkerAtPosition({ time: 30, freq: 50 })
+      const index = instance.state.analysis.markers.length - 1
+      const marker = instance.state.analysis.markers[index]
+      instance.interaction.setSelection('marker', marker.id, index)
       const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
       document.dispatchEvent(event)
       return event.defaultPrevented
