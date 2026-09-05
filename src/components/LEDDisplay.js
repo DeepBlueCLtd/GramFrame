@@ -6,7 +6,7 @@
 
 /// <reference path="../types.js" />
 
-import { getModeDisplayName } from '../utils/calculations.js'
+import { getModeDisplayName } from '../modes/modeRoster.js'
 
 
 /**

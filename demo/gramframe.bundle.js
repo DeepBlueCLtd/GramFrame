@@ -2639,18 +2639,23 @@
     const percentage = x / width * 100;
     indicator.style.left = `${Math.max(0, Math.min(100, percentage))}%`;
   }
-  function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  }
+  const MODE_ROSTER = [
+    { name: "pan", displayName: "Pan" },
+    // "Cross Cursor" on screen, `analysis` in the code and in stored records.
+    // The two names have coexisted since before this review; renaming the button
+    // is issue #271, not this one.
+    { name: "analysis", displayName: "Cross Cursor" },
+    { name: "harmonics", displayName: "Harmonics" },
+    { name: "sideband", displayName: "Sidebands" },
+    { name: "doppler", displayName: "Doppler" }
+  ];
+  const MODE_NAMES = MODE_ROSTER.map((entry) => entry.name);
   function getModeDisplayName(mode) {
-    const displayNames = {
-      "analysis": "Cross Cursor",
-      "harmonics": "Harmonics",
-      "sideband": "Sidebands",
-      "doppler": "Doppler",
-      "pan": "Pan"
-    };
-    return displayNames[mode] || capitalizeFirstLetter(mode);
+    const entry = MODE_ROSTER.find((candidate) => candidate.name === mode);
+    if (entry) {
+      return entry.displayName;
+    }
+    return typeof mode === "string" && mode.length > 0 ? mode.charAt(0).toUpperCase() + mode.slice(1) : String(mode);
   }
   function createLEDDisplay(label, value) {
     const led = document.createElement("div");
@@ -3131,7 +3136,7 @@
   function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes = {}) {
     const modesContainer = document.createElement("div");
     modesContainer.className = "gram-frame-modes";
-    const modeTypes = ["pan", "analysis", "harmonics", "sideband", "doppler"];
+    const modeTypes = MODE_NAMES;
     const modeButtons = {};
     const commandButtons = {};
     modeTypes.forEach((modeType) => {
@@ -7443,6 +7448,13 @@
     configTable.parentNode.replaceChild(warning, configTable);
     return warning;
   }
+  const MODE_CLASSES = {
+    pan: PanMode,
+    analysis: AnalysisMode,
+    harmonics: HarmonicsMode,
+    sideband: SidebandMode,
+    doppler: DopplerMode
+  };
   class ModeFactory {
     /**
      * Create a mode instance based on mode name
@@ -7457,20 +7469,11 @@
     static createMode(modeName, instance) {
       var _a;
       try {
-        switch (modeName) {
-          case "analysis":
-            return new AnalysisMode(instance);
-          case "harmonics":
-            return new HarmonicsMode(instance);
-          case "sideband":
-            return new SidebandMode(instance);
-          case "doppler":
-            return new DopplerMode(instance);
-          case "pan":
-            return new PanMode(instance);
-          default:
-            throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, sideband, doppler, pan`);
+        const ModeClass = Object.prototype.hasOwnProperty.call(MODE_CLASSES, modeName) ? MODE_CLASSES[modeName] : null;
+        if (!ModeClass) {
+          throw new Error(`Invalid mode name: ${modeName}. Valid modes are: ${MODE_NAMES.join(", ")}`);
         }
+        return new ModeClass(instance);
       } catch (error) {
         console.error(`CRITICAL ERROR: Failed to create mode "${modeName}":`, error);
         console.error("Error details:", {
@@ -7500,18 +7503,21 @@
      * rather than importing the mode classes itself, which is what breaks the
      * state ⇄ modes cycle (spec 167, FR-002, ADR-014).
      *
-     * Merge order is fixed and explicit: analysis, harmonics, sideband, doppler, pan.
+     * Merge order is the roster's, so it cannot drift from the roster the rest
+     * of the component uses. The order is immaterial in practice -- each mode
+     * contributes a slice named after itself -- but a collision between two
+     * modes would resolve by it, and `assertNoCoreKeyCollision` covers the core
+     * keys either way.
      * @returns {Partial<GramFrameState>} Merged mode slices
      */
     static getModeInitialStates() {
-      const slices = Object.assign(
-        {},
-        AnalysisMode.getInitialState(),
-        HarmonicsMode.getInitialState(),
-        SidebandMode.getInitialState(),
-        DopplerMode.getInitialState(),
-        PanMode.getInitialState()
-      );
+      const slices = Object.assign({}, ...MODE_NAMES.map((name) => {
+        const ModeClass = (
+          /** @type {any} */
+          MODE_CLASSES[name]
+        );
+        return typeof ModeClass.getInitialState === "function" ? ModeClass.getInitialState() : {};
+      }));
       assertNoCoreKeyCollision(slices);
       return slices;
     }
@@ -7520,7 +7526,7 @@
      * @returns {ModeType[]} Array of mode names
      */
     static getAvailableModes() {
-      return ["analysis", "harmonics", "sideband", "doppler", "pan"];
+      return [...MODE_NAMES];
     }
     /**
      * Validate if a mode name is supported
