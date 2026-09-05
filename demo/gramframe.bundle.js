@@ -2161,6 +2161,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function updatePersistentPanels(instance) {
     Object.values(instance.modes).filter(isPanelOwner).forEach((mode) => mode.refreshPanel());
   }
+  function parseConfigValue(text) {
+    if (typeof text !== "string") {
+      return null;
+    }
+    const trimmed = text.trim();
+    if (trimmed === "") {
+      return null;
+    }
+    const value = Number(trimmed);
+    return Number.isFinite(value) ? value : null;
+  }
   function extractConfigData(instance) {
     if (!instance.configTable) {
       console.warn("GramFrame: No config table provided for configuration extraction");
@@ -2187,10 +2198,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const cells = row.querySelectorAll("td");
           if (cells.length === 2) {
             const param = ((_a = cells[0].textContent) == null ? void 0 : _a.trim()) || "";
-            const valueText = ((_b = cells[1].textContent) == null ? void 0 : _b.trim()) || "0";
-            const value = parseFloat(valueText);
-            if (isNaN(value)) {
-              console.warn(`GramFrame: Invalid numeric value in row ${index + 1}: value="${valueText}"`);
+            if (param !== "time-start" && param !== "time-end" && param !== "freq-start" && param !== "freq-end") {
+              return;
+            }
+            const valueText = ((_b = cells[1].textContent) == null ? void 0 : _b.trim()) || "";
+            const value = parseConfigValue(valueText);
+            if (value === null) {
+              console.warn(`GramFrame: Ignoring ${param} in row ${index + 1} — "${valueText}" is not a single numeric value`);
               return;
             }
             if (param === "time-start") {
