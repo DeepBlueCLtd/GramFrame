@@ -17,6 +17,7 @@
 
 import { formatAxisTime } from '../utils/timeFormatter.js'
 import { calculateVisibleDataRange, getRenderDimensions } from '../utils/coordinates.js'
+import { formatFrequencyLabel } from '../utils/axisFormat.js'
 
 /**
  * A nice-number tick layout for one axis.
@@ -261,45 +262,6 @@ function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
 }
 
 /**
- * Format a frequency-axis label at a precision the tick interval justifies.
- *
- * Rounding to whole hertz duplicated labels on a narrow band: a gram spanning
- * a few hertz gets sub-hertz tick intervals, and every tick then printed the
- * same integer (R9-07). As on the time axis, the interval decides the
- * precision, so a label is never finer than the tick it names.
- * @param {number} frequency - Frequency value
- * @param {number} [interval] - Spacing between major ticks in Hz
- * @returns {string} Formatted label
- */
-function formatFrequencyLabels(frequency, interval = 1) {
-  return formatAtInterval(frequency, interval) + 'Hz'
-}
-
-/**
- * Render a value at the smallest precision that writes its tick interval
- * exactly, capped at three decimals.
- *
- * Shared by the frequency axis and, through `formatAxisTime`, by the time
- * axis: both had the same defect for the same reason, a fixed precision
- * chosen without reference to the tick spacing.
- * @param {number} value - Value to render
- * @param {number} interval - Spacing between ticks, in the same unit
- * @returns {string} The value, at a precision the interval justifies
- */
-function formatAtInterval(value, interval) {
-  if (!Number.isFinite(interval) || interval <= 0) {
-    return String(Math.round(value))
-  }
-  for (let decimals = 0; decimals < 3; decimals++) {
-    const scaled = interval * Math.pow(10, decimals)
-    if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
-      return value.toFixed(decimals)
-    }
-  }
-  return value.toFixed(3)
-}
-
-/**
  * Render main axis line
  * @param {GramFrame} instance - Component instance
  * @param {AxisConfig} axisConfig - Axis configuration with start/end positions
@@ -412,7 +374,7 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
       majorTickData.push({ x, height: 8, className: 'gram-frame-axis-tick-major' })
       labelData.push({
         x,
-        text: formatFrequencyLabels(freq, tickCalculation.majorInterval),
+        text: formatFrequencyLabel(freq, tickCalculation.majorInterval),
         className: 'gram-frame-axis-label-major'
       })
     }
@@ -427,7 +389,7 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
       majorTickData.push({ x, height: 8, className: 'gram-frame-axis-tick' })
       labelData.push({
         x,
-        text: formatFrequencyLabels(freq, fallbackInterval),
+        text: formatFrequencyLabel(freq, fallbackInterval),
         className: 'gram-frame-axis-label'
       })
     }

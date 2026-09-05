@@ -4,15 +4,15 @@
 
 /// <reference path="../types.js" />
 
-import { screenToData, isWithinImage, screenToSVG } from '../utils/coordinates.js'
+import { screenToData, isWithinImage } from '../utils/coordinates.js'
 import { BaseDragHandler, hasActiveDrag, cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
 import { dispatch } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 import { setFocusedInstance } from './FocusManager.js'
-import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized } from './viewport.js'
+import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized, isZoomedIn } from './viewport.js'
 import { IDLE_CURSOR, PAN_DRAG_CURSOR } from '../utils/cursors.js'
-import { isPlaying, isPlayerActive } from '../player/playerView.js'
-import { calculateVisibleDataRange, getRenderDimensions } from '../utils/coordinates.js'
+import { isPlaying, isPlayerActive, seekFromTimeAxisClick } from '../player/playerView.js'
+import { startRegionSelection, handleRegionPointerMove, finishRegionSelection } from './regionZoom.js'
 
 /**
  * Per-notch multiplicative zoom factor for Ctrl+wheel zoom (smoother than the
@@ -77,7 +77,7 @@ function handleWheel(instance, event) {
     const factor = event.deltaY < 0 ? WHEEL_ZOOM_STEP : 1 / WHEEL_ZOOM_STEP
     zoomAtImagePoint(instance, factor, result.imageX, result.imageY)
     event.preventDefault() // Always consume the zoom gesture
-  } else if (instance.state.zoom.level > 1.0) {
+  } else if (isZoomedIn(instance)) {
     // Horizontal pan: map vertical wheel delta to frequency panning.
     // Scroll down (deltaY > 0) moves forward in frequency.
     const { normalizedDeltaX } = pixelDeltaToNormalizedPan(instance, -event.deltaY, 0)
@@ -103,9 +103,7 @@ function wheelPanHandler(instance) {
     let previousCursor = ''
 
     instance.interaction._wheelPanHandler = new BaseDragHandler(instance, {
-      resolveTarget: () => (
-        instance.state.zoom.level > 1.0 ? { kind: 'pan', id: null, type: null } : null
-      ),
+      resolveTarget: () => (isZoomedIn(instance) ? { kind: 'pan', id: null, type: null } : null),
       onDragStart: (_target, _position, event) => {
         previousCursor = instance.ui.svg ? instance.ui.svg.style.cursor : ''
         if (event) {
@@ -250,6 +248,13 @@ function handleMouseMove(instance, event) {
     return
   }
 
+  // A region selection owns the pointer while it is being drawn, and offers its
+  // cursor hint when Shift is held (spec 170, FR-003, FR-021). Ahead of the
+  // readouts because it stays live over the axis margins, where they cannot.
+  if (handleRegionPointerMove(instance, event)) {
+    return
+  }
+
   const result = screenToDataWithZoom(instance, event)
 
   if (result) {
@@ -335,6 +340,12 @@ function handleMouseDown(instance, event) {
     return
   }
 
+  // Shift + left-drag selects a region to zoom to, in every mode (spec 170,
+  // FR-001). Resolved here, so it never reaches a mode (FR-002).
+  if (event.shiftKey && startRegionSelection(instance, event)) {
+    return
+  }
+
   const result = screenToDataWithZoom(instance, event)
 
   if (result) {
@@ -345,35 +356,6 @@ function handleMouseDown(instance, event) {
       instance.currentMode.handleMouseDown(event, dataCoords)
     }
   }
-}
-
-/**
- * Seek an audio-sourced gram to the time under a click on its time axis.
- *
- * The axis band is the left margin beside the axes area. The time is read
- * off the visible range the axis is drawn from, so it agrees with the labels.
- * @param {GramFrame} instance - GramFrame instance
- * @param {MouseEvent} event - The mousedown
- * @returns {boolean} True when the click was on the axis and a seek was made
- */
-function seekFromTimeAxisClick(instance, event) {
-  if (!instance.player || !instance.player.isReady()) {
-    return false
-  }
-  const state = instance.state
-  const svgRect = instance.ui.svg.getBoundingClientRect()
-  const point = screenToSVG(event.clientX - svgRect.left, event.clientY - svgRect.top, instance.ui.svg)
-  const { renderHeight } = getRenderDimensions(state)
-  const { margins } = state
-  const onAxisBand = point.x >= 0 && point.x < margins.left &&
-    point.y >= margins.top && point.y <= margins.top + renderHeight
-  if (!onAxisBand) {
-    return false
-  }
-  const visible = calculateVisibleDataRange(state, instance.ui.spectrogramImage)
-  const fraction = (point.y - margins.top) / renderHeight
-  instance.player.seek(visible.timeMax - fraction * (visible.timeMax - visible.timeMin))
-  return true
 }
 
 /**
@@ -402,6 +384,12 @@ function handleMouseUp(instance, event) {
 
   if (isPlaying(instance)) {
     return // Inert while playing (spec 168, FR-013); no drag can be running
+  }
+
+  // A release anywhere in the component completes a region selection, including
+  // over the axis margins, where a feature drag would be cancelled (FR-011).
+  if (finishRegionSelection(instance, event)) {
+    return
   }
 
   const result = screenToDataWithZoom(instance, event)

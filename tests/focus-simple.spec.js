@@ -13,14 +13,16 @@ test.describe('Simple Focus Test', () => {
     const gramFrame1 = containers.first()
     const gramFrame2 = containers.nth(1)
 
-    // Get the SVG elements within each container (where focus events are handled)
-    const svg1 = gramFrame1.locator('svg').first()
-    const svg2 = gramFrame2.locator('svg').first()
+    // Get the gram SVGs within each container (where focus events are handled).
+    // Named by class, not by tag: the control row's buttons carry their own
+    // small SVG icons (issue #310), so a bare `svg` counts those too.
+    const svg1 = gramFrame1.locator('.gram-frame-svg').first()
+    const svg2 = gramFrame2.locator('.gram-frame-svg').first()
 
     // Every instance has finished building its SVG — the point at which the
     // focus system is live, so "nothing is focused yet" is a real result rather
     // than a not-yet-initialised one.
-    await expect(containers.locator('svg')).toHaveCount(3)
+    await expect(containers.locator('.gram-frame-svg')).toHaveCount(3)
 
     // Neither should be focused until the user interacts
     await expect(gramFrame1).not.toHaveClass(/gram-frame-focused/)

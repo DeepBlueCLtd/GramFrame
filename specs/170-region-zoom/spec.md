@@ -42,9 +42,10 @@
   One structural constraint shapes the whole design: zoom is a single
   isotropic `level` plus a normalised centre (`viewport.js:setZoom`), capped at
   10×. There is no independent horizontal/vertical zoom, so an arbitrary
-  rectangle cannot become the view exactly. Rather than silently fitting or
-  cropping after the fact, the selection rectangle is constrained to the gram's
-  aspect ratio *while it is drawn*, so what the analyst sees is what they get.
+  rectangle cannot become the view exactly. The selection is therefore drawn
+  freely and the view **contains** it: scaled by whichever axis is the tighter
+  fit, so the whole selection is visible and the slack axis shows more of the
+  gram than was framed. See the amendment to Interview Decision 2.
 -->
 
 ## User Scenarios & Testing *(mandatory)*
@@ -120,21 +121,21 @@ selection is shown live as they drag.
 
 **Why this priority**: P1 is usable with a plain outline, so this is an
 enhancement rather than a prerequisite. It earns its place by making the
-aspect-ratio lock self-explanatory — a box that resists your pointer looks
-broken until the dimmed surround shows you it is the shape of the view — and by
-letting an analyst dial in a span numerically before committing.
+selection read as the subject while it is drawn, by saying what it will
+actually become — that is the dashed second outline — and by letting an analyst
+dial in a span numerically before committing.
 
 **Independent Test**: Begin a Shift-drag and hold; the outlined rectangle, the
-dimmed surround and a live span readout are all visible and update together as
-the pointer moves.
+dashed outline of the resulting view, the dimmed surround and a live span
+readout are all visible and update together as the pointer moves.
 
 **Acceptance Scenarios**:
 
 1. **Given** a Shift-drag in progress, **When** the pointer moves, **Then** the
    rectangle, the dimmed surround and the span readout all update together.
-2. **Given** a Shift-drag in progress, **When** the pointer moves in a way that
-   would make the box taller than the gram's proportions allow, **Then** the
-   box keeps the gram's aspect ratio rather than following the pointer exactly.
+2. **Given** a Shift-drag in progress, **When** the box is drawn in proportions
+   the view cannot take exactly, **Then** the box follows the pointer and a
+   second, dashed outline shows the wider view that will result.
 3. **Given** a Shift-drag in progress, **When** the analyst presses Escape,
    **Then** the rectangle and dimming disappear and the view is unchanged.
 
@@ -196,8 +197,8 @@ that frequency span, and no unplayed time is revealed.
   under the pointer; the other is untouched.
 - **A zero-width or zero-height box** (a pure horizontal or vertical sweep).
   Covered by the movement threshold in FR-008 if small; if large in one axis
-  only, the aspect lock gives it the gram's proportions, so it is always a
-  well-formed region.
+  only, the `contain` fit is decided by the other axis, so a sweep that is
+  thin in one direction simply zooms by what the thick direction allows.
 
 ## Requirements *(mandatory)*
 
@@ -209,15 +210,17 @@ that frequency span, and no unplayed time is revealed.
 - **FR-002**: A region selection MUST NOT be delegated to the active mode. No
   marker, harmonic set, sideband set or Doppler point may be created, moved,
   restyled or deleted by any part of the gesture — press, move, or release.
-- **FR-003**: While the selection is being drawn, it MUST be displayed as a
-  rectangle constrained to the aspect ratio of the gram's rendered area: the
-  pointer determines the larger dimension and the other follows.
+- **FR-003**: While the selection is being drawn, it MUST follow the pointer
+  freely, in whatever proportions the analyst draws, and the view it will
+  produce MUST be shown alongside it as a second outline.
 - **FR-004**: While the selection is being drawn, the area of the gram outside
   the rectangle MUST be visually dimmed.
 - **FR-005**: While the selection is being drawn, its frequency span and time
   span MUST be shown live, in the same units and formatting the axes use.
-- **FR-006**: On release, the view MUST change so the selected region occupies
-  the visible gram area, centred on the selection's centre.
+- **FR-006**: On release, the view MUST change so the selected region is wholly
+  visible and centred on the selection's centre. Where the selection's shape
+  differs from the view's, the view MUST show *more* of the gram on the slack
+  axis rather than cropping the selection (`contain`, not `cover`).
 - **FR-007**: The resulting zoom MUST stay within the existing 1×–10× range. A
   selection that would require more than 10× MUST clamp to 10× and centre on
   the selection rather than being refused.
@@ -272,9 +275,9 @@ that frequency span, and no unplayed time is revealed.
 - **SC-001**: From any mode and any zoom level, an analyst can go from "I want
   to look at that" to looking at it in a single press-drag-release, with no
   mode switch and no button click.
-- **SC-002**: After release, the visible frequency and time ranges match the
-  drawn rectangle to within one rendered pixel on each edge, except where the
-  10× cap applies.
+- **SC-002**: After release, the drawn rectangle is wholly visible and centred,
+  and the visible range matches it on the tighter axis to within one rendered
+  pixel on each edge, except where the 10× cap or the gram's own edge applies.
 - **SC-003**: Returning to the complete gram takes exactly one action from any
   zoom level.
 - **SC-004**: Across the full matrix of five modes, no Shift-drag creates,
@@ -294,7 +297,8 @@ that frequency span, and no unplayed time is revealed.
 - Analysts use a mouse and keyboard. Touch and trackpad pinch gestures are out
   of scope; the component has no touch input today.
 - Zoom stays isotropic — one level plus a centre — and capped at 10×. This
-  feature does not change the zoom model, which is why the aspect lock exists.
+  feature does not change the zoom model, which is why the view contains the
+  selection rather than matching it exactly.
 - The existing drag engine's one-drag-per-instance rule and its cancellation
   points (Escape, pointer leave) are reused rather than duplicated.
 - The guidance panel's cross-mode section is currently rendered as part of Pan
@@ -307,8 +311,9 @@ that frequency span, and no unplayed time is revealed.
   deferred: it needs a decision about what invalidates the history (pan? wheel
   zoom? mode switch? a new gram?) and a second gesture to teach. **Fit** covers
   the common case of getting out.
-- **Independent horizontal and vertical zoom.** This would remove the need for
-  the aspect lock, but it changes the zoom model and every consumer of it.
+- **Independent horizontal and vertical zoom.** This would let the view be
+  exactly the box that was drawn, but it changes the zoom model and every
+  consumer of it.
 - **Raising the 10× cap.**
 - **Double-click to reset.** Considered and rejected: a double-click currently
   reaches the modes as two mousedowns, which in Analysis mode places two
@@ -333,13 +338,33 @@ and what was rejected, so a later reader can tell a decision from an accident.
    thin box barely zooms — the drag appears to do nothing); free box then fill
    (crops away content the analyst deliberately selected — the wrong failure
    mode for a measurement tool).
+
+   **Amended 2026-09-05, after using it.** The lock was reversed: a box that
+   changes width as the pointer moves *down* reads as broken, whatever the
+   reason. The choice is now **free box then fit** — `contain` in the
+   `object-fit` vocabulary, letterboxing except that the bars are more gram
+   rather than blank. The two objections above are answered rather than
+   accepted: the view is drawn as a second, dashed outline *during* the drag,
+   so what you draw is still what you get plus a stated remainder; and "a thin
+   box barely zooms" is the correct answer, not a defect — a selection that is
+   already nearly the height of the view has little room to magnify without
+   cutting off the time either side of it. `cover` (free box then fill) stays
+   rejected, for the reason given above.
 3. **Exit: a Fit button beside `+` and `−`.** Rejected: a zoom history stack
    (deferred, see Out of Scope); double-click to reset (see Out of Scope);
    nothing at all (leaves the one-gesture-in / six-clicks-out asymmetry).
 4. **Feedback: outline, dimmed surround and live span readout.** Rejected:
    outline plus dimming without the readout (you cannot tell what span you are
-   committing to); plain outline only (competes with gram content, and makes
-   the aspect lock look arbitrary).
+   committing to); plain outline only (competes with gram content).
+
+   The amendment to decision 2 added a second, dashed outline for the resulting
+   view, and first moved the dimming onto that outline — the argument being
+   that the dimmed edge should mark the true boundary between what will be on
+   screen and what will not. **Reverted after using it**: a mask of a different
+   shape from the box under the pointer reads as a second thing moving, which
+   is distracting during the very gesture it is meant to support. The dimming
+   is back on the selection (FR-004 as originally written); the dashed outline
+   still states the consequence.
 
 ## Risks and Open Questions
 
@@ -357,8 +382,9 @@ and what was rejected, so a later reader can tell a decision from an accident.
   region zoom must hold a whole span, with its own clamp against unplayed time.
   This is why it is a separate story (US4) rather than folded into P1.
 - **The 10× clamp breaks the WYSIWYG promise** for very small selections. FR-007
-  chooses to clamp rather than refuse; whether the analyst should be told this
-  happened (rather than just seeing a wider view than they drew) is open.
+  chooses to clamp rather than refuse. Since the amendment to decision 2 the
+  analyst *is* told: the dashed outline of the resulting view is capped by the
+  same limit, so a box finer than 10× visibly stops shrinking during the drag.
 - **Guidance visibility.** Because the cross-mode guidance section is rendered
   by Pan mode, an analyst who starts in Analysis mode may never read the line
   that documents the gesture. Out of scope here, but it limits SC-001 in

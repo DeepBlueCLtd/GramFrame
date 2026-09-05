@@ -6,7 +6,8 @@
 
 /// <reference path="../types.js" />
 
-import { MODE_NAMES, getModeDisplayName } from '../modes/modeRoster.js'
+import { MODE_NAMES, getModeDisplayName, getModeIcon } from '../modes/modeRoster.js'
+import { createIcon, createIconLabel } from './icons.js'
 
 /** @typedef {import('../modes/BaseMode.js').BaseMode} BaseMode */
 
@@ -42,22 +43,23 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
     // Create command buttons container for this mode
     const modeGroup = document.createElement('div')
     modeGroup.className = 'gram-frame-mode-group'
-    
+
     // Store command buttons for this mode
     commandButtons[modeType] = []
 
-    // Add pre-command buttons (left side)
-    const preButtons = commandButtonDefs.slice(0, Math.floor(commandButtonDefs.length / 2))
-    preButtons.forEach((/** @type {CommandButton} */ buttonDef) => {
-      const cmdButton = createCommandButton(buttonDef)
-      modeGroup.appendChild(cmdButton)
-      commandButtons[modeType].push(cmdButton)
-    })
-
-    // Create main mode button
+    // Create main mode button.
+    //
+    // It leads its group, and its commands follow it. They used to be split in
+    // half and wrapped around it, which put Pan's mode button a button's width
+    // in from the left while the other four started at the column's edge — the
+    // one row out of line was the row already short of space (issue #310).
     const button = document.createElement('button')
     button.className = 'gram-frame-mode-btn'
-    button.textContent = getModeDisplayName(modeType)
+    const displayName = getModeDisplayName(modeType)
+    applyButtonFace(button, displayName, getModeIcon(modeType))
+    // Named on hover like the command buttons beside it. It matters most for
+    // the one showing a glyph, which is why it arrived with the icons.
+    button.title = displayName
     button.dataset.mode = modeType
 
     // Set active state for current mode
@@ -85,9 +87,8 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
     modeButtons[modeType] = button
     modeGroup.appendChild(button)
 
-    // Add post-command buttons (right side)
-    const postButtons = commandButtonDefs.slice(Math.floor(commandButtonDefs.length / 2))
-    postButtons.forEach((/** @type {CommandButton} */ buttonDef) => {
+    // The mode's own commands, in the order the mode lists them.
+    commandButtonDefs.forEach((/** @type {CommandButton} */ buttonDef) => {
       const cmdButton = createCommandButton(buttonDef)
       modeGroup.appendChild(cmdButton)
       commandButtons[modeType].push(cmdButton)
@@ -113,6 +114,28 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
 }
 
 /**
+ * Put a word, or a glyph standing for that word, on a button.
+ *
+ * An icon button keeps the word in a visually hidden span rather than dropping
+ * it: that span is the button's accessible name, so a screen reader still hears
+ * "Pan" and "Fit", and a test still finds the button by the name an analyst
+ * would call it.
+ * @param {HTMLButtonElement} button - The button to face
+ * @param {string} text - The word the button stands for
+ * @param {string} [icon] - Name of a glyph in `components/icons.js`
+ */
+function applyButtonFace(button, text, icon) {
+  const glyph = createIcon(icon)
+  if (!glyph) {
+    button.textContent = text
+    return
+  }
+  button.classList.add('gram-frame-icon-btn')
+  button.appendChild(glyph)
+  button.appendChild(createIconLabel(text))
+}
+
+/**
  * Create a command button from a button definition
  * @param {CommandButton} buttonDef - Button definition
  * @returns {HTMLButtonElement} Created command button
@@ -120,7 +143,7 @@ export function createModeSwitchingUI(modeCell, state, modeSwitchCallback, modes
 function createCommandButton(buttonDef) {
   const button = document.createElement('button')
   button.className = 'gram-frame-command-btn'
-  button.textContent = buttonDef.label
+  applyButtonFace(button, buttonDef.label, buttonDef.icon)
   button.title = buttonDef.title
   
   // Set initial enabled state
