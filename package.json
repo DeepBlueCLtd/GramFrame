@@ -8,6 +8,7 @@
     "build:standalone": "BUILD_STANDALONE=true vite build",
     "test": "playwright test",
     "typecheck": "tsc --noEmit",
+    "typecheck:specs": "tsc --noEmit -p tsconfig.specs.json",
     "hygiene": "node scripts/hygiene.js",
     "lint": "eslint . --max-warnings 0",
     "test:unit": "vitest run",

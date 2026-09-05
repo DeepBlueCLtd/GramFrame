@@ -20,6 +20,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+// madge ships no type declarations; the import is deliberately untyped.
+// @ts-ignore - no @types/madge exists
 import madge from 'madge'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -44,7 +46,7 @@ results.push({
   name: 'Circular dependencies (madge, src/)',
   baseline: baseline.circularDependencies,
   current: cycles.length,
-  detail: cycles.map((cycle, i) => `${i + 1}) ${cycle.join(' > ')}`),
+  detail: cycles.map((/** @type {string[]} */ cycle, /** @type {number} */ i) => `${i + 1}) ${cycle.join(' > ')}`),
 })
 
 // --- 2. Modules with unused exports (ts-unused-exports) ---------------------
@@ -54,15 +56,28 @@ let tueOutput
 try {
   // Exits 1 whenever any unused export exists, so a non-zero exit still
   // carries the report on stdout.
-  tueOutput = execFileSync(tueBin, ['tsconfig.json'], { cwd: repoRoot, encoding: 'utf8' })
-} catch (err) {
-  if (typeof err.stdout !== 'string' || err.stdout === '') throw err
+  // Reported over `src/` only. `tests/` is inside the type-check program now
+  // (R9-10), which is what lets a unit test count as a real importer -- but a
+  // test helper whose consumers are the spec files, which the program does not
+  // include, would otherwise read as dead. The ratchet is about production
+  // debt; `--excludePathsFromReport` keeps it that way while still crediting
+  // tests as importers.
+  tueOutput = execFileSync(
+    tueBin,
+    ['tsconfig.json', '--excludePathsFromReport=tests'],
+    { cwd: repoRoot, encoding: 'utf8' }
+  )
+} catch (error) {
+  // execFileSync attaches the child's output to the thrown error; `unknown` in
+  // a checked catch, so narrow before reading it.
+  const err = /** @type {{stdout?: unknown}} */ (error)
+  if (typeof err.stdout !== 'string' || err.stdout === '') throw error
   tueOutput = err.stdout
 }
 const tueModules = tueOutput
   .split('\n')
-  .filter(line => line.includes(': '))
-  .map(line => relative(repoRoot, line.trim()))
+  .filter((/** @type {string} */ line) => line.includes(': '))
+  .map((/** @type {string} */ line) => relative(repoRoot, line.trim()))
 results.push({
   name: 'Modules with unused exports (ts-unused-exports)',
   baseline: baseline.unusedExportModules,
@@ -166,6 +181,44 @@ results.push({
   baseline: baseline.instanceFields,
   current: fieldDeclarations.length,
   detail: fieldDeclarations.map(line => line.trim()),
+})
+
+// --- 6. Type errors in the Playwright specs (R9-10) -------------------------
+
+// `tsconfig.json` covers src/, tests/helpers, tests/unit and scripts/, and
+// `yarn typecheck` holds all of it at zero. The spec files carry more --
+// mostly unguarded nulls from `boundingBox()` and `querySelector` inside
+// `page.evaluate` -- so they sit in `tsconfig.specs.json` and are counted here
+// instead. A ratchet makes that debt visible and falling; leaving the specs out
+// of the program entirely is what let it accumulate unseen in the first place.
+const tscBin = join(repoRoot, 'node_modules', '.bin', 'tsc')
+let specTscOutput = ''
+try {
+  specTscOutput = execFileSync(
+    tscBin,
+    ['--noEmit', '-p', 'tsconfig.specs.json'],
+    { cwd: repoRoot, encoding: 'utf8' }
+  )
+} catch (error) {
+  // tsc exits non-zero whenever there is at least one error, so the report
+  // arrives on stdout of a thrown error, as with ts-unused-exports above.
+  const err = /** @type {{stdout?: unknown}} */ (error)
+  if (typeof err.stdout !== 'string') throw error
+  specTscOutput = err.stdout
+}
+const specErrors = specTscOutput.split('\n').filter(line => / error TS\d+:/.test(line))
+const specErrorsByFile = new Map()
+for (const line of specErrors) {
+  const file = line.split('(')[0]
+  specErrorsByFile.set(file, (specErrorsByFile.get(file) || 0) + 1)
+}
+results.push({
+  name: 'Type errors in the Playwright specs (tsconfig.specs.json)',
+  baseline: baseline.specTypeErrors,
+  current: specErrors.length,
+  detail: Array.from(specErrorsByFile.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([file, count]) => `${file}: ${count}`),
 })
 
 // --- Report -----------------------------------------------------------------

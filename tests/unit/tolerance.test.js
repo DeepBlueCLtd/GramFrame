@@ -5,6 +5,7 @@ import {
   findClosestTarget,
   getUniformTolerance
 } from '../../src/utils/tolerance.js'
+import { present } from './helpers/present.js'
 
 /**
  * @fileoverview Unit tests for the shared hit-test tolerances. Pins the three
@@ -52,8 +53,7 @@ describe('findClosestTarget', () => {
   ]
 
   test('returns the nearest target within the tolerance circle', () => {
-    const hit = findClosestTarget({ time: 10, freq: 1000 }, targets, TOL)
-    expect(hit).not.toBeNull()
+    const hit = present(findClosestTarget({ time: 10, freq: 1000 }, targets, TOL), 'a hit')
     expect(hit.id).toBe('near')
     expect(hit.data).toEqual({ n: 2 })
   })
@@ -123,8 +123,8 @@ describe('getUniformTolerance', () => {
       imageDetails: { naturalWidth: 100, naturalHeight: 100, renderWidth: 100, renderHeight: 100 },
       zoom: { level: 1 }
     }
-    expect(getUniformTolerance(viewport, image)).toEqual({ time: 48, freq: 8000 })
-    const radius = pixelRadiusOf(viewport)
+    expect(getUniformTolerance(/** @type {any} */ (viewport), image)).toEqual({ time: 48, freq: 8000 })
+    const radius = pixelRadiusOf(/** @type {any} */ (viewport))
     expect(radius.time).toBeCloseTo(8, 6)
     expect(radius.freq).toBeCloseTo(8, 6)
   })

@@ -115,6 +115,8 @@ describe('BaseDragHandler hover contract', () => {
     // Pan mode keeps the hand this way. The engine used to pass the CSS value
     // it would otherwise apply, so overriding modes had to sniff it
     // (`fallback === 'grabbing'`) and broke the moment that string changed.
+    /** @type {any[]} */
+    /** @type {any[]} */
     const seen = []
     const updateCursor = vi.fn()
     const handler = new BaseDragHandler(makeInstance(), {
@@ -131,14 +133,14 @@ describe('BaseDragHandler hover contract', () => {
     }, 'pan')
 
     handler.updateCursorForHover({ freq: 10, time: 5 })
-    expect(seen.at(-1)).toEqual({ kind: 'move', phase: 'hover' })
+    expect(seen[seen.length - 1]).toEqual({ kind: 'move', phase: 'hover' })
 
     handler.startDrag({ freq: 10, time: 5 })
-    expect(seen.at(-1)).toEqual({ kind: 'move', phase: 'drag' })
+    expect(seen[seen.length - 1]).toEqual({ kind: 'move', phase: 'drag' })
     expect(updateCursor).toHaveBeenLastCalledWith('grabbing')
 
     handler.endDrag({ freq: 11, time: 6 })
-    expect(seen.at(-1)).toEqual({ kind: 'move', phase: 'idle' })
+    expect(seen[seen.length - 1]).toEqual({ kind: 'move', phase: 'idle' })
   })
 
   test('a null from cursorFor takes the default for that phase', () => {
@@ -161,6 +163,7 @@ describe('BaseDragHandler hover contract', () => {
   test('hover with nothing under the pointer reports a null kind', () => {
     // So a mode's cursorFor can tell "resting over the gram" apart from
     // "resting after a drag of some kind ended".
+    /** @type {any[]} */
     const seen = []
     const handler = new BaseDragHandler(makeInstance(), {
       resolveTarget: vi.fn(() => null),

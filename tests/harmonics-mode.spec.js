@@ -1,5 +1,7 @@
 import { test, expect } from './helpers/fixtures.js'
 import { 
+
+/// <reference path="../src/types.js" />
   expectValidMetadata, 
   expectValidMode,
   expectValidConfig,
@@ -19,7 +21,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
   /**
    * Setup before each test - switch to Harmonics mode
    * @param {TestParams} params - Test parameters
-   * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+   * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
    * @returns {Promise<void>}
    */
   test.beforeEach(async ({ gramFramePage }) => {
@@ -28,7 +30,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     await gramFramePage.clickMode('Harmonics')
     
     // Verify we're in harmonics mode
-    /** @type {import('../src/types.js').GramFrameState} */
+    /** @type {GramFrameState} */
     const state = await gramFramePage.getState()
     expectValidMode(state, 'harmonics')
   })
@@ -40,7 +42,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test creation of harmonic set with click and drag
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should create harmonic set with click and drag', async ({ gramFramePage }) => {
@@ -60,7 +62,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.up()
       
       // Verify harmonic set was created
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expect(state.harmonics?.harmonicSets).toBeDefined()
       
@@ -68,7 +70,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       if (state.harmonics.harmonicSets.length > 0) {
         expect(state.harmonics.harmonicSets.length).toBeGreaterThan(0)
         
-        /** @type {import('../src/types.js').HarmonicSet} */
+        /** @type {HarmonicSet} */
         const harmonicSet = state.harmonics.harmonicSets[0]
         expect(harmonicSet).toHaveProperty('id')
         expect(harmonicSet).toHaveProperty('fundamentalFreq')
@@ -84,7 +86,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test harmonic spacing calculation based on drag distance
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should calculate harmonic spacing based on drag distance', async ({ gramFramePage }) => {
@@ -103,7 +105,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.move(endX, endY)
       await gramFramePage.page.mouse.up()
       
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       
       // Skip if no harmonic sets were created
@@ -111,7 +113,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         return
       }
       
-      /** @type {import('../src/types.js').HarmonicSet} */
+      /** @type {HarmonicSet} */
       const harmonicSet = state.harmonics.harmonicSets[0]
       
       // Verify harmonic spacing was calculated
@@ -125,7 +127,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test handling horizontal and vertical drags differently
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle horizontal and vertical drags differently', async ({ gramFramePage }) => {
@@ -135,7 +137,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.move(300, 150) // Horizontal drag
       await gramFramePage.page.mouse.up()
       
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
       
       // Skip if no harmonic sets were created
@@ -143,7 +145,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         return
       }
       
-      /** @type {import('../src/types.js').HarmonicSet} */
+      /** @type {HarmonicSet} */
       const horizontalHarmonic = state.harmonics.harmonicSets[0]
 
       // Test vertical drag
@@ -158,7 +160,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       if (state.harmonics.harmonicSets.length >= 2) {
         expect(state.harmonics.harmonicSets).toHaveLength(2)
         
-        /** @type {import('../src/types.js').HarmonicSet} */
+        /** @type {HarmonicSet} */
         const verticalHarmonic = state.harmonics.harmonicSets[1]
         
         // Verify different harmonic properties based on drag direction
@@ -178,7 +180,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test harmonic updates during drag operation
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should update harmonics during drag operation', async ({ gramFramePage }) => {
@@ -203,10 +205,10 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         await gramFramePage.page.mouse.move(pos.x, pos.y)
 
         // Verify harmonic calculation is happening
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const state = await gramFramePage.getState()
         if (state.harmonics?.harmonicSets?.length > 0) {
-          /** @type {import('../src/types.js').HarmonicSet} */
+          /** @type {HarmonicSet} */
           const harmonicSet = state.harmonics.harmonicSets[0]
           expect(harmonicSet.fundamentalFreq).toBeGreaterThan(0)
           expect(harmonicSet.rate).toBeGreaterThan(0)
@@ -217,7 +219,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.up()
       
       // Verify final harmonic set
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const finalState = await gramFramePage.getState()
       expect(finalState.harmonics.harmonicSets.length).toBeGreaterThanOrEqual(0)
     })
@@ -225,7 +227,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test harmonic recalculation when dragging existing sets
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should recalculate harmonics when dragging existing sets', async ({ gramFramePage }) => {
@@ -235,7 +237,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.move(200, 250)
       await gramFramePage.page.mouse.up()
       
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       let state = await gramFramePage.getState()
       
       // Skip if no harmonic sets were created
@@ -268,7 +270,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test rendering of harmonic lines in SVG
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should render harmonic lines in SVG', async ({ gramFramePage }) => {
@@ -304,7 +306,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test handling harmonic lines at spectrogram boundaries
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle harmonic lines at spectrogram boundaries', async ({ gramFramePage }) => {
@@ -315,7 +317,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.up()
       
       // Check if harmonic set was created
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expect(state.harmonics.harmonicSets.length).toBeGreaterThanOrEqual(0)
       
@@ -354,7 +356,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test harmonic color selection
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should allow harmonic color selection', async ({ gramFramePage }) => {
@@ -379,7 +381,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
         await gramFramePage.page.mouse.up()
         
         // Verify harmonic set uses selected color
-        /** @type {import('../src/types.js').GramFrameState} */
+        /** @type {GramFrameState} */
         const state = await gramFramePage.getState()
         expect(state.harmonics.harmonicSets[0].color).toBe('#2ecc71')
       } catch (_error) {
@@ -395,7 +397,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test handling very small drag distances
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should handle very small drag distances', async ({ gramFramePage }) => {
@@ -406,7 +408,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.up()
       
       // Verify harmonic set handling of minimal distance
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       // May or may not create a harmonic set depending on minimum threshold
       if (state.harmonics?.harmonicSets?.length > 0) {
@@ -417,7 +419,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
     /**
      * Test state consistency during complex operations
      * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').default} params.gramFramePage - GramFrame page object
+     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
      * @returns {Promise<void>}
      */
     test('should maintain state consistency during complex operations', async ({ gramFramePage }) => {
@@ -431,7 +433,7 @@ test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
       await gramFramePage.page.mouse.up() // End drag
       
       // Verify final state is consistent
-      /** @type {import('../src/types.js').GramFrameState} */
+      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expectValidMetadata(state)
       expectValidMode(state, 'harmonics')

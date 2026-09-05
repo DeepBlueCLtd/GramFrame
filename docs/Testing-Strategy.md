@@ -11,9 +11,10 @@ aspirational.
 | End-to-end | Playwright (Chromium) | `yarn test` | Everything a user does: modes, markers, harmonics, doppler, pan/zoom, expand, storage, keyboard, legacy-browser handling |
 | Unit | Vitest (Node, no browser) | `yarn test:unit` | Pure JS with no DOM dependency (`tests/unit/`) |
 | WebKit smoke | Playwright (WebKit) | `npx playwright test --config playwright.smoke.config.ts` | The component initialises and renders in a non-Chromium engine (`tests/smoke/`) |
-| Types | `tsc --noEmit` over JSDoc | `yarn typecheck` | Type errors without a TypeScript build |
+| Types | `tsc --noEmit` over JSDoc | `yarn typecheck` | Type errors without a TypeScript build. Covers `src/`, `tests/helpers/`, `tests/unit/` and `scripts/`, and must stay at zero |
+| Spec types | `tsc --noEmit -p tsconfig.specs.json` | `yarn typecheck:specs` | The Playwright specs, counted as a debt ratchet by `yarn hygiene` rather than gated at zero (R9-10) |
 | Lint | ESLint | `yarn lint` | Style and correctness rules |
-| Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports and `waitForTimeout` counts, each capped at a committed baseline that only ever falls |
+| Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports, `waitForTimeout` counts, the instance surface and spec type errors — each capped at a committed baseline that only ever falls |
 
 Playwright is configured in `playwright.config.ts`: it boots the Vite dev
 server and runs `tests/**` except `tests/unit/` and `tests/smoke/`, with

@@ -15,7 +15,7 @@ import { test, expect } from './helpers/fixtures.js'
 
 /**
  * Place an f+/f- pair by dragging, and return the f- dot's on-screen box.
- * @param {import('./helpers/gram-frame-page.js').default} gfp - Page helper
+ * @param {import('./helpers/gram-frame-page.js').GramFramePage} gfp - Page helper
  * @returns {Promise<{x: number, y: number, width: number, height: number}>} The dot's client rect
  */
 async function drawCurveAndLocateMarker(gfp) {
@@ -36,7 +36,7 @@ async function drawCurveAndLocateMarker(gfp) {
 
 /**
  * Press at a client point and report whether it started a marker drag.
- * @param {import('./helpers/gram-frame-page.js').default} gfp - Page helper
+ * @param {import('./helpers/gram-frame-page.js').GramFramePage} gfp - Page helper
  * @param {number} x - Client X
  * @param {number} y - Client Y
  * @returns {Promise<{active: boolean, kind: string|null}>} The drag projection at mousedown

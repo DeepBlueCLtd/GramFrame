@@ -12,15 +12,26 @@ import { GramFramePage } from './gram-frame-page.js'
  */
 
 /**
- * Test instance extended with GramFrame fixtures
+ * Test instance extended with GramFrame fixtures.
+ *
+ * The cast is what makes `{ gramFramePage }` a typed destructure in every spec
+ * rather than an error on a Playwright args type that knows nothing about our
+ * fixture (R9-10). `base.extend` cannot infer it from a JSDoc-annotated object.
+ * @type {import('@playwright/test').TestType<
+ *   import('@playwright/test').PlaywrightTestArgs &
+ *     import('@playwright/test').PlaywrightTestOptions &
+ *     GramFrameTestFixtures,
+ *   import('@playwright/test').PlaywrightWorkerArgs &
+ *     import('@playwright/test').PlaywrightWorkerOptions
+ * >}
  */
 const test = base.extend({
   /**
    * GramFrame page fixture
    * Provides a pre-configured GramFramePage instance
-   * @param {TestContext} context - Test context
+   * @param {object} context - Playwright's fixture context
    * @param {import('@playwright/test').Page} context.page - Playwright page instance
-   * @param {Function} use - Fixture use function
+   * @param {(value: GramFramePage) => Promise<void>} use - Fixture use function
    * @returns {Promise<void>}
    */
   gramFramePage: async ({ page }, use) => {

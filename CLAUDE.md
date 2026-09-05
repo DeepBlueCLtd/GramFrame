@@ -15,8 +15,11 @@ yarn build
 # Run all tests
 yarn test
 
-# Type checking
+# Type checking (src/, tests/helpers, tests/unit, scripts/ — must be zero)
 yarn typecheck
+
+# The Playwright specs, counted as a ratchet by `yarn hygiene`
+yarn typecheck:specs
 ```
 
 ### Test Commands

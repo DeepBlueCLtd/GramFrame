@@ -49,8 +49,11 @@ const TIME_MAX_S = 10
 /**
  * Blue -> cyan -> yellow -> red ramp, matching the look of the existing sample
  * grams so the demo reads as a familiar spectrogram.
+ * @param {number} t - Position along the ramp, 0..1
+ * @returns {number[]} `[r, g, b]`, each 0..255
  */
 function rampColour(t) {
+  /** @type {Array<[number, number[]]>} */
   const stops = [
     [0.00, [10, 30, 150]],
     [0.35, [20, 60, 210]],
@@ -72,9 +75,17 @@ function rampColour(t) {
 
 const palette = Array.from({ length: COLOURS }, (_, i) => rampColour(i / (COLOURS - 1)))
 
-/** Frequency (Hz) -> column. */
+/**
+ * Frequency (Hz) -> column.
+ * @param {number} hz - Frequency in Hz
+ * @returns {number} Column, in pixels
+ */
 const freqToX = (hz) => (hz / FREQ_MAX_HZ) * WIDTH
-/** Time (s) -> row. */
+/**
+ * Time (s) -> row.
+ * @param {number} s - Time in seconds
+ * @returns {number} Row, in pixels
+ */
 const timeToY = (s) => (s / TIME_MAX_S) * HEIGHT
 
 /** Intensity field, 0..1, one entry per pixel. */
@@ -84,6 +95,10 @@ const field = new Float32Array(WIDTH * HEIGHT)
  * Draws a constant-frequency tone as a Gaussian-profiled vertical line.
  * `drift` optionally offsets the frequency as a function of time, which is how
  * the Doppler S-curve is drawn.
+ * @param {number} hz - Centre frequency in Hz
+ * @param {number} amp - Peak intensity, 0..1
+ * @param {{width?: number, tStart?: number, tEnd?: number, drift?: ((t: number) => number) | null}} [options] - Profile and extent
+ * @returns {void}
  */
 function tonal(hz, amp, { width = 1.6, tStart = 0, tEnd = TIME_MAX_S, drift = null } = {}) {
   const yStart = Math.round(timeToY(tStart))
@@ -101,7 +116,13 @@ function tonal(hz, amp, { width = 1.6, tStart = 0, tEnd = TIME_MAX_S, drift = nu
   }
 }
 
-/** Draws a broadband transient: a bright band across all frequencies at one time. */
+/**
+ * Draws a broadband transient: a bright band across all frequencies at one time.
+ * @param {number} t - Start time in seconds
+ * @param {number} amp - Peak intensity, 0..1
+ * @param {number} [duration] - Band duration in seconds
+ * @returns {void}
+ */
 function broadband(t, amp, duration = 0.06) {
   const yStart = Math.round(timeToY(t))
   const yEnd = Math.min(HEIGHT - 1, Math.round(timeToY(t + duration)))
@@ -159,6 +180,14 @@ for (let i = 0; i < field.length; i++) {
 
 // --- PNG encoding ----------------------------------------------------------
 
+/**
+ * The PNG Paeth predictor: whichever of left, above and upper-left is closest
+ * to their linear estimate.
+ * @param {number} a - Byte to the left
+ * @param {number} b - Byte above
+ * @param {number} c - Byte above-left
+ * @returns {number} The predicted byte
+ */
 function paeth(a, b, c) {
   const pa = Math.abs(b - c)
   const pb = Math.abs(a - c)
@@ -171,6 +200,10 @@ function paeth(a, b, c) {
  * Applies the PNG row filter with the lowest sum-of-absolute-differences, the
  * heuristic the spec recommends. On this image the `Up` filter wins nearly
  * everywhere, which is what makes the result small.
+ * @param {Buffer} raw - Unfiltered palette indices, one byte per pixel
+ * @param {number} width - Image width in pixels
+ * @param {number} height - Image height in pixels
+ * @returns {Buffer} Filtered rows, each preceded by its filter type
  */
 function filterRows(raw, width, height) {
   const out = Buffer.alloc(height * (width + 1))
@@ -203,12 +236,20 @@ function filterRows(raw, width, height) {
       }
     }
     out[y * (width + 1)] = bestType
+    if (!best) {
+      throw new Error(`filterRows: no filter chosen for row ${y}`)
+    }
     best.copy(out, y * (width + 1) + 1)
     prev = Buffer.from(row)
   }
   return out
 }
 
+/**
+ * PNG's CRC-32, over a chunk's type and data.
+ * @param {Buffer} buf - Bytes to checksum
+ * @returns {number} The unsigned CRC
+ */
 function crc32(buf) {
   let c = 0xffffffff
   for (let i = 0; i < buf.length; i++) {
@@ -218,6 +259,12 @@ function crc32(buf) {
   return (c ^ 0xffffffff) >>> 0
 }
 
+/**
+ * Wrap data as a PNG chunk: length, type, data, CRC.
+ * @param {string} type - Four-character chunk type
+ * @param {Buffer} data - Chunk payload
+ * @returns {Buffer} The encoded chunk
+ */
 function chunk(type, data) {
   const body = Buffer.concat([Buffer.from(type, 'latin1'), data])
   const length = Buffer.alloc(4)
