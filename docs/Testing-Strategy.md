@@ -14,7 +14,7 @@ aspirational.
 | Types | `tsc --noEmit` over JSDoc | `yarn typecheck` | Type errors without a TypeScript build. Covers `src/`, `tests/helpers/`, `tests/unit/` and `scripts/`, and must stay at zero |
 | Spec types | `tsc --noEmit -p tsconfig.specs.json` | `yarn typecheck:specs` | The Playwright specs, counted as a debt ratchet by `yarn hygiene` rather than gated at zero (R9-10) |
 | Lint | ESLint | `yarn lint` | Style and correctness rules |
-| Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports, `waitForTimeout` counts, the instance surface and spec type errors — each capped at a committed baseline that only ever falls |
+| Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports, `waitForTimeout` counts, the instance surface, module line counts and spec type errors — each capped at a committed baseline that only ever falls |
 
 Playwright is configured in `playwright.config.ts`: it boots the Vite dev
 server and runs `tests/**` except `tests/unit/` and `tests/smoke/`, with

@@ -5,8 +5,26 @@ import { DopplerMode } from './doppler/DopplerMode.js'
 import { PanMode } from './pan/PanMode.js'
 import { looksLikeMissingApiError } from '../core/browserCompatibility.js'
 import { createInitialState } from '../core/state.js'
+import { MODE_NAMES } from './modeRoster.js'
 
 /** @typedef {import('./BaseMode.js').BaseMode} BaseMode */
+
+/**
+ * Which class implements each mode named in the roster.
+ *
+ * The roster (`modeRoster.js`) says what exists and what it is called; this
+ * says what builds it. Keeping the classes here rather than in the roster is
+ * what keeps the roster a leaf module the UI can import without dragging every
+ * mode -- and an import cycle -- along with it.
+ * @type {Object<string, new (instance: GramFrame) => BaseMode>}
+ */
+const MODE_CLASSES = {
+  pan: PanMode,
+  analysis: AnalysisMode,
+  harmonics: HarmonicsMode,
+  sideband: SidebandMode,
+  doppler: DopplerMode
+}
 
 /**
  * Factory for creating mode instances
@@ -25,25 +43,13 @@ export class ModeFactory {
    */
   static createMode(modeName, instance) {
     try {
-      switch (modeName) {
-        case 'analysis':
-          return new AnalysisMode(instance)
-        
-        case 'harmonics':
-          return new HarmonicsMode(instance)
-
-        case 'sideband':
-          return new SidebandMode(instance)
-        
-        case 'doppler':
-          return new DopplerMode(instance)
-        
-        case 'pan':
-          return new PanMode(instance)
-        
-        default:
-          throw new Error(`Invalid mode name: ${modeName}. Valid modes are: analysis, harmonics, sideband, doppler, pan`)
+      const ModeClass = Object.prototype.hasOwnProperty.call(MODE_CLASSES, modeName)
+        ? MODE_CLASSES[modeName]
+        : null
+      if (!ModeClass) {
+        throw new Error(`Invalid mode name: ${modeName}. Valid modes are: ${MODE_NAMES.join(', ')}`)
       }
+      return new ModeClass(instance)
     } catch (error) {
       console.error(`CRITICAL ERROR: Failed to create mode "${modeName}":`, error)
       console.error('Error details:', {
@@ -82,17 +88,18 @@ export class ModeFactory {
    * rather than importing the mode classes itself, which is what breaks the
    * state ⇄ modes cycle (spec 167, FR-002, ADR-014).
    *
-   * Merge order is fixed and explicit: analysis, harmonics, sideband, doppler, pan.
+   * Merge order is the roster's, so it cannot drift from the roster the rest
+   * of the component uses. The order is immaterial in practice -- each mode
+   * contributes a slice named after itself -- but a collision between two
+   * modes would resolve by it, and `assertNoCoreKeyCollision` covers the core
+   * keys either way.
    * @returns {Partial<GramFrameState>} Merged mode slices
    */
   static getModeInitialStates() {
-    const slices = Object.assign({},
-      AnalysisMode.getInitialState(),
-      HarmonicsMode.getInitialState(),
-      SidebandMode.getInitialState(),
-      DopplerMode.getInitialState(),
-      PanMode.getInitialState()
-    )
+    const slices = Object.assign({}, ...MODE_NAMES.map(name => {
+      const ModeClass = /** @type {any} */ (MODE_CLASSES[name])
+      return typeof ModeClass.getInitialState === 'function' ? ModeClass.getInitialState() : {}
+    }))
     assertNoCoreKeyCollision(slices)
     return slices
   }
@@ -102,7 +109,9 @@ export class ModeFactory {
    * @returns {ModeType[]} Array of mode names
    */
   static getAvailableModes() {
-    return ['analysis', 'harmonics', 'sideband', 'doppler', 'pan']
+    // A copy: callers iterate it, and one that mutated the roster would change
+    // which modes exist for every other caller.
+    return [...MODE_NAMES]
   }
 
   /**

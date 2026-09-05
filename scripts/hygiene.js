@@ -10,6 +10,7 @@
  *   3. `waitForTimeout` occurrences in tests/ (containment until Phase 2)
  *   4. `instance.state` reach-ins under src/ (spec 167 Story 5)
  *   5. Class-field declarations on GramFrame (spec 167 Story 5)
+ *   6. Module line counts under src/ (spec 167 SC-004, R9-13/R9-16)
  *
  * A count below its baseline passes with a reminder to lower the baseline in
  * the same PR, so improvements get locked in as ordinary reviewed diffs.
@@ -183,7 +184,60 @@ results.push({
   detail: fieldDeclarations.map(line => line.trim()),
 })
 
-// --- 6. Type errors in the Playwright specs (R9-10) -------------------------
+// --- 6. Module line counts (spec 167 SC-004) --------------------------------
+
+// SC-004 asks that no source module exceed ~350 lines except by documented
+// exception. Until now nothing measured it: the baseline file said so in a
+// comment ("nothing here enforces it"), and by September every recorded
+// exception had grown past the size it was recorded at — PinSetMode from 995
+// to 1044, DopplerMode 685 to 726, AnalysisMode 640 to 796 (R9-16). A
+// heuristic nothing checks is not a heuristic.
+//
+// Two rules, one ratchet:
+//   - a module with a recorded cap must not exceed it, and the cap only ever
+//     falls, exactly like every other baseline here
+//   - a module without one must stay under the default, so a new module
+//     cannot quietly grow past the line and then be grandfathered in
+const moduleCaps = baseline.moduleLineCaps || {}
+const moduleDefault = baseline.moduleLineDefault || 350
+
+/** How far under its cap a module must be before the report nags about lowering it. */
+const CAP_SLACK = 10
+
+const oversizeModules = []
+const shrunkModules = []
+for (const file of sourceFiles) {
+  const relativePath = relative(repoRoot, file).split('\\').join('/')
+  const lines = readFileSync(file, 'utf8').split('\n').length
+  const cap = Object.prototype.hasOwnProperty.call(moduleCaps, relativePath)
+    ? moduleCaps[relativePath]
+    : moduleDefault
+  if (lines > cap) {
+    oversizeModules.push(
+      `${relativePath}: ${lines} (cap ${cap}${cap === moduleDefault ? ', the default' : ''})`
+    )
+  } else if (Object.prototype.hasOwnProperty.call(moduleCaps, relativePath) && lines <= cap - CAP_SLACK) {
+    shrunkModules.push(`${relativePath}: ${lines} (cap ${cap})`)
+  }
+}
+
+// A cap for a module that no longer exists is stale bookkeeping, and would
+// hide the fact that the exception was resolved.
+const sourcePaths = new Set(sourceFiles.map(file => relative(repoRoot, file).split('\\').join('/')))
+for (const capped of Object.keys(moduleCaps)) {
+  if (!sourcePaths.has(capped)) {
+    oversizeModules.push(`${capped}: capped but no longer exists — remove its entry`)
+  }
+}
+
+results.push({
+  name: `Modules over their line cap (src/, default ${moduleDefault})`,
+  baseline: 0,
+  current: oversizeModules.length,
+  detail: oversizeModules,
+})
+
+// --- 7. Type errors in the Playwright specs (R9-10) -------------------------
 
 // `tsconfig.json` covers src/, tests/helpers, tests/unit and scripts/, and
 // `yarn typecheck` holds all of it at zero. The spec files carry more --
@@ -243,6 +297,11 @@ if (failed) {
   console.error('\nHygiene check failed: a debt count rose above its committed baseline.')
   console.error(`Baselines live in ${relative(repoRoot, baselinePath)}; they only ever go down.`)
   process.exit(1)
+}
+if (shrunkModules.length > 0) {
+  improvable = true
+  console.log(`\n${shrunkModules.length} module(s) are comfortably under their cap — lower it to lock the shrink in:`)
+  for (const line of shrunkModules) console.log(`    ${line}`)
 }
 if (improvable) {
   console.log(`\nA count is below its baseline — lower it in ${relative(repoRoot, baselinePath)} in this PR to lock in the improvement.`)
