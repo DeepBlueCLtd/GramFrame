@@ -68,13 +68,16 @@ function numberParam(params, name) {
  * @param {Map<string, string>} params - Parameter rows
  */
 function extractImageConfig(instance, imgElement, params) {
-  if (!imgElement.src) {
-    // Logged rather than thrown, as before: the missing image surfaces as the
-    // loading caption never clearing, while a bad axis row is the hard error.
-    console.error('GramFrame: Error setting up image:', 'Image element has no src attribute')
-  } else {
-    instance.state.imageDetails.url = imgElement.src
+  // `getAttribute`, not the `src` property: for `<img src="">` the property
+  // resolves the empty string against the document URL and comes back truthy,
+  // so a property check passed and the component went on to request the page
+  // itself as its spectrogram. An empty src (a template left unfilled) is
+  // reported on the page like every other config mistake (R9-02).
+  const srcAttribute = imgElement.getAttribute('src')
+  if (!srcAttribute || !srcAttribute.trim()) {
+    throw new Error('Image element has no src attribute: the spectrogram <img> must point at an image')
   }
+  instance.state.imageDetails.url = imgElement.src
 
   const timeStart = numberParam(params, 'time-start')
   const timeEnd = numberParam(params, 'time-end')
@@ -199,8 +202,14 @@ export function extractConfigData(instance) {
     return
   }
 
+  // These errors PROPAGATE, exactly like the range errors: `createGramFrameAPI`
+  // catches them, restores the config table and renders the red error
+  // indicator with the message (R9-02). A missing <img> (wrong row order) is
+  // one of the two mistakes an author is most likely to make while assembling
+  // a lesson, and used to leave a working-looking component saying "Loading
+  // spectrogram" forever.
   if (!imgElement) {
-    throw new Error('No image element found in config table')
+    throw new Error('No image element found in config table: the first row must contain an <img> with the spectrogram')
   }
   extractImageConfig(instance, imgElement, params)
 }

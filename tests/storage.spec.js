@@ -462,6 +462,53 @@ test.describe('US3: Clear gram button', () => {
     const clearBtn = page.locator('.gram-frame-clear-btn')
     await expect(clearBtn).toHaveCount(0)
   })
+
+  // Issue #229: the detected context must be visible from outside, because a
+  // trainer page that came out as student loses the button and its permanent
+  // storage with no other sign. The container carries the context and one
+  // console line names what decided it.
+  test('trainer page stamps data-gf-context="trainer" and logs what matched', async ({ page }) => {
+    /** @type {string[]} */
+    const infoLines = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'info') infoLines.push(msg.text())
+    })
+    await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+
+    await expect(page.locator('.gram-frame-container')).toHaveAttribute('data-gf-context', 'trainer')
+    const line = infoLines.find((t) => t.includes('is on a trainer page'))
+    expect(line, `expected a GramFrame context line among: ${infoLines.join(' | ')}`).toBeTruthy()
+    expect(line).toContain('legacy "ANALYSIS" anchor')
+    expect(line).toContain('"Clear gram" button is shown')
+  })
+
+  test('student page stamps data-gf-context="student" and logs that nothing matched', async ({ page }) => {
+    /** @type {string[]} */
+    const infoLines = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'info') infoLines.push(msg.text())
+    })
+    await gotoFixture(page, '/tests/fixtures/student-page.html')
+
+    await expect(page.locator('.gram-frame-container')).toHaveAttribute('data-gf-context', 'student')
+    const line = infoLines.find((t) => t.includes('is on a student page'))
+    expect(line, `expected a GramFrame context line among: ${infoLines.join(' | ')}`).toBeTruthy()
+    expect(line).toContain('no gf-persistent flag')
+    expect(line).toContain('no "Clear gram" button')
+  })
+
+  test('the class flag is named in the context line', async ({ page }) => {
+    /** @type {string[]} */
+    const infoLines = []
+    page.on('console', (msg) => {
+      if (msg.type() === 'info') infoLines.push(msg.text())
+    })
+    await gotoFixture(page, '/tests/fixtures/persistent-class-page.html')
+
+    await expect(page.locator('.gram-frame-container')).toHaveAttribute('data-gf-context', 'trainer')
+    const line = infoLines.find((t) => t.includes('is on a trainer page'))
+    expect(line).toContain('<span class="gf-persistent">')
+  })
 })
 
 // ──────────────────────────────────────────────────────────────
@@ -903,5 +950,143 @@ test.describe('Bug-hunt regressions: restore validation and save hygiene', () =>
     const stateAfter = await getStateFromPage(page)
     expect(typeof stateAfter.doppler.speed).toBe('number')
     expect(stateAfter.doppler.speed).toBeCloseTo(stateBefore.doppler.speed, 3)
+  })
+})
+
+
+// ──────────────────────────────────────────────────────────────
+// R9-01 (issue #253) — a load that does not restore what was stored says so
+// ──────────────────────────────────────────────────────────────
+
+const WARNING = '.gram-frame-storage-warning'
+const WARNING_TEXT = '.gram-frame-storage-warning-message'
+
+/**
+ * Helper: write a raw string into the record this page would read.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} raw - Exactly what goes into storage
+ * @returns {Promise<void>}
+ */
+async function writeRawRecord(page, raw) {
+  await page.evaluate((value) => {
+    localStorage.setItem('gramframe::' + window.location.pathname, value)
+  }, raw)
+}
+
+test.describe('Load refusals are visible, not console-only (R9-01)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/tests/fixtures/trainer-page.html')
+    await page.evaluate(() => localStorage.clear())
+  })
+
+  test('an unreadable record raises the banner and is left in storage', async ({ page }) => {
+    await writeRawRecord(page, 'not json{')
+    await reloadAndWait(page)
+
+    await expect(page.locator(WARNING)).toHaveCount(1)
+    await expect(page.locator(WARNING_TEXT)).toContainText('could not be read')
+    // The analyst's immediate question — is it gone? — is answered.
+    await expect(page.locator(WARNING_TEXT)).toContainText('left in browser storage')
+
+    const raw = await page.evaluate(() => localStorage.getItem('gramframe::' + window.location.pathname))
+    expect(raw).toBe('not json{')
+  })
+
+  test('a record from a different build raises the banner', async ({ page }) => {
+    await writeRawRecord(page, JSON.stringify({
+      version: 999,
+      savedAt: new Date().toISOString(),
+      analysis: { markers: [{ id: 'old', color: '#ff0000', time: 10, freq: 50 }] },
+      harmonics: { harmonicSets: [] },
+      doppler: { fPlus: null, fMinus: null, fZero: null, color: null }
+    }))
+    await reloadAndWait(page)
+
+    await expect(page.locator(WARNING)).toHaveCount(1)
+    await expect(page.locator(WARNING_TEXT)).toContainText('different version')
+
+    const state = await getStateFromPage(page)
+    expect(state.analysis.markers.length).toBe(0)
+  })
+
+  test('a record fingerprinted for another gram raises the banner', async ({ page }) => {
+    const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+    await expect(page.locator(WARNING)).toHaveCount(0)
+
+    const mutated = await mutateStoredRecord(page, 'local', (rec) => {
+      rec.gram = { ...(rec.gram || {}), image: 'a-different-recording.png' }
+    })
+    expect(mutated).toBeGreaterThan(0)
+
+    await reloadAndWait(page)
+
+    await expect(page.locator(WARNING)).toHaveCount(1)
+    await expect(page.locator(WARNING_TEXT)).toContainText('different spectrogram')
+    await expect(page.locator(WARNING_TEXT)).toContainText('left in browser storage')
+  })
+
+  test('a partially restored record says how many entries were skipped', async ({ page }) => {
+    await writeRawRecord(page, JSON.stringify({
+      version: 1,
+      savedAt: new Date().toISOString(),
+      analysis: { markers: [{ id: 'ok', color: '#ff0000', time: 10, freq: 50 }] },
+      harmonics: { harmonicSets: [{ id: 'bad', color: '#00ff00', anchorTime: 30, spacing: 0 }] },
+      doppler: { fPlus: null, fMinus: null, fZero: null, color: null }
+    }))
+    await reloadAndWait(page)
+
+    await expect(page.locator(WARNING)).toHaveCount(1)
+    await expect(page.locator(WARNING_TEXT)).toContainText('1 saved annotation could not be restored')
+
+    // The rest really did restore — the banner is a report, not a refusal.
+    const state = await getStateFromPage(page)
+    expect(state.analysis.markers.length).toBe(1)
+    expect(state.harmonics.harmonicSets.length).toBe(0)
+  })
+
+  test('an expired student record says so instead of showing an empty gram', async ({ page }) => {
+    await page.goto('/tests/fixtures/student-page.html')
+    await page.evaluate(() => sessionStorage.clear())
+    const gfp = await gotoFixture(page, '/tests/fixtures/student-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
+    const mutated = await mutateStoredRecord(page, 'session', (rec) => {
+      rec.savedAt = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+    })
+    expect(mutated).toBeGreaterThan(0)
+
+    await reloadAndWait(page)
+
+    await expect(page.locator(WARNING)).toHaveCount(1)
+    await expect(page.locator(WARNING_TEXT)).toContainText('more than 24 hours old')
+  })
+
+  test('a clean restore, and a first load with nothing stored, stay silent', async ({ page }) => {
+    // Nothing stored at all.
+    await reloadAndWait(page)
+    await expect(page.locator(WARNING)).toHaveCount(0)
+
+    // A record that restores in full.
+    const gfp = new GramFramePage(page)
+    await addAnalysisMarker(gfp, 200, 150)
+    await reloadAndWait(page)
+
+    const state = await getStateFromPage(page)
+    expect(state.analysis.markers.length).toBe(1)
+    await expect(page.locator(WARNING)).toHaveCount(0)
+  })
+
+  test('the banner clears once the analyst saves over the refused record', async ({ page }) => {
+    await writeRawRecord(page, 'not json{')
+    await reloadAndWait(page)
+    await expect(page.locator(WARNING)).toHaveCount(1)
+
+    const gfp = new GramFramePage(page)
+    await addAnalysisMarker(gfp, 200, 150)
+
+    // A successful save is the point at which the analyst has knowingly
+    // started again; the stale "not restored" notice must not outlive it.
+    await expect(page.locator(WARNING)).toHaveCount(0)
   })
 })

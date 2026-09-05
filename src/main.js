@@ -55,8 +55,9 @@ import {
 import {
   saveAnnotations,
   loadAnnotations,
+  describeLoadOutcome,
   clearAnnotations,
-  detectUserContext,
+  describeUserContext,
   loadPinPreference,
   hasPersistableAnnotations,
   buildGramFingerprint
@@ -195,8 +196,13 @@ export class GramFrame {
     // Determine storage instance index (count existing containers)
     this.persistence._storageInstanceIndex = document.querySelectorAll('.gram-frame-container').length
 
-    // Detect trainer vs student context
-    this.persistence._isTrainerContext = detectUserContext() === 'trainer'
+    // Detect trainer vs student context. Decided once, here, and never
+    // revisited — so record what decided it: the container is stamped with the
+    // context and one console line names the evidence, because a trainer page
+    // that comes out as student loses its "Clear gram" button and its permanent
+    // storage with no other sign (issue #229).
+    const detectedContext = describeUserContext()
+    this.persistence._isTrainerContext = detectedContext.context === 'trainer'
 
     // Initialization, in dependency order. Each step declares what it needs and
     // returns what it built; the constructor is the only place the results are
@@ -204,6 +210,14 @@ export class GramFrame {
     // argument at check time, not an `undefined` surfacing three steps later
     // (spec 167, FR-009, AS-5.2).
     const dom = setupSpectrogramComponents(this, configTable)
+    dom.container.dataset.gfContext = detectedContext.context
+    console.info(
+      `GramFrame: instance ${this.persistence._storageInstanceIndex} is on a ${detectedContext.context} page ` +
+      `(${detectedContext.reason}) — ` +
+      (this.persistence._isTrainerContext
+        ? 'annotations persist in localStorage and the "Clear gram" button is shown'
+        : 'annotations are session-only, expire after 24 hours, and there is no "Clear gram" button')
+    )
     const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell)
     const initialModeUI = setupPersistentContainers(this, layout.modeColumn, layout.guidanceColumn)
 
@@ -435,15 +449,29 @@ export class GramFrame {
   }
 
   /**
-   * Restore saved annotations from browser storage into state
+   * Restore saved annotations from browser storage into state.
+   *
+   * A load that does not restore what was stored is reported to the analyst
+   * through the same banner a failed *save* uses (R9-01). The two paths were
+   * asymmetric: a quota-full save said so in a sentence, while a damaged,
+   * superseded or wrongly-fingerprinted record produced an empty gram and a
+   * console line nobody reads — and the next save then overwrote the record
+   * for good. The banner clears itself as soon as a save succeeds, which is
+   * the point at which the analyst has knowingly started again.
    */
   _restoreAnnotations() {
-    const saved = loadAnnotations(
+    const { annotations: saved, outcome, dropped } = loadAnnotations(
       this.persistence._storageInstanceIndex,
       this._storageContext(),
       // Refuse records fingerprinted for a different gram (BH-6, BH-23)
       buildGramFingerprint(this.state)
     )
+
+    const message = describeLoadOutcome(outcome, dropped)
+    if (message) {
+      showStorageWarning(this, message)
+    }
+
     if (!saved) return
 
     markAnnotationsChanged(this)

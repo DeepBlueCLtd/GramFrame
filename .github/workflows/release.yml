@@ -119,9 +119,11 @@ jobs:
           # Copy standalone bundle (the only build users need)
           cp dist/gramframe.bundle.js release-assets/
           
-          # Copy test HTML file and required assets
+          # Copy test HTML file and required assets. The demo gram is a
+          # small synthetic spectrogram committed at sample/demo-gram.png,
+          # not one of the large photographic sample images.
           cp test-release.html release-assets/index.html
-          cp sample/mock-gram.png release-assets/
+          cp sample/demo-gram.png release-assets/
           
           # Create simple verification file
           cat > release-assets/README.md << 'EOF'
@@ -137,7 +139,7 @@ jobs:
           
           - **`gramframe.bundle.js`** - Complete GramFrame component (file:// compatible)
           - **`index.html`** - Sample HTML page demonstrating usage
-          - **`mock-gram.png`** - Test spectrogram image
+          - **`demo-gram.png`** - Synthetic demo spectrogram (harmonic stack, sidebands, Doppler curve)
           - **`README.md`** - This guide
           
           ## How to Use in Your Training Materials
@@ -191,8 +193,20 @@ jobs:
           
           # Create compressed archive
           ARCHIVE_NAME="gramframe-${{ steps.validate-tag.outputs.version }}.zip"
-          cd release-assets && zip -r "../$ARCHIVE_NAME" . && cd ..
-          
+          cd release-assets && zip -9r "../$ARCHIVE_NAME" . && cd ..
+
+          # Upper-bound size ratchet. The archive is ~88KB; anything approaching
+          # this ceiling means a large asset crept back in (it was 561KB when a
+          # photographic sample gram was shipped). Same spirit as `yarn hygiene`.
+          MAX_ARCHIVE_BYTES=150000
+          ARCHIVE_SIZE=$(stat -c%s "$ARCHIVE_NAME" 2>/dev/null || stat -f%z "$ARCHIVE_NAME")
+          if [ "$ARCHIVE_SIZE" -gt "$MAX_ARCHIVE_BYTES" ]; then
+            echo "❌ Release archive is $ARCHIVE_SIZE bytes, over the $MAX_ARCHIVE_BYTES budget"
+            echo "   Check for a large asset added to release-assets/."
+            exit 1
+          fi
+          echo "✅ Archive size: $ARCHIVE_SIZE bytes (budget $MAX_ARCHIVE_BYTES)"
+
           echo "archive-name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
           echo "✅ Release assets prepared"
           echo "📋 Asset contents:"
@@ -218,7 +232,7 @@ jobs:
             ### 📦 What's Included
             - **GramFrame Component**: Complete standalone bundle (\`gramframe.bundle.js\`)
             - **Test Page**: Ready-to-use HTML sample (\`index.html\`)
-            - **Mock Spectrogram**: Test image for verification
+            - **Demo Spectrogram**: Synthetic gram for verification (\`demo-gram.png\`)
             - **Documentation**: Usage guide and examples
 
             ### 🚀 Quick Start
@@ -247,7 +261,7 @@ jobs:
             ### 📦 What's Included
             - **GramFrame Component**: Complete standalone bundle (\`gramframe.bundle.js\`)
             - **Test Page**: Ready-to-use HTML sample (\`index.html\`)
-            - **Mock Spectrogram**: Test image for verification
+            - **Demo Spectrogram**: Synthetic gram for verification (\`demo-gram.png\`)
             - **Documentation**: Usage guide and examples
 
             ### 🚀 Quick Start

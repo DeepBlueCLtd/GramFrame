@@ -113,28 +113,84 @@ export function isAnnotationExpired(savedAt, nowMs) {
 }
 
 /**
- * Detect whether the current page is a trainer or student context.
+ * What trainer/student detection found on the page, and why. The `reason` is
+ * the diagnostic: it names the element that made the page a trainer page (or
+ * says nothing did), so a page that unexpectedly came out as student can be
+ * explained from the console rather than by reading the markup (issue #229).
+ * @typedef {Object} UserContextDetection
+ * @property {'trainer' | 'student'} context - The detected context
+ * @property {'flag' | 'legacy-anchor' | 'none'} matchedBy - What decided it
+ * @property {string} reason - Human-readable account of the decision
+ */
+
+/**
+ * Detect whether the current page is a trainer or student context, and say
+ * what decided it.
  * A page is treated as trainer context if EITHER condition holds:
  *   - an explicit persistence flag (id, class, or data-attribute) is present
  *     anywhere on the page (see TRAINER_FLAG_SELECTOR), OR
  *   - (legacy) an anchor element with exact text "ANALYSIS" is present.
  * All other pages are student context.
- * @returns {'trainer' | 'student'}
+ *
+ * Detection runs once, when the instance is constructed, and is never
+ * re-evaluated: a flag that arrives later (a navigation built by script after
+ * `DOMContentLoaded`) or that lives inside the `gram-config` table (removed
+ * when the table is replaced) is not seen, and the page silently becomes a
+ * student page — no "Clear gram" button, and session-only storage. The
+ * `reason` exists so that outcome is visible when it happens (issue #229).
+ * @returns {UserContextDetection}
  */
-export function detectUserContext() {
+export function describeUserContext() {
   // Explicit persistence flag: id, class, or data-attribute form.
-  if (document.querySelector(TRAINER_FLAG_SELECTOR)) {
-    return 'trainer'
+  const flag = document.querySelector(TRAINER_FLAG_SELECTOR)
+  if (flag) {
+    return {
+      context: 'trainer',
+      matchedBy: 'flag',
+      reason: `matched the persistence flag on <${describeFlagElement(flag)}>`
+    }
   }
   // Legacy detection: an anchor whose exact text is "ANALYSIS"
   const anchors = document.querySelectorAll('a')
   for (let i = 0; i < anchors.length; i++) {
     const text = anchors[i].textContent
     if (text && text.trim() === 'ANALYSIS') {
-      return 'trainer'
+      return {
+        context: 'trainer',
+        matchedBy: 'legacy-anchor',
+        reason: 'matched the legacy "ANALYSIS" anchor (no gf-persistent flag on the page)'
+      }
     }
   }
-  return 'student'
+  return {
+    context: 'student',
+    matchedBy: 'none',
+    reason: 'no gf-persistent flag (id, class or data-attribute) and no "ANALYSIS" anchor was on the page when the component initialised'
+  }
+}
+
+/**
+ * Detect whether the current page is a trainer or student context.
+ * See {@link describeUserContext} for the rules; this is the same decision
+ * without the explanation.
+ * @returns {'trainer' | 'student'}
+ */
+export function detectUserContext() {
+  return describeUserContext().context
+}
+
+/**
+ * Describe the flag element that decided trainer context, in the form it was
+ * authored: tag name plus whichever of the three flag forms it carries.
+ * @param {Element} el - The element TRAINER_FLAG_SELECTOR matched
+ * @returns {string} e.g. `p class="gf-persistent"` or `span data-gf-persistent`
+ */
+function describeFlagElement(el) {
+  const parts = [el.tagName.toLowerCase()]
+  if (el.id === 'gf-persistent') parts.push('id="gf-persistent"')
+  if (el.classList.contains('gf-persistent')) parts.push('class="gf-persistent"')
+  if (el.hasAttribute('data-gf-persistent')) parts.push('data-gf-persistent')
+  return parts.join(' ')
 }
 
 /**
@@ -505,28 +561,80 @@ export function saveAnnotations(state, instanceIndex, context) {
 }
 
 /**
+ * The outcome of a load attempt, in the analyst's terms rather than the
+ * storage layer's.
+ *
+ * Every value other than `none` and `restored` means the analyst is looking at
+ * a gram that does not show what they saved, and the caller is expected to say
+ * so (R9-01). Before this existed the load path reported every refusal to the
+ * console and returned `null`, while the *save* path raised a visible banner —
+ * so a trainer whose record was damaged, superseded or fingerprinted for a
+ * different gram opened an empty gram with no indication that anything had been
+ * stored at all, and their next save overwrote it for good.
+ *
+ * - `none` — nothing was stored for this gram, or storage is unavailable
+ * - `restored` — everything stored was restored
+ * - `partial` — the record restored, but `dropped` entries failed validation
+ * - `unreadable` — the record could not be parsed; left in place
+ * - `unknown-version` — written by a different build; left in place (BH-21)
+ * - `wrong-gram` — fingerprinted for another spectrogram; left in place (BH-6, BH-23)
+ * - `expired` — a student record past the 24-hour limit; discarded by design
+ * @typedef {'none' | 'restored' | 'partial' | 'unreadable' | 'unknown-version' | 'wrong-gram' | 'expired'} LoadOutcome
+ */
+
+/**
+ * @typedef {Object} LoadResult
+ * @property {StoredAnnotations | null} annotations - What could be restored, or null
+ * @property {LoadOutcome} outcome - Why, in terms the caller can report
+ * @property {number} dropped - Entries the sanitiser rejected (only meaningful for `partial`)
+ */
+
+/**
+ * Build a load result.
+ * @param {LoadOutcome} outcome - Why this load ended the way it did
+ * @param {StoredAnnotations | null} [annotations] - What was restored, if anything
+ * @param {number} [dropped] - Entries the sanitiser rejected
+ * @returns {LoadResult}
+ */
+function loadResult(outcome, annotations = null, dropped = 0) {
+  return { annotations, outcome, dropped }
+}
+
+/**
  * Load and validate stored annotations from browser storage.
- * Returns null if no data exists, parsing fails, the version is unrecognised,
- * or the record belongs to a different gram than the caller's.
+ *
+ * Never throws and never deletes a record it merely failed to understand. The
+ * returned `outcome` distinguishes "there was nothing to restore" from "there
+ * was something and it was refused", because only the caller knows how to tell
+ * the analyst (see {@link LoadOutcome}).
  * @param {number} [instanceIndex] - Instance index for multi-instance pages
  * @param {'trainer' | 'student'} [context] - Caller-supplied storage context (see saveAnnotations)
  * @param {StoredGramFingerprint} [expectedGram] - Fingerprint of the gram doing
  *   the restoring. A fingerprinted record for a different gram is refused —
  *   left in place, never restored — so annotations cannot migrate onto the
  *   wrong spectrogram when instance indices shift or content is republished.
- * @returns {StoredAnnotations | null}
+ * @returns {LoadResult}
  */
 export function loadAnnotations(instanceIndex, context, expectedGram) {
   try {
     const resolvedContext = context || detectUserContext()
     const storage = getStorage(resolvedContext)
-    if (!storage) return null
+    if (!storage) return loadResult('none')
 
     const key = buildStorageKey(instanceIndex)
     const raw = storage.getItem(key)
-    if (!raw) return null
+    if (!raw) return loadResult('none')
 
-    const data = JSON.parse(raw)
+    let data
+    try {
+      data = JSON.parse(raw)
+    } catch (parseError) {
+      // Damaged beyond reading — a hand edit, a partial write, a truncated
+      // quota-limited write. Left in place: it is the analyst's only copy, and
+      // deleting it here would destroy whatever could still be salvaged by hand.
+      console.warn('GramFrame: Stored annotations could not be parsed — leaving the record in place:', parseError)
+      return loadResult('unreadable')
+    }
 
     if (!data || data.version !== SCHEMA_VERSION) {
       // Not restorable by THIS build — but deliberately left in place. Deleting
@@ -534,7 +642,7 @@ export function loadAnnotations(instanceIndex, context, expectedGram) {
       // newer build's data (BH-21); an unrecognised record is someone else's,
       // not garbage.
       console.warn('GramFrame: Ignoring stored annotations — unrecognised schema version:', data && data.version)
-      return null
+      return loadResult('unknown-version')
     }
 
     // Student 24-hour expiry gate (feature 157). Trainer context is permanent
@@ -543,7 +651,7 @@ export function loadAnnotations(instanceIndex, context, expectedGram) {
     if (resolvedContext === 'student' && isAnnotationExpired(data.savedAt, Date.now())) {
       console.info('GramFrame: Discarding student annotations — older than the 24-hour persistence limit')
       storage.removeItem(key)
-      return null
+      return loadResult('expired')
     }
 
     // Gram identity gate (BH-6, BH-23): a record fingerprinted for a different
@@ -551,17 +659,49 @@ export function loadAnnotations(instanceIndex, context, expectedGram) {
     // mean something else on this gram. The record itself is left alone.
     if (expectedGram && !fingerprintMatches(data.gram, expectedGram)) {
       console.warn('GramFrame: Ignoring stored annotations — they belong to a different spectrogram (image or axis ranges differ).')
-      return null
+      return loadResult('wrong-gram')
     }
 
     const { annotations, dropped } = sanitizeStoredAnnotations(data)
     if (dropped > 0) {
       console.warn(`GramFrame: Discarded ${dropped} invalid stored annotation entr${dropped === 1 ? 'y' : 'ies'} — restoring the rest.`)
+      return loadResult('partial', annotations, dropped)
     }
-    return annotations
+    return loadResult('restored', annotations)
   } catch (error) {
     console.warn('GramFrame: Failed to load stored annotations — data discarded:', error)
-    return null
+    return loadResult('unreadable')
+  }
+}
+
+/**
+ * The sentence an analyst should be shown for a load outcome, or null when
+ * there is nothing to say.
+ *
+ * Lives here, beside the gates that produce each outcome, so the wording and
+ * the condition cannot drift apart. Every message states what happened AND
+ * what became of the stored record, because the immediate question after
+ * "my work is missing" is "is it gone?".
+ * @param {LoadOutcome} outcome - Outcome from {@link loadAnnotations}
+ * @param {number} [dropped] - Entries dropped, for the `partial` wording
+ * @returns {string | null} The message, or null if the load needs no comment
+ */
+export function describeLoadOutcome(outcome, dropped = 0) {
+  switch (outcome) {
+    case 'partial':
+      return `${dropped} saved annotation${dropped === 1 ? '' : 's'} could not be restored and ${dropped === 1 ? 'was' : 'were'} skipped — the rest are shown.`
+    case 'unreadable':
+      return 'Saved annotations could not be read and were not restored — the stored data is damaged. It has been left in browser storage, so nothing has been overwritten yet.'
+    case 'unknown-version':
+      return 'Saved annotations were not restored — they were written by a different version of this component. They have been left in browser storage.'
+    case 'wrong-gram':
+      return 'Saved annotations were not restored — they belong to a different spectrogram. They have been left in browser storage.'
+    case 'expired':
+      return 'Saved annotations were not restored — they were more than 24 hours old and have been discarded.'
+    case 'none':
+    case 'restored':
+    default:
+      return null
   }
 }
 

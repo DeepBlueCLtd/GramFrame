@@ -11,7 +11,8 @@ import {
   isAnnotationExpired,
   hasPersistableAnnotations,
   STUDENT_TTL_MS,
-  CLOCK_SKEW_TOLERANCE_MS
+  CLOCK_SKEW_TOLERANCE_MS,
+  describeLoadOutcome
 } from '../../src/core/storage.js'
 
 /** A fully valid stored record, for mutating per test. */
@@ -271,5 +272,36 @@ describe('hasPersistableAnnotations covers fZero (BH-32)', () => {
       doppler: { fPlus: null, fMinus: null, fZero: null }
     })
     expect(hasPersistableAnnotations(state)).toBe(false)
+  })
+})
+
+
+describe('describeLoadOutcome (R9-01)', () => {
+  it('says nothing when there was nothing to restore, or everything restored', () => {
+    expect(describeLoadOutcome('none')).toBeNull()
+    expect(describeLoadOutcome('restored')).toBeNull()
+  })
+
+  it('names every refusal in the analyst\'s terms', () => {
+    for (const outcome of /** @type {const} */ (['unreadable', 'unknown-version', 'wrong-gram', 'expired'])) {
+      const message = describeLoadOutcome(outcome)
+      expect(message, outcome).toBeTruthy()
+      expect(String(message), outcome).toMatch(/not restored/)
+    }
+  })
+
+  it('says what became of a record it refused rather than leaving it in doubt', () => {
+    // The question after "my work is missing" is "is it gone?". The three
+    // refusals that leave the record alone must say so; expiry, which deletes
+    // by design, must not claim it was kept.
+    expect(describeLoadOutcome('unreadable')).toMatch(/left in browser storage/)
+    expect(describeLoadOutcome('unknown-version')).toMatch(/left in browser storage/)
+    expect(describeLoadOutcome('wrong-gram')).toMatch(/left in browser storage/)
+    expect(describeLoadOutcome('expired')).toMatch(/discarded/)
+  })
+
+  it('counts the dropped entries and pluralises them', () => {
+    expect(describeLoadOutcome('partial', 1)).toMatch(/^1 saved annotation could not be restored and was skipped/)
+    expect(describeLoadOutcome('partial', 3)).toMatch(/^3 saved annotations could not be restored and were skipped/)
   })
 })
