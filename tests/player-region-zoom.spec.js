@@ -47,6 +47,11 @@ async function gotoPlayer(page) {
   const gfp = new GramFramePage(page)
   await page.goto(PLAYER_PAGE)
   await gfp.waitForPlayerReady()
+  // `player.ready` is published from the analysis step; the transport
+  // controller these tests seek with is attached in the same breath. Waiting
+  // for the controller itself rather than for the flag is what makes a seek
+  // straight after load reliable under a loaded suite.
+  await page.waitForFunction(() => !!window.GramFrame.getPlayer(0))
   return gfp
 }
 
