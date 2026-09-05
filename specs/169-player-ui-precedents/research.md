@@ -9,7 +9,10 @@ spec, plan, prototype or issues; the document recommends, it does not decide.
 precedent surveyed; adopt the eight small changes in §7.1 — three of which are
 corrections to statements spec 168 makes about its own code — hold the seven larger,
 evidenced capabilities in §7.2 for their own specs, and decline the seven in §7.3.
-Five questions in §9 need the product owner's answer before §7.2 starts.
+Three of the five questions in §9 were answered by the product owner on 2026-09-05
+and are recorded there as decisions — the reveal rule is dropped (the player becomes an
+analyst tool), `preservesPitch` is pinned `true` with a config row for the alternative,
+and the retained grid gets a 16-bit, 32 MB budget. Q4 and Q5 remain open.
 
 Spec 168 built the player from an interview and a build-or-borrow spike over npm
 packages; nothing in the repo compared its UI or capabilities with any existing
@@ -1234,6 +1237,11 @@ clip rectangle and a one-line guard in three renderers.
    nothing tells the instructor a trainee skipped, and nothing tells the trainee they
    have crossed into unheard material.
 
+> **Resolved 2026-09-05 (§9 Q1): drop the hiding — option (b) below.** The verdict that
+> follows is the survey's recommendation; the product owner chose differently, and the
+> survey's own A3 row supports the choice. Read this section for the argument and §9 Q1
+> for what was decided.
+
 **Verdict.** Keep the reveal rule as the **default**, because the waterfall reading is
 real and the cost is trivial — but stop presenting it as an integrity mechanism, and
 close the gap between what it claims and what it does. Two coherent positions exist and
@@ -1273,6 +1281,9 @@ trainees to associate an audible pitch with a measured frequency on the gram, an
 gram is never re-analysed at the new rate (FR-022). Under resampling, at 2× the ear
 hears 100 Hz while the readout says 50 Hz — the two channels of the lesson contradict
 each other. Under pitch preservation they agree.
+
+> **Resolved 2026-09-05 (§9 Q2): explicit `true`, plus a config row for the resampling
+> behaviour.** R3 as recommended.
 
 **Verdict.** Set `preservesPitch` explicitly rather than inheriting it, and say which
 in the contract. Recommend **explicit `true`** (matching what ships today, and keeping
@@ -1320,6 +1331,9 @@ percentile. wavesurfer hits the same wall, retaining magnitudes only as `Uint8Ar
 [M26]. Only a retained float grid buys C5 (a dB readout), C6 (background subtraction —
 SDRangel's `x−μ+∧μ dB` [W25], Praat's dynamic compression [A41], the shape a split-window
 normaliser would take) and honest dB axis labels.
+
+> **Resolved 2026-09-05 (§9 Q3): retain the grid as `Uint16` under a ~32 MB per-instance
+> cap, degrading to the painted-PNG path when a file will not fit.**
 
 **Verdict.** Adopt C1 now via the filter — it is small, measured, and the single
 highest-value change in the survey. Treat H4 as a separate, later decision with a memory
@@ -1511,9 +1525,10 @@ module; **M** ≈ a few days, new state or a new component; **L** ≈ its own sp
 
 | # | Recommendation | Why | Effort | Changes |
 |---|---|---|---|---|
-| R1 | **Correct the three statements that are untrue of the shipped code**: Assumption 3 / D16 / Out-of-Scope on pitch (the player *is* pitch-preserving — probe (a), [M8]); D5's colour stops (`colourMap.js:16-22`); and either clamp forward seek to the playhead or stop describing the reveal rule as "the picture MUST never show audio that has not yet been played" (`TransportBar.js:60-68` defeats it in one drag) | A spec that contradicts its own code is worse than no spec; all three are documentation-sized except the seek clamp | S | spec.md Assumptions + FR-011; plan.md D5, D16 |
+| R1 | **Correct the three statements that are untrue of the shipped code**: Assumption 3 / D16 / Out-of-Scope on pitch (the player *is* pitch-preserving — probe (a), [M8]); D5's colour stops (`colourMap.js:16-22`); and FR-011's "the picture MUST never show audio that has not yet been played", which `TransportBar.js:60-68` defeats in one drag. **Since §9 Q1 the third is settled by R1b, not by a seek clamp** | A spec that contradicts its own code is worse than no spec; all three are now documentation-sized | S | spec.md Assumptions + FR-011; plan.md D5, D16 |
+| R1b | **Draw the whole gram from load** (§9 Q1): remove the unrevealed region, retire `BaseMode.isTimeRevealed`'s gating and D10, and raise `clampViewTop`'s upper bound from the playhead to the duration. The scrolling playhead-at-top view during playback is unchanged | Product-owner decision, 2026-09-05. A3 was the one row of 46 where the player stood alone; this puts it with every analysis tool and media player surveyed | S–M | FR-011/016/018; D10; `playerView.js` |
 | R2 | **Runtime display range** — two sliders (floor, ceiling) driving an `feComponentTransfer` on the `<image>` | The survey's strongest row: C1 is 12/12 across both technical families with a stated task reason [A6, W19], and probe (b) measured it at **60.3 fps, indistinguishable from no filter**. Zero dependencies, pure SVG | S | new FR under Story 3; D5 |
-| R3 | **Set `preservesPitch` explicitly** (recommend `true`, matching today) and offer the opposite as a config row | The domain is 2:1 the other way with the only stated task reason [W32, A5, A18], but ear-and-readout consistency argues for keeping what ships. Either way, inheriting a default the spec describes backwards is not a decision | S | D16; contracts/config-rows.md |
+| R3 | **Set `preservesPitch` explicitly** — `true`, matching today — and offer the resampling behaviour as a config row (**confirmed, §9 Q2**) | The domain is 2:1 the other way with the only stated task reason [W32, A5, A18], but ear-and-readout consistency argues for keeping what ships. Either way, inheriting a default the spec describes backwards is not a decision | S | D16; contracts/config-rows.md |
 | R4 | **Widen the rate ladder to 0.25 / 0.5 / 1 / 1.5 / 2 / 4** | B8 is a domain row [W32, A27, T30]; probe (a) measured the platform ceiling at 0.0625–16, so the current list is a UI choice with nothing behind it. The media family's ladders justify nothing either way (§3.3) | S | D13 |
 | R5 | **`aria-live="polite"` on the transport's time and state text** | G3 is domain on the training family's accessibility obligations [T12, T24]; video.js gives both the pattern and the reason [M18]. One attribute | S | — |
 | R6 | **Let time zoom act while playing**, and label the visible span in seconds | Turns the existing zoom into A5, the adjustable time history the naval source gives the clearest task reason for in the whole survey [W33]; also the safer half of §6.4 | S | FR-013 (partial); D11 |
@@ -1525,7 +1540,7 @@ module; **M** ≈ a few days, new state or a new component; **L** ≈ its own sp
 | # | Recommendation | Why | Effort | Changes |
 |---|---|---|---|---|
 | R9 | **Region selection (E5) and A–B loop (F1)** as one feature: drag a time×frequency box, loop the time span it spans | E5 is 5/6 in the acoustic family and F1 is 4/6 with a drill task reason [A4, T30]; ELAN's selection+Loop Mode is the transcription workflow, and "listen to this eight-second tonal ten times" is the same task. wavesurfer shows the API shape (`region.play(true)` → `play(start, end)`) [M29] | M | FR-020; Story 4 |
-| R10 | **Retain the magnitude grid (H4)**, with a measured memory budget | 6/6 in the acoustic family with the clearest task reason in the survey — measurements must survive display changes [A10, A21, A31]. Unlocks C5 (dB readout) and C6 (background subtraction). Currently GramFrame shares OpenWebRX's discard-at-paint failure mode [W3] | M | D5; contracts/audio-pipeline.md |
+| R10 | **Retain the magnitude grid (H4)** as `Uint16` under a ~32 MB per-instance cap, degrading to the painted-PNG path when a file will not fit (**budget set, §9 Q3**) | 6/6 in the acoustic family with the clearest task reason in the survey — measurements must survive display changes [A10, A21, A31]. Unlocks C5 (dB readout) and C6 (background subtraction). Currently GramFrame shares OpenWebRX's discard-at-paint failure mode [W3] | M | D5; contracts/audio-pipeline.md |
 | R11 | **Band-limited listening (F3)** — hear only the selected band | The strongest task reason in the acoustic family, stated twice ("listen to only the higher harmonics… or only to a low-frequency animal call") [A1, A39], and the core interaction of every SDR precedent [W1, W7, W26]. Downstream of R9: the selection is the filter | M | Out of Scope entry |
 | R12 | **An overview strip (D5)** — the whole recording at a glance, with annotation density | Domain row; PAMGuard's Data Map exists "to aid large dataset navigation" [W29] and ELAN's density viewer answers "where have I marked anything" [T31]. A 900 × 400 view of 10 s inside a 3-minute file needs it more than any desktop tool does | M | Story 3 |
 | R13 | **Bookmarks / jump-to-time (F4)** | Domain row with a stated revision reason — "Save a particular spot in a recording to revisit at a later time" [T18, T22]. Nearly free given the existing annotation store and storage layer | S–M | Story 4 |
@@ -1538,7 +1553,7 @@ module; **M** ≈ a few days, new state or a new component; **L** ≈ its own sp
 |---|---|---|
 | X1 | **Runtime colour-map picker** | C3 is tagged *tool*: eight precedents offer it and **no source in any family gives a task reason**. In a training component it lets two trainees see different pictures of the same exercise. A greyscale *authoring* row is the acceptable version if ever wanted [A7, A32] |
 | X2 | **Runtime re-analysis / a settings panel (H1–H3)** | Domain in the desktop tools but not in the browser members of the closest family [W3, W38], and the cost here is re-running the whole file's FFT and repainting a 32,768-row PNG mid-session (**L**). The pedagogic case — watching a tonal sharpen as the window widens — is better served by an authored page with two instances at different `fft-size` values |
-| X3 | **Removing the reveal rule outright** | The waterfall reading is real and matches the medium the trainee will meet [W33]. Make it *honest* (R1) and give authors an opt-out row rather than deleting it |
+| X3 | ~~**Removing the reveal rule outright**~~ — **overridden by the product owner, 2026-09-05 (§9 Q1)** | The survey's reasoning was that the waterfall reading is real and matches the medium the trainee will meet [W33]. The decision went the other way, on the strength of A3 having no precedent in any family. Recorded so the trade — losing "you only know what you have heard" — is visible as a choice rather than an omission. Implemented as R1b |
 | X4 | **A spectrum (single-slice) strip (F5)** | 8/12 in the technical families and **not one source says what it is for**; tagged *tool*. It also costs vertical space a 400 px component does not have |
 | X5 | **Trainer-authored timed overlays (F2)** | The training family's signature capability and a genuine domain convention [T1] — but spec 168 declines it explicitly, and it is a different product (authoring) rather than a player change. Recorded here so the decline is visible as deliberate, not as an oversight |
 | X6 | **Copying the SDR keyboard vocabulary** | Every key a transport wants is spent on radio in that family — `j k ← →` on frequency [W26], space on mute [W7]. Those are radio bindings, not sonar ones. Keep the media vocabulary and document it as a choice |
@@ -1778,18 +1793,37 @@ One row per source actually read, grouped by family. Every ✓ and ◐ in §3 an
   Echo360's playback specifics, PAMGuard's drawn playhead, and error handling across the
   media family — none of which carries a recommendation.
 
-**Open questions for the product owner.**
+**Questions for the product owner. Q1–Q3 were answered in an interview on
+2026-09-05 and are recorded here as decisions; Q4 and Q5 remain open.**
 
-- **Q1.** Should the reveal rule be an integrity control or a pedagogic default? The
-  answer decides whether forward seek is clamped (§6.1a) or an author opt-out row is
-  added (§6.1b). The present code implies the first and implements neither.
-- **Q2.** At 2×, should a 50 Hz shaft line be heard at 50 Hz (today's behaviour) or at
-  100 Hz (what Raven, Audacity and PAMGuard do, with the only stated task reason)? R3
-  recommends the first, but this is a training-doctrine question, not a technical one.
-- **Q3.** Is a memory budget available for the retained magnitude grid (R10)? At the
-  current caps the worst case is 32,768 × 4,096 floats = 512 MB, which is clearly out;
-  a realistic 3-minute file at the default `fft-size` is a few tens of megabytes. The
-  cap and the budget need setting together, and R10 should not start before that.
+- **Q1 — the reveal rule. RESOLVED: drop the hiding; the player is an analyst tool.**
+  The whole gram is drawn from load. The scrolling, playhead-at-top view stays as what
+  happens *during playback* — that part was never in question. FR-011, FR-016 and
+  FR-018 change, D10 goes, and `BaseMode.isTimeRevealed` stops gating anything.
+  **This overrides X3**, which recommended keeping the rule and making it honest; the
+  product owner decided the other way, and the survey supports it — every analysis tool
+  and every media player draws the whole item, and A3 was the one row of 46 where the
+  player stood alone. What is *lost* is the "you only know what you have heard" effect,
+  which should be recorded as a deliberate trade rather than rediscovered later. Two
+  consequences to carry into the spec: the forward-seek clamp proposed under R1 is no
+  longer needed (the transport and the picture now agree by construction), and
+  `clampViewTop`'s upper bound becomes the duration rather than the playhead.
+- **Q2 — pitch on rate change. RESOLVED: assign `preservesPitch = true` explicitly, and
+  add a config row that lets an author select the resampling behaviour instead.** Today's
+  audible behaviour is kept, so the ear and the frequency readout continue to agree — the
+  point that matters while a trainee is being taught to trust the readout — and the
+  acoustic family's behaviour [A5, A18, W32] stays available per exercise. R3 as written.
+  The spec corrections in R1 are required either way.
+- **Q3 — memory for the retained grid. RESOLVED: a quantised 16-bit grid with a ~32 MB
+  per-instance cap.** dB stored as `Uint16` rather than `Float32`: half the memory
+  (~16 MB for a 3-minute mono 44.1 kHz file at the default `fft-size`, ~32 MB for six
+  minutes) at a resolution far finer than a readout or a contrast control needs. **One
+  interaction to design around:** 32 MB of `Uint16` is ~16.7 M cells, while the existing
+  image caps allow 32,768 × 4,096 = 134 M cells, so a legal file can exceed the grid
+  budget. Prefer *graceful degradation* over lowering the image caps — retain the grid
+  when it fits and fall back to the painted-PNG path (R2's filter alone, no dB readout)
+  when it does not, with the fallback stated in the loading caption. That keeps long
+  recordings working and keeps C1 available on every file.
 - **Q4.** Is region selection (R9) wanted as a *measurement* (a box with bounds, like
   PAMGuard's Quick Annotations [W31]) or only as a *loop range*? The first is a new
   annotation type with storage implications; the second is transport state.

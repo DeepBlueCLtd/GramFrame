@@ -79,6 +79,11 @@ preserves the *orientation*. Nothing hides the content.
 
 ### 1.8 The reveal rule: claimed, actual, and the two coherent positions
 
+**Decided 2026-09-05 (research.md §9 Q1): option (b), the fourth panel.** The player
+draws the whole gram from load; the scrolling, playhead-at-top view stays as what
+happens during playback. The diagram is kept as drawn because panels 1–3 are the
+argument that led there.
+
 ![The reveal rule, claimed and actual](./diagrams/08-reveal-rule.svg)
 
 ### 1.9 Why C1 and H4 are two decisions, not one
