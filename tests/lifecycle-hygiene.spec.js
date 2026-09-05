@@ -39,8 +39,10 @@ test.describe('The test API is opt-in (GF-23)', () => {
 
     expect(surface.flag).toBe(true)
     expect(surface.testMethods).toEqual([
+      '__test__clearGlobalStateListeners',
       '__test__flushDispatches',
       '__test__forceUpdate',
+      '__test__getGlobalStateListeners',
       '__test__getInstance',
       '__test__getInstances'
     ])

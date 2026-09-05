@@ -65,6 +65,19 @@ published page does not, so those methods are absent in the field.
    browser, a published page without the debug flag).
 4. Assert on what a user or an integrator can observe: published state, rendered
    DOM, storage contents.
+5. **Never reach module-level mutable state through `await import('/src/...')`
+   inside `page.evaluate`.** Importing a pure function that way is fine. Reading
+   or writing a module's own mutable state is not: once the dev server has
+   processed a hot update it serves the module to the app with a cache-busting
+   query (`state.js?t=1788596541008`), and a bare specifier resolves to a
+   *second, distinct* module instance with its own fresh copy of that state. The
+   test then observes a registry the app never writes to. The symptom is the
+   worst kind — green against a cold `yarn dev`, red against a warm one, so a
+   developer running `yarn test` beside an open `yarn dev` sees failures that
+   have nothing to do with their change (R9-27). Go through `window.GramFrame`
+   instead: the API object comes from the module graph the running component was
+   built from, whatever URL it arrived under. Add a `__test__*` accessor if one
+   does not exist yet.
 
 ## Continuous integration
 
