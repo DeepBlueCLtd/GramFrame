@@ -664,9 +664,11 @@ export class PinSetMode extends BaseMode {
    * The height is a fixed pixel length taken from the *base* (unzoomed) render
    * height, so a pin covers the same number of screen pixels no matter how far
    * the user has zoomed in — it is not a span of time that stretches with the
-   * image. Only the centre is zoom-aware: the pin stays centred on the set's
-   * anchor time (the original click location), so it tracks the feature while
-   * keeping a constant height.
+   * image. Only the top is zoom-aware: the pin hangs from the set's anchor
+   * time (the original click location), so it tracks the feature while keeping
+   * a constant height. The anchor is the symbol/pin junction — the point the
+   * analyst aimed at — whichever pin style is on, so pin height never moves
+   * where the feature lands (issue #284).
    *
    * @param {PinSet} set - The set being drawn
    * @returns {{lineHeight: number, lineTop: number}} Fixed pixel height and top Y position
@@ -677,7 +679,7 @@ export class PinSetMode extends BaseMode {
     // Only the y component is read; the frequency merely has to be a number.
     const anchorPoint = { freq: this.freqForIndex(set, 1), time: set.anchorTime }
     const anchorSVG = dataToSVG(anchorPoint, this.getViewport(), this.instance.ui.spectrogramImage)
-    const lineTop = anchorSVG.y - lineHeight / 2
+    const lineTop = anchorSVG.y
 
     return { lineHeight, lineTop }
   }
