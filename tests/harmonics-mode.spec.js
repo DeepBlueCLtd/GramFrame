@@ -1,452 +1,260 @@
 import { test, expect } from './helpers/fixtures.js'
-import { 
+import {
 
 /// <reference path="../src/types.js" />
-  expectValidMetadata, 
+  expectValidMetadata,
   expectValidMode,
   expectValidConfig,
-  expectValidImageDetails 
+  expectValidImageDetails
 } from './helpers/state-assertions.js'
+import { GramFramePage } from './helpers/gram-frame-page.js'
 
 /**
- * @fileoverview Comprehensive E2E tests for Harmonics Mode functionality
- * Tests harmonic creation, dragging, real-time calculations, and UI interactions
+ * @fileoverview Harmonics mode: creating a set by dragging, and what the drag
+ * controls (issue #317).
+ *
+ * Every case here used to drive `page.mouse.move(200, 150)` — **viewport**
+ * coordinates — while the numbers were written as if they were SVG-relative.
+ * On the debug page the SVG's top edge is at viewport y ≈ 493, so every drag
+ * landed a few hundred pixels above the component, in the page header, and
+ * created nothing. `cursorPosition` was still `null` afterwards. Each
+ * assertion then sat behind `if (harmonicSets.length > 0)`, so the cases
+ * passed having asserted nothing about harmonics — the failure mode of a test
+ * that reports success while measuring an empty room.
+ *
+ * Two rules now hold throughout, and are the point of the file:
+ *
+ *  - Coordinates come from {@link GramFramePage.imageSVGPoint}, which is
+ *    expressed as a fraction of the *drawn image* and so cannot drift out of
+ *    the component whatever the page layout does.
+ *  - No assertion is guarded. If a drag stops creating a set, these fail.
  */
 
 /**
- * Harmonics Mode test suite
- * @description Tests harmonic creation, dragging, real-time calculations, and UI interactions
+ * Drag across the drawn image, in fractions of it.
+ * @param {GramFramePage} gfp - Page object
+ * @param {{x: number, y: number}} from - Start, as fractions of the image
+ * @param {{x: number, y: number}} to - End, as fractions of the image
+ * @returns {Promise<void>}
  */
-test.describe('Harmonics Mode - Comprehensive E2E Tests', () => {
-  /**
-   * Setup before each test - switch to Harmonics mode
-   * @param {TestParams} params - Test parameters
-   * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-   * @returns {Promise<void>}
-   */
+async function dragOnImage(gfp, from, to) {
+  const start = await gfp.imageSVGPoint(from.x, from.y)
+  const end = await gfp.imageSVGPoint(to.x, to.y)
+  await gfp.startDragSVG(start.x, start.y)
+  await gfp.endDragSVG(end.x, end.y)
+}
+
+/**
+ * The one harmonic set on the gram, failing loudly when there isn't exactly one.
+ * @param {GramFramePage} gfp - Page object
+ * @returns {Promise<any>} The set
+ */
+async function onlySet(gfp) {
+  const state = await gfp.getState()
+  const sets = state.harmonics.harmonicSets
+  expect(sets, 'the drag should have created exactly one harmonic set').toHaveLength(1)
+  return sets[0]
+}
+
+test.describe('Harmonics Mode - creating and adjusting sets by drag', () => {
   test.beforeEach(async ({ gramFramePage }) => {
-    
-    // Switch to Harmonics mode
     await gramFramePage.clickMode('Harmonics')
-    
-    // Verify we're in harmonics mode
-    /** @type {GramFrameState} */
     const state = await gramFramePage.getState()
     expectValidMode(state, 'harmonics')
+    expect(state.harmonics.harmonicSets, 'each test starts with a clean gram').toEqual([])
   })
 
-  /**
-   * Fundamental frequency selection test suite
-   */
-  test.describe('Fundamental Frequency Selection', () => {
-    /**
-     * Test creation of harmonic set with click and drag
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should create harmonic set with click and drag', async ({ gramFramePage }) => {
-      /** @type {number} */
-      const startX = 200
-      /** @type {number} */
-      const startY = 150
-      /** @type {number} */
-      const endX = 250
-      /** @type {number} */
-      const endY = 200
-      
-      // Start drag for harmonic creation
-      await gramFramePage.page.mouse.move(startX, startY)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(endX, endY)
-      await gramFramePage.page.mouse.up()
-      
-      // Verify harmonic set was created
-      /** @type {GramFrameState} */
-      const state = await gramFramePage.getState()
-      expect(state.harmonics?.harmonicSets).toBeDefined()
-      
-      // Check if harmonic set was actually created
-      if (state.harmonics.harmonicSets.length > 0) {
-        expect(state.harmonics.harmonicSets.length).toBeGreaterThan(0)
-        
-        /** @type {HarmonicSet} */
-        const harmonicSet = state.harmonics.harmonicSets[0]
-        expect(harmonicSet).toHaveProperty('id')
-        expect(harmonicSet).toHaveProperty('anchorTime')
-        expect(harmonicSet).toHaveProperty('spacing')
-        expect(harmonicSet).toHaveProperty('color')
-        expect(harmonicSet.spacing).toBeGreaterThan(0)
-      } else {
-        // If no harmonics created, at least verify state structure exists
-        expect(state.harmonics.harmonicSets).toEqual([])
-      }
-    })
-    
-    /**
-     * Test harmonic spacing calculation based on drag distance
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should calculate harmonic spacing based on drag distance', async ({ gramFramePage }) => {
-      // Create harmonic set with specific drag distance
-      /** @type {number} */
-      const startX = 200
-      /** @type {number} */
-      const startY = 150
-      /** @type {number} */
-      const endX = 200
-      /** @type {number} */
-      const endY = 250 // Vertical drag to create frequency spacing
-      
-      await gramFramePage.page.mouse.move(startX, startY)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(endX, endY)
-      await gramFramePage.page.mouse.up()
-      
-      /** @type {GramFrameState} */
-      const state = await gramFramePage.getState()
-      
-      // Skip if no harmonic sets were created
-      if (state.harmonics.harmonicSets.length === 0) {
-        return
-      }
-      
-      /** @type {HarmonicSet} */
-      const harmonicSet = state.harmonics.harmonicSets[0]
-      
-      // Verify harmonic spacing was calculated
-      expect(harmonicSet.spacing).toBeGreaterThan(0)
-      expect(harmonicSet.anchorTime).toBeGreaterThanOrEqual(0)
-    })
-    
-    /**
-     * Test handling horizontal and vertical drags differently
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should handle horizontal and vertical drags differently', async ({ gramFramePage }) => {
-      // Test horizontal drag
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(300, 150) // Horizontal drag
-      await gramFramePage.page.mouse.up()
-      
-      /** @type {GramFrameState} */
-      let state = await gramFramePage.getState()
-      
-      // Skip if no harmonic sets were created
-      if (state.harmonics.harmonicSets.length === 0) {
-        return
-      }
-      
-      /** @type {HarmonicSet} */
-      const horizontalHarmonic = state.harmonics.harmonicSets[0]
+  test.describe('Creating a set', () => {
+    test('a drag across the gram creates one harmonic set', async ({ gramFramePage }) => {
+      await dragOnImage(gramFramePage, { x: 0.2, y: 0.3 }, { x: 0.5, y: 0.6 })
 
-      // Test vertical drag
-      await gramFramePage.page.mouse.move(200, 200)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(200, 300) // Vertical drag
-      await gramFramePage.page.mouse.up()
-      
-      state = await gramFramePage.getState()
-      
-      // Check if a second harmonic was created
-      if (state.harmonics.harmonicSets.length >= 2) {
-        expect(state.harmonics.harmonicSets).toHaveLength(2)
-        
-        /** @type {HarmonicSet} */
-        const verticalHarmonic = state.harmonics.harmonicSets[1]
-        
-        // Verify different harmonic properties based on drag direction
-        expect(horizontalHarmonic.id).not.toBe(verticalHarmonic.id)
-        expect(horizontalHarmonic.fundamentalFreq).not.toBe(verticalHarmonic.fundamentalFreq)
-      } else {
-        // If second harmonic wasn't created, at least verify first one exists
-        expect(state.harmonics.harmonicSets.length).toBeGreaterThan(0)
-      }
+      const set = await onlySet(gramFramePage)
+      expect(set).toHaveProperty('id')
+      expect(set).toHaveProperty('color')
+      expect(set.spacing, 'a created set has a positive spacing').toBeGreaterThan(0)
+      expect(set.anchorTime).toBeGreaterThanOrEqual(0)
     })
+
+    test('a created set takes the colour the picker is showing', async ({ gramFramePage }) => {
+      const before = await gramFramePage.getState()
+
+      await dragOnImage(gramFramePage, { x: 0.2, y: 0.3 }, { x: 0.5, y: 0.6 })
+
+      const set = await onlySet(gramFramePage)
+      // Not `toBeTruthy()`: the set must carry the *selected* colour, which is
+      // what the picker promises and what tells two sets apart on the gram.
+      expect(set.color).toBe(before.selectedColor)
+    })
+
+    test('the further right the drag ends, the wider the spacing', async ({ gramFramePage }) => {
+      // Spacing is `currentPos.freq / clickedIndex` (HarmonicsMode
+      // `freqUpdatesForDrag`), so it is set by where the drag *ends* on the
+      // frequency axis and by nothing else.
+      await dragOnImage(gramFramePage, { x: 0.2, y: 0.5 }, { x: 0.4, y: 0.5 })
+      const narrow = (await onlySet(gramFramePage)).spacing
+
+      await gramFramePage.page.evaluate(() => {
+        // @ts-ignore - test-only global
+        const instance = window.GramFrame.__test__getInstances()[0]
+        instance.state.harmonics.harmonicSets = []
+      })
+
+      await dragOnImage(gramFramePage, { x: 0.2, y: 0.5 }, { x: 0.8, y: 0.5 })
+      const wide = (await onlySet(gramFramePage)).spacing
+
+      expect(wide).toBeGreaterThan(narrow)
+    })
+
+    test('a horizontal drag sets the spacing; a vertical one moves the set in time', async ({ gramFramePage }) => {
+      // The two axes do different jobs, and a drag that moved both would be a
+      // defect. Horizontal first, from a fixed start.
+      await dragOnImage(gramFramePage, { x: 0.3, y: 0.5 }, { x: 0.7, y: 0.5 })
+      const horizontal = await onlySet(gramFramePage)
+
+      await gramFramePage.page.evaluate(() => {
+        // @ts-ignore - test-only global
+        const instance = window.GramFrame.__test__getInstances()[0]
+        instance.state.harmonics.harmonicSets = []
+      })
+
+      // The same start, dragged straight down instead.
+      await dragOnImage(gramFramePage, { x: 0.3, y: 0.5 }, { x: 0.3, y: 0.8 })
+      const vertical = await onlySet(gramFramePage)
+
+      // The vertical drag never moved along the frequency axis, so its spacing
+      // is whatever the mousedown seeded — narrower than the one dragged right.
+      expect(vertical.spacing).toBeLessThan(horizontal.spacing)
+      // ...and it is the one that moved in time. Y increases downward and time
+      // increases upward, so dragging down lowers the anchor.
+      expect(vertical.anchorTime).toBeLessThan(horizontal.anchorTime)
+    })
+
+    // The spacing floor is deliberately *not* re-tested here. It is covered by
+    // `harmonic-pin-frequency.spec.js` ("a set already at the floor survives
+    // another drag towards zero"), which drags to the very left edge where the
+    // clamp actually engages. A version of it written here passed with the
+    // floor deleted from the component — 2% across a 0-100 Hz gram still gives
+    // a spacing well above 0.1 — so it asserted nothing (issue #317).
   })
 
-  /**
-   * Real-time harmonic calculation test suite
-   */
-  test.describe('Real-time Harmonic Calculation', () => {
-    /**
-     * Test harmonic updates during drag operation
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should update harmonics during drag operation', async ({ gramFramePage }) => {
-      /** @type {number} */
-      const startX = 200
-      /** @type {number} */
-      const startY = 150
-      
-      // Start dragging
-      await gramFramePage.page.mouse.move(startX, startY)
-      await gramFramePage.page.mouse.down()
-      
-      // Move mouse to different positions and verify real-time updates
-      /** @type {Array<{x: number, y: number}>} */
-      const dragPositions = [
-        { x: 220, y: 170 },
-        { x: 240, y: 190 },
-        { x: 260, y: 210 }
-      ]
-      
-      for (const pos of dragPositions) {
-        await gramFramePage.page.mouse.move(pos.x, pos.y)
+  test.describe('Real-time calculation during the drag', () => {
+    test('spacing follows the pointer while the button is down, not only at release', async ({ gramFramePage }) => {
+      const start = await gramFramePage.imageSVGPoint(0.2, 0.5)
+      await gramFramePage.startDragSVG(start.x, start.y)
 
-        // Verify harmonic calculation is happening
-        /** @type {GramFrameState} */
+      /** @type {number[]} */
+      const spacings = []
+      for (const fracX of [0.4, 0.6, 0.8]) {
+        const at = await gramFramePage.imageSVGPoint(fracX, 0.5)
+        await gramFramePage.page.mouse.move(
+          (await gramFramePage.svg.boundingBox()).x + at.x,
+          (await gramFramePage.svg.boundingBox()).y + at.y
+        )
         const state = await gramFramePage.getState()
-        if (state.harmonics?.harmonicSets?.length > 0) {
-          /** @type {HarmonicSet} */
-          const harmonicSet = state.harmonics.harmonicSets[0]
-          expect(harmonicSet.spacing).toBeGreaterThan(0)
-        }
+        expect(state.harmonics.harmonicSets, 'the set exists from mousedown onward').toHaveLength(1)
+        spacings.push(state.harmonics.harmonicSets[0].spacing)
       }
-      
-      // End drag
-      await gramFramePage.page.mouse.up()
-      
-      // Verify final harmonic set
-      /** @type {GramFrameState} */
-      const finalState = await gramFramePage.getState()
-      expect(finalState.harmonics.harmonicSets.length).toBeGreaterThanOrEqual(0)
-    })
-    
-    /**
-     * Test harmonic recalculation when dragging existing sets
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should recalculate harmonics when dragging existing sets', async ({ gramFramePage }) => {
-      // Create initial harmonic set
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(200, 250)
-      await gramFramePage.page.mouse.up()
-      
-      /** @type {GramFrameState} */
-      let state = await gramFramePage.getState()
-      
-      // Skip if no harmonic sets were created
-      if (state.harmonics.harmonicSets.length === 0) {
-        return
-      }
-      
 
-      // Click and drag on the harmonic line to adjust spacing
-      await gramFramePage.page.mouse.move(200, 200) // Click on harmonic line
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(200, 300) // Drag to change spacing
       await gramFramePage.page.mouse.up()
-      
-      // Verify harmonic spacing was recalculated or drag was attempted
-      state = await gramFramePage.getState()
-      if (state.harmonics.harmonicSets.length > 0) {
-        /** @type {number} */
-        const newSpacing = state.harmonics.harmonicSets[0].spacing
-        expect(newSpacing).toBeGreaterThan(0)
-        // The spacing may or may not have changed depending on implementation
+
+      // Strictly increasing: the readout is live, not a single value written
+      // once the button comes up.
+      expect(spacings[1]).toBeGreaterThan(spacings[0])
+      expect(spacings[2]).toBeGreaterThan(spacings[1])
+    })
+
+    test('dragging an existing set re-spaces it', async ({ gramFramePage }) => {
+      // Created through the helper, so the starting spacing is exact and the
+      // change below is measured against a known number.
+      const setId = await gramFramePage.addHarmonicSet(30, 20)
+      const before = (await gramFramePage.getState()).harmonics.harmonicSets[0]
+      expect(before.id).toBe(setId)
+
+      // Grab a drawn harmonic line and pull it right.
+      const line = await gramFramePage.page.locator('.gram-frame-harmonic-line').first().boundingBox()
+      if (!line) throw new Error('no harmonic line was rendered to drag')
+      const svgBox = await gramFramePage.svg.boundingBox()
+      await gramFramePage.page.mouse.move(line.x + line.width / 2, line.y + line.height / 2)
+      await gramFramePage.page.mouse.down()
+      await gramFramePage.page.mouse.move(line.x + line.width / 2 + 80, line.y + line.height / 2)
+      await gramFramePage.page.mouse.up()
+      expect(svgBox, 'the component is on the page').toBeTruthy()
+
+      const after = (await gramFramePage.getState()).harmonics.harmonicSets[0]
+      expect(after.id, 'the drag re-spaces the set rather than creating another').toBe(setId)
+      expect(after.spacing).not.toBeCloseTo(before.spacing, 6)
+    })
+  })
+
+  test.describe('Overlay rendering', () => {
+    test('a created set draws harmonic lines', async ({ gramFramePage }) => {
+      await dragOnImage(gramFramePage, { x: 0.2, y: 0.5 }, { x: 0.6, y: 0.5 })
+      await onlySet(gramFramePage)
+
+      // Unguarded: the old version wrapped this in try/catch and an
+      // `if (count > 0)`, so zero lines was a pass.
+      await expect(gramFramePage.page.locator('.gram-frame-harmonic-line').first()).toBeAttached()
+      expect(await gramFramePage.page.locator('.gram-frame-harmonic-line').count()).toBeGreaterThan(0)
+    })
+
+    test('every drawn line stays inside the gram', async ({ gramFramePage }) => {
+      // A narrow spacing puts many lines on the gram, including ones whose
+      // frequency runs past its right-hand edge.
+      await gramFramePage.addHarmonicSet(30, 5)
+
+      const image = await gramFramePage.page.locator('.gram-frame-svg image').boundingBox()
+      if (!image) throw new Error('the gram image is not on the page')
+
+      const lines = gramFramePage.page.locator('.gram-frame-harmonic-line')
+      const count = await lines.count()
+      expect(count, 'a 5-unit spacing should draw several lines').toBeGreaterThan(1)
+
+      for (let i = 0; i < count; i++) {
+        const box = await lines.nth(i).boundingBox()
+        if (!box) continue
+        expect(box.x, `line ${i} starts left of the gram`).toBeGreaterThanOrEqual(image.x - 1)
+        expect(box.x + box.width, `line ${i} runs past the gram`).toBeLessThanOrEqual(image.x + image.width + 1)
       }
     })
   })
 
-  /**
-   * Harmonic overlay rendering test suite
-   */
-  test.describe('Harmonic Overlay Rendering', () => {
-    /**
-     * Test rendering of harmonic lines in SVG
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should render harmonic lines in SVG', async ({ gramFramePage }) => {
-      // Create harmonic set
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(200, 250)
+  test.describe('Edge cases', () => {
+    test('switching mode mid-drag leaves no drag in progress', async ({ gramFramePage }) => {
+      const start = await gramFramePage.imageSVGPoint(0.3, 0.4)
+      const svgBox = await gramFramePage.svg.boundingBox()
+      if (!svgBox) throw new Error('the component is not on the page')
+
+      await gramFramePage.startDragSVG(start.x, start.y)
+      await gramFramePage.page.mouse.move(svgBox.x + start.x + 20, svgBox.y + start.y + 20)
+
+      const during = await gramFramePage.getState()
+      expect(during.drag.active, 'the drag is live before the mode switch').toBe(true)
+
+      // Switched without moving the pointer. Clicking the mode *button* would
+      // take the cursor off the SVG, and mouseleave cancels the drag on its own
+      // (`cancelActiveDrag`) — so a button click passes whether or not the mode
+      // switch cancels anything, which is no test at all.
+      await gramFramePage.page.evaluate(() => {
+        // @ts-ignore - test-only global
+        window.GramFrame.__test__getInstances()[0]._switchMode('analysis')
+      })
+
+      // Asserted with the button still down: after `mouse.up()` the drag would
+      // have ended anyway, so checking then proves nothing either.
+      const switched = await gramFramePage.getState()
+      expect(switched.drag.active, 'switching mode should cancel the live drag').toBe(false)
+      expect(switched.drag.targetId).toBeNull()
+
+      await gramFramePage.clickMode('Harmonics')
+      await gramFramePage.page.mouse.move(svgBox.x + start.x + 60, svgBox.y + start.y + 60)
       await gramFramePage.page.mouse.up()
-      
-      // Check for harmonic lines in SVG (may not exist if harmonics weren't created)
-      try {
-        /** @type {import('@playwright/test').Locator} */
-        const harmonicLines = gramFramePage.page.locator('.gram-frame-harmonic-line')
-        /** @type {number} */
-        const lineCount = await harmonicLines.count()
-        if (lineCount > 0) {
-          expect(lineCount).toBeGreaterThan(0)
-        }
-        
-        /** @type {import('@playwright/test').Locator} */
-        const harmonicGroup = gramFramePage.page.locator('.gram-frame-harmonic-set')
-        /** @type {number} */
-        const groupCount = await harmonicGroup.count()
-        if (groupCount > 0) {
-          expect(groupCount).toBeGreaterThan(0)
-        }
-      } catch (_error) {
-        // Harmonic rendering may not be visible
-      }
-    })
-    
-    
-    /**
-     * Test handling harmonic lines at spectrogram boundaries
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should handle harmonic lines at spectrogram boundaries', async ({ gramFramePage }) => {
-      // Create harmonic set that would extend beyond spectrogram boundaries
-      await gramFramePage.page.mouse.move(100, 50) // Near top edge
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(100, 400) // Extend to bottom
-      await gramFramePage.page.mouse.up()
-      
-      // Check if harmonic set was created
-      /** @type {GramFrameState} */
-      const state = await gramFramePage.getState()
-      expect(state.harmonics.harmonicSets.length).toBeGreaterThanOrEqual(0)
-      
-      // Check for harmonic lines (may not be visible)
-      try {
-        /** @type {import('@playwright/test').Locator} */
-        const harmonicLines = gramFramePage.page.locator('.gram-frame-harmonic-line')
-        /** @type {number} */
-        const count = await harmonicLines.count()
-        if (count > 0) {
-          expect(count).toBeGreaterThan(0)
-        }
-      } catch (_error) {
-        // Harmonic lines may not be visible at boundaries
-      }
-    })
-  })
 
-  /**
-   * UI panel interactions test suite
-   */
-  test.describe('UI Panel Interactions', () => {
-  })
-
-
-  /**
-   * Cross-mode integration test suite
-   */
-  test.describe('Cross-Mode Integration', () => {
-  })
-
-  /**
-   * Color picker functionality test suite
-   */
-  test.describe('Color Picker Functionality', () => {
-    /**
-     * Test harmonic color selection
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should allow harmonic color selection', async ({ gramFramePage }) => {
-      try {
-        // Look for color picker in harmonics UI
-        /** @type {import('@playwright/test').Locator} */
-        const colorPicker = gramFramePage.page.locator('.gram-frame-color-picker')
-        await colorPicker.waitFor({ timeout: 2000 })
-        
-        // Select a specific color
-        await colorPicker.click()
-        /** @type {import('@playwright/test').Locator} */
-        const greenColor = gramFramePage.page.locator('[data-color="#2ecc71"]')
-        if (await greenColor.isVisible()) {
-          await greenColor.click()
-        }
-        
-        // Create harmonic set with selected color
-        await gramFramePage.page.mouse.move(200, 150)
-        await gramFramePage.page.mouse.down()
-        await gramFramePage.page.mouse.move(200, 250)
-        await gramFramePage.page.mouse.up()
-        
-        // Verify harmonic set uses selected color
-        /** @type {GramFrameState} */
-        const state = await gramFramePage.getState()
-        expect(state.harmonics.harmonicSets[0].color).toBe('#2ecc71')
-      } catch (_error) {
-        console.log('Color picker not available in harmonics mode')
-      }
-    })
-  })
-
-  /**
-   * Edge cases and error handling test suite
-   */
-  test.describe('Edge Cases and Error Handling', () => {
-    /**
-     * Test handling very small drag distances
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should handle very small drag distances', async ({ gramFramePage }) => {
-      // Create harmonic set with minimal drag distance
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down()
-      await gramFramePage.page.mouse.move(201, 151) // Very small movement
-      await gramFramePage.page.mouse.up()
-      
-      // Verify harmonic set handling of minimal distance
-      /** @type {GramFrameState} */
-      const state = await gramFramePage.getState()
-      // May or may not create a harmonic set depending on minimum threshold
-      if (state.harmonics?.harmonicSets?.length > 0) {
-        expect(state.harmonics.harmonicSets[0].spacing).toBeGreaterThan(0)
-      }
-    })
-    
-    /**
-     * Test state consistency during complex operations
-     * @param {TestParams} params - Test parameters
-     * @param {import('./helpers/gram-frame-page.js').GramFramePage} params.gramFramePage - GramFrame page object
-     * @returns {Promise<void>}
-     */
-    test('should maintain state consistency during complex operations', async ({ gramFramePage }) => {
-      // Perform complex sequence of operations
-      await gramFramePage.page.mouse.move(200, 150)
-      await gramFramePage.page.mouse.down() // Start drag
-      await gramFramePage.page.mouse.move(220, 170) // Drag
-      await gramFramePage.clickMode('Cross Cursor') // Switch mode mid-drag
-      await gramFramePage.clickMode('Harmonics') // Switch back
-      await gramFramePage.page.mouse.move(200, 250) // Continue drag
-      await gramFramePage.page.mouse.up() // End drag
-      
-      // Verify final state is consistent
-      /** @type {GramFrameState} */
       const state = await gramFramePage.getState()
       expectValidMetadata(state)
       expectValidMode(state, 'harmonics')
       expectValidConfig(state)
       expectValidImageDetails(state)
-      
-      // State should be consistent despite mode switching during drag
-      if (state.harmonics?.harmonicSets?.length > 0) {
-        expect(state.harmonics.harmonicSets[0]).toHaveProperty('id')
-        expect(state.harmonics.harmonicSets[0]).toHaveProperty('fundamentalFreq')
-      }
+      expect(state.drag.active).toBe(false)
     })
-  })
-
-  /**
-   * Cursor behavior test suite
-   */
-  test.describe('Cursor Behavior', () => {
   })
 })

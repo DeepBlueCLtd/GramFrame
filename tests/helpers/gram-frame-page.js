@@ -729,21 +729,37 @@ class GramFramePage {
    * @returns {Promise<{freq: number, time: number}|null>} Data coordinates or null
    */
   async readDataAtPixel(x, y) {
+    // Freshness first, by construction rather than by arithmetic. Leaving the
+    // SVG clears `cursorPosition` to null (`events.js` mouseleave), so parking
+    // the pointer outside and waiting for null gives an unmistakable sentinel:
+    // whatever appears next was computed from *this* hover, at any sub-pixel
+    // offset and however close together two reads are.
+    //
+    // This replaces a predicted-pixel comparison that had 0.125px of headroom
+    // (issue #318). It waited for `|cp.x - (x + border.left)| <= 1`, but
+    // `hover({position})` is padding-box relative while `cursorPosition` is
+    // border-box relative, and adding the border back does not recover the
+    // element's *fractional* layout offset — measured error 0.875px on
+    // `player-page.html`, where the SVG sits at y = 165.875. Any font change,
+    // scrollbar or widening clock would have pushed that past 1 and produced a
+    // timeout saying nothing about layout. Widening the tolerance was not an
+    // option either: `player-transport.spec.js` reads two points one pixel
+    // apart on purpose, so a 2px window would let the stale first reading
+    // satisfy the poll for the second.
+    await this.parkPointerOffGram()
     await this.svg.hover({ position: { x, y } })
-    // Wait for the readout to catch up with *this* hover rather than for a fixed
-    // delay: cursorPosition.x/y are the pixels the reading was computed from, so
-    // a stale value from a previous hover is distinguishable from a fresh one.
-    // `hover({position})` is padding-box relative while cursorPosition.x/y are
-    // border-box relative, so the SVG's border is added back before comparing.
+
     const border = await this.svgBorderOffset()
-    const expectedX = x + border.left
-    const expectedY = y + border.top
     await this.waitForState(
       (state) => {
         const cp = state.cursorPosition
-        return !!cp &&
-          Math.abs(cp.x - expectedX) <= 1 &&
-          Math.abs(cp.y - expectedY) <= 1
+        if (!cp) return false
+        // A loose sanity bound *only* — it catches a hover that landed
+        // somewhere else entirely (viewport coordinates passed as SVG ones,
+        // say), and is never what tells one pixel from the next. That job now
+        // belongs to the null sentinel above.
+        return Math.abs(cp.x - (x + border.left)) <= 4 &&
+          Math.abs(cp.y - (y + border.top)) <= 4
       },
       { message: `cursor readout at SVG pixel (${x}, ${y})` }
     )
@@ -753,6 +769,38 @@ class GramFramePage {
       return null
     }
     return { freq: cp.freq, time: cp.time }
+  }
+
+  /**
+   * Move the pointer off the gram and wait for the readout to clear.
+   *
+   * The reset half of {@link readDataAtPixel}: leaving the SVG sets
+   * `cursorPosition` to null, which is the sentinel that makes the next
+   * reading provably fresh. Picks the first side of the component with room
+   * for the pointer inside the viewport, so it works whatever the page layout.
+   * @returns {Promise<void>}
+   */
+  async parkPointerOffGram() {
+    const box = await this.svg.boundingBox()
+    if (!box) {
+      throw new Error('parkPointerOffGram: the component is not on the page')
+    }
+    const viewport = this.page.viewportSize() ?? { width: 1280, height: 720 }
+    const candidates = [
+      { x: box.x - 10, y: box.y + box.height / 2 },
+      { x: box.x + box.width + 10, y: box.y + box.height / 2 },
+      { x: box.x + box.width / 2, y: box.y - 10 },
+      { x: box.x + box.width / 2, y: box.y + box.height + 10 }
+    ]
+    const spot = candidates.find((p) =>
+      p.x >= 0 && p.y >= 0 && p.x < viewport.width && p.y < viewport.height)
+    if (!spot) {
+      throw new Error('parkPointerOffGram: no room beside the component to park the pointer')
+    }
+    await this.page.mouse.move(spot.x, spot.y)
+    await this.waitForState((state) => state.cursorPosition === null, {
+      message: 'the readout to clear with the pointer off the gram'
+    })
   }
 
   /**
