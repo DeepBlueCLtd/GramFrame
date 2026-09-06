@@ -42,12 +42,16 @@ These help identify sources like rotating machinery, where harmonic structure re
 
 ---
 
-## 🔹 Step 5: Frequency-Rate Input
+## 🔹 Step 5: Frequency Rate — not in the interface today
 
-🎯 **Target:** The frequency-rate input box
+⚠️ **There is no frequency-rate input box.** The control was removed; the
+divider survives only as `state.frequencyRate`, which is always 1.
 
-You can enter a **frequency rate** here (e.g., 12.5 Hz for a shaft rate or a cylinder rate).  
-Harmonic frequencies will be divided by this value — useful for matching measured tones to known machinery rates.
+The intent was that entering a **frequency rate** (e.g. 12.5 Hz for a shaft or
+cylinder rate) would divide every reading by that value, so measured tones
+could be matched to known machinery rates. The arithmetic is in place and
+consistent (issue #276), so re-enabling the control is a UI job rather than a
+maths one — but until that happens, every reading is in raw Hz.
 
 ---
 

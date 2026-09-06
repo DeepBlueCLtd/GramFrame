@@ -7,8 +7,12 @@ import {
   screenToData,
   getImageBounds,
   isWithinImage,
-  clampToImage
+  clampToImage,
+  dataFrequencyRange,
+  calculateVisibleDataRange,
+  nudgeData
 } from '../../src/utils/coordinates.js'
+import { getUniformTolerance } from '../../src/utils/tolerance.js'
 
 /**
  * @fileoverview Coordinate-pipeline equivalence grid (spec 166, US2).
@@ -562,9 +566,12 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
     for (const cell of CELLS) {
       for (const point of imageSamplePoints(cell)) {
         const data = imageToData(point.imageX, point.imageY, cell.viewport)
+        // The deleted `coordinateTransformations.js` took raw configured hertz;
+        // the canonical module takes data scale (issue #276). Stating the scale
+        // at the call is the whole difference between them.
         const rawData = { freq: data.freq * cell.axes.frequencyRate, time: data.time }
 
-        const actual = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
+        const actual = dataToSVG(data, cell.viewport, cell.spectrogramImage)
         const expected = referenceDataToSVG(rawData, cell.viewport, cell.spectrogramImage)
 
         expectClose(actual.x, expected.x, `${label(cell)} ${point.name} x`)
@@ -581,9 +588,11 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
     for (const cell of cells) {
       for (const point of imageSamplePoints(cell)) {
         const data = imageToData(point.imageX, point.imageY, cell.viewport)
-        const rawData = { freq: data.freq * cell.axes.frequencyRate, time: data.time }
 
-        const actual = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
+        // No compensation on either side: the pre-consolidation keyboard pair
+        // was already symmetric in data scale, and the canonical module now
+        // matches it (issue #276).
+        const actual = dataToSVG(data, cell.viewport, cell.spectrogramImage)
         const expected = referenceKeyboardDataToSVG(
           data.freq, data.time, CONFIG, cell.imageDetails, cell.axes.frequencyRate, cell.margins
         )
@@ -603,7 +612,8 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
     // (FR-003, I2). Both routes must agree on what the analyst sees.
     for (const cell of CELLS.filter((c) => c.axes.hasElement)) {
       const step = 1
-      const origin = { freq: CONFIG.freqMin, time: CONFIG.timeMax } // image top-left
+      // Image top-left, in data scale — the scale `dataToSVG` now takes.
+      const origin = { freq: CONFIG.freqMin / cell.axes.frequencyRate, time: CONFIG.timeMax }
 
       // Canonical: move one pixel in SVG space, with no zoom compensation
       const canonicalOrigin = dataToSVG(origin, cell.viewport, cell.spectrogramImage)
@@ -611,7 +621,7 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
         canonicalOrigin.x + step, canonicalOrigin.y, cell.viewport, cell.spectrogramImage
       )
       const canonicalMoved = dataToSVG(
-        { freq: imageToData(canonicalMovedImage.x, canonicalMovedImage.y, cell.viewport).freq * cell.axes.frequencyRate,
+        { freq: imageToData(canonicalMovedImage.x, canonicalMovedImage.y, cell.viewport).freq,
           time: origin.time },
         cell.viewport,
         cell.spectrogramImage
@@ -622,7 +632,7 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
       // divided by the zoom level, as the deleted code did.
       const compensated = step / cell.axes.zoom
       const refOrigin = referenceKeyboardDataToSVG(
-        origin.freq / cell.axes.frequencyRate, origin.time, CONFIG, cell.imageDetails, cell.axes.frequencyRate, cell.margins
+        origin.freq, origin.time, CONFIG, cell.imageDetails, cell.axes.frequencyRate, cell.margins
       )
       const refMovedData = referenceKeyboardSVGToData(
         refOrigin.x + compensated, refOrigin.y, CONFIG, cell.imageDetails, cell.axes.frequencyRate, cell.margins
@@ -643,8 +653,7 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
         if (!point.inBounds) continue
 
         const data = imageToData(point.imageX, point.imageY, cell.viewport)
-        const rawData = { freq: data.freq * cell.axes.frequencyRate, time: data.time }
-        const svgPoint = dataToSVG(rawData, cell.viewport, cell.spectrogramImage)
+        const svgPoint = dataToSVG(data, cell.viewport, cell.spectrogramImage)
         const back = svgToImage(svgPoint.x, svgPoint.y, cell.viewport, cell.spectrogramImage)
 
         expectClose(back.x, point.imageX, `${label(cell)} ${point.name} round-trip x`)
@@ -681,12 +690,112 @@ describe('canonical coordinate module vs the pre-consolidation reference', () =>
         expectClose(withRate.freq * 2, withoutRate.freq, `${label(cell)} ${point.name} freq scales with the frequency rate`)
         expectClose(withRate.time, withoutRate.time, `${label(cell)} ${point.name} time ignores the frequency rate`)
 
-        // Image space itself is untouched by the frequency rate
-        const svgWith = dataToSVG({ freq: 1000, time: 30 }, cell.viewport, cell.spectrogramImage)
-        const svgWithout = dataToSVG({ freq: 1000, time: 30 }, rateOne.viewport, rateOne.spectrogramImage)
-        expectClose(svgWith.x, svgWithout.x, `${label(cell)} ${point.name} SVG x carries no frequency rate`)
-        expectClose(svgWith.y, svgWithout.y, `${label(cell)} ${point.name} SVG y carries no frequency rate`)
+        // The rate lives in the *reading*, not in the geometry: the two
+        // readings differ by the rate, and each maps back to the same pixel.
+        // This is the invariant that replaced "dataToSVG carries no rate at
+        // all" — which was true of the code and false of the component, and
+        // was the defect (issue #276).
+        const svgWith = dataToSVG(withRate, cell.viewport, cell.spectrogramImage)
+        const svgWithout = dataToSVG(withoutRate, rateOne.viewport, rateOne.spectrogramImage)
+        expectClose(svgWith.x, svgWithout.x, `${label(cell)} ${point.name} SVG x is the same pixel at either rate`)
+        expectClose(svgWith.y, svgWithout.y, `${label(cell)} ${point.name} SVG y is the same pixel at either rate`)
       }
+    }
+  })
+})
+
+/**
+ * Issue #276 — the rate was applied on one leg of the pipeline and undone by
+ * hand on some of the others. These pin every leg at `frequencyRate = 2`,
+ * where the factor is visible; at the default rate of 1 all of them pass
+ * against the old code too, which is exactly why it went unnoticed.
+ */
+describe('a frequency rate other than 1 is internally consistent (issue #276)', () => {
+  /** The grid cells where the rate is not 1. @type {any[]} */
+  const RATE_CELLS = CELLS.filter((c) => c.axes.frequencyRate === 2 && c.axes.hasElement)
+
+  test('the grid actually contains rate-2 cells', () => {
+    expect(RATE_CELLS.length).toBeGreaterThan(0)
+  })
+
+  test('imageToData and dataToSVG are inverses, so a feature is drawn where it was read', () => {
+    for (const cell of RATE_CELLS) {
+      for (const point of imageSamplePoints(cell)) {
+        if (!point.inBounds) continue
+
+        // What a click stores, and where the renderer then puts it. Was: the
+        // stored (divided) frequency went into `dataToSVG` unscaled, so a
+        // marker drew at half its own frequency's position.
+        const stored = imageToData(point.imageX, point.imageY, cell.viewport)
+        const drawn = svgToImage(
+          dataToSVG(stored, cell.viewport, cell.spectrogramImage).x,
+          dataToSVG(stored, cell.viewport, cell.spectrogramImage).y,
+          cell.viewport,
+          cell.spectrogramImage
+        )
+
+        expectClose(drawn.x, point.imageX, `${label(cell)} ${point.name} drawn x`)
+        expectClose(drawn.y, point.imageY, `${label(cell)} ${point.name} drawn y`)
+      }
+    }
+  })
+
+  test('the keyboard path moves a marker by the frequency one pixel is worth', () => {
+    for (const cell of RATE_CELLS) {
+      // `nudgeData` is the arrow-key geometry itself — the function
+      // `moveSelectedMarker` calls, not a copy of it — so a compensation
+      // creeping back into that path fails here.
+      const start = imageToData(cell.renderWidth / 2, cell.renderHeight / 2, cell.viewport)
+      const moved = nudgeData(start, 1, 0, cell.viewport, cell.spectrogramImage)
+
+      // One rendered pixel is one rendered pixel at any rate; what changes is
+      // how much frequency it is worth, and that is the rate's whole job.
+      const perPixel = (CONFIG.freqMax - CONFIG.freqMin) /
+        cell.axes.frequencyRate / (cell.renderWidth * cell.axes.zoom)
+      expectClose(moved.freq - start.freq, perPixel, `${label(cell)} keyboard step in data scale`)
+      expectClose(moved.time, start.time, `${label(cell)} keyboard step leaves time alone`)
+    }
+  })
+
+  test('dataFrequencyRange is the visible range and the axis labels, in one scale', () => {
+    for (const cell of RATE_CELLS) {
+      const range = dataFrequencyRange(cell.viewport)
+      expectClose(range.freqMin, CONFIG.freqMin / 2, `${label(cell)} data-scale freqMin`)
+      expectClose(range.freqMax, CONFIG.freqMax / 2, `${label(cell)} data-scale freqMax`)
+
+      // `calculateVisibleDataRange` feeds both the axis labels and the pin-set
+      // modes' "which members are on screen" test, and those compare it
+      // against stored frequencies. Was: it returned raw hertz, and `axes.js`
+      // divided a second time while the modes did not divide at all.
+      const visible = calculateVisibleDataRange(cell.viewport, cell.spectrogramImage)
+      const edges = [
+        imageToData(0, 0, cell.viewport).freq,
+        imageToData(cell.renderWidth, 0, cell.viewport).freq
+      ]
+      if (cell.axes.zoom === 1) {
+        expectClose(visible.freqMin, edges[0], `${label(cell)} visible freqMin at zoom 1`)
+        expectClose(visible.freqMax, edges[1], `${label(cell)} visible freqMax at zoom 1`)
+      } else {
+        // Zoomed in, the visible span is a strict subset of the whole gram —
+        // still in data scale, which is the part that was wrong.
+        expect(visible.freqMin).toBeGreaterThan(edges[0])
+        expect(visible.freqMax).toBeLessThan(edges[1])
+        expect(visible.freqMax).toBeLessThanOrEqual(range.freqMax)
+      }
+    }
+  })
+
+  test('the hit-test tolerance is a data-scale span, so the grab radius stays 8 rendered pixels', () => {
+    for (const cell of RATE_CELLS) {
+      const rateOne = buildCell({ ...cell.axes, frequencyRate: 1 })
+      const withRate = getUniformTolerance(cell.viewport, cell.spectrogramImage)
+      const withoutRate = getUniformTolerance(rateOne.viewport, rateOne.spectrogramImage)
+
+      // Halving the numbers halves the tolerance that expresses them. Was: the
+      // tolerance stayed in raw hertz and the grab region became twice the
+      // drawn glyph.
+      expectClose(withRate.freq * 2, withoutRate.freq, `${label(cell)} tolerance scales with the rate`)
+      expectClose(withRate.time, withoutRate.time, `${label(cell)} time tolerance ignores the rate`)
     }
   })
 })

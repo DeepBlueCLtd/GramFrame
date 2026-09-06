@@ -304,7 +304,7 @@
  * @property {ImageDetails} imageDetails - Image dimensions
  * @property {Config} config - Time/frequency range configuration
  * @property {ZoomState} zoom - Current zoom state
- * @property {number} frequencyRate - Frequency divider, applied on the data side only
+ * @property {number} frequencyRate - Frequency divider. Applied on the data side only, by `utils/coordinates.js` and nothing else
  */
 
 /**
@@ -331,7 +331,7 @@
  * @property {string} instanceId - Unique instance identifier
  * @property {ModeType} mode - Current analysis mode
  * @property {ModeType|null} previousMode - Previous analysis mode
- * @property {number} frequencyRate - Divides frequency on the data side, so a reading is expressed against this scale rather than raw Hz
+ * @property {number} frequencyRate - Divides frequency on the data side, so every stored frequency, tolerance and axis label is in that scale rather than raw Hz. `utils/coordinates.js` owns it; no other module scales frequency (issue #276)
  * @property {string} selectedColor - Colour for the NEXT created feature (when nothing is selected); when a feature is selected the picker restyles it instead
  * @property {SymbolType} selectedSymbol - Symbol for the NEXT created harmonic set or marker (when nothing is selected); when a feature is selected the picker restyles it instead
  * @property {boolean} showHarmonicPin - Pin visibility for the NEXT created harmonic set; session preference, on by default
