@@ -29,9 +29,17 @@ import { dispatch } from '../core/state.js'
 import { showStorageWarning, clearStorageWarning } from './StorageWarning.js'
 
 /**
+ * The toggle's handle. `setEnabled(false)` explains itself in the title too,
+ * since a marker has no pin for the toggle to act on.
+ * @typedef {Object} PinControl
+ * @property {function(boolean): void} setValue - Show pins as on or off
+ * @property {function(boolean): void} setEnabled - Enable or disable the toggle
+ */
+
+/**
  * Create the pin toggle row.
  * @param {GramFrame} instance - GramFrame instance
- * @returns {HTMLLabelElement} The toggle row element
+ * @returns {{element: HTMLLabelElement, control: PinControl}} The toggle row and its handle
  */
 export function createPinToggle(instance) {
   const state = instance.state
@@ -73,14 +81,13 @@ export function createPinToggle(instance) {
     }
   })
 
-  // Expose a control handle so selection changes can reflect the selected
-  // set's pin state back into the checkbox.
-  instance.interaction._pinControl = {
-    /** @param {boolean} showPin */
+  // Returned rather than written onto `instance.interaction`: see the note in
+  // SymbolPicker (issue #267).
+  /** @type {PinControl} */
+  const control = {
     setValue(showPin) {
       checkbox.checked = showPin
     },
-    /** @param {boolean} enabled */
     setEnabled(enabled) {
       checkbox.disabled = !enabled
       row.classList.toggle('gram-frame-pin-toggle-disabled', !enabled)
@@ -90,5 +97,5 @@ export function createPinToggle(instance) {
     }
   }
 
-  return row
+  return { element: row, control }
 }

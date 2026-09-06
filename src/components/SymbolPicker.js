@@ -17,6 +17,19 @@ import { SYMBOL_CATALOG, SYMBOL_DISPLAY_NAMES, DEFAULT_SYMBOL, LARGE_SYMBOL_SCAL
 import { dispatch } from '../core/state.js'
 
 /**
+ * The drop-down's handle: set its value, and tint its glyphs.
+ * @typedef {Object} SymbolControl
+ * @property {function(SymbolType): void} setValue - Show this symbol as selected
+ * @property {function(string): void} setTint - Tint the glyphs with this colour
+ */
+
+/**
+ * The "Large" checkbox's handle (feature 161 experiment).
+ * @typedef {Object} LargeSymbolsControl
+ * @property {function(boolean): void} setValue - Show large symbols as on or off
+ */
+
+/**
  * Unicode glyph shown for each symbol id in the drop-down. The list is a
  * compact "drop-down of symbols" (glyph only) so it fits beside the colour
  * slider; the full name is kept on each option's tooltip for accessibility.
@@ -36,7 +49,7 @@ const SYMBOL_GLYPHS = {
 /**
  * Create the symbol selector drop-down.
  * @param {GramFrame} instance - GramFrame instance
- * @returns {HTMLSelectElement} The symbol `<select>` element
+ * @returns {{element: HTMLSelectElement, control: SymbolControl}} The drop-down and its handle
  */
 export function createSymbolSelect(instance) {
   const state = instance.state
@@ -76,20 +89,21 @@ export function createSymbolSelect(instance) {
     }
   })
 
-  // Expose a control handle so selection changes can reflect the selected
-  // feature's symbol back into this drop-down (feature 161, FR-004).
-  instance.interaction._symbolControl = {
-    /** @param {SymbolType} symbol */
+  // The handle is returned, not written onto `instance.interaction`. Its only
+  // reader is `createColorPicker`, which builds this control -- so it can close
+  // over the handle directly, and construction order stops being an invisible
+  // contract nothing can check (issue #267).
+  /** @type {SymbolControl} */
+  const control = {
     setValue(symbol) {
       select.value = symbol
     },
-    /** @param {string} color */
     setTint(color) {
       select.style.color = color
     }
   }
 
-  return select
+  return { element: select, control }
 }
 
 /**
@@ -108,7 +122,7 @@ export function createSymbolSelect(instance) {
  * and fold the winning size into the base constants.
  *
  * @param {GramFrame} instance - GramFrame instance
- * @returns {HTMLLabelElement} The toggle (a label wrapping its checkbox)
+ * @returns {{element: HTMLLabelElement, control: LargeSymbolsControl}} The toggle and its handle
  */
 export function createLargeSymbolToggle(instance) {
   const label = document.createElement('label')
@@ -130,10 +144,8 @@ export function createLargeSymbolToggle(instance) {
     }
   })
 
-  // Expose a handle so selection changes reflect the selected feature's size
-  // back into the checkbox (mirrors the symbol drop-down's control handle).
-  instance.interaction._largeSymbolsControl = {
-    /** @param {boolean} large */
+  /** @type {LargeSymbolsControl} */
+  const control = {
     setValue(large) {
       checkbox.checked = large
     }
@@ -148,5 +160,5 @@ export function createLargeSymbolToggle(instance) {
   label.appendChild(checkbox)
   label.appendChild(text)
 
-  return label
+  return { element: label, control }
 }
