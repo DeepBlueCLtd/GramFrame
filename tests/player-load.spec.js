@@ -3,8 +3,12 @@ import { GramFramePage } from './helpers/gram-frame-page.js'
 
 /**
  * @fileoverview Story 2 (spec 168): an audio-sourced GramFrame instance
- * decodes and analyses its WAV, then shows a blank gram with the configured
- * axes until play is pressed.
+ * decodes and analyses its WAV and shows it with the configured axes.
+ *
+ * Spec 171 (US1) withdrew the reveal rule this story used to end on: the gram
+ * is drawn for the whole recording from the moment it is analysed, so the
+ * opening view is the recording's first window rather than the blank above its
+ * start.
  */
 
 const PLAYER_PAGE = '/tests/fixtures/player-page.html'
@@ -36,9 +40,14 @@ test.describe('Story 2 — an audio-sourced instance renders a gram', () => {
     expect(state.config).toEqual({ timeMin: 0, timeMax: 20, freqMin: 0, freqMax: 3000 })
     expect(state.player.playhead).toBe(0)
     expect(state.player.playing).toBe(false)
+    // The opening view is the recording's first window (spec 171, FR-005),
+    // and the pitch behaviour is stated rather than inherited (FR-021)
+    expect(state.player.viewTop).toBe(5)
+    expect(state.player.preservesPitch).toBe(true)
+    expect(state.player.degraded).toBeNull()
   })
 
-  test('AS-2.1: before play the view is blank and the time axis reads [-window, 0]', async ({ page }) => {
+  test('spec 171 AS-1.1 / FR-005: before play the first window of the gram is drawn and the time axis reads [0, window]', async ({ page }) => {
     const gfp = new GramFramePage(page)
     await page.goto(PLAYER_PAGE)
     await gfp.waitForPlayerReady()
@@ -57,17 +66,19 @@ test.describe('Story 2 — an audio-sourced instance renders a gram', () => {
       }
     })
     expect(geometry.href).toBe('data:image/png')
-    // 400 px axes × stretch 4 = 1600 px tall; bottom edge at margins.top (15)
+    // 400 px axes × stretch 4 = 1600 px tall. The view's top edge is 5 s (one
+    // window), so the image's bottom edge — time 0 — sits on the axes' bottom
+    // edge and the first window fills the area.
     expect(geometry.height).toBeCloseTo(1600, 3)
-    expect(geometry.y + geometry.height).toBeCloseTo(15, 3)
-    // The reveal clip starts at the playhead's row — time 0, which is the
-    // image's bottom edge — so no painted row lies inside it yet
-    expect(geometry.clipY).toBeCloseTo(geometry.y + geometry.height, 3)
-    expect(geometry.clipY + geometry.clipHeight).toBeCloseTo(15 + 400, 3)
+    expect(geometry.y + geometry.height).toBeCloseTo(15 + 400, 3)
+    // The clip is the axes area and nothing less: nothing is withheld until it
+    // has been played (spec 171, FR-005)
+    expect(geometry.clipY).toBeCloseTo(15, 3)
+    expect(geometry.clipHeight).toBeCloseTo(400, 3)
 
     const labels = await page.locator('.gram-frame-axis-label').allTextContents()
-    expect(labels[0]).toBe('-00:05')
-    expect(labels[labels.length - 1]).toBe('00:00')
+    expect(labels[0]).toBe('00:00')
+    expect(labels[labels.length - 1]).toBe('00:05')
 
     // Frequency axis still shows the configured range
     const freqLabels = await page.locator('.gram-frame-axis-label-major').allTextContents()
@@ -102,8 +113,10 @@ test.describe('Story 2 — sample delivery and failure paths', () => {
     const indicators = await page.locator('.gramframe-error-indicator').allTextContents()
     expect(indicators[0]).toMatch(/Not a WAV file/)
     expect(indicators[1]).toMatch(/does-not-exist\.wav/)
-    // (160000 − 1024) / 1 + 1 frames at hop-size 1; the advice names a hop that fits
-    expect(indicators[2]).toMatch(/158977 rows.*Set hop-size to 8/s)
+    // fft-size 8192 over an 8 kHz file retains 4097 bins, one past the column
+    // cap. A gram too *tall* is no longer refused (spec 171, FR-023); a gram
+    // too wide still is, because no hop rescues it (FR-025).
+    expect(indicators[2]).toMatch(/4097 columns.*fft-size/s)
 
     // Each failed table is back on the page, marked, with its indicator beside it
     for (const id of ['not-a-wav', 'missing', 'oversize']) {

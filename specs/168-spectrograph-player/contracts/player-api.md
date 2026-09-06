@@ -31,11 +31,13 @@ page order, as `_getInstances()` does.
 ```js
 export function syncViewToPlayhead(instance)   // playhead ← audio.currentTime; viewTop ← playhead; layout; axes; features; dispatch({frame:true})
 export function startFollow(instance) / stopFollow(instance)   // requestAnimationFrame loop while playing
-export function clampViewTop(instance, seconds)  // → [min(windowSeconds / zoom.level, playhead), playhead]
+export function clampViewTop(instance, seconds)  // → [min(windowSeconds / zoom.level, duration, playhead), duration]   (spec 171 FR-007)
 export function setViewTop(instance, seconds)    // clamped; relayout; axes; features; dispatch
 export function isPlaying(instance)              // state.player.active && state.player.playing
-export function isTimeRevealed(instance, t)      // !active || t ≤ playhead + hopSize / sampleRate
 ```
+
+`isTimeRevealed` is gone: spec 171 (FR-003, FR-006) withdrew the reveal rule,
+so nothing asks whether a time has been played before drawing at it.
 
 `syncViewToPlayhead` also runs on `timeupdate`, `seeked` and `ended`, and on
 `visibilitychange` → visible, so a backgrounded tab catches up in one jump.
@@ -81,15 +83,13 @@ Seconds visible in the axes area: `windowSeconds / L`. Pixels per second:
 Arrow keys, `Tab`, `Escape` keep their existing meaning. Keys are ignored when
 the event target is editable, exactly as the arrow handler does today.
 
-## Reveal in the modes (`BaseMode.isTimeRevealed`)
+## Reveal in the modes — removed (spec 171, FR-006)
 
-```js
-isTimeRevealed(time) { return isTimeRevealed(this.instance, time) }
-```
-- Analysis: a marker with `!isTimeRevealed(marker.time)` is not drawn.
-- PinSetMode: a set with `!isTimeRevealed(set.anchorTime)` is not drawn.
-- Doppler: the curve and each marker are drawn only when every placed marker's
-  time is revealed.
+`BaseMode.isTimeRevealed` and the three guards that used it (Analysis's
+markers, `PinSetMode`'s sets, Doppler's curve) are gone. Every annotation is
+drawn wherever it sits in time, on a recording that has never been played as
+much as on one that has.
 
-The table rows (markers/harmonics/sidebands panels) always list every
-annotation — the tables are not a view of the gram.
+The table rows (markers/harmonics/sidebands panels) always listed every
+annotation — the tables are not a view of the gram — and now the gram agrees
+with them.

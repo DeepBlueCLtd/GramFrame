@@ -12,32 +12,86 @@
  * live in `colourMap.js`; `paintGram` needs a DOM.
  */
 
+/// <reference path="../types.js" />
+
 import { levelsToPixels } from './colourMap.js'
 
 /**
  * Hard caps on the gram, from research.md §3.3: inside Chromium's canvas
  * limits with a 2× margin, and where PNG encoding stays under a few seconds.
- * A file that would exceed either is refused (FR-007), never truncated.
+ * A file that would exceed the row cap is offered at a coarser hop instead of
+ * refused (spec 171, FR-023); one that would exceed the column cap is still
+ * refused. Neither is ever truncated.
  */
 const MAX_GRAM_ROWS = 32768
 const MAX_GRAM_COLUMNS = 4096
 
 /**
- * Refuse a gram the render path cannot hold.
+ * What the render caps changed about a requested analysis (spec 171, FR-024).
+ * @typedef {Object} DegradedAnalysis
+ * @property {string} parameter - The config-table parameter that was changed
+ * @property {number} requested - The value the table asked for
+ * @property {number} used - The value the gram was rendered at
+ */
+
+/**
+ * The hop size that would bring a too-tall gram inside the row cap.
+ *
+ * The smallest power-of-two multiple of the requested hop that fits: hop need
+ * not be a power of two, but a round number is easier to reason about and to
+ * type into a config table.
+ * @param {number} frames - Rows the requested hop would produce
+ * @param {number} hopSize - The requested hop, in samples
+ * @returns {number} A hop size that fits
+ */
+function fittingHopSize(frames, hopSize) {
+  let hop = hopSize
+  while (Math.ceil(frames * hopSize / hop) > MAX_GRAM_ROWS) hop *= 2
+  return hop
+}
+
+/**
+ * Decide what to do about a gram the render path cannot hold as requested.
+ *
+ * A too-tall gram is *offered* at a coarser hop rather than refused (spec 171,
+ * FR-023): the fitting hop was already being computed in order to name it in
+ * the refusal message, and nobody in the acoustic family refuses a long
+ * recording outright. A too-wide one is still refused — no single parameter
+ * this function can substitute brings it inside the cap (FR-025), and the
+ * message names the two the author can change.
  * @param {number} frames - Rows
  * @param {number} columns - Columns
- * @param {{fftSize: number, hopSize: number, sampleRate: number}} plan - For the advice in the message
+ * @param {{fftSize: number, hopSize: number}} plan - The requested analysis
+ * @returns {DegradedAnalysis|null} What to change, or null when the gram fits as asked
+ * @throws {Error} When no substitution can bring the gram inside the caps
+ */
+export function fitGramSize(frames, columns, plan) {
+  if (columns > MAX_GRAM_COLUMNS) {
+    throw new Error(
+      `The analysed spectrogram would be ${columns} columns wide, above the ${MAX_GRAM_COLUMNS}-column limit. ` +
+      `Lower fft-size (currently ${plan.fftSize}) or narrow freq-start/freq-end.`
+    )
+  }
+  if (frames <= MAX_GRAM_ROWS) {
+    return null
+  }
+  return { parameter: 'hop-size', requested: plan.hopSize, used: fittingHopSize(frames, plan.hopSize) }
+}
+
+/**
+ * Refuse a gram that is still outside the caps after {@link fitGramSize} has
+ * had its say — the existing refusal, kept for the recording no substitution
+ * rescues (FR-025).
+ * @param {number} frames - Rows
+ * @param {number} columns - Columns
+ * @param {{fftSize: number, hopSize: number}} plan - The analysis actually planned
  * @throws {Error} Naming the parameter that would bring the gram inside the cap
  */
 export function checkGramSize(frames, columns, plan) {
   if (frames > MAX_GRAM_ROWS) {
-    // The smallest power-of-two hop that fits; hop need not be a power of two
-    // but a round number is easier to type into a config table.
-    let hop = plan.hopSize
-    while (Math.ceil(frames * plan.hopSize / hop) > MAX_GRAM_ROWS) hop *= 2
     throw new Error(
       `The analysed spectrogram would be ${frames} rows tall, above the ${MAX_GRAM_ROWS}-row limit. ` +
-      `Set hop-size to ${hop} (or shorten the recording).`
+      `Set hop-size to ${fittingHopSize(frames, plan.hopSize)} (or shorten the recording).`
     )
   }
   if (columns > MAX_GRAM_COLUMNS) {

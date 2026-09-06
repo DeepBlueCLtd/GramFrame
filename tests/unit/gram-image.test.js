@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { powerToLevels, checkGramSize } from '../../src/audio/gramImage.js'
+import { powerToLevels, checkGramSize, fitGramSize } from '../../src/audio/gramImage.js'
 import { levelsToPixels } from '../../src/audio/colourMap.js'
 
 /** The caps gramImage enforces (research.md §5.2); duplicated here so the test says what it expects. */
@@ -62,7 +62,28 @@ describe('the colour table (through levelsToPixels)', () => {
   })
 })
 
-describe('checkGramSize (FR-007)', () => {
+describe('fitGramSize (spec 171, FR-023 to FR-025)', () => {
+  const plan = { fftSize: 1024, hopSize: 512, sampleRate: 44100 }
+  test('a gram inside the caps is left exactly as asked for', () => {
+    expect(fitGramSize(MAX_GRAM_ROWS, MAX_GRAM_COLUMNS, plan)).toBeNull()
+  })
+  test('a too-tall gram is offered at a coarser hop rather than refused', () => {
+    expect(fitGramSize(60000, 512, plan)).toEqual({ parameter: 'hop-size', requested: 512, used: 1024 })
+  })
+  test('the substituted hop is the one that actually fits, however far over the cap', () => {
+    const degraded = fitGramSize(600000, 512, plan)
+    if (!degraded) throw new Error('600000 rows must be degraded, not accepted')
+    // 600000 frames at hop 512 is 600000 x 512 samples; the hop offered must
+    // bring the row count inside the cap, and be a power-of-two multiple.
+    expect(Math.ceil(600000 * 512 / degraded.used)).toBeLessThanOrEqual(MAX_GRAM_ROWS)
+    expect(degraded.used / 512).toBe(2 ** Math.round(Math.log2(degraded.used / 512)))
+  })
+  test('a too-wide gram is still refused: no hop rescues it (FR-025)', () => {
+    expect(() => fitGramSize(100, 5000, plan)).toThrow(/5000 columns.*fft-size/s)
+  })
+})
+
+describe('checkGramSize (spec 168, FR-007 — the refusal behind the substitution)', () => {
   const plan = { fftSize: 1024, hopSize: 512, sampleRate: 44100 }
   test('accepts a gram at the caps', () => {
     expect(() => checkGramSize(MAX_GRAM_ROWS, MAX_GRAM_COLUMNS, plan)).not.toThrow()

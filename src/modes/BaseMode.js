@@ -18,7 +18,6 @@
  * no-op, but cross-module callers reach it through the `PersistentFeatureProvider`
  * capability in `modes/capabilities.js` rather than through this base class.
  */
-import { isTimeRevealed } from '../player/playerView.js'
 
 export class BaseMode {
   /**
@@ -214,20 +213,6 @@ export class BaseMode {
       zoom: this.instance.state.zoom,
       frequencyRate: this.instance.state.frequencyRate
     }
-  }
-
-  /**
-   * Whether a feature at this time may be drawn.
-   *
-   * On an audio-sourced gram (spec 168, FR-018) only times that have been
-   * played or sought past are revealed; on an image-backed instance every
-   * time is. The one thing a mode learns about the player, and it learns it
-   * through the base class rather than by reading `state.player` itself.
-   * @param {number} time - Seconds
-   * @returns {boolean} True when a feature there should be rendered
-   */
-  isTimeRevealed(time) {
-    return isTimeRevealed(this.instance, time)
   }
 
   /**

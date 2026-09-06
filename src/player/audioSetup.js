@@ -17,15 +17,34 @@
 import { loadAudioBytes } from '../audio/audioSource.js'
 import { decodeWav } from '../audio/wavDecoder.js'
 import { planAnalysis, analyse } from '../audio/spectrogram.js'
-import { checkGramSize, powerToLevels, paintGram } from '../audio/gramImage.js'
+import { fitGramSize, checkGramSize, powerToLevels, paintGram } from '../audio/gramImage.js'
 import { updateSVGLayout } from '../components/svgLayout.js'
 import { updatePersistentPanels } from '../components/MainUI.js'
 import { createErrorIndicator } from '../components/ErrorIndicator.js'
 import { createTransportBar } from '../components/TransportBar.js'
+import { createDisplayRangeControls } from '../components/DisplayRangeControls.js'
 import { dispatch } from '../core/state.js'
 import { createTransport } from './transport.js'
 import { PLAYER_RENDER_WIDTH, PLAYER_RENDER_HEIGHT } from './playerView.js'
 import { createExpandToggle } from '../components/ExpandToggle.js'
+
+/**
+ * The caption naming what the render caps changed (spec 171, FR-024).
+ *
+ * An author sees this once, at authoring time, and needs to know their
+ * `hop-size` is not the one in force — a degraded load that said nothing would
+ * be worse than the refusal it replaced.
+ * @param {import('../audio/gramImage.js').DegradedAnalysis} degraded - What was changed
+ * @returns {HTMLDivElement} The note
+ */
+function createDegradedNote(degraded) {
+  const note = document.createElement('div')
+  note.className = 'gram-frame-degraded-note'
+  note.setAttribute('role', 'note')
+  note.textContent = `This recording is too long to render at ${degraded.parameter} ${degraded.requested}; ` +
+    `it is drawn at ${degraded.parameter} ${degraded.used}.`
+  return note
+}
 
 /**
  * Show progress in the gram area while the recording is prepared (FR-006).
@@ -70,6 +89,51 @@ function failAudioSetup(instance, error) {
 }
 
 /**
+ * Plan the analysis, coarsening it rather than refusing when the requested
+ * settings would exceed the render caps (spec 171, FR-023).
+ *
+ * The fitting hop was already being computed in order to name it in the
+ * refusal message; offering it costs a second `planAnalysis` call. What was
+ * changed is recorded in `player.degraded` so the caption can say so (FR-024),
+ * and the original refusal still stands behind it for anything a coarser hop
+ * cannot rescue (FR-025).
+ * @param {PlayerState} player - The instance's player slice, updated in place with what was used
+ * @param {{sampleRate: number, samples: Float32Array}} decoded - The decoded recording
+ * @returns {import('../audio/spectrogram.js').AnalysisPlan} The plan actually used
+ */
+function planFittingAnalysis(player, decoded) {
+  /**
+   * @param {number} hopSize - Hop to plan at
+   * @returns {import('../audio/spectrogram.js').AnalysisPlan} The plan
+   */
+  const planAt = (hopSize) => planAnalysis({
+    sampleRate: decoded.sampleRate,
+    sampleCount: decoded.samples.length,
+    fftSize: player.analysis.fftSize,
+    hopSize,
+    freqStart: player.analysis.freqStart,
+    freqEnd: player.analysis.freqEnd
+  })
+
+  let plan = planAt(player.analysis.hopSize)
+  if (plan.clamped) {
+    console.warn(`GramFrame: freq-end ${player.analysis.freqEnd} Hz is above this recording's Nyquist frequency (${decoded.sampleRate / 2} Hz); clamped to ${plan.freqEnd} Hz`)
+  }
+
+  const degraded = fitGramSize(plan.frames, plan.columns, plan)
+  if (degraded) {
+    console.warn(`GramFrame: ${plan.frames} analysis frames is above the render limit; ${degraded.parameter} raised from ${degraded.requested} to ${degraded.used}`)
+    plan = planAt(degraded.used)
+    player.analysis.hopSize = degraded.used
+    player.degraded = degraded
+  }
+  // Anything the substitution could not rescue is still refused, with the
+  // message it always had.
+  checkGramSize(plan.frames, plan.columns, plan)
+  return plan
+}
+
+/**
  * Load, decode, analyse and paint the recording, then finish initialising.
  * @param {GramFrame} instance - GramFrame instance
  * @returns {Promise<void>} Resolves when the instance is ready or has failed
@@ -93,18 +157,7 @@ export async function setupAudioSource(instance) {
     player.channels = decoded.channels
     setProgress(instance, 0.2, 'Analysing audio')
 
-    const plan = planAnalysis({
-      sampleRate: decoded.sampleRate,
-      sampleCount: decoded.samples.length,
-      fftSize: player.analysis.fftSize,
-      hopSize: player.analysis.hopSize,
-      freqStart: player.analysis.freqStart,
-      freqEnd: player.analysis.freqEnd
-    })
-    if (plan.clamped) {
-      console.warn(`GramFrame: freq-end ${player.analysis.freqEnd} Hz is above this recording's Nyquist frequency (${decoded.sampleRate / 2} Hz); clamped to ${plan.freqEnd} Hz`)
-    }
-    checkGramSize(plan.frames, plan.columns, plan)
+    const plan = planFittingAnalysis(player, decoded)
 
     const grid = await analyse(decoded.samples, plan, {
       onProgress: fraction => setProgress(instance, 0.2 + 0.7 * fraction, 'Analysing audio')
@@ -139,12 +192,22 @@ export async function setupAudioSource(instance) {
     player.analysis.columns = plan.columns
     player.analysis.frames = plan.frames
     player.playhead = 0
-    player.viewTop = 0
+    // The first window of the recording, rather than the blank above its
+    // start: the whole gram is drawn from load now (spec 171, FR-005), so the
+    // opening view is of the recording rather than of the space before it.
+    player.viewTop = Math.min(player.windowSeconds, decoded.duration)
     player.progress = 1
     player.ready = true
 
     createTransport(instance)
-    createTransportBar(instance)
+    const bar = createTransportBar(instance)
+    // Contrast, and the caption for anything the caps changed: both belong to
+    // an audio-sourced instance only (FR-014), so both are mounted here rather
+    // than anywhere an image instance would reach.
+    createDisplayRangeControls(instance, bar, player.display)
+    if (player.degraded) {
+      bar.parentElement?.insertBefore(createDegradedNote(player.degraded), bar)
+    }
 
     container.classList.remove('gram-frame-loading', 'gram-frame-analysing')
     delete instance.ui.mainCell.dataset.gramProgress

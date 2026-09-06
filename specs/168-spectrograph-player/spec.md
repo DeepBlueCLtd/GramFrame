@@ -295,18 +295,20 @@ a section for audio-sourced instances.
   marker still nudges it. The concrete bindings are a plan-phase decision.
 - **Long or high-rate files**: a five-minute 96 kHz stereo file produces a
   gram far taller than the browser's largest paintable surface. The plan
-  must state the maximum image height the render path can hold, and the
-  player must refuse (with the error indicator) rather than truncate
-  silently when a file exceeds it.
+  states the maximum image height the render path can hold; the player draws
+  the gram at the coarser hop that fits and says so in a caption (spec 171,
+  FR-023/FR-024), and refuses — with the error indicator, never a silent
+  truncation — only when no substitution rescues the file (FR-025).
 - **Frequency crop above Nyquist**: `freq-end` above half the sample rate is
   clamped to Nyquist and a console warning names the clamp.
 - **`window-seconds` longer than the file**: the whole file fits in the
   view; the lower part stays blank and the view never scrolls.
 - **Seek while paused**: the view moves to the target window and rows up to
   the target are revealed, without starting playback.
-- **Rate change and pitch**: changing `playbackRate` changes audible pitch
-  unless the browser preserves it. The displayed gram is computed from the
-  original audio and is never re-analysed at the new rate.
+- **Rate change and pitch**: pitch is preserved across a rate change unless
+  the config table's `preserve-pitch` row says otherwise (spec 171, FR-021 and
+  FR-022). The displayed gram is computed from the original audio and is never
+  re-analysed at the new rate.
 - **Storage keying**: an instance's annotations are keyed as today. Because
   time is absolute in the recording, an annotation saved at 12 s is at 12 s
   after reload regardless of where the view was when it was saved.
@@ -375,13 +377,21 @@ a section for audio-sourced instances.
 - **FR-010**: Time MUST increase upward, as it does today; the newest revealed
   audio is the top row of the visible window and the window shows
   `[playhead - window-seconds, playhead]`. Time before 0 is blank.
-- **FR-011**: Rows MUST be revealed only up to the playhead; the picture MUST
-  never show audio that has not yet been played or sought past.
+- **FR-011**: ~~Rows MUST be revealed only up to the playhead; the picture MUST
+  never show audio that has not yet been played or sought past.~~
+  **Withdrawn by [spec 171](../171-player-refinements/spec.md) FR-003.** The
+  product owner dropped the reveal rule (research 169 §9, Q1): the whole gram
+  is drawn from the moment it is analysed. What is lost — "you only know what
+  you have heard" — is recorded as a trade in spec 171's Risks, not as a
+  defect.
 - **FR-012**: During playback the view MUST follow the playhead every
   animation frame, and audio-to-picture alignment MUST stay within SC-003.
 - **FR-013**: During playback, pointer hover readouts MUST work; annotation
-  create/move/delete, pan and zoom MUST be inert, and the cursor MUST show
-  that they are.
+  create/move/delete MUST be inert, and the cursor MUST show that they are.
+  **Narrowed by [spec 171](../171-player-refinements/spec.md) FR-004a**: pan
+  and zoom are no longer inert. A press-and-drag pauses playback and resumes
+  where the view is released (spec 171 FR-015, FR-016), and time zoom is
+  permitted while playing (FR-018). Region zoom stays inert.
 - **FR-014**: The spectrogram MUST use the existing coordinate pipeline
   (`utils/coordinates.js`) so that every existing mode measures the moving
   gram correctly without mode-specific changes.
@@ -390,13 +400,17 @@ a section for audio-sourced instances.
 
 **Annotations (Story 4)**
 
-- **FR-016**: When paused, every existing mode MUST work unchanged on the
-  revealed range, and pan/zoom MUST be confined to `[0, playhead]`.
+- **FR-016**: When paused, every existing mode MUST work unchanged, and
+  pan/zoom MUST be confined to the recording — `[0, duration]`.
+  **Rewritten by [spec 171](../171-player-refinements/spec.md) FR-003/FR-007**;
+  it read "on the revealed range … confined to `[0, playhead]`".
 - **FR-017**: Annotations MUST be stored in data coordinates (absolute
   seconds, Hz) and redrawn each frame at the screen position those map to,
   so they scroll with the gram and reappear on seek or loop.
-- **FR-018**: Annotations whose time is beyond the current playhead MUST NOT
-  be drawn.
+- **FR-018**: ~~Annotations whose time is beyond the current playhead MUST NOT
+  be drawn.~~ **Withdrawn by [spec 171](../171-player-refinements/spec.md)
+  FR-003/FR-006.** Every annotation is drawn wherever it sits in time, and one
+  may be placed anywhere in a recording that has never been played.
 - **FR-019**: Annotation persistence MUST reuse the existing storage layer
   and warning banner without a schema bump for existing image-backed data.
 
@@ -468,21 +482,26 @@ a section for audio-sourced instances.
 
 ## Assumptions
 
-- **Unplayed audio stays hidden.** The interview chose both "whole file
-  precomputed, pan anywhere when paused" and "blank view that fills on
-  play". These are reconciled as: compute everything up front (for speed and
-  seeking), but reveal only `[0, playhead]`. Seeking forward reveals up to
-  the target. If the product owner would rather let a paused trainee scroll
-  ahead into unplayed audio, FR-011, FR-016 and FR-018 change and Story 4
-  scenario 2 with them.
+- ~~**Unplayed audio stays hidden.**~~ **Superseded.** This assumption named
+  its own escape hatch — "if the product owner would rather let a paused
+  trainee scroll ahead into unplayed audio, FR-011, FR-016 and FR-018 change"
+  — and that is exactly what happened (research 169 §9, Q1;
+  [spec 171](../171-player-refinements/spec.md) US1). Everything is still
+  computed up front; nothing is withheld.
 - **Play resumes from the playhead, not the view.** Panning while paused
   does not move the playhead; resuming snaps the view back to the playhead
   window (Story 4 scenario 4).
-- **Rate change may alter pitch.** The player uses the browser's native
-  pitch handling; pitch preservation is not a requirement. The gram is never
-  recomputed for a rate change.
-- **Pan/zoom is suspended during play**, including frequency zoom. Allowing
-  frequency-axis zoom while playing is a plausible later enhancement.
+- **Rate change preserves pitch.** Corrected by
+  [spec 171](../171-player-refinements/spec.md) FR-001: this assumption said
+  the player used the browser's native pitch handling, but every engine in the
+  baseline defaults to preserving pitch, so the shipped player was
+  pitch-preserving in fact. It is now assigned explicitly (FR-021) and an
+  author may select resampling per exercise with `preserve-pitch`. The gram is
+  never recomputed for a rate change.
+- ~~**Pan/zoom is suspended during play**~~ — the "plausible later
+  enhancement" this assumption named is [spec
+  171](../171-player-refinements/spec.md) US3: a drag seeks, and zoom works
+  while playing.
 - **Default colour map** is the implementation's choice, chosen to resemble
   the existing sample grams; a configurable map is out of scope.
 - **Browser baseline** is the existing one (Chrome/Edge 84 class); the Web

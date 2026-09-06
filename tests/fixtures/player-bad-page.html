@@ -12,9 +12,15 @@
   <!--
     Three tables (spec 168, FR-007). The first names a file that is not a WAV,
     the second a file that does not exist (and has no sidecar), the third a
-    good file with a hop-size that would make the gram 160,000 rows tall. All
-    three must fail with the standard error indicator; the fourth, healthy,
-    table must be unaffected (AS-2.4).
+    good file with an fft-size that would make the gram wider than the column
+    cap. All three must fail with the standard error indicator; the fourth,
+    healthy, table must be unaffected (AS-2.4).
+
+    The third used to be a hop-size that made the gram 160,000 rows *tall*.
+    That is no longer a failure: spec 171 (FR-023) offers a coarser hop
+    instead, and tests/fixtures/player-degraded-page.html covers it. Width is
+    the case no single substitution rescues (FR-025), so it is what stands
+    here.
   -->
   <div class="component-container">
     <table class="gram-config" id="not-a-wav">
@@ -25,7 +31,7 @@
     </table>
     <table class="gram-config" id="oversize">
       <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
-      <tr><td>hop-size</td><td>1</td></tr>
+      <tr><td>fft-size</td><td>8192</td></tr>
     </table>
     <table class="gram-config" id="healthy">
       <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>

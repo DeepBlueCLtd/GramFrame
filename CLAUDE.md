@@ -89,8 +89,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `gramImage.js` - Percentile-normalised levels, the size cap, canvas → PNG data URL
   - `audioSource.js` - `fetch`, falling back to the `<name>.wav.js` sidecar over `file://`
 - `src/player/` - The player around that chain:
-  - `audioSetup.js` - The audio twin of `spectrogramImage.js`: load → analyse → paint → ready, then the deferred annotation restore
-  - `transport.js` - The `<audio>` element and `instance.player` (play/pause/seek/loop/playback rate/volume/mute)
+  - `audioSetup.js` - The audio twin of `spectrogramImage.js`: load → analyse → paint → ready, then the deferred annotation restore. Coarsens the analysis rather than refusing when the caps demand it (spec 171)
+  - `transport.js` - The `<audio>` element and `instance.player` (play/pause/seek/loop/playback rate/volume/mute), with `preservesPitch` stated rather than inherited
+  - `dragSeek.js` - Dragging a *playing* gram: pause under the hand, resume from
+    the time the view was released at. The transport's, not a mode's — the
+    gesture pairs a pan with a pause and a resume time
   - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow
     loop, the reveal rule, and the time read off a click on the time axis
 - `src/core/` - Core system modules:
@@ -106,6 +109,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     last-writer-wins; deletions travel as tombstones, because a union cannot
     otherwise tell "never had it" from "deleted it" (issue #269)
   - `keyboardControl.js` - Arrow-key control, selection and restyling
+  - `wheelPan.js` - The middle-button pan, as a drag on the shared engine. Split
+    from `events.js`, which owns *which* gesture happens rather than how each
+    one behaves
   - `regionZoom.js` - Region zoom: the Shift + left-drag gesture (spec 170).
     Resolved in `events.js` ahead of mode delegation, like every other
     cross-mode navigation gesture, so no part of it can reach a mode and place
@@ -162,7 +168,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `PinToggle.js` - Harmonic-pin visibility toggle
   - `ExpandToggle.js` - Expand/collapse the image to fill the space
   - `StorageWarning.js` - Non-blocking banner when a save fails
-  - `TransportBar.js` - The playback controls under an audio-sourced gram
+  - `TransportBar.js` - The playback controls under an audio-sourced gram, the
+    visible time span, and the polite live region a screen reader hears
+  - `DisplayRangeControls.js` - The contrast floor and ceiling, on that bar
   - `ErrorIndicator.js` - The standard initialisation-error box, shared by the API and the audio setup
   - `LEDDisplay.js` - Digital display component
   - `table.js` - Component scaffold: builds the DOM structure and replaces the
@@ -180,6 +188,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     repeats its neighbour (issue #259)
   - `symbols.js` - Marker/harmonic symbol shapes
   - `labels.js` - Marker label placement and element (feature 231)
+  - `displayFilter.js` - The contrast controls' `feComponentTransfer`: built into
+    the SVG's defs on first use, removed entirely at the resting positions so the
+    default is the image as it loaded
   - `markerGlyph.js` - What an analysis marker is drawn as: the crosshair, or the
     shaped symbol that replaces it. `drawsCrosshair` is the one answer to "does
     this marker have arms?", so the hit test asks it rather than re-deriving the
@@ -193,6 +204,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     free selection, the `contain` fit that decides the resulting view, and the
     clamp to the gram's edge. Pure functions over the viewport, so the rules an
     analyst feels are covered without a browser
+  - `displayRange.js` - The contrast controls' arithmetic: the two ends never
+    cross, and the linear transfer the filter is given
   - `axisFormat.js` - The one statement of "the tick interval decides the
     precision", shared by both axes and by the region-zoom span readout
   - `doppler.js` - Doppler-specific calculations
@@ -339,19 +352,34 @@ There is no visual/screenshot regression testing — see
   stay flat — `state` deliberately so, since it is the broadcast state
 
 ### Audio-sourced instances (spec 168)
-- The config table's first row holds `<audio src>` instead of `<img>`; five optional
-  rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`) set the
-  analysis. `core/configuration.js` parses both kinds
+- The config table's first row holds `<audio src>` instead of `<img>`; six optional
+  rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`,
+  `preserve-pitch`) set the analysis and playback. `core/configuration.js` parses
+  both kinds
 - The gram is one tall image of the whole recording: `config = [0, duration] ×
   [freq-start, freq-end]`, natural size = bins × frames, rendered at 900 × 400.
   `imageDetails.timeStretch` draws it `duration / window-seconds` times taller than
   the axes, and `state.player.viewTop` (the time at the top edge) positions it; both
   are applied in `svgLayout.applyZoomTransform`. Every transform in
   `utils/coordinates.js` reads the live element bounds, so nothing else changes
-- Reveal: `viewTop ≤ playhead` always; the image clip's top edge is the playhead's
-  row; `BaseMode.isTimeRevealed(t)` is the one thing a mode knows about the player
-- While playing, `core/events.js` returns before delegating pointer events to the
-  mode and `keyboardControl.js` skips nudges (FR-013); hover readouts still run
+- The whole gram is drawn from load (spec 171, FR-005): `clampViewTop` is bounded
+  by the duration, the image clip is the axes area, and nothing asks whether a
+  time has been played before drawing at it — `isTimeRevealed` is gone
+- While playing, `core/events.js` and `keyboardControl.js` hold **annotation**
+  inert (spec 171, FR-017); a press-and-drag is a drag-seek instead
+  (`player/dragSeek.js`: pause under the hand, resume from the released view,
+  window-level listeners so a release off the component still resumes), wheel
+  zoom works, and hover readouts still run. Shift + drag declines the drag-seek:
+  region zoom while playing is not revived
+- Contrast (spec 171, US2) is two sliders on the transport bar over the *painted*
+  8-bit levels — an SVG `feComponentTransfer`, so no re-analysis — and it is
+  contrast, not a dB display range: what the percentile normalisation clipped
+  when the PNG was painted is gone. `player.display` is view state like zoom:
+  never persisted, never annotation data, absent from image instances
+- A recording too tall for the render caps loads at the hop that fits, with a
+  caption naming what changed (FR-023/FR-024); one too *wide* is still refused
+- Playback rates are 0.25 to 4 and `preservesPitch` is assigned explicitly,
+  default true, overridable per exercise by the `preserve-pitch` config row
 - Samples cannot be fetched over `file://` (research.md §3.1): the loader falls back
   to a `<name>.wav.js` sidecar from `scripts/wav2js.mjs`. Web Audio is not used —
   the decoder is ours and playback is the `<audio>` element
@@ -413,6 +441,7 @@ There is no visual/screenshot regression testing — see
 - Unchanged — Web Storage (`localStorage` trainer / `sessionStorage` student). No persisted-shape change in this phase. (167-structural-refactor)
 
 ## Recent Changes
+- 171-player-refinements: The whole gram from load (the reveal rule withdrawn), contrast controls, drag-to-seek and zoom while playing, a 0.25–4 rate ladder with explicit pitch, oversize recordings degraded rather than refused, and a polite transport live region
 - 170-region-zoom: Shift-drag a box to zoom into it, in every mode, plus a Fit button and a live aspect-locked selection overlay
 - 167-structural-refactor: Planned Phase 3 — strict type gate burn-down (540 errors), state⇄modes decoupling, table.js split, capability seams, shrunk instance surface
 - 166-consolidation: Planned Phase 2 consolidation — one coordinate pipeline, one drag engine, batched notifications, one diffing table, deterministic tests

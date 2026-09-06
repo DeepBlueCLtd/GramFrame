@@ -68,8 +68,9 @@ The first row must contain an `<img>` element with the spectrogram image (using 
 A config table may name a WAV recording instead of an image. GramFrame then
 decodes the file in the browser, analyses it into a spectrogram, and shows it
 as a *waterfall*: press play and the newest sound enters at the top of the gram
-while everything already shown slides down, in step with the audio. Pause, and
-every annotation tool works on what has been played; the annotations scroll
+while everything already shown slides down, in step with the audio. The whole
+recording is drawn from the moment it loads, so it can be scrolled through,
+measured and annotated before a note has been played; the annotations scroll
 with the gram when play resumes.
 
 ```html
@@ -92,6 +93,7 @@ is optional.
 | `freq-start` | Hz | 0 | Lowest frequency shown |
 | `freq-end` | Hz | half the sample rate | Highest frequency shown. Above the recording's Nyquist frequency it is clamped, with a console warning |
 | `window-seconds` | seconds > 0 | 10 | How much of the recording the unzoomed view spans |
+| `preserve-pitch` | `true` / `false` | `true` | Whether a change of playback speed keeps the pitch. `false` resamples instead, so slowing the recording lowers the pitch with it, as slowing a tape does |
 
 `time-start` and `time-end` are ignored on an audio table, with a console
 warning: the recording defines its own time range, `0` to its duration.
@@ -100,10 +102,13 @@ warning: the recording defines its own time range, `0` to its duration.
 
 WAV only: PCM 8, 16, 24 or 32-bit or 32-bit float, mono or stereo (stereo is
 mixed to mono for both analysis and playback). Keep recordings to a few
-minutes. The analysed gram is capped at 32,768 rows by 4,096 columns; a
-recording that would exceed the cap is refused with the standard error
-indicator, and the message names the `hop-size` that would bring it inside.
-Three minutes at 44.1 kHz with the defaults is about 15,500 rows.
+minutes. The analysed gram is capped at 32,768 rows by 4,096 columns. A
+recording that would be too *tall* is drawn at the coarser `hop-size` that
+fits, with a caption under the gram naming what was asked for and what was
+used — it loads rather than being refused. A gram too *wide* is still refused
+with the standard error indicator, since no substitution rescues it: lower
+`fft-size` or narrow the frequency range. Three minutes at 44.1 kHz with the
+defaults is about 15,500 rows.
 
 ### Serving over `file://`
 
@@ -123,15 +128,37 @@ everything below 11 kHz.
 
 ### Playback and keys
 
-The bar under the gram offers play/pause, restart, a seek slider, loop, playback rate
-(0.5× to 2×), mute and volume; a click on the time axis also seeks. When a
-player has keyboard focus (click on it), `Space` or `K` toggles play,
-`J`/`L` seek 5 s back or forward (30 s with `Shift`), `Home` restarts and `M`
-mutes. Arrow keys keep nudging a selected annotation. Image-backed grams are
-unaffected by any of these.
+The bar under the gram offers play/pause, restart, a seek slider, the visible
+time span, loop, playback rate (0.25× to 4×), mute and volume; a click on the
+time axis also seeks. When a player has keyboard focus (click on it), `Space`
+or `K` toggles play, `J`/`L` seek 5 s back or forward (30 s with `Shift`),
+`Home` restarts and `M` mutes. Arrow keys keep nudging a selected annotation.
+Image-backed grams are unaffected by any of these.
 
-Changing the playback rate changes the audible pitch (the browser's default); the gram
-is never re-analysed, so the frequency readouts stay true.
+Changing the playback rate keeps the pitch, so what is heard still matches what
+the frequency readout says; `preserve-pitch` false in the config table selects
+resampling instead. Either way the gram is never re-analysed, so the readouts
+stay true.
+
+### Moving around a recording that is playing
+
+Press and drag the gram while it plays: playback pauses under your hand, the
+view follows the drag, and releasing resumes from the time the view was left
+at — including when you let go outside the component. The wheel still zooms
+while playing (the view keeps the playhead at its top edge, and the bar states
+the span in seconds). Placing, moving, restyling and deleting annotations stay
+inert until you pause, and `Shift`-drag region zoom is likewise a paused-only
+gesture.
+
+### Contrast
+
+Two sliders on the transport bar — a floor and a ceiling — re-map the drawn
+levels live, to lift a faint tonal out of the background; `Reset` returns the
+picture to exactly how it loaded. They change how the gram *looks* and nothing
+else: every readout, annotation and saved value is untouched. They act on the
+painted image, so detail the analysis already clipped cannot be recovered by
+them, and they appear on audio-sourced grams only — an author-supplied PNG is
+shown as it was made.
 
 The expand toggle (⤡) at the top-left of the gram works as it does on an
 image: it grows the axes area to fill the window, with the transport bar kept

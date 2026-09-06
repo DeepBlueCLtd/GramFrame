@@ -44,13 +44,17 @@ analyses a three-minute file in under two seconds.
    `<name>.wav.js`, written by `scripts/wav2js.mjs`, registers the file's
    bytes as base64 on `window.GramFrameAudio`; the loader injects it as a
    `<script>` only after `fetch` has failed. No change to authored HTML.
-5. **Reveal is structural.** `viewTop ≤ playhead` is clamped everywhere the
-   view moves; the image clip's top edge is the playhead's row; and
-   `BaseMode.isTimeRevealed(time)` is the single thing a mode learns about the
-   player, used by the three feature renderers to skip annotations whose
-   moment has not been played.
+5. ~~**Reveal is structural.**~~ **Withdrawn by spec 171 (FR-003, FR-005).**
+   The whole gram is drawn from the moment it is analysed: `clampViewTop` is
+   bounded by the recording's duration, the image clip is the axes area, and
+   `BaseMode.isTimeRevealed` — with the three renderer guards that used it — is
+   gone. A mode now learns nothing at all about the player. What that costs is
+   recorded in spec 171's Risks: a trainee can read ahead of the audio, which
+   for a detection exercise is the thing the rule protected.
 6. **Inertness while playing is decided in `core/events.js`**, before any
-   mode is reached, so no mode changes its handlers.
+   mode is reached, so no mode changes its handlers. Spec 171 (FR-017) narrowed
+   it to *annotation* inertness: the same place now hands a press on a playing
+   gram to `player/dragSeek.js` and lets a wheel zoom through.
 7. **The canvas is image production, not overlay rendering.** It is created
    once, off screen, at load, and never attached to the DOM; the constitution's
    SVG-first principle (overlays in SVG, coordinates through `coordinates.js`)

@@ -220,6 +220,21 @@ function extractAudioConfig(instance, audioElement, params) {
     }
     player.windowSeconds = windowSeconds
   }
+
+  // Which way a rate change should sound, per exercise (spec 171, FR-022).
+  // Absent, the pitch is preserved: the frequency an analyst reads off the gram
+  // and the tonal they hear must agree. `false` selects resampling — the
+  // acoustic family's behaviour, where slowing the recording lowers the pitch
+  // with it, which is what an exercise about listening rather than measuring
+  // may want.
+  const preservePitch = params.get('preserve-pitch')
+  if (preservePitch) {
+    const value = preservePitch.text.trim().toLowerCase()
+    if (!['true', 'false', 'yes', 'no'].includes(value)) {
+      throw new Error(`Invalid preserve-pitch: "${preservePitch.text}" — must be true or false`)
+    }
+    player.preservesPitch = value === 'true' || value === 'yes'
+  }
 }
 
 /**

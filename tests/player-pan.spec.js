@@ -75,7 +75,7 @@ test.describe('Pan drag on an audio-sourced gram', () => {
     expect(afterDown).toBeCloseTo(15, 1)
   })
 
-  test('a downward drag at the playhead is clamped, not scrolled backwards', async ({ page }) => {
+  test('a downward drag past the playhead scrolls on into unplayed time, and clamps at the duration', async ({ page }) => {
     const gfp = await gotoPlayer(page)
     await page.evaluate(() => window.GramFrame.getPlayer(0).seek(15))
     await gfp.waitForState(s => s.player.viewTop === 15, { message: 'seek to 15 s' })
@@ -85,9 +85,20 @@ test.describe('Pan drag on an audio-sourced gram', () => {
     const x = svgBox.x + state.margins.left + 200
     const y = svgBox.y + state.margins.top + 150
 
-    // Nothing above the playhead may come into view, so a downward drag there
-    // holds still. Before the fix it scrolled backwards instead.
+    // Under spec 168 this held still: nothing above the playhead could come
+    // into view. Spec 171 (FR-007) drew the whole recording from load, so the
+    // drag scrolls on — and the direction is still the one the gram follows.
     await gfp.dragSVG(x, y, x, y + 120)
-    expect((await gfp.getState()).player.viewTop).toBe(15)
+    const afterDown = (await gfp.getState()).player.viewTop
+    expect(afterDown).toBeGreaterThan(15)
+    expect(afterDown).toBeLessThan(20)
+
+    // Dragged well past the end, it stops at the recording's duration
+    for (let i = 0; i < 5; i++) {
+      await gfp.dragSVG(x, y, x, y + 200)
+    }
+    expect((await gfp.getState()).player.viewTop).toBe(20)
+    // The playhead has not moved: panning is a view action, not a transport one
+    expect((await gfp.getState()).player.playhead).toBe(15)
   })
 })

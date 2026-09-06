@@ -200,16 +200,84 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   content: attr(data-gram-progress);
 }
 
-/* While the recording plays, annotation tools, pan and zoom are inert
-   (FR-013); the arrow rather than the crosshair says so. !important because
-   the modes set the cursor inline on the SVG root. */
+/* While the recording plays, annotation tools are inert (spec 168 FR-013, as
+   narrowed by spec 171 FR-004a) but the gram can be dragged to seek through it
+   (spec 171, FR-015) — so the open hand, not the crosshair and not the arrow.
+   !important because the modes set the cursor inline on the SVG root. */
 .gram-frame-container.gram-frame-playing .gram-frame-svg {
-  cursor: default !important;
+  cursor: grab !important;
+}
+
+/* The drag itself. Playback is paused for its duration, so the playing class
+   is gone and this rule stands on its own. */
+.gram-frame-container.gram-frame-drag-seek .gram-frame-svg {
+  cursor: grabbing !important;
+}
+
+/* The contrast controls, on the same bar as the transport (spec 171, US2). */
+.gram-frame-display-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 100%;
+}
+
+.gram-frame-display-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 120px;
+}
+
+.gram-frame-display-label {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.gram-frame-display-slider {
+  flex: 1 1 80px;
+  min-width: 60px;
+}
+
+/* The caption naming what the render caps changed (spec 171, FR-024). */
+.gram-frame-degraded-note {
+  margin-top: 8px;
+  padding: 4px 6px;
+  border: 1px solid rgba(230, 200, 120, 0.6);
+  border-radius: 4px;
+  background: rgba(60, 50, 20, 0.75);
+  color: #ffe6a0;
+  font-size: 12px;
+}
+
+/* The transport's live region is for screen readers only (spec 171, FR-026):
+   it carries no visible text of its own, and everything it says is already on
+   the bar for a sighted reader. */
+.gram-frame-transport-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.gram-frame-transport-span {
+  flex: 0 0 auto;
+  min-width: 72px;
+  text-align: center;
+  opacity: 0.85;
 }
 
 /* The transport bar under an audio-sourced gram (spec 168, D13). */
 .gram-frame-transport {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-top: 8px;

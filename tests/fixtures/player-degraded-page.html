@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Player Page - a recording too long for the requested hop</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Degraded load</h1>
+  <!--
+    Spec 171, US5. hop-size 2 over the 160,000-sample fixture asks for 79,969
+    analysis frames, well above the 32,768-row render cap. Rather than being
+    refused (spec 168's answer), the gram is drawn at the hop that fits — 8 —
+    and the caption says so. fft-size 64 keeps the analysis cheap enough to run
+    in a test: the substitution is the subject here, not the FFT.
+  -->
+  <div class="component-container">
+    <table class="gram-config">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>fft-size</td><td>64</td></tr>
+      <tr><td>hop-size</td><td>2</td></tr>
+      <tr><td>window-seconds</td><td>5</td></tr>
+    </table>
+  </div>
+  <div class="diagnostics-panel" style="display:none;"><pre id="state-display">Loading...</pre></div>
+</body>
+</html>
