@@ -116,9 +116,6 @@ export class GramFrame {
     // Replaced by the colour picker when it mounts; a no-op until then, so a
     // caller arriving early does nothing rather than throwing.
     syncStyleControls: () => {},
-    _symbolControl: null,
-    _pinControl: null,
-    _largeSymbolsControl: null,
     _registeredListeners: [],
     _wheelPanHandler: null,
     _wheelPanLast: null

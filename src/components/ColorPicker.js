@@ -123,13 +123,15 @@ export function createColorPicker(instance) {
 
   // The drop-down's glyphs are tinted with the currently selected colour, so it
   // doubles as the colour readout.
-  const symbolSelect = createSymbolSelect(instance)
+  const symbol = createSymbolSelect(instance)
+  const symbolSelect = symbol.element
   symbolRow.appendChild(symbolSelect)
 
   // TEMPORARY (size experiment): the size toggle sits alongside the drop-down
   // it modifies, for feedback on whether larger symbols read better on a real
   // gram.
-  symbolRow.appendChild(createLargeSymbolToggle(instance))
+  const largeSymbols = createLargeSymbolToggle(instance)
+  symbolRow.appendChild(largeSymbols.element)
 
   // --- Pin band: the pin toggle is the one control that applies to pin sets
   // (harmonic and sideband) rather than to every feature ---
@@ -147,7 +149,8 @@ export function createColorPicker(instance) {
   harmonicsGroup.appendChild(harmonicsRow)
 
   harmonicsRow.appendChild(createGroupLabel('Pin sets'))
-  harmonicsRow.appendChild(createPinToggle(instance))
+  const pin = createPinToggle(instance)
+  harmonicsRow.appendChild(pin.element)
 
   // Add click handler for color selection
   canvas.addEventListener('click', (event) => {
@@ -190,22 +193,22 @@ export function createColorPicker(instance) {
   // Sync both controls (colour indicator + symbol drop-down) to whatever is
   // currently selected, or to the next-feature defaults when nothing is
   // selected (feature 161, FR-004/FR-013).
+  //
+  // The three handles are closed over, not read back off `instance.interaction`.
+  // Each control used to install itself there during construction and this
+  // function used to look them up by name: an ordering contract `tsc` could not
+  // check, which reordering the panel or mounting a picker twice would break in
+  // silence. They are built here, so they can simply be held here (issue #267).
   instance.interaction.syncStyleControls = () => {
-    const { color, symbol, showPin, pinApplies, largeSymbols } = getActiveStyle(instance)
-    showColor(color)
-    if (instance.interaction._symbolControl) {
-      instance.interaction._symbolControl.setValue(symbol)
-      instance.interaction._symbolControl.setTint(color)
-    }
-    if (instance.interaction._pinControl) {
-      instance.interaction._pinControl.setValue(showPin)
-      // Markers have no pin, so the toggle is disabled while one is selected.
-      instance.interaction._pinControl.setEnabled(pinApplies)
-    }
+    const style = getActiveStyle(instance)
+    showColor(style.color)
+    symbol.control.setValue(style.symbol)
+    symbol.control.setTint(style.color)
+    pin.control.setValue(style.showPin)
+    // Markers have no pin, so the toggle is disabled while one is selected.
+    pin.control.setEnabled(style.pinApplies)
     // TEMPORARY (size experiment): keep the size toggle in step with selection.
-    if (instance.interaction._largeSymbolsControl) {
-      instance.interaction._largeSymbolsControl.setValue(largeSymbols)
-    }
+    largeSymbols.control.setValue(style.largeSymbols)
   }
 
   // Initialize indicator position (use canvas coordinates directly)

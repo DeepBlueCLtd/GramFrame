@@ -573,9 +573,6 @@
  * @property {function(string): void} removeHarmonicSet - Delete a harmonic set by id
  * @property {function(string): void} removeSidebandSet - Delete a sideband set by id
  * @property {function(): void} syncStyleControls - Sync the controls to the selection
- * @property {{setValue: function(SymbolType): void, setTint: function(string): void}|null} _symbolControl - Symbol drop-down handle
- * @property {{setValue: function(boolean): void, setEnabled: function(boolean): void}|null} _pinControl - Pin toggle handle
- * @property {{setValue: function(boolean): void}|null} _largeSymbolsControl - "Large" symbol-size checkbox handle
  * @property {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} _registeredListeners - Listeners kept for removal on destroy
  * @property {import('./modes/shared/BaseDragHandler.js').BaseDragHandler|null} _wheelPanHandler - Drag engine for a middle-button pan
  * @property {{x: number, y: number}|null} _wheelPanLast - Last pointer position during a middle-button pan
