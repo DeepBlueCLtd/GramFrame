@@ -430,17 +430,15 @@
         dispatch(instance);
       }
     });
-    instance.interaction._symbolControl = {
-      /** @param {SymbolType} symbol */
+    const control = {
       setValue(symbol) {
         select.value = symbol;
       },
-      /** @param {string} color */
       setTint(color) {
         select.style.color = color;
       }
     };
-    return select;
+    return { element: select, control };
   }
   function createLargeSymbolToggle(instance) {
     const label = document.createElement("label");
@@ -456,8 +454,7 @@
         dispatch(instance);
       }
     });
-    instance.interaction._largeSymbolsControl = {
-      /** @param {boolean} large */
+    const control = {
       setValue(large) {
         checkbox.checked = large;
       }
@@ -467,7 +464,7 @@
     text.textContent = "Large";
     label.appendChild(checkbox);
     label.appendChild(text);
-    return label;
+    return { element: label, control };
   }
   const SVG_NS$5 = "http://www.w3.org/2000/svg";
   const LABEL_PLATE_CLASS = "gram-frame-label-plate";
@@ -1164,19 +1161,17 @@
         dispatch(instance);
       }
     });
-    instance.interaction._pinControl = {
-      /** @param {boolean} showPin */
+    const control = {
       setValue(showPin) {
         checkbox.checked = showPin;
       },
-      /** @param {boolean} enabled */
       setEnabled(enabled) {
         checkbox.disabled = !enabled;
         row.classList.toggle("gram-frame-pin-toggle-disabled", !enabled);
         row.title = enabled ? "Draw harmonic and sideband sets with full-height pin lines instead of mini-pins" : "Tall pins apply to harmonic and sideband sets only";
       }
     };
-    return row;
+    return { element: row, control };
   }
   function commitAnnotationChange(instance, refreshPanel = null, dispatchOptions = void 0) {
     markAnnotationsChanged(instance);
@@ -2559,9 +2554,11 @@
     symbolRow.className = "gram-frame-style-row";
     symbolGroup.appendChild(symbolRow);
     symbolRow.appendChild(createGroupLabel("Symbol"));
-    const symbolSelect = createSymbolSelect(instance);
+    const symbol = createSymbolSelect(instance);
+    const symbolSelect = symbol.element;
     symbolRow.appendChild(symbolSelect);
-    symbolRow.appendChild(createLargeSymbolToggle(instance));
+    const largeSymbols = createLargeSymbolToggle(instance);
+    symbolRow.appendChild(largeSymbols.element);
     const divider = document.createElement("div");
     divider.className = "gram-frame-style-divider";
     container.appendChild(divider);
@@ -2572,7 +2569,8 @@
     harmonicsRow.className = "gram-frame-style-row";
     harmonicsGroup.appendChild(harmonicsRow);
     harmonicsRow.appendChild(createGroupLabel("Pin sets"));
-    harmonicsRow.appendChild(createPinToggle(instance));
+    const pin = createPinToggle(instance);
+    harmonicsRow.appendChild(pin.element);
     canvas.addEventListener("click", (event) => {
       const rect2 = canvas.getBoundingClientRect();
       const x = event.clientX - rect2.left;
@@ -2592,19 +2590,13 @@
       symbolSelect.style.color = color;
     };
     instance.interaction.syncStyleControls = () => {
-      const { color, symbol, showPin, pinApplies, largeSymbols } = getActiveStyle(instance);
-      showColor(color);
-      if (instance.interaction._symbolControl) {
-        instance.interaction._symbolControl.setValue(symbol);
-        instance.interaction._symbolControl.setTint(color);
-      }
-      if (instance.interaction._pinControl) {
-        instance.interaction._pinControl.setValue(showPin);
-        instance.interaction._pinControl.setEnabled(pinApplies);
-      }
-      if (instance.interaction._largeSymbolsControl) {
-        instance.interaction._largeSymbolsControl.setValue(largeSymbols);
-      }
+      const style = getActiveStyle(instance);
+      showColor(style.color);
+      symbol.control.setValue(style.symbol);
+      symbol.control.setTint(style.color);
+      pin.control.setValue(style.showPin);
+      pin.control.setEnabled(style.pinApplies);
+      largeSymbols.control.setValue(style.largeSymbols);
     };
     const initialPosition = getPositionFromColor(state.selectedColor, canvas.width);
     updateIndicatorPosition(indicator, initialPosition, canvas.width);
@@ -9237,9 +9229,6 @@
       // caller arriving early does nothing rather than throwing.
       syncStyleControls: () => {
       },
-      _symbolControl: null,
-      _pinControl: null,
-      _largeSymbolsControl: null,
       _registeredListeners: [],
       _wheelPanHandler: null,
       _wheelPanLast: null
