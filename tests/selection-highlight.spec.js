@@ -93,12 +93,14 @@ test.describe('The selected feature is marked on the gram', () => {
     const page = gramFramePage.page
     expect(await page.locator(HALO).count()).toBeGreaterThan(1)
 
-    // Its number labels keep their white plates, unlike a marker's single
-    // label: a per-member index inverted a dozen times reads as a change of
-    // mode, and a white plate is what makes those numbers legible over any gram.
-    await expect(page.locator('.gram-frame-selected-label')).toHaveCount(0)
+    // Its number labels invert too, the same way a marker's single label does.
+    const plates = page.locator('.gram-frame-selected-label')
+    expect(await plates.count()).toBeGreaterThan(1)
+    expect(await plates.first().locator('.gram-frame-label-plate')
+      .evaluate(el => getComputedStyle(el).fill)).toBe('rgb(13, 14, 24)')
 
     await page.locator('.gram-frame-harmonics-persistent-container tbody tr').first().click()
     await expect(page.locator(HALO)).toHaveCount(0)
+    await expect(plates).toHaveCount(0)
   })
 })

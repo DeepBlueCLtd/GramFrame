@@ -13,17 +13,18 @@
  * independent of the feature's colour, which the tables learnt the hard way
  * (an accent border collided with the colours the rows themselves carry).
  *
- * A marker's label is treated differently, and deliberately: a white glow behind
- * a white plate says nothing, so the plate is **inverted** instead — dark plate,
- * light text — which is exactly what its table row does, so selection reads as
- * one idea in both places.
+ * Labels are treated differently, and deliberately: a white glow behind a white
+ * plate says nothing. A selected feature's plate is **inverted** instead — dark
+ * plate, light text — which is exactly what its table row does, so selection
+ * reads as one idea in both places.
  *
- * A pin set's labels are left alone, which is not an oversight. A marker's label
- * is one plate naming one feature; a set's are a per-member index drawn a dozen
- * or more times, and inverting all of them reads as a change of mode rather than
- * a selection. It would also cost the pin numbers the guarantee issue #243 gave
- * them — a white plate reads over any gram, and the set's halo already says
- * which set is selected.
+ * That applies to a pin set's number labels as much as to a marker's single one.
+ * A set's are a per-member index drawn a dozen or more times, so inverting all
+ * of them is a heavier change than inverting one plate — but it is the same
+ * change, it is reversed the moment the set is deselected, and issue #243's
+ * guarantee is about contrast rather than about white specifically: dark text on
+ * a light plate and light text on a dark one both clear a contiguous rectangle,
+ * which is the whole point of a plate over a halo.
  *
  * A separate pass rather than a flag threaded through every renderer: selection
  * changes far more often than the features do, and this way a click adds and
@@ -103,8 +104,7 @@ export function applySelectionHalo(instance) {
       targets.add(target)
     }
   })
-  const invertLabel = selection.selectedType === 'marker'
-  targets.forEach(target => decorate(group, target, invertLabel))
+  targets.forEach(target => decorate(group, target))
 }
 
 /**
@@ -134,17 +134,13 @@ function clearSelectionHalo(group) {
 }
 
 /**
- * Mark one of a selected feature's elements: halo it, and invert its label when
- * the feature is the kind that carries one of its own.
+ * Mark one of a selected feature's elements: invert its labels, halo the rest.
  * @param {SVGGElement} group - The overlay group
  * @param {Element} target - A top-level element belonging to the feature
- * @param {boolean} invertLabel - Whether this feature's label should invert
  * @returns {void}
  */
-function decorate(group, target, invertLabel) {
-  if (invertLabel) {
-    plates(target).forEach(plate => plate.classList.add(SELECTED_LABEL_CLASS))
-  }
+function decorate(group, target) {
+  plates(target).forEach(plate => plate.classList.add(SELECTED_LABEL_CLASS))
 
   const halo = buildHalo(target)
   if (halo) {
