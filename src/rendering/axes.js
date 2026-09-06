@@ -327,10 +327,10 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
   const axisStartX = margins.left
   const axisEndX = margins.left + naturalWidth
   
-  // Calculate display frequency range (scaled by the frequency rate)
-  const frequencyRate = instance.state.frequencyRate
-  const displayFreqMin = freqMin / frequencyRate
-  const displayFreqMax = freqMax / frequencyRate
+  // No scaling here: these arrive in data scale from `calculateVisibleDataRange`,
+  // the one place the rate is applied. Dividing again quartered labels (#276).
+  const displayFreqMin = freqMin
+  const displayFreqMax = freqMax
   const freqRange = displayFreqMax - displayFreqMin
   
   // Prepare axis configuration

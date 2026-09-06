@@ -9,7 +9,7 @@
 
 import { dispatch, markAnnotationsChanged } from './state.js'
 import { commitAnnotationChange } from './annotationCommit.js'
-import { dataToSVG, svgToImage, imageToData, clampToImage } from '../utils/coordinates.js'
+import { dataToSVG, svgToImage, imageToData, nudgeData, dataFrequencyRange } from '../utils/coordinates.js'
 import { isPanelOwner, findPinSetOwner } from '../modes/capabilities.js'
 import { DEFAULT_SYMBOL } from '../rendering/symbols.js'
 import { registerInstance, unregisterInstance, getFocusedInstance, setFocusedInstance, getRegisteredInstanceCount, clearFocusedInstance, isNodeInsideAnyInstance, instanceContaining } from './FocusManager.js'
@@ -322,30 +322,19 @@ function moveSelectedMarker(instance, markerId, movement) {
     return
   }
 
-  // Move in SVG space, then convert back. The canonical module reads the live
-  // image element, so `movement` is in rendered pixels at any zoom level and
-  // needs no external compensation.
-  //
-  // `dataToSVG` takes frequency in the raw configured scale while `imageToData`
-  // divides by the frequency rate (see the module's note), so it is re-applied on the
-  // way out and removed on the way back — keeping this a true round trip, as
-  // the private pair this replaces was.
-  const currentSVG = dataToSVG(
-    { freq: marker.freq * instance.state.frequencyRate, time: marker.time },
+  // The canonical module reads the live image element, so `movement` is in
+  // rendered pixels at any zoom level and needs no external compensation — and
+  // it owns the round trip, so no frequency-rate compensation happens here or
+  // anywhere else (issue #276). A marker pushed past an edge pins to it rather
+  // than leaving the image, as it did before consolidation.
+  const newData = nudgeData(
+    { freq: marker.freq, time: marker.time },
+    movement.dx,
+    movement.dy,
     instance.state,
     instance.ui.spectrogramImage
   )
-  const newSVG = {
-    x: currentSVG.x + movement.dx,
-    y: currentSVG.y + movement.dy
-  }
 
-  // Clamping is explicit: a marker pushed past an edge pins to it rather than
-  // leaving the image, as it did before consolidation.
-  const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.ui.spectrogramImage)
-  const clamped = clampToImage(image.x, image.y, instance.state)
-  const newData = imageToData(clamped.x, clamped.y, instance.state)
-  
   // Update marker position
   marker.freq = newData.freq
   marker.time = newData.time
@@ -395,7 +384,7 @@ function moveSelectedPinSet(instance, owner, setId, movement) {
     // Measure what one keypress is worth in frequency rather than re-deriving
     // it: take a reference point and the same point moved by the increment.
     const reference = dataToSVG(
-      { freq: instance.state.config.freqMin, time: timeMax },
+      { freq: dataFrequencyRange(viewport).freqMin, time: timeMax },
       viewport,
       image
     )
@@ -408,7 +397,7 @@ function moveSelectedPinSet(instance, owner, setId, movement) {
   // For vertical movement (time/anchor position adjustment)
   if (movement.dy !== 0) {
     const anchorSVG = dataToSVG(
-      { freq: instance.state.config.freqMin, time: set.anchorTime },
+      { freq: dataFrequencyRange(viewport).freqMin, time: set.anchorTime },
       viewport,
       image
     )

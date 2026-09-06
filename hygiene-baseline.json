@@ -1,6 +1,6 @@
 {
   "_comment": "Debt ratchet baselines (specs/164-quality-ratchets). `yarn hygiene` fails any change that raises a count above its baseline. When your change lowers a count, lower the baseline here in the same PR so the improvement is locked in.",
-  "_comment_sc004_exceptions": "spec 167 SC-004 asks that no source module exceed ~350 lines except by documented exception. It is enforced by `moduleLineCaps` below (R9-16); this note records why each exception exists. Modules over the line that no story in spec 167 touched, with why: DopplerMode.js and AnalysisMode.js are feature modes, flagged as candidates for a later phase; PinSetMode.js is the shared pin-set mode Harmonics and Sidebands are built from — extracting it took HarmonicsMode.js from 1054 to 373 and let Sidebands (issue #241) land in ~310; keyboardControl.js and events.js are input handling; GramFrameAPI.js is the public surface plus its failure handling; types.js is declarations, capped rather than exempt so it ratchets like the rest. main.js is over the line too, and is the one module here that a later phase should split. table.js came down from 713 to 151 and is scaffold-only.",
+  "_comment_sc004_exceptions": "spec 167 SC-004 asks that no source module exceed ~350 lines except by documented exception. It is enforced by `moduleLineCaps` below (R9-16); this note records why each exception exists. Modules over the line that no story in spec 167 touched, with why: DopplerMode.js and AnalysisMode.js are feature modes, flagged as candidates for a later phase; PinSetMode.js is the shared pin-set mode Harmonics and Sidebands are built from \u2014 extracting it took HarmonicsMode.js from 1054 to 373 and let Sidebands (issue #241) land in ~310; keyboardControl.js and events.js are input handling; GramFrameAPI.js is the public surface plus its failure handling; types.js is declarations, capped rather than exempt so it ratchets like the rest. main.js is over the line too, and is the one module here that a later phase should split. table.js came down from 713 to 151 and is scaffold-only.",
   "_comment_moduleLines": "spec 167 SC-004, now enforced (R9-16). `moduleLineCaps` records every module currently over `moduleLineDefault`; a module without an entry must stay under the default, so a new one cannot quietly grow past the line and then be grandfathered in. Caps only ever fall: when a module shrinks by 10 lines or more, `yarn hygiene` says so and the cap is lowered in the same PR. The caps below are the sizes at the moment the ratchet was introduced -- they record the debt, they do not bless it.",
   "_comment_moduleLines_reset": "The caps were first measured on the branch that introduced the ratchet (#302). Six other PRs merged to main between that measurement and that merge -- #295, #298, #299, #305, #306 among them -- so the caps landed already below the tree they were meant to guard and main failed its own gate. They are re-measured here against main, once. This is the only reset: from this commit the ratchet is live, and a module that grows past its cap is a regression to fix rather than a number to raise.",
   "_comment_moduleLines_main_268": "src/main.js: 969 -> 966. #310 raised this to 969 for the named bootstrap issue #272 needed, and pointed at #268 as where it should come back down. It comes down 3: the duplicated drag-cancel loop is one helper and three comments describing removed behaviour are gone. That is short of the 962 the cap stood at before #310 -- the cleanup did not free everything #272 cost. Splitting main.js, which CLAUDE.md already names as the one module a later phase should split, is what recovers the rest.",
@@ -8,7 +8,7 @@
   "moduleLineCaps": {
     "src/api/GramFrameAPI.js": 415,
     "src/core/events.js": 484,
-    "src/core/keyboardControl.js": 716,
+    "src/core/keyboardControl.js": 698,
     "src/core/state.js": 423,
     "src/core/storage.js": 1025,
     "src/main.js": 966,
@@ -21,14 +21,14 @@
     "src/types.js": 774
   },
   "_comment_uncoveredUnitLines": "R9-11 (issue #266). Lines in the unit lane's scope - the module list in vitest.config.js - that no unit test executes. A count, so it falls like every other ratchet here, rather than a percentage that would need an inverted comparison and could rise while the untested code grew. Regenerate with `yarn coverage`; `yarn hygiene` skips the check when no summary is present.",
-  "uncoveredUnitLines": 430,
+  "uncoveredUnitLines": 411,
   "circularDependencies": 0,
   "unusedExportModules": 4,
   "_comment_specTypeErrors": "R9-10. `yarn typecheck` (tsconfig.json) covers src/, tests/helpers, tests/unit and scripts/ and must stay at zero. The Playwright spec files carry the rest -- mostly unguarded nulls from `boundingBox()` and `querySelector` inside `page.evaluate` -- and are counted here through tsconfig.specs.json so the debt is visible and falling rather than invisible. At zero, fold tests/**/*.js into tsconfig.json and delete tsconfig.specs.json.",
   "specTypeErrors": 510,
   "waitForTimeoutOccurrences": 1,
   "_comment_instanceSurface": "specs/167-structural-refactor Story 5. instanceStateReachIns counts lines containing `instance.state` under src/; instanceFields counts class-field declarations between `export class GramFrame` and its constructor in src/main.js.",
-  "instanceStateReachIns": 154,
+  "instanceStateReachIns": 145,
   "_comment_instanceFields_168": "Raised 11 -> 12 by spec 168: `player` is a fifth grouped sub-object (the audio element, its controller and follow loop share one lifetime), not a flat field returning to the surface.",
   "instanceFields": 12
 }

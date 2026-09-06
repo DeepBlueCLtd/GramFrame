@@ -1,5 +1,6 @@
 import { PinSetMode, MIN_PIN_SPACING } from '../shared/PinSetMode.js'
 import { updateSidebandPanelContent, createSidebandPanel } from '../../components/SidebandPanel.js'
+import { dataFrequencyRange } from '../../utils/coordinates.js'
 
 /**
  * Sidebands mode implementation (issue #241).
@@ -136,7 +137,9 @@ export class SidebandMode extends PinSetMode {
    * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
    */
   createSetTarget(dataCoords) {
-    const { freqMin, freqMax } = this.instance.state.config
+    // Data scale: the seed spacing is compared with, and stored alongside,
+    // frequencies that carry the frequency rate (issue #276).
+    const { freqMin, freqMax } = dataFrequencyRange(this.getViewport())
     const span = Math.abs(freqMax - freqMin)
     const initialSpacing = Math.max(span / SidebandMode.INITIAL_SIDEBAND_COUNT, MIN_PIN_SPACING)
 
@@ -174,7 +177,7 @@ export class SidebandMode extends PinSetMode {
    */
   freqUpdatesForDrag(set, clickedIndex, currentPos) {
     if (clickedIndex === 0) {
-      const { freqMin, freqMax } = this.instance.state.config
+      const { freqMin, freqMax } = dataFrequencyRange(this.getViewport())
       const lower = Math.min(freqMin, freqMax)
       const upper = Math.max(freqMin, freqMax)
       return { fundamentalFreq: Math.max(lower, Math.min(upper, currentPos.freq)) }
