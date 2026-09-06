@@ -120,11 +120,15 @@ function setCount(container, count) {
 /**
  * Put the "Clear all annotations" button at the foot of the sidebands column.
  *
- * Trainer pages only — a student's annotations are session-scoped and there is
- * nothing to clear. It is here rather than in the mode rail beside zoom and fit
- * because it removes annotations, not view state, and a destructive control
- * among three view controls is one slip from an afternoon's work. Sideband sets
- * are rare, so the bottom of that column is the space the panel has spare.
+ * On every page, trainer and student alike: a student whose annotations expire
+ * overnight still wants to start today's exercise again today, and clearing is
+ * the same operation either way — only where the annotations were stored
+ * differs.
+ *
+ * It is here rather than in the mode rail beside zoom and fit because it
+ * removes annotations, not view state, and a destructive control among three
+ * view controls is one slip from an afternoon's work. Sideband sets are rare,
+ * so the bottom of that column is the space the panel has spare.
  * @param {GramFrame} instance - GramFrame instance
  * @param {function(): void} onClear - What the button does
  * @returns {void}

@@ -8,10 +8,10 @@
   "moduleLineDefault": 350,
   "_comment_moduleLines_state_redesign": "src/core/state.js: 432 -> 447. The control-row redesign adds three core keys: `guidanceCollapsed` (whether the guidance column is a rail), `bookmarks` (the transport's flagged times) and `styleTarget` (which of the style panel's twin tabs the style controls act on). The initial state is the one place a core slice's shape is stated, so there is nowhere else for them to live -- the same reason spec 171 raised this cap, and this is the same kind of deliberate raise.",
   "_comment_moduleLines_types_redesign": "src/types.js: 774 -> 802. Declarations for the same redesign: the `TimeBookmark` and `StyleTarget` typedefs, the new `GramFrameState` and `instance.ui` members behind the guidance column and the instrument readouts, and the two selection helpers on the interaction seam. types.js is capped rather than exempt so it ratchets like the rest; it grows when the component's surface does.",
-  "_comment_moduleLines_fell_redesign": "Caps that FELL with this change, and why, so the ratchet records the split rather than just the growth: keyboardControl.js 698 -> 524 (the transport keys moved to player/transportKeys.js and the style routing to core/featureStyle.js); storage.js 1025 -> 988 (the two chrome preferences moved to core/preferences.js); main.js 966 -> 951 (the clear-all button builds in components/AnnotationTables.js, beside the footer it sits in); AnalysisMode.js 725 -> 636 and HarmonicsMode.js 369 -> 368 (the per-row label dialog is gone -- labels are edited in the style panel).",
+  "_comment_moduleLines_fell_redesign": "Caps that FELL with this change, and why, so the ratchet records the split rather than just the growth: keyboardControl.js 698 -> 524 (the transport keys moved to player/transportKeys.js and the style routing to core/featureStyle.js); storage.js 1025 -> 988 (the two chrome preferences moved to core/preferences.js); main.js 966 -> 951 (the clear-all button builds in components/AnnotationTables.js, beside the footer it sits in); AnalysisMode.js 725 -> 636 and HarmonicsMode.js 369 -> 368 (the per-row label dialog is gone -- labels are edited in the style panel). events.js 445 -> 422: the image-bounds gate on pointer delivery moved to core/pointerScope.js, which is where the one mode that opts out of it is explained.",
   "moduleLineCaps": {
     "src/api/GramFrameAPI.js": 415,
-    "src/core/events.js": 445,
+    "src/core/events.js": 423,
     "src/core/keyboardControl.js": 524,
     "src/core/state.js": 447,
     "src/core/storage.js": 988,

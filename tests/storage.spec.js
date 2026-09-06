@@ -475,10 +475,25 @@ test.describe('US3: Clear gram button', () => {
   })
 
   // T022
-  test('no Clear gram button on student page', async ({ page }) => {
-    await gotoFixture(page, '/tests/fixtures/student-page.html')
+  test('a student page offers the clear button too', async ({ page }) => {
+    // It used to be trainer-only, on the reasoning that a student's work
+    // expires anyway. "It will be gone tomorrow" is no answer to a student who
+    // has mislabelled a gram and wants to start the exercise again today.
+    const gfp = await gotoFixture(page, '/tests/fixtures/student-page.html')
+    await addAnalysisMarker(gfp, 200, 150)
+
     const clearBtn = page.locator('.gram-frame-clear-btn')
-    await expect(clearBtn).toHaveCount(0)
+    await expect(clearBtn).toBeVisible()
+    await clearBtn.click()
+    await waitForPageState(page, (s) => s.analysis.markers.length === 0, 'the annotations to be cleared')
+
+    // And the session-scoped record is cleared with them.
+    const stored = await page.evaluate(() => {
+      const key = Object.keys(sessionStorage).find((k) => k.startsWith('gramframe::'))
+      return key ? sessionStorage.getItem(key) : null
+    })
+    const record = stored ? JSON.parse(stored) : null
+    expect(record?.markers ?? []).toHaveLength(0)
   })
 
   // Issue #229: the detected context must be visible from outside, because a
@@ -497,7 +512,7 @@ test.describe('US3: Clear gram button', () => {
     const line = infoLines.find((t) => t.includes('is on a trainer page'))
     expect(line, `expected a GramFrame context line among: ${infoLines.join(' | ')}`).toBeTruthy()
     expect(line).toContain('legacy "ANALYSIS" anchor')
-    expect(line).toContain('"Clear all annotations" button is shown')
+    expect(line).toContain('annotations persist in localStorage')
   })
 
   test('student page stamps data-gf-context="student" and logs that nothing matched', async ({ page }) => {
@@ -512,7 +527,7 @@ test.describe('US3: Clear gram button', () => {
     const line = infoLines.find((t) => t.includes('is on a student page'))
     expect(line, `expected a GramFrame context line among: ${infoLines.join(' | ')}`).toBeTruthy()
     expect(line).toContain('no gf-persistent flag')
-    expect(line).toContain('there is no clear button')
+    expect(line).toContain('annotations are session-only and expire after 24 hours')
   })
 
   test('the class flag is named in the context line', async ({ page }) => {

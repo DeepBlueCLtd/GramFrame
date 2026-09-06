@@ -119,6 +119,19 @@ export class BaseMode {
   }
 
   /**
+   * Whether a drag in this mode keeps working when the pointer is not over the
+   * gram itself.
+   *
+   * `false` for every mode that places or moves a feature: a marker has to land
+   * on the gram, so an off-image pointer is a mistake and the drag is cancelled.
+   * Panning an audio-sourced gram is the exception — see `PanMode`.
+   * @returns {boolean} True when the mode wants pointer events off the image
+   */
+  acceptsOffImageDrag() {
+    return false
+  }
+
+  /**
    * Get guidance content for this mode
    * @returns {Object} Structured guidance content
    */

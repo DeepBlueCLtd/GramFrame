@@ -136,10 +136,15 @@ be an accent border, which collided with the feature colours the rows themselves
 carry: a green-bordered row holding a green marker said two things at once.
 Inversion survives any feature colour.
 
-The sidebands column carries a footer holding **Clear all annotations** (trainer
-pages only). Sideband sets are rare, so the foot of that column is the space the
-panel has going spare — and a destructive control among three view controls in
-the rail would be one slip from an afternoon's work.
+The sidebands column carries a footer holding **Clear all annotations**, on
+every page. It was trainer-only, on the reasoning that a student's work expires
+overnight anyway — but "it will be gone tomorrow" is no answer to a student who
+has mislabelled a gram and wants to start the exercise again today. Clearing is
+the same operation either way; only where the annotations were stored differs.
+
+Sideband sets are rare, so the foot of that column is the space the panel has
+going spare — and a destructive control among three view controls in the rail
+would be one slip from an afternoon's work.
 
 ## The transport bar
 
@@ -147,6 +152,14 @@ Only present when the gram is audio-sourced, and mounted **below** the gram:
 that is where the scrub track and its bookmark flags line up with the time axis
 they refer to, and where the panel's height never changes when a recording
 loads.
+
+The view scrolls back to the very start of a recording, not to one window above
+it. The top edge of the plot area *is* the playhead, and drag-seek resumes from
+whatever time that edge shows, so a lower bound of one window made the opening
+seconds of every recording impossible to put under the playhead — visible at the
+bottom of the view, but unreachable by dragging. Reaching zero means the window
+below the start is blank, which is the same blankness the opening seconds
+already showed while the first window played.
 
 **Time bookmarks** are the one new affordance. Bookmark (or the `B` key) flags
 the playhead; each bookmark draws a numbered flag on the track that can be

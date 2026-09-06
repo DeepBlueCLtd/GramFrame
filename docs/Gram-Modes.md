@@ -58,6 +58,13 @@ mode, so a first stray click never leaves an annotation behind.
 - The `+` / `−` / fit controls are drawn in the mode rail's own footer, beneath
   every mode rather than inside Pan's row, and stay there whichever mode is
   armed: they act on the view, not on the armed tool. Pan still declares them.
+- On an audio-sourced gram the drag keeps working when the pointer leaves the
+  image. Scrolling back to the start of a recording *means* putting blank space
+  on screen — the top edge is the playhead, so the first second only reaches it
+  once the window below is empty — and a pan that stopped at the image's edge
+  would strand the analyst with the opening seconds visible but unreachable.
+  Every other mode places or moves a feature, which must land on the gram, so
+  for those an off-image pointer still cancels the drag.
 - Selectable at any zoom level, including fully zoomed out.
 
 ---

@@ -219,8 +219,8 @@ export class GramFrame {
       `GramFrame: instance ${this.persistence._storageInstanceIndex} is on a ${detectedContext.context} page ` +
       `(${detectedContext.reason}) — ` +
       (this.persistence._isTrainerContext
-        ? 'annotations persist in localStorage and the "Clear all annotations" button is shown'
-        : 'annotations are session-only, expire after 24 hours, and there is no clear button')
+        ? 'annotations persist in localStorage'
+        : 'annotations are session-only and expire after 24 hours')
     )
     const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell)
     const initialModeUI = setupPersistentContainers(this, layout.modeColumn)
@@ -297,10 +297,12 @@ export class GramFrame {
 
     setupStateListeners(this)
 
-    // Trainer pages get the way to clear this gram's annotations
-    if (this.persistence._isTrainerContext) {
-      mountClearAllButton(this, () => this._clearGram())
-    }
+    // Every page gets the way to clear this gram's annotations. It used to be
+    // trainer-only, on the reasoning that a student's work expires anyway — but
+    // "it will be gone tomorrow" is no answer to a student who has mislabelled
+    // a gram and wants to start the exercise again today. Clearing is the same
+    // operation either way; only where the annotations were stored differs.
+    mountClearAllButton(this, () => this._clearGram())
 
     if (this.state.player.active) {
       // An audio-sourced instance (spec 168) has no time range until its
