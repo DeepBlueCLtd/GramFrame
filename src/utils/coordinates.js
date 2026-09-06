@@ -2,11 +2,8 @@
  * Canonical coordinate transformations for GramFrame.
  *
  * This is the single module every screen/SVG/image/data conversion in `src/`
- * routes through (spec 166, FR-002; constitution Principle I). It replaces the
- * four parallel implementations that preceded it: this file's original
- * screen/image pair, `utils/coordinateTransformations.js`, the private pair in
- * `core/keyboardControl.js`, and the inline `screenToDataWithZoom` in
- * `core/events.js`.
+ * routes through (spec 166, FR-002; constitution Principle I), replacing the
+ * four parallel implementations that preceded it.
  *
  * Coordinate systems, outermost first:
  *
@@ -16,9 +13,10 @@
  * - **Image** — render-pixel space, relative to the image's top-left. Always
  *   expressed against `imageDetails.renderWidth/renderHeight`, so a point keeps
  *   the same image coordinates whatever the element is currently scaled to.
- * - **Data** — time in seconds and frequency in Hz.
+ * - **Data** — time in seconds, frequency divided by `frequencyRate` (which
+ *   happens here and nowhere else; see {@link dataFrequencyRange}).
  *
- * Two invariants are worth stating because they are easy to get wrong:
+ * Three invariants are worth stating because they are easy to get wrong:
  *
  * - Where a spectrogram image element is supplied, its live `x`/`y`/`width`/
  *   `height` attributes are the source of truth: they already encode expand ×
@@ -29,6 +27,8 @@
  *   and never return null; a caller that needs a bounds decision asks
  *   {@link isWithinImage} for it, and one that needs clamping asks
  *   {@link clampToImage}.
+ * - {@link imageToData} and {@link dataToSVG} are exact inverses; no caller
+ *   scales a frequency to bridge them (#276).
  */
 
 /// <reference path="../types.js" />
@@ -61,7 +61,6 @@ function renderSize(imageDetails) {
  * The element's attributes win when it is present, because they already reflect
  * expand × zoom. Without an element the base render size at the margin origin
  * is the best available answer.
- *
  * @param {Viewport} viewport - Current viewport
  * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
  * @returns {{left: number, top: number, width: number, height: number}} Bounds in SVG units
@@ -101,6 +100,20 @@ export function getRenderDimensions(viewport) {
 }
 
 /**
+ * The frequency range of the gram in *data* scale — `config.freqMin/freqMax`
+ * divided by `frequencyRate`, the scale every stored feature, tolerance span,
+ * axis label and visible range is in. Comparing a stored frequency against the
+ * raw config is the mistake this removes (#276).
+ * @param {Viewport} viewport - Current viewport
+ * @returns {{freqMin: number, freqMax: number}} Frequency range in data scale
+ */
+export function dataFrequencyRange(viewport) {
+  const { freqMin, freqMax } = viewport.config
+  const rate = viewport.frequencyRate || 1
+  return { freqMin: freqMin / rate, freqMax: freqMax / rate }
+}
+
+/**
  * The data range currently visible, given the zoom level and pan position.
  *
  * At 1× the full configured range is visible and returned unchanged. Zoomed in,
@@ -111,9 +124,10 @@ export function getRenderDimensions(viewport) {
  * @returns {DataRange} Visible data range
  */
 export function calculateVisibleDataRange(viewport, spectrogramImage = null) {
-  const { timeMin, timeMax, freqMin, freqMax } = viewport.config
-  const margins = viewport.margins
-  const zoomLevel = viewport.zoom.level
+  const { timeMin, timeMax } = viewport.config
+  // Data scale: compared against stored frequencies, printed on the axis (#276).
+  const { freqMin, freqMax } = dataFrequencyRange(viewport)
+  const { margins, zoom } = viewport
   // Base render size (defaults to natural; grows when expanded)
   const { renderWidth, renderHeight } = getRenderDimensions(viewport)
 
@@ -121,7 +135,7 @@ export function calculateVisibleDataRange(viewport, spectrogramImage = null) {
   // so its visible range is never simply the configured range — not even at
   // zoom 1. The shortcut is for image-backed instances only.
   const stretched = viewport.imageDetails.timeStretch !== undefined
-  if (zoomLevel === 1.0 && !stretched) {
+  if (zoom.level === 1.0 && !stretched) {
     // No zoom - return full range
     return { timeMin, timeMax, freqMin, freqMax }
   }
@@ -151,16 +165,11 @@ export function calculateVisibleDataRange(viewport, spectrogramImage = null) {
   const freqRange = freqMax - freqMin
   const timeRange = timeMax - timeMin
 
-  const visibleFreqMin = freqMin + (visibleLeft / imageWidth) * freqRange
-  const visibleFreqMax = freqMin + (visibleRight / imageWidth) * freqRange
-  const visibleTimeMax = timeMax - (visibleTop / imageHeight) * timeRange
-  const visibleTimeMin = timeMax - (visibleBottom / imageHeight) * timeRange
-
   return {
-    freqMin: visibleFreqMin,
-    freqMax: visibleFreqMax,
-    timeMin: visibleTimeMin,
-    timeMax: visibleTimeMax
+    freqMin: freqMin + (visibleLeft / imageWidth) * freqRange,
+    freqMax: freqMin + (visibleRight / imageWidth) * freqRange,
+    timeMin: timeMax - (visibleBottom / imageHeight) * timeRange,
+    timeMax: timeMax - (visibleTop / imageHeight) * timeRange
   }
 }
 
@@ -210,9 +219,7 @@ export function svgToImage(svgX, svgY, viewport, spectrogramImage = null) {
 /**
  * Convert image-relative coordinates to data coordinates.
  *
- * `frequencyRate` is applied here and only here — it divides frequency, so SVG
- * and image space carry no frequency scaling at all.
- *
+ * Frequency is returned in data scale, so SVG and image space carry none of it.
  * @param {number} imageX - Image X coordinate, in render pixels
  * @param {number} imageY - Image Y coordinate, in render pixels
  * @param {Viewport} viewport - Current viewport
@@ -234,22 +241,18 @@ export function imageToData(imageX, imageY, viewport) {
 /**
  * Convert data coordinates to SVG coordinates.
  *
- * Note the deliberate asymmetry with {@link imageToData}: this takes frequency
- * in the raw configured scale and does not re-apply `frequencyRate`. That
- * matches every caller — features store the frequency they were created with —
- * and matches the behaviour pinned before consolidation. With the frequency-rate
- * control removed from the UI it is 1 in practice; the asymmetry is recorded
- * here rather than
- * silently "fixed", because changing it would move rendered features.
- *
+ * The exact inverse of {@link imageToData}: `dataPoint.freq` is in data scale,
+ * so the frequency rate is undone here rather than by each caller. At the
+ * default rate of 1 nothing moves; at any other, this is what keeps a drawn
+ * feature under the reading that placed it (#276).
  * @param {DataCoordinates} dataPoint - Data point with time and frequency
  * @param {Viewport} viewport - Current viewport
  * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
  * @returns {SVGCoordinates} SVG coordinates
  */
 export function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
-  const { config } = viewport
-  const { timeMin, timeMax, freqMin, freqMax } = config
+  const { timeMin, timeMax } = viewport.config
+  const { freqMin, freqMax } = dataFrequencyRange(viewport)
   const bounds = getImageBounds(viewport, spectrogramImage)
 
   const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin)
@@ -262,11 +265,30 @@ export function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
 }
 
 /**
+ * Move a data point by a screen-pixel offset, staying on the image.
+ *
+ * The arrow-key geometry, in the module that owns both legs: out through
+ * {@link dataToSVG}, across by the offset, back through {@link imageToData},
+ * pinned at the edge. A caller assembling this itself is where #276 was.
+ * @param {DataCoordinates} dataPoint - Starting point, in data scale
+ * @param {number} dx - Horizontal offset in rendered pixels
+ * @param {number} dy - Vertical offset in rendered pixels
+ * @param {Viewport} viewport - Current viewport
+ * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
+ * @returns {DataCoordinates} The moved point, clamped to the image
+ */
+export function nudgeData(dataPoint, dx, dy, viewport, spectrogramImage = null) {
+  const svgPoint = dataToSVG(dataPoint, viewport, spectrogramImage)
+  const image = svgToImage(svgPoint.x + dx, svgPoint.y + dy, viewport, spectrogramImage)
+  const clamped = clampToImage(image.x, image.y, viewport)
+  return imageToData(clamped.x, clamped.y, viewport)
+}
+
+/**
  * Whether an SVG point lies over the spectrogram image.
  *
  * The only place that decision is made (I5). Kept separate from the transforms
  * so a caller that wants to convert an off-image point still can.
- *
  * @param {SVGCoordinates} svgPoint - Point in SVG space
  * @param {Viewport} viewport - Current viewport
  * @param {SVGImageElement|null} [spectrogramImage] - Spectrogram image element
@@ -286,10 +308,9 @@ export function isWithinImage(svgPoint, viewport, spectrogramImage = null) {
 /**
  * Clamp an image-space point to the image's extent.
  *
- * Explicit, so callers that want clamping (the keyboard mover, which pins a
- * feature at the edge rather than letting it leave the image) opt into it, and
- * callers that want a bounds decision use {@link isWithinImage} instead.
- *
+ * Explicit, so callers that want clamping ({@link nudgeData}, which pins a
+ * feature at the edge rather than letting it leave) opt into it, and callers
+ * wanting a bounds decision use {@link isWithinImage} instead.
  * @param {number} imageX - Image X coordinate, in render pixels
  * @param {number} imageY - Image Y coordinate, in render pixels
  * @param {Viewport} viewport - Current viewport
@@ -306,11 +327,8 @@ export function clampToImage(imageX, imageY, viewport) {
 /**
  * Convenience composition used by the pointer and wheel handlers: screen point
  * to data, carrying the intermediate SVG and image points the callers also need.
- *
  * Converts unconditionally — a point off the image comes back extrapolated, not
- * clamped and not null. A caller that needs the bounds decision asks
- * {@link isWithinImage} for it, which keeps that decision in one place (I5).
- *
+ * clamped and not null; the bounds decision stays in {@link isWithinImage} (I5).
  * @param {number} clientX - Client X coordinate
  * @param {number} clientY - Client Y coordinate
  * @param {SVGSVGElement} svg - SVG element reference

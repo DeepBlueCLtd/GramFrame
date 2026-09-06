@@ -18,7 +18,7 @@
     previousMode: null,
     // Previous mode for switching back
     frequencyRate: 1,
-    // Frequency divider; the player carries its own playbackRate
+    // Frequency divider, applied only by utils/coordinates.js; the player carries its own playbackRate
     selectedColor: "#ff6b6b",
     // Currently selected color for new features across all modes
     selectedSymbol: "cross",
@@ -1206,13 +1206,18 @@
     const { width, height } = renderSize(viewport.imageDetails);
     return { renderWidth: width, renderHeight: height };
   }
+  function dataFrequencyRange(viewport) {
+    const { freqMin, freqMax } = viewport.config;
+    const rate = viewport.frequencyRate || 1;
+    return { freqMin: freqMin / rate, freqMax: freqMax / rate };
+  }
   function calculateVisibleDataRange(viewport, spectrogramImage = null) {
-    const { timeMin, timeMax, freqMin, freqMax } = viewport.config;
-    const margins = viewport.margins;
-    const zoomLevel2 = viewport.zoom.level;
+    const { timeMin, timeMax } = viewport.config;
+    const { freqMin, freqMax } = dataFrequencyRange(viewport);
+    const { margins, zoom } = viewport;
     const { renderWidth, renderHeight } = getRenderDimensions(viewport);
     const stretched = viewport.imageDetails.timeStretch !== void 0;
-    if (zoomLevel2 === 1 && !stretched) {
+    if (zoom.level === 1 && !stretched) {
       return { timeMin, timeMax, freqMin, freqMax };
     }
     const {
@@ -1227,15 +1232,11 @@
     const visibleBottom = stretched ? margins.top + renderHeight - imageTop : Math.min(imageHeight, margins.top + renderHeight - imageTop);
     const freqRange = freqMax - freqMin;
     const timeRange = timeMax - timeMin;
-    const visibleFreqMin = freqMin + visibleLeft / imageWidth * freqRange;
-    const visibleFreqMax = freqMin + visibleRight / imageWidth * freqRange;
-    const visibleTimeMax = timeMax - visibleTop / imageHeight * timeRange;
-    const visibleTimeMin = timeMax - visibleBottom / imageHeight * timeRange;
     return {
-      freqMin: visibleFreqMin,
-      freqMax: visibleFreqMax,
-      timeMin: visibleTimeMin,
-      timeMax: visibleTimeMax
+      freqMin: freqMin + visibleLeft / imageWidth * freqRange,
+      freqMax: freqMin + visibleRight / imageWidth * freqRange,
+      timeMin: timeMax - visibleBottom / imageHeight * timeRange,
+      timeMax: timeMax - visibleTop / imageHeight * timeRange
     };
   }
   function screenToSVG(screenX, screenY, svg) {
@@ -1268,8 +1269,8 @@
     return { freq: rawFreq / frequencyRate, time };
   }
   function dataToSVG(dataPoint, viewport, spectrogramImage = null) {
-    const { config } = viewport;
-    const { timeMin, timeMax, freqMin, freqMax } = config;
+    const { timeMin, timeMax } = viewport.config;
+    const { freqMin, freqMax } = dataFrequencyRange(viewport);
     const bounds = getImageBounds(viewport, spectrogramImage);
     const freqRatio = (dataPoint.freq - freqMin) / (freqMax - freqMin);
     const timeRatio = (dataPoint.time - timeMin) / (timeMax - timeMin);
@@ -1278,6 +1279,12 @@
       y: bounds.top + (1 - timeRatio) * bounds.height
       // Invert Y
     };
+  }
+  function nudgeData(dataPoint, dx, dy, viewport, spectrogramImage = null) {
+    const svgPoint = dataToSVG(dataPoint, viewport, spectrogramImage);
+    const image = svgToImage(svgPoint.x + dx, svgPoint.y + dy, viewport, spectrogramImage);
+    const clamped = clampToImage(image.x, image.y, viewport);
+    return imageToData(clamped.x, clamped.y, viewport);
   }
   function isWithinImage(svgPoint, viewport, spectrogramImage = null) {
     const bounds = getImageBounds(viewport, spectrogramImage);
@@ -1875,9 +1882,8 @@
     const axisY = margins.top + _naturalHeight;
     const axisStartX = margins.left;
     const axisEndX = margins.left + naturalWidth;
-    const frequencyRate = instance.state.frequencyRate;
-    const displayFreqMin = freqMin / frequencyRate;
-    const displayFreqMax = freqMax / frequencyRate;
+    const displayFreqMin = freqMin;
+    const displayFreqMax = freqMax;
     const freqRange = displayFreqMax - displayFreqMin;
     const axisConfig = { y: axisY, startX: axisStartX, endX: axisEndX };
     renderAxisLine(instance, axisConfig);
@@ -2304,18 +2310,13 @@
     if (!marker) {
       return;
     }
-    const currentSVG = dataToSVG(
-      { freq: marker.freq * instance.state.frequencyRate, time: marker.time },
+    const newData = nudgeData(
+      { freq: marker.freq, time: marker.time },
+      movement.dx,
+      movement.dy,
       instance.state,
       instance.ui.spectrogramImage
     );
-    const newSVG = {
-      x: currentSVG.x + movement.dx,
-      y: currentSVG.y + movement.dy
-    };
-    const image = svgToImage(newSVG.x, newSVG.y, instance.state, instance.ui.spectrogramImage);
-    const clamped = clampToImage(image.x, image.y, instance.state);
-    const newData = imageToData(clamped.x, clamped.y, instance.state);
     marker.freq = newData.freq;
     marker.time = newData.time;
     commitAnnotationChange(instance, () => refreshPanels(instance));
@@ -2335,7 +2336,7 @@
     };
     if (movement.dx !== 0) {
       const reference = dataToSVG(
-        { freq: instance.state.config.freqMin, time: timeMax },
+        { freq: dataFrequencyRange(viewport).freqMin, time: timeMax },
         viewport,
         image
       );
@@ -2345,7 +2346,7 @@
     }
     if (movement.dy !== 0) {
       const anchorSVG = dataToSVG(
-        { freq: instance.state.config.freqMin, time: set.anchorTime },
+        { freq: dataFrequencyRange(viewport).freqMin, time: set.anchorTime },
         viewport,
         image
       );
@@ -4634,7 +4635,8 @@
       return config.fallbackDataTolerance;
     }
     const timeRange = dataConfig.timeMax - dataConfig.timeMin;
-    const freqRange = dataConfig.freqMax - dataConfig.freqMin;
+    const { freqMin, freqMax } = dataFrequencyRange(viewport);
+    const freqRange = freqMax - freqMin;
     const effectiveZoom = (zoom == null ? void 0 : zoom.level) || 1;
     return {
       time: config.pixelRadius / renderHeight * timeRange / effectiveZoom,
@@ -6794,7 +6796,7 @@
      * @returns {DragTarget|null} A create-kind target, or null if a set cannot be made
      */
     createSetTarget(dataCoords) {
-      const { freqMin, freqMax } = this.instance.state.config;
+      const { freqMin, freqMax } = dataFrequencyRange(this.getViewport());
       const span = Math.abs(freqMax - freqMin);
       const initialSpacing = Math.max(span / SidebandMode.INITIAL_SIDEBAND_COUNT, MIN_PIN_SPACING);
       const sidebandSet = this.addSidebandSet(dataCoords.time, dataCoords.freq, initialSpacing);
@@ -6829,7 +6831,7 @@
      */
     freqUpdatesForDrag(set, clickedIndex, currentPos) {
       if (clickedIndex === 0) {
-        const { freqMin, freqMax } = this.instance.state.config;
+        const { freqMin, freqMax } = dataFrequencyRange(this.getViewport());
         const lower = Math.min(freqMin, freqMax);
         const upper = Math.max(freqMin, freqMax);
         return { fundamentalFreq: Math.max(lower, Math.min(upper, currentPos.freq)) };

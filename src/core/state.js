@@ -27,7 +27,7 @@ const initialState = {
   instanceId: '',
   mode: 'pan', // 'analysis', 'harmonics', 'sideband', 'doppler', 'pan' — start in pan so a click doesn't immediately place a marker
   previousMode: null, // Previous mode for switching back
-  frequencyRate: 1, // Frequency divider; the player carries its own playbackRate
+  frequencyRate: 1, // Frequency divider, applied only by utils/coordinates.js; the player carries its own playbackRate
   selectedColor: '#ff6b6b', // Currently selected color for new features across all modes
   selectedSymbol: 'cross', // Currently selected symbol; 'cross' (default) means no drawn symbol shape (feature 161)
   // Whether the NEXT created harmonic set draws its vertical pin lines. Shown
