@@ -51,10 +51,20 @@ mode, so a first stray click never leaves an annotation behind.
   and is disabled when it is already showing. On an audio-sourced gram "the
   whole gram" is the configured `window-seconds` window, not the entire
   recording.
-- Pan's own button shows a hand rather than a word. Its row is the only one
-  carrying command buttons, and four controls do not fit across the column with
-  a word among them; the hand is also what the cursor becomes over a gram you
-  can drag. Every other mode is still named in full.
+- Pan's own button shows a hand beside its word, as every mode's button shows a
+  glyph beside its word: in a stacked rail the shape is what the eye lands on
+  and the word is what settles it. The hand is also what the cursor becomes over
+  a gram you can drag.
+- The `+` / `−` / fit controls are drawn in the mode rail's own footer, beneath
+  every mode rather than inside Pan's row, and stay there whichever mode is
+  armed: they act on the view, not on the armed tool. Pan still declares them.
+- On an audio-sourced gram the drag keeps working when the pointer leaves the
+  image. Scrolling back to the start of a recording *means* putting blank space
+  on screen — the top edge is the playhead, so the first second only reaches it
+  once the window below is empty — and a pan that stopped at the image's edge
+  would strand the analyst with the opening seconds visible but unreachable.
+  Every other mode places or moves a feature, which must land on the gram, so
+  for those an off-image pointer still cancels the drag.
 - Selectable at any zoom level, including fully zoomed out.
 
 ---
@@ -78,11 +88,12 @@ events, broadband pulses or ambient shifts in sonar data.
 - Right-click a marker to delete it.
 - Markers are listed in the markers table above the gram; clicking a row selects
   that marker, after which the arrow keys nudge it (Shift for larger steps).
-- A marker's colour and symbol come from the style controls; with a marker
-  selected, those controls restyle it in place.
-- Each row's **label button** (the tag icon, above the delete ×) opens a dialog
-  for the marker's label. Labels are optional — a marker has none until one is
-  entered — and clearing the field removes the label again.
+- A marker's colour and symbol come from the style panel; with a marker selected
+  and the panel's **Selected** tab armed, those controls restyle it in place.
+- The style panel's **Label** field edits the selected marker's label where the
+  rest of its style is set, rather than in a dialog opened from the row. Labels
+  are optional — a marker has none until one is entered — and clearing the field
+  removes the label again.
 - A label is drawn on the gram in black on a white rounded plate, so it reads
   over both dark and light pixels: in the upper-right quadrant of a crosshair marker,
   or centred above a marker that carries a shaped symbol. The one exception is
@@ -90,7 +101,7 @@ events, broadband pulses or ambient shifts in sonar data.
   is centred *below* the symbol so the data being marked stays visible.
 - The table's **Label** column shows labels of five characters or fewer in full,
   and abbreviates anything longer to its first three characters plus `..`. The
-  full text stays on the gram and in the dialog.
+  full text stays on the gram and in the style panel's field.
 
 ---
 

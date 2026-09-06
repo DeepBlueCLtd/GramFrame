@@ -46,14 +46,34 @@ function createColorCellContent(harmonicSet) {
 }
 
 /**
+ * Build the spacing cell: the number, then its unit set smaller and quieter.
+ *
+ * The unit is part of the cell rather than the heading because the heading is
+ * the label an analyst scans for across three side-by-side tables, and
+ * "Spacing (Hz)" made that scan longer for a unit that never changes.
+ * @param {HarmonicSet} harmonicSet - The harmonic set data
+ * @returns {HTMLSpanElement} The cell content
+ */
+function createSpacingCellContent(harmonicSet) {
+  const wrapper = document.createElement('span')
+  wrapper.textContent = `${harmonicSet.spacing.toFixed(2)} `
+  const unit = document.createElement('span')
+  unit.className = 'gram-frame-cell-unit'
+  unit.textContent = 'Hz'
+  wrapper.appendChild(unit)
+  return wrapper
+}
+
+/**
  * The ratio of the cursor's frequency to a set's spacing, as displayed.
  * @param {HarmonicSet} harmonicSet - The harmonic set data
  * @param {GramFrame} instance - GramFrame instance
  * @returns {string} Formatted ratio
  */
 function formatRatio(harmonicSet, instance) {
-  if (instance.state.cursorPosition && instance.state.cursorPosition.freq > 0) {
-    return (instance.state.cursorPosition.freq / harmonicSet.spacing).toFixed(3)
+  const cursor = instance.state.cursorPosition
+  if (cursor && cursor.freq > 0) {
+    return (cursor.freq / harmonicSet.spacing).toFixed(3)
   }
   return '5.000' // Representative ratio for the 5th harmonic
 }
@@ -88,35 +108,29 @@ function createHarmonicDeleteButton(harmonicSet) {
 export function createHarmonicPanel(container, instance) {
   const table = createDiffingTable(container, {
     columns: [
-      { label: '', width: '15%' },
-      { label: 'Spacing (Hz)', width: '35%', cellClassName: 'gram-frame-harmonic-spacing' },
-      { label: 'Ratio', width: '35%', cellClassName: 'gram-frame-harmonic-ratio' },
-      { label: '', width: '15%' }
+      { label: '', width: '14%' },
+      // "Hz" rides each value rather than the heading: the unit belongs to the
+      // number, and the heading is what an analyst scans down the row of three
+      // tables to find the right one.
+      { label: 'Spacing', width: '40%', cellClassName: 'gram-frame-harmonic-spacing' },
+      { label: 'Ratio', width: '32%', cellClassName: 'gram-frame-harmonic-ratio gram-frame-cell-numeric' },
+      { label: '', width: '14%', cellClassName: 'gram-frame-cell-action' }
     ],
+    emptyMessage: 'Drag on the gram to add a harmonic set',
     rowAttribute: 'data-harmonic-id',
     rowClassName: 'gram-frame-harmonic-row',
     rowKey: (harmonicSet) => harmonicSet.id,
     cells: (harmonicSet) => [
       createColorCellContent(harmonicSet),
-      harmonicSet.spacing.toFixed(2),
+      createSpacingCellContent(harmonicSet),
       formatRatio(harmonicSet, instance),
       createHarmonicDeleteButton(harmonicSet)
     ],
     deleteSelector: '.gram-frame-harmonic-delete',
-    onSelect: (harmonicSetId, _harmonicSet, index) => {
-      // Toggle selection
-      if (instance.state.selection.selectedType === 'harmonicSet' &&
-          instance.state.selection.selectedId === harmonicSetId) {
-        instance.interaction.clearSelection()
-      } else {
-        instance.interaction.setSelection('harmonicSet', harmonicSetId, index)
-      }
-    },
+    onSelect: (harmonicSetId, _harmonicSet, index) =>
+      instance.interaction.toggleSelection('harmonicSet', harmonicSetId, index),
     onDelete: (harmonicSetId) => instance.interaction.removeHarmonicSet(harmonicSetId),
-    isSelected: (harmonicSetId) => (
-      instance.state.selection.selectedType === 'harmonicSet' &&
-      instance.state.selection.selectedId === harmonicSetId
-    )
+    isSelected: (harmonicSetId) => instance.interaction.isFeatureSelected('harmonicSet', harmonicSetId)
   })
 
   const panel = /** @type {HTMLElement} */ (table.element.parentElement)

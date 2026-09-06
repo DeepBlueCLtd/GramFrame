@@ -69,7 +69,7 @@ tests drive real mouse and keyboard events against a debug page or a fixture in
   speed, pan/zoom (including wheel navigation and clamping), and cross-mode
   integration
 - **Persistence**: trainer/student context detection, save and restore, the
-  student 24-hour expiry, "Clear gram", and the warning shown when storage
+  student 24-hour expiry, "Clear all annotations", and the warning shown when storage
   refuses a write
 - **Keyboard and focus**: instance focus, Tab navigation, arrow-key handling
 - **Lifecycle and API hygiene**: the debug-only `__test__*` surface, listener

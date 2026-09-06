@@ -230,12 +230,11 @@ export class SidebandMode extends PinSetMode {
    */
   getGuidanceText() {
     return {
-      title: 'Sidebands Mode',
       items: [
-        'Click & drag to place a sideband set at that frequency',
-        'Drag the 0 line to move the fundamental',
-        'Drag any other line to adjust sideband spacing',
-        'Click table row + arrow keys (Shift for larger steps)'
+        { trigger: 'Click & drag', outcome: 'to place a sideband set at that frequency' },
+        { trigger: 'Drag the 0 line', outcome: 'to move the fundamental' },
+        { trigger: 'Drag any other line', outcome: 'to adjust sideband spacing' },
+        { trigger: 'Row + \u2190 \u2192', outcome: 'to nudge (Shift for larger steps)' }
       ]
     }
   }

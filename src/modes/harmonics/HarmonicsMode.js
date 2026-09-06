@@ -160,12 +160,11 @@ export class HarmonicsMode extends PinSetMode {
    */
   getGuidanceText() {
     return {
-      title: 'Harmonics Mode',
       items: [
-        'Click & drag to generate harmonic lines',
-        'Drag existing harmonic lines to adjust spacing intervals',
-        'Manually add harmonic lines using [+ Manual] button',
-        'Click table row + arrow keys (Shift for larger steps)'
+        { trigger: 'Click & drag', outcome: 'to generate harmonic lines' },
+        { trigger: 'Drag', outcome: 'existing harmonic lines to adjust spacing intervals' },
+        { trigger: '[+ Manual]', outcome: 'to add harmonic lines manually' },
+        { trigger: 'Row + \u2190 \u2192', outcome: 'to nudge (Shift for larger steps)' }
       ]
     }
   }

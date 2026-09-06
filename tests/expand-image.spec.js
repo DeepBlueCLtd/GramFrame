@@ -156,7 +156,7 @@ test.describe('Expand Image Toggle — User Story 2 (annotation fidelity)', () =
     const gfp = await gotoDemo(page, LANDSCAPE_PAGE)
 
     // Place an analysis marker
-    await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').click()
+    await page.locator('.gram-frame-mode-btn[title="Cross Cursor" i]').click()
     await gfp.waitForMode('analysis')
     await gfp.svg.click({ position: { x: 320, y: 130 } })
     await gfp.waitForMarkerCount(1)

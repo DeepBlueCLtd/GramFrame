@@ -1,96 +1,109 @@
 /**
  * Secure HTML rendering utilities
- * 
+ *
  * This module provides XSS-safe methods for rendering HTML content by creating
  * DOM elements programmatically instead of using innerHTML with string content.
- * This prevents all forms of HTML injection attacks while preserving rich formatting.
+ * This prevents all forms of HTML injection attacks while preserving rich
+ * formatting.
+ *
+ * It builds DOM and nothing else: which sections a mode's guidance has, and
+ * whether a line carries a trigger, is decided by `utils/guidanceContent.js`,
+ * where it can be unit-tested. What is left here is one loop over a settled
+ * list, so there is nothing to get wrong in the half that no test can reach.
  */
 
-/**
- * A single titled block of guidance bullet points.
- * @typedef {Object} GuidanceSection
- * @property {string} [title] - The section heading text
- * @property {string} [qualifier] - Aside appended to the heading, in parentheses
- * @property {string[]} [items] - Array of guidance items (rendered as bullet points)
- */
+import { resolveGuidance } from './guidanceContent.js'
 
 /**
- * Guidance content structure for type safety. Either a single title + items, or
- * multiple titled sections (used by Pan mode to show the global Mouse-Wheel help
- * alongside the pan-specific help).
- * @typedef {Object} GuidanceContent
- * @property {string} [title] - The main heading text (single-section form)
- * @property {string[]} [items] - Guidance items (single-section form)
- * @property {GuidanceSection[]} [sections] - Multiple titled sections (multi-section form)
+ * Build one guidance row: the trigger in its own fixed track, the outcome
+ * beside it, or — for a line with no trigger — one full-width note.
+ *
+ * `textContent` throughout: the trigger and the outcome are authored strings,
+ * but this module's whole reason for existing is that guidance never reaches
+ * the DOM as markup.
+ * @param {import('./guidanceContent.js').ResolvedGuidanceLine} line - The line
+ * @returns {HTMLDivElement} The row
  */
+function buildGuidanceRow(line) {
+  const row = document.createElement('div')
+  row.className = 'gram-frame-guidance-row'
+
+  if (line.trigger !== '') {
+    const trigger = document.createElement('div')
+    trigger.className = 'gram-frame-guidance-trigger'
+    trigger.textContent = line.trigger
+    row.appendChild(trigger)
+  }
+
+  const outcome = document.createElement('div')
+  outcome.className = line.trigger === ''
+    ? 'gram-frame-guidance-note'
+    : 'gram-frame-guidance-outcome'
+  outcome.textContent = line.outcome
+  row.appendChild(outcome)
+  return row
+}
 
 /**
- * Securely render guidance content to a DOM element
- * Creates DOM elements programmatically to prevent XSS attacks
+ * Build a section's heading, with its qualifier if it has one.
+ *
+ * A qualifier rides the heading rather than taking a line of its own — it
+ * describes the whole section, and a line costs the control row a full row's
+ * height. Its own element so the CSS can drop the heading's uppercase and
+ * letter-spacing for it, which is what keeps the two on one line.
+ * @param {import('./guidanceContent.js').ResolvedGuidanceSection} section - The section
+ * @returns {HTMLHeadingElement} The heading
+ */
+function buildGuidanceHeading(section) {
+  const title = document.createElement('h4')
+  title.textContent = section.title
+  if (section.qualifier !== '') {
+    const qualifier = document.createElement('span')
+    qualifier.className = 'gram-frame-guidance-qualifier'
+    qualifier.textContent = ` (${section.qualifier})`
+    title.appendChild(qualifier)
+  }
+  return title
+}
+
+/**
+ * Securely render guidance content to a DOM element.
+ * Creates DOM elements programmatically to prevent XSS attacks.
  *
  * @param {HTMLElement} container - Target container element
- * @param {GuidanceContent} content - Structured guidance content
+ * @param {import('./guidanceContent.js').GuidanceContent} content - Structured guidance content
  */
 function renderSecureGuidance(container, content) {
-  // Clear existing content safely
   container.replaceChildren()
 
-  // Normalise to a list of sections so single- and multi-section content share
-  // one render path. The single-section form may omit either field, which is
-  // why GuidanceSection marks both optional and why each is guarded below.
-  /** @type {GuidanceSection[]} */
-  const sections = Array.isArray(content.sections)
-    ? content.sections
-    : [{ title: content.title, items: content.items }]
-
-  sections.forEach(section => {
-    // Create and append the section title
-    if (section.title) {
-      const title = document.createElement('h4')
-      title.textContent = section.title
-      // A qualifier rides the heading rather than taking a bullet of its own —
-      // it describes the whole section, and a bullet costs the control row a
-      // full line. Its own element so the CSS can drop the heading's uppercase
-      // and letter-spacing for it, which is what keeps the two on one line.
-      if (section.qualifier) {
-        const qualifier = document.createElement('span')
-        qualifier.className = 'gram-frame-guidance-qualifier'
-        qualifier.textContent = ` (${section.qualifier})`
-        title.appendChild(qualifier)
-      }
-      container.appendChild(title)
+  resolveGuidance(content).forEach(section => {
+    if (section.title !== '') {
+      container.appendChild(buildGuidanceHeading(section))
     }
-
-    // Create and append guidance items as paragraphs with bullet points
-    if (section.items && Array.isArray(section.items)) {
-      section.items.forEach(item => {
-        const paragraph = document.createElement('p')
-        // Use textContent to prevent XSS - bullet point is safe literal
-        paragraph.textContent = `• ${item}`
-        container.appendChild(paragraph)
-      })
-    }
+    section.lines.forEach(line => {
+      container.appendChild(buildGuidanceRow(line))
+    })
   })
 }
 
 /**
  * Securely update guidance panel content
  * Wrapper function specifically for guidance panels with error handling
- * 
+ *
  * @param {HTMLElement} guidancePanel - The guidance panel element
- * @param {GuidanceContent} content - Structured guidance content
+ * @param {import('./guidanceContent.js').GuidanceContent} content - Structured guidance content
  */
 export function updateGuidancePanel(guidancePanel, content) {
   if (!guidancePanel) {
     console.warn('Guidance panel element not found')
     return
   }
-  
+
   if (!content) {
     console.warn('No guidance content provided')
     return
   }
-  
+
   try {
     renderSecureGuidance(guidancePanel, content)
   } catch (error) {
@@ -102,4 +115,3 @@ export function updateGuidancePanel(guidancePanel, content) {
     guidancePanel.appendChild(errorMsg)
   }
 }
-

@@ -10,27 +10,49 @@ import { getModeDisplayName } from '../modes/modeRoster.js'
 
 
 /**
- * Creates a single LED display element
- * @param {string} label - Display label
+ * Creates a single LED display element.
+ *
+ * Three pieces of text, because the readout has three audiences. The `label`
+ * is the full name ("Time (mm:ss)") and is the LED's accessible name — visually
+ * hidden, since the column's own kicker already says what is being read and
+ * repeating it costs the control row height it does not have. The `unit` is
+ * what an instrument prints beside a number ("MM:SS"), set small and to the
+ * right. The optional `caption` is a short word shown to the left of the value,
+ * for a readout that needs naming in place rather than by the column.
+ * @param {string} label - Full display name; the accessible name
  * @param {string} value - Initial display value
+ * @param {string} [unit] - Unit shown beside the value
+ * @param {string} [caption] - Short visible name shown before the value
  * @returns {HTMLDivElement} The LED display element
  */
-export function createLEDDisplay(label, value) {
+export function createLEDDisplay(label, value, unit, caption) {
   const led = document.createElement('div')
   led.className = 'gram-frame-led'
-  
-  // Create label element safely
+
   const labelDiv = document.createElement('div')
-  labelDiv.className = 'gram-frame-led-label'
+  labelDiv.className = 'gram-frame-led-label gram-frame-visually-hidden'
   labelDiv.textContent = label
-  
-  // Create value element safely
+  led.appendChild(labelDiv)
+
+  if (caption) {
+    const captionDiv = document.createElement('div')
+    captionDiv.className = 'gram-frame-led-caption'
+    captionDiv.textContent = caption
+    led.appendChild(captionDiv)
+  }
+
   const valueDiv = document.createElement('div')
   valueDiv.className = 'gram-frame-led-value'
   valueDiv.textContent = value
-  
-  led.appendChild(labelDiv)
   led.appendChild(valueDiv)
+
+  if (unit) {
+    const unitDiv = document.createElement('div')
+    unitDiv.className = 'gram-frame-led-unit'
+    unitDiv.textContent = unit
+    led.appendChild(unitDiv)
+  }
+
   return led
 }
 

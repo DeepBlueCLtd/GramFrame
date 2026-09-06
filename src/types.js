@@ -172,6 +172,12 @@
  * @typedef {'marker'|'harmonicSet'|'sidebandSet'} SelectedFeatureType
  */
 
+/**
+ * What the style panel's controls act on: the defaults a new feature will take,
+ * or the feature currently selected.
+ * @typedef {'new'|'selected'} StyleTarget
+ */
+
 
 
 
@@ -204,6 +210,7 @@
  * @property {function(string, any, number): void} [onSelect] - Row click
  * @property {function(string, any, number): void} [onDelete] - Delete-control click
  * @property {function(string): boolean} [isSelected] - Whether the row with this key is selected
+ * @property {string} [emptyMessage] - What the table says instead of rows when there are none
  */
 
 /**
@@ -345,6 +352,7 @@
  * @property {DopplerState} doppler - Doppler mode state
  * @property {AnalysisState} analysis - Analysis mode state
  * @property {DragProjection} drag - Read-only projection of the active drag
+ * @property {StyleTarget} styleTarget - Which of the style panel's targets the style controls act on
  * @property {SelectionState} selection - Selection state for keyboard control
  * @property {ImageDetails} imageDetails - Image source and dimensions
  * @property {Config} config - Time and frequency configuration
@@ -352,7 +360,21 @@
  * @property {AxesMargins} margins - Axes margin configuration
  * @property {ZoomState} zoom - Zoom state configuration
  * @property {boolean} [imageExpanded] - Whether the image is expanded to fill available space (in-memory only)
+ * @property {boolean} guidanceCollapsed - Whether the guidance column is collapsed to its rail; chrome, remembered per user
+ * @property {TimeBookmark[]} bookmarks - Flagged times on the transport's scrub track; empty on an image-backed instance
  * @property {PlayerState} player - Audio-sourced instance state; inert (`active: false`) on image-backed instances (spec 168)
+ */
+
+/**
+ * A time an analyst has flagged on the transport's scrub track.
+ *
+ * Playback chrome, not an annotation: a bookmark says where to listen again,
+ * not what was measured, so it is saved with the gram's other playback
+ * preferences rather than with its markers.
+ * @typedef {Object} TimeBookmark
+ * @property {string} id - Unique id within the instance
+ * @property {number} time - Position in the recording, seconds
+ * @property {string} label - Short flag text drawn on the track
  */
 
 /**
@@ -559,7 +581,6 @@
  * @property {HTMLDivElement} modesContainer - Container for mode buttons
  * @property {Object<string, HTMLButtonElement>} modeButtons - Mode switching buttons
  * @property {Object<string, HTMLButtonElement[]>} commandButtons - Command buttons by mode
- * @property {HTMLDivElement} guidancePanel - Guidance text panel
  */
 
 /**
@@ -568,6 +589,8 @@
  * @typedef {Object} GramFrameInteraction
  * @property {function(string, string, number): void} setSelection - Select a feature
  * @property {function(): void} clearSelection - Clear the selection
+ * @property {function(SelectedFeatureType, string, number): void} toggleSelection - Select a feature, or deselect it if it is already selected
+ * @property {function(SelectedFeatureType, string): boolean} isFeatureSelected - Whether this feature is the selected one
  * @property {function(): void} updateSelectionVisuals - Re-render selection styling
  * @property {function(string): boolean} applyColorToSelectedFeature - Restyle colour in place
  * @property {function(SymbolType): boolean} applySymbolToSelectedFeature - Restyle symbol in place
@@ -618,6 +641,10 @@
  * @property {SVGRectElement} imageClipRect - Clip rect for the image
  * @property {SVGRectElement} cursorClipRect - Clip rect for the cursor group
  * @property {HTMLDivElement} modeColumn - Mode buttons column
+ * @property {HTMLDivElement} guidanceColumn - Guidance column, or its rail when collapsed
+ * @property {HTMLDivElement} guidanceTitle - The guidance header's mode name
+ * @property {HTMLDivElement} readoutColumn - The instrument face
+ * @property {HTMLDivElement} kicker - What the readout column is currently reading
  * @property {HTMLElement} timeLED - Time readout
  * @property {HTMLElement} freqLED - Frequency readout
  * @property {HTMLElement} speedLED - Speed readout
@@ -641,6 +668,8 @@
  * @property {function(string): void} removeSidebandSet - Delete a sideband set by id
  * @property {function(string, string, number): void} setSelection - Select a feature
  * @property {function(): void} clearSelection - Clear the selection
+ * @property {function(SelectedFeatureType, string, number): void} toggleSelection - Select a feature, or deselect it if it is already selected
+ * @property {function(SelectedFeatureType, string): boolean} isFeatureSelected - Whether this feature is the selected one
  * @property {function(): void} updateSelectionVisuals - Re-render selection styling
  * @property {function(string): boolean} applyColorToSelectedFeature - Restyle colour in place
  * @property {function(SymbolType): boolean} applySymbolToSelectedFeature - Restyle symbol in place
@@ -649,23 +678,22 @@
  */
 
 /**
- * The columns, LED displays and panel containers built by `createUnifiedLayout`.
+ * The columns, readouts and panel containers built by `createUnifiedLayout`.
  * @typedef {Object} UnifiedLayoutElements
- * @property {HTMLDivElement} unifiedLayoutContainer - Main layout container
- * @property {HTMLDivElement} leftColumn - Readout column
- * @property {HTMLDivElement} middleColumn - Markers column
- * @property {HTMLDivElement} rightColumn - Harmonics column
- * @property {HTMLDivElement} sidebandsColumn - Sidebands column
- * @property {HTMLDivElement} modeColumn - Mode buttons column
- * @property {HTMLDivElement} guidanceColumn - Guidance text column
- * @property {HTMLDivElement} controlsColumn - Controls column
+ * @property {HTMLDivElement} unifiedLayoutContainer - The control row
+ * @property {HTMLDivElement} modeColumn - Mode rail
+ * @property {HTMLDivElement} guidanceColumn - Guidance column
+ * @property {HTMLDivElement} guidancePanel - Where the armed mode's guidance is rendered
+ * @property {HTMLDivElement} guidanceTitle - The guidance header's mode name
+ * @property {HTMLDivElement} readoutColumn - The instrument face
+ * @property {HTMLDivElement} kicker - What the readout column is currently reading
  * @property {HTMLDivElement} markersContainer - Markers table container
  * @property {HTMLDivElement} harmonicsContainer - Harmonics panel container
  * @property {HTMLDivElement} sidebandsContainer - Sidebands panel container
  * @property {HTMLElement} timeLED - Time readout
  * @property {HTMLElement} freqLED - Frequency readout
  * @property {HTMLElement} speedLED - Speed readout
- * @property {HTMLElement} colorPicker - Style panel (colour, symbol, size, pin)
+ * @property {HTMLElement} colorPicker - Style panel (colour, symbol, pin, label, nudge)
  */
 
 /**

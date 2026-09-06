@@ -16,7 +16,7 @@ import { test, expect } from './helpers/fixtures.js'
  * @param {number} y
  */
 async function addMarker(page, x, y) {
-  await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').first().click()
+  await page.locator('.gram-frame-mode-btn[title="Cross Cursor" i]').first().click()
   await page.locator('.gram-frame-svg').first().click({ position: { x, y } })
 }
 
@@ -29,7 +29,7 @@ test.describe('Clear gram rebuilds state from the initial-state builders (GF-12)
     await addMarker(page, 200, 150)
     await addMarker(page, 260, 180)
 
-    await page.locator('.gram-frame-mode-btn:text("Harmonics")').first().click()
+    await page.locator('.gram-frame-mode-btn[title="Harmonics" i]').first().click()
     const svg = page.locator('.gram-frame-svg').first()
     const box = await svg.boundingBox()
     if (!box) throw new Error('SVG not found')
@@ -38,7 +38,7 @@ test.describe('Clear gram rebuilds state from the initial-state builders (GF-12)
     await page.mouse.move(box.x + 320, box.y + 180, { steps: 5 })
     await page.mouse.up()
 
-    await page.locator('.gram-frame-mode-btn:text("Doppler")').first().click()
+    await page.locator('.gram-frame-mode-btn[title="Doppler" i]').first().click()
     await page.mouse.move(box.x + 180, box.y + 100)
     await page.mouse.down()
     await page.mouse.move(box.x + 300, box.y + 220, { steps: 5 })

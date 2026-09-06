@@ -3,7 +3,6 @@ import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getVersion } from '../../utils/version.js'
 import { pixelDeltaToNormalizedPan, panByNormalized, zoomIn, zoomOut, fitView, isZoomedIn, zoomLevel } from '../../core/viewport.js'
 import { IDLE_CURSOR, PAN_IDLE_CURSOR, PAN_DRAG_CURSOR } from '../../utils/cursors.js'
-import { NAVIGATION_GUIDANCE } from '../../utils/navigationGuidance.js'
 import { isPlayerActive } from '../../player/playerView.js'
 import { resumeFromClick } from '../../player/dragSeek.js'
 
@@ -63,6 +62,24 @@ export class PanMode extends BaseMode {
    */
   canPan() {
     return isZoomedIn(this.instance) || isPlayerActive(this.instance)
+  }
+
+  /**
+   * Panning an audio-sourced gram keeps working off the image.
+   *
+   * Scrolling back to the very start of a recording *means* putting blank space
+   * on screen: the top edge is the playhead, so the first second only reaches
+   * it once the whole window below is empty. A pan that stopped the moment the
+   * pointer left the gram would strand the analyst partway, with the opening
+   * seconds visible but unreachable.
+   *
+   * Only for the player, and only for panning. On an image-backed gram there is
+   * no blank inside the axes to drag from, and every other mode places or moves
+   * a feature, which must land on the gram.
+   * @returns {boolean} True on an audio-sourced gram
+   */
+  acceptsOffImageDrag() {
+    return isPlayerActive(this.instance)
   }
 
   /**
@@ -182,33 +199,25 @@ export class PanMode extends BaseMode {
   /**
    * Get guidance content for pan mode.
    *
-   * Pan is the initial mode, so its guidance carries the global navigation
-   * gestures (which apply in every mode) as their own titled section, plus a
-   * section for the pan-specific interactions.
-   *
-   * "available in all modes" is a heading qualifier, not a bullet: it qualifies
-   * the whole section rather than standing beside the individual instructions,
-   * and folding it into the heading buys back a line of the control row's
-   * height.
-   * @returns {Object} Structured guidance content (multi-section)
+   * Its own gestures only. The cross-mode ones used to be a second section
+   * here, because Pan is the initial mode and the old panel had room for them
+   * nowhere else — which meant an analyst who armed Cross Cursor first never
+   * learnt that Shift + drag zooms. The guidance column appends them to every
+   * mode now (see `utils/guidanceContent.js`).
+   * @returns {Object} Structured guidance content
    */
   getGuidanceText() {
     return {
       sections: [
         {
-          title: 'Navigation',
-          qualifier: 'available in all modes',
-          items: NAVIGATION_GUIDANCE
-        },
-        {
-          title: 'Pan Mode',
           items: [
-            'Click and drag to pan the view (when zoomed in)',
-            'On an audio gram, click to pause or resume playback',
+            { trigger: 'Drag', outcome: 'to pan the view when zoomed in' },
+            { trigger: 'Click', outcome: 'on an audio gram, to pause or resume playback' },
             // Named by shape, not by the glyph itself: a character in the
             // guidance would depend on the reader's font, which is the reason
             // the button draws its own (issue #310).
-            'Use + / − to zoom, and the corner-frame button to fit the whole gram',
+            { trigger: '+ / \u2212', outcome: 'to zoom in and out' },
+            { trigger: 'Fit', outcome: 'to bring the whole gram back in one click' },
             `GramFrame v${getVersion()}`
           ]
         }

@@ -159,12 +159,18 @@ class GramFramePage {
   }
 
   /**
-   * Start a drag at specific coordinates on the SVG
+   * Start a drag at specific coordinates on the SVG.
+   *
+   * Scrolls the gram fully into view first: `boundingBox()` is
+   * viewport-relative, so on a page where the component's lower half is below
+   * the fold the mouse cannot be moved to the coordinates it returns — and the
+   * drag then quietly does nothing rather than failing.
    * @param {number} x - X coordinate
    * @param {number} y - Y coordinate
    * @returns {Promise<void>}
    */
   async startDragSVG(x, y) {
+    await this.svg.scrollIntoViewIfNeeded()
     const svgBox = await this.svg.boundingBox()
     if (svgBox) {
       await this.page.mouse.move(svgBox.x + x, svgBox.y + y)
@@ -246,6 +252,7 @@ class GramFramePage {
    * @returns {Promise<void>}
    */
   async middleDragSVG(startX, startY, endX, endY) {
+    await this.svg.scrollIntoViewIfNeeded()
     const svgBox = await this.svg.boundingBox()
     if (!svgBox) {
       return
@@ -267,6 +274,11 @@ class GramFramePage {
    * @returns {Promise<void>}
    */
   async shiftDragSVG(startX, startY, endX, endY, opts = {}) {
+    // Bring the gram fully into view first. `boundingBox()` is viewport-
+    // relative, so a component whose lower half is below the fold gives
+    // coordinates the mouse cannot be moved to — and the drag then quietly does
+    // nothing rather than failing.
+    await this.svg.scrollIntoViewIfNeeded()
     const svgBox = await this.svg.boundingBox()
     if (!svgBox) {
       return
@@ -377,6 +389,21 @@ class GramFramePage {
   async getLEDValue(label) {
     const ledSelector = `.gram-frame-led:has(.gram-frame-led-label:text-is("${label}")) .gram-frame-led-value`
     return await this.page.locator(ledSelector).textContent()
+  }
+
+  /**
+   * Make sure the guidance column is showing rather than collapsed to its rail.
+   *
+   * The column collapses itself on a narrow panel, and the test viewport is
+   * narrow, so a test that reads the guidance has to open it first. Idempotent.
+   * @returns {Promise<void>}
+   */
+  async showGuidance() {
+    const reveal = this.page.locator('.gram-frame-guidance-reveal').first()
+    if (await reveal.isVisible()) {
+      await reveal.click()
+    }
+    await this.page.locator('.gram-frame-guidance').first().waitFor({ state: 'visible' })
   }
 
   /**
@@ -1146,34 +1173,40 @@ class GramFramePage {
   }
 
   /**
-   * Open the label dialog from a marker row's Label button (feature 231).
-   * @param {string} markerId - Marker whose row's button to click
-   * @returns {Promise<import('@playwright/test').Locator>} Locator for the dialog's text input
+   * Select a marker's row and reach the style panel's label field.
+   *
+   * The per-row dialog is gone with the control-row redesign: a marker's label
+   * is edited in the style panel, beside its colour and symbol, so getting at
+   * the field means selecting the marker first.
+   * @param {string} markerId - Marker whose row to select
+   * @returns {Promise<import('@playwright/test').Locator>} Locator for the label field
    */
-  async openMarkerLabelDialog(markerId) {
-    await this.page
-      .locator(`tr[data-marker-id="${markerId}"] .gram-frame-marker-label-btn`)
-      .click()
-    const input = this.page.locator('.gram-frame-marker-label-input')
+  async openMarkerLabelField(markerId) {
+    // Clicking a row TOGGLES its selection, so select only when this marker is
+    // not already the selected one — a newly placed marker arrives selected.
+    const selected = (await this.getState()).selection.selectedId
+    if (selected !== markerId) {
+      await this.page.locator(`tr[data-marker-id="${markerId}"]`).click()
+    }
+    const input = this.page.locator('.gram-frame-style-label-input')
     await expect(input).toBeVisible()
     return input
   }
 
   /**
-   * Set a marker's label through the dialog, and wait for state to carry it.
+   * Set a marker's label in the style panel, and wait for state to carry it.
    *
-   * Passing an empty string clears the label, which is how the dialog removes
-   * one. The wait is on broadcast state rather than a delay, so the caller can
-   * read the overlay and the table immediately afterwards.
+   * Passing an empty string clears the label, which is how a label is removed.
+   * The wait is on broadcast state rather than a delay, so the caller can read
+   * the overlay and the table immediately afterwards.
    *
    * @param {string} markerId - Marker to label
    * @param {string} label - New label text ('' to remove the label)
    * @returns {Promise<void>}
    */
   async setMarkerLabel(markerId, label) {
-    const input = await this.openMarkerLabelDialog(markerId)
+    const input = await this.openMarkerLabelField(markerId)
     await input.fill(label)
-    await this.page.locator('.gram-frame-modal-save').click()
 
     const expected = label.trim() === '' ? undefined : label.trim()
     await this.waitForState(
@@ -1240,39 +1273,48 @@ class GramFramePage {
   }
 
   /**
-   * Select a symbol from the control-panel symbol drop-down.
-   * @param {string} symbolId - One of 'circle','square','diamond','triangle','triangle-down','star'
+   * Choose a symbol from the style panel's symbol popup.
+   *
+   * The drop-down it replaced could be driven with `selectOption`; the popup
+   * has to be opened first, which is the one behavioural difference a caller
+   * sees.
+   * @param {string} symbolId - One of 'cross','circle','square','diamond','triangle','triangle-down','star'
    * @returns {Promise<void>}
    */
   async selectSymbol(symbolId) {
-    await this.page.locator('.gram-frame-symbol-select').selectOption(symbolId)
+    await this.page.locator('.gram-frame-symbol-select').click()
+    await this.page.locator(`.gram-frame-symbol-cell[data-symbol="${symbolId}"]`).click()
+    await expect(this.page.locator('.gram-frame-symbol-select')).toHaveAttribute('data-symbol', symbolId)
   }
 
   /**
-   * Set the harmonic-pin toggle in the Symbol panel.
-   * @param {boolean} checked - Desired checkbox state
+   * Choose the pin style in the style panel: tall pins, or mini.
+   * @param {boolean} tall - True for tall pins, false for mini
    * @returns {Promise<void>}
    */
-  async setPinToggle(checked) {
-    const toggle = this.page.locator('.gram-frame-pin-toggle-input')
-    if (checked) {
-      await toggle.check()
-    } else {
-      await toggle.uncheck()
-    }
+  async setPinToggle(tall) {
+    await this.page
+      .locator('.gram-frame-pin-toggle .gram-frame-segmented-option')
+      .nth(tall ? 0 : 1)
+      .click()
   }
 
   /**
-   * Read the harmonic-pin toggle's current state.
+   * Read the pin control's current state.
+   *
+   * `checked` keeps its old meaning — tall pins are chosen — so the tests that
+   * ask the question did not have to be rewritten around a segmented control.
    * @returns {Promise<{checked: boolean, disabled: boolean}>}
    */
   async getPinToggleState() {
     return this.page.evaluate(() => {
-      const el = /** @type {HTMLInputElement|null} */ (
-        document.querySelector('.gram-frame-pin-toggle-input')
-      )
-      if (!el) return { checked: false, disabled: false }
-      return { checked: el.checked, disabled: el.disabled }
+      const options = document.querySelectorAll('.gram-frame-pin-toggle .gram-frame-segmented-option')
+      const tall = /** @type {HTMLButtonElement|null} */ (options[0])
+      if (!tall) return { checked: false, disabled: false }
+      return {
+        checked: tall.classList.contains('gram-frame-segmented-selected'),
+        disabled: tall.disabled
+      }
     })
   }
 

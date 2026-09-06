@@ -75,6 +75,40 @@ test.describe('Pan drag on an audio-sourced gram', () => {
     expect(afterDown).toBeCloseTo(15, 1)
   })
 
+  test('the view scrolls back to the very start, so the opening seconds reach the playhead', async ({ page }) => {
+    // The top edge IS the playhead, and drag-seek resumes from whatever time
+    // the top edge shows. A lower clamp of one window therefore made the first
+    // `window-seconds` of every recording impossible to put under the playhead,
+    // and so impossible to replay by dragging: the furthest back an analyst
+    // could get was the first sound sitting on the bottom edge.
+    const gfp = await gotoPlayer(page)
+    await page.evaluate(() => { window.GramFrame.getPlayer(0)?.seek(15) })
+    await gfp.waitForState(s => s.player.viewTop === 15, { message: 'seek to 15 s' })
+
+    const state = await gfp.getState()
+    const svgBox = await gfp.svg.boundingBox()
+    if (!svgBox) throw new Error('no SVG box')
+    const x = svgBox.x + state.margins.left + 200
+    const y = svgBox.y + state.margins.top + 250
+
+    // Drag up until it stops moving, or until it plainly is not going to.
+    let viewTop = 15
+    for (let i = 0; i < 40 && viewTop > 0; i++) {
+      await gfp.dragSVG(x, y, x, y - 150)
+      const next = (await gfp.getState()).player.viewTop
+      // A stall means the drag stopped working, not that the clamp was reached.
+      expect(next, `the drag stalled at ${next}`).not.toBe(viewTop)
+      viewTop = next
+    }
+
+    // The start of the recording, at the top edge — not one window above it.
+    expect(viewTop).toBe(0)
+
+    // And the blank below it is the point: the view now spans from before the
+    // recording began, which is what puts its first second under the playhead.
+    expect((await gfp.getState()).player.playhead).toBe(15)
+  })
+
   test('a downward drag past the playhead scrolls on into unplayed time, and clamps at the duration', async ({ page }) => {
     const gfp = await gotoPlayer(page)
     await page.evaluate(() => window.GramFrame.getPlayer(0).seek(15))

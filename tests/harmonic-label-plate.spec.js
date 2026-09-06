@@ -12,6 +12,10 @@ import { test, expect } from './helpers/fixtures.js'
  * Set identity must still be carried by the pin's line (and symbol) colour, so
  * these tests also assert the line keeps the set colour.
  *
+ * These are about the resting treatment, so each test clears the selection a
+ * newly created set arrives with: a SELECTED set's plates are inverted (dark
+ * plate, light text), which `tests/selection-highlight.spec.js` covers.
+ *
  * Debug config spans freq 0-100 Hz over time 0-60 s, so a 20 Hz set places
  * harmonics 1..5 — every pin labelled.
  */
@@ -34,6 +38,19 @@ async function setSelectedColor(gfp, color) {
   }, color)
 }
 
+/**
+ * Drop the selection a newly created set arrives with, so the labels are read at
+ * rest rather than inverted.
+ * @param {import('./helpers/gram-frame-page.js').GramFramePage} gfp - Page helper
+ * @returns {Promise<void>}
+ */
+async function deselect(gfp) {
+  await gfp.page.evaluate(() => {
+    // @ts-ignore - test-only global
+    window.GramFrame.__test__getInstances()[0].interaction.clearSelection()
+  })
+}
+
 test.describe('Harmonic pin label plate', () => {
   test.beforeEach(async ({ gramFramePage }) => {
     await gramFramePage.clickMode('Harmonics')
@@ -42,6 +59,7 @@ test.describe('Harmonic pin label plate', () => {
 
   test('every pin number label is black digits on a white rounded plate', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(30, 20)
+    await deselect(gramFramePage)
 
     const labels = await gramFramePage.getHarmonicLabelPaint(setId)
     expect(labels.length).toBeGreaterThan(0)
@@ -62,6 +80,7 @@ test.describe('Harmonic pin label plate', () => {
 
   test('the plate covers the digits it carries, with room around them', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(30, 20)
+    await deselect(gramFramePage)
 
     const labels = await gramFramePage.getHarmonicLabelPaint(setId)
     expect(labels.length).toBeGreaterThan(0)
@@ -87,6 +106,7 @@ test.describe('Harmonic pin label plate', () => {
     const firstId = await gramFramePage.addHarmonicSet(20, 20)
     await setSelectedColor(gramFramePage, '#45b7d1')
     const secondId = await gramFramePage.addHarmonicSet(40, 25)
+    await deselect(gramFramePage)
 
     const state = await gramFramePage.getState()
     const sets = state.harmonics.harmonicSets
@@ -117,6 +137,7 @@ test.describe('Harmonic pin label plate', () => {
 
   test('labels stay plated after a zoom re-render', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addHarmonicSet(30, 20)
+    await deselect(gramFramePage)
 
     await gramFramePage.setZoom(2.0, 0.5, 0.5)
 

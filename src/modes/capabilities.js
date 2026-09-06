@@ -54,6 +54,35 @@
  */
 
 /**
+ * A mode that owns free-standing markers — features placed one at a time, each
+ * with its own position and optional label.
+ *
+ * Implemented by Analysis alone today. It exists for the same reason
+ * {@link PinSetOwner} does: the style panel's Delete button has to remove
+ * whatever is selected, and "whatever is selected" must not be a switch on mode
+ * names in a component (ADR-017).
+ * @typedef {Object} MarkerOwner
+ * @property {AnalysisMarker[]} markers - This mode's markers, live
+ * @property {function(string): void} removeMarker - Delete one marker by id
+ * @property {function(string, string|undefined): void} setMarkerLabel - Set or clear one marker's label
+ */
+
+/**
+ * The mode owning markers, if any.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {MarkerOwner|null} The owning mode, or null
+ */
+export function findMarkerOwner(instance) {
+  const owner = Object.values(instance.modes || {}).find(mode => {
+    const candidate = /** @type {Partial<MarkerOwner>} */ (mode)
+    return Array.isArray(candidate?.markers)
+      && typeof candidate?.removeMarker === 'function'
+      && typeof candidate?.setMarkerLabel === 'function'
+  })
+  return /** @type {MarkerOwner|null} */ (owner || null)
+}
+
+/**
  * Whether a mode owns a family of pin sets.
  *
  * Not exported: unlike the other two predicates, every caller wants the *one*

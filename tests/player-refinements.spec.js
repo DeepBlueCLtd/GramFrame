@@ -150,6 +150,31 @@ test.describe('Story 3 — moving around a recording that is playing', () => {
     return gfp
   }
 
+  test('a drag back to the start replays the recording from its first moment', async ({ page }) => {
+    // The whole point of the lower clamp reaching zero. Drag-seek resumes from
+    // the time at the top edge, so an analyst who wants to hear the opening
+    // seconds again has to be able to drag them all the way up to it.
+    const gfp = await gotoAndPlay(page)
+    const box = await gfp.svg.boundingBox()
+    if (!box) throw new Error('no SVG box')
+    const x = box.x + MARGINS.left + 400
+    const y = box.y + MARGINS.top + 300
+
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    // Far enough up to run the view past the start of the recording — the
+    // pointer ends over the blank the drag itself brings into view.
+    await page.mouse.move(x, y - 1200, { steps: 12 })
+    await gfp.waitForState(s => s.player.viewTop === 0, { message: 'the view to reach the start' })
+
+    await page.mouse.up()
+    await gfp.waitForState(s => s.player.playing === true, { message: 'playback to resume' })
+
+    // Resumed from the beginning, not from one window in.
+    const after = await gfp.getState()
+    expect(after.player.playhead).toBeLessThan(1)
+  })
+
   test('AS-3.1 / AS-3.2 / FR-015 / FR-016: a drag pauses under the hand and resumes where it is released', async ({ page }) => {
     const gfp = await gotoAndPlay(page)
     const box = await gfp.svg.boundingBox()

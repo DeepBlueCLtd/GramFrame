@@ -10,7 +10,7 @@
 
 import { ModeFactory } from '../../modes/ModeFactory.js'
 import { FeatureRenderer } from '../FeatureRenderer.js'
-import { updateGuidancePanel } from '../../utils/secureHTML.js'
+import { showGuidanceForMode } from '../../components/GuidancePanel.js'
 
 /** @typedef {import('../../modes/BaseMode.js').BaseMode} BaseMode */
 
@@ -45,10 +45,9 @@ export function initializeModeInfrastructure(instance) {
  * @param {GramFrame} instance - GramFrame instance
  * @param {Object<string, BaseMode>} modes - Constructed modes
  * @param {Object<string, HTMLDivElement>} panelContainers - Column each panel-owning mode mounts into, by mode name
- * @param {HTMLDivElement} guidancePanel - Panel the starting mode's guidance is written into
  * @returns {BaseMode} The starting mode
  */
-export function setupModeUI(instance, modes, panelContainers, guidancePanel) {
+export function setupModeUI(instance, modes, panelContainers) {
   // Every panel-owning mode's table is always visible, whatever mode is active
   Object.entries(panelContainers).forEach(([modeName, container]) => {
     if (modes[modeName]) {
@@ -59,8 +58,8 @@ export function setupModeUI(instance, modes, panelContainers, guidancePanel) {
   // Set initial mode from state (pan by default)
   const currentMode = modes[instance.state.mode] || modes['pan']
 
-  // Initialize guidance panel with the initial mode's guidance
-  updateGuidancePanel(guidancePanel, currentMode.getGuidanceText())
+  // Name the starting mode in the guidance column and write its lines
+  showGuidanceForMode(instance, currentMode)
 
   return currentMode
 }

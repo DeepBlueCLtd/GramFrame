@@ -26,6 +26,7 @@ import { setLEDValue } from './components/LEDDisplay.js'
 import { 
   updatePersistentPanels 
 } from './components/MainUI.js'
+import { mountClearAllButton } from './components/AnnotationTables.js'
 
 // Initialization modules
 import { setupSpectrogramComponents } from './core/initialization/DOMSetup.js'
@@ -42,7 +43,7 @@ import {
   handleResize
 } from './core/viewport.js'
 import { getModeDisplayName } from './modes/modeRoster.js'
-import { updateGuidancePanel } from './utils/secureHTML.js'
+import { showGuidanceForMode } from './components/GuidancePanel.js'
 
 import { ModeFactory } from './modes/ModeFactory.js'
 
@@ -61,10 +62,11 @@ import {
   mergeForeignRecord,
   clearAnnotations,
   describeUserContext,
-  loadPinPreference,
   hasPersistableAnnotations,
   buildGramFingerprint
 } from './core/storage.js'
+
+import { loadPinPreference } from './core/preferences.js'
 
 import { calculateDopplerSpeed, MS_TO_KNOTS } from './utils/doppler.js'
 
@@ -106,6 +108,8 @@ export class GramFrame {
   interaction = {
     setSelection: () => {},
     clearSelection: () => {},
+    toggleSelection: () => {},
+    isFeatureSelected: () => false,
     updateSelectionVisuals: () => {},
     applyColorToSelectedFeature: () => false,
     applySymbolToSelectedFeature: () => false,
@@ -215,11 +219,11 @@ export class GramFrame {
       `GramFrame: instance ${this.persistence._storageInstanceIndex} is on a ${detectedContext.context} page ` +
       `(${detectedContext.reason}) — ` +
       (this.persistence._isTrainerContext
-        ? 'annotations persist in localStorage and the "Clear gram" button is shown'
-        : 'annotations are session-only, expire after 24 hours, and there is no "Clear gram" button')
+        ? 'annotations persist in localStorage'
+        : 'annotations are session-only and expire after 24 hours')
     )
     const layout = createUnifiedLayoutStructure(this, dom.readoutPanel, dom.modeCell)
-    const initialModeUI = setupPersistentContainers(this, layout.modeColumn, layout.guidanceColumn)
+    const initialModeUI = setupPersistentContainers(this, layout.modeColumn)
 
     this.ui = {
       container: dom.container,
@@ -236,6 +240,11 @@ export class GramFrame {
       imageClipRect: dom.imageClipRect,
       cursorClipRect: dom.cursorClipRect,
       modeColumn: layout.modeColumn,
+      guidanceColumn: layout.guidanceColumn,
+      guidancePanel: layout.guidancePanel,
+      guidanceTitle: layout.guidanceTitle,
+      readoutColumn: layout.readoutColumn,
+      kicker: layout.kicker,
       markersContainer: layout.markersContainer,
       harmonicsContainer: layout.harmonicsContainer,
       sidebandsContainer: layout.sidebandsContainer,
@@ -246,7 +255,6 @@ export class GramFrame {
       modesContainer: initialModeUI.modesContainer,
       modeButtons: initialModeUI.modeButtons,
       commandButtons: initialModeUI.commandButtons,
-      guidancePanel: initialModeUI.guidancePanel,
       // Mounted later, or not at all: the harmonics and sidebands panels
       // arrive with their modes' UI, the expand toggle only for a landscape
       // image, and nothing assigns the mode/frequency-rate LEDs at all — every read of
@@ -267,21 +275,20 @@ export class GramFrame {
       analysis: layout.markersContainer,
       harmonics: layout.harmonicsContainer,
       sideband: layout.sidebandsContainer
-    }, initialModeUI.guidancePanel)
+    })
 
-    const modeUI = updateModeUIWithCommands(
-      this, initialModeUI, modes, this.currentMode, layout.modeColumn, layout.guidanceColumn
-    )
+    const modeUI = updateModeUIWithCommands(this, initialModeUI, modes, this.currentMode, layout.modeColumn)
     this.ui.modesContainer = modeUI.modesContainer
     this.ui.modeButtons = modeUI.modeButtons
     this.ui.commandButtons = modeUI.commandButtons
-    this.ui.guidancePanel = modeUI.guidancePanel
 
     const controls = setupAllEventListeners(this)
     this.interaction.removeHarmonicSet = controls.removeHarmonicSet
     this.interaction.removeSidebandSet = controls.removeSidebandSet
     this.interaction.setSelection = controls.setSelection
     this.interaction.clearSelection = controls.clearSelection
+    this.interaction.toggleSelection = controls.toggleSelection
+    this.interaction.isFeatureSelected = controls.isFeatureSelected
     this.interaction.updateSelectionVisuals = controls.updateSelectionVisuals
     this.interaction.applyColorToSelectedFeature = controls.applyColorToSelectedFeature
     this.interaction.applySymbolToSelectedFeature = controls.applySymbolToSelectedFeature
@@ -290,10 +297,12 @@ export class GramFrame {
 
     setupStateListeners(this)
 
-    // Add "Clear gram" button for trainer pages
-    if (this.persistence._isTrainerContext) {
-      this._addClearGramButton()
-    }
+    // Every page gets the way to clear this gram's annotations. It used to be
+    // trainer-only, on the reasoning that a student's work expires anyway — but
+    // "it will be gone tomorrow" is no answer to a student who has mislabelled
+    // a gram and wants to start the exercise again today. Clearing is the same
+    // operation either way; only where the annotations were stored differs.
+    mountClearAllButton(this, () => this._clearGram())
 
     if (this.state.player.active) {
       // An audio-sourced instance (spec 168) has no time range until its
@@ -350,25 +359,6 @@ export class GramFrame {
     handleResize(this)
   }
   
-  /**
-   * Add a "Clear gram" button to the controls area (trainer pages only)
-   */
-  _addClearGramButton() {
-    const btn = document.createElement('button')
-    btn.className = 'gram-frame-clear-btn'
-    btn.textContent = 'Clear gram'
-    btn.title = 'Remove all annotations for this gram'
-    btn.addEventListener('click', (e) => {
-      e.preventDefault()
-      this._clearGram()
-    })
-
-    // Append to the mode column alongside the mode buttons
-    if (this.ui.modeColumn) {
-      this.ui.modeColumn.appendChild(btn)
-    }
-  }
-
   /**
    * Cancel any feature drag in progress, through the engine — the single owner
    * of the drag record. Writing `state.drag` directly instead left the engine
@@ -878,11 +868,8 @@ export class GramFrame {
     
     this.currentMode.activate()
     
-    // Update guidance panel using mode's guidance text
-    if (this.ui.guidancePanel) {
-      const guidanceContent = this.currentMode.getGuidanceText()
-      updateGuidancePanel(this.ui.guidancePanel, guidanceContent)
-    }
+    // Name the newly armed mode in the guidance column and write its lines
+    showGuidanceForMode(this, this.currentMode)
     
     // Update LED display visibility
     this.currentMode.updateLEDs(this.state.cursorPosition)

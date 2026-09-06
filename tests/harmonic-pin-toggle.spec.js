@@ -66,8 +66,12 @@ test.describe('US1: Pin toggle governs newly created harmonic sets', () => {
   })
 
   test('the toggle is present and on at the start of a session', async ({ gramFramePage }) => {
-    const toggle = gramFramePage.page.locator('.gram-frame-pin-toggle-input')
-    await expect(toggle).toBeVisible()
+    // A two-option segmented control now, not a checkbox: both options are on
+    // screen because the pair is the question (issue #232).
+    const options = gramFramePage.page.locator('.gram-frame-pin-toggle .gram-frame-segmented-option')
+    await expect(options).toHaveCount(2)
+    await expect(options.first()).toHaveText('Tall')
+    await expect(options.last()).toHaveText('Mini')
 
     const { checked, disabled } = await gramFramePage.getPinToggleState()
     expect(checked).toBe(true)
@@ -218,9 +222,9 @@ test.describe('US3: Pin preference persists within the session', () => {
     await page.evaluate(() => localStorage.clear())
     await waitForFixtureReady(page)
 
-    await page.locator('.gram-frame-mode-btn:text("Harmonics")').click()
-    await page.locator('.gram-frame-symbol-select').selectOption('star')
-    await page.locator('.gram-frame-pin-toggle-input').uncheck()
+    await page.locator('.gram-frame-mode-btn[title="Harmonics" i]').click()
+    await gfp.selectSymbol('star')
+    await gfp.setPinToggle(false)
     const setId = await gfp.addHarmonicSet(5, 100)
 
     await page.reload()
