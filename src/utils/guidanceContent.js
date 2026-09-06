@@ -75,7 +75,8 @@ import { NAVIGATION_GUIDANCE } from './navigationGuidance.js'
  * names the armed mode, so the rows directly under it should be the ones
  * answering it.
  * @param {GuidanceContent|null|undefined} content - The mode's own guidance
- * @returns {GuidanceContent} That guidance, with the shared section appended
+ * @returns {GuidanceContent & {sections: GuidanceSection[]}} That guidance, with
+ *   the shared section appended
  */
 export function withNavigationGuidance(content) {
   const own = resolveGuidance(content).map(section => ({
@@ -87,7 +88,7 @@ export function withNavigationGuidance(content) {
   }))
 
   return {
-    sections: [...own, { title: 'In every mode', items: NAVIGATION_GUIDANCE }]
+    sections: [...own, { title: 'In every mode', items: [...NAVIGATION_GUIDANCE] }]
   }
 }
 

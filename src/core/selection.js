@@ -24,6 +24,7 @@ import { dispatch } from './state.js'
 import { refreshPanels } from './panelRefresh.js'
 import { setFocusedInstance } from './FocusManager.js'
 import { refreshReadoutTarget } from '../components/CursorReadout.js'
+import { applySelectionHalo } from '../rendering/selectionHalo.js'
 import { revealTime } from '../player/playerView.js'
 import { describeSelection } from './selectionTarget.js'
 
@@ -72,7 +73,7 @@ export function setSelection(instance, type, id, index) {
  *
  * What clicking a row in any of the three annotation tables means. All three
  * wrote it out for themselves — the same four lines against
- * `instance.state.selection`, differing only in the selection type — and a
+ * `state.selection` itself, differing only in the selection type — and a
  * fourth table would have written it a fourth time.
  * @param {GramFrame} instance - GramFrame instance
  * @param {SelectedFeatureType} type - Which family the id belongs to
@@ -138,4 +139,9 @@ export function updateSelectionVisuals(instance) {
   // target here too rather than waiting for the next pointer move — which, with
   // something selected, would never arrive.
   refreshReadoutTarget(instance)
+  // And the gram itself: the panel naming a feature is no help while three
+  // identical crosses sit on the plot with nothing to tell them apart. A pass
+  // of its own rather than a re-render, because selection changes far more
+  // often than the features do.
+  applySelectionHalo(instance)
 }

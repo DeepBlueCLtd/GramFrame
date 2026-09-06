@@ -4,6 +4,7 @@
  */
 
 import { isPersistentFeatureProvider } from '../modes/capabilities.js'
+import { applySelectionHalo } from '../rendering/selectionHalo.js'
 
 /**
  * FeatureRenderer handles rendering of all persistent features across modes
@@ -40,5 +41,9 @@ export class FeatureRenderer {
       .filter(isPersistentFeatureProvider)
       .filter(mode => mode.hasPersistentFeatures())
       .forEach(mode => mode.renderPersistentFeatures())
+
+    // Last, over the finished overlay: the halo copies elements the modes have
+    // just drawn, so it cannot run before they exist.
+    applySelectionHalo(this.instance)
   }
 }

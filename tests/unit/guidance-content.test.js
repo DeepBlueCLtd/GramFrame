@@ -131,12 +131,12 @@ describe('withNavigationGuidance', () => {
     // The column's header names the armed mode, so the mode's own rows come
     // first and the shared ones sit under their own heading beneath them.
     expect(sections[0].title).toBe('Cross Cursor')
-    expect(sections[1]).toEqual({ title: 'In every mode', items: NAVIGATION_GUIDANCE })
+    expect(sections[1]).toEqual({ title: 'In every mode', items: [...NAVIGATION_GUIDANCE] })
   })
 
   test('a mode with no guidance of its own still gets them', () => {
     const sections = withNavigationGuidance(null).sections
-    expect(sections).toEqual([{ title: 'In every mode', items: NAVIGATION_GUIDANCE }])
+    expect(sections).toEqual([{ title: 'In every mode', items: [...NAVIGATION_GUIDANCE] }])
   })
 
   test('plain notes survive the round trip as plain notes', () => {

@@ -1978,6 +1978,28 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   pointer-events: none;
 }
 
+/*
+ * The selected feature, on the gram.
+ *
+ * Two treatments, for the two kinds of thing a feature is made of. Its geometry
+ * gets a halo — a wider, translucent white copy drawn beneath it by
+ * src/rendering/selectionHalo.js, which is geometry rather than style and so is
+ * not expressible here. Its label gets the same inversion its table row gets:
+ * dark plate, light text. A white glow behind a white plate would say nothing,
+ * and inverting both places means selection reads as one idea.
+ */
+.gram-frame-selection-halo {
+  pointer-events: none;
+}
+
+.gram-frame-selected-label .gram-frame-label-plate {
+  fill: var(--gf-bg);
+}
+
+.gram-frame-selected-label text {
+  fill: var(--gf-text);
+}
+
 /* Storage-failure banner — shown inside the component when a save or clear was
    refused by browser storage (quota, private browsing). Non-blocking: it sits
    above the controls, wraps rather than clips, and can be dismissed. */

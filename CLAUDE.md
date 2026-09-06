@@ -229,6 +229,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `displayFilter.js` - The contrast controls' `feComponentTransfer`: built into
     the SVG's defs on first use, removed entirely at the resting positions so the
     default is the image as it loaded
+  - `selectionHalo.js` - What a selected feature looks like on the gram: its own
+    geometry redrawn beneath itself, wider and in translucent white, plus the
+    inverted label plate its table row also gets. A pass over the finished
+    overlay, so selection costs a few elements rather than a re-render
   - `markerGlyph.js` - What an analysis marker is drawn as: the crosshair, or the
     shaped symbol that replaces it. `drawsCrosshair` is the one answer to "does
     this marker have arms?", so the hit test asks it rather than re-deriving the

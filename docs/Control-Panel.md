@@ -158,6 +158,24 @@ be an accent border, which collided with the feature colours the rows themselves
 carry: a green-bordered row holding a green marker said two things at once.
 Inversion survives any feature colour.
 
+The gram says the same thing, which it previously did not: the panel could read
+"Selected: Marker 3" while three identical crosses sat on the plot with nothing
+to tell them apart. `rendering/selectionHalo.js` draws the selected feature's
+own geometry a second time underneath itself, wider and in translucent white —
+a **halo**. It was chosen over the alternatives because it is the only one that
+generalises: a crosshair, a shaped symbol and a stack of forty pin lines all
+take the same cue from the same code, and it is independent of the feature's
+colour, which the tables learnt the hard way. Corner brackets read well on a
+marker and badly on a tall pin set; dimming every other feature is unmissable
+but destroys the comparison between features, which is usually why several
+exist; a pulse has faded by the time the eye arrives.
+
+Labels are the exception, deliberately: a white glow behind a white plate says
+nothing, so a selected feature's plate is **inverted** instead — the same
+reversal its table row performs. It is a pass of its own rather than a flag
+threaded through the renderers, because selection changes far more often than
+the features do.
+
 The sidebands column carries a footer holding **Clear all annotations**, on
 every page. It was trainer-only, on the reasoning that a student's work expires
 overnight anyway — but "it will be gone tomorrow" is no answer to a student who

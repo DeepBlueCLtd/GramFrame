@@ -232,7 +232,7 @@ test.describe('Selecting a feature brings it into view', () => {
     const { gfp, marker } = await pauseAndAnnotate(page)
 
     // Well past the marker: the view spans [15, 20] and the marker sits at 6 s.
-    await page.evaluate(() => window.GramFrame.getPlayer(0).seek(20))
+    await page.evaluate(() => window.GramFrame.getPlayer(0)?.seek(20))
     await gfp.waitForState(s => s.player.viewTop === 20, { message: 'seek to 20 s' })
 
     await page.locator(`tr[data-marker-id="${marker.id}"]`).click()
