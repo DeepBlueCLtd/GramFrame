@@ -17,7 +17,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -274,6 +274,35 @@ results.push({
     .sort((a, b) => b[1] - a[1])
     .map(([file, count]) => `${file}: ${count}`),
 })
+
+// --- 8. Uncovered lines in the unit lane's scope (R9-11) ---------------------
+
+// Counted as *uncovered lines*, not as a percentage, for two reasons. A ratchet
+// here then works exactly like every other one -- a number that may only fall --
+// with no inverted comparison in the report loop below. And a percentage can
+// rise while the untested code also grows, if the covered lines grow faster;
+// a count cannot.
+//
+// The scope is the module list in `vitest.config.js`: what this lane can
+// actually reach. Bringing a new module into that list raises this count, which
+// is the intended friction -- the debt shows up when it is taken on.
+//
+// Reads the summary the last coverage run wrote. `yarn coverage` regenerates
+// it; the check is skipped when it is absent so `yarn hygiene` still runs on a
+// clean checkout.
+const coverageSummaryPath = join(repoRoot, 'coverage', 'coverage-summary.json')
+if (existsSync(coverageSummaryPath)) {
+  const summary = JSON.parse(readFileSync(coverageSummaryPath, 'utf8'))
+  const lines = summary.total.lines
+  results.push({
+    name: "Uncovered lines in the unit lane's scope",
+    baseline: baseline.uncoveredUnitLines,
+    current: lines.total - lines.covered,
+    detail: [`${lines.covered}/${lines.total} lines covered (${lines.pct}%)`],
+  })
+} else {
+  console.log('\u2022 Uncovered lines: no coverage summary found - run `yarn coverage` to include this check')
+}
 
 // --- Report -----------------------------------------------------------------
 

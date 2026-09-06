@@ -9,17 +9,49 @@ aspirational.
 | Lane | Runner | Command | Scope |
 |------|--------|---------|-------|
 | End-to-end | Playwright (Chromium) | `yarn test` | Everything a user does: modes, markers, harmonics, doppler, pan/zoom, expand, storage, keyboard, legacy-browser handling |
-| Unit | Vitest (Node, no browser) | `yarn test:unit` | Pure JS with no DOM dependency (`tests/unit/`) |
+| Unit | Vitest (Node, no browser) | `yarn test:unit`, or `yarn coverage` to measure | Pure JS with no DOM dependency (`tests/unit/`) |
 | WebKit smoke | Playwright (WebKit) | `npx playwright test --config playwright.smoke.config.ts` | The component initialises and renders in a non-Chromium engine (`tests/smoke/`) |
 | Types | `tsc --noEmit` over JSDoc | `yarn typecheck` | Type errors without a TypeScript build. Covers `src/`, `tests/helpers/`, `tests/unit/` and `scripts/`, and must stay at zero |
 | Spec types | `tsc --noEmit -p tsconfig.specs.json` | `yarn typecheck:specs` | The Playwright specs, counted as a debt ratchet by `yarn hygiene` rather than gated at zero (R9-10) |
 | Lint | ESLint | `yarn lint` | Style and correctness rules |
-| Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports, `waitForTimeout` counts, the instance surface, module line counts and spec type errors — each capped at a committed baseline that only ever falls |
+| Debt ratchets | `scripts/hygiene.js` | `yarn hygiene` | Import cycles, unused exports, `waitForTimeout` counts, the instance surface, module line counts, spec type errors and uncovered unit-lane lines — each capped at a committed baseline that only ever falls |
 
 Playwright is configured in `playwright.config.ts`: it boots the Vite dev
 server and runs `tests/**` except `tests/unit/` and `tests/smoke/`, with
 `retries: 0` everywhere — a test that fails once is a bug, locally and in CI
 alike. Only the WebKit smoke lane (`playwright.smoke.config.ts`) retries.
+
+## Coverage — what is and is not measured
+
+`yarn coverage` runs the unit lane under V8 coverage and writes
+`coverage/coverage-summary.json`, which `yarn hygiene` ratchets as **uncovered
+lines** (issue #266).
+
+**Measured:** only the modules the unit lane can reach — the `include` list in
+`vitest.config.js`: `src/audio/`, `src/utils/`, `src/rendering/symbols.js`,
+`state.js`, `storage.js`, `browserCompatibility.js`, `ModeFactory.js`,
+`modeRoster.js`, `BaseDragHandler.js`. At the time of writing that is **684 of
+1,114 lines (61.4%)**.
+
+**Not measured, deliberately:**
+
+- everything outside that list — the DOM and SVG code the unit lane never
+  loads. Including it would report a figure that moves for reasons nothing in
+  this lane controls, which is worse than no figure;
+- the end-to-end lane. Playwright/V8 coverage of the browser run is a separate,
+  larger job and is not attempted here;
+- branches, statements and functions. The summary carries them and `yarn
+  coverage` prints them, but only lines are ratcheted — one number, one gate.
+
+A count rather than a percentage, so it falls like every other ratchet here: a
+percentage can rise while the untested code also grows, if the covered lines
+grow faster. Bringing a new module into the `include` list raises the count,
+which is the point — the debt becomes visible when it is taken on.
+
+Coverage is not a proxy for whether a test asserts anything. The suite's real
+guard against that is mutation testing by hand: revert the fix, watch the test
+fail. Several PRs in this series found tests that passed for the wrong reason
+that way, which no coverage figure would have shown.
 
 WebKit is exercised **only** by that smoke lane — everything else runs in
 Chromium. Running it locally needs its browser first: `npx playwright install

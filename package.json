@@ -12,11 +12,13 @@
     "hygiene": "node scripts/hygiene.js",
     "lint": "eslint . --max-warnings 0",
     "test:unit": "vitest run",
+    "coverage": "vitest run --coverage",
     "check:bundle-floor": "node scripts/check-bundle-floor.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
     "@types/node": "^24.0.14",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.0",
     "husky": "^9.1.7",
     "madge": "^8.0.0",
