@@ -13,10 +13,17 @@
  * independent of the feature's colour, which the tables learnt the hard way
  * (an accent border collided with the colours the rows themselves carry).
  *
- * Labels are treated differently, and deliberately: a white glow behind a white
- * plate says nothing. A selected feature's plate is **inverted** instead — dark
- * plate, light text — which is exactly what its table row does, so selection
- * reads as one idea in both places.
+ * A marker's label is treated differently, and deliberately: a white glow behind
+ * a white plate says nothing, so the plate is **inverted** instead — dark plate,
+ * light text — which is exactly what its table row does, so selection reads as
+ * one idea in both places.
+ *
+ * A pin set's labels are left alone, which is not an oversight. A marker's label
+ * is one plate naming one feature; a set's are a per-member index drawn a dozen
+ * or more times, and inverting all of them reads as a change of mode rather than
+ * a selection. It would also cost the pin numbers the guarantee issue #243 gave
+ * them — a white plate reads over any gram, and the set's halo already says
+ * which set is selected.
  *
  * A separate pass rather than a flag threaded through every renderer: selection
  * changes far more often than the features do, and this way a click adds and
@@ -96,7 +103,8 @@ export function applySelectionHalo(instance) {
       targets.add(target)
     }
   })
-  targets.forEach(target => decorate(group, target))
+  const invertLabel = selection.selectedType === 'marker'
+  targets.forEach(target => decorate(group, target, invertLabel))
 }
 
 /**
@@ -126,13 +134,17 @@ function clearSelectionHalo(group) {
 }
 
 /**
- * Mark one of a selected feature's elements: invert its labels, halo the rest.
+ * Mark one of a selected feature's elements: halo it, and invert its label when
+ * the feature is the kind that carries one of its own.
  * @param {SVGGElement} group - The overlay group
  * @param {Element} target - A top-level element belonging to the feature
+ * @param {boolean} invertLabel - Whether this feature's label should invert
  * @returns {void}
  */
-function decorate(group, target) {
-  plates(target).forEach(plate => plate.classList.add(SELECTED_LABEL_CLASS))
+function decorate(group, target, invertLabel) {
+  if (invertLabel) {
+    plates(target).forEach(plate => plate.classList.add(SELECTED_LABEL_CLASS))
+  }
 
   const halo = buildHalo(target)
   if (halo) {

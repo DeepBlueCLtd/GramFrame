@@ -170,9 +170,13 @@ marker and badly on a tall pin set; dimming every other feature is unmissable
 but destroys the comparison between features, which is usually why several
 exist; a pulse has faded by the time the eye arrives.
 
-Labels are the exception, deliberately: a white glow behind a white plate says
-nothing, so a selected feature's plate is **inverted** instead — the same
-reversal its table row performs. It is a pass of its own rather than a flag
+A marker's label is the exception, deliberately: a white glow behind a white
+plate says nothing, so the plate is **inverted** instead — the same reversal its
+table row performs. A pin set's labels keep their white plates, which is not an
+oversight: a marker's label is one plate naming one feature, while a set's are a
+per-member index drawn a dozen or more times, and inverting all of them reads as
+a change of mode rather than a selection — besides costing those numbers the
+legibility over any gram that the white plate was introduced for (issue #243). It is a pass of its own rather than a flag
 threaded through the renderers, because selection changes far more often than
 the features do.
 
