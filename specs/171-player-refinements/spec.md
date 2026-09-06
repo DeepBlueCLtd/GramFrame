@@ -314,9 +314,14 @@ transitions are announced without moving focus.
   desaturating "hue-safe" variant was prototyped and rejected: identical
   contrast, colour map thrown away.
 
-  This is a **trial**. If any training material carries a printed colour key
-  that analysts read values against, colour is the measurement rather than a
-  rendering of it, and this should be reconsidered.
+  This is a **trial**. The one fact that would have reversed it — a printed
+  colour key that analysts read values against, which would make colour the
+  measurement rather than a rendering of it — was put to the product owner and
+  answered on 2026-09-06: **no training material carries a colour key.** So
+  colour here is a rendering of level and nothing else, and the hue shift the
+  floor produces in the suppressed background costs no reading. It remains a
+  trial in the sense that it wants use before it is called settled, not in the
+  sense that a known risk is outstanding.
 
 ### Navigating a playing recording (R6, R7)
 
@@ -456,9 +461,13 @@ From research §9, product owner, 2026-09-05:
   an authoring option, not as a global rule.
 - **The static-gram trial widens the blast radius of US2's limitation.** The
   controls now act on author-supplied PNGs whose colour map GramFrame did not
-  choose and cannot know. The measurements above say the material we have is
-  safe; material we have not seen — a gram with a non-monotone map, or one
-  printed with a colour key — is not covered by them.
+  choose and cannot know. The measurements above cover the material we have —
+  all of it hue-coded with hue monotone in brightness, and none of it carrying
+  a colour key (product owner, 2026-09-06). Material we have not seen is not
+  covered by them: a gram with a **non-monotone** map would break the ordering
+  argument, and one printed **with** a key would make colour a value to read
+  rather than a rendering. Neither exists today; both are things to check if
+  the material ever comes from a new source.
 - **US2 over-promises if read casually.** The floor/ceiling controls re-map
   levels that were already quantised to 8 bits and already clipped at the file's
   5th and 99.9th percentiles when the PNG was painted. Detail outside that
