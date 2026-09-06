@@ -14,10 +14,24 @@ import { formatTime } from '../utils/timeFormatter.js'
 import { setFocusedInstance } from '../core/FocusManager.js'
 
 /**
- * Rates offered by the select, as `[value, label]`.
+ * Rates offered by the select, as `[value, label]` (spec 171, FR-020).
+ *
+ * The slow end is where the domain reason is — a click train or a fast
+ * transient is what an analyst slows a recording down for — and the platform
+ * ceiling measured in the 169 survey's probe (a) was 0.0625–16, so the ladder
+ * is a UI choice rather than a limit. It is not researched: five surveyed
+ * players ship five incompatible ladders and none of them says why.
  * @type {Array<[number, string]>}
  */
-const PLAYBACK_RATES = [[0.5, '0.5×'], [1, '1×'], [1.5, '1.5×'], [2, '2×']]
+const PLAYBACK_RATES = [[0.25, '0.25×'], [0.5, '0.5×'], [1, '1×'], [1.5, '1.5×'], [2, '2×'], [4, '4×']]
+
+/**
+ * How rarely the live region may repeat the elapsed time while playing
+ * (spec 171, FR-027). A screen reader that announced every `timeupdate` would
+ * talk continuously and drown out everything else on the page.
+ * @type {number}
+ */
+const ANNOUNCE_INTERVAL_MS = 5000
 
 /**
  * Make a button.
@@ -89,6 +103,20 @@ export function createTransportBar(instance) {
   const mute = button('gram-frame-transport-mute', 'Mute', '🔊')
   mute.setAttribute('aria-pressed', 'false')
 
+  // The visible time span, stated wherever the zoom can be changed (spec 171,
+  // FR-019). The bar is under the gram in every mode, so it is the one place
+  // that is always beside both the wheel gesture and the zoom buttons.
+  const span = document.createElement('span')
+  span.className = 'gram-frame-transport-span'
+  span.title = 'Visible time span'
+
+  // What a screen reader hears (FR-026): polite, so it never interrupts, and
+  // never focused, so the announcement does not move the caret.
+  const status = document.createElement('span')
+  status.className = 'gram-frame-transport-status'
+  status.setAttribute('role', 'status')
+  status.setAttribute('aria-live', 'polite')
+
   const volume = document.createElement('input')
   volume.type = 'range'
   volume.className = 'gram-frame-transport-volume'
@@ -99,7 +127,7 @@ export function createTransportBar(instance) {
   volume.title = 'Volume'
   volume.setAttribute('aria-label', 'Volume')
 
-  ;[play, restart, seek, time, loop, playbackRate, mute, volume].forEach(el => bar.appendChild(el))
+  ;[play, restart, seek, time, span, loop, playbackRate, mute, volume, status].forEach(el => bar.appendChild(el))
 
   // --- wiring ---------------------------------------------------------------
   // Using the bar is interacting with the instance: it takes keyboard focus,
@@ -127,6 +155,27 @@ export function createTransportBar(instance) {
   volume.addEventListener('input', () => controller.setVolume(parseFloat(volume.value)))
 
   // --- reflect state --------------------------------------------------------
+  /** @type {{playing: boolean, at: number}} What the live region last said */
+  let announced = { playing: player.playing, at: 0 }
+
+  /**
+   * Say what the transport is doing, rate-limited (FR-027).
+   *
+   * A state change is announced the moment it happens; the elapsed time only
+   * every few seconds, and only while playing, so a recording running for a
+   * minute produces a dozen announcements rather than hundreds.
+   * @param {PlayerState} p - The player slice being reflected
+   */
+  const announce = (p) => {
+    const now = Date.now()
+    const changed = p.playing !== announced.playing
+    if (!changed && (!p.playing || now - announced.at < ANNOUNCE_INTERVAL_MS)) {
+      return
+    }
+    announced = { playing: p.playing, at: now }
+    status.textContent = `${p.playing ? 'Playing' : 'Paused'} at ${formatTime(p.playhead)} of ${formatTime(p.duration)}`
+  }
+
   /**
    * @param {GramFrameState} snapshot - A broadcast (or the live) state
    */
@@ -141,6 +190,8 @@ export function createTransportBar(instance) {
       seek.value = String(p.playhead)
     }
     time.textContent = `${formatTime(p.playhead)} / ${formatTime(p.duration)}`
+    const visibleSeconds = p.windowSeconds / snapshot.zoom.level
+    span.textContent = `${visibleSeconds.toFixed(1)} s span`
     loop.setAttribute('aria-pressed', p.loop ? 'true' : 'false')
     playbackRate.value = String(p.playbackRate)
     mute.setAttribute('aria-pressed', p.muted ? 'true' : 'false')
@@ -150,6 +201,7 @@ export function createTransportBar(instance) {
     if (document.activeElement !== volume) {
       volume.value = String(p.volume)
     }
+    announce(p)
   }
   reflect(state)
   instance.stateListeners.push(reflect)

@@ -154,17 +154,21 @@ normalised centre) and audio-sourced instances are the newer, less-used form.
 Deferring it keeps P1 simple, and until it lands region zoom is simply
 unavailable on players.
 
-**Independent Test**: On `sample/player.html`, play briefly, pause, Shift-drag
-a region of the revealed waterfall; the resulting view shows that time span and
-that frequency span, and no unplayed time is revealed.
+**Independent Test**: On `sample/player.html`, pause, Shift-drag a region of
+the waterfall; the resulting view shows that time span and that frequency span.
+(Until [spec 171](../171-player-refinements/spec.md), this test also asked that
+no unplayed time be revealed; the reveal rule is withdrawn.)
 
 **Acceptance Scenarios**:
 
 1. **Given** a paused audio-sourced gram, **When** the analyst Shift-drags a
    region and releases, **Then** the visible time window and frequency range
    match the selection.
-2. **Given** a paused audio-sourced gram, **When** a region zoom would reveal
-   time that has not yet played, **Then** the window is clamped so it does not.
+2. **Given** a paused audio-sourced gram, **When** a region zoom reaches past
+   the playhead, **Then** it zooms to the selection, clamped only at the end of
+   the recording. *(Amended by [spec 171](../171-player-refinements/spec.md)
+   FR-004; it read "the window is clamped so it does not [reveal unplayed
+   time]".)*
 3. **Given** an audio-sourced gram that is *playing*, **When** the analyst
    Shift-drags, **Then** nothing happens — no selection rectangle appears and
    the view does not change.
@@ -239,8 +243,16 @@ that frequency span, and no unplayed time is revealed.
   playing, consistent with every other pointer interaction on a playing gram.
 - **FR-013**: On a paused audio-sourced gram, a region zoom MUST set the
   visible time window to the selected time span and the frequency range to the
-  selected frequency span, clamped so that time which has not been played is
-  not revealed.
+  selected frequency span, clamped to the recording's own extent.
+
+  *Amended by [spec 171](../171-player-refinements/spec.md) FR-004*: this
+  requirement ended "clamped so that time which has not been played is not
+  revealed". Spec 171 withdrew the reveal rule, so there is nothing left to
+  clamp against but the duration; selecting a region at the playhead now zooms
+  to it rather than being pulled back below the playhead. Region zoom while a
+  recording is **playing** stays inert (FR-012 is unchanged): it is a framing
+  gesture, and pairing it with the new pause-and-resume seek is a design
+  question spec 171 does not answer.
 - **FR-014**: A **Fit** command button MUST be available in the control row
   alongside `+` and `−`, returning the view to the complete gram in one click.
 - **FR-015**: **Fit** MUST be disabled when the complete gram is already shown.
@@ -379,8 +391,10 @@ and what was rejected, so a later reader can tell a decision from an accident.
   genuine inconsistency and should be reviewed rather than waved through.
 - **The player path is the likeliest source of subtle bugs.** Existing
   pointer-anchored zoom holds a single time at a fixed fraction of the view; a
-  region zoom must hold a whole span, with its own clamp against unplayed time.
-  This is why it is a separate story (US4) rather than folded into P1.
+  region zoom must hold a whole span, with its own clamp — against the
+  recording's end since [spec 171](../171-player-refinements/spec.md) FR-004,
+  against the playhead before it. This is why it is a separate story (US4)
+  rather than folded into P1.
 - **The 10× clamp breaks the WYSIWYG promise** for very small selections. FR-007
   chooses to clamp rather than refuse. Since the amendment to decision 2 the
   analyst *is* told: the dashed outline of the resulting view is capped by the

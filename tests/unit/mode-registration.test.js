@@ -119,6 +119,13 @@ const FROZEN_INITIAL_STATE = {
     muted: false,
     viewTop: 0,
     windowSeconds: 10,
+    // Three fields added by spec 171: the pitch behaviour, made explicit
+    // (FR-021); the contrast controls, view state like zoom (FR-009); and what
+    // the render caps changed, when they did (FR-024). Recorded here with why,
+    // as the tombstones and sidebands entries above are.
+    preservesPitch: true,
+    display: { floor: 0, ceiling: 1 },
+    degraded: null,
     analysis: {
       fftSize: 1024,
       hopSize: 512,

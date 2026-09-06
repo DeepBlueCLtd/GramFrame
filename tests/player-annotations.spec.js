@@ -2,8 +2,13 @@ import { test, expect } from '@playwright/test'
 import { GramFramePage } from './helpers/gram-frame-page.js'
 
 /**
- * @fileoverview Story 4 (spec 168): pause, annotate, resume — annotations
- * ride the gram, vanish when their moment is unrevealed, and come back.
+ * @fileoverview Story 4 (spec 168): pause, annotate, resume — annotations ride
+ * the gram.
+ *
+ * Spec 171 (US1) withdrew the rule that hid an annotation whose moment had not
+ * been played: every annotation is drawn wherever it sits in time (FR-006),
+ * and an analyst may place one anywhere in a recording they have never played
+ * (SC-001). The two tests that asserted the hiding now assert the opposite.
  */
 
 const PLAYER_PAGE = '/tests/fixtures/player-page.html'
@@ -95,24 +100,20 @@ test.describe('Story 4 — pause, annotate, resume', () => {
     expect(drawnY).toBeGreaterThan(MARGINS.top + RENDER.height)
   })
 
-  test('AS-4.6 / FR-018: seeking back before an annotation hides it; playing past it shows it again', async ({ page }) => {
+  test('spec 171 AS-1.2 / FR-006: seeking back before an annotation leaves it drawn', async ({ page }) => {
     const { gfp } = await pauseAndAnnotate(page)
 
+    // 5 s is before both annotations (6 s and 7 s). Under spec 168 both
+    // vanished here; nothing is gated on the playhead any more.
     await page.evaluate(() => window.GramFrame.getPlayer(0).seek(5))
     await gfp.waitForState(s => s.player.playhead === 5, { message: 'seek to 5 s' })
-    await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(0)
-    await expect(page.locator('.gram-frame-harmonic-line')).toHaveCount(0)
-    // The tables still list them — the tables are not a view of the gram
-    await gfp.waitForTableRowCount('markers', 1)
-    await gfp.waitForTableRowCount('harmonics', 1)
-
-    await page.evaluate(() => window.GramFrame.getPlayer(0).seek(7.5))
-    await gfp.waitForState(s => s.player.playhead === 7.5, { message: 'seek to 7.5 s' })
     await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(1)
     expect(await page.locator('.gram-frame-harmonic-line').count()).toBeGreaterThan(0)
+    await gfp.waitForTableRowCount('markers', 1)
+    await gfp.waitForTableRowCount('harmonics', 1)
   })
 
-  test('AS-4.2 / FR-016: paused, a pan travels back through what has played but never past the playhead', async ({ page }) => {
+  test('AS-4.2 / spec 171 FR-007: paused, a pan travels through the recording, clamped at its duration', async ({ page }) => {
     const { gfp } = await pauseAndAnnotate(page)
     await gfp.clickMode('Pan')
     const box = await gfp.svg.boundingBox()
@@ -129,13 +130,23 @@ test.describe('Story 4 — pause, annotate, resume', () => {
     await page.mouse.up()
     await gfp.waitForState(s => Math.abs(s.player.viewTop - 6) < 0.1, { message: 'the view to pan to 6 s' })
 
-    // Drag downward far beyond the playhead: clamps at 8
+    // Drag downward past the playhead: the view goes on into time that has not
+    // been played (spec 171, FR-007), and the playhead itself does not move.
     await page.mouse.move(cx, cy)
     await page.mouse.down()
     await page.mouse.move(cx, cy + 300, { steps: 5 })
     await page.mouse.up()
-    await gfp.waitForState(s => s.player.viewTop === 8, { message: 'the view to clamp at the playhead' })
+    await gfp.waitForState(s => s.player.viewTop > 8.5, { message: 'the view to pass the playhead' })
     expect((await gfp.getState()).player.playhead).toBe(8)
+
+    // And on to the end of the recording, where it clamps at the duration
+    for (let i = 0; i < 6; i++) {
+      await page.mouse.move(cx, cy)
+      await page.mouse.down()
+      await page.mouse.move(cx, cy + 300, { steps: 3 })
+      await page.mouse.up()
+    }
+    await gfp.waitForState(s => s.player.viewTop === 20, { message: 'the view to clamp at the duration' })
   })
 
   test('AS-4.4: resuming play snaps the view back to the playhead first', async ({ page }) => {
@@ -154,21 +165,37 @@ test.describe('Story 4 — pause, annotate, resume', () => {
     })
   })
 
-  test('AS-4.5 / FR-019: annotations persist through a reload and reappear once their time is played', async ({ page }) => {
+  test('AS-4.5 / spec 171 SC-001: annotations persist through a reload and are drawn without anything being played', async ({ page }) => {
     const { gfp, marker } = await pauseAndAnnotate(page)
     await page.reload()
     await gfp.waitForPlayerReady()
 
-    // Restored into state (the storage layer is unchanged), but not drawn: nothing has played
+    // Restored into state (the storage layer is unchanged) and drawn: the
+    // marker sits at 6 s, the reloaded view spans [1, 6], and nothing has been
+    // played. Under spec 168 it was restored but withheld.
     const restored = await gfp.getState()
     expect(restored.analysis.markers.length).toBe(1)
     expect(restored.analysis.markers[0].time).toBeCloseTo(marker.time, 6)
     expect(restored.harmonics.harmonicSets.length).toBe(1)
-    await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(0)
-
-    await page.evaluate(() => window.GramFrame.getPlayer(0).seek(9))
-    await gfp.waitForState(s => s.player.viewTop === 9, { message: 'seek to 9 s' })
+    expect(restored.player.playhead).toBe(0)
+    expect(restored.player.viewTop).toBe(5)
     await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(1)
+
+    // And it is in the view as soon as the view reaches it, without a note
+    // ever having been played
+    await gfp.clickMode('Pan')
+    const box = await gfp.svg.boundingBox()
+    if (!box) throw new Error('no SVG bounding box')
+    await page.mouse.move(box.x + 400, box.y + 100)
+    await page.mouse.down()
+    await page.mouse.move(box.x + 400, box.y + 260, { steps: 5 })
+    await page.mouse.up()
+    await gfp.waitForState(s => s.player.viewTop > 6, { message: 'the view to pass the marker' })
+    expect((await gfp.getState()).player.playhead).toBe(0)
+    const drawnY = await page.locator('.gram-frame-analysis-marker')
+      .evaluate(el => /** @type {SVGGraphicsElement} */ (/** @type {unknown} */ (el)).getBBox().y)
+    expect(drawnY).toBeGreaterThan(MARGINS.top)
+    expect(drawnY).toBeLessThan(MARGINS.top + RENDER.height)
   })
 
   test('SC-005: a harmonic set stays on its tonal through a window of scrolling and a loop back to 0', async ({ page }) => {

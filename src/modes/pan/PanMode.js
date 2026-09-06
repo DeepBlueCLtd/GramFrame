@@ -5,6 +5,7 @@ import { pixelDeltaToNormalizedPan, panByNormalized, zoomIn, zoomOut, fitView, i
 import { IDLE_CURSOR, PAN_IDLE_CURSOR, PAN_DRAG_CURSOR } from '../../utils/cursors.js'
 import { NAVIGATION_GUIDANCE } from '../../utils/navigationGuidance.js'
 import { isPlayerActive } from '../../player/playerView.js'
+import { resumeFromClick } from '../../player/dragSeek.js'
 
 /**
  * Pan mode - allows users to pan around the spectrogram when zoomed in
@@ -22,6 +23,10 @@ export class PanMode extends BaseMode {
     // callback writes viewport state rather than feature state. The engine
     // accommodates that by allowing a null target id/type (spec 166, FR-004).
     this.lastPointer = { x: 0, y: 0 }
+    // Where the current press landed, so a release can tell a click from a pan
+    // (spec 171, FR-029). Null between gestures.
+    /** @type {{x: number, y: number}|null} */
+    this.pressOrigin = null
     this.dragHandler = new BaseDragHandler(instance, {
       resolveTarget: () => this.resolvePanDrag(),
       onDragStart: (_target, _position, event) => this.onPanStart(event),
@@ -134,6 +139,7 @@ export class PanMode extends BaseMode {
    * @param {DataCoordinates} dataCoords - Data coordinates
    */
   handleMouseDown(event, dataCoords) {
+    this.pressOrigin = { x: event.clientX, y: event.clientY }
     this.dragHandler.startDrag(dataCoords, event)
   }
 
@@ -153,6 +159,15 @@ export class PanMode extends BaseMode {
    */
   handleMouseUp(event, dataCoords) {
     this.dragHandler.endDrag(dataCoords, event)
+    // A click on a paused audio-sourced gram resumes it (spec 171, FR-029).
+    // After the drag ends, so the resting cursor is restored before the
+    // playing one takes over, and only in this mode: everywhere else the same
+    // click places a feature. The transport decides whether it qualifies.
+    const origin = this.pressOrigin
+    this.pressOrigin = null
+    if (origin && isPlayerActive(this.instance)) {
+      resumeFromClick(this.instance, origin, event)
+    }
   }
 
   /**
@@ -160,6 +175,7 @@ export class PanMode extends BaseMode {
    */
   handleMouseLeave() {
     // End drag if mouse leaves the SVG area
+    this.pressOrigin = null
     this.dragHandler.cancelDrag()
   }
 
@@ -188,6 +204,7 @@ export class PanMode extends BaseMode {
           title: 'Pan Mode',
           items: [
             'Click and drag to pan the view (when zoomed in)',
+            'On an audio gram, click to pause or resume playback',
             // Named by shape, not by the glyph itself: a character in the
             // guidance would depend on the reader's font, which is the reason
             // the button draws its own (issue #310).
@@ -203,6 +220,7 @@ export class PanMode extends BaseMode {
    * Reset pan-specific state
    */
   resetState() {
+    this.pressOrigin = null
     this.dragHandler.reset()
   }
 

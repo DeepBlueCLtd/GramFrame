@@ -528,11 +528,9 @@ export class DopplerMode extends BaseMode {
     
     const doppler = this.instance.state.doppler
     
-    // Render preview during placement OR final markers and curves. On an
-    // audio-sourced gram the curve waits until every marker's time has been
-    // played (spec 168, FR-018); on an image every time is revealed.
-    if (doppler.fPlus && doppler.fMinus && doppler.fZero &&
-        [doppler.fPlus, doppler.fMinus, doppler.fZero].every(marker => this.isTimeRevealed(marker.time))) {
+    // Render preview during placement OR final markers and curves. Drawing is
+    // never gated on playback position (spec 171, FR-006).
+    if (doppler.fPlus && doppler.fMinus && doppler.fZero) {
       this.renderMarkers()
       this.renderDopplerCurve()
       

@@ -102,21 +102,28 @@ test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
     expect(after.zoom.centerX).toBeLessThan(1)
   })
 
-  test('no unplayed time is revealed (AS-4.2, FR-013)', async ({ page }) => {
+  test('a region at the playhead zooms to it rather than being clamped back (spec 171, FR-004)', async ({ page }) => {
     const gfp = await gotoPlayer(page)
     await seekTo(page, 6)
     await gfp.waitForState(s => s.player.viewTop === 6, { message: 'seek to 6 s' })
 
-    // Select the top strip of the view — the newest time, right at the playhead.
+    // Select the top strip of the view — the newest time, right at the
+    // playhead. Spec 170's FR-013 clamped the resulting view back below the
+    // playhead; with the reveal rule withdrawn there is nothing to clamp
+    // against but the recording's own end.
     const a = await viewPoint(gfp, 0.2, 0.02)
     const b = await viewPoint(gfp, 0.8, 0.25)
     await gfp.shiftDragSVG(a.x, a.y, b.x, b.y)
 
     const after = await gfp.getState()
-    expect(after.player.viewTop).toBeLessThanOrEqual(after.player.playhead + 1e-9)
+    expect(after.zoom.level).toBeGreaterThan(1)
+    // The strip's own span is centred, so the view's top edge lands above the
+    // playhead — and never past the end of the recording.
+    expect(after.player.viewTop).toBeGreaterThan(after.player.playhead)
+    expect(after.player.viewTop).toBeLessThanOrEqual(after.player.duration)
   })
 
-  test('Fit returns the configured window, still within what has played (AS-3.3)', async ({ page }) => {
+  test('Fit returns the configured window, still inside the recording (AS-3.3)', async ({ page }) => {
     const gfp = await gotoPlayer(page)
     await seekTo(page, 15)
     await gfp.waitForState(s => s.player.viewTop === 15, { message: 'seek to 15 s' })
@@ -127,10 +134,10 @@ test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
 
     const state = await gfp.getState()
     expect(state.zoom.level).toBe(1.0)
-    expect(state.player.viewTop).toBeLessThanOrEqual(state.player.playhead + 1e-9)
+    expect(state.player.viewTop).toBeLessThanOrEqual(state.player.duration + 1e-9)
   })
 
-  test('the gesture is inert while the recording plays (AS-4.3, FR-012)', async ({ page }) => {
+  test('the gesture is still inert while the recording plays: shift declines the drag-seek too (AS-4.3, FR-012)', async ({ page }) => {
     const gfp = await gotoPlayer(page)
     await page.locator('.gram-frame-transport-play').click()
     await gfp.waitForState(s => s.player.playing, { message: 'playback to start' })
@@ -143,5 +150,8 @@ test.describe('Feature 170 US4 — Region zoom on a paused recording', () => {
     await expect(page.locator(BOX)).toHaveCount(0)
     const after = await gfp.getState()
     expect(after.zoom.level).toBe(before.zoom.level)
+    // And the shift-drag did not become a seek either (spec 171 leaves region
+    // zoom while playing out on purpose)
+    expect(after.player.playing).toBe(true)
   })
 })

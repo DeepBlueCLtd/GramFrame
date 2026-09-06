@@ -5,14 +5,15 @@
 /// <reference path="../types.js" />
 
 import { screenToData, isWithinImage } from '../utils/coordinates.js'
-import { BaseDragHandler, hasActiveDrag, cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
+import { hasActiveDrag, cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
 import { dispatch } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
 import { setFocusedInstance } from './FocusManager.js'
 import { zoomAtImagePoint, pixelDeltaToNormalizedPan, panByNormalized, isZoomedIn } from './viewport.js'
-import { IDLE_CURSOR, PAN_DRAG_CURSOR } from '../utils/cursors.js'
 import { isPlaying, isPlayerActive, seekFromTimeAxisClick } from '../player/playerView.js'
 import { startRegionSelection, handleRegionPointerMove, finishRegionSelection } from './regionZoom.js'
+import { startDragSeek, endDragSeek, isDragSeeking } from '../player/dragSeek.js'
+import { wheelPanHandler } from './wheelPan.js'
 
 /**
  * Per-notch multiplicative zoom factor for Ctrl+wheel zoom (smoother than the
@@ -64,9 +65,9 @@ function screenToDataWithZoom(instance, event) {
  * @param {WheelEvent} event - Wheel event
  */
 function handleWheel(instance, event) {
-  if (isPlaying(instance)) {
-    return // Pan and zoom are inert while the recording plays (spec 168, FR-013)
-  }
+  // Zooming while the recording plays is deliberate (spec 171, FR-018): the
+  // follow loop keeps the playhead at the top edge, so the analyst is choosing
+  // how much history to see rather than moving the view off the audio.
   const result = screenToDataWithZoom(instance, event)
   if (!result) {
     return // Not over the spectrogram image - leave the page scroll alone
@@ -85,54 +86,6 @@ function handleWheel(instance, event) {
     event.preventDefault()
   }
   // else: not zoomed in - nothing to pan; allow the page to scroll normally.
-}
-
-/**
- * The middle-button pan, as a `pan`-kind drag on the shared engine.
- *
- * It differs from PanMode's drag only in its trigger (button 1, with
- * preventDefault to suppress browser autoscroll) and in being available in
- * *every* mode. Resolving it centrally, ahead of the mode's own handlers, is
- * what stops a middle-click ever reaching a mode and placing something
- * (contract: drag-engine.md, "Middle-button pan").
- * @param {GramFrame} instance - GramFrame instance
- * @returns {BaseDragHandler} The instance's wheel-pan handler
- */
-function wheelPanHandler(instance) {
-  if (!instance.interaction._wheelPanHandler) {
-    let previousCursor = ''
-
-    instance.interaction._wheelPanHandler = new BaseDragHandler(instance, {
-      resolveTarget: () => (isZoomedIn(instance) ? { kind: 'pan', id: null, type: null } : null),
-      onDragStart: (_target, _position, event) => {
-        previousCursor = instance.ui.svg ? instance.ui.svg.style.cursor : ''
-        if (event) {
-          instance.interaction._wheelPanLast = { x: event.clientX, y: event.clientY }
-        }
-      },
-      onDragMove: (_target, _position, _startPosition, event) => {
-        if (!event || !instance.interaction._wheelPanLast) return
-        const dx = event.clientX - instance.interaction._wheelPanLast.x
-        const dy = event.clientY - instance.interaction._wheelPanLast.y
-        const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(instance, dx, dy)
-        panByNormalized(instance, normalizedDeltaX, normalizedDeltaY)
-        instance.interaction._wheelPanLast = { x: event.clientX, y: event.clientY }
-      },
-      onDragEnd: () => { instance.interaction._wheelPanLast = null },
-      onDragCancel: () => { instance.interaction._wheelPanLast = null },
-      updateCursor: (style) => {
-        if (instance.ui.svg) {
-          instance.ui.svg.style.cursor = style
-        }
-      },
-      // The middle-button pan is a pan, so it keeps the hand. On release it
-      // restores whatever cursor the mode had, rather than forcing a crosshair.
-      cursorFor: (_kind, phase) => (
-        phase === 'drag' ? PAN_DRAG_CURSOR : (previousCursor || IDLE_CURSOR)
-      )
-    }, null)
-  }
-  return instance.interaction._wheelPanHandler
 }
 
 /**
@@ -311,10 +264,12 @@ function handleMouseDown(instance, event) {
     return
   }
 
-  // While the recording plays, every pointer interaction with the gram other
-  // than hovering is inert — no annotation, no pan, no zoom (spec 168,
-  // FR-013). Decided here so no mode has to know about the player.
+  // A press on a playing gram is a drag-seek: playback pauses under the hand
+  // and resumes where the view is released (spec 171, FR-015). Anything else a
+  // pointer could do while playing — placing, moving, deleting — stays inert
+  // (FR-017), and is stopped here so no mode has to know about the player.
   if (isPlaying(instance)) {
+    startDragSeek(instance, event)
     return
   }
 
@@ -382,8 +337,10 @@ function handleMouseUp(instance, event) {
     return
   }
 
-  if (isPlaying(instance)) {
-    return // Inert while playing (spec 168, FR-013); no drag can be running
+  // The window-level release ends a drag-seek (spec 171, FR-016); the SVG's
+  // own copy of that release must not go on to reach a mode.
+  if (isPlaying(instance) || isDragSeeking(instance)) {
+    return
   }
 
   // A release anywhere in the component completes a region selection, including
@@ -468,6 +425,10 @@ function handleContextMenu(instance, event) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function cleanupEventListeners(instance) {
+  // A drag-seek in flight owns two window listeners of its own; abandoned
+  // rather than resumed, since the instance is going away.
+  endDragSeek(instance, false)
+
   // Remove every listener registered in setupEventListeners — SVG, mode
   // buttons and the window resize handler alike.
   const registered = instance.interaction._registeredListeners || []

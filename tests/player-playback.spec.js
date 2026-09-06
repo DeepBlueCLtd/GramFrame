@@ -3,8 +3,11 @@ import { GramFramePage } from './helpers/gram-frame-page.js'
 
 /**
  * @fileoverview Story 3 (spec 168): press play and the gram scrolls down
- * while the audio is heard, the newest row at the top, nothing shown ahead of
- * the playhead, and every annotation tool inert until pause.
+ * while the audio is heard, the newest row at the top.
+ *
+ * Spec 171 narrowed what "inert while playing" means: annotation interactions
+ * still are (FR-017), but the gram can be dragged to seek (FR-015) and the
+ * time axis zoomed (FR-018), so AS-3.5 below now asserts that split.
  *
  * Headless Chromium advances an <audio> element's clock without a sound
  * device; the play button is clicked (a user gesture) so autoplay policy
@@ -67,8 +70,9 @@ test.describe('Story 3 — play: the gram scrolls while the audio is heard', () 
     const expectedY = MARGINS.top - (1 - g.currentTime / DURATION) * g.height
     expect(Math.abs(g.y - expectedY)).toBeLessThan(8)
     expect(Math.abs(g.playhead - g.currentTime)).toBeLessThan(0.1)
-    // Nothing ahead of the playhead is inside the clip
-    expect(g.clipY).toBeGreaterThanOrEqual(MARGINS.top - 1e-6)
+    // The clip is the axes area: nothing is withheld ahead of the playhead any
+    // more (spec 171, FR-005)
+    expect(g.clipY).toBeCloseTo(MARGINS.top, 3)
     // Before a full window has played, the lower part of the view is blank:
     // the image's bottom edge (time 0) is above the axes' bottom edge
     expect(g.playhead).toBeLessThan(WINDOW)
@@ -148,27 +152,23 @@ test.describe('Story 3 — play: the gram scrolls while the audio is heard', () 
     expect(state.player.playing).toBe(true)
   })
 
-  test('AS-3.5 / FR-013: while playing, placing, zooming and panning are inert and the cursor says so', async ({ page }) => {
+  test('AS-3.5 / spec 171 FR-017: while playing, annotation is inert and the cursor offers the drag instead', async ({ page }) => {
     const gfp = await gotoAndPlay(page)
     await gfp.waitForState(s => s.player.playhead > 1.5, { message: 'audio to play' })
 
-    // Cross Cursor mode: a click that would place a marker places nothing
+    // The cursor is the open hand while playing: the gram can be dragged, not
+    // annotated. Read before the click, which pauses (spec 171, FR-028).
     await gfp.clickMode('Cross Cursor')
+    await expect(page.locator('.gram-frame-container')).toHaveClass(/gram-frame-playing/)
+    const cursor = await gfp.svg.evaluate(el => window.getComputedStyle(el).cursor)
+    expect(cursor).toBe('grab')
+
+    // A click that would place a marker places nothing: the click is the
+    // transport's while playing, so it pauses instead (FR-028).
     await gfp.svg.click({ position: { x: MARGINS.left + 300, y: MARGINS.top + 200 } })
+    await gfp.waitForState(s => s.player.playing === false, { message: 'the click to pause' })
     await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(0)
     expect((await gfp.getState()).analysis.markers.length).toBe(0)
-
-    // Ctrl+wheel that would zoom does nothing
-    await gfp.wheelAtSVG(MARGINS.left + 300, MARGINS.top + 200, -100, true)
-    expect((await gfp.getState()).zoom.level).toBe(1)
-
-    // The cursor is the arrow, not the crosshair
-    const cursor = await gfp.svg.evaluate(el => window.getComputedStyle(el).cursor)
-    expect(cursor).toBe('default')
-    await expect(page.locator('.gram-frame-container')).toHaveClass(/gram-frame-playing/)
-
-    // Still playing throughout
-    expect((await gfp.getState()).player.playing).toBe(true)
   })
 
   test('AS-3.6 / FR-015: two players on one page play independently', async ({ page }) => {

@@ -196,6 +196,10 @@ class PlayerController {
    */
   setPlaybackRate(playbackRate) {
     if (Number.isFinite(playbackRate) && playbackRate > 0) {
+      // Re-asserted alongside the rate: some engines reset the flag when the
+      // element's pipeline is rebuilt, and the analyst reading a frequency off
+      // the gram must keep hearing the pitch it describes (spec 171, FR-021).
+      applyPreservesPitch(this.audio, this.playerState.preservesPitch)
       this.audio.playbackRate = playbackRate
       this.playerState.playbackRate = playbackRate
       dispatch(this.instance)
@@ -247,6 +251,26 @@ class PlayerController {
 }
 
 /**
+ * Whether a rate change keeps the pitch, assigned explicitly rather than left
+ * to the browser's default (spec 171, FR-021).
+ *
+ * Preserving pitch is the default because the analyst is reading frequencies
+ * off the gram and must hear the tonal those numbers describe. An exercise
+ * that wants the acoustic family's behaviour instead — pitch shifting with the
+ * speed, as slowing a tape does — sets `preserve-pitch` to false in the config
+ * table (FR-022). The prefixed spellings are for engines that shipped the
+ * feature before it was standardised.
+ * @param {HTMLAudioElement} audio - The element
+ * @param {boolean} preserve - Whether to keep the pitch
+ */
+function applyPreservesPitch(audio, preserve) {
+  const element = /** @type {HTMLAudioElement & {mozPreservesPitch?: boolean, webkitPreservesPitch?: boolean}} */ (audio)
+  element.preservesPitch = preserve
+  if ('mozPreservesPitch' in element) element.mozPreservesPitch = preserve
+  if ('webkitPreservesPitch' in element) element.webkitPreservesPitch = preserve
+}
+
+/**
  * Create the element and its controller for an instance.
  * @param {GramFrame} instance - The instance
  * @returns {PlayerController} The controller, also assigned to `instance.player`
@@ -255,12 +279,15 @@ export function createTransport(instance) {
   const audio = document.createElement('audio')
   audio.className = 'gram-frame-audio-element'
   audio.preload = 'auto'
-  audio.src = instance.state.player.source
   // Present in the DOM (some engines only advance a connected element) but
   // never visible: the component's own bar is the UI.
   audio.style.display = 'none'
   instance.ui.container.appendChild(audio)
   const controller = new PlayerController(instance, audio)
+  // Pitch before the source, so no engine has a pipeline built under the
+  // default before the instance's own choice is stated (FR-021).
+  applyPreservesPitch(audio, controller.playerState.preservesPitch)
+  audio.src = controller.playerState.source
   instance.player = controller
   return controller
 }

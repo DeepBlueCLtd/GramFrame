@@ -27,9 +27,9 @@ yarn dev                     # then open http://localhost:5173/sample/player.htm
 | Story | Command / check |
 |---|---|
 | 1 | `specs/168-spectrograph-player/research.md` exists; `spike/README.md` reproduces §3 |
-| 2 | `npx playwright test tests/player-load.spec.js` — blank view, axes `[−window, 0]`, state carries duration/analysis, error paths |
+| 2 | `npx playwright test tests/player-load.spec.js` — the first window drawn, axes `[0, window]` (spec 171 replaced the blank opening view), state carries duration/analysis, error paths |
 | 3 | `npx playwright test tests/player-playback.spec.js` — scroll follows `currentTime`, inert interactions, two independent players |
-| 4 | `npx playwright test tests/player-annotations.spec.js` — pause/annotate/resume, reveal, pan clamp, reload |
+| 4 | `npx playwright test tests/player-annotations.spec.js` — pause/annotate/resume, pan clamp, reload (the reveal rule was withdrawn by spec 171) |
 | 5 | `npx playwright test tests/player-transport.spec.js` — every control and key; autoplay refusal |
 | 6 | `sample/audio/ATTRIBUTION.md` lists every file; `sample/player.html` plays them; Integration Guide has the audio section |
 | SC-007 | `yarn test:unit` — `tests/unit/{wav-decoder,fft,spectrogram,gram-image}.test.js` |
