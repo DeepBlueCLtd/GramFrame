@@ -4507,7 +4507,8 @@
         targets.add(target);
       }
     });
-    targets.forEach((target) => decorate(group, target));
+    const invertLabel = selection.selectedType === "marker";
+    targets.forEach((target) => decorate(group, target, invertLabel));
   }
   function topLevel(group, element) {
     let node = element;
@@ -4522,8 +4523,10 @@
       label.classList.remove(SELECTED_LABEL_CLASS);
     });
   }
-  function decorate(group, target) {
-    plates(target).forEach((plate) => plate.classList.add(SELECTED_LABEL_CLASS));
+  function decorate(group, target, invertLabel) {
+    if (invertLabel) {
+      plates(target).forEach((plate) => plate.classList.add(SELECTED_LABEL_CLASS));
+    }
     const halo = buildHalo(target);
     if (halo) {
       group.insertBefore(halo, target);
