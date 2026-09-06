@@ -144,7 +144,11 @@ stay true.
 
 Press and drag the gram while it plays: playback pauses under your hand, the
 view follows the drag, and releasing resumes from the time the view was left
-at — including when you let go outside the component. The wheel still zooms
+at — including when you let go outside the component. **Click** it instead of
+dragging and it simply pauses, in any mode. In Pan mode a second click resumes,
+so a click is the play/pause toggle; in the annotation modes a click on a
+paused gram keeps its usual meaning and places a feature, so resume there with
+the play button or `Space`. The wheel still zooms
 while playing (the view keeps the playhead at its top edge, and the bar states
 the span in seconds). Placing, moving, restyling and deleting annotations stay
 inert until you pause, and `Shift`-drag region zoom is likewise a paused-only

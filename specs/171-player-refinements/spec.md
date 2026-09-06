@@ -143,6 +143,13 @@ view.
 4. **Given** a playing recording, **When** the analyst attempts to create, move,
    restyle or delete any annotation, **Then** nothing happens — annotation stays
    inert while playing, as today.
+5. **Given** a playing recording, **When** the analyst clicks the gram without
+   dragging it, **Then** playback pauses and the view stays where it was.
+6. **Given** a recording paused in Pan mode, **When** the analyst clicks the
+   gram, **Then** playback resumes.
+7. **Given** a recording paused in any annotation mode, **When** the analyst
+   clicks the gram, **Then** the mode places or picks up its feature as usual
+   and playback stays paused.
 
 ---
 
@@ -298,6 +305,18 @@ transitions are announced without moving focus.
   continuing to hold the playhead at the top edge.
 - **FR-019**: The visible time span MUST be stated in seconds wherever the zoom
   can be changed.
+- **FR-028**: A click on a playing gram — a press and release with no
+  intervening drag — MUST pause playback, in every mode, and MUST NOT move the
+  view. *(Added during implementation at the product owner's request,
+  2026-09-06. A click while playing had no meaning: annotation is inert
+  (FR-017), so the drag-seek paused on the press and resumed on the release,
+  making it a no-op.)*
+- **FR-029**: A click on a *paused* gram MUST resume playback in Pan mode only.
+  In every other mode the click MUST keep its existing meaning — placing or
+  picking up a feature — and MUST NOT affect playback. *(Added with FR-028.
+  The asymmetry is deliberate: pause-then-annotate is the workflow the player
+  exists for, and taking the annotating modes' click for the transport would
+  cost it.)*
 
 ### Playback speed and pitch (R3, R4)
 
@@ -328,7 +347,9 @@ transitions are announced without moving focus.
 - **Display range**: a floor and a ceiling over the rendered level scale. View
   state, per instance, not persisted and not broadcast as annotation data.
 - **Drag-seek**: a transient pairing of a pan gesture with a playback pause and
-  a resume time. Owned by the transport, not by any mode.
+  a resume time. Owned by the transport, not by any mode. A press that never
+  moves is the degenerate case, and means "pause" rather than "seek to here"
+  (FR-028).
 
 ## Success Criteria *(mandatory)*
 
@@ -342,6 +363,9 @@ transitions are announced without moving focus.
   bit-identical across the full travel of both display-range controls.
 - **SC-004**: A drag on a playing recording resumes playback within one
   animation frame of release, and the resumed time matches the released view.
+- **SC-008**: A click on a playing gram pauses it in every mode, and in Pan
+  mode a second click resumes it; in the annotation modes the same click on a
+  paused gram still places its feature.
 - **SC-005**: 0.25× playback is audibly slower with pitch unchanged, confirmed
   by ear on a real machine (probe (a) could not measure this headlessly).
 - **SC-006**: A recording that is refused today loads at a stated coarser hop.
@@ -411,6 +435,11 @@ From research §9, product owner, 2026-09-05:
   retained grid (R10, out of scope). The controls should therefore be described
   as contrast adjustment, not as "the display range", in anything an analyst
   reads.
+- **The click threshold is a judgement, not a measurement.** Four screen
+  pixels separates a click from a drag. Too small and a firm click on a
+  trackpad seeks by a few milliseconds instead of pausing; too large and a
+  deliberate short drag pauses instead of seeking. It has not been tested on a
+  touchpad under a moving vehicle, which is the condition that would decide it.
 - **US3 changes a rule other specs lean on.** Spec 168's FR-013 names "annotation
   create/move/delete, pan and zoom" as inert during playback, and spec 170's
   FR-012 inherits it for region zoom. This spec narrows that to annotation

@@ -213,6 +213,67 @@ test.describe('Story 3 — moving around a recording that is playing', () => {
     })
   })
 
+  test('FR-028: a click on a playing gram pauses it, and leaves the view where it was', async ({ page }) => {
+    const gfp = await gotoAndPlay(page)
+    const before = await gfp.getState()
+
+    await gfp.svg.click({ position: { x: MARGINS.left + 400, y: MARGINS.top + 200 } })
+    await gfp.waitForState(s => s.player.playing === false, { message: 'the click to pause playback' })
+
+    const after = await gfp.getState()
+    // Paused where it was playing: the click moved nothing, so the playhead is
+    // where the press found it (a fraction of a second on, at most) and the
+    // view is still on it.
+    expect(after.player.playhead).toBeGreaterThanOrEqual(before.player.playhead)
+    expect(after.player.playhead - before.player.playhead).toBeLessThan(1)
+    expect(after.player.viewTop).toBeCloseTo(after.player.playhead, 6)
+    await expect(page.locator('.gram-frame-container')).not.toHaveClass(/gram-frame-drag-seek/)
+  })
+
+  test('FR-028: a click pauses in an annotation mode too, without placing anything', async ({ page }) => {
+    const gfp = await gotoAndPlay(page)
+    await gfp.clickMode('Cross Cursor')
+
+    await gfp.svg.click({ position: { x: MARGINS.left + 300, y: MARGINS.top + 200 } })
+    await gfp.waitForState(s => s.player.playing === false, { message: 'the click to pause playback' })
+    // The click spent itself on the transport; nothing was placed (FR-017)
+    await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(0)
+    expect((await gfp.getState()).analysis.markers.length).toBe(0)
+  })
+
+  test('FR-029: in Pan mode a click resumes a paused gram; in an annotation mode it does not', async ({ page }) => {
+    const gfp = await gotoAndPlay(page)
+    // Click once to pause, once more to resume — the toggle, in Pan mode
+    await gfp.svg.click({ position: { x: MARGINS.left + 400, y: MARGINS.top + 200 } })
+    await gfp.waitForState(s => s.player.playing === false, { message: 'the first click to pause' })
+    await gfp.svg.click({ position: { x: MARGINS.left + 400, y: MARGINS.top + 200 } })
+    await gfp.waitForState(s => s.player.playing === true, { message: 'the second click to resume' })
+
+    // In Cross Cursor the same click places a marker and playback stays paused:
+    // the pause-then-annotate workflow keeps its click.
+    await gfp.svg.click({ position: { x: MARGINS.left + 400, y: MARGINS.top + 200 } })
+    await gfp.waitForState(s => s.player.playing === false, { message: 'the click to pause again' })
+    await gfp.clickMode('Cross Cursor')
+    await gfp.svg.click({ position: { x: MARGINS.left + 300, y: MARGINS.top + 250 } })
+    await gfp.waitForMarkerCount(1)
+    expect((await gfp.getState()).player.playing).toBe(false)
+  })
+
+  test('FR-028/FR-029: a drag still seeks and resumes rather than toggling', async ({ page }) => {
+    const gfp = await gotoAndPlay(page)
+    const box = await gfp.svg.boundingBox()
+    if (!box) throw new Error('no SVG box')
+    const x = box.x + MARGINS.left + 400
+    const y = box.y + MARGINS.top + 200
+
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x, y - 60, { steps: 5 })
+    await page.mouse.up()
+    // Moved well past the click slop, so this is the drag-seek: it resumes
+    await gfp.waitForState(s => s.player.playing === true, { message: 'the drag to resume playback' })
+  })
+
   test('AS-3.4 / FR-017: annotations stay inert while playing, by pointer and by keyboard', async ({ page }) => {
     const gfp = await gotoPlayer(page)
     // A marker placed while paused, then playback started

@@ -156,18 +156,19 @@ test.describe('Story 3 — play: the gram scrolls while the audio is heard', () 
     const gfp = await gotoAndPlay(page)
     await gfp.waitForState(s => s.player.playhead > 1.5, { message: 'audio to play' })
 
-    // Cross Cursor mode: a click that would place a marker places nothing. The
-    // press is taken over by the drag-seek, so playback pauses and resumes —
-    // what must not happen is a marker.
+    // The cursor is the open hand while playing: the gram can be dragged, not
+    // annotated. Read before the click, which pauses (spec 171, FR-028).
     await gfp.clickMode('Cross Cursor')
-    await gfp.svg.click({ position: { x: MARGINS.left + 300, y: MARGINS.top + 200 } })
-    await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(0)
-    expect((await gfp.getState()).analysis.markers.length).toBe(0)
-
-    // The cursor is the open hand: the gram can be dragged, not annotated
     await expect(page.locator('.gram-frame-container')).toHaveClass(/gram-frame-playing/)
     const cursor = await gfp.svg.evaluate(el => window.getComputedStyle(el).cursor)
     expect(cursor).toBe('grab')
+
+    // A click that would place a marker places nothing: the click is the
+    // transport's while playing, so it pauses instead (FR-028).
+    await gfp.svg.click({ position: { x: MARGINS.left + 300, y: MARGINS.top + 200 } })
+    await gfp.waitForState(s => s.player.playing === false, { message: 'the click to pause' })
+    await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(0)
+    expect((await gfp.getState()).analysis.markers.length).toBe(0)
   })
 
   test('AS-3.6 / FR-015: two players on one page play independently', async ({ page }) => {

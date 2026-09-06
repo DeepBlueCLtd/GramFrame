@@ -17,6 +17,15 @@
  * who drags off the component and lets go there believes they have finished
  * the gesture, and leaving the recording paused because the mouseup landed
  * somewhere else would be a silent failure (spec edge case).
+ *
+ * A press that never moves is the same gesture with nothing in the middle, and
+ * it means something of its own (FR-028): the recording stays paused. So a
+ * click on a playing gram pauses it, in every mode, since a click there has no
+ * annotation meaning while playing (FR-017). The other half of the toggle —
+ * a click resuming a paused gram — is Pan mode's alone (FR-029), because
+ * everywhere else a click on a paused gram places a feature; `PanMode` calls
+ * {@link resumeFromClick} for it, so what counts as a click, and what
+ * resuming means, are stated here once.
  */
 
 /// <reference path="../types.js" />
@@ -24,8 +33,31 @@
 import { pixelDeltaToNormalizedPan, panByNormalized } from '../core/viewport.js'
 
 /**
+ * How far the pointer may travel and still count as a click rather than a drag.
+ *
+ * Screen pixels, not data space: this is about what the hand did, not about
+ * what is under it, so the hit-test tolerances in `utils/tolerance.js` — which
+ * are data-space distances derived from a pixel radius — are the wrong
+ * measure. Four pixels is the slop of a firm click on a trackpad.
+ * @type {number}
+ */
+const CLICK_SLOP_PX = 4
+
+/**
+ * Whether a release belongs to the press that started at `origin`, close
+ * enough to be a click.
+ * @param {{x: number, y: number}} origin - Where the press landed
+ * @param {MouseEvent} event - The release
+ * @returns {boolean} True when the pointer effectively did not move
+ */
+function isClick(origin, event) {
+  return Math.abs(event.clientX - origin.x) <= CLICK_SLOP_PX &&
+    Math.abs(event.clientY - origin.y) <= CLICK_SLOP_PX
+}
+
+/**
  * The drag in progress on an instance, if any.
- * @type {WeakMap<object, {last: {x: number, y: number}, onMove: (e: MouseEvent) => void, onUp: (e: MouseEvent) => void}>}
+ * @type {WeakMap<object, {origin: {x: number, y: number}, last: {x: number, y: number}, onMove: (e: MouseEvent) => void, onUp: (e: MouseEvent) => void}>}
  */
 const activeSeeks = new WeakMap()
 
@@ -65,6 +97,7 @@ export function startDragSeek(instance, event) {
   // playhead between mouse moves, and the analyst would fight it.
   controller.pause()
 
+  const origin = { x: event.clientX, y: event.clientY }
   const last = { x: event.clientX, y: event.clientY }
   /** @param {MouseEvent} moveEvent - A window mousemove */
   const onMove = (moveEvent) => {
@@ -80,10 +113,11 @@ export function startDragSeek(instance, event) {
     if (upEvent.button !== 0) {
       return
     }
-    endDragSeek(instance, true)
+    // A press that never moved is a click: it pauses and stays paused (FR-028).
+    endDragSeek(instance, !isClick(origin, upEvent))
   }
 
-  activeSeeks.set(instance, { last, onMove, onUp })
+  activeSeeks.set(instance, { origin, last, onMove, onUp })
   window.addEventListener('mousemove', onMove)
   window.addEventListener('mouseup', onUp)
   // A class, not an inline cursor: the playing rule in the stylesheet is
@@ -101,7 +135,7 @@ export function startDragSeek(instance, event) {
  * *is* the playhead, so resuming there is what makes the view the analyst
  * released agree with what they then hear (FR-016).
  * @param {GramFrame} instance - GramFrame instance
- * @param {boolean} [resume=true] - Whether to resume playback; false when the drag is abandoned
+ * @param {boolean} [resume=true] - Whether to resume playback; false when the gesture was a click (FR-028) or the instance is being torn down
  * @returns {boolean} True when a drag was running
  */
 export function endDragSeek(instance, resume = true) {
@@ -115,15 +149,45 @@ export function endDragSeek(instance, resume = true) {
   instance.ui.container.classList.remove('gram-frame-drag-seek')
 
   const controller = instance.player
-  // Abandoned rather than released — the instance is being torn down — so the
-  // view is left exactly where it is and nothing is seeked on an element that
-  // is about to be dropped.
+  // Not resuming: either a click, which leaves the recording paused exactly
+  // where it was, or an abandoned gesture on an instance being torn down. In
+  // both cases the view stays put and nothing is seeked — a click did not move
+  // it, and a dropped element must not be touched.
   if (!controller || !resume) {
     return true
   }
   controller.seek(controller.playerState.viewTop)
   controller.play().catch(error => {
     console.warn('GramFrame: playback could not resume after the drag:', error instanceof Error ? error.message : String(error))
+  })
+  return true
+}
+
+/**
+ * Resume a paused recording because the analyst clicked the gram (FR-029).
+ *
+ * Only Pan mode calls this. Everywhere else a click on a paused gram places or
+ * picks up a feature, and taking that click for the transport would cost the
+ * pause-then-annotate workflow the player exists for. Pan is the mode where a
+ * click means nothing else, so it is the mode where it can mean this.
+ *
+ * Declines a press that turned into a drag: that was a pan, and a pan that
+ * started playback under the analyst's hand would be its own surprise.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {{x: number, y: number}|null} origin - Where the press landed, or null if none was recorded
+ * @param {MouseEvent} event - The release
+ * @returns {boolean} True when playback was resumed
+ */
+export function resumeFromClick(instance, origin, event) {
+  const controller = instance.player
+  if (!controller || !controller.isReady() || controller.playerState.playing) {
+    return false
+  }
+  if (event.button !== 0 || !origin || !isClick(origin, event)) {
+    return false
+  }
+  controller.play().catch(error => {
+    console.warn('GramFrame: playback could not start from the click:', error instanceof Error ? error.message : String(error))
   })
   return true
 }

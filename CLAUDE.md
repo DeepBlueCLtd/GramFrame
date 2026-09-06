@@ -93,7 +93,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `transport.js` - The `<audio>` element and `instance.player` (play/pause/seek/loop/playback rate/volume/mute), with `preservesPitch` stated rather than inherited
   - `dragSeek.js` - Dragging a *playing* gram: pause under the hand, resume from
     the time the view was released at. The transport's, not a mode's — the
-    gesture pairs a pan with a pause and a resume time
+    gesture pairs a pan with a pause and a resume time. Also owns what a
+    *click* (a press that never moved) means, both ways: pause, and — for Pan
+    mode only — resume
   - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow
     loop, the reveal rule, and the time read off a click on the time axis
 - `src/core/` - Core system modules:
@@ -371,6 +373,11 @@ There is no visual/screenshot regression testing — see
   window-level listeners so a release off the component still resumes), wheel
   zoom works, and hover readouts still run. Shift + drag declines the drag-seek:
   region zoom while playing is not revived
+- A press that never moves is a **click**, and means pause (FR-028): the same
+  gesture with nothing in the middle, so it lives in `dragSeek.js` too. The
+  other half of the toggle is Pan mode's alone — `PanMode` calls
+  `resumeFromClick` (FR-029) — because everywhere else a click on a paused gram
+  places a feature, and pause-then-annotate is the workflow the player is for
 - Contrast (spec 171, US2) is two sliders on the transport bar over the *painted*
   8-bit levels — an SVG `feComponentTransfer`, so no re-analysis — and it is
   contrast, not a dB display range: what the percentile normalisation clipped

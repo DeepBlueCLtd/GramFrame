@@ -87,17 +87,23 @@ moves, a blank image, or contrast controls on an image gram.
 4. Repeat, but this time drag off the component — past the browser chrome — and
    release there. Playback must still resume; being left paused would be the
    bug this step exists for.
-5. While it is playing, Ctrl+wheel over the gram. The time span changes, the
+5. Now **click** the gram without dragging it. Playback pauses and the view
+   does not jump. Click again (in Pan mode) and it resumes — the toggle.
+   Switch to Cross Cursor, click to pause, then click again: this time a marker
+   is placed and playback stays paused, because the annotating modes keep their
+   click.
+6. While it is playing, Ctrl+wheel over the gram. The time span changes, the
    playhead stays at the top edge, and the bar's span readout ("5.0 s span")
    follows the zoom (FR-019).
-6. Still playing: click in Cross Cursor mode, right-click a marker, press an
-   arrow key with one selected. **Nothing happens** — annotation stays inert
-   (FR-017).
-7. Still playing: Shift-drag. Nothing happens either; region zoom is
+7. Still playing: right-click a marker, or press an arrow key with one
+   selected. **Nothing happens** — annotation stays inert (FR-017); a plain
+   click is the pause from step 5, not a placement.
+8. Still playing: Shift-drag. Nothing happens either; region zoom is
    deliberately a paused-only gesture.
 
 **Failure looks like**: a marker placed while playing, a recording left paused
-after a drag, or a zoom that is refused mid-playback.
+after a drag, a click that seeks instead of pausing, or a zoom that is refused
+mid-playback.
 
 ## 6. Story 4 — speed and pitch (the by-ear check, SC-005)
 
