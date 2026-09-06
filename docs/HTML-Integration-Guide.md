@@ -156,13 +156,19 @@ gesture.
 
 ### Contrast
 
-Two sliders on the transport bar — a floor and a ceiling — re-map the drawn
-levels live, to lift a faint tonal out of the background; `Reset` returns the
-picture to exactly how it loaded. They change how the gram *looks* and nothing
-else: every readout, annotation and saved value is untouched. They act on the
-painted image, so detail the analysis already clipped cannot be recovered by
-them, and they appear on audio-sourced grams only — an author-supplied PNG is
-shown as it was made.
+Two sliders — a floor and a ceiling — re-map the drawn levels live, to lift a
+faint tonal out of the background; `Reset` returns the picture to exactly how
+it loaded. They change how the gram *looks* and nothing else: every readout,
+annotation and saved value is untouched, and the setting is never saved, so a
+reload starts from the image as authored.
+
+They are on every gram: an audio gram carries them on its transport bar, and an
+image gram on a bar of its own in the same place under the picture. On a
+colour-mapped gram, raising the floor changes the background's colour as well
+as its brightness — the suppressed background shifts hue as it clamps — while
+lowering the ceiling leaves colour almost untouched. Neither ever changes which
+features look stronger than which. They act on the drawn image, so detail the
+original never showed cannot be recovered by them.
 
 The expand toggle (⤡) at the top-left of the gram works as it does on an
 image: it grows the axes area to fill the window, with the transport bar kept

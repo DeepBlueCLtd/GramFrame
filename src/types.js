@@ -353,6 +353,7 @@
  * @property {ZoomState} zoom - Zoom state configuration
  * @property {boolean} [imageExpanded] - Whether the image is expanded to fill available space (in-memory only)
  * @property {PlayerState} player - Audio-sourced instance state; inert (`active: false`) on image-backed instances (spec 168)
+ * @property {import('./utils/displayRange.js').DisplayRange} display - Contrast control positions (spec 171 FR-009, on every instance since #324); view state, never persisted
  */
 
 /**
@@ -386,7 +387,6 @@
  * @property {number} viewTop - Time at the top edge of the visible window, seconds
  * @property {number} windowSeconds - Seconds of audio the unzoomed view spans
  * @property {boolean} preservesPitch - Whether a rate change keeps the pitch (spec 171, FR-021)
- * @property {import('./utils/displayRange.js').DisplayRange} display - The contrast controls' positions (spec 171, FR-009); view state, never persisted
  * @property {import('./audio/gramImage.js').DegradedAnalysis|null} degraded - What the render caps forced, or null (spec 171, FR-024)
  * @property {AnalysisParams} analysis - The analysis parameters in force
  */

@@ -172,7 +172,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `StorageWarning.js` - Non-blocking banner when a save fails
   - `TransportBar.js` - The playback controls under an audio-sourced gram, the
     visible time span, and the polite live region a screen reader hears
-  - `DisplayRangeControls.js` - The contrast floor and ceiling, on that bar
+  - `DisplayRangeControls.js` - The contrast floor and ceiling: on the
+    transport bar where there is one, on a bar of their own otherwise (#324)
   - `ErrorIndicator.js` - The standard initialisation-error box, shared by the API and the audio setup
   - `LEDDisplay.js` - Digital display component
   - `table.js` - Component scaffold: builds the DOM structure and replaces the
@@ -378,11 +379,15 @@ There is no visual/screenshot regression testing — see
   other half of the toggle is Pan mode's alone — `PanMode` calls
   `resumeFromClick` (FR-029) — because everywhere else a click on a paused gram
   places a feature, and pause-then-annotate is the workflow the player is for
-- Contrast (spec 171, US2) is two sliders on the transport bar over the *painted*
-  8-bit levels — an SVG `feComponentTransfer`, so no re-analysis — and it is
-  contrast, not a dB display range: what the percentile normalisation clipped
-  when the PNG was painted is gone. `player.display` is view state like zoom:
-  never persisted, never annotation data, absent from image instances
+- Contrast (spec 171, US2) is two sliders over the *painted* 8-bit levels — an
+  SVG `feComponentTransfer`, so no re-analysis — and it is contrast, not a dB
+  display range: what the percentile normalisation clipped when the PNG was
+  painted is gone. `state.display` is view state like zoom: never persisted,
+  never annotation data. On **every** instance since #324 — a player's controls
+  join the transport bar, an image gram gets `.gram-frame-display-bar` of its
+  own under the gram. Spec 171's FR-014 refused image grams and was amended:
+  its reason did not survive, since a player's levels are as painted as an
+  author's PNG
 - A recording too tall for the render caps loads at the hop that fits, with a
   caption naming what changed (FR-023/FR-024); one too *wide* is still refused
 - Playback rates are 0.25 to 4 and `preservesPitch` is assigned explicitly,

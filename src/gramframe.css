@@ -214,6 +214,22 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   cursor: grabbing !important;
 }
 
+/* An image gram has no transport bar, so the contrast controls get a bar of
+   their own under the gram (#324) — the same place a player's controls sit, so
+   the control is where the eye already expects it on either kind of gram. */
+.gram-frame-display-bar {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 4px 6px;
+  background: rgba(20, 30, 45, 0.75);
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e6f2ff;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
 /* The contrast controls, on the same bar as the transport (spec 171, US2). */
 .gram-frame-display-range {
   display: flex;

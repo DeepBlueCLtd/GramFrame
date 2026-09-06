@@ -1,15 +1,17 @@
 /**
- * The contrast controls under an audio-sourced gram (spec 171, US2).
+ * The contrast controls under a gram (spec 171, US2; extended to image-backed
+ * grams by #324).
  *
  * A floor and a ceiling over the painted level scale, plus the way back to
  * where they started. They are called "contrast" in everything an analyst
  * reads, deliberately: what they re-map is the 8-bit image, so calling them a
  * display range would promise decibels the painted PNG no longer carries
- * (spec 171, Risks). `player.display` holds the same pair as fractions.
+ * (spec 171, Risks). `state.display` holds the same pair as fractions.
  *
- * Mounted only by `player/audioSetup.js`, so an image-backed instance never
- * grows the controls (FR-014) — the levels of an author-supplied PNG were
- * never ours to re-map.
+ * Two hosts, one control group. A player already has a transport bar and the
+ * controls join it; an image gram has no bar, so {@link mountDisplayRangeBar}
+ * gives them one of their own under the gram. What differs is what else is on
+ * the row, not what the controls are.
  */
 
 /// <reference path="../types.js" />
@@ -101,4 +103,28 @@ export function createDisplayRangeControls(instance, bar, display) {
   })
 
   return group
+}
+
+/**
+ * Mount the controls on an instance that has no transport bar to join — an
+ * image-backed gram (#324).
+ *
+ * The bar goes under the SVG, where a player's transport bar sits, so the
+ * control is in the same place on both kinds of gram. `ExpandToggle` measures
+ * whatever chrome is under the SVG, so the expanded image leaves room for this
+ * without knowing what it is.
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {import('../utils/displayRange.js').DisplayRange} display - The instance's live `state.display` slice
+ * @returns {HTMLDivElement|null} The bar, or null if there is nowhere to mount it
+ */
+export function mountDisplayRangeBar(instance, display) {
+  const cell = instance.ui.mainCell
+  if (!cell || cell.querySelector('.gram-frame-display-bar')) {
+    return null
+  }
+  const bar = document.createElement('div')
+  bar.className = 'gram-frame-display-bar'
+  cell.appendChild(bar)
+  createDisplayRangeControls(instance, bar, display)
+  return bar
 }

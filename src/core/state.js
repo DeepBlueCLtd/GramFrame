@@ -66,6 +66,10 @@ const initialState = {
     renderWidth: 0,   // Base render width (defaults to naturalWidth on load)
     renderHeight: 0   // Base render height (defaults to naturalHeight on load)
   },
+  // The contrast controls, 0..1 over the painted level scale (spec 171,
+  // FR-009). View state like zoom: reset on reload, never persisted, never
+  // annotation data. Core since #324 gave image grams the controls too.
+  display: { floor: 0, ceiling: 1 },
   // Whether the image is currently expanded to fill available space.
   // In-memory only, default false, never persisted (independent of feature 155).
   imageExpanded: false,
@@ -132,10 +136,6 @@ const initialState = {
     // Assigned to the element explicitly rather than inherited, and settable
     // per exercise by `preserve-pitch` (spec 171, FR-021/FR-022).
     preservesPitch: true,
-    // The contrast controls, 0..1 over the painted level scale (spec 171,
-    // FR-009). View state like zoom: reset on reload, never persisted, never
-    // part of an annotation record; {0, 1} is the image as it loaded.
-    display: { floor: 0, ceiling: 1 },
     // What the render caps forced, or null on an ordinary load (FR-024).
     degraded: null,
     analysis: {

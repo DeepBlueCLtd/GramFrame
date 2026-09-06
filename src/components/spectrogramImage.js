@@ -3,8 +3,8 @@
  *
  * Loads the configured image, records its natural (post-downscale) dimensions,
  * seeds the render dimensions from them, and triggers the first layout, axis
- * render and expand-toggle mount. Split out of `components/table.js`
- * (spec 167, FR-004).
+ * render, expand-toggle mount and contrast bar. Split out of
+ * `components/table.js` (spec 167, FR-004).
  */
 
 /// <reference path="../types.js" />
@@ -12,6 +12,7 @@
 import { dispatch } from '../core/state.js'
 import { renderAxes } from '../rendering/axes.js'
 import { createExpandToggle } from './ExpandToggle.js'
+import { mountDisplayRangeBar } from './DisplayRangeControls.js'
 import { updateSVGLayout } from './svgLayout.js'
 
 // Maximum image width in pixels - images wider than this will be scaled down
@@ -31,7 +32,8 @@ export function setupSpectrogramImage(instance, imageUrl) {
   instance.ui.spectrogramImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imageUrl)
   
   // Store URL in state
-  instance.state.imageDetails.url = imageUrl
+  const state = instance.state
+  state.imageDetails.url = imageUrl
   
   // Load image to get natural dimensions
   const tempImg = new Image()
@@ -53,7 +55,7 @@ export function setupSpectrogramImage(instance, imageUrl) {
     }
     
     // Store scaled dimensions as natural dimensions
-    const imageDetails = instance.state.imageDetails
+    const imageDetails = state.imageDetails
     imageDetails.naturalWidth = imageWidth
     imageDetails.naturalHeight = imageHeight
 
@@ -71,6 +73,11 @@ export function setupSpectrogramImage(instance, imageUrl) {
     // Mount the expand toggle now that natural dimensions (and thus the
     // landscape test) are known. No-op for portrait/square images.
     createExpandToggle(instance)
+
+    // The contrast controls, on their own bar under the gram (#324). Mounted
+    // once the image has loaded, like the toggle: before that there is nothing
+    // for them to act on.
+    mountDisplayRangeBar(instance, state.display)
 
     // Notify listeners of updated dimensions
     dispatch(instance)
