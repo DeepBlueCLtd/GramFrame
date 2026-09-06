@@ -46,7 +46,12 @@ Screen Coords ──→ SVG Coords ──→ Image Coords ──→ Data Coords
    - Input: pixel position on the natural image
    - Output: `{freq, time}` in domain units
    - X-axis maps to frequency, Y-axis maps to time (inverted: Y=0 is top)
-   - The frequency rate acts as a divider: `freq = rawFreq / frequencyRate`
+   - The frequency rate acts as a divider: `freq = rawFreq / frequencyRate`. It
+     is applied by `utils/coordinates.js` and by nothing else, so a stored
+     frequency, a hit-test tolerance and an axis label are all in the same
+     scale. Never scale a frequency yourself, and never compare a stored
+     frequency against `state.config.freqMin/freqMax` — ask
+     `dataFrequencyRange(viewport)` for that range in the right scale.
 
 ### Converting Data Coords Back to SVG
 

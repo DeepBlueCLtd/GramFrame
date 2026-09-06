@@ -7,6 +7,8 @@
 
 /// <reference path="../types.js" />
 
+import { dataFrequencyRange } from './coordinates.js'
+
 /** @typedef {import('./coordinates.js').Viewport} Viewport */
 
 /**
@@ -75,9 +77,12 @@ function calculateDataTolerance(viewport, spectrogramImage, customTolerance = {}
     return config.fallbackDataTolerance
   }
 
-  // Calculate pixel-to-data conversion factors
+  // Calculate pixel-to-data conversion factors. The frequency span is taken in
+  // data scale, because the tolerance it produces is compared against stored
+  // feature frequencies, which are in that scale (issue #276).
   const timeRange = dataConfig.timeMax - dataConfig.timeMin
-  const freqRange = dataConfig.freqMax - dataConfig.freqMin
+  const { freqMin, freqMax } = dataFrequencyRange(viewport)
+  const freqRange = freqMax - freqMin
 
   // Zooming in draws the same data over more pixels, so the same on-screen
   // radius covers proportionally less data. Dividing by the zoom level is what
