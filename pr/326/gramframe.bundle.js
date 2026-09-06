@@ -2834,46 +2834,69 @@
     word.textContent = text;
     tab.appendChild(word);
   }
-  function buildGuidanceRow(item) {
+  function resolveGuidance(content) {
+    if (!content || typeof content !== "object") {
+      return [];
+    }
+    const sections = Array.isArray(content.sections) ? content.sections : [{ title: content.title, qualifier: void 0, items: content.items }];
+    return sections.filter((section) => section && typeof section === "object").map((section) => ({
+      title: typeof section.title === "string" ? section.title : "",
+      qualifier: typeof section.qualifier === "string" ? section.qualifier : "",
+      lines: resolveLines(section.items)
+    })).filter((section) => section.title !== "" || section.lines.length > 0);
+  }
+  function resolveLines(items) {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+    return items.map((item) => {
+      if (typeof item === "string") {
+        return { trigger: "", outcome: item };
+      }
+      if (item && typeof item === "object") {
+        return {
+          trigger: typeof item.trigger === "string" ? item.trigger : "",
+          outcome: typeof item.outcome === "string" ? item.outcome : ""
+        };
+      }
+      return { trigger: "", outcome: "" };
+    }).filter((line2) => line2.trigger !== "" || line2.outcome !== "");
+  }
+  function buildGuidanceRow(line2) {
     const row = document.createElement("div");
     row.className = "gram-frame-guidance-row";
-    if (typeof item === "string") {
-      const note = document.createElement("div");
-      note.className = "gram-frame-guidance-note";
-      note.textContent = item;
-      row.appendChild(note);
-      return row;
+    if (line2.trigger !== "") {
+      const trigger = document.createElement("div");
+      trigger.className = "gram-frame-guidance-trigger";
+      trigger.textContent = line2.trigger;
+      row.appendChild(trigger);
     }
-    const trigger = document.createElement("div");
-    trigger.className = "gram-frame-guidance-trigger";
-    trigger.textContent = item.trigger;
     const outcome = document.createElement("div");
-    outcome.className = "gram-frame-guidance-outcome";
-    outcome.textContent = item.outcome;
-    row.appendChild(trigger);
+    outcome.className = line2.trigger === "" ? "gram-frame-guidance-note" : "gram-frame-guidance-outcome";
+    outcome.textContent = line2.outcome;
     row.appendChild(outcome);
     return row;
   }
+  function buildGuidanceHeading(section) {
+    const title = document.createElement("h4");
+    title.textContent = section.title;
+    if (section.qualifier !== "") {
+      const qualifier = document.createElement("span");
+      qualifier.className = "gram-frame-guidance-qualifier";
+      qualifier.textContent = ` (${section.qualifier})`;
+      title.appendChild(qualifier);
+    }
+    return title;
+  }
   function renderSecureGuidance(container, content) {
     container.replaceChildren();
-    const sections = Array.isArray(content.sections) ? content.sections : [{ title: content.title, items: content.items }];
-    sections.forEach((section) => {
-      if (section.title) {
-        const title = document.createElement("h4");
-        title.textContent = section.title;
-        if (section.qualifier) {
-          const qualifier = document.createElement("span");
-          qualifier.className = "gram-frame-guidance-qualifier";
-          qualifier.textContent = ` (${section.qualifier})`;
-          title.appendChild(qualifier);
-        }
-        container.appendChild(title);
+    resolveGuidance(content).forEach((section) => {
+      if (section.title !== "") {
+        container.appendChild(buildGuidanceHeading(section));
       }
-      if (section.items && Array.isArray(section.items)) {
-        section.items.forEach((item) => {
-          container.appendChild(buildGuidanceRow(item));
-        });
-      }
+      section.lines.forEach((line2) => {
+        container.appendChild(buildGuidanceRow(line2));
+      });
     });
   }
   function updateGuidancePanel(guidancePanel, content) {
