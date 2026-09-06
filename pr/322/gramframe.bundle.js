@@ -3867,6 +3867,10 @@
     session.handler.endDrag(null, event);
     return true;
   }
+  const CLICK_SLOP_PX = 4;
+  function isClick(origin, event) {
+    return Math.abs(event.clientX - origin.x) <= CLICK_SLOP_PX && Math.abs(event.clientY - origin.y) <= CLICK_SLOP_PX;
+  }
   const activeSeeks = /* @__PURE__ */ new WeakMap();
   function isDragSeeking(instance) {
     return activeSeeks.has(instance);
@@ -3883,6 +3887,7 @@
       return true;
     }
     controller.pause();
+    const origin = { x: event.clientX, y: event.clientY };
     const last = { x: event.clientX, y: event.clientY };
     const onMove = (moveEvent) => {
       const { normalizedDeltaX, normalizedDeltaY } = pixelDeltaToNormalizedPan(
@@ -3898,9 +3903,9 @@
       if (upEvent.button !== 0) {
         return;
       }
-      endDragSeek(instance, true);
+      endDragSeek(instance, !isClick(origin, upEvent));
     };
-    activeSeeks.set(instance, { last, onMove, onUp });
+    activeSeeks.set(instance, { origin, last, onMove, onUp });
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     instance.ui.container.classList.add("gram-frame-drag-seek");
@@ -3923,6 +3928,19 @@
     controller.seek(controller.playerState.viewTop);
     controller.play().catch((error) => {
       console.warn("GramFrame: playback could not resume after the drag:", error instanceof Error ? error.message : String(error));
+    });
+    return true;
+  }
+  function resumeFromClick(instance, origin, event) {
+    const controller = instance.player;
+    if (!controller || !controller.isReady() || controller.playerState.playing) {
+      return false;
+    }
+    if (event.button !== 0 || !origin || !isClick(origin, event)) {
+      return false;
+    }
+    controller.play().catch((error) => {
+      console.warn("GramFrame: playback could not start from the click:", error instanceof Error ? error.message : String(error));
     });
     return true;
   }
@@ -7578,6 +7596,7 @@
     constructor(instance) {
       super(instance);
       this.lastPointer = { x: 0, y: 0 };
+      this.pressOrigin = null;
       this.dragHandler = new BaseDragHandler(instance, {
         resolveTarget: () => this.resolvePanDrag(),
         onDragStart: (_target, _position, event) => this.onPanStart(event),
@@ -7672,6 +7691,7 @@
      * @param {DataCoordinates} dataCoords - Data coordinates
      */
     handleMouseDown(event, dataCoords) {
+      this.pressOrigin = { x: event.clientX, y: event.clientY };
       this.dragHandler.startDrag(dataCoords, event);
     }
     /**
@@ -7689,11 +7709,17 @@
      */
     handleMouseUp(event, dataCoords) {
       this.dragHandler.endDrag(dataCoords, event);
+      const origin = this.pressOrigin;
+      this.pressOrigin = null;
+      if (origin && isPlayerActive(this.instance)) {
+        resumeFromClick(this.instance, origin, event);
+      }
     }
     /**
      * Handle mouse leave events
      */
     handleMouseLeave() {
+      this.pressOrigin = null;
       this.dragHandler.cancelDrag();
     }
     /**
@@ -7721,6 +7747,7 @@
             title: "Pan Mode",
             items: [
               "Click and drag to pan the view (when zoomed in)",
+              "On an audio gram, click to pause or resume playback",
               // Named by shape, not by the glyph itself: a character in the
               // guidance would depend on the reader's font, which is the reason
               // the button draws its own (issue #310).
@@ -7735,6 +7762,7 @@
      * Reset pan-specific state
      */
     resetState() {
+      this.pressOrigin = null;
       this.dragHandler.reset();
     }
     /**
