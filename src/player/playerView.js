@@ -4,10 +4,15 @@
  * Owns the one scalar the geometry needs that zoom does not carry: the time at
  * the top edge of the view, `state.player.viewTop`. While playing it follows
  * the playhead every animation frame; paused, the analyst can move it with a
- * pan, but never above the playhead (FR-011, FR-016). The placement itself
+ * pan anywhere in the recording (FR-016). The placement itself
  * lives in `components/svgLayout.js`, which reads `viewTop` and
  * `imageDetails.timeStretch`; this module decides what they should be and when
  * to redraw.
+ *
+ * Spec 171 withdrew spec 168's reveal rule: the gram is drawn for the whole
+ * recording from the moment it is analysed, so `viewTop` is bounded by the
+ * duration rather than by the playhead, and no module asks whether a time has
+ * been played before drawing something at it.
  */
 
 /// <reference path="../types.js" />
@@ -77,27 +82,6 @@ export function isPlaying(instance) {
 }
 
 /**
- * Whether audio at a given time has been heard (or sought past), so a feature
- * placed there may be drawn (FR-018).
- *
- * The playhead advances in whole analysis frames, so a feature sitting on the
- * newest row is up to one hop ahead of the sampled `currentTime`; the epsilon
- * keeps it visible rather than blinking on the next frame. Always true on an
- * image-backed instance.
- * @param {GramFrame} instance - GramFrame instance
- * @param {number} time - Seconds into the recording
- * @returns {boolean} True when the time is revealed
- */
-export function isTimeRevealed(instance, time) {
-  const player = playerOf(instance)
-  if (!player || !player.active) {
-    return true
-  }
-  const epsilon = player.sampleRate > 0 ? player.analysis.hopSize / player.sampleRate : 0
-  return time <= player.playhead + epsilon
-}
-
-/**
  * Seconds the axes area spans at the current zoom.
  * @param {GramFrame} instance - GramFrame instance
  * @returns {number} Visible window in seconds
@@ -108,21 +92,27 @@ export function visibleWindowSeconds(instance) {
 }
 
 /**
- * Keep a candidate top-of-view time inside what may be shown.
+ * Keep a candidate top-of-view time inside the recording.
  *
- * Upper bound: the playhead — nothing unplayed is ever in view. Lower bound:
- * one window's worth above the start, so the recording's beginning never
- * scrolls above the bottom edge into empty space; when the playhead is nearer
- * than that, the playhead itself (the view holds `[playhead − window,
- * playhead]`, blank below 0).
+ * Upper bound: the recording's duration (spec 171, FR-007). It was the
+ * playhead until spec 168's reveal rule was withdrawn — the whole gram is
+ * drawn from load, so a paused analyst may scroll to the last second of a file
+ * they have never played. Lower bound: one window's worth above the start, so
+ * the recording's beginning never scrolls above the bottom edge into empty
+ * space; on a recording shorter than one window, the duration itself; and,
+ * before a window has been played, the playhead — because in the opening
+ * seconds the view is *meant* to be partly blank, the newest row at the top
+ * edge with nothing yet beneath it, and the follow loop must not be fought
+ * (FR-008). That last term makes `clampViewTop(playhead)` the identity, which
+ * is what {@link syncViewToPlayhead} relies on.
  * @param {GramFrame} instance - GramFrame instance
  * @param {number} seconds - Candidate view-top time
  * @returns {number} The clamped time
  */
 export function clampViewTop(instance, seconds) {
-  const { playhead } = playerOf(instance)
-  const lower = Math.min(visibleWindowSeconds(instance), playhead)
-  return Math.max(lower, Math.min(playhead, seconds))
+  const { duration, playhead } = playerOf(instance)
+  const lower = Math.min(visibleWindowSeconds(instance), duration, playhead)
+  return Math.max(lower, Math.min(duration, seconds))
 }
 
 /**

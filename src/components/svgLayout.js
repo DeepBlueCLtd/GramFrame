@@ -154,8 +154,8 @@ export function applyZoomTransform(instance) {
  * positioned so `player.viewTop` — the time at the view's top edge — lands on
  * `margins.top`. Zoom multiplies both axes as it does for an image, and the
  * horizontal placement is the ordinary centre-anchored one. Time before the
- * recording began is blank space above the image's bottom edge, and time not
- * yet played is clipped off above the playhead (FR-010, FR-011).
+ * recording began is blank space above the image's bottom edge; time not yet
+ * played is drawn like any other (spec 171, FR-005).
  * @param {GramFrame} instance - GramFrame instance
  * @param {GramFrameState} viewport - The instance's state
  * @param {number} renderWidth - Base render width
@@ -183,17 +183,13 @@ function applyStretchedTransform(instance, viewport, renderWidth, renderHeight) 
   image.setAttribute('height', String(height))
   image.removeAttribute('transform')
 
-  // Nothing above the playhead may show, even though the view's top edge is
-  // never above it: the clip makes the guarantee structural rather than a
-  // property of the clamp.
+  // The clip is the axes area and nothing else. It used to be trimmed to the
+  // playhead's row, so unplayed time could not show; spec 171 (FR-005)
+  // withdrew that rule, and the trim is reset here as well as removed because
+  // this function, not `updateSVGLayout`, is what runs on every frame.
   if (instance.ui.imageClipRect) {
-    const playheadY = span > 0
-      ? y + ((config.timeMax - player.playhead) / span) * height
-      : margins.top
-    const top = Math.max(margins.top, playheadY)
-    const bottom = margins.top + renderHeight
-    instance.ui.imageClipRect.setAttribute('y', String(top))
-    instance.ui.imageClipRect.setAttribute('height', String(Math.max(0, bottom - top)))
+    instance.ui.imageClipRect.setAttribute('y', String(margins.top))
+    instance.ui.imageClipRect.setAttribute('height', String(renderHeight))
   }
 
   renderAxes(instance)

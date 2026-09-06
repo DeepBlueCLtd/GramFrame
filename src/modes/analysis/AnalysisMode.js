@@ -356,13 +356,10 @@ export class AnalysisMode extends BaseMode {
     const existingMarkers = this.instance.ui.cursorGroup.querySelectorAll('.gram-frame-analysis-marker')
     existingMarkers.forEach(marker => marker.remove())
     
-    // Render all markers — on an audio-sourced gram, only those whose time
-    // has been played (spec 168, FR-018); on an image every time is revealed.
-    this.markers.forEach(marker => {
-      if (this.isTimeRevealed(marker.time)) {
-        this.renderMarker(marker)
-      }
-    })
+    // Render all markers, wherever they sit in time: an audio-sourced gram is
+    // drawn for the whole recording, so nothing is hidden by the playhead
+    // (spec 171, FR-006).
+    this.markers.forEach(marker => this.renderMarker(marker))
   }
 
   /**
