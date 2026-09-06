@@ -22,9 +22,9 @@
  * @typedef {Object} ModeRosterEntry
  * @property {ModeType} name - The internal mode name, used in state and the DOM
  * @property {string} displayName - What the analyst sees on the button and the LED
- * @property {string} [icon] - Name of the glyph the button shows in place of the
- *   word (see `components/icons.js`). The display name is still the mode's
- *   accessible name and is still what the Mode readout says.
+ * @property {string} [icon] - Name of the glyph the button shows beside the word
+ *   (see `components/icons.js`). The display name is still the mode's accessible
+ *   name and is still what the Mode readout says.
  */
 
 /**
@@ -37,17 +37,18 @@
  * @type {ModeRosterEntry[]}
  */
 const MODE_ROSTER = [
-  // Pan alone takes a glyph, because Pan's row alone is crowded: it is the only
-  // mode carrying command buttons (zoom out, zoom in, fit), and four controls
-  // do not fit across the column with a word among them (issue #310).
+  // Every mode carries a glyph, drawn beside its word rather than in place of
+  // it: in a rail of five stacked tools the shape is what the eye lands on
+  // first, and the word is still there to settle it. The rail's own footer
+  // (zoom out, zoom in, fit) is the place where a glyph replaces a word.
   { name: 'pan', displayName: 'Pan', icon: 'hand' },
   // "Cross Cursor" on screen, `analysis` in the code and in stored records.
   // The two names have coexisted since before this review; renaming the button
   // is issue #271, not this one.
-  { name: 'analysis', displayName: 'Cross Cursor' },
-  { name: 'harmonics', displayName: 'Harmonics' },
-  { name: 'sideband', displayName: 'Sidebands' },
-  { name: 'doppler', displayName: 'Doppler' }
+  { name: 'analysis', displayName: 'Cross Cursor', icon: 'cross-cursor' },
+  { name: 'harmonics', displayName: 'Harmonics', icon: 'harmonics' },
+  { name: 'sideband', displayName: 'Sidebands', icon: 'sidebands' },
+  { name: 'doppler', displayName: 'Doppler', icon: 'doppler' }
 ]
 
 /**
@@ -72,11 +73,11 @@ export function getModeDisplayName(mode) {
 }
 
 /**
- * The glyph a mode's button shows instead of its word, if it has one.
+ * The glyph a mode's button shows beside its word, if it has one.
  *
- * Deliberately separate from {@link getModeDisplayName}: the word is still the
- * mode's name everywhere it is spoken or read out — the accessible name of the
- * button, and the Mode readout — and only the button's own face changes.
+ * Deliberately separate from {@link getModeDisplayName}: the word is the mode's
+ * name everywhere it is spoken or read out — the accessible name of the button,
+ * and the Mode readout — and the glyph only sits beside it.
  * @param {string} mode - Internal mode name
  * @returns {string|undefined} Icon name, or undefined for a mode shown as a word
  */

@@ -94,17 +94,19 @@ async function waitForMarkerSymbol(gramFramePage, markerId, symbol) {
 // ──────────────────────────────────────────────────────────────
 
 test.describe('US2: cross is the default, symbol-less style', () => {
-  test('the symbol selector offers "cross" and it is the default selection', async ({ gramFramePage }) => {
-    const select = gramFramePage.page.locator(SYMBOL_SELECT)
-    await expect(select).toBeVisible()
+  test('the symbol popup offers "cross" and it is the default selection', async ({ gramFramePage }) => {
+    const button = gramFramePage.page.locator(SYMBOL_SELECT)
+    await expect(button).toBeVisible()
+    await expect(button).toHaveAttribute('data-symbol', 'cross')
 
-    const values = await select.locator('option').evaluateAll(
-      (opts) => opts.map((o) => /** @type {HTMLOptionElement} */ (o).value)
+    await button.click()
+    const values = await gramFramePage.page.locator('.gram-frame-symbol-cell').evaluateAll(
+      (cells) => cells.map((c) => c.getAttribute('data-symbol'))
     )
     expect(values).toContain('cross')
+    await expect(gramFramePage.page.locator('.gram-frame-symbol-cell-selected'))
+      .toHaveAttribute('data-symbol', 'cross')
 
-    // Default selection is cross
-    await expect(select).toHaveValue('cross')
     const state = await gramFramePage.getState()
     expect(state.selectedSymbol).toBe('cross')
   })
@@ -170,7 +172,7 @@ test.describe('US1: reformat an existing harmonic set', () => {
 
     // Selecting set 1 makes the symbol selector show its symbol (square)
     await gramFramePage.clickTableRow('harmonics', set1)
-    await expect(page.locator(SYMBOL_SELECT)).toHaveValue('square')
+    await expect(page.locator(SYMBOL_SELECT)).toHaveAttribute('data-symbol', 'square')
 
     // Reformat set 1 to diamond — only set 1 changes
     await gramFramePage.selectSymbol('diamond')
@@ -235,7 +237,7 @@ test.describe('US1: reformat an existing harmonic set', () => {
 
     // The control now targets the next feature (its DOM value is the source of
     // truth; state.selectedSymbol is not broadcast when nothing is selected).
-    await expect(page.locator(SYMBOL_SELECT)).toHaveValue('triangle')
+    await expect(page.locator(SYMBOL_SELECT)).toHaveAttribute('data-symbol', 'triangle')
     let state = await gramFramePage.getState()
     expect(state.harmonics.harmonicSets.find((s) => s.id === set1).symbol).toBe('square')
 
@@ -369,7 +371,7 @@ test.describe('US3: reformat a marker and give it a symbol', () => {
     const markerId = state.analysis.markers[0].id
 
     // The new marker is auto-selected; the selector shows cross
-    await expect(page.locator(SYMBOL_SELECT)).toHaveValue('cross')
+    await expect(page.locator(SYMBOL_SELECT)).toHaveAttribute('data-symbol', 'cross')
 
     // Assign a square — the marker is drawn as a colour-coded square
     await gramFramePage.selectSymbol('square')

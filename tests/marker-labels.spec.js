@@ -4,23 +4,25 @@ import { GramFramePage } from './helpers/gram-frame-page.js'
 /**
  * @fileoverview E2E tests for feature 231 — cross-cursor labels.
  *
- * Covers the whole loop an analyst walks: place a marker, open the label
- * dialog from its row's Label button, enter text, see it on the gram and
- * abbreviated in the table's Label column, edit it, and clear it. Also covers
- * the two placement rules (upper-right quadrant for a cross, centred above a
- * shaped symbol), the halo styling, and persistence across a reload.
+ * Covers the whole loop an analyst walks: place a marker, select its row, type
+ * into the style panel's Label field, see the text on the gram and abbreviated
+ * in the table's Label column, edit it, and clear it. Also covers the two
+ * placement rules (upper-right quadrant for a cross, centred above a shaped
+ * symbol), the halo styling, and persistence across a reload.
+ *
+ * The label used to be entered in a modal dialog opened from a button in the
+ * row. The control-row redesign edits it in place instead, in the style panel
+ * beside the same marker's colour and symbol — one place where everything about
+ * a selected feature is changed.
  *
  * The pure rules behind abbreviation and placement are unit-tested in
  * tests/unit/marker-label.test.js; what is asserted here is the wiring.
  *
- * Waiting note: the dialog's Save handler runs synchronously, so the helper
- * that drives it waits on the label appearing in broadcast state rather than on
- * a fixed delay.
+ * Waiting note: the field writes through on `input`, so the helper that drives
+ * it waits on the label appearing in broadcast state rather than on a delay.
  */
 
-const LABEL_BUTTON = '.gram-frame-marker-label-btn'
-const LABEL_INPUT = '.gram-frame-marker-label-input'
-const MODAL_OVERLAY = '.gram-frame-marker-label-modal'
+const LABEL_INPUT = '.gram-frame-style-label-input'
 
 /**
  * Place a marker in Cross Cursor mode and return its id.
@@ -63,70 +65,52 @@ test.describe('Marker labels', () => {
     expect(headers).toContain('Label')
   })
 
-  test('every marker row offers a Label button in the top-right of its Label cell', async ({ gramFramePage }) => {
+  test('a marker row shows its label and a delete control, and nothing else', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
 
     const row = gramFramePage.page.locator(`tr[data-marker-id="${markerId}"]`)
-    await expect(row.locator(LABEL_BUTTON)).toBeVisible()
     await expect(row.locator('.gram-frame-marker-delete-btn')).toBeVisible()
-
-    // "In the Label cell's top-right corner" is a layout claim, so measure it
-    // rather than assume the markup. The button sits out of flow there so it
-    // costs the row no height — it used to stack above Delete, which made every
-    // row tall enough for two controls.
-    const cellBox = await row.locator('.gram-frame-marker-label-cell').boundingBox()
-    const labelBox = await row.locator(LABEL_BUTTON).boundingBox()
-    expect(cellBox).not.toBeNull()
-    expect(labelBox).not.toBeNull()
-
-    // Right-aligned within the cell, and in its top half.
-    expect(cellBox.x + cellBox.width - (labelBox.x + labelBox.width)).toBeLessThanOrEqual(3)
-    expect(labelBox.y).toBeLessThan(cellBox.y + cellBox.height / 2)
-  })
-
-  test('the label button does not make the row taller than the controls beside it', async ({ gramFramePage }) => {
-    // Enough markers to overflow the fixed-height table body. Below that the
-    // rows stretch to fill it, and their height says nothing about what the
-    // content needs — which is the thing under test.
-    let markerId = null
-    for (let i = 0; i < 6; i++) {
-      markerId = await placeMarker(gramFramePage, 150 + i * 20, 120 + i * 15)
-    }
-
-    const row = gramFramePage.page.locator(`tr[data-marker-id="${markerId}"]`)
-    const rowBox = await row.boundingBox()
-    const labelBox = await row.locator(LABEL_BUTTON).boundingBox()
-    const deleteBox = await row.locator('.gram-frame-marker-delete-btn').boundingBox()
-
-    // The row only ever has to be as tall as ONE control plus the cell padding.
-    // Were the label button back in the flow above Delete, the row would need
-    // room for both and this would fail.
-    expect(rowBox.height).toBeLessThan(labelBox.height + deleteBox.height)
+    // The per-row label button is gone: labels are edited in the style panel,
+    // and a second control in the row made every row tall enough for two.
+    await expect(row.locator('.gram-frame-marker-label-btn')).toHaveCount(0)
   })
 
   // ──────────────────────────────────────────────────────────
-  // Adding, editing and clearing a label through the dialog
+  // Adding, editing and clearing a label in the style panel
   // ──────────────────────────────────────────────────────────
 
-  test('the Label button opens a dialog that adds a label to the marker', async ({ gramFramePage }) => {
+  test('selecting a marker offers a Label field that writes to it', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
 
     await gramFramePage.setMarkerLabel(markerId, 'Contact A')
-
-    // Dialog closed itself
-    await expect(gramFramePage.page.locator(MODAL_OVERLAY)).toHaveCount(0)
 
     const overlay = await gramFramePage.getMarkerLabelOverlay(markerId)
     expect(overlay).not.toBeNull()
     expect(overlay.text).toBe('Contact A')
   })
 
-  test('the dialog opens pre-filled when the marker already has a label', async ({ gramFramePage }) => {
+  test('the field carries the label of whichever marker is selected', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
     await gramFramePage.setMarkerLabel(markerId, 'Contact A')
 
-    const input = await gramFramePage.openMarkerLabelDialog(markerId)
-    await expect(input).toHaveValue('Contact A')
+    // Deselect and select again: the field is filled from the selection, not
+    // from what was last typed into it.
+    const row = gramFramePage.page.locator(`tr[data-marker-id="${markerId}"]`)
+    await row.click()
+    await expect(gramFramePage.page.locator(LABEL_INPUT)).toBeHidden()
+    await row.click()
+    await expect(gramFramePage.page.locator(LABEL_INPUT)).toHaveValue('Contact A')
+  })
+
+  test('the Label field is offered only while a marker is selected', async ({ gramFramePage }) => {
+    const markerId = await placeMarker(gramFramePage, 220, 160)
+    // A newly placed marker is auto-selected, so the field is there.
+    await expect(gramFramePage.page.locator(LABEL_INPUT)).toBeVisible()
+
+    // Deselecting returns the panel to its "New features" face, which has no
+    // label to edit.
+    await gramFramePage.page.locator(`tr[data-marker-id="${markerId}"]`).click()
+    await expect(gramFramePage.page.locator(LABEL_INPUT)).toBeHidden()
   })
 
   test('editing a label replaces it on the gram and in the table', async ({ gramFramePage }) => {
@@ -139,7 +123,7 @@ test.describe('Marker labels', () => {
     expect(await gramFramePage.getMarkerLabelCell(markerId)).toBe('Sub 7')
   })
 
-  test('clearing the field and saving removes the label entirely', async ({ gramFramePage }) => {
+  test('clearing the field removes the label entirely', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
     await gramFramePage.setMarkerLabel(markerId, 'Contact A')
 
@@ -155,61 +139,27 @@ test.describe('Marker labels', () => {
   test('a whitespace-only entry is treated as no label', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
 
-    const input = await gramFramePage.openMarkerLabelDialog(markerId)
+    const input = await gramFramePage.openMarkerLabelField(markerId)
     await input.fill('    ')
-    await gramFramePage.page.locator('.gram-frame-modal-save').click()
 
-    await expect(gramFramePage.page.locator(MODAL_OVERLAY)).toHaveCount(0)
+    await gramFramePage.waitForState(
+      (state) => state.analysis.markers[0].label === undefined,
+      { message: 'whitespace to be treated as no label' }
+    )
     const state = await gramFramePage.getState()
     expect(state.analysis.markers[0]).not.toHaveProperty('label')
   })
 
-  test('Cancel and Escape both leave the existing label untouched', async ({ gramFramePage }) => {
-    const markerId = await placeMarker(gramFramePage, 220, 160)
-    await gramFramePage.setMarkerLabel(markerId, 'Contact A')
-
-    // Cancel
-    let input = await gramFramePage.openMarkerLabelDialog(markerId)
-    await input.fill('Discarded')
-    await gramFramePage.page.locator('.gram-frame-modal-cancel').click()
-    await expect(gramFramePage.page.locator(MODAL_OVERLAY)).toHaveCount(0)
-    expect((await gramFramePage.getState()).analysis.markers[0].label).toBe('Contact A')
-
-    // Escape
-    input = await gramFramePage.openMarkerLabelDialog(markerId)
-    await input.fill('Also discarded')
-    await input.press('Escape')
-    await expect(gramFramePage.page.locator(MODAL_OVERLAY)).toHaveCount(0)
-    expect((await gramFramePage.getState()).analysis.markers[0].label).toBe('Contact A')
-  })
-
-  test('Enter in the input saves the label', async ({ gramFramePage }) => {
-    const markerId = await placeMarker(gramFramePage, 220, 160)
-
-    const input = await gramFramePage.openMarkerLabelDialog(markerId)
-    await input.fill('Contact B')
-    await input.press('Enter')
-
-    await gramFramePage.waitForState(
-      (state) => state.analysis.markers[0].label === 'Contact B',
-      { message: 'the label entered with Enter' }
-    )
-    await expect(gramFramePage.page.locator(MODAL_OVERLAY)).toHaveCount(0)
-  })
-
-  test('clicking the Label button does not toggle the row selection', async ({ gramFramePage }) => {
+  test('typing in the field leaves the row selected', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
     // A newly placed marker is auto-selected.
     await gramFramePage.waitForSelectedRow('markers', markerId)
 
-    await gramFramePage.page
-      .locator(`tr[data-marker-id="${markerId}"] ${LABEL_BUTTON}`)
-      .click()
-    await expect(gramFramePage.page.locator(LABEL_INPUT)).toBeVisible()
+    await gramFramePage.setMarkerLabel(markerId, 'Contact B')
 
     const state = await gramFramePage.getState()
     expect(state.selection.selectedId).toBe(markerId)
-    await gramFramePage.page.locator('.gram-frame-modal-cancel').click()
+    await expect(gramFramePage.page.locator(LABEL_INPUT)).toHaveValue('Contact B')
   })
 
   test('the label applies to the marker whose row was clicked', async ({ gramFramePage }) => {
@@ -393,14 +343,13 @@ test.describe('Marker labels', () => {
     expect(await gramFramePage.getMarkerLabelCell(markerId)).toBe('Per..')
   })
 
-  test('the dialog caps how long a label can be', async ({ gramFramePage }) => {
+  test('the field caps how long a label can be', async ({ gramFramePage }) => {
     const markerId = await placeMarker(gramFramePage, 220, 160)
 
-    const input = await gramFramePage.openMarkerLabelDialog(markerId)
+    const input = await gramFramePage.openMarkerLabelField(markerId)
     await expect(input).toHaveAttribute('maxlength', '32')
     await input.fill('x'.repeat(60))
     await expect(input).toHaveValue('x'.repeat(32))
-    await gramFramePage.page.locator('.gram-frame-modal-cancel').click()
   })
 })
 
@@ -417,16 +366,17 @@ test.describe('Marker labels persist', () => {
     await page.goto('/tests/fixtures/trainer-page.html')
     await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
 
-    await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').click()
+    await page.locator('.gram-frame-mode-btn[title="Cross Cursor" i]').click()
     await gfp.svg.click({ position: { x: 200, y: 150 } })
 
     const markerRow = page.locator('tr[data-marker-id]').first()
     await expect(markerRow).toBeVisible()
     const markerId = await markerRow.getAttribute('data-marker-id')
 
-    await markerRow.locator(LABEL_BUTTON).click()
+    // The marker arrives selected, so the style panel's Label field is already
+    // pointed at it.
+    await expect(page.locator(LABEL_INPUT)).toBeVisible()
     await page.locator(LABEL_INPUT).fill('Saved label')
-    await page.locator('.gram-frame-modal-save').click()
     await expect(page.locator(`tr[data-marker-id="${markerId}"] .gram-frame-marker-label-cell`))
       .toHaveText('Sav..')
 
@@ -450,7 +400,7 @@ test.describe('Marker labels persist', () => {
     await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
 
     const gfp = new GramFramePage(page)
-    await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').click()
+    await page.locator('.gram-frame-mode-btn[title="Cross Cursor" i]').click()
     await gfp.svg.click({ position: { x: 200, y: 150 } })
     await expect(page.locator('tr[data-marker-id]')).toHaveCount(1)
 

@@ -9,7 +9,8 @@
 /// <reference path="../../types.js" />
 
 import { setupEventListeners, setupResizeObserver } from '../events.js'
-import { initializeKeyboardControl, setSelection, clearSelection, updateSelectionVisuals, removeHarmonicSet, removeSidebandSet, applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../keyboardControl.js'
+import { initializeKeyboardControl, setSelection, clearSelection, toggleSelection, isFeatureSelected, updateSelectionVisuals, removeHarmonicSet, removeSidebandSet } from '../keyboardControl.js'
+import { applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../featureStyle.js'
 
 /**
  * Set up all event listeners for the GramFrame instance.
@@ -34,6 +35,10 @@ export function setupAllEventListeners(instance) {
     setSelection: (/** @type {string} */ type, /** @type {string} */ id, /** @type {number} */ index) =>
       setSelection(instance, type, id, index),
     clearSelection: () => clearSelection(instance),
+    toggleSelection: (/** @type {SelectedFeatureType} */ type, /** @type {string} */ id, /** @type {number} */ index) =>
+      toggleSelection(instance, type, id, index),
+    isFeatureSelected: (/** @type {SelectedFeatureType} */ type, /** @type {string} */ id) =>
+      isFeatureSelected(instance, type, id),
     updateSelectionVisuals: () => updateSelectionVisuals(instance),
     applyColorToSelectedFeature: (/** @type {string} */ color) => applyColorToSelectedFeature(instance, color),
     applySymbolToSelectedFeature: (/** @type {SymbolType} */ symbol) => applySymbolToSelectedFeature(instance, symbol),

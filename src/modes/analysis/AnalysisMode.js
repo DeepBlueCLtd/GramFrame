@@ -2,98 +2,42 @@ import { BaseMode } from '../BaseMode.js'
 import { dispatch, markAnnotationsChanged, recordDeletion } from '../../core/state.js'
 import { commitAnnotationChange } from '../../core/annotationCommit.js'
 import { createDiffingTable } from '../../components/DiffingTable.js'
-import { showMarkerLabelModal } from '../../components/MarkerLabelModal.js'
-
-/** SVG namespace, for the label button's icon */
-const SVG_NS = 'http://www.w3.org/2000/svg'
 
 /**
- * Build a marker row's delete button. Markup unchanged from before the table
- * engines were shared, so existing selectors and styling keep working (T2).
+ * Build a marker row's delete button.
+ *
+ * Its nine lines of inline styling went with the control-row redesign: they
+ * hard-coded a red the panel's own palette does not use, and being inline they
+ * could not be overridden by the stylesheet that governs the other two tables'
+ * delete buttons. It now looks like its counterparts because it is styled with
+ * them.
  * @returns {HTMLButtonElement} The delete button
  */
 function createMarkerDeleteButton() {
   const button = document.createElement('button')
+  button.type = 'button'
   button.textContent = '×'
   button.className = 'gram-frame-marker-delete-btn'
-  button.style.background = 'none'
-  button.style.border = 'none'
-  button.style.color = '#ff4444'
-  button.style.cursor = 'pointer'
-  button.style.fontSize = '16px'
-  button.style.fontWeight = 'bold'
+  button.title = 'Delete marker'
   return button
 }
 
 /**
- * Build a marker row's label button (feature 231) — a luggage-tag icon that
- * opens the label dialog for that marker.
+ * Build the Label cell's content: the abbreviated label text.
  *
- * Drawn as inline SVG rather than a glyph or an image so it stays crisp, needs
- * no font or network asset, and inherits the button's colour.
- *
- * @param {AnalysisMarker} marker - The row's marker, for the button's title
- * @returns {HTMLButtonElement} The label button
- */
-function createMarkerLabelButton(marker) {
-  const button = document.createElement('button')
-  button.className = 'gram-frame-marker-label-btn'
-  button.title = marker.label ? `Edit label: ${marker.label}` : 'Add label'
-  button.setAttribute('aria-label', button.title)
-
-  const icon = document.createElementNS(SVG_NS, 'svg')
-  icon.setAttribute('viewBox', '0 0 16 16')
-  icon.setAttribute('width', '13')
-  icon.setAttribute('height', '13')
-  icon.setAttribute('aria-hidden', 'true')
-
-  // Tag outline: a pentagon-ish body pointing down-left.
-  const body = document.createElementNS(SVG_NS, 'path')
-  body.setAttribute('d', 'M8.5 1H15v6.5L7.5 15 1 8.5 8.5 1z')
-  body.setAttribute('fill', 'none')
-  body.setAttribute('stroke', 'currentColor')
-  body.setAttribute('stroke-width', '1.6')
-  body.setAttribute('stroke-linejoin', 'round')
-
-  // The tag's eyelet.
-  const hole = document.createElementNS(SVG_NS, 'circle')
-  hole.setAttribute('cx', '11.5')
-  hole.setAttribute('cy', '4.5')
-  hole.setAttribute('r', '1.2')
-  hole.setAttribute('fill', 'currentColor')
-
-  icon.appendChild(body)
-  icon.appendChild(hole)
-  button.appendChild(icon)
-  return button
-}
-
-/**
- * Build the Label cell's content: the abbreviated label text, with the label
- * button floated into the cell's top-right corner.
- *
- * The button used to sit above the delete button in the actions cell, which
- * made every marker row tall enough for two stacked controls (53px against the
- * harmonics table's 45px). Absolutely positioned here it contributes no height
- * at all, and it sits beside the thing it edits.
+ * The cell used to carry a luggage-tag button opening a dialog. The label is
+ * now edited in the style panel, in a field beside the colour and symbol of the
+ * same marker — one place where everything about a selected feature is changed,
+ * rather than a dialog for the text and a panel for the rest.
  *
  * @param {AnalysisMarker} marker - The row's marker
- * @returns {HTMLDivElement} Container holding the label text and its button
+ * @returns {HTMLSpanElement} The label text
  */
 function createMarkerLabelCell(marker) {
-  const content = document.createElement('div')
-  content.className = 'gram-frame-marker-label-content'
-
-  // The text is its own element so it can be clipped independently of the
-  // button — `getMarkerLabelCell` in the test helpers still reads the cell's
-  // textContent, which the icon-only button leaves untouched.
   const text = document.createElement('span')
   text.className = 'gram-frame-marker-label-text'
   text.textContent = formatMarkerLabelForTable(marker.label)
-
-  content.appendChild(text)
-  content.appendChild(createMarkerLabelButton(marker))
-  return content
+  return text
 }
 import { formatTime } from '../../utils/timeFormatter.js'
 import { dataToSVG } from '../../utils/coordinates.js'
@@ -219,12 +163,11 @@ export class AnalysisMode extends BaseMode {
    */
   getGuidanceText() {
     return {
-      title: 'Cross Cursor Mode',
       items: [
-        'Click to place persistent markers',
-        'Drag existing markers to reposition them',
-        'Right-click markers to delete them',
-        'Click table row + arrow keys (Shift for larger steps)'
+        { trigger: 'Click', outcome: 'to add a persistent cross' },
+        { trigger: 'Drag', outcome: 'an existing cross to reposition it' },
+        { trigger: 'Right-click', outcome: 'a cross to delete it' },
+        { trigger: 'Row + \u2190 \u2192', outcome: 'to nudge (Shift for larger steps)' }
       ]
     }
   }
@@ -451,18 +394,19 @@ export class AnalysisMode extends BaseMode {
     // propagation) comes from the shared component; everything below is what
     // makes this the *markers* table (spec 166, FR-009).
     this.markersTable = createDiffingTable(markersContainer, {
-      // Widths rebalanced when the label button moved into the Label cell: that
-      // column now has to hold an icon as well as the text, and the actions
-      // column no longer stacks two controls, so 3% moves from each of Time,
-      // Freq and actions to Label. Time and Freq both show five characters
-      // ("00:42", "24.71") and still have room for them.
+      // The only five-column table in the panel, and it sits in the narrowest
+      // of the three columns, so the tracks are deliberately tight. Time and
+      // Freq both show five characters ("00:42", "24.71") and are right-aligned
+      // and tabular; the units moved out of the headings, which had to carry
+      // "Time (mm:ss)" across 23% of a third of the tables' width.
       columns: [
-        { label: '', width: '12%', cellClassName: 'gram-frame-marker-color' },
-        { label: 'Label', width: '30%', cellClassName: 'gram-frame-marker-label-cell' },
-        { label: 'Time (mm:ss)', width: '23%' },
-        { label: 'Freq (Hz)', width: '23%' },
-        { label: '', width: '12%' }
+        { label: '', width: '10%', cellClassName: 'gram-frame-marker-color' },
+        { label: 'Label', width: '32%', cellClassName: 'gram-frame-marker-label-cell' },
+        { label: 'Time', width: '24%', cellClassName: 'gram-frame-cell-numeric' },
+        { label: 'Freq', width: '24%', cellClassName: 'gram-frame-cell-numeric' },
+        { label: '', width: '10%', cellClassName: 'gram-frame-cell-action' }
       ],
+      emptyMessage: 'Click the gram to add a cross',
       rowAttribute: 'data-marker-id',
       rowKey: (marker) => marker.id,
       cells: (marker) => [
@@ -478,26 +422,10 @@ export class AnalysisMode extends BaseMode {
         createMarkerDeleteButton()
       ],
       deleteSelector: '.gram-frame-marker-delete-btn',
-      actions: [
-        {
-          selector: '.gram-frame-marker-label-btn',
-          handler: (markerId) => this.editMarkerLabel(markerId)
-        }
-      ],
-      onSelect: (markerId, _marker, index) => {
-        // Toggle selection
-        const selection = this.instance.state.selection
-        if (selection.selectedType === 'marker' && selection.selectedId === markerId) {
-          this.instance.interaction.clearSelection()
-        } else {
-          this.instance.interaction.setSelection('marker', markerId, index)
-        }
-      },
+      onSelect: (markerId, _marker, index) =>
+        this.instance.interaction.toggleSelection('marker', markerId, index),
       onDelete: (markerId) => this.removeMarker(markerId),
-      isSelected: (markerId) => (
-        this.instance.state.selection.selectedType === 'marker' &&
-        this.instance.state.selection.selectedId === markerId
-      )
+      isSelected: (markerId) => this.instance.interaction.isFeatureSelected('marker', markerId)
     })
 
     // Store all UI elements for proper cleanup
@@ -553,15 +481,16 @@ export class AnalysisMode extends BaseMode {
    * @param {AnalysisMarker} marker - Marker object with all properties
    */
   addMarker(marker) {
-    if (!this.instance.state.analysis) {
-      this.instance.state.analysis = { markers: [] }
+    const state = this.instance.state
+    if (!state.analysis) {
+      state.analysis = { markers: [] }
     }
-    
-    this.instance.state.analysis.markers.push(marker)
+
+    state.analysis.markers.push(marker)
 
     // Auto-select the newly created marker, before the commit refreshes the
     // table that draws the selection.
-    const index = this.instance.state.analysis.markers.length - 1
+    const index = state.analysis.markers.length - 1
     this.instance.interaction.setSelection('marker', marker.id, index)
 
     commitAnnotationChange(this.instance, () => this.updateMarkersTable(), { frame: true })
@@ -576,8 +505,7 @@ export class AnalysisMode extends BaseMode {
     const index = markers.findIndex(m => m.id === markerId)
     if (index !== -1) {
       // Clear selection if removing the selected marker
-      if (this.instance.state.selection.selectedType === 'marker' && 
-          this.instance.state.selection.selectedId === markerId) {
+      if (this.instance.interaction.isFeatureSelected('marker', markerId)) {
         this.instance.interaction.clearSelection()
       }
       
@@ -588,20 +516,6 @@ export class AnalysisMode extends BaseMode {
 
       commitAnnotationChange(this.instance, () => this.updateMarkersTable(), { frame: true })
     }
-  }
-
-  /**
-   * Open the label dialog for a marker (feature 231).
-   *
-   * Does nothing when the marker has gone — a row's controls are rebuilt from
-   * state, but a click can still race a deletion.
-   * @param {string} markerId - ID of the marker to label
-   */
-  editMarkerLabel(markerId) {
-    const marker = this.findMarker(markerId)
-    if (!marker) return
-
-    showMarkerLabelModal(marker.label, (label) => this.setMarkerLabel(markerId, label))
   }
 
   /**

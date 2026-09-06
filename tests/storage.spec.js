@@ -83,7 +83,7 @@ async function addAnalysisMarker(gfp, x, y) {
   const before = (await getStateFromPage(page)).analysis.markers.length
 
   // Ensure we're in analysis mode
-  await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').click()
+  await page.locator('.gram-frame-mode-btn[title="Cross Cursor" i]').click()
   await waitForPageState(page, (s) => s.mode === 'analysis', 'analysis mode')
 
   // Click on the SVG to add a marker
@@ -107,7 +107,7 @@ async function addHarmonicSet(gfp, startX, startY, endX, endY) {
   const page = gfp.page
   const before = (await getStateFromPage(page)).harmonics.harmonicSets.length
 
-  await page.locator('.gram-frame-mode-btn:text("Harmonics")').click()
+  await page.locator('.gram-frame-mode-btn[title="Harmonics" i]').click()
   await waitForPageState(page, (s) => s.mode === 'harmonics', 'harmonics mode')
 
   const svgBox = await gfp.svg.boundingBox()
@@ -186,7 +186,7 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
     const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
 
     // Switch to doppler mode and add markers
-    await gfp.page.locator('.gram-frame-mode-btn:text("Doppler")').click()
+    await gfp.page.locator('.gram-frame-mode-btn[title="Doppler" i]').click()
     await waitForPageState(page, (s) => s.mode === 'doppler', 'doppler mode')
 
     // Place two points for doppler curve
@@ -412,8 +412,10 @@ test.describe('US3: Clear gram button', () => {
     const stateBefore = await getStateFromPage(page)
     expect(stateBefore.analysis.markers.length).toBeGreaterThan(0)
 
-    // The marker should appear as a row in the markers table above the gram
-    const markerRows = page.locator('.gram-frame-table tbody tr')
+    // The marker should appear as a row in the markers table above the gram.
+    // Scoped to that table and to rows carrying a marker id: an empty table now
+    // shows an instructional row of its own, and there are three tables.
+    const markerRows = page.locator('.gram-frame-markers-persistent-container tbody tr[data-marker-id]')
     expect(await markerRows.count()).toBeGreaterThan(0)
 
     // Click clear gram button
@@ -495,7 +497,7 @@ test.describe('US3: Clear gram button', () => {
     const line = infoLines.find((t) => t.includes('is on a trainer page'))
     expect(line, `expected a GramFrame context line among: ${infoLines.join(' | ')}`).toBeTruthy()
     expect(line).toContain('legacy "ANALYSIS" anchor')
-    expect(line).toContain('"Clear gram" button is shown')
+    expect(line).toContain('"Clear all annotations" button is shown')
   })
 
   test('student page stamps data-gf-context="student" and logs that nothing matched', async ({ page }) => {
@@ -510,7 +512,7 @@ test.describe('US3: Clear gram button', () => {
     const line = infoLines.find((t) => t.includes('is on a student page'))
     expect(line, `expected a GramFrame context line among: ${infoLines.join(' | ')}`).toBeTruthy()
     expect(line).toContain('no gf-persistent flag')
-    expect(line).toContain('no "Clear gram" button')
+    expect(line).toContain('there is no clear button')
   })
 
   test('the class flag is named in the context line', async ({ page }) => {
@@ -942,7 +944,7 @@ test.describe('Bug-hunt regressions: restore validation and save hygiene', () =>
   test('a restored doppler curve has its speed recomputed on load', async ({ page }) => {
     const gfp = await gotoFixture(page, '/tests/fixtures/trainer-page.html')
 
-    await page.locator('.gram-frame-mode-btn:text("Doppler")').click()
+    await page.locator('.gram-frame-mode-btn[title="Doppler" i]').click()
     await waitForPageState(page, (s) => s.mode === 'doppler', 'doppler mode')
 
     // Place a real curve with distinct f+/f- frequencies (diagonal drag).

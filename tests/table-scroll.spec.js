@@ -15,8 +15,8 @@ const LANDSCAPE_PAGE = '/sample/pub10-gram1.html'
 /** How many rows to add — comfortably more than any panel can show at once. */
 const MANY_ROWS = 15
 
-const MARKERS_TABLE = '.gram-frame-middle-column .gram-frame-table-container'
-const HARMONICS_TABLE = '.gram-frame-right-column .gram-frame-table-container'
+const MARKERS_TABLE = '.gram-frame-markers-persistent-container .gram-frame-table-container'
+const HARMONICS_TABLE = '.gram-frame-harmonics-persistent-container .gram-frame-table-container'
 
 /**
  * Navigate to the demonstrator page and wait for GramFrame to initialise.
@@ -147,11 +147,17 @@ test.describe('Markers/harmonics tables: fixed height with a scrolling body', ()
     const gfp = await gotoDemo(page)
 
     for (const selector of [MARKERS_TABLE, HARMONICS_TABLE]) {
-      const overflowY = await page.evaluate(
-        (sel) => window.getComputedStyle(document.querySelector(sel)).overflowY,
-        selector
-      )
-      expect(overflowY).toBe('scroll')
+      const { overflowY, gutter } = await page.evaluate((sel) => {
+        const cs = window.getComputedStyle(document.querySelector(sel))
+        return { overflowY: cs.overflowY, gutter: cs.scrollbarGutter }
+      }, selector)
+      // The point has always been that the scrollbar's width is reserved
+      // whether or not there is anything to scroll, so the columns do not all
+      // shift sideways the moment a table gains its eighth row. That used to be
+      // a permanent `overflow-y: scroll` painting a track over an empty table;
+      // `scrollbar-gutter: stable` reserves the same space without one.
+      expect(overflowY).toBe('auto')
+      expect(gutter).toBe('stable')
     }
 
     await fillBothPanels(gfp, MANY_ROWS)

@@ -126,7 +126,8 @@ test.describe('Story 3 — play: the gram scrolls while the audio is heard', () 
     expect(state.player.playhead).toBeCloseTo(DURATION, 1)
     expect(state.player.viewTop).toBeCloseTo(DURATION, 1)
     await expect(page.locator('.gram-frame-transport-play')).toHaveAttribute('aria-pressed', 'false')
-    await expect(page.locator('.gram-frame-transport-time')).toHaveText('00:20 / 00:20')
+    await expect(page.locator('.gram-frame-transport-time')).toHaveText('00:20')
+    await expect(page.locator('.gram-frame-transport-duration')).toHaveText('00:20')
   })
 
   test('AS-3.4: hover readouts stay live during playback', async ({ page }) => {

@@ -65,11 +65,12 @@ function createSidebandDeleteButton(sidebandSet) {
 export function createSidebandPanel(container, instance) {
   const table = createDiffingTable(container, {
     columns: [
-      { label: '', width: '15%' },
-      { label: 'Freq (Hz)', width: '35%', cellClassName: 'gram-frame-sideband-freq' },
-      { label: 'Spacing (Hz)', width: '35%', cellClassName: 'gram-frame-sideband-spacing' },
-      { label: '', width: '15%' }
+      { label: '', width: '14%' },
+      { label: 'Freq', width: '36%', cellClassName: 'gram-frame-sideband-freq gram-frame-cell-numeric' },
+      { label: 'Spacing', width: '36%', cellClassName: 'gram-frame-sideband-spacing gram-frame-cell-numeric' },
+      { label: '', width: '14%', cellClassName: 'gram-frame-cell-action' }
     ],
+    emptyMessage: 'Click to set the sideband origin',
     rowAttribute: 'data-sideband-id',
     rowClassName: 'gram-frame-sideband-row',
     rowKey: (sidebandSet) => sidebandSet.id,
@@ -80,20 +81,10 @@ export function createSidebandPanel(container, instance) {
       createSidebandDeleteButton(sidebandSet)
     ],
     deleteSelector: '.gram-frame-sideband-delete',
-    onSelect: (sidebandSetId, _sidebandSet, index) => {
-      // Toggle selection
-      if (instance.state.selection.selectedType === 'sidebandSet' &&
-          instance.state.selection.selectedId === sidebandSetId) {
-        instance.interaction.clearSelection()
-      } else {
-        instance.interaction.setSelection('sidebandSet', sidebandSetId, index)
-      }
-    },
+    onSelect: (sidebandSetId, _sidebandSet, index) =>
+      instance.interaction.toggleSelection('sidebandSet', sidebandSetId, index),
     onDelete: (sidebandSetId) => instance.interaction.removeSidebandSet(sidebandSetId),
-    isSelected: (sidebandSetId) => (
-      instance.state.selection.selectedType === 'sidebandSet' &&
-      instance.state.selection.selectedId === sidebandSetId
-    )
+    isSelected: (sidebandSetId) => instance.interaction.isFeatureSelected('sidebandSet', sidebandSetId)
   })
 
   const panel = /** @type {HTMLElement} */ (table.element.parentElement)

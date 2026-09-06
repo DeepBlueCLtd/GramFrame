@@ -7,13 +7,13 @@
  * whichever mode the analyst is in. Rather than repeat these lines in each
  * mode's guidance, they are shown once as the "Navigation" section of the
  * initial (Pan) mode's guidance (spec 160, FR-012; spec 170, FR-016). That they
- * apply everywhere rides the section TITLE rather than a bullet of its own —
- * see `PanMode.getGuidanceText` — so the note costs the control row no height.
- * @type {string[]}
+ * apply everywhere rides the section TITLE rather than a line of its own — see
+ * `PanMode.getGuidanceText` — so the note costs the control row no height.
+ * @type {import('./secureHTML.js').GuidanceItem[]}
  */
 export const NAVIGATION_GUIDANCE = [
-  'Shift + drag a box to zoom into that region',
-  'Ctrl + scroll to zoom around the pointer',
-  'Scroll to pan when zoomed in',
-  'Wheel-button drag to pan when zoomed in'
+  { trigger: 'Shift + drag', outcome: 'a box to zoom into that region' },
+  { trigger: 'Ctrl + scroll', outcome: 'to zoom around the pointer' },
+  { trigger: 'Scroll', outcome: 'to pan when zoomed in' },
+  { trigger: 'Wheel-button drag', outcome: 'to pan when zoomed in' }
 ]

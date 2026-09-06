@@ -59,6 +59,7 @@ curl -d "status here" ntfy.sh/iancc2025
 - **Main Class**: `GramFrame` in `src/main.js` - Central component managing all functionality
 - **Entry Point**: `src/index.js` - Main module export and global registration
 - **State Management**: `src/core/state.js` - Centralized state with listener pattern
+- **Control Row**: five columns above the gram — the mode rail, the armed mode's guidance, the cursor readouts, the style panel and the three annotation tables. Assembled by `src/components/MainUI.js`; see [Control-Panel.md](docs/Control-Panel.md)
 - **Mode System**: Modular architecture with five modes — Pan (default), Analysis, Harmonics, Sidebands and Doppler. `analysis` is the code and storage name; the button an analyst sees reads **Cross Cursor** (`modeRoster.js`, and see [Gram-Modes.md](docs/Gram-Modes.md))
 - **Spectrograph Player**: `src/audio/` (decode and analyse a WAV into the gram image) and `src/player/` (the transport and the scrolling view) make an audio-sourced instance; the modes measure it through the unchanged coordinate pipeline (spec 168, ADR-019)
 - **Feature Rendering**: `src/core/FeatureRenderer.js` - Cross-mode feature coordination
@@ -96,10 +97,22 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     gesture pairs a pan with a pause and a resume time. Also owns what a
     *click* (a press that never moved) means, both ways: pause, and — for Pan
     mode only — resume
+  - `bookmarks.js` - Time bookmarks: playback chrome, in-memory, never saved
+    with the gram's annotations
+  - `transportKeys.js` - The transport's keyboard shortcuts (Space/K, J/L, Home,
+    M, B)
   - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow
     loop, the reveal rule, and the time read off a click on the time axis
 - `src/core/` - Core system modules:
   - `state.js` - State management and listeners
+  - `featureStyle.js` - What the style controls act on — the defaults for the
+    next feature, or the selected one — and the four restyle operations. One
+    gate (`getSelectedFeature`) decides, so the tab an analyst can see and what
+    a colour click does cannot disagree
+  - `panelRefresh.js` - "The tables are stale, redraw them", asked from the
+    selection layer, the restyle layer and the control row
+  - `preferences.js` - The two chrome preferences: the pin style (per session)
+    and the guidance collapse (per user)
   - `annotationCommit.js` - `commitAnnotationChange`: the one cadence every annotation
     mutation performs — mark it changed, refresh the panel showing it, re-render the
     overlay, dispatch (R9-13). A leaf over `state.js`; nothing in `state.js` imports back
@@ -135,17 +148,17 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     pulling in every mode class (issue #263)
   - `analysis/AnalysisMode.js` - Analysis mode with marker persistence
   - `harmonics/HarmonicsMode.js` - Harmonics calculation mode (a `PinSetMode`)
-  - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog. Like
-    `MarkerLabelModal`, built with `createElement` and class-scoped selectors —
-    no page-global ids escape into the host document; Escape is bound on the
-    document so it works wherever the focus is; and closing hands focus back to
-    the button that opened it (issue #260)
+  - `harmonics/ManualHarmonicModal.js` - Manual harmonic-spacing dialog. Built
+    with `createElement` and class-scoped selectors — no page-global ids escape
+    into the host document; Escape is bound on the document so it works wherever
+    the focus is; and closing hands focus back to the button that opened it
+    (issue #260). The symbol popup follows the same three rules
   - `sideband/SidebandMode.js` - Sidebands mode: a pin set whose origin the
     analyst places (a `PinSetMode`)
   - `doppler/DopplerMode.js` - Doppler speed calculation mode
   - `pan/PanMode.js` - Pan mode (the default mode)
   - `capabilities.js` - Duck-typed mode capabilities (`PersistentFeatureProvider`,
-    `PanelOwner`, `PinSetOwner`) and their predicates. How `FeatureRenderer` and `MainUI` find
+    `PanelOwner`, `PinSetOwner`, `MarkerOwner`) and their predicates. How `FeatureRenderer` and `MainUI` find
     what a mode can do without naming it (ADR-017)
   - `shared/BaseDragHandler.js` - The shared drag engine: every pointer drag (move, create, place, pan) and the single `state.drag` projection
   - `shared/PinSetMode.js` - The shared pin-set mode: pin geometry, the
@@ -153,25 +166,40 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     add/update/remove for Harmonics and Sidebands. A subclass supplies only
     where its sets live and what frequency a member index maps to
 - `src/components/` - UI component modules:
-  - `UIComponents.js` - LED displays, colour picker and layout helpers
-  - `MainUI.js` - Unified layout and persistent panels
-  - `ModeButtons.js` - Mode switching interface. A group is the mode button
-    followed by that mode's commands
-  - `icons.js` - The button glyphs (the pan hand, the fit frame), drawn as
-    inline SVG in `currentColor` so they follow the button's states as text
-    does, and always paired with a visually hidden word
+  - `UIComponents.js` - What is left of the shared UI helpers: the LED re-export
+  - `MainUI.js` - The control row's five columns, assembled from the modules below
+  - `ModeButtons.js` - The mode rail: five stacked tools, then the view controls
+    (zoom out, zoom in, fit) in a footer beneath them
+  - `GuidancePanel.js` - The armed mode's guidance column, and the 40px rail it
+    collapses to. Collapse is remembered per user; with no stored choice the
+    column decides by the panel's own width
+  - `CursorReadout.js` - The instrument face: time, frequency and doppler speed.
+    Reads the pointer, or the selected feature when there is one
+  - `AnnotationTables.js` - The three table columns, their headers, count chips
+    and the "Clear all annotations" footer
+  - `icons.js` - The button glyphs, drawn as inline SVG in `currentColor` so
+    they follow the button's states as text does. A mode's glyph rides beside
+    its word; a view control's replaces it, keeping the word in a visually
+    hidden span
   - `HarmonicPanel.js` - Harmonics display panel
   - `SidebandPanel.js` - Sidebands display panel (its own column beside the
     harmonics panel; both are always visible)
-  - `DiffingTable.js` - Shared row-diffing table behind the markers table and harmonics panel
-  - `ColorPicker.js` - Colour selection component
-  - `SymbolPicker.js` - Symbol selection component
-  - `MarkerLabelModal.js` - Add/edit/remove a marker's label
-  - `PinToggle.js` - Harmonic-pin visibility toggle
+  - `DiffingTable.js` - Shared row-diffing table behind all three tables
+  - `tableScroll.js` - Keeping a newly added or newly selected row in view
+  - `StylePanel.js` - The style panel and its twin target tabs
+  - `styleTarget.js` - What the panel is pointed at, and the four things it can
+    do to it (arm, rename, delete, describe)
+  - `ColorPicker.js` - The colour slider: the one colour control in the panel
+  - `SymbolPicker.js` - The symbol button and its popup, plus the size trial
+  - `Segmented.js` - The shared two-option segmented control
+  - `PinToggle.js` - Tall pins or mini, for the next created pin set or the
+    selected one
   - `ExpandToggle.js` - Expand/collapse the image to fill the space
   - `StorageWarning.js` - Non-blocking banner when a save fails
   - `TransportBar.js` - The playback controls under an audio-sourced gram, the
-    visible time span, and the polite live region a screen reader hears
+    scrub track, the visible time span, and the polite live region a screen
+    reader hears
+  - `TransportBookmarks.js` - The bookmark flags on that track and the saved list
   - `DisplayRangeControls.js` - The contrast floor and ceiling, on that bar
   - `ErrorIndicator.js` - The standard initialisation-error box, shared by the API and the audio setup
   - `LEDDisplay.js` - Digital display component
@@ -413,12 +441,23 @@ There is no visual/screenshot regression testing — see
   drag, which is cancelled off-image, because selecting to the very edge is a
   normal thing to want. The **fit** button beside `+`/`−` is the way back out
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
-- **The control row**: each mode's group is `[mode button] [its commands]`, and
-  Pan's is the only group with commands — zoom out, zoom in, fit — so it is the
-  only row where four controls share the column. Pan and fit therefore show
-  glyphs rather than words (`components/icons.js`), each keeping its word in a
-  visually hidden span so the accessible name, and every test selector, is
-  still "Pan" and "Fit" (issue #310)
+- **The control row**: five columns — the mode rail, the armed mode's guidance,
+  the cursor readouts, the style panel and the three annotation tables —
+  separated by hairlines rather than boxed, so the readouts are the first read.
+  The mode rail stacks the five tools with a glyph beside each word, and puts
+  the view controls (zoom out, zoom in, fit) in a footer beneath them, where
+  they stay whichever mode is armed: they act on the view, not on the tool. Fit
+  shows a glyph in place of its word, keeping the word in a visually hidden span
+  so the accessible name, and every test selector, is still "Fit" (issue #310).
+  See [Control-Panel.md](docs/Control-Panel.md)
+- **The style panel's twin tabs**: "New features" or "Selected: <name>" — the
+  panel states what it is about to change, and the analyst can arm either
+  without giving up their selection (`state.styleTarget`). One gate,
+  `getSelectedFeature` in `core/featureStyle.js`, decides what a colour click
+  actually does, so the tab and the behaviour cannot disagree
+- **Marker labels** are edited in the style panel, in a field beside the same
+  marker's colour and symbol. The per-row dialog is gone; clearing the field
+  removes the label
 - **Analysis Mode**: Persistent draggable markers whose grab region follows exactly
   what is drawn — a symbol marker has no crosshair arms to grab (issue #273) — with
   cross-mode visibility and optional
@@ -448,6 +487,7 @@ There is no visual/screenshot regression testing — see
 - Unchanged — Web Storage (`localStorage` trainer / `sessionStorage` student). No persisted-shape change in this phase. (167-structural-refactor)
 
 ## Recent Changes
+- 172-control-panel: The upper control panel rebuilt to the design handoff — five hairline-separated columns, a mode rail with the view controls in its foot, a permanent collapsible guidance column, instrument-styled readouts, a twin-tab style panel that states its target, inverted selected rows, and a transport bar with time bookmarks
 - 171-player-refinements: The whole gram from load (the reveal rule withdrawn), contrast controls, drag-to-seek and zoom while playing, a 0.25–4 rate ladder with explicit pitch, oversize recordings degraded rather than refused, and a polite transport live region
 - 170-region-zoom: Shift-drag a box to zoom into it, in every mode, plus a Fit button and a live aspect-locked selection overlay
 - 167-structural-refactor: Planned Phase 3 — strict type gate burn-down (540 errors), state⇄modes decoupling, table.js split, capability seams, shrunk instance surface

@@ -60,7 +60,6 @@ const KEY_PREFIX = 'gramframe::'
  * rest of that session.
  * @type {string}
  */
-const PIN_PREF_KEY = `${KEY_PREFIX}pref::harmonicPin`
 
 /**
  * CSS selector matching the explicit trainer-persistence flag. Accepts the
@@ -229,42 +228,6 @@ export function buildStorageKey(instanceIndex) {
     return `${KEY_PREFIX}${pathname}::${instanceIndex}`
   }
   return `${KEY_PREFIX}${pathname}`
-}
-
-/**
- * Read the harmonic-pin visibility preference for this browser session.
- *
- * Defaults to `true` (pins shown) whenever nothing has been stored yet, storage
- * is unavailable, or the stored value is not one of the two recognised strings —
- * so a fresh session always starts with pins visible.
- * @returns {boolean} True when new/edited harmonic sets should show their pin
- */
-export function loadPinPreference() {
-  try {
-    const raw = sessionStorage.getItem(PIN_PREF_KEY)
-    if (raw === 'false') return false
-    return true
-  } catch (error) {
-    console.warn('GramFrame: Could not read the harmonic-pin preference — using the default:', error)
-    return true
-  }
-}
-
-/**
- * Store the harmonic-pin visibility preference for the rest of this browser
- * session. A failure (private mode, quota) is reported to the caller and
- * logged; the in-memory state still holds for the current page.
- * @param {boolean} showPin - Whether pins should be shown
- * @returns {boolean} True if the preference was written
- */
-export function savePinPreference(showPin) {
-  try {
-    sessionStorage.setItem(PIN_PREF_KEY, showPin ? 'true' : 'false')
-    return true
-  } catch (error) {
-    console.warn('GramFrame: Could not save the harmonic-pin preference:', error)
-    return false
-  }
 }
 
 /**

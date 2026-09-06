@@ -183,34 +183,30 @@ export class PanMode extends BaseMode {
    * Get guidance content for pan mode.
    *
    * Pan is the initial mode, so its guidance carries the global navigation
-   * gestures (which apply in every mode) as their own titled section, plus a
-   * section for the pan-specific interactions.
-   *
-   * "available in all modes" is a heading qualifier, not a bullet: it qualifies
-   * the whole section rather than standing beside the individual instructions,
-   * and folding it into the heading buys back a line of the control row's
-   * height.
+   * gestures (which apply in every mode) as a second titled section beneath its
+   * own. Pan's own lines come first because the guidance column's header names
+   * the armed mode, and the rows directly under that header should be the ones
+   * answering it.
    * @returns {Object} Structured guidance content (multi-section)
    */
   getGuidanceText() {
     return {
       sections: [
         {
-          title: 'Navigation',
-          qualifier: 'available in all modes',
-          items: NAVIGATION_GUIDANCE
-        },
-        {
-          title: 'Pan Mode',
           items: [
-            'Click and drag to pan the view (when zoomed in)',
-            'On an audio gram, click to pause or resume playback',
+            { trigger: 'Drag', outcome: 'to pan the view when zoomed in' },
+            { trigger: 'Click', outcome: 'on an audio gram, to pause or resume playback' },
             // Named by shape, not by the glyph itself: a character in the
             // guidance would depend on the reader's font, which is the reason
             // the button draws its own (issue #310).
-            'Use + / − to zoom, and the corner-frame button to fit the whole gram',
+            { trigger: '+ / \u2212', outcome: 'to zoom in and out' },
+            { trigger: 'Fit', outcome: 'to bring the whole gram back in one click' },
             `GramFrame v${getVersion()}`
           ]
+        },
+        {
+          title: 'In every mode',
+          items: NAVIGATION_GUIDANCE
         }
       ]
     }

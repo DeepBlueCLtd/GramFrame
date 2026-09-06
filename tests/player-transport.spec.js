@@ -30,7 +30,10 @@ test.describe('Story 5 — full transport', () => {
     await page.locator('.gram-frame-transport-seek').fill('12')
     await gfp.waitForState(s => s.player.playhead === 12 && s.player.viewTop === 12, { message: 'seek to 12 s' })
     expect((await readAudio(page)).paused).toBe(true)
-    await expect(page.locator('.gram-frame-transport-time')).toHaveText('00:12 / 00:20')
+    // Elapsed and total sit either side of the scrub track, so they are two
+    // readouts rather than one "12 / 20" string.
+    await expect(page.locator('.gram-frame-transport-time')).toHaveText('00:12')
+    await expect(page.locator('.gram-frame-transport-duration')).toHaveText('00:20')
 
     // Loop, playback rate, mute, volume
     await page.locator('.gram-frame-transport-loop').click()

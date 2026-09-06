@@ -36,7 +36,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
         
         // Verify active button styling
         /** @type {import('@playwright/test').Locator} */
-        const activeButton = gramFramePage.page.locator(`.gram-frame-mode-btn:text("${mode}")`)
+        const activeButton = gramFramePage.page.locator(`.gram-frame-mode-btn[title="${mode}" i]`)
         /** @type {boolean} */
         const isActive = await activeButton.evaluate(btn => btn.classList.contains('active') || btn.getAttribute('aria-pressed') === 'true')
         expect(isActive).toBe(true)
@@ -45,7 +45,7 @@ test.describe('Cross-Mode Integration - Comprehensive E2E Tests', () => {
         for (const otherMode of modes) {
           if (otherMode !== mode) {
             /** @type {import('@playwright/test').Locator} */
-            const otherButton = gramFramePage.page.locator(`.gram-frame-mode-btn:text("${otherMode}")`)
+            const otherButton = gramFramePage.page.locator(`.gram-frame-mode-btn[title="${otherMode}" i]`)
             /** @type {boolean} */
             const isOtherActive = await otherButton.evaluate(btn => btn.classList.contains('active') || btn.getAttribute('aria-pressed') === 'true')
             expect(isOtherActive).toBe(false)

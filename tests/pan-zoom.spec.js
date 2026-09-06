@@ -144,21 +144,25 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
   test.describe('US4 — Guidance', () => {
     const guidance = () => gfp.page.locator('.gram-frame-guidance')
 
-    test('Pan mode (the initial mode) shows Navigation and Pan Mode sections', async () => {
-      // Default mode is Pan, so its guidance is shown on load.
+    test('Pan mode (the initial mode) carries the cross-mode gestures too', async () => {
+      // Default mode is Pan, so its guidance is shown on load. Its own lines
+      // come first — the column's header names the armed mode — and the
+      // gestures that work everywhere follow under their own heading.
+      await gfp.showGuidance()
       const text = await guidance().textContent()
-      expect(text).toContain('Navigation')
-      expect(text).toContain('Pan Mode')
+      expect(text).toContain('In every mode')
       expect(text).toContain('Ctrl')
-      expect(text?.toLowerCase()).toContain('available in all modes')
-      expect(text?.toLowerCase()).toContain('scroll to pan')
+      expect(text?.toLowerCase()).toContain('to pan when zoomed in')
       expect(text?.toLowerCase()).toContain('wheel-button drag')
+      // The header names Pan; the body no longer repeats it.
+      await expect(gfp.page.locator('.gram-frame-guidance-title')).toHaveText('Pan')
     })
 
     test('other modes do not repeat the wheel guidance', async () => {
+      await gfp.showGuidance()
       await gfp.clickMode('Cross Cursor')
       const text = await guidance().textContent()
-      expect(text).not.toContain('Navigation')
+      expect(text).not.toContain('In every mode')
       expect(text?.toLowerCase()).not.toContain('wheel-button drag')
     })
   })

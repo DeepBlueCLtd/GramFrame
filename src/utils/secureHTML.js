@@ -7,11 +7,24 @@
  */
 
 /**
- * A single titled block of guidance bullet points.
+ * One line of guidance, split into the gesture that starts it and what that
+ * gesture does.
+ *
+ * The split is what lets an analyst scan the column: every trigger sits in the
+ * same narrow left-hand track, so the four gestures of a mode compare down the
+ * page instead of having to be read out of four sentences.
+ * @typedef {Object} GuidanceItem
+ * @property {string} trigger - The gesture ("Click", "Right-click", "Row + ← →")
+ * @property {string} outcome - What it does ("to add a persistent cross")
+ */
+
+/**
+ * A single titled block of guidance lines.
  * @typedef {Object} GuidanceSection
  * @property {string} [title] - The section heading text
  * @property {string} [qualifier] - Aside appended to the heading, in parentheses
- * @property {string[]} [items] - Array of guidance items (rendered as bullet points)
+ * @property {Array<GuidanceItem|string>} [items] - The lines. A plain string is
+ *   rendered as one full-width line with no trigger track.
  */
 
 /**
@@ -20,9 +33,43 @@
  * alongside the pan-specific help).
  * @typedef {Object} GuidanceContent
  * @property {string} [title] - The main heading text (single-section form)
- * @property {string[]} [items] - Guidance items (single-section form)
+ * @property {Array<GuidanceItem|string>} [items] - Guidance lines (single-section form)
  * @property {GuidanceSection[]} [sections] - Multiple titled sections (multi-section form)
  */
+
+/**
+ * Build one guidance row.
+ *
+ * `textContent` throughout — the trigger and the outcome are authored strings,
+ * but this module's whole reason for existing is that guidance never reaches
+ * the DOM as markup.
+ * @param {GuidanceItem|string} item - The line
+ * @returns {HTMLDivElement} The row
+ */
+function buildGuidanceRow(item) {
+  const row = document.createElement('div')
+  row.className = 'gram-frame-guidance-row'
+
+  if (typeof item === 'string') {
+    const note = document.createElement('div')
+    note.className = 'gram-frame-guidance-note'
+    note.textContent = item
+    row.appendChild(note)
+    return row
+  }
+
+  const trigger = document.createElement('div')
+  trigger.className = 'gram-frame-guidance-trigger'
+  trigger.textContent = item.trigger
+
+  const outcome = document.createElement('div')
+  outcome.className = 'gram-frame-guidance-outcome'
+  outcome.textContent = item.outcome
+
+  row.appendChild(trigger)
+  row.appendChild(outcome)
+  return row
+}
 
 /**
  * Securely render guidance content to a DOM element
@@ -61,13 +108,12 @@ function renderSecureGuidance(container, content) {
       container.appendChild(title)
     }
 
-    // Create and append guidance items as paragraphs with bullet points
+    // Each line is a two-column row: the trigger in its own fixed track, the
+    // outcome beside it. A line given as a plain string has no trigger to lift
+    // out, so it spans both tracks.
     if (section.items && Array.isArray(section.items)) {
       section.items.forEach(item => {
-        const paragraph = document.createElement('p')
-        // Use textContent to prevent XSS - bullet point is safe literal
-        paragraph.textContent = `• ${item}`
-        container.appendChild(paragraph)
+        container.appendChild(buildGuidanceRow(item))
       })
     }
   })
