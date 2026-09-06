@@ -24,8 +24,8 @@
     "src/rendering/axes.js": 403,
     "src/types.js": 802
   },
-  "_comment_uncoveredUnitLines": "R9-11 (issue #266). Lines in the unit lane's scope - the module list in vitest.config.js - that no unit test executes. A count, so it falls like every other ratchet here, rather than a percentage that would need an inverted comparison and could rise while the untested code grew. Regenerate with `yarn coverage`; `yarn hygiene` skips the check when no summary is present.",
-  "uncoveredUnitLines": 411,
+  "_comment_uncoveredUnitLines": "R9-11 (issue #266). Lines in the unit lane's scope - the module list in vitest.config.js - that no unit test executes. A count, so it falls like every other ratchet here, rather than a percentage that would need an inverted comparison and could rise while the untested code grew. Regenerate with `yarn coverage`; `yarn hygiene` skips the check when no summary is present. Fell 411 -> 409 with the control-row redesign: the guidance column's content rules moved out of the DOM-building utils/secureHTML.js (which the unit lane cannot load at all) into the pure utils/guidanceContent.js, where tests/unit/guidance-content.test.js covers them.",
+  "uncoveredUnitLines": 409,
   "circularDependencies": 0,
   "unusedExportModules": 4,
   "_comment_specTypeErrors": "R9-10. `yarn typecheck` (tsconfig.json) covers src/, tests/helpers, tests/unit and scripts/ and must stay at zero. The Playwright spec files carry the rest -- mostly unguarded nulls from `boundingBox()` and `querySelector` inside `page.evaluate` -- and are counted here through tsconfig.specs.json so the debt is visible and falling rather than invisible. At zero, fold tests/**/*.js into tsconfig.json and delete tsconfig.specs.json. Fell 509 -> 503 with the control-row redesign: the marker-label dialog and the six unguarded locators its specs used are gone.",

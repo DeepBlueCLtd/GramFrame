@@ -9,7 +9,7 @@
  * initial (Pan) mode's guidance (spec 160, FR-012; spec 170, FR-016). That they
  * apply everywhere rides the section TITLE rather than a line of its own — see
  * `PanMode.getGuidanceText` — so the note costs the control row no height.
- * @type {import('./secureHTML.js').GuidanceItem[]}
+ * @type {import('./guidanceContent.js').GuidanceItem[]}
  */
 export const NAVIGATION_GUIDANCE = [
   { trigger: 'Shift + drag', outcome: 'a box to zoom into that region' },

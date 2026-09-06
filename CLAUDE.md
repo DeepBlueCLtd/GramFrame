@@ -247,8 +247,12 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     gram under the hotspot stay visible; panning keeps the hand
   - `labelPlate.js` - The white rounded plate every in-gram text label is drawn
     on, and the geometry the placement rules leave room for it with (issue #243)
-  - `secureHTML.js` - Guidance-panel rendering without innerHTML
+  - `secureHTML.js` - Guidance-panel rendering without innerHTML. Builds DOM and
+    nothing else; the deciding is `guidanceContent.js`'s
   - `timeFormatter.js` - Time formatting utilities
+  - `guidanceContent.js` - What a mode's guidance says, as data: which sections
+    it has and whether each line carries a trigger. Pure, so the unit lane
+    covers the branches `secureHTML.js` cannot be loaded to exercise
   - `navigationGuidance.js` - The cross-mode navigation guidance text (wheel
     zoom and pan, the wheel-button drag, Shift + drag region zoom)
   - `version.js` - Version constant (injected at build time)
