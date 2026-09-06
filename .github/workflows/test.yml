@@ -25,7 +25,13 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Hygiene ratchet (cycles, unused exports, waitForTimeout)
+      # Before the hygiene ratchet, which reads the coverage summary this
+      # writes: run the other way round and the uncovered-lines check finds no
+      # summary and skips itself, so the ratchet never bites in CI (issue #266).
+      - name: Unit tests with coverage
+        run: yarn coverage
+
+      - name: Hygiene ratchet (cycles, unused exports, waitForTimeout, coverage)
         run: yarn hygiene
 
       - name: Lint
@@ -33,9 +39,6 @@ jobs:
 
       - name: Type check
         run: yarn typecheck
-
-      - name: Unit tests
-        run: yarn test:unit
 
       - name: Build
         run: yarn build
