@@ -123,6 +123,23 @@ test.describe('Control row', () => {
       .toHaveText('to generate harmonic lines')
   })
 
+  test('every mode carries the cross-mode gestures, not just Pan', async ({ page }) => {
+    const reveal = page.locator('.gram-frame-guidance-reveal')
+    if (await reveal.isVisible()) {
+      await reveal.click()
+    }
+
+    // They are resolved ahead of mode delegation, so they have always worked
+    // everywhere — but they were listed under Pan alone, and an analyst who
+    // armed Cross Cursor first never learnt that Shift + drag zooms.
+    const shared = page.locator('.gram-frame-guidance h4', { hasText: 'In every mode' })
+    for (const mode of ['Pan', 'Cross Cursor', 'Harmonics', 'Sidebands', 'Doppler']) {
+      await gfp.clickMode(mode)
+      await expect(shared).toHaveCount(1)
+      await expect(page.locator('.gram-frame-guidance-row', { hasText: 'Shift + drag' })).toHaveCount(1)
+    }
+  })
+
   test('Hide collapses the guidance column to its rail, and the reveal restores it', async ({ page }) => {
     const reveal = page.locator('.gram-frame-guidance-reveal')
     if (await reveal.isVisible()) {

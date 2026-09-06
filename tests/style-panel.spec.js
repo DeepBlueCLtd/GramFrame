@@ -187,7 +187,7 @@ test.describe('The annotation tables', () => {
       const cs = getComputedStyle(el)
       return { background: cs.backgroundColor, color: cs.color }
     })
-    expect(style.background).toBe('rgb(233, 233, 237)')
-    expect(style.color).toBe('rgb(22, 24, 38)')
+    expect(style.background).toBe('rgb(247, 247, 250)')
+    expect(style.color).toBe('rgb(13, 14, 24)')
   })
 })

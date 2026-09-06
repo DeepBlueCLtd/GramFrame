@@ -15,6 +15,7 @@
 
 import { getModeDisplayName } from '../modes/modeRoster.js'
 import { updateGuidancePanel } from '../utils/secureHTML.js'
+import { withNavigationGuidance } from '../utils/guidanceContent.js'
 import { loadGuidancePreference, saveGuidancePreference } from '../core/preferences.js'
 import { dispatch } from '../core/state.js'
 
@@ -168,6 +169,7 @@ export function showGuidanceForMode(instance, mode) {
     guidanceTitle.textContent = getModeDisplayName(instance.state.mode)
   }
   if (guidancePanel) {
-    updateGuidancePanel(guidancePanel, mode.getGuidanceText())
+    // Every mode's own lines, then the gestures that work in all of them.
+    updateGuidancePanel(guidancePanel, withNavigationGuidance(mode.getGuidanceText()))
   }
 }

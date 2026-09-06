@@ -158,12 +158,19 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
       await expect(gfp.page.locator('.gram-frame-guidance-title')).toHaveText('Pan')
     })
 
-    test('other modes do not repeat the wheel guidance', async () => {
+    test('other modes carry the wheel guidance too', async () => {
+      // They used to be Pan's alone, because Pan is the initial mode and the
+      // old panel had room for them nowhere else — so an analyst who armed
+      // Cross Cursor first never learnt them. The redesigned column has the
+      // height, and they work in every mode, so every mode says so.
       await gfp.showGuidance()
       await gfp.clickMode('Cross Cursor')
       const text = await guidance().textContent()
-      expect(text).not.toContain('In every mode')
-      expect(text?.toLowerCase()).not.toContain('wheel-button drag')
+      expect(text).toContain('In every mode')
+      expect(text?.toLowerCase()).toContain('wheel-button drag')
+      // Under the mode's own lines, not instead of them.
+      await expect(gfp.page.locator('.gram-frame-guidance-title')).toHaveText('Cross Cursor')
+      expect(text?.toLowerCase()).toContain('to add a persistent cross')
     })
   })
 

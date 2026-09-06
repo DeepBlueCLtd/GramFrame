@@ -4,11 +4,14 @@
  *
  * Wheel zoom/pan, the wheel-button drag and Shift + drag region zoom are all
  * resolved centrally, ahead of mode delegation, so they behave the same
- * whichever mode the analyst is in. Rather than repeat these lines in each
- * mode's guidance, they are shown once as the "Navigation" section of the
- * initial (Pan) mode's guidance (spec 160, FR-012; spec 170, FR-016). That they
- * apply everywhere rides the section TITLE rather than a line of its own — see
- * `PanMode.getGuidanceText` — so the note costs the control row no height.
+ * whichever mode the analyst is in — so they are shown in every mode's guidance
+ * (spec 160, FR-012; spec 170, FR-016), appended beneath the mode's own lines by
+ * `withNavigationGuidance` in `utils/guidanceContent.js`. They used to appear
+ * only under Pan, the initial mode, because the old control row had height for
+ * them nowhere else; an analyst who armed Cross Cursor first never met them.
+ *
+ * That they apply everywhere rides the section TITLE rather than a line of its
+ * own, so the note costs the column no row.
  * @type {import('./guidanceContent.js').GuidanceItem[]}
  */
 export const NAVIGATION_GUIDANCE = [

@@ -17,7 +17,7 @@
 
 import { createLEDDisplay, setLEDValue } from './LEDDisplay.js'
 import { formatTime } from '../utils/timeFormatter.js'
-import { normalizeMarkerLabel } from '../utils/markerLabel.js'
+import { describeSelection } from '../core/selectionTarget.js'
 
 /**
  * The readout column's elements, for the layout that mounts them.
@@ -114,41 +114,4 @@ export function refreshReadoutTarget(instance) {
   if (freqLED) {
     setLEDValue(freqLED, selected.freq.toFixed(2))
   }
-}
-
-/**
- * What the selected feature is called, and the two numbers standing for it.
- *
- * A marker has a time and a frequency outright. A pin set has an anchor time
- * and, for its frequency, the number that set is *about*: the fundamental an
- * analyst placed for a sideband set, the spacing that defines a harmonic one.
- * @param {GramFrame} instance - GramFrame instance
- * @returns {{label: string, time: number, freq: number}|null} The selection, or null
- */
-function describeSelection(instance) {
-  const { selection, analysis, harmonics, sidebands } = instance.state
-  if (!selection || !selection.selectedType || !selection.selectedId) {
-    return null
-  }
-  const ordinal = (selection.selectedIndex ?? 0) + 1
-
-  if (selection.selectedType === 'marker') {
-    const marker = (analysis ? analysis.markers : []).find(candidate => candidate.id === selection.selectedId)
-    if (!marker) {
-      return null
-    }
-    return {
-      label: normalizeMarkerLabel(marker.label) || `Marker ${ordinal}`,
-      time: marker.time,
-      freq: marker.freq
-    }
-  }
-
-  if (selection.selectedType === 'harmonicSet') {
-    const set = (harmonics ? harmonics.harmonicSets : []).find(candidate => candidate.id === selection.selectedId)
-    return set ? { label: `Harmonics ${ordinal}`, time: set.anchorTime, freq: set.spacing } : null
-  }
-
-  const set = (sidebands ? sidebands.sidebandSets : []).find(candidate => candidate.id === selection.selectedId)
-  return set ? { label: `Sidebands ${ordinal}`, time: set.anchorTime, freq: set.fundamentalFreq } : null
 }

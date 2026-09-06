@@ -66,6 +66,15 @@ is `{trigger, outcome}` objects returned from each mode's `getGuidanceText()`
 and rendered by `utils/secureHTML.js`, which remains the only path guidance
 takes to the DOM.
 
+Beneath a mode's own lines, every mode carries an **In every mode** section:
+the wheel zoom and pan, the wheel-button drag, and Shift + drag region zoom.
+They are resolved centrally, ahead of mode delegation, so they have always
+worked everywhere — but they were listed in Pan's guidance alone, because Pan
+is the initial mode and the old panel had room for them nowhere else. An
+analyst who armed Cross Cursor first therefore never learnt that Shift + drag
+zooms. `utils/guidanceContent.js`'s `withNavigationGuidance` appends the
+section, so no mode has to remember to.
+
 Collapse has three states, not two:
 
 - **collapsed** — the analyst pressed Hide.
@@ -92,6 +101,19 @@ The column has two targets, named by its kicker:
 
 `updateUniversalCursorReadouts` stands aside while something is selected, which
 is what stops the two targets fighting over the same two numbers.
+
+What is selected — its name, its time, its frequency — is answered once, by
+`core/selectionTarget.js`, because the readout is not the only thing that asks:
+on a player, selecting a feature also **scrolls the view to it**. A recording is
+one tall gram read through a window a few tens of seconds high, so a feature
+placed ten minutes in is usually not on screen at all, and selecting its row
+used to light up a row and write two readouts for something the analyst could
+not see. `player/playerView.js`'s `revealTime` moves the view only when the time
+is off screen — scrolling a visible feature into the middle would move the gram
+under the eye on every row click — and only while paused, since the follow loop
+owns the view during playback and would undo it on the next frame. It moves the
+view, never the playhead: pressing play afterwards resumes from where the audio
+actually is. Dragging the gram is the gesture that means "play from here".
 
 There is no intensity or colourmap legend. One was drawn and removed: without
 calibrated units it tells the operator nothing they cannot see.
@@ -174,15 +196,17 @@ annotation store.
 Declared once on `.gram-frame-container` in `src/gramframe.css` and used through
 the variables, so a change lands everywhere at once.
 
-- Ground `--gf-bg` #161826 · Surface `--gf-surface` #232532 · Text `--gf-text`
-  #e9e9ed
+- Ground `--gf-bg` #0d0e18 · Surface `--gf-surface` #171926 · Text `--gf-text`
+  #f7f7fa. The first palette was a shade lighter in the ground and a shade
+  darker in the ink; body text on the surface now reads at ~16:1 rather than
+  ~13:1, which is what a panel read beside a bright gram in a lit room needs
 - Accent `--gf-accent` #9184d9 with a ramp: `-900` for tinted fills,
   `-800`/`-700`/`-600` for borders, `-400` for hover, `-200`/`-100` for text on
   those tints
-- Muted ink is one value, `rgba(233,233,237,.62)` (~5.4:1 on the surface).
+- Muted ink is one value, `rgba(247,247,250,.70)` (~8.5:1 on the surface).
   Alphas below .60 do not reach 4.5:1 on this ground and are not used for text
-- Non-text tier (borders, hover tints, hairlines): `rgba(233,233,237,.05)`–`.18`,
-  and `rgba(0,0,0,.16)`–`.28` for recesses
+- Non-text tier (borders, hover tints, hairlines): `rgba(247,247,250,.05)`–`.18`,
+  and `rgba(0,0,0,.22)`–`.36` for recesses
 - Danger is a hover-only affordance: border `#8d5a5a`, text `#e2b3b3`. Nothing
   in the panel is red at rest
 - Keyboard focus is one treatment everywhere: `outline: 2px solid var(--gf-accent)`

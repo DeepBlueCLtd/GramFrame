@@ -123,7 +123,15 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     read-merge-write, so two tabs on one gram are additive rather than
     last-writer-wins; deletions travel as tombstones, because a union cannot
     otherwise tell "never had it" from "deleted it" (issue #269)
-  - `keyboardControl.js` - Arrow-key control, selection and restyling
+  - `keyboardControl.js` - Arrow-key control and restyling
+  - `selection.js` - Which feature is selected: setting it, clearing it, and the
+    five things that follow (the tables re-diff, the readout retargets, the
+    style panel re-arms, and on a player the view scrolls to it). Split from
+    `keyboardControl.js`, which is about arrow keys — selection is what they act
+    *on*, not part of how they work
+  - `selectionTarget.js` - What is selected, described: its name, its time, the
+    frequency it is about. A leaf, so the readout column and the player can both
+    ask without a cycle back through `selection.js`
   - `wheelPan.js` - The middle-button pan, as a drag on the shared engine. Split
     from `events.js`, which owns *which* gesture happens rather than how each
     one behaves

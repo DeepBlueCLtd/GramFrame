@@ -2,16 +2,18 @@
  * What a mode's guidance actually says, as data.
  *
  * A mode returns its guidance in one of two shapes — a single title with lines,
- * or several titled sections (Pan, which carries the cross-mode gestures under
- * a second heading) — and each line is either a trigger/outcome pair or a plain
- * note with no trigger to lift out. Four shapes to render, from two optional
- * fields and a union.
+ * or several titled sections — and each line is either a trigger/outcome pair
+ * or a plain note with no trigger to lift out. Four shapes to render, from two
+ * optional fields and a union. This module also appends the gestures that work
+ * in every mode, so no mode has to remember to.
  *
  * Deciding which is which is arithmetic over plain objects, so it lives here
  * where it can be tested, and `utils/secureHTML.js` is left with one loop over
  * a settled list. That module builds DOM and cannot be exercised by the unit
  * lane at all; every branch moved out of it is a branch that gets checked.
  */
+
+import { NAVIGATION_GUIDANCE } from './navigationGuidance.js'
 
 /**
  * One line of guidance, split into the gesture that starts it and what that
@@ -58,6 +60,36 @@
  * @property {string} qualifier - Aside for the heading, or ''
  * @property {ResolvedGuidanceLine[]} lines - The section's lines
  */
+
+/**
+ * Append the cross-mode gestures to a mode's own guidance.
+ *
+ * They apply in every mode — wheel zoom and pan, the wheel-button drag, Shift +
+ * drag region zoom are all resolved centrally, ahead of mode delegation — and
+ * they used to be shown in Pan's guidance alone, because Pan is the initial
+ * mode and the old panel had room for them nowhere else. An analyst who armed
+ * Cross Cursor first therefore never learnt that Shift + drag zooms. The
+ * redesigned column has the height, so every mode carries them.
+ *
+ * Beneath the mode's own lines, under their own heading: the column's header
+ * names the armed mode, so the rows directly under it should be the ones
+ * answering it.
+ * @param {GuidanceContent|null|undefined} content - The mode's own guidance
+ * @returns {GuidanceContent} That guidance, with the shared section appended
+ */
+export function withNavigationGuidance(content) {
+  const own = resolveGuidance(content).map(section => ({
+    title: section.title,
+    qualifier: section.qualifier,
+    items: section.lines.map(line => (
+      line.trigger === '' ? line.outcome : { trigger: line.trigger, outcome: line.outcome }
+    ))
+  }))
+
+  return {
+    sections: [...own, { title: 'In every mode', items: NAVIGATION_GUIDANCE }]
+  }
+}
 
 /**
  * Resolve a mode's guidance into a flat list of sections and lines.

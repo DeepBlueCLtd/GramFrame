@@ -3,7 +3,6 @@ import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getVersion } from '../../utils/version.js'
 import { pixelDeltaToNormalizedPan, panByNormalized, zoomIn, zoomOut, fitView, isZoomedIn, zoomLevel } from '../../core/viewport.js'
 import { IDLE_CURSOR, PAN_IDLE_CURSOR, PAN_DRAG_CURSOR } from '../../utils/cursors.js'
-import { NAVIGATION_GUIDANCE } from '../../utils/navigationGuidance.js'
 import { isPlayerActive } from '../../player/playerView.js'
 import { resumeFromClick } from '../../player/dragSeek.js'
 
@@ -200,12 +199,12 @@ export class PanMode extends BaseMode {
   /**
    * Get guidance content for pan mode.
    *
-   * Pan is the initial mode, so its guidance carries the global navigation
-   * gestures (which apply in every mode) as a second titled section beneath its
-   * own. Pan's own lines come first because the guidance column's header names
-   * the armed mode, and the rows directly under that header should be the ones
-   * answering it.
-   * @returns {Object} Structured guidance content (multi-section)
+   * Its own gestures only. The cross-mode ones used to be a second section
+   * here, because Pan is the initial mode and the old panel had room for them
+   * nowhere else — which meant an analyst who armed Cross Cursor first never
+   * learnt that Shift + drag zooms. The guidance column appends them to every
+   * mode now (see `utils/guidanceContent.js`).
+   * @returns {Object} Structured guidance content
    */
   getGuidanceText() {
     return {
@@ -221,10 +220,6 @@ export class PanMode extends BaseMode {
             { trigger: 'Fit', outcome: 'to bring the whole gram back in one click' },
             `GramFrame v${getVersion()}`
           ]
-        },
-        {
-          title: 'In every mode',
-          items: NAVIGATION_GUIDANCE
         }
       ]
     }

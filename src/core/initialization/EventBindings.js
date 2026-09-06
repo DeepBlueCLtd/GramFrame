@@ -9,7 +9,8 @@
 /// <reference path="../../types.js" />
 
 import { setupEventListeners, setupResizeObserver } from '../events.js'
-import { initializeKeyboardControl, setSelection, clearSelection, toggleSelection, isFeatureSelected, updateSelectionVisuals, removeHarmonicSet, removeSidebandSet } from '../keyboardControl.js'
+import { initializeKeyboardControl, removeHarmonicSet, removeSidebandSet } from '../keyboardControl.js'
+import { setSelection, clearSelection, toggleSelection, isFeatureSelected, updateSelectionVisuals } from '../selection.js'
 import { applyColorToSelectedFeature, applySymbolToSelectedFeature, applyPinToSelectedFeature, applyLargeSymbolsToSelectedFeature } from '../featureStyle.js'
 
 /**

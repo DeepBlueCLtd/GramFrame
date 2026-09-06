@@ -7,12 +7,10 @@
 
 /// <reference path="../types.js" />
 
-import { dispatch } from './state.js'
+import { refreshPanels } from './panelRefresh.js'
 import { commitAnnotationChange } from './annotationCommit.js'
 import { dataToSVG, svgToImage, imageToData, nudgeData, dataFrequencyRange } from '../utils/coordinates.js'
 import { findPinSetOwner } from '../modes/capabilities.js'
-import { refreshPanels } from './panelRefresh.js'
-import { refreshReadoutTarget } from '../components/CursorReadout.js'
 import { registerInstance, unregisterInstance, getFocusedInstance, setFocusedInstance, getRegisteredInstanceCount, clearFocusedInstance, isNodeInsideAnyInstance, instanceContaining } from './FocusManager.js'
 import { cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
 import { isPlaying, isPlayerActive } from '../player/playerView.js'
@@ -377,96 +375,6 @@ function moveSelectedPinSet(instance, owner, setId, movement) {
   }
 }
 
-
-/**
- * Set selection state for an item
- * @param {GramFrame} instance - GramFrame instance
- * @param {string} type - Type of item ('marker' | 'harmonicSet' | 'sidebandSet')
- * @param {string} id - ID of selected item
- * @param {number} index - Index in table for display purposes
- */
-export function setSelection(instance, type, id, index) {
-  // When selecting an item, also focus the instance
-  setFocusedInstance(instance)
-
-  const state = instance.state
-  const selection = state.selection
-  selection.selectedType = type
-  selection.selectedId = id
-  selection.selectedIndex = index
-  // Selecting a feature arms the style panel's second target: the reason to
-  // select something is almost always to change it.
-  state.styleTarget = 'selected'
-
-  // Update visual feedback
-  updateSelectionVisuals(instance)
-
-  // Reflect the selected feature's colour/symbol in the style controls so the
-  // analyst can restyle it in place (feature 161, FR-004).
-  if (instance.interaction.syncStyleControls) {
-    instance.interaction.syncStyleControls()
-  }
-
-  dispatch(instance)
-}
-
-/**
- * Select a feature, or deselect it when it is already the selected one.
- *
- * What clicking a row in any of the three annotation tables means. All three
- * wrote it out for themselves — the same four lines against
- * `instance.state.selection`, differing only in the selection type — and a
- * fourth table would have written it a fourth time.
- * @param {GramFrame} instance - GramFrame instance
- * @param {SelectedFeatureType} type - Which family the id belongs to
- * @param {string} id - The feature's id
- * @param {number} index - Its row index, for display
- * @returns {void}
- */
-export function toggleSelection(instance, type, id, index) {
-  if (isFeatureSelected(instance, type, id)) {
-    clearSelection(instance)
-  } else {
-    setSelection(instance, type, id, index)
-  }
-}
-
-/**
- * Whether a given feature is the selected one.
- * @param {GramFrame} instance - GramFrame instance
- * @param {SelectedFeatureType} type - Which family the id belongs to
- * @param {string} id - The feature's id
- * @returns {boolean} True when this feature is selected
- */
-export function isFeatureSelected(instance, type, id) {
-  const selection = instance.state.selection
-  return selection.selectedType === type && selection.selectedId === id
-}
-
-/**
- * Clear current selection
- * @param {GramFrame} instance - GramFrame instance
- */
-export function clearSelection(instance) {
-  const state = instance.state
-  const selection = state.selection
-  selection.selectedType = null
-  selection.selectedId = null
-  selection.selectedIndex = null
-  state.styleTarget = 'new'
-
-  // Update visual feedback
-  updateSelectionVisuals(instance)
-
-  // With nothing selected, the style controls revert to targeting the NEXT
-  // created feature (feature 161, FR-013).
-  if (instance.interaction.syncStyleControls) {
-    instance.interaction.syncStyleControls()
-  }
-
-  dispatch(instance)
-}
-
 /**
  * Remove a harmonic set by ID.
  *
@@ -503,21 +411,4 @@ function removePinSet(instance, selectionType, id) {
   if (owner) {
     owner.removeSet(id)
   }
-}
-
-
-/**
- * Update visual feedback for current selection
- * @param {GramFrame} instance - GramFrame instance
- */
-export function updateSelectionVisuals(instance) {
-  // Selected-row styling is now table mechanism: both tables mark their own
-  // selected row through the shared DiffingTable, so this only has to ask them
-  // to re-diff. The two hand-written `tr[data-...-id]` lookups this replaces
-  // were the same code twice (spec 166, T3).
-  refreshPanels(instance)
-  // The readout column reads the selection when there is one, so it changes
-  // target here too rather than waiting for the next pointer move — which, with
-  // something selected, would never arrive.
-  refreshReadoutTarget(instance)
 }

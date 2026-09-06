@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { resolveGuidance } from '../../src/utils/guidanceContent.js'
+import { resolveGuidance, withNavigationGuidance } from '../../src/utils/guidanceContent.js'
 import { NAVIGATION_GUIDANCE } from '../../src/utils/navigationGuidance.js'
 
 /**
@@ -117,5 +117,35 @@ describe('resolveGuidance', () => {
   test('a non-object content is refused rather than half-read', () => {
     expect(resolveGuidance(/** @type {any} */ ('some guidance'))).toEqual([])
     expect(resolveGuidance(/** @type {any} */ (42))).toEqual([])
+  })
+})
+
+describe('withNavigationGuidance', () => {
+  test("appends the cross-mode gestures beneath a mode's own lines", () => {
+    const sections = withNavigationGuidance({
+      title: 'Cross Cursor',
+      items: [{ trigger: 'Click', outcome: 'to add a persistent cross' }]
+    }).sections
+
+    expect(sections).toHaveLength(2)
+    // The column's header names the armed mode, so the mode's own rows come
+    // first and the shared ones sit under their own heading beneath them.
+    expect(sections[0].title).toBe('Cross Cursor')
+    expect(sections[1]).toEqual({ title: 'In every mode', items: NAVIGATION_GUIDANCE })
+  })
+
+  test('a mode with no guidance of its own still gets them', () => {
+    const sections = withNavigationGuidance(null).sections
+    expect(sections).toEqual([{ title: 'In every mode', items: NAVIGATION_GUIDANCE }])
+  })
+
+  test('plain notes survive the round trip as plain notes', () => {
+    const sections = withNavigationGuidance({
+      sections: [{ title: 'Doppler', qualifier: 'three markers', items: ['Place f+ first', { trigger: 'Drag', outcome: 'to move one' }] }]
+    }).sections
+
+    expect(sections[0].qualifier).toBe('three markers')
+    // A string in, a string out: a note has no trigger to lift into the track.
+    expect(sections[0].items).toEqual(['Place f+ first', { trigger: 'Drag', outcome: 'to move one' }])
   })
 })

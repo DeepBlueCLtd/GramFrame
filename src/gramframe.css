@@ -243,7 +243,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   height: 4px;
   appearance: none;
   -webkit-appearance: none;
-  background: rgba(233, 233, 237, 0.13);
+  background: rgba(247, 247, 250, 0.13);
   border-radius: 2px;
   cursor: pointer;
 }
@@ -319,7 +319,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   padding: 7px 12px;
   box-sizing: border-box;
   background: var(--gf-surface);
-  border-top: 1px solid rgba(233, 233, 237, 0.08);
+  border-top: 1px solid rgba(247, 247, 250, 0.08);
   color: var(--gf-text);
   font-family: var(--gf-ui);
 }
@@ -351,7 +351,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-transport-btn:hover {
-  border-color: rgba(233, 233, 237, 0.4);
+  border-color: rgba(247, 247, 250, 0.4);
   color: var(--gf-text);
 }
 
@@ -369,7 +369,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   background: var(--gf-accent);
   border: 0;
   border-radius: 7px;
-  color: #161826;
+  color: var(--gf-bg);
 }
 
 .gram-frame-transport-primary .gram-frame-icon {
@@ -380,7 +380,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 .gram-frame-transport-primary:hover,
 .gram-frame-transport-primary[aria-pressed="true"] {
   background: var(--gf-accent-400);
-  color: #161826;
+  color: var(--gf-bg);
   border: 0;
 }
 
@@ -419,7 +419,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   background: linear-gradient(
     to right,
     var(--gf-accent) 0 var(--gf-played, 0%),
-    rgba(233, 233, 237, 0.13) var(--gf-played, 0%) 100%
+    rgba(247, 247, 250, 0.13) var(--gf-played, 0%) 100%
   );
   border-radius: 2px;
   cursor: pointer;
@@ -473,7 +473,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   padding: 1px 5px;
   border-radius: 3px;
   background: var(--gf-text);
-  color: #161826;
+  color: var(--gf-bg);
   font: 600 9px/1.4 var(--gf-mono);
   white-space: nowrap;
 }
@@ -524,7 +524,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-transport-saved:hover:not(:disabled) {
-  border-color: rgba(233, 233, 237, 0.4);
+  border-color: rgba(247, 247, 250, 0.4);
   color: var(--gf-text);
 }
 
@@ -612,7 +612,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   height: 4px;
   appearance: none;
   -webkit-appearance: none;
-  background: rgba(233, 233, 237, 0.13);
+  background: rgba(247, 247, 250, 0.13);
   border-radius: 2px;
   cursor: pointer;
 }
@@ -746,22 +746,22 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 
 .gram-frame-container {
   /* Ground, surface and ink */
-  --gf-bg: #161826;
-  --gf-surface: #232532;
-  --gf-text: #e9e9ed;
-  /* One value for the whole muted tier (~5.4:1 on the surface). Alphas below
+  --gf-bg: #0d0e18;
+  --gf-surface: #171926;
+  --gf-text: #f7f7fa;
+  /* One value for the whole muted tier (~8.5:1 on the surface). Alphas below
      .60 do not reach 4.5:1 on this ground; do not reintroduce them for text. */
-  --gf-muted: rgba(233, 233, 237, 0.62);
-  --gf-secondary: rgba(233, 233, 237, 0.75);
+  --gf-muted: rgba(247, 247, 250, 0.70);
+  --gf-secondary: rgba(247, 247, 250, 0.85);
 
   /* The non-text tier: rules, hover tints and recesses */
-  --gf-divider: #424450;
-  --gf-hairline: rgba(233, 233, 237, 0.18);
-  --gf-row-line: rgba(233, 233, 237, 0.07);
-  --gf-hover: rgba(233, 233, 237, 0.06);
-  --gf-row-hover: rgba(233, 233, 237, 0.05);
-  --gf-recess: rgba(0, 0, 0, 0.16);
-  --gf-recess-deep: rgba(0, 0, 0, 0.28);
+  --gf-divider: #3a3c4a;
+  --gf-hairline: rgba(247, 247, 250, 0.18);
+  --gf-row-line: rgba(247, 247, 250, 0.07);
+  --gf-hover: rgba(247, 247, 250, 0.06);
+  --gf-row-hover: rgba(247, 247, 250, 0.05);
+  --gf-recess: rgba(0, 0, 0, 0.22);
+  --gf-recess-deep: rgba(0, 0, 0, 0.36);
 
   /* Accent, and the ramp around it */
   --gf-accent: #9184d9;
@@ -1021,7 +1021,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-guidance-hide:hover {
-  border-color: rgba(233, 233, 237, 0.4);
+  border-color: rgba(247, 247, 250, 0.4);
   color: var(--gf-text);
 }
 
@@ -1193,7 +1193,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   letter-spacing: -0.01em;
   /* The faint bloom is what makes it read as a lit instrument rather than as
      large text. It is the only glow in the panel, and only on these two. */
-  text-shadow: 0 0 18px rgba(233, 233, 237, 0.2);
+  text-shadow: 0 0 18px rgba(247, 247, 250, 0.2);
 }
 
 .gram-frame-led-accent .gram-frame-led-value {
@@ -1291,7 +1291,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-style-tab:disabled {
-  color: rgba(233, 233, 237, 0.4);
+  color: rgba(247, 247, 250, 0.4);
   cursor: not-allowed;
 }
 
@@ -1416,7 +1416,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-symbol-select:hover {
-  border-color: rgba(233, 233, 237, 0.4);
+  border-color: rgba(247, 247, 250, 0.4);
 }
 
 .gram-frame-symbol-glyph {
@@ -1472,7 +1472,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-symbol-cell:hover {
-  border-color: rgba(233, 233, 237, 0.4);
+  border-color: rgba(247, 247, 250, 0.4);
 }
 
 .gram-frame-symbol-cell-selected {
@@ -1747,7 +1747,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-table-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(233, 233, 237, 0.3);
+  background: rgba(247, 247, 250, 0.3);
 }
 
 .gram-frame-table {
@@ -1832,7 +1832,7 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 .gram-frame-table tbody tr.gram-frame-selected-row td,
 .gram-frame-table tbody tr.gram-frame-selected-row:hover td {
   background: var(--gf-text);
-  color: #161826;
+  color: var(--gf-bg);
   font-weight: 500;
 }
 
