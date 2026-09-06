@@ -1,7 +1,7 @@
 (function() {
   // Inject CSS styles
   const style = document.createElement('style');
-  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: transparent;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* The outer frame (not the diffing <table> — see `gram-frame-layout` in\n   table.js).\n *\n * A hairline and a radius, on the panel's own surface. It used to be a 3px\n * bevelled border over a three-stop gradient — an instrument-case look that\n * competed with the readouts inside it for the eye, which is the problem the\n * control-row redesign exists to fix. The frame's job is to say where the\n * component ends. */\n.gram-frame-layout {\n  display: table;\n  /* Fixed, so the cells take the frame's width rather than the width their\n     contents would like. Without it the control row's min-content width — five\n     columns of nowrap labels — sets the component's width, and a host narrower\n     than that gets a clipped third table instead of a squeezed one. */\n  table-layout: fixed;\n  width: 100%;\n  height: 100%;\n  background: var(--gf-surface);\n  border: 1px solid var(--gf-divider);\n  border-radius: 8px;\n  overflow: hidden;\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* The plot area. Unchanged in what it draws — the gram, the axes and every\n * overlay are out of the redesign's scope — but its casing is now the same\n * ground as the panel above it, so the two read as one instrument rather than\n * as two bevelled boxes stacked. */\n.gram-frame-main-panel {\n  padding: 12px;\n  background: #0c0d16;\n  border: 0;\n  border-top: 1px solid var(--gf-divider);\n  position: relative;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* An audio-sourced gram (spec 168) is analysed after the table is replaced:\n   the loading caption stays up, but reads the stage and percentage the setup\n   step writes into data-gram-progress on the main panel (FR-006). */\n.gram-frame-container.gram-frame-analysing .gram-frame-main-panel::after {\n  content: attr(data-gram-progress);\n}\n\n/* While the recording plays, annotation tools are inert (spec 168 FR-013, as\n   narrowed by spec 171 FR-004a) but the gram can be dragged to seek through it\n   (spec 171, FR-015) — so the open hand, not the crosshair and not the arrow.\n   !important because the modes set the cursor inline on the SVG root. */\n.gram-frame-container.gram-frame-playing .gram-frame-svg {\n  cursor: grab !important;\n}\n\n/* The drag itself. Playback is paused for its duration, so the playing class\n   is gone and this rule stands on its own. */\n.gram-frame-container.gram-frame-drag-seek .gram-frame-svg {\n  cursor: grabbing !important;\n}\n\n/* The contrast controls, on the same bar as the transport (spec 171, US2). */\n/* The contrast controls (spec 171, US2). They ride the transport bar, and wrap\n   onto a line of their own when the bar has nothing left to give: the row above\n   is a fixed set of controls, so this pair is the one that yields. */\n.gram-frame-display-range {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  flex: 1 1 300px;\n  min-width: 0;\n}\n\n.gram-frame-display-control {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  flex: 1 1 0;\n  min-width: 0;\n}\n\n.gram-frame-display-label {\n  flex: none;\n  font: 400 9px/1 var(--gf-mono);\n  letter-spacing: 0.14em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n}\n\n.gram-frame-display-slider {\n  flex: 1;\n  min-width: 0;\n  height: 4px;\n  appearance: none;\n  -webkit-appearance: none;\n  background: rgba(233, 233, 237, 0.13);\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.gram-frame-display-slider::-webkit-slider-thumb {\n  appearance: none;\n  -webkit-appearance: none;\n  width: 9px;\n  height: 9px;\n  border: 0;\n  border-radius: 5px;\n  background: var(--gf-secondary);\n}\n\n.gram-frame-display-slider::-moz-range-thumb {\n  width: 9px;\n  height: 9px;\n  border: 0;\n  border-radius: 5px;\n  background: var(--gf-secondary);\n}\n\n.gram-frame-display-reset {\n  width: auto;\n  padding: 0 8px;\n  font-size: 10.5px;\n}\n\n.gram-frame-degraded-note {\n  margin-top: 8px;\n  padding: 4px 6px;\n  border: 1px solid rgba(230, 200, 120, 0.6);\n  border-radius: 4px;\n  background: rgba(60, 50, 20, 0.75);\n  color: #ffe6a0;\n  font-size: 12px;\n}\n\n/* The transport's live region is for screen readers only (spec 171, FR-026):\n   it carries no visible text of its own, and everything it says is already on\n   the bar for a sighted reader. */\n.gram-frame-transport-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n.gram-frame-transport-span {\n  flex: none;\n  font: 400 10px/1 var(--gf-mono);\n  color: var(--gf-muted);\n  white-space: nowrap;\n}\n\n/* The transport bar under an audio-sourced gram (spec 168, D13).\n *\n * Below the gram, so the scrub track and its bookmark flags line up with the\n * time axis they refer to and the control panel above never changes height.\n * One row, on the panel's own surface: it is chrome for the recording, not a\n * second instrument. */\n.gram-frame-transport {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  gap: 10px 12px;\n  min-height: 44px;\n  padding: 7px 12px;\n  box-sizing: border-box;\n  background: var(--gf-surface);\n  border-top: 1px solid rgba(233, 233, 237, 0.08);\n  color: var(--gf-text);\n  font-family: var(--gf-ui);\n}\n\n.gram-frame-transport-group {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  position: relative;\n}\n\n.gram-frame-transport-btn {\n  width: 26px;\n  height: 26px;\n  display: grid;\n  place-items: center;\n  padding: 0;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 5px;\n  color: var(--gf-secondary);\n  font: 400 12px/1 var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-transport-btn .gram-frame-icon {\n  width: 13px;\n  height: 13px;\n}\n\n.gram-frame-transport-btn:hover {\n  border-color: rgba(233, 233, 237, 0.4);\n  color: var(--gf-text);\n}\n\n.gram-frame-transport-btn[aria-pressed=\"true\"] {\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n  background: var(--gf-accent-900);\n}\n\n/* Play/pause is the one filled control on the bar: it is the thing an analyst\n   reaches for without looking. */\n.gram-frame-transport-primary {\n  width: 30px;\n  height: 30px;\n  background: var(--gf-accent);\n  border: 0;\n  border-radius: 7px;\n  color: #161826;\n}\n\n.gram-frame-transport-primary .gram-frame-icon {\n  width: 12px;\n  height: 12px;\n}\n\n.gram-frame-transport-primary:hover,\n.gram-frame-transport-primary[aria-pressed=\"true\"] {\n  background: var(--gf-accent-400);\n  color: #161826;\n  border: 0;\n}\n\n.gram-frame-transport-time,\n.gram-frame-transport-duration {\n  flex: none;\n  font: 400 12px/1 var(--gf-mono);\n  font-variant-numeric: tabular-nums;\n}\n\n.gram-frame-transport-duration {\n  color: var(--gf-muted);\n}\n\n.gram-frame-transport-track {\n  position: relative;\n  flex: 1 1 180px;\n  min-width: 140px;\n  height: 30px;\n}\n\n/* The scrub track. A native range input, restyled: the rail is painted by the\n   track itself and the played portion by a gradient stop the reflect pass\n   moves, so there is one element to align rather than three. */\n.gram-frame-transport-seek {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 13px;\n  width: 100%;\n  height: 4px;\n  margin: 0;\n  padding: 0;\n  appearance: none;\n  -webkit-appearance: none;\n  background: linear-gradient(\n    to right,\n    var(--gf-accent) 0 var(--gf-played, 0%),\n    rgba(233, 233, 237, 0.13) var(--gf-played, 0%) 100%\n  );\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.gram-frame-transport-seek::-webkit-slider-thumb {\n  appearance: none;\n  -webkit-appearance: none;\n  width: 11px;\n  height: 11px;\n  border: 0;\n  border-radius: 6px;\n  background: var(--gf-accent-100);\n  box-shadow: 0 0 0 3px rgba(145, 132, 217, 0.28);\n  cursor: pointer;\n}\n\n.gram-frame-transport-seek::-moz-range-thumb {\n  width: 11px;\n  height: 11px;\n  border: 0;\n  border-radius: 6px;\n  background: var(--gf-accent-100);\n  box-shadow: 0 0 0 3px rgba(145, 132, 217, 0.28);\n  cursor: pointer;\n}\n\n/* The flags sit over the track and are transparent to the pointer except where\n   a flag actually is, so scrubbing past one still scrubs. */\n.gram-frame-transport-flags {\n  position: absolute;\n  inset: 0;\n  pointer-events: none;\n}\n\n.gram-frame-transport-flag {\n  position: absolute;\n  top: 2px;\n  transform: translateX(-50%);\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  padding: 0;\n  background: none;\n  border: 0;\n  pointer-events: auto;\n  cursor: pointer;\n}\n\n.gram-frame-transport-flag-plate {\n  padding: 1px 5px;\n  border-radius: 3px;\n  background: var(--gf-text);\n  color: #161826;\n  font: 600 9px/1.4 var(--gf-mono);\n  white-space: nowrap;\n}\n\n.gram-frame-transport-flag-stem {\n  width: 1px;\n  height: 9px;\n  background: var(--gf-text);\n}\n\n.gram-frame-transport-divider {\n  flex: none;\n  width: 1px;\n  height: 20px;\n  background: var(--gf-divider);\n}\n\n/* Bookmark is the only outlined-in-accent control on the bar: it is the one\n   thing here that creates something rather than moving the playhead. */\n.gram-frame-transport-bookmark {\n  width: auto;\n  gap: 6px;\n  display: flex;\n  align-items: center;\n  padding: 0 9px;\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n  font: 500 10.5px var(--gf-ui);\n  white-space: nowrap;\n}\n\n.gram-frame-transport-bookmark:hover {\n  background: rgba(145, 132, 217, 0.14);\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n}\n\n.gram-frame-transport-saved {\n  height: 26px;\n  padding: 0 8px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 5px;\n  color: var(--gf-muted);\n  font: 400 10.5px var(--gf-ui);\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-transport-saved:hover:not(:disabled) {\n  border-color: rgba(233, 233, 237, 0.4);\n  color: var(--gf-text);\n}\n\n.gram-frame-transport-saved:disabled {\n  opacity: 0.5;\n  cursor: default;\n}\n\n/* Opening upward: the bar is the last thing on the component, so a list\n   dropping down would be a list off the bottom of it. */\n.gram-frame-transport-saved-list {\n  position: absolute;\n  z-index: 30;\n  right: 0;\n  bottom: calc(100% + 6px);\n  min-width: 150px;\n  padding: 4px;\n  background: var(--gf-bg);\n  border: 1px solid var(--gf-hairline);\n  border-radius: 8px;\n  box-shadow: var(--gf-shadow-md);\n}\n\n.gram-frame-transport-saved-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n\n.gram-frame-transport-saved-jump {\n  flex: 1;\n  padding: 4px 6px;\n  background: transparent;\n  border: 0;\n  border-radius: 4px;\n  color: var(--gf-text);\n  font: 400 11px/1 var(--gf-mono);\n  text-align: left;\n  cursor: pointer;\n}\n\n.gram-frame-transport-saved-jump:hover {\n  background: var(--gf-hover);\n}\n\n.gram-frame-transport-saved-remove {\n  padding: 2px 5px;\n  background: transparent;\n  border: 0;\n  color: var(--gf-muted);\n  font: 400 13px/1 var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-transport-saved-remove:hover {\n  color: var(--gf-danger-text);\n}\n\n.gram-frame-transport-rate-label {\n  flex: none;\n  font: 400 10px var(--gf-ui);\n  color: var(--gf-muted);\n  white-space: nowrap;\n}\n\n.gram-frame-transport-playback-rate {\n  height: 26px;\n  padding: 0 4px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 5px;\n  color: var(--gf-text);\n  font: 400 10.5px var(--gf-mono);\n  cursor: pointer;\n}\n\n.gram-frame-transport-playback-rate option {\n  background: var(--gf-bg);\n  color: var(--gf-text);\n}\n\n.gram-frame-transport-volume {\n  flex: none;\n  width: 64px;\n  height: 4px;\n  appearance: none;\n  -webkit-appearance: none;\n  background: rgba(233, 233, 237, 0.13);\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.gram-frame-transport-volume::-webkit-slider-thumb {\n  appearance: none;\n  -webkit-appearance: none;\n  width: 9px;\n  height: 9px;\n  border: 0;\n  border-radius: 5px;\n  background: var(--gf-secondary);\n}\n\n.gram-frame-transport-volume::-moz-range-thumb {\n  width: 9px;\n  height: 9px;\n  border: 0;\n  border-radius: 5px;\n  background: var(--gf-secondary);\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n/* ===========================================================================\n * The control row\n *\n * Five columns above the gram: the mode rail, the armed mode's guidance, the\n * cursor readouts, the style panel, and the three annotation tables. They are\n * separated by single hairlines rather than boxed, because five bordered cards\n * of equal weight gave the eye nowhere to land — the readouts are the first\n * read, and everything here is arranged so they win.\n *\n * Dark throughout, and deliberately so: the recognition differential when\n * reading plotted data is higher against a dark ground, which is what the panel\n * is beside. The palette is the design system's, declared once below and used\n * through the variables so a change lands everywhere at once.\n * ======================================================================== */\n\n.gram-frame-container {\n  /* Ground, surface and ink */\n  --gf-bg: #161826;\n  --gf-surface: #232532;\n  --gf-text: #e9e9ed;\n  /* One value for the whole muted tier (~5.4:1 on the surface). Alphas below\n     .60 do not reach 4.5:1 on this ground; do not reintroduce them for text. */\n  --gf-muted: rgba(233, 233, 237, 0.62);\n  --gf-secondary: rgba(233, 233, 237, 0.75);\n\n  /* The non-text tier: rules, hover tints and recesses */\n  --gf-divider: #424450;\n  --gf-hairline: rgba(233, 233, 237, 0.18);\n  --gf-row-line: rgba(233, 233, 237, 0.07);\n  --gf-hover: rgba(233, 233, 237, 0.06);\n  --gf-row-hover: rgba(233, 233, 237, 0.05);\n  --gf-recess: rgba(0, 0, 0, 0.16);\n  --gf-recess-deep: rgba(0, 0, 0, 0.28);\n\n  /* Accent, and the ramp around it */\n  --gf-accent: #9184d9;\n  --gf-accent-100: #efedfb;\n  --gf-accent-200: #ddd9f6;\n  --gf-accent-400: #aca2e5;\n  --gf-accent-600: #7768c4;\n  --gf-accent-700: #5d4fa3;\n  --gf-accent-800: #433a71;\n  --gf-accent-900: #2b2741;\n  --gf-accent-tint: rgba(145, 132, 217, 0.09);\n\n  /* Destructive, on hover only: nothing here is red at rest */\n  --gf-danger-border: #8d5a5a;\n  --gf-danger-text: #e2b3b3;\n\n  --gf-ui: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  --gf-mono: ui-monospace, Menlo, Consolas, monospace;\n  --gf-shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5);\n\n  /* The panel's height. The gram is deliberately given as much room as\n     possible, so this is a budget rather than a starting point: a column that\n     needs more room scrolls inside it. */\n  --gf-panel-height: 250px;\n}\n\n/* The control row's own containment context.\n *\n * The panel's responsive behaviour depends on how wide the COMPONENT is, not on\n * how wide the window is: the same page can carry a full-width gram and a\n * half-width one, and a viewport media query would collapse the guidance in\n * both or neither. Scoped to this wrapper rather than the container so the\n * plot area below is outside the containment entirely. */\n.gram-frame-readout {\n  container-type: inline-size;\n  container-name: gramframe-controls;\n  width: 100%;\n  padding: 0;\n  background: transparent;\n}\n\n.gram-frame-unified-layout {\n  display: flex;\n  align-items: stretch;\n  height: var(--gf-panel-height);\n  background: var(--gf-surface);\n  font-family: var(--gf-ui);\n  color: var(--gf-text);\n}\n\n/* Every column but the last is closed by a hairline; the tables run to the\n   panel's own edge. */\n.gram-frame-unified-layout > * {\n  box-sizing: border-box;\n  border-right: 1px solid var(--gf-divider);\n}\n\n.gram-frame-unified-layout > :last-child {\n  border-right: 0;\n}\n\n/* Keyboard focus is one treatment everywhere in the panel — an accent ring,\n   offset so it never reads as a border the control has grown. */\n.gram-frame-unified-layout :focus-visible,\n.gram-frame-symbol-popup :focus-visible,\n.gram-frame-transport :focus-visible {\n  outline: 2px solid var(--gf-accent);\n  outline-offset: 2px;\n}\n\n/* A section kicker: the smallest text in the panel, and the only text set in\n   spaced monospace caps, so it reads as a label rather than as content. */\n.gram-frame-kicker {\n  font: 600 9px/1 var(--gf-mono);\n  letter-spacing: 0.16em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n}\n\n/* --- Column 1: the mode rail --------------------------------------------- */\n\n.gram-frame-mode-column {\n  flex: 0 0 154px;\n  width: 154px;\n  min-width: 0;\n}\n\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 5px;\n  height: 100%;\n  padding: 10px 10px 8px;\n  box-sizing: border-box;\n}\n\n.gram-frame-modes > .gram-frame-kicker {\n  padding: 0 2px 2px;\n}\n\n.gram-frame-mode-list {\n  display: flex;\n  flex-direction: column;\n  gap: 5px;\n}\n\n.gram-frame-mode-spacer {\n  flex: 1;\n}\n\n/* A mode button: glyph, then word. The 2px left border is transparent at rest\n   and accent when armed, so arming changes no geometry — the row does not\n   shift under the pointer as the analyst moves down the rail. */\n.gram-frame-mode-btn {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  height: 27px;\n  padding: 0 8px;\n  border: 0;\n  border-left: 2px solid transparent;\n  border-radius: 0 4px 4px 0;\n  background: transparent;\n  color: var(--gf-secondary);\n  font: 400 11.5px var(--gf-ui);\n  white-space: nowrap;\n  text-align: left;\n  cursor: pointer;\n}\n\n.gram-frame-mode-btn .gram-frame-icon {\n  width: 15px;\n  height: 15px;\n  flex: none;\n}\n\n.gram-frame-mode-btn-label {\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gram-frame-mode-btn:hover:not(:disabled) {\n  background: var(--gf-hover);\n  color: var(--gf-text);\n}\n\n.gram-frame-mode-btn.active {\n  background: var(--gf-accent-900);\n  border-left-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n  font-weight: 500;\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  opacity: 0.45;\n  cursor: not-allowed;\n}\n\n/* The view controls, at the foot of the rail behind a rule: they act on the\n   view rather than on the armed tool, which is why they are fenced off from\n   the five buttons above and stay put whichever is armed. */\n.gram-frame-mode-commands {\n  display: flex;\n  gap: 4px;\n  padding-top: 6px;\n  border-top: 1px solid var(--gf-divider);\n}\n\n.gram-frame-command-btn {\n  width: 26px;\n  height: 24px;\n  display: grid;\n  place-items: center;\n  padding: 0;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 4px;\n  color: var(--gf-secondary);\n  font: 400 13px var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-command-btn .gram-frame-icon {\n  width: 14px;\n  height: 14px;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n}\n\n.gram-frame-command-btn:disabled {\n  opacity: 0.4;\n  cursor: not-allowed;\n}\n\n/* The word behind a glyph: gone from the page, present in the accessibility\n   tree and to anything selecting the button by name. */\n.gram-frame-visually-hidden {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  margin: -1px;\n  padding: 0;\n  overflow: hidden;\n  clip: rect(0 0 0 0);\n  clip-path: inset(50%);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* --- Column 2: the armed mode's guidance --------------------------------- */\n\n.gram-frame-guidance-column {\n  flex: 0 0 264px;\n  width: 264px;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  background: var(--gf-recess);\n  box-sizing: border-box;\n}\n\n.gram-frame-guidance-header {\n  display: flex;\n  align-items: center;\n  gap: 7px;\n  flex: none;\n  height: 28px;\n  padding: 0 10px 0 12px;\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n.gram-frame-guidance-title {\n  font: 600 9px/1 var(--gf-mono);\n  letter-spacing: 0.14em;\n  color: var(--gf-accent);\n  text-transform: uppercase;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gram-frame-guidance-hide {\n  margin-left: auto;\n  height: 20px;\n  padding: 0 7px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 4px;\n  color: var(--gf-muted);\n  font: 400 9.5px var(--gf-ui);\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-guidance-hide:hover {\n  border-color: rgba(233, 233, 237, 0.4);\n  color: var(--gf-text);\n}\n\n/* The body scrolls rather than growing the row: Pan carries its own four lines\n   plus the four cross-mode gestures, and the panel's height is a budget. */\n.gram-frame-guidance {\n  flex: 1;\n  min-height: 0;\n  overflow-y: auto;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px 12px;\n  box-sizing: border-box;\n}\n\n.gram-frame-guidance h4 {\n  margin: 4px 0 0;\n  font: 600 9px/1 var(--gf-mono);\n  letter-spacing: 0.14em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n}\n\n.gram-frame-guidance h4:first-child {\n  margin-top: 0;\n}\n\n.gram-frame-guidance h4 .gram-frame-guidance-qualifier {\n  font-weight: 400;\n  letter-spacing: 0;\n  text-transform: none;\n}\n\n/* One line of guidance: the trigger in a fixed track, the outcome beside it.\n   The fixed track is the whole point — it is what lets the gestures of a mode\n   be compared down the column instead of read out of four sentences. */\n.gram-frame-guidance-row {\n  display: flex;\n  gap: 8px;\n  align-items: baseline;\n}\n\n.gram-frame-guidance-trigger {\n  flex: none;\n  width: 76px;\n  font: 500 10px/1.4 var(--gf-ui);\n  color: var(--gf-text);\n}\n\n.gram-frame-guidance-outcome,\n.gram-frame-guidance-note {\n  font: 400 11px/1.4 var(--gf-ui);\n  color: var(--gf-secondary);\n}\n\n.gram-frame-guidance-note {\n  color: var(--gf-muted);\n}\n\n/* Collapsed: the column becomes a 40px rail in the same position, and the\n   ~224px it releases goes to the annotation tables. The space stays dedicated\n   — nothing else ever moves into it. */\n.gram-frame-guidance-column.gram-frame-guidance-collapsed {\n  flex: 0 0 40px;\n  width: 40px;\n  align-items: center;\n  padding: 10px 0;\n  gap: 10px;\n}\n\n.gram-frame-guidance-collapsed .gram-frame-guidance-header,\n.gram-frame-guidance-collapsed .gram-frame-guidance {\n  display: none;\n}\n\n.gram-frame-guidance-rail {\n  display: none;\n  flex-direction: column;\n  align-items: center;\n  gap: 10px;\n}\n\n.gram-frame-guidance-collapsed .gram-frame-guidance-rail {\n  display: flex;\n}\n\n.gram-frame-guidance-reveal {\n  width: 24px;\n  height: 24px;\n  display: grid;\n  place-items: center;\n  padding: 0;\n  background: transparent;\n  border: 1px solid var(--gf-accent-700);\n  border-radius: 4px;\n  color: var(--gf-accent-200);\n  font: 400 11px var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-guidance-reveal:hover {\n  background: var(--gf-accent-900);\n}\n\n.gram-frame-guidance-rail-label {\n  font: 600 9px/1 var(--gf-mono);\n  letter-spacing: 0.16em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n  writing-mode: vertical-rl;\n}\n\n/* --- Column 3: the instrument face --------------------------------------- */\n\n.gram-frame-readout-column {\n  flex: 0 0 210px;\n  width: 210px;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  padding: 10px 14px 8px;\n  box-sizing: border-box;\n  /* Recessed, and lit from the top edge: it reads as a separate instrument set\n     into the panel rather than as another card sitting on it. */\n  background: var(--gf-recess-deep);\n  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.4);\n}\n\n.gram-frame-readout-kicker {\n  display: flex;\n  align-items: baseline;\n  gap: 6px;\n  padding-bottom: 8px;\n}\n\n.gram-frame-readout-target {\n  font: 500 9.5px/1 var(--gf-ui);\n  letter-spacing: 0;\n  color: var(--gf-accent-200);\n  text-transform: none;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-readout-separator {\n  height: 1px;\n  margin: 9px 0;\n  background: linear-gradient(to right, var(--gf-divider), transparent);\n}\n\n.gram-frame-readout-spacer {\n  flex: 1;\n}\n\n.gram-frame-led {\n  display: flex;\n  align-items: baseline;\n  justify-content: space-between;\n  gap: 8px;\n  font-family: var(--gf-mono);\n}\n\n.gram-frame-led-value {\n  font: 400 36px/1 var(--gf-mono);\n  color: var(--gf-text);\n  font-variant-numeric: tabular-nums;\n  letter-spacing: -0.01em;\n  /* The faint bloom is what makes it read as a lit instrument rather than as\n     large text. It is the only glow in the panel, and only on these two. */\n  text-shadow: 0 0 18px rgba(233, 233, 237, 0.2);\n}\n\n.gram-frame-led-accent .gram-frame-led-value {\n  color: var(--gf-accent-200);\n  text-shadow: 0 0 20px rgba(145, 132, 217, 0.35);\n}\n\n.gram-frame-led-unit {\n  font: 400 9.5px/1 var(--gf-mono);\n  letter-spacing: 0.1em;\n  color: var(--gf-muted);\n}\n\n.gram-frame-led-caption {\n  font: 400 9px/1 var(--gf-mono);\n  letter-spacing: 0.14em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n}\n\n/* The doppler speed: a derived quantity, so it is fenced off at the foot\n   between two rules and set at half the size of the two readings the pointer\n   itself produces. */\n.gram-frame-led-inline {\n  flex: none;\n  padding: 9px 0;\n  border-top: 1px solid var(--gf-divider);\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n.gram-frame-led-inline .gram-frame-led-value {\n  font-size: 19px;\n  text-shadow: none;\n  margin-left: auto;\n}\n\n/* --- Column 4: the style panel ------------------------------------------- */\n\n.gram-frame-color-picker {\n  flex: 0 0 222px;\n  width: 222px;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  box-sizing: border-box;\n}\n\n/* Targeting a feature tints the whole column and warms its rules, so \"this\n   changes something that already exists\" is visible from across the panel. */\n.gram-frame-color-picker.gram-frame-style-targeting {\n  border-right-color: var(--gf-accent-700);\n}\n\n.gram-frame-style-tabs {\n  display: flex;\n  align-items: stretch;\n  flex: none;\n  height: 28px;\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n.gram-frame-style-targeting .gram-frame-style-tabs {\n  border-bottom-color: var(--gf-accent-700);\n}\n\n.gram-frame-style-tab {\n  flex: 1;\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 5px;\n  padding: 0 6px;\n  background: transparent;\n  border: 0;\n  color: var(--gf-muted);\n  font: 400 10px var(--gf-ui);\n  letter-spacing: 0.03em;\n  white-space: nowrap;\n  overflow: hidden;\n  cursor: pointer;\n}\n\n.gram-frame-style-tab-selected {\n  border-left: 1px solid var(--gf-divider);\n}\n\n.gram-frame-style-targeting .gram-frame-style-tab-selected {\n  border-left-color: var(--gf-accent-700);\n}\n\n.gram-frame-style-tab:hover:not(:disabled) {\n  background: var(--gf-hover);\n  color: var(--gf-text);\n}\n\n.gram-frame-style-tab:disabled {\n  color: rgba(233, 233, 237, 0.4);\n  cursor: not-allowed;\n}\n\n/* The armed tab. The first is underlined in plain ink and the second in\n   accent, matching what each one changes. */\n.gram-frame-style-tab-new.gram-frame-style-tab-armed {\n  background: var(--gf-hover);\n  border-bottom: 2px solid var(--gf-text);\n  color: var(--gf-text);\n  font-weight: 500;\n}\n\n.gram-frame-style-tab-selected.gram-frame-style-tab-armed {\n  background: var(--gf-accent-900);\n  border-bottom: 2px solid var(--gf-accent);\n  color: var(--gf-accent-100);\n  font-weight: 500;\n}\n\n.gram-frame-style-tab-swatch {\n  font-size: 11px;\n  line-height: 1;\n}\n\n.gram-frame-style-body {\n  flex: 1;\n  min-height: 0;\n  overflow-y: auto;\n  display: flex;\n  flex-direction: column;\n  gap: 9px;\n  padding: 10px 12px;\n  box-sizing: border-box;\n}\n\n.gram-frame-style-targeting .gram-frame-style-body {\n  background: var(--gf-accent-tint);\n}\n\n.gram-frame-style-spacer {\n  flex: 1;\n}\n\n.gram-frame-style-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.gram-frame-style-row[hidden] {\n  display: none;\n}\n\n.gram-frame-style-group-label {\n  flex: none;\n  width: 46px;\n  font: 400 10.5px var(--gf-ui);\n  color: var(--gf-muted);\n}\n\n/* The label field, edited where the label is read. The dialog it replaces meant\n   leaving the panel to change one word of what the panel is about. */\n.gram-frame-style-label-input {\n  flex: 1;\n  min-width: 0;\n  height: 26px;\n  padding: 0 8px;\n  box-sizing: border-box;\n  background: var(--gf-recess-deep);\n  border: 1px solid var(--gf-accent-600);\n  border-radius: 6px;\n  color: var(--gf-text);\n  font: 400 11.5px var(--gf-mono);\n}\n\n/* The colour slider: the one colour control in the panel. */\n.gram-frame-color-slider {\n  position: relative;\n  flex: none;\n  height: 19px;\n  border-radius: 3px;\n  box-shadow: 0 0 0 1px var(--gf-hairline);\n  overflow: visible;\n}\n\n.gram-frame-color-canvas {\n  display: block;\n  width: 100%;\n  height: 19px;\n  border-radius: 3px;\n  cursor: crosshair;\n}\n\n/* A bar overhanging the strip top and bottom, rather than a blob sitting on\n   it: the colour under the thumb stays visible, which is the one thing the\n   control exists to show. */\n.gram-frame-color-indicator {\n  position: absolute;\n  top: -3px;\n  bottom: -3px;\n  width: 3px;\n  margin-left: -1.5px;\n  border-radius: 2px;\n  background: var(--gf-text);\n  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);\n  pointer-events: none;\n}\n\n.gram-frame-symbol-select {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  height: 26px;\n  padding: 0 8px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 6px;\n  color: var(--gf-text);\n  font: 400 11px var(--gf-ui);\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-symbol-select:hover {\n  border-color: rgba(233, 233, 237, 0.4);\n}\n\n.gram-frame-symbol-glyph {\n  font-size: 13px;\n  line-height: 1;\n}\n\n.gram-frame-symbol-caret {\n  color: var(--gf-muted);\n  font-size: 9px;\n}\n\n/* The symbol popup, positioned against the component rather than against the\n   row that opens it — see `placePopup` in SymbolPicker.js. */\n.gram-frame-symbol-popup {\n  position: absolute;\n  z-index: 30;\n  width: 238px;\n  background: var(--gf-bg);\n  border: 1px solid var(--gf-hairline);\n  border-radius: 8px;\n  box-shadow: var(--gf-shadow-md);\n  overflow: hidden;\n}\n\n.gram-frame-symbol-popup-header {\n  display: flex;\n  align-items: center;\n  height: 26px;\n  padding: 0 10px;\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n/* All seven at once, at the size and in the colour they will be drawn in —\n   which is the comparison an analyst is actually making. */\n.gram-frame-symbol-grid {\n  display: grid;\n  grid-template-columns: repeat(4, 1fr);\n  gap: 4px;\n  padding: 8px;\n}\n\n.gram-frame-symbol-cell {\n  height: 32px;\n  display: grid;\n  place-items: center;\n  background: transparent;\n  border: 1px solid var(--gf-divider);\n  border-radius: 6px;\n  color: var(--gf-symbol-tint, var(--gf-text));\n  font: 400 15px var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-symbol-cell:hover {\n  border-color: rgba(233, 233, 237, 0.4);\n}\n\n.gram-frame-symbol-cell-selected {\n  background: var(--gf-accent-900);\n  border-color: var(--gf-accent);\n}\n\n.gram-frame-symbol-popup-footer {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  padding: 8px 10px;\n  border-top: 1px solid var(--gf-divider);\n}\n\n.gram-frame-symbol-popup-footer .gram-frame-style-group-label {\n  width: auto;\n}\n\n.gram-frame-symbol-popup-footer .gram-frame-segmented {\n  margin-left: auto;\n}\n\n/* A segmented control: both options on screen, one filled. */\n.gram-frame-segmented {\n  display: flex;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 6px;\n  overflow: hidden;\n}\n\n.gram-frame-segmented-option {\n  height: 24px;\n  padding: 0 10px;\n  background: transparent;\n  border: 0;\n  color: var(--gf-muted);\n  font: 400 10px var(--gf-ui);\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-segmented-option + .gram-frame-segmented-option {\n  border-left: 1px solid var(--gf-hairline);\n}\n\n.gram-frame-segmented-option:hover:not(:disabled) {\n  background: var(--gf-hover);\n}\n\n.gram-frame-segmented-selected {\n  background: var(--gf-accent-900);\n  color: var(--gf-accent-200);\n  font-weight: 500;\n}\n\n.gram-frame-segmented-disabled {\n  opacity: 0.45;\n}\n\n.gram-frame-segmented-disabled .gram-frame-segmented-option {\n  cursor: not-allowed;\n}\n\n.gram-frame-symbol-popup-footer .gram-frame-segmented-option {\n  height: 22px;\n  text-transform: none;\n  letter-spacing: 0;\n  font-size: 10.5px;\n}\n\n.gram-frame-nudge {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n\n.gram-frame-nudge-btn {\n  width: 26px;\n  height: 24px;\n  display: grid;\n  place-items: center;\n  padding: 0;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 4px;\n  color: var(--gf-secondary);\n  font: 400 11px var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-nudge-btn:hover {\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n}\n\n.gram-frame-nudge-note {\n  margin-left: 4px;\n  font: 400 10px var(--gf-ui);\n  color: var(--gf-muted);\n  white-space: nowrap;\n}\n\n/* The footer states the target in words, so the tabs are never the only place\n   it is said. */\n.gram-frame-style-footer {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  flex: none;\n  margin: 0 12px;\n  padding: 8px 0 10px;\n  border-top: 1px dashed var(--gf-hairline);\n}\n\n.gram-frame-style-targeting .gram-frame-style-footer {\n  border-top: 1px solid var(--gf-accent-800);\n}\n\n.gram-frame-style-footer-glyph {\n  font-size: 13px;\n  line-height: 1;\n  opacity: 0.55;\n}\n\n.gram-frame-style-footer-note {\n  font: 400 10px/1.4 var(--gf-ui);\n  color: var(--gf-muted);\n}\n\n.gram-frame-style-targeting .gram-frame-style-footer-note {\n  color: var(--gf-accent-100);\n}\n\n.gram-frame-style-delete {\n  margin-left: auto;\n  height: 20px;\n  padding: 0 8px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 4px;\n  color: var(--gf-muted);\n  font: 400 9.5px var(--gf-ui);\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-style-delete:hover {\n  border-color: var(--gf-danger-border);\n  color: var(--gf-danger-text);\n}\n\n/* --- Column 5: the annotation tables ------------------------------------- */\n\n.gram-frame-tables {\n  flex: 1;\n  min-width: 0;\n  display: flex;\n}\n\n.gram-frame-table-column {\n  flex: 1;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  border-right: 1px solid var(--gf-divider);\n}\n\n.gram-frame-table-column:last-child {\n  border-right: 0;\n}\n\n.gram-frame-panel-header {\n  display: flex;\n  align-items: center;\n  gap: 7px;\n  flex: none;\n  height: 28px;\n  padding: 0 10px;\n  box-sizing: border-box;\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n.gram-frame-panel-header h4 {\n  margin: 0;\n  font: 600 10px/1 var(--gf-ui);\n  letter-spacing: 0.1em;\n  color: var(--gf-text);\n  text-transform: uppercase;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* How many there are, hidden at zero: a chip reading \"0\" is noise beside an\n   empty state that already says so. */\n.gram-frame-count-chip {\n  flex: none;\n  padding: 3px 6px;\n  border-radius: 8px;\n  background: var(--gf-accent-900);\n  color: var(--gf-accent-200);\n  font: 500 9.5px/1 var(--gf-mono);\n}\n\n.gram-frame-harmonics-button-container {\n  margin-left: auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-manual-button {\n  height: 20px;\n  padding: 0 8px;\n  background: transparent;\n  border: 1px solid var(--gf-accent-700);\n  border-radius: 4px;\n  color: var(--gf-accent-200);\n  font: 500 9.5px var(--gf-ui);\n  letter-spacing: 0.05em;\n  text-transform: uppercase;\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-manual-button:hover {\n  background: var(--gf-accent-900);\n}\n\n/*\n * Fixed-height home for one of the three tables.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the control row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n/* The scrollport. `scrollbar-gutter: stable` reserves the scrollbar's width\n   whether or not there is anything to scroll, so the columns do not all shift\n   sideways the moment a table gains its eighth row. It replaces a permanent\n   `overflow-y: scroll`, which reserved the same space by painting a track over\n   an empty table. */\n.gram-frame-table-container {\n  position: absolute;\n  inset: 0;\n  overflow-y: auto;\n  overflow-x: hidden;\n  scrollbar-gutter: stable;\n  scrollbar-width: thin;\n  scrollbar-color: var(--gf-hairline) transparent;\n}\n\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 8px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: transparent;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: var(--gf-hairline);\n  border-radius: 4px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: rgba(233, 233, 237, 0.3);\n}\n\n.gram-frame-table {\n  width: 100%;\n  border-collapse: collapse;\n  table-layout: fixed;\n  font-family: var(--gf-ui);\n}\n\n.gram-frame-table th {\n  position: sticky;\n  top: 0;\n  z-index: 1;\n  padding: 6px 4px 4px;\n  background: var(--gf-surface);\n  font: 600 9.5px/1 var(--gf-mono);\n  letter-spacing: 0.08em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n  text-align: left;\n  white-space: nowrap;\n}\n\n.gram-frame-table td {\n  padding: 6px 4px;\n  font: 400 11.5px var(--gf-ui);\n  color: var(--gf-text);\n  font-variant-numeric: tabular-nums;\n  border-top: 1px solid var(--gf-row-line);\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  padding-left: 10px;\n}\n\n.gram-frame-table th:last-child,\n.gram-frame-table td:last-child {\n  padding-right: 10px;\n}\n\n/* Numbers right-align so their digits line up down the column; the units and\n   ordinals beside them are quieter than the figure they qualify. */\n.gram-frame-table th:nth-child(3),\n.gram-frame-table th:nth-child(4),\n.gram-frame-cell-numeric {\n  text-align: right;\n}\n\n.gram-frame-table td.gram-frame-cell-numeric {\n  color: var(--gf-secondary);\n}\n\n.gram-frame-cell-unit {\n  font-size: 9.5px;\n  color: var(--gf-muted);\n}\n\n.gram-frame-cell-action {\n  text-align: right;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: var(--gf-row-hover);\n}\n\n/*\n * The selected row is reversed out whole — light ground, dark ink.\n *\n * It used to be an accent border, which collided with the feature colours the\n * rows themselves carry: a green-bordered row holding a green marker said two\n * things at once. Inversion survives any feature colour, and reads at a glance\n * from the far side of the panel.\n */\n.gram-frame-table tbody tr.gram-frame-selected-row td,\n.gram-frame-table tbody tr.gram-frame-selected-row:hover td {\n  background: var(--gf-text);\n  color: #161826;\n  font-weight: 500;\n}\n\n.gram-frame-table tbody tr.gram-frame-selected-row .gram-frame-marker-delete-btn,\n.gram-frame-table tbody tr.gram-frame-selected-row .gram-frame-harmonic-delete,\n.gram-frame-table tbody tr.gram-frame-selected-row .gram-frame-sideband-delete {\n  color: #4a4c56;\n}\n\n/* Instructional, not blank: an empty rectangle says only that nothing is\n   there, never what to do about it. */\n.gram-frame-table-empty td {\n  padding: 14px 10px;\n  border-top: 0;\n  font: 400 11px var(--gf-ui);\n  color: var(--gf-muted);\n  white-space: normal;\n  cursor: default;\n}\n\n.gram-frame-table-empty:hover td {\n  background: transparent;\n}\n\n.gram-frame-marker-label-cell,\n.gram-frame-marker-label-text {\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-marker-color,\n.gram-frame-harmonic-color,\n.gram-frame-sideband-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-marker-delete-btn,\n.gram-frame-harmonic-delete,\n.gram-frame-sideband-delete {\n  padding: 0;\n  background: none;\n  border: 0;\n  color: var(--gf-muted);\n  font: 400 13px/1 var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-marker-delete-btn:hover,\n.gram-frame-harmonic-delete:hover,\n.gram-frame-sideband-delete:hover {\n  color: var(--gf-danger-text);\n}\n\n/* The sidebands column's foot. Sideband sets are rare, so this is the space the\n   panel has going spare — and clearing annotations is not a view control, so it\n   is not in the mode rail beside zoom and fit. */\n.gram-frame-tables-footer {\n  flex: none;\n  padding: 8px 10px;\n  border-top: 1px solid var(--gf-divider);\n  background: var(--gf-recess);\n}\n\n.gram-frame-clear-btn {\n  width: 100%;\n  height: 26px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 5px;\n  color: var(--gf-secondary);\n  font: 400 10.5px var(--gf-ui);\n  letter-spacing: 0.04em;\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-clear-btn:hover {\n  border-color: var(--gf-danger-border);\n  color: var(--gf-danger-text);\n}\n\n/* --- Responsive ----------------------------------------------------------\n * The panel is designed for a full-width embed (~1400px). Below that the\n * annotation tables shrink first — they are the elastic column — and past the\n * point where they cannot, the guidance column gives up its width to them. The\n * three fixed columns never shrink: the instrument face and the tool list are\n * what the panel is for.\n * ------------------------------------------------------------------------- */\n@container gramframe-controls (max-width: 1180px) {\n  .gram-frame-guidance-column:not(.gram-frame-guidance-open) {\n    flex: 0 0 40px;\n    width: 40px;\n    align-items: center;\n    padding: 10px 0;\n    gap: 10px;\n  }\n\n  .gram-frame-guidance-column:not(.gram-frame-guidance-open) .gram-frame-guidance-header,\n  .gram-frame-guidance-column:not(.gram-frame-guidance-open) .gram-frame-guidance {\n    display: none;\n  }\n\n  .gram-frame-guidance-column:not(.gram-frame-guidance-open) .gram-frame-guidance-rail {\n    display: flex;\n  }\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/*\n * A marker's on-gram label. Legibility comes from the white rounded plate drawn\n * behind it (issue #243) — the geometry and colours are presentation attributes\n * set by plateLabel(), see src/utils/labelPlate.js. Never a click target: the\n * marker underneath is.\n */\n.gram-frame-marker-label {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  user-select: none;\n}\n\n/*\n * The white plate behind any on-gram label, and the group holding the two. Both\n * are transparent to the pointer so the plate never intercepts a click meant\n * for the feature it annotates, or for the gram beneath it.\n */\n.gram-frame-label-plate,\n.gram-frame-label-plated {\n  pointer-events: none;\n}\n\n/* Storage-failure banner — shown inside the component when a save or clear was\n   refused by browser storage (quota, private browsing). Non-blocking: it sits\n   above the controls, wraps rather than clips, and can be dismissed. */\n.gram-frame-storage-warning {\n  box-sizing: border-box;\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  margin: 0 0 8px 0;\n  padding: 8px 10px;\n  background-color: #fff8e1;\n  border: 1px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 13px;\n  line-height: 1.4;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-storage-warning-message {\n  flex: 1 1 auto;\n  min-width: 0;\n}\n\n.gram-frame-storage-warning-dismiss {\n  flex: 0 0 auto;\n  padding: 0 4px;\n  background: none;\n  border: none;\n  color: #663c00;\n  font-size: 16px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-storage-warning-dismiss:hover {\n  color: #a06000;\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Frequency-rate input UI styles removed - the backend value is preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line,\n.gram-frame-harmonic-mini-pin,\n.gram-frame-sideband-line,\n.gram-frame-sideband-mini-pin {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number,\n.gram-frame-sideband-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the white rounded plate drawn behind the digits\n   * (issue #243), set as presentation attributes by plateLabel() in\n   * src/utils/labelPlate.js. No drop-shadow: it only blurs the plate's edge.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* The colour/symbol swatch each pin-set row leads with. A fixed box so the\n   first column's width does not depend on which symbol a set happens to\n   carry. */\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n/*\n * The vertical extensions are drawn after the f+/f- dots, so while they were\n * hit-testable they sat on top of the very markers the analyst was aiming at.\n * Doppler hit-testing is done in data space against the marker positions, not\n * by hitting an element, so nothing needs these to be targets.\n */\n.gram-frame-doppler-extension {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n/* Supporting note under a modal input (e.g. how to clear a marker label) */\n.gram-frame-modal-hint {\n  color: #999;\n  font-size: 11px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/*\n * The persistent panels' containers: each fills its column and lets its table\n * scroll rather than growing the row.\n */\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container,\n.gram-frame-sidebands-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n/* Region zoom (spec 170) --------------------------------------------------- */\n\n/* While Shift is held over the gram, the cursor advertises that a region\n   selection is available (FR-021). `!important` because the active mode writes\n   `style.cursor` on the same element every mousemove, and an inline value would\n   otherwise win whichever ran last. */\n.gram-frame-svg.gram-frame-region-ready {\n  cursor: zoom-in !important;\n}\n\n/* The gram outside the selection, dimmed so the target region reads as the\n   subject (FR-004). One even-odd-filled path: the outer subpath is the\n   selectable area, the inner one the selection. */\n.gram-frame-region-dim {\n  fill: #000;\n  fill-opacity: 0.45;\n  pointer-events: none;\n}\n\n/* The rubber band itself: a plain white outline, which reads cleanly because\n   everything outside the resulting view is dimmed. */\n.gram-frame-region-box {\n  fill: none;\n  stroke: #fff;\n  stroke-width: 1.5;\n  pointer-events: none;\n}\n\n/* What will actually be on screen after the zoom: the selection grown on\n   whichever axis is the looser fit. Dashed and dimmer, so it reads as a\n   consequence of the solid box rather than as a second thing to aim. Hidden\n   when it coincides with the selection. */\n.gram-frame-region-view {\n  fill: none;\n  stroke: #fff;\n  stroke-opacity: 0.65;\n  stroke-width: 1;\n  stroke-dasharray: 5 4;\n  pointer-events: none;\n}\n\n.gram-frame-region-selection {\n  pointer-events: none;\n}\n\n/* Icon buttons (issue #310) ------------------------------------------------ */\n\n/* The glyph inherits the button's colour, so it follows it through hover,\n   active and disabled exactly as a word would. */\n.gram-frame-icon {\n  width: 18px;\n  height: 18px;\n  display: block;\n  color: inherit;\n  pointer-events: none;\n}\n\n.gram-frame-icon-btn {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n/* A mode button's height comes from its line of text; a glyph is taller than\n   that, so the padding comes back off to keep Pan's row level with the four\n   word rows below it. */\n.gram-frame-mode-btn.gram-frame-icon-btn {\n  padding: 3px 6px;\n}\n\n/* The word an icon stands for: gone from the page, present in the accessibility\n   tree, and still the button's accessible name. */\n.gram-frame-visually-hidden {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  margin: -1px;\n  padding: 0;\n  overflow: hidden;\n  clip-path: inset(50%);\n  white-space: nowrap;\n  border: 0;\n}\n";
+  style.textContent = "/**\n * GramFrame Component Styles - Military/Industrial Theme\n */\n\n/* ---------------------------------------------------------------------------\n * Pre-conversion placeholder\n *\n * A `table.gram-config` is ordinary HTML until GramFrame replaces it, so on a\n * cold load (large spectrogram, slow network, unbundled dev modules) the raw\n * table is painted first: a stretched image followed by the time/freq parameter\n * rows in whatever table styling the host page uses. These rules dress that\n * intermediate state as a loading placeholder in the component's own dark\n * styling - the parameter rows are hidden, the image is dimmed back, and a\n * \"Loading spectrogram\" caption sits over the top. They stop applying the\n * moment the table is swapped for .gram-frame-container.\n *\n * Selectors are deliberately more specific than a bare `table.gram-config td`\n * so host-page table styling (borders, padding, stretched images) does not show\n * through the placeholder.\n * ------------------------------------------------------------------------- */\ntable.gram-config {\n  border-collapse: collapse;\n  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);\n  border: 3px solid #444;\n  border-radius: 8px;\n  box-shadow:\n    inset 0 2px 4px rgba(255,255,255,0.1),\n    inset 0 -2px 4px rgba(0,0,0,0.3),\n    0 4px 8px rgba(0,0,0,0.5);\n}\n\n/* Per the config format, the first row holds the image and every later row is a\n   parameter definition - configuration, not content, so hide those rows */\ntable.gram-config tr:not(:first-child) {\n  display: none;\n}\n\ntable.gram-config tr:first-child td {\n  position: relative;\n  padding: 15px;\n  border: 0;\n  background: none;\n}\n\ntable.gram-config tr:first-child img {\n  display: block;\n  width: auto;\n  max-width: 100%;\n  height: auto;\n  opacity: 0.25;\n}\n\ntable.gram-config tr:first-child td::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n/* Initialisation failed: the table is kept in place beside the error message,\n   so drop the placeholder styling and show the config as plain content again */\ntable.gram-config.gram-frame-config-error {\n  background: none;\n  border: 0;\n  box-shadow: none;\n}\n\ntable.gram-config.gram-frame-config-error tr:not(:first-child) {\n  display: table-row;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child img {\n  opacity: 1;\n}\n\ntable.gram-config.gram-frame-config-error tr:first-child td::after {\n  content: none;\n}\n\n/* Container that replaces the config table */\n.gram-frame-container {\n  position: relative;\n  width: 100%;\n  max-width: 100%;\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: transparent;\n  transition: box-shadow 0.2s ease, border-color 0.2s ease;\n  margin-bottom: 20px;\n}\n\n/* Focus indicator for multiple instances */\n.gram-frame-container.gram-frame-focused {\n  box-shadow: 0 0 0 3px rgba(66, 139, 202, 0.5);\n  border-radius: 8px;\n}\n\n/* The outer frame (not the diffing <table> — see `gram-frame-layout` in\n   table.js).\n *\n * A hairline and a radius, on the panel's own surface. It used to be a 3px\n * bevelled border over a three-stop gradient — an instrument-case look that\n * competed with the readouts inside it for the eye, which is the problem the\n * control-row redesign exists to fix. The frame's job is to say where the\n * component ends. */\n.gram-frame-layout {\n  display: table;\n  /* Fixed, so the cells take the frame's width rather than the width their\n     contents would like. Without it the control row's min-content width — five\n     columns of nowrap labels — sets the component's width, and a host narrower\n     than that gets a clipped third table instead of a squeezed one. */\n  table-layout: fixed;\n  width: 100%;\n  height: 100%;\n  background: var(--gf-surface);\n  border: 1px solid var(--gf-divider);\n  border-radius: 8px;\n  overflow: hidden;\n}\n\n.gram-frame-row {\n  display: table-row;\n}\n\n.gram-frame-row:nth-child(2) {\n  height: 100%; /* Main panel row should stretch */\n}\n\n.gram-frame-cell {\n  display: table-cell;\n  vertical-align: middle;\n  padding: 0;\n}\n\n\n/* The plot area. Unchanged in what it draws — the gram, the axes and every\n * overlay are out of the redesign's scope — but its casing is now the same\n * ground as the panel above it, so the two read as one instrument rather than\n * as two bevelled boxes stacked. */\n.gram-frame-main-panel {\n  padding: 12px;\n  background: #0c0d16;\n  border: 0;\n  border-top: 1px solid var(--gf-divider);\n  position: relative;\n}\n\n/* The SVG has no size until the spectrogram's natural dimensions are known, so\n   the panel is an empty black rectangle between the table being replaced and\n   the image arriving. Caption that gap, and say so plainly if the image never\n   arrives, rather than leaving the analyst looking at a silent black box. */\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel {\n  min-height: 120px;\n}\n\n.gram-frame-container.gram-frame-loading .gram-frame-main-panel::after,\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Loading spectrogram';\n  position: absolute;\n  left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  letter-spacing: 2px;\n  text-transform: uppercase;\n  color: #00ff00;\n  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);\n  white-space: nowrap;\n  pointer-events: none;\n}\n\n.gram-frame-container.gram-frame-image-error .gram-frame-main-panel::after {\n  content: 'Spectrogram image could not be loaded';\n  color: #ff6b6b;\n  text-shadow: none;\n}\n\n/* An audio-sourced gram (spec 168) is analysed after the table is replaced:\n   the loading caption stays up, but reads the stage and percentage the setup\n   step writes into data-gram-progress on the main panel (FR-006). */\n.gram-frame-container.gram-frame-analysing .gram-frame-main-panel::after {\n  content: attr(data-gram-progress);\n}\n\n/* While the recording plays, annotation tools are inert (spec 168 FR-013, as\n   narrowed by spec 171 FR-004a) but the gram can be dragged to seek through it\n   (spec 171, FR-015) — so the open hand, not the crosshair and not the arrow.\n   !important because the modes set the cursor inline on the SVG root. */\n.gram-frame-container.gram-frame-playing .gram-frame-svg {\n  cursor: grab !important;\n}\n\n/* The drag itself. Playback is paused for its duration, so the playing class\n   is gone and this rule stands on its own. */\n.gram-frame-container.gram-frame-drag-seek .gram-frame-svg {\n  cursor: grabbing !important;\n}\n\n/* The contrast controls, on the same bar as the transport (spec 171, US2). */\n/* The contrast controls (spec 171, US2). They ride the transport bar, and wrap\n   onto a line of their own when the bar has nothing left to give: the row above\n   is a fixed set of controls, so this pair is the one that yields. */\n.gram-frame-display-range {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  flex: 1 1 300px;\n  min-width: 0;\n}\n\n.gram-frame-display-control {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  flex: 1 1 0;\n  min-width: 0;\n}\n\n.gram-frame-display-label {\n  flex: none;\n  font: 400 9px/1 var(--gf-mono);\n  letter-spacing: 0.14em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n}\n\n.gram-frame-display-slider {\n  flex: 1;\n  min-width: 0;\n  height: 4px;\n  appearance: none;\n  -webkit-appearance: none;\n  background: rgba(247, 247, 250, 0.13);\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.gram-frame-display-slider::-webkit-slider-thumb {\n  appearance: none;\n  -webkit-appearance: none;\n  width: 9px;\n  height: 9px;\n  border: 0;\n  border-radius: 5px;\n  background: var(--gf-secondary);\n}\n\n.gram-frame-display-slider::-moz-range-thumb {\n  width: 9px;\n  height: 9px;\n  border: 0;\n  border-radius: 5px;\n  background: var(--gf-secondary);\n}\n\n.gram-frame-display-reset {\n  width: auto;\n  padding: 0 8px;\n  font-size: 10.5px;\n}\n\n.gram-frame-degraded-note {\n  margin-top: 8px;\n  padding: 4px 6px;\n  border: 1px solid rgba(230, 200, 120, 0.6);\n  border-radius: 4px;\n  background: rgba(60, 50, 20, 0.75);\n  color: #ffe6a0;\n  font-size: 12px;\n}\n\n/* The transport's live region is for screen readers only (spec 171, FR-026):\n   it carries no visible text of its own, and everything it says is already on\n   the bar for a sighted reader. */\n.gram-frame-transport-status {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n.gram-frame-transport-span {\n  flex: none;\n  font: 400 10px/1 var(--gf-mono);\n  color: var(--gf-muted);\n  white-space: nowrap;\n}\n\n/* The transport bar under an audio-sourced gram (spec 168, D13).\n *\n * Below the gram, so the scrub track and its bookmark flags line up with the\n * time axis they refer to and the control panel above never changes height.\n * One row, on the panel's own surface: it is chrome for the recording, not a\n * second instrument. */\n.gram-frame-transport {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  gap: 10px 12px;\n  min-height: 44px;\n  padding: 7px 12px;\n  box-sizing: border-box;\n  background: var(--gf-surface);\n  border-top: 1px solid rgba(247, 247, 250, 0.08);\n  color: var(--gf-text);\n  font-family: var(--gf-ui);\n}\n\n.gram-frame-transport-group {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  position: relative;\n}\n\n.gram-frame-transport-btn {\n  width: 26px;\n  height: 26px;\n  display: grid;\n  place-items: center;\n  padding: 0;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 5px;\n  color: var(--gf-secondary);\n  font: 400 12px/1 var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-transport-btn .gram-frame-icon {\n  width: 13px;\n  height: 13px;\n}\n\n.gram-frame-transport-btn:hover {\n  border-color: rgba(247, 247, 250, 0.4);\n  color: var(--gf-text);\n}\n\n.gram-frame-transport-btn[aria-pressed=\"true\"] {\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n  background: var(--gf-accent-900);\n}\n\n/* Play/pause is the one filled control on the bar: it is the thing an analyst\n   reaches for without looking. */\n.gram-frame-transport-primary {\n  width: 30px;\n  height: 30px;\n  background: var(--gf-accent);\n  border: 0;\n  border-radius: 7px;\n  color: var(--gf-bg);\n}\n\n.gram-frame-transport-primary .gram-frame-icon {\n  width: 12px;\n  height: 12px;\n}\n\n.gram-frame-transport-primary:hover,\n.gram-frame-transport-primary[aria-pressed=\"true\"] {\n  background: var(--gf-accent-400);\n  color: var(--gf-bg);\n  border: 0;\n}\n\n.gram-frame-transport-time,\n.gram-frame-transport-duration {\n  flex: none;\n  font: 400 12px/1 var(--gf-mono);\n  font-variant-numeric: tabular-nums;\n}\n\n.gram-frame-transport-duration {\n  color: var(--gf-muted);\n}\n\n.gram-frame-transport-track {\n  position: relative;\n  flex: 1 1 180px;\n  min-width: 140px;\n  height: 30px;\n}\n\n/* The scrub track. A native range input, restyled: the rail is painted by the\n   track itself and the played portion by a gradient stop the reflect pass\n   moves, so there is one element to align rather than three. */\n.gram-frame-transport-seek {\n  position: absolute;\n  left: 0;\n  right: 0;\n  top: 13px;\n  width: 100%;\n  height: 4px;\n  margin: 0;\n  padding: 0;\n  appearance: none;\n  -webkit-appearance: none;\n  background: linear-gradient(\n    to right,\n    var(--gf-accent) 0 var(--gf-played, 0%),\n    rgba(247, 247, 250, 0.13) var(--gf-played, 0%) 100%\n  );\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.gram-frame-transport-seek::-webkit-slider-thumb {\n  appearance: none;\n  -webkit-appearance: none;\n  width: 11px;\n  height: 11px;\n  border: 0;\n  border-radius: 6px;\n  background: var(--gf-accent-100);\n  box-shadow: 0 0 0 3px rgba(145, 132, 217, 0.28);\n  cursor: pointer;\n}\n\n.gram-frame-transport-seek::-moz-range-thumb {\n  width: 11px;\n  height: 11px;\n  border: 0;\n  border-radius: 6px;\n  background: var(--gf-accent-100);\n  box-shadow: 0 0 0 3px rgba(145, 132, 217, 0.28);\n  cursor: pointer;\n}\n\n/* The flags sit over the track and are transparent to the pointer except where\n   a flag actually is, so scrubbing past one still scrubs. */\n.gram-frame-transport-flags {\n  position: absolute;\n  inset: 0;\n  pointer-events: none;\n}\n\n.gram-frame-transport-flag {\n  position: absolute;\n  top: 2px;\n  transform: translateX(-50%);\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  padding: 0;\n  background: none;\n  border: 0;\n  pointer-events: auto;\n  cursor: pointer;\n}\n\n.gram-frame-transport-flag-plate {\n  padding: 1px 5px;\n  border-radius: 3px;\n  background: var(--gf-text);\n  color: var(--gf-bg);\n  font: 600 9px/1.4 var(--gf-mono);\n  white-space: nowrap;\n}\n\n.gram-frame-transport-flag-stem {\n  width: 1px;\n  height: 9px;\n  background: var(--gf-text);\n}\n\n.gram-frame-transport-divider {\n  flex: none;\n  width: 1px;\n  height: 20px;\n  background: var(--gf-divider);\n}\n\n/* Bookmark is the only outlined-in-accent control on the bar: it is the one\n   thing here that creates something rather than moving the playhead. */\n.gram-frame-transport-bookmark {\n  width: auto;\n  gap: 6px;\n  display: flex;\n  align-items: center;\n  padding: 0 9px;\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n  font: 500 10.5px var(--gf-ui);\n  white-space: nowrap;\n}\n\n.gram-frame-transport-bookmark:hover {\n  background: rgba(145, 132, 217, 0.14);\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n}\n\n.gram-frame-transport-saved {\n  height: 26px;\n  padding: 0 8px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 5px;\n  color: var(--gf-muted);\n  font: 400 10.5px var(--gf-ui);\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-transport-saved:hover:not(:disabled) {\n  border-color: rgba(247, 247, 250, 0.4);\n  color: var(--gf-text);\n}\n\n.gram-frame-transport-saved:disabled {\n  opacity: 0.5;\n  cursor: default;\n}\n\n/* Opening upward: the bar is the last thing on the component, so a list\n   dropping down would be a list off the bottom of it. */\n.gram-frame-transport-saved-list {\n  position: absolute;\n  z-index: 30;\n  right: 0;\n  bottom: calc(100% + 6px);\n  min-width: 150px;\n  padding: 4px;\n  background: var(--gf-bg);\n  border: 1px solid var(--gf-hairline);\n  border-radius: 8px;\n  box-shadow: var(--gf-shadow-md);\n}\n\n.gram-frame-transport-saved-row {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n\n.gram-frame-transport-saved-jump {\n  flex: 1;\n  padding: 4px 6px;\n  background: transparent;\n  border: 0;\n  border-radius: 4px;\n  color: var(--gf-text);\n  font: 400 11px/1 var(--gf-mono);\n  text-align: left;\n  cursor: pointer;\n}\n\n.gram-frame-transport-saved-jump:hover {\n  background: var(--gf-hover);\n}\n\n.gram-frame-transport-saved-remove {\n  padding: 2px 5px;\n  background: transparent;\n  border: 0;\n  color: var(--gf-muted);\n  font: 400 13px/1 var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-transport-saved-remove:hover {\n  color: var(--gf-danger-text);\n}\n\n.gram-frame-transport-rate-label {\n  flex: none;\n  font: 400 10px var(--gf-ui);\n  color: var(--gf-muted);\n  white-space: nowrap;\n}\n\n.gram-frame-transport-playback-rate {\n  height: 26px;\n  padding: 0 4px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 5px;\n  color: var(--gf-text);\n  font: 400 10.5px var(--gf-mono);\n  cursor: pointer;\n}\n\n.gram-frame-transport-playback-rate option {\n  background: var(--gf-bg);\n  color: var(--gf-text);\n}\n\n.gram-frame-transport-volume {\n  flex: none;\n  width: 64px;\n  height: 4px;\n  appearance: none;\n  -webkit-appearance: none;\n  background: rgba(247, 247, 250, 0.13);\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.gram-frame-transport-volume::-webkit-slider-thumb {\n  appearance: none;\n  -webkit-appearance: none;\n  width: 9px;\n  height: 9px;\n  border: 0;\n  border-radius: 5px;\n  background: var(--gf-secondary);\n}\n\n.gram-frame-transport-volume::-moz-range-thumb {\n  width: 9px;\n  height: 9px;\n  border: 0;\n  border-radius: 5px;\n  background: var(--gf-secondary);\n}\n\n/* Expand/collapse image toggle — floats at the top-left of the image region,\n   clear of the time-axis labels (left margin is 60px). Landscape grams only. */\n.gram-frame-expand-toggle {\n  position: absolute;\n  top: 22px;   /* just inside the main-panel padding + SVG top margin */\n  left: 80px;  /* clear of the 60px time-axis margin */\n  z-index: 5;  /* above the SVG overlay */\n  width: 26px;\n  height: 26px;\n  padding: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 15px;\n  line-height: 1;\n  color: #e6f2ff;\n  background: rgba(20, 30, 45, 0.55);\n  border: 1px solid rgba(180, 200, 230, 0.5);\n  border-radius: 4px;\n  cursor: pointer;\n  transition: background 0.12s ease, border-color 0.12s ease;\n}\n\n.gram-frame-expand-toggle:hover {\n  background: rgba(40, 60, 90, 0.8);\n  border-color: rgba(200, 220, 255, 0.8);\n}\n\n.gram-frame-expand-toggle:active {\n  transform: translateY(1px);\n}\n\n.gram-frame-expand-toggle[aria-pressed=\"true\"] {\n  background: rgba(60, 100, 60, 0.75);\n  border-color: rgba(150, 220, 150, 0.8);\n}\n\n/* SVG container for drawing the spectrogram and overlays */\n.gram-frame-svg {\n  display: block;\n  width: 100%;\n  height: auto;\n  background: #000;\n  border: 2px solid #333;\n  border-radius: 4px;\n  cursor: crosshair;\n  box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);\n}\n\n/* SVG image element for the spectrogram */\n.gram-frame-image {\n  /* Remove width/height CSS to allow SVG attributes to control positioning */\n}\n\n/* SVG axes styling - white on dark background */\n.gram-frame-axis-line {\n  stroke: #fff;\n  stroke-width: 1;\n  fill: none;\n}\n\n.gram-frame-axis-tick {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-major {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-tick-minor {\n  stroke: #fff;\n  stroke-width: 1;\n}\n\n.gram-frame-axis-label {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 12px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n.gram-frame-axis-label-major {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  font-size: 10px;\n  fill: #fff;\n  dominant-baseline: central;\n}\n\n\n\n\n/* Military-style display panel */\n/* ===========================================================================\n * The control row\n *\n * Five columns above the gram: the mode rail, the armed mode's guidance, the\n * cursor readouts, the style panel, and the three annotation tables. They are\n * separated by single hairlines rather than boxed, because five bordered cards\n * of equal weight gave the eye nowhere to land — the readouts are the first\n * read, and everything here is arranged so they win.\n *\n * Dark throughout, and deliberately so: the recognition differential when\n * reading plotted data is higher against a dark ground, which is what the panel\n * is beside. The palette is the design system's, declared once below and used\n * through the variables so a change lands everywhere at once.\n * ======================================================================== */\n\n.gram-frame-container {\n  /* Ground, surface and ink */\n  --gf-bg: #0d0e18;\n  --gf-surface: #171926;\n  --gf-text: #f7f7fa;\n  /* One value for the whole muted tier (~8.5:1 on the surface). Alphas below\n     .60 do not reach 4.5:1 on this ground; do not reintroduce them for text. */\n  --gf-muted: rgba(247, 247, 250, 0.70);\n  --gf-secondary: rgba(247, 247, 250, 0.85);\n\n  /* The non-text tier: rules, hover tints and recesses */\n  --gf-divider: #3a3c4a;\n  --gf-hairline: rgba(247, 247, 250, 0.18);\n  --gf-row-line: rgba(247, 247, 250, 0.07);\n  --gf-hover: rgba(247, 247, 250, 0.06);\n  --gf-row-hover: rgba(247, 247, 250, 0.05);\n  --gf-recess: rgba(0, 0, 0, 0.22);\n  --gf-recess-deep: rgba(0, 0, 0, 0.36);\n\n  /* Accent, and the ramp around it */\n  --gf-accent: #9184d9;\n  --gf-accent-100: #efedfb;\n  --gf-accent-200: #ddd9f6;\n  --gf-accent-400: #aca2e5;\n  --gf-accent-600: #7768c4;\n  --gf-accent-700: #5d4fa3;\n  --gf-accent-800: #433a71;\n  --gf-accent-900: #2b2741;\n  --gf-accent-tint: rgba(145, 132, 217, 0.09);\n\n  /* Destructive, on hover only: nothing here is red at rest */\n  --gf-danger-border: #8d5a5a;\n  --gf-danger-text: #e2b3b3;\n\n  --gf-ui: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  --gf-mono: ui-monospace, Menlo, Consolas, monospace;\n  --gf-shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5);\n\n  /* The panel's height. The gram is deliberately given as much room as\n     possible, so this is a budget rather than a starting point: a column that\n     needs more room scrolls inside it. */\n  --gf-panel-height: 250px;\n}\n\n/* The control row's own containment context.\n *\n * The panel's responsive behaviour depends on how wide the COMPONENT is, not on\n * how wide the window is: the same page can carry a full-width gram and a\n * half-width one, and a viewport media query would collapse the guidance in\n * both or neither. Scoped to this wrapper rather than the container so the\n * plot area below is outside the containment entirely. */\n.gram-frame-readout {\n  container-type: inline-size;\n  container-name: gramframe-controls;\n  width: 100%;\n  padding: 0;\n  background: transparent;\n}\n\n.gram-frame-unified-layout {\n  display: flex;\n  align-items: stretch;\n  height: var(--gf-panel-height);\n  background: var(--gf-surface);\n  font-family: var(--gf-ui);\n  color: var(--gf-text);\n}\n\n/* Every column but the last is closed by a hairline; the tables run to the\n   panel's own edge. */\n.gram-frame-unified-layout > * {\n  box-sizing: border-box;\n  border-right: 1px solid var(--gf-divider);\n}\n\n.gram-frame-unified-layout > :last-child {\n  border-right: 0;\n}\n\n/* Keyboard focus is one treatment everywhere in the panel — an accent ring,\n   offset so it never reads as a border the control has grown. */\n.gram-frame-unified-layout :focus-visible,\n.gram-frame-symbol-popup :focus-visible,\n.gram-frame-transport :focus-visible {\n  outline: 2px solid var(--gf-accent);\n  outline-offset: 2px;\n}\n\n/* A section kicker: the smallest text in the panel, and the only text set in\n   spaced monospace caps, so it reads as a label rather than as content. */\n.gram-frame-kicker {\n  font: 600 9px/1 var(--gf-mono);\n  letter-spacing: 0.16em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n}\n\n/* --- Column 1: the mode rail --------------------------------------------- */\n\n.gram-frame-mode-column {\n  flex: 0 0 154px;\n  width: 154px;\n  min-width: 0;\n}\n\n.gram-frame-modes {\n  display: flex;\n  flex-direction: column;\n  gap: 5px;\n  height: 100%;\n  padding: 10px 10px 8px;\n  box-sizing: border-box;\n}\n\n.gram-frame-modes > .gram-frame-kicker {\n  padding: 0 2px 2px;\n}\n\n.gram-frame-mode-list {\n  display: flex;\n  flex-direction: column;\n  gap: 5px;\n}\n\n.gram-frame-mode-spacer {\n  flex: 1;\n}\n\n/* A mode button: glyph, then word. The 2px left border is transparent at rest\n   and accent when armed, so arming changes no geometry — the row does not\n   shift under the pointer as the analyst moves down the rail. */\n.gram-frame-mode-btn {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  height: 27px;\n  padding: 0 8px;\n  border: 0;\n  border-left: 2px solid transparent;\n  border-radius: 0 4px 4px 0;\n  background: transparent;\n  color: var(--gf-secondary);\n  font: 400 11.5px var(--gf-ui);\n  white-space: nowrap;\n  text-align: left;\n  cursor: pointer;\n}\n\n.gram-frame-mode-btn .gram-frame-icon {\n  width: 15px;\n  height: 15px;\n  flex: none;\n}\n\n.gram-frame-mode-btn-label {\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gram-frame-mode-btn:hover:not(:disabled) {\n  background: var(--gf-hover);\n  color: var(--gf-text);\n}\n\n.gram-frame-mode-btn.active {\n  background: var(--gf-accent-900);\n  border-left-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n  font-weight: 500;\n}\n\n.gram-frame-mode-btn:disabled,\n.gram-frame-mode-btn.disabled {\n  opacity: 0.45;\n  cursor: not-allowed;\n}\n\n/* The view controls, at the foot of the rail behind a rule: they act on the\n   view rather than on the armed tool, which is why they are fenced off from\n   the five buttons above and stay put whichever is armed. */\n.gram-frame-mode-commands {\n  display: flex;\n  gap: 4px;\n  padding-top: 6px;\n  border-top: 1px solid var(--gf-divider);\n}\n\n.gram-frame-command-btn {\n  width: 26px;\n  height: 24px;\n  display: grid;\n  place-items: center;\n  padding: 0;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 4px;\n  color: var(--gf-secondary);\n  font: 400 13px var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-command-btn .gram-frame-icon {\n  width: 14px;\n  height: 14px;\n}\n\n.gram-frame-command-btn:hover:not(:disabled) {\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n}\n\n.gram-frame-command-btn:disabled {\n  opacity: 0.4;\n  cursor: not-allowed;\n}\n\n/* The word behind a glyph: gone from the page, present in the accessibility\n   tree and to anything selecting the button by name. */\n.gram-frame-visually-hidden {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  margin: -1px;\n  padding: 0;\n  overflow: hidden;\n  clip: rect(0 0 0 0);\n  clip-path: inset(50%);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* --- Column 2: the armed mode's guidance --------------------------------- */\n\n.gram-frame-guidance-column {\n  flex: 0 0 264px;\n  width: 264px;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  background: var(--gf-recess);\n  box-sizing: border-box;\n}\n\n.gram-frame-guidance-header {\n  display: flex;\n  align-items: center;\n  gap: 7px;\n  flex: none;\n  height: 28px;\n  padding: 0 10px 0 12px;\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n.gram-frame-guidance-title {\n  font: 600 9px/1 var(--gf-mono);\n  letter-spacing: 0.14em;\n  color: var(--gf-accent);\n  text-transform: uppercase;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gram-frame-guidance-hide {\n  margin-left: auto;\n  height: 20px;\n  padding: 0 7px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 4px;\n  color: var(--gf-muted);\n  font: 400 9.5px var(--gf-ui);\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-guidance-hide:hover {\n  border-color: rgba(247, 247, 250, 0.4);\n  color: var(--gf-text);\n}\n\n/* The body scrolls rather than growing the row: Pan carries its own four lines\n   plus the four cross-mode gestures, and the panel's height is a budget. */\n.gram-frame-guidance {\n  flex: 1;\n  min-height: 0;\n  overflow-y: auto;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding: 8px 12px;\n  box-sizing: border-box;\n}\n\n.gram-frame-guidance h4 {\n  margin: 4px 0 0;\n  font: 600 9px/1 var(--gf-mono);\n  letter-spacing: 0.14em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n}\n\n.gram-frame-guidance h4:first-child {\n  margin-top: 0;\n}\n\n.gram-frame-guidance h4 .gram-frame-guidance-qualifier {\n  font-weight: 400;\n  letter-spacing: 0;\n  text-transform: none;\n}\n\n/* One line of guidance: the trigger in a fixed track, the outcome beside it.\n   The fixed track is the whole point — it is what lets the gestures of a mode\n   be compared down the column instead of read out of four sentences. */\n.gram-frame-guidance-row {\n  display: flex;\n  gap: 8px;\n  align-items: baseline;\n}\n\n.gram-frame-guidance-trigger {\n  flex: none;\n  width: 76px;\n  font: 500 10px/1.4 var(--gf-ui);\n  color: var(--gf-text);\n}\n\n.gram-frame-guidance-outcome,\n.gram-frame-guidance-note {\n  font: 400 11px/1.4 var(--gf-ui);\n  color: var(--gf-secondary);\n}\n\n.gram-frame-guidance-note {\n  color: var(--gf-muted);\n}\n\n/* Collapsed: the column becomes a 40px rail in the same position, and the\n   ~224px it releases goes to the annotation tables. The space stays dedicated\n   — nothing else ever moves into it. */\n.gram-frame-guidance-column.gram-frame-guidance-collapsed {\n  flex: 0 0 40px;\n  width: 40px;\n  align-items: center;\n  padding: 10px 0;\n  gap: 10px;\n}\n\n.gram-frame-guidance-collapsed .gram-frame-guidance-header,\n.gram-frame-guidance-collapsed .gram-frame-guidance {\n  display: none;\n}\n\n.gram-frame-guidance-rail {\n  display: none;\n  flex-direction: column;\n  align-items: center;\n  gap: 10px;\n}\n\n.gram-frame-guidance-collapsed .gram-frame-guidance-rail {\n  display: flex;\n}\n\n.gram-frame-guidance-reveal {\n  width: 24px;\n  height: 24px;\n  display: grid;\n  place-items: center;\n  padding: 0;\n  background: transparent;\n  border: 1px solid var(--gf-accent-700);\n  border-radius: 4px;\n  color: var(--gf-accent-200);\n  font: 400 11px var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-guidance-reveal:hover {\n  background: var(--gf-accent-900);\n}\n\n.gram-frame-guidance-rail-label {\n  font: 600 9px/1 var(--gf-mono);\n  letter-spacing: 0.16em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n  writing-mode: vertical-rl;\n}\n\n/* --- Column 3: the instrument face --------------------------------------- */\n\n.gram-frame-readout-column {\n  flex: 0 0 210px;\n  width: 210px;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  padding: 10px 14px 8px;\n  box-sizing: border-box;\n  /* Recessed, and lit from the top edge: it reads as a separate instrument set\n     into the panel rather than as another card sitting on it. */\n  background: var(--gf-recess-deep);\n  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.4);\n}\n\n.gram-frame-readout-kicker {\n  display: flex;\n  align-items: baseline;\n  gap: 6px;\n  padding-bottom: 8px;\n}\n\n.gram-frame-readout-target {\n  font: 500 9.5px/1 var(--gf-ui);\n  letter-spacing: 0;\n  color: var(--gf-accent-200);\n  text-transform: none;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-readout-separator {\n  height: 1px;\n  margin: 9px 0;\n  background: linear-gradient(to right, var(--gf-divider), transparent);\n}\n\n.gram-frame-readout-spacer {\n  flex: 1;\n}\n\n.gram-frame-led {\n  display: flex;\n  align-items: baseline;\n  justify-content: space-between;\n  gap: 8px;\n  font-family: var(--gf-mono);\n}\n\n.gram-frame-led-value {\n  font: 400 36px/1 var(--gf-mono);\n  color: var(--gf-text);\n  font-variant-numeric: tabular-nums;\n  letter-spacing: -0.01em;\n  /* The faint bloom is what makes it read as a lit instrument rather than as\n     large text. It is the only glow in the panel, and only on these two. */\n  text-shadow: 0 0 18px rgba(247, 247, 250, 0.2);\n}\n\n.gram-frame-led-accent .gram-frame-led-value {\n  color: var(--gf-accent-200);\n  text-shadow: 0 0 20px rgba(145, 132, 217, 0.35);\n}\n\n.gram-frame-led-unit {\n  font: 400 9.5px/1 var(--gf-mono);\n  letter-spacing: 0.1em;\n  color: var(--gf-muted);\n}\n\n.gram-frame-led-caption {\n  font: 400 9px/1 var(--gf-mono);\n  letter-spacing: 0.14em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n}\n\n/* The doppler speed: a derived quantity, so it is fenced off at the foot\n   between two rules and set at half the size of the two readings the pointer\n   itself produces. */\n.gram-frame-led-inline {\n  flex: none;\n  padding: 9px 0;\n  border-top: 1px solid var(--gf-divider);\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n.gram-frame-led-inline .gram-frame-led-value {\n  font-size: 19px;\n  text-shadow: none;\n  margin-left: auto;\n}\n\n/* --- Column 4: the style panel ------------------------------------------- */\n\n.gram-frame-color-picker {\n  flex: 0 0 222px;\n  width: 222px;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  box-sizing: border-box;\n}\n\n/* Targeting a feature tints the whole column and warms its rules, so \"this\n   changes something that already exists\" is visible from across the panel. */\n.gram-frame-color-picker.gram-frame-style-targeting {\n  border-right-color: var(--gf-accent-700);\n}\n\n.gram-frame-style-tabs {\n  display: flex;\n  align-items: stretch;\n  flex: none;\n  height: 28px;\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n.gram-frame-style-targeting .gram-frame-style-tabs {\n  border-bottom-color: var(--gf-accent-700);\n}\n\n.gram-frame-style-tab {\n  flex: 1;\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 5px;\n  padding: 0 6px;\n  background: transparent;\n  border: 0;\n  color: var(--gf-muted);\n  font: 400 10px var(--gf-ui);\n  letter-spacing: 0.03em;\n  white-space: nowrap;\n  overflow: hidden;\n  cursor: pointer;\n}\n\n.gram-frame-style-tab-selected {\n  border-left: 1px solid var(--gf-divider);\n}\n\n.gram-frame-style-targeting .gram-frame-style-tab-selected {\n  border-left-color: var(--gf-accent-700);\n}\n\n.gram-frame-style-tab:hover:not(:disabled) {\n  background: var(--gf-hover);\n  color: var(--gf-text);\n}\n\n.gram-frame-style-tab:disabled {\n  color: rgba(247, 247, 250, 0.4);\n  cursor: not-allowed;\n}\n\n/* The armed tab. The first is underlined in plain ink and the second in\n   accent, matching what each one changes. */\n.gram-frame-style-tab-new.gram-frame-style-tab-armed {\n  background: var(--gf-hover);\n  border-bottom: 2px solid var(--gf-text);\n  color: var(--gf-text);\n  font-weight: 500;\n}\n\n.gram-frame-style-tab-selected.gram-frame-style-tab-armed {\n  background: var(--gf-accent-900);\n  border-bottom: 2px solid var(--gf-accent);\n  color: var(--gf-accent-100);\n  font-weight: 500;\n}\n\n.gram-frame-style-tab-swatch {\n  font-size: 11px;\n  line-height: 1;\n}\n\n.gram-frame-style-body {\n  flex: 1;\n  min-height: 0;\n  overflow-y: auto;\n  display: flex;\n  flex-direction: column;\n  gap: 9px;\n  padding: 10px 12px;\n  box-sizing: border-box;\n}\n\n.gram-frame-style-targeting .gram-frame-style-body {\n  background: var(--gf-accent-tint);\n}\n\n.gram-frame-style-spacer {\n  flex: 1;\n}\n\n.gram-frame-style-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n\n.gram-frame-style-row[hidden] {\n  display: none;\n}\n\n.gram-frame-style-group-label {\n  flex: none;\n  width: 46px;\n  font: 400 10.5px var(--gf-ui);\n  color: var(--gf-muted);\n}\n\n/* The label field, edited where the label is read. The dialog it replaces meant\n   leaving the panel to change one word of what the panel is about. */\n.gram-frame-style-label-input {\n  flex: 1;\n  min-width: 0;\n  height: 26px;\n  padding: 0 8px;\n  box-sizing: border-box;\n  background: var(--gf-recess-deep);\n  border: 1px solid var(--gf-accent-600);\n  border-radius: 6px;\n  color: var(--gf-text);\n  font: 400 11.5px var(--gf-mono);\n}\n\n/* The colour slider: the one colour control in the panel. */\n.gram-frame-color-slider {\n  position: relative;\n  flex: none;\n  height: 19px;\n  border-radius: 3px;\n  box-shadow: 0 0 0 1px var(--gf-hairline);\n  overflow: visible;\n}\n\n.gram-frame-color-canvas {\n  display: block;\n  width: 100%;\n  height: 19px;\n  border-radius: 3px;\n  cursor: crosshair;\n}\n\n/* A bar overhanging the strip top and bottom, rather than a blob sitting on\n   it: the colour under the thumb stays visible, which is the one thing the\n   control exists to show. */\n.gram-frame-color-indicator {\n  position: absolute;\n  top: -3px;\n  bottom: -3px;\n  width: 3px;\n  margin-left: -1.5px;\n  border-radius: 2px;\n  background: var(--gf-text);\n  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);\n  pointer-events: none;\n}\n\n.gram-frame-symbol-select {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  height: 26px;\n  padding: 0 8px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 6px;\n  color: var(--gf-text);\n  font: 400 11px var(--gf-ui);\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-symbol-select:hover {\n  border-color: rgba(247, 247, 250, 0.4);\n}\n\n.gram-frame-symbol-glyph {\n  font-size: 13px;\n  line-height: 1;\n}\n\n.gram-frame-symbol-caret {\n  color: var(--gf-muted);\n  font-size: 9px;\n}\n\n/* The symbol popup, positioned against the component rather than against the\n   row that opens it — see `placePopup` in SymbolPicker.js. */\n.gram-frame-symbol-popup {\n  position: absolute;\n  z-index: 30;\n  width: 238px;\n  background: var(--gf-bg);\n  border: 1px solid var(--gf-hairline);\n  border-radius: 8px;\n  box-shadow: var(--gf-shadow-md);\n  overflow: hidden;\n}\n\n.gram-frame-symbol-popup-header {\n  display: flex;\n  align-items: center;\n  height: 26px;\n  padding: 0 10px;\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n/* All seven at once, at the size and in the colour they will be drawn in —\n   which is the comparison an analyst is actually making. */\n.gram-frame-symbol-grid {\n  display: grid;\n  grid-template-columns: repeat(4, 1fr);\n  gap: 4px;\n  padding: 8px;\n}\n\n.gram-frame-symbol-cell {\n  height: 32px;\n  display: grid;\n  place-items: center;\n  background: transparent;\n  border: 1px solid var(--gf-divider);\n  border-radius: 6px;\n  color: var(--gf-symbol-tint, var(--gf-text));\n  font: 400 15px var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-symbol-cell:hover {\n  border-color: rgba(247, 247, 250, 0.4);\n}\n\n.gram-frame-symbol-cell-selected {\n  background: var(--gf-accent-900);\n  border-color: var(--gf-accent);\n}\n\n.gram-frame-symbol-popup-footer {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  padding: 8px 10px;\n  border-top: 1px solid var(--gf-divider);\n}\n\n.gram-frame-symbol-popup-footer .gram-frame-style-group-label {\n  width: auto;\n}\n\n.gram-frame-symbol-popup-footer .gram-frame-segmented {\n  margin-left: auto;\n}\n\n/* A segmented control: both options on screen, one filled. */\n.gram-frame-segmented {\n  display: flex;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 6px;\n  overflow: hidden;\n}\n\n.gram-frame-segmented-option {\n  height: 24px;\n  padding: 0 10px;\n  background: transparent;\n  border: 0;\n  color: var(--gf-muted);\n  font: 400 10px var(--gf-ui);\n  letter-spacing: 0.04em;\n  text-transform: uppercase;\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-segmented-option + .gram-frame-segmented-option {\n  border-left: 1px solid var(--gf-hairline);\n}\n\n.gram-frame-segmented-option:hover:not(:disabled) {\n  background: var(--gf-hover);\n}\n\n.gram-frame-segmented-selected {\n  background: var(--gf-accent-900);\n  color: var(--gf-accent-200);\n  font-weight: 500;\n}\n\n.gram-frame-segmented-disabled {\n  opacity: 0.45;\n}\n\n.gram-frame-segmented-disabled .gram-frame-segmented-option {\n  cursor: not-allowed;\n}\n\n.gram-frame-symbol-popup-footer .gram-frame-segmented-option {\n  height: 22px;\n  text-transform: none;\n  letter-spacing: 0;\n  font-size: 10.5px;\n}\n\n.gram-frame-nudge {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n\n.gram-frame-nudge-btn {\n  width: 26px;\n  height: 24px;\n  display: grid;\n  place-items: center;\n  padding: 0;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 4px;\n  color: var(--gf-secondary);\n  font: 400 11px var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-nudge-btn:hover {\n  border-color: var(--gf-accent);\n  color: var(--gf-accent-200);\n}\n\n.gram-frame-nudge-note {\n  margin-left: 4px;\n  font: 400 10px var(--gf-ui);\n  color: var(--gf-muted);\n  white-space: nowrap;\n}\n\n/* The footer states the target in words, so the tabs are never the only place\n   it is said. */\n.gram-frame-style-footer {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  flex: none;\n  margin: 0 12px;\n  padding: 8px 0 10px;\n  border-top: 1px dashed var(--gf-hairline);\n}\n\n.gram-frame-style-targeting .gram-frame-style-footer {\n  border-top: 1px solid var(--gf-accent-800);\n}\n\n.gram-frame-style-footer-glyph {\n  font-size: 13px;\n  line-height: 1;\n  opacity: 0.55;\n}\n\n.gram-frame-style-footer-note {\n  font: 400 10px/1.4 var(--gf-ui);\n  color: var(--gf-muted);\n}\n\n.gram-frame-style-targeting .gram-frame-style-footer-note {\n  color: var(--gf-accent-100);\n}\n\n.gram-frame-style-delete {\n  margin-left: auto;\n  height: 20px;\n  padding: 0 8px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 4px;\n  color: var(--gf-muted);\n  font: 400 9.5px var(--gf-ui);\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-style-delete:hover {\n  border-color: var(--gf-danger-border);\n  color: var(--gf-danger-text);\n}\n\n/* --- Column 5: the annotation tables ------------------------------------- */\n\n.gram-frame-tables {\n  flex: 1;\n  min-width: 0;\n  display: flex;\n}\n\n.gram-frame-table-column {\n  flex: 1;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  border-right: 1px solid var(--gf-divider);\n}\n\n.gram-frame-table-column:last-child {\n  border-right: 0;\n}\n\n.gram-frame-panel-header {\n  display: flex;\n  align-items: center;\n  gap: 7px;\n  flex: none;\n  height: 28px;\n  padding: 0 10px;\n  box-sizing: border-box;\n  border-bottom: 1px solid var(--gf-divider);\n}\n\n.gram-frame-panel-header h4 {\n  margin: 0;\n  font: 600 10px/1 var(--gf-ui);\n  letter-spacing: 0.1em;\n  color: var(--gf-text);\n  text-transform: uppercase;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* How many there are, hidden at zero: a chip reading \"0\" is noise beside an\n   empty state that already says so. */\n.gram-frame-count-chip {\n  flex: none;\n  padding: 3px 6px;\n  border-radius: 8px;\n  background: var(--gf-accent-900);\n  color: var(--gf-accent-200);\n  font: 500 9.5px/1 var(--gf-mono);\n}\n\n.gram-frame-harmonics-button-container {\n  margin-left: auto;\n  flex-shrink: 0;\n}\n\n.gram-frame-manual-button {\n  height: 20px;\n  padding: 0 8px;\n  background: transparent;\n  border: 1px solid var(--gf-accent-700);\n  border-radius: 4px;\n  color: var(--gf-accent-200);\n  font: 500 9.5px var(--gf-ui);\n  letter-spacing: 0.05em;\n  text-transform: uppercase;\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-manual-button:hover {\n  background: var(--gf-accent-900);\n}\n\n/*\n * Fixed-height home for one of the three tables.\n *\n * It claims the column's remaining height (flex: 1) but contributes nothing to\n * the layout's intrinsic height, because its only child is absolutely\n * positioned. That is what keeps the panels a constant size however many rows\n * they hold: the tables can no longer push the control row taller (untidy\n * layout) nor steal vertical space from an expanded spectrogram image.\n */\n.gram-frame-table-area {\n  position: relative;\n  flex: 1 1 auto;\n  min-height: 0;\n}\n\n/* The scrollport. `scrollbar-gutter: stable` reserves the scrollbar's width\n   whether or not there is anything to scroll, so the columns do not all shift\n   sideways the moment a table gains its eighth row. It replaces a permanent\n   `overflow-y: scroll`, which reserved the same space by painting a track over\n   an empty table. */\n.gram-frame-table-container {\n  position: absolute;\n  inset: 0;\n  overflow-y: auto;\n  overflow-x: hidden;\n  scrollbar-gutter: stable;\n  scrollbar-width: thin;\n  scrollbar-color: var(--gf-hairline) transparent;\n}\n\n.gram-frame-table-container::-webkit-scrollbar {\n  width: 8px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-track {\n  background: transparent;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb {\n  background: var(--gf-hairline);\n  border-radius: 4px;\n}\n\n.gram-frame-table-container::-webkit-scrollbar-thumb:hover {\n  background: rgba(247, 247, 250, 0.3);\n}\n\n.gram-frame-table {\n  width: 100%;\n  border-collapse: collapse;\n  table-layout: fixed;\n  font-family: var(--gf-ui);\n}\n\n.gram-frame-table th {\n  position: sticky;\n  top: 0;\n  z-index: 1;\n  padding: 6px 4px 4px;\n  background: var(--gf-surface);\n  font: 600 9.5px/1 var(--gf-mono);\n  letter-spacing: 0.08em;\n  color: var(--gf-muted);\n  text-transform: uppercase;\n  text-align: left;\n  white-space: nowrap;\n}\n\n.gram-frame-table td {\n  padding: 6px 4px;\n  font: 400 11.5px var(--gf-ui);\n  color: var(--gf-text);\n  font-variant-numeric: tabular-nums;\n  border-top: 1px solid var(--gf-row-line);\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-table th:first-child,\n.gram-frame-table td:first-child {\n  padding-left: 10px;\n}\n\n.gram-frame-table th:last-child,\n.gram-frame-table td:last-child {\n  padding-right: 10px;\n}\n\n/* Numbers right-align so their digits line up down the column; the units and\n   ordinals beside them are quieter than the figure they qualify. */\n.gram-frame-table th:nth-child(3),\n.gram-frame-table th:nth-child(4),\n.gram-frame-cell-numeric {\n  text-align: right;\n}\n\n.gram-frame-table td.gram-frame-cell-numeric {\n  color: var(--gf-secondary);\n}\n\n.gram-frame-cell-unit {\n  font-size: 9.5px;\n  color: var(--gf-muted);\n}\n\n.gram-frame-cell-action {\n  text-align: right;\n}\n\n.gram-frame-table tbody tr {\n  cursor: pointer;\n}\n\n.gram-frame-table tbody tr:hover td {\n  background: var(--gf-row-hover);\n}\n\n/*\n * The selected row is reversed out whole — light ground, dark ink.\n *\n * It used to be an accent border, which collided with the feature colours the\n * rows themselves carry: a green-bordered row holding a green marker said two\n * things at once. Inversion survives any feature colour, and reads at a glance\n * from the far side of the panel.\n */\n.gram-frame-table tbody tr.gram-frame-selected-row td,\n.gram-frame-table tbody tr.gram-frame-selected-row:hover td {\n  background: var(--gf-text);\n  color: var(--gf-bg);\n  font-weight: 500;\n}\n\n.gram-frame-table tbody tr.gram-frame-selected-row .gram-frame-marker-delete-btn,\n.gram-frame-table tbody tr.gram-frame-selected-row .gram-frame-harmonic-delete,\n.gram-frame-table tbody tr.gram-frame-selected-row .gram-frame-sideband-delete {\n  color: #4a4c56;\n}\n\n/* Instructional, not blank: an empty rectangle says only that nothing is\n   there, never what to do about it. */\n.gram-frame-table-empty td {\n  padding: 14px 10px;\n  border-top: 0;\n  font: 400 11px var(--gf-ui);\n  color: var(--gf-muted);\n  white-space: normal;\n  cursor: default;\n}\n\n.gram-frame-table-empty:hover td {\n  background: transparent;\n}\n\n.gram-frame-marker-label-cell,\n.gram-frame-marker-label-text {\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.gram-frame-marker-color,\n.gram-frame-harmonic-color,\n.gram-frame-sideband-color {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  width: 20px;\n  height: 16px;\n}\n\n.gram-frame-marker-delete-btn,\n.gram-frame-harmonic-delete,\n.gram-frame-sideband-delete {\n  padding: 0;\n  background: none;\n  border: 0;\n  color: var(--gf-muted);\n  font: 400 13px/1 var(--gf-ui);\n  cursor: pointer;\n}\n\n.gram-frame-marker-delete-btn:hover,\n.gram-frame-harmonic-delete:hover,\n.gram-frame-sideband-delete:hover {\n  color: var(--gf-danger-text);\n}\n\n/* The sidebands column's foot. Sideband sets are rare, so this is the space the\n   panel has going spare — and clearing annotations is not a view control, so it\n   is not in the mode rail beside zoom and fit. */\n.gram-frame-tables-footer {\n  flex: none;\n  padding: 8px 10px;\n  border-top: 1px solid var(--gf-divider);\n  background: var(--gf-recess);\n}\n\n.gram-frame-clear-btn {\n  width: 100%;\n  height: 26px;\n  background: transparent;\n  border: 1px solid var(--gf-hairline);\n  border-radius: 5px;\n  color: var(--gf-secondary);\n  font: 400 10.5px var(--gf-ui);\n  letter-spacing: 0.04em;\n  white-space: nowrap;\n  cursor: pointer;\n}\n\n.gram-frame-clear-btn:hover {\n  border-color: var(--gf-danger-border);\n  color: var(--gf-danger-text);\n}\n\n/* --- Responsive ----------------------------------------------------------\n * The panel is designed for a full-width embed (~1400px). Below that the\n * annotation tables shrink first — they are the elastic column — and past the\n * point where they cannot, the guidance column gives up its width to them. The\n * three fixed columns never shrink: the instrument face and the tool list are\n * what the panel is for.\n * ------------------------------------------------------------------------- */\n@container gramframe-controls (max-width: 1180px) {\n  .gram-frame-guidance-column:not(.gram-frame-guidance-open) {\n    flex: 0 0 40px;\n    width: 40px;\n    align-items: center;\n    padding: 10px 0;\n    gap: 10px;\n  }\n\n  .gram-frame-guidance-column:not(.gram-frame-guidance-open) .gram-frame-guidance-header,\n  .gram-frame-guidance-column:not(.gram-frame-guidance-open) .gram-frame-guidance {\n    display: none;\n  }\n\n  .gram-frame-guidance-column:not(.gram-frame-guidance-open) .gram-frame-guidance-rail {\n    display: flex;\n  }\n}\n\n/* Marker rendering styles */\n.gram-frame-marker-line {\n  opacity: 0.8;\n}\n\n.gram-frame-marker-point {\n  opacity: 0.9;\n}\n\n/*\n * A marker's on-gram label. Legibility comes from the white rounded plate drawn\n * behind it (issue #243) — the geometry and colours are presentation attributes\n * set by plateLabel(), see src/utils/labelPlate.js. Never a click target: the\n * marker underneath is.\n */\n.gram-frame-marker-label {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  user-select: none;\n}\n\n/*\n * The white plate behind any on-gram label, and the group holding the two. Both\n * are transparent to the pointer so the plate never intercepts a click meant\n * for the feature it annotates, or for the gram beneath it.\n */\n.gram-frame-label-plate,\n.gram-frame-label-plated {\n  pointer-events: none;\n}\n\n/* Storage-failure banner — shown inside the component when a save or clear was\n   refused by browser storage (quota, private browsing). Non-blocking: it sits\n   above the controls, wraps rather than clips, and can be dismissed. */\n.gram-frame-storage-warning {\n  box-sizing: border-box;\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  margin: 0 0 8px 0;\n  padding: 8px 10px;\n  background-color: #fff8e1;\n  border: 1px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 13px;\n  line-height: 1.4;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-storage-warning-message {\n  flex: 1 1 auto;\n  min-width: 0;\n}\n\n.gram-frame-storage-warning-dismiss {\n  flex: 0 0 auto;\n  padding: 0 4px;\n  background: none;\n  border: none;\n  color: #663c00;\n  font-size: 16px;\n  line-height: 1;\n  cursor: pointer;\n}\n\n.gram-frame-storage-warning-dismiss:hover {\n  color: #a06000;\n}\n\n/* Legacy-browser compatibility warning — shown in place of the component when\n   the browser lacks a required JS/DOM API. Kept legible even in small\n   containers (min sizing, word wrapping) so it is never clipped to nothing. */\n.gram-frame-compat-warning {\n  box-sizing: border-box;\n  display: block;\n  min-width: 0;\n  max-width: 100%;\n  margin: 10px 0;\n  padding: 16px 20px;\n  background-color: #fff8e1;\n  border: 2px solid #f0ad4e;\n  border-radius: 4px;\n  color: #663c00;\n  font-family: Arial, Helvetica, sans-serif;\n  font-size: 14px;\n  line-height: 1.5;\n  overflow-wrap: break-word;\n  word-wrap: break-word;\n}\n\n.gram-frame-compat-warning-heading {\n  display: block;\n  margin-bottom: 6px;\n  font-size: 15px;\n}\n\n.gram-frame-compat-warning-message {\n  margin: 0;\n}\n\n/* Frequency-rate input UI styles removed - the backend value is preserved */\n\n/* SVG cursor styles removed - using CSS cursor only */\n\n/* SVG Harmonic line styles */\n\n\n.gram-frame-harmonic-line,\n.gram-frame-harmonic-mini-pin,\n.gram-frame-sideband-line,\n.gram-frame-sideband-mini-pin {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: none;\n  stroke-linecap: round;\n}\n\n\n.gram-frame-harmonic-number,\n.gram-frame-sideband-number {\n  font-family: Arial, sans-serif;\n  font-size: 12px;\n  font-weight: bold;\n  pointer-events: none;\n  /*\n   * Legibility comes from the white rounded plate drawn behind the digits\n   * (issue #243), set as presentation attributes by plateLabel() in\n   * src/utils/labelPlate.js. No drop-shadow: it only blurs the plate's edge.\n   */\n}\n\n/* SVG Harmonic Set styles (new system) */\n\n.gram-frame-harmonic-set-line {\n  stroke-width: 2;\n  fill: none;\n  pointer-events: auto !important;\n  /*cursor: grab !important;*/\n  stroke-linecap: round;\n}\n\n.gram-frame-harmonic-set-line:hover {\n  stroke-width: 3;\n  /* cursor: grab !important; */\n}\n\n.gram-frame-harmonic-set-line:active {\n  cursor: grabbing !important;\n}\n\n/* Legacy harmonic styles (for backward compatibility) */\n.gram-frame-harmonic {\n  position: absolute;\n  height: 1px;\n  background-color: rgba(255, 255, 0, 0.7);\n  pointer-events: none;\n}\n\n\n\n/* Debug grid */\n\n/* Canvas boundary overlay */\n\n/* Message display */\n\n/* Error state */\n.gram-frame-error {\n  padding: 10px;\n  background-color: #f8d7da;\n  color: #721c24;\n  border: 1px solid #f5c6cb;\n  border-radius: 4px;\n  margin: 10px 0;\n}\n\n/* The colour/symbol swatch each pin-set row leads with. A fixed box so the\n   first column's width does not depend on which symbol a set happens to\n   carry. */\n.gram-frame-harmonic-symbol-swatch {\n  display: block;\n}\n\n/* Doppler mode styles */\n.gram-frame-doppler-fPlus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-fMinus {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-crosshair {\n  pointer-events: auto;\n}\n\n.gram-frame-doppler-curve {\n  pointer-events: none;\n}\n\n/*\n * The vertical extensions are drawn after the f+/f- dots, so while they were\n * hit-testable they sat on top of the very markers the analyst was aiming at.\n * Doppler hit-testing is done in data space against the marker positions, not\n * by hitting an element, so nothing needs these to be targets.\n */\n.gram-frame-doppler-extension {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-guide {\n  pointer-events: none;\n}\n\n.gram-frame-doppler-label {\n  pointer-events: none;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;\n}\n\n/* Modal dialog styles */\n.gram-frame-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background: rgba(0, 0, 0, 0.7);\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  z-index: 1000;\n}\n\n.gram-frame-modal {\n  background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%);\n  border: 2px solid #555;\n  border-radius: 8px;\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);\n  min-width: 350px;\n  max-width: 500px;\n  color: #ddd;\n}\n\n.gram-frame-modal-header {\n  padding: 15px 20px;\n  border-bottom: 1px solid #444;\n  background: linear-gradient(180deg, #444 0%, #333 100%);\n  border-radius: 6px 6px 0 0;\n}\n\n.gram-frame-modal-header h3 {\n  margin: 0;\n  font-size: 16px;\n  color: #fff;\n  text-align: center;\n}\n\n.gram-frame-modal-body {\n  padding: 20px;\n}\n\n.gram-frame-modal-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.gram-frame-modal-input-group label {\n  font-weight: bold;\n  color: #ccc;\n  font-size: 14px;\n}\n\n.gram-frame-modal-input-group input {\n  padding: 10px 12px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  color: #fff;\n  font-size: 14px;\n  font-family: 'Courier New', monospace;\n}\n\n.gram-frame-modal-input-group input:focus {\n  outline: none;\n  border-color: #777;\n  box-shadow: 0 0 4px rgba(119, 119, 119, 0.3);\n}\n\n.gram-frame-modal-error {\n  color: #ff6b6b;\n  font-size: 12px;\n  margin-top: 4px;\n}\n\n/* Supporting note under a modal input (e.g. how to clear a marker label) */\n.gram-frame-modal-hint {\n  color: #999;\n  font-size: 11px;\n}\n\n.gram-frame-modal-footer {\n  padding: 15px 20px;\n  border-top: 1px solid #444;\n  display: flex;\n  justify-content: flex-end;\n  gap: 10px;\n  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);\n  border-radius: 0 0 6px 6px;\n}\n\n.gram-frame-modal-btn {\n  padding: 8px 16px;\n  border: 2px solid #555;\n  border-radius: 4px;\n  cursor: pointer;\n  font-weight: bold;\n  font-size: 12px;\n  transition: all 0.1s ease;\n  min-width: 80px;\n}\n\n.gram-frame-modal-cancel {\n  background: linear-gradient(180deg, #6a4a4a 0%, #4a2a2a 50%, #2a1a1a 100%);\n  color: #ffaaaa;\n}\n\n.gram-frame-modal-cancel:hover {\n  background: linear-gradient(180deg, #7a5a5a 0%, #5a3a3a 50%, #3a2a2a 100%);\n}\n\n.gram-frame-modal-add {\n  background: linear-gradient(180deg, #4a6a4a 0%, #2a4a2a 50%, #1a2a1a 100%);\n  color: #aaffaa;\n}\n\n.gram-frame-modal-add:hover {\n  background: linear-gradient(180deg, #5a7a5a 0%, #3a5a3a 50%, #2a3a2a 100%);\n}\n\n.gram-frame-modal-add:disabled {\n  background: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);\n  color: #666;\n  cursor: not-allowed;\n}\n\n.gram-frame-modal-btn:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n/* Zoom controls removed - now integrated into pan mode command buttons */\n\n/*\n * The persistent panels' containers: each fills its column and lets its table\n * scroll rather than growing the row.\n */\n.gram-frame-markers-persistent-container,\n.gram-frame-harmonics-persistent-container,\n.gram-frame-sidebands-persistent-container {\n  display: flex;\n  flex-direction: column;\n  flex: 1;\n  min-height: 0;\n}\n\n/* Selected Doppler marker highlighting */\n.gram-frame-selected-doppler-marker {\n  stroke: #4a8a4a !important;\n  stroke-width: 3 !important;\n  filter: drop-shadow(0 0 8px rgba(74, 138, 74, 0.6)) !important;\n}\n\n.gram-frame-selected-doppler-marker[fill] {\n  fill: #4a8a4a !important;\n  stroke: #aaffaa !important;\n}\n\n/* Region zoom (spec 170) --------------------------------------------------- */\n\n/* While Shift is held over the gram, the cursor advertises that a region\n   selection is available (FR-021). `!important` because the active mode writes\n   `style.cursor` on the same element every mousemove, and an inline value would\n   otherwise win whichever ran last. */\n.gram-frame-svg.gram-frame-region-ready {\n  cursor: zoom-in !important;\n}\n\n/* The gram outside the selection, dimmed so the target region reads as the\n   subject (FR-004). One even-odd-filled path: the outer subpath is the\n   selectable area, the inner one the selection. */\n.gram-frame-region-dim {\n  fill: #000;\n  fill-opacity: 0.45;\n  pointer-events: none;\n}\n\n/* The rubber band itself: a plain white outline, which reads cleanly because\n   everything outside the resulting view is dimmed. */\n.gram-frame-region-box {\n  fill: none;\n  stroke: #fff;\n  stroke-width: 1.5;\n  pointer-events: none;\n}\n\n/* What will actually be on screen after the zoom: the selection grown on\n   whichever axis is the looser fit. Dashed and dimmer, so it reads as a\n   consequence of the solid box rather than as a second thing to aim. Hidden\n   when it coincides with the selection. */\n.gram-frame-region-view {\n  fill: none;\n  stroke: #fff;\n  stroke-opacity: 0.65;\n  stroke-width: 1;\n  stroke-dasharray: 5 4;\n  pointer-events: none;\n}\n\n.gram-frame-region-selection {\n  pointer-events: none;\n}\n\n/* Icon buttons (issue #310) ------------------------------------------------ */\n\n/* The glyph inherits the button's colour, so it follows it through hover,\n   active and disabled exactly as a word would. */\n.gram-frame-icon {\n  width: 18px;\n  height: 18px;\n  display: block;\n  color: inherit;\n  pointer-events: none;\n}\n\n.gram-frame-icon-btn {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n/* A mode button's height comes from its line of text; a glyph is taller than\n   that, so the padding comes back off to keep Pan's row level with the four\n   word rows below it. */\n.gram-frame-mode-btn.gram-frame-icon-btn {\n  padding: 3px 6px;\n}\n\n/* The word an icon stands for: gone from the page, present in the accessibility\n   tree, and still the button's accessible name. */\n.gram-frame-visually-hidden {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  margin: -1px;\n  padding: 0;\n  overflow: hidden;\n  clip-path: inset(50%);\n  white-space: nowrap;\n  border: 0;\n}\n";
   document.head.appendChild(style);
 
   "use strict";
@@ -958,6 +958,116 @@
     }
     show(showPin);
   }
+  function findMarkerOwner(instance) {
+    const owner = Object.values(instance.modes || {}).find((mode) => {
+      const candidate = (
+        /** @type {Partial<MarkerOwner>} */
+        mode
+      );
+      return Array.isArray(candidate == null ? void 0 : candidate.markers) && typeof (candidate == null ? void 0 : candidate.removeMarker) === "function" && typeof (candidate == null ? void 0 : candidate.setMarkerLabel) === "function";
+    });
+    return (
+      /** @type {MarkerOwner|null} */
+      owner || null
+    );
+  }
+  function isPinSetOwner(mode) {
+    const candidate = (
+      /** @type {Partial<PinSetOwner>} */
+      mode
+    );
+    return typeof (candidate == null ? void 0 : candidate.updateSet) === "function" && typeof (candidate == null ? void 0 : candidate.removeSet) === "function" && typeof (candidate == null ? void 0 : candidate.nudgeFreqUpdates) === "function" && Array.isArray(candidate == null ? void 0 : candidate.sets);
+  }
+  function findPinSetOwner(instance, selectionType) {
+    if (!selectionType) {
+      return null;
+    }
+    const owner = Object.values(instance.modes || {}).filter(isPinSetOwner).find((mode) => mode.selectionType === selectionType);
+    return owner || null;
+  }
+  function isPersistentFeatureProvider(mode) {
+    const candidate = (
+      /** @type {Partial<PersistentFeatureProvider>} */
+      mode
+    );
+    return typeof (candidate == null ? void 0 : candidate.hasPersistentFeatures) === "function" && typeof (candidate == null ? void 0 : candidate.renderPersistentFeatures) === "function";
+  }
+  function isPanelOwner(mode) {
+    const candidate = (
+      /** @type {Partial<PanelOwner>} */
+      mode
+    );
+    return typeof (candidate == null ? void 0 : candidate.refreshPanel) === "function";
+  }
+  function createTableColumn(className, title) {
+    const column = document.createElement("div");
+    column.className = `gram-frame-table-column ${className}`;
+    const header = document.createElement("div");
+    header.className = "gram-frame-panel-header";
+    const heading = document.createElement("h4");
+    heading.textContent = title;
+    header.appendChild(heading);
+    const count = document.createElement("span");
+    count.className = "gram-frame-count-chip";
+    count.hidden = true;
+    header.appendChild(count);
+    column.appendChild(header);
+    return column;
+  }
+  function createAnnotationTables() {
+    const tables = document.createElement("div");
+    tables.className = "gram-frame-tables";
+    const markersContainer = createTableColumn("gram-frame-markers-persistent-container", "Markers");
+    const harmonicsContainer = createTableColumn("gram-frame-harmonics-persistent-container", "Harmonics");
+    const harmonicsButtons = document.createElement("div");
+    harmonicsButtons.className = "gram-frame-harmonics-button-container";
+    const harmonicsHeader = harmonicsContainer.querySelector(".gram-frame-panel-header");
+    if (harmonicsHeader) {
+      harmonicsHeader.classList.add("gram-frame-harmonics-header");
+      harmonicsHeader.appendChild(harmonicsButtons);
+    }
+    const sidebandsContainer = createTableColumn("gram-frame-sidebands-persistent-container", "Sidebands");
+    tables.appendChild(markersContainer);
+    tables.appendChild(harmonicsContainer);
+    tables.appendChild(sidebandsContainer);
+    return { tables, markersContainer, harmonicsContainer, sidebandsContainer };
+  }
+  function refreshTableCounts(instance) {
+    const { analysis, harmonics, sidebands } = instance.state;
+    const { markersContainer, harmonicsContainer, sidebandsContainer } = instance.ui;
+    setCount(markersContainer, analysis ? analysis.markers.length : 0);
+    setCount(harmonicsContainer, harmonics ? harmonics.harmonicSets.length : 0);
+    setCount(sidebandsContainer, sidebands ? sidebands.sidebandSets.length : 0);
+  }
+  function setCount(container, count) {
+    const chip = container ? container.querySelector(".gram-frame-count-chip") : null;
+    if (!(chip instanceof HTMLElement)) {
+      return;
+    }
+    chip.textContent = String(count);
+    chip.hidden = count === 0;
+  }
+  function mountClearAllButton(instance, onClear) {
+    const button2 = document.createElement("button");
+    button2.type = "button";
+    button2.className = "gram-frame-clear-btn";
+    button2.textContent = "Clear all annotations";
+    button2.title = "Remove every cross, harmonic set and sideband set";
+    button2.addEventListener("click", (event) => {
+      event.preventDefault();
+      onClear();
+    });
+    const footer = document.createElement("div");
+    footer.className = "gram-frame-tables-footer";
+    footer.appendChild(button2);
+    if (instance.ui.sidebandsContainer) {
+      instance.ui.sidebandsContainer.appendChild(footer);
+    }
+  }
+  function refreshPanels(instance) {
+    Object.values(instance.modes).filter(isPanelOwner).forEach((mode) => mode.refreshPanel());
+    refreshTableCounts(instance);
+  }
   function commitAnnotationChange(instance, refreshPanel = null, dispatchOptions = void 0) {
     markAnnotationsChanged(instance);
     if (typeof refreshPanel === "function") {
@@ -1093,372 +1203,6 @@
       image,
       data: imageToData(image.x, image.y, viewport)
     };
-  }
-  function findMarkerOwner(instance) {
-    const owner = Object.values(instance.modes || {}).find((mode) => {
-      const candidate = (
-        /** @type {Partial<MarkerOwner>} */
-        mode
-      );
-      return Array.isArray(candidate == null ? void 0 : candidate.markers) && typeof (candidate == null ? void 0 : candidate.removeMarker) === "function" && typeof (candidate == null ? void 0 : candidate.setMarkerLabel) === "function";
-    });
-    return (
-      /** @type {MarkerOwner|null} */
-      owner || null
-    );
-  }
-  function isPinSetOwner(mode) {
-    const candidate = (
-      /** @type {Partial<PinSetOwner>} */
-      mode
-    );
-    return typeof (candidate == null ? void 0 : candidate.updateSet) === "function" && typeof (candidate == null ? void 0 : candidate.removeSet) === "function" && typeof (candidate == null ? void 0 : candidate.nudgeFreqUpdates) === "function" && Array.isArray(candidate == null ? void 0 : candidate.sets);
-  }
-  function findPinSetOwner(instance, selectionType) {
-    if (!selectionType) {
-      return null;
-    }
-    const owner = Object.values(instance.modes || {}).filter(isPinSetOwner).find((mode) => mode.selectionType === selectionType);
-    return owner || null;
-  }
-  function isPersistentFeatureProvider(mode) {
-    const candidate = (
-      /** @type {Partial<PersistentFeatureProvider>} */
-      mode
-    );
-    return typeof (candidate == null ? void 0 : candidate.hasPersistentFeatures) === "function" && typeof (candidate == null ? void 0 : candidate.renderPersistentFeatures) === "function";
-  }
-  function isPanelOwner(mode) {
-    const candidate = (
-      /** @type {Partial<PanelOwner>} */
-      mode
-    );
-    return typeof (candidate == null ? void 0 : candidate.refreshPanel) === "function";
-  }
-  function createTableColumn(className, title) {
-    const column = document.createElement("div");
-    column.className = `gram-frame-table-column ${className}`;
-    const header = document.createElement("div");
-    header.className = "gram-frame-panel-header";
-    const heading = document.createElement("h4");
-    heading.textContent = title;
-    header.appendChild(heading);
-    const count = document.createElement("span");
-    count.className = "gram-frame-count-chip";
-    count.hidden = true;
-    header.appendChild(count);
-    column.appendChild(header);
-    return column;
-  }
-  function createAnnotationTables() {
-    const tables = document.createElement("div");
-    tables.className = "gram-frame-tables";
-    const markersContainer = createTableColumn("gram-frame-markers-persistent-container", "Markers");
-    const harmonicsContainer = createTableColumn("gram-frame-harmonics-persistent-container", "Harmonics");
-    const harmonicsButtons = document.createElement("div");
-    harmonicsButtons.className = "gram-frame-harmonics-button-container";
-    const harmonicsHeader = harmonicsContainer.querySelector(".gram-frame-panel-header");
-    if (harmonicsHeader) {
-      harmonicsHeader.classList.add("gram-frame-harmonics-header");
-      harmonicsHeader.appendChild(harmonicsButtons);
-    }
-    const sidebandsContainer = createTableColumn("gram-frame-sidebands-persistent-container", "Sidebands");
-    tables.appendChild(markersContainer);
-    tables.appendChild(harmonicsContainer);
-    tables.appendChild(sidebandsContainer);
-    return { tables, markersContainer, harmonicsContainer, sidebandsContainer };
-  }
-  function refreshTableCounts(instance) {
-    const { analysis, harmonics, sidebands } = instance.state;
-    const { markersContainer, harmonicsContainer, sidebandsContainer } = instance.ui;
-    setCount(markersContainer, analysis ? analysis.markers.length : 0);
-    setCount(harmonicsContainer, harmonics ? harmonics.harmonicSets.length : 0);
-    setCount(sidebandsContainer, sidebands ? sidebands.sidebandSets.length : 0);
-  }
-  function setCount(container, count) {
-    const chip = container ? container.querySelector(".gram-frame-count-chip") : null;
-    if (!(chip instanceof HTMLElement)) {
-      return;
-    }
-    chip.textContent = String(count);
-    chip.hidden = count === 0;
-  }
-  function mountClearAllButton(instance, onClear) {
-    const button2 = document.createElement("button");
-    button2.type = "button";
-    button2.className = "gram-frame-clear-btn";
-    button2.textContent = "Clear all annotations";
-    button2.title = "Remove every cross, harmonic set and sideband set";
-    button2.addEventListener("click", (event) => {
-      event.preventDefault();
-      onClear();
-    });
-    const footer = document.createElement("div");
-    footer.className = "gram-frame-tables-footer";
-    footer.appendChild(button2);
-    if (instance.ui.sidebandsContainer) {
-      instance.ui.sidebandsContainer.appendChild(footer);
-    }
-  }
-  function refreshPanels(instance) {
-    Object.values(instance.modes).filter(isPanelOwner).forEach((mode) => mode.refreshPanel());
-    refreshTableCounts(instance);
-  }
-  function decimalsForInterval(interval) {
-    if (!Number.isFinite(interval) || interval <= 0) {
-      return 0;
-    }
-    for (let decimals = 0; decimals < 3; decimals++) {
-      const scaled = interval * Math.pow(10, decimals);
-      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
-        return decimals;
-      }
-    }
-    return 3;
-  }
-  function formatAtInterval(value, interval) {
-    if (!Number.isFinite(interval) || interval <= 0) {
-      return String(Math.round(value));
-    }
-    return value.toFixed(decimalsForInterval(interval));
-  }
-  function formatFrequencyLabel(frequency, interval = 1) {
-    return formatAtInterval(frequency, interval) + "Hz";
-  }
-  function precisionIntervalFor(span) {
-    if (!Number.isFinite(span) || span <= 0) {
-      return 1;
-    }
-    return Math.pow(10, Math.floor(Math.log10(span)) - 1);
-  }
-  function formatTime(seconds) {
-    const sign = seconds < 0 ? "-" : "";
-    const magnitude = Math.abs(seconds);
-    const minutes = Math.floor(magnitude / 60);
-    const remainingSeconds = Math.floor(magnitude % 60);
-    const paddedMinutes = minutes.toString().padStart(2, "0");
-    const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
-    return `${sign}${paddedMinutes}:${paddedSeconds}`;
-  }
-  function formatAxisTime(seconds, interval) {
-    const decimals = decimalsForInterval(interval);
-    if (decimals === 0) {
-      return formatTime(seconds);
-    }
-    const sign = seconds < 0 ? "-" : "";
-    const magnitude = Math.abs(seconds);
-    const minutes = Math.floor(magnitude / 60);
-    const remainingSeconds = magnitude % 60;
-    const paddedMinutes = minutes.toString().padStart(2, "0");
-    const secondsText = remainingSeconds.toFixed(decimals).padStart(decimals + 3, "0");
-    return `${sign}${paddedMinutes}:${secondsText}`;
-  }
-  const SVG_NS$5 = "http://www.w3.org/2000/svg";
-  const LABEL_PLATE_CLASS = "gram-frame-label-plate";
-  const LABEL_PLATE_GROUP_CLASS = "gram-frame-label-plated";
-  const LABEL_PLATE_FILL = "#fff";
-  const LABEL_TEXT_FILL = "#000";
-  const LABEL_PLATE_PADDING_X = 3;
-  const LABEL_PLATE_RADIUS = 3;
-  const PLATE_ABOVE_RATIO = 0.95;
-  const PLATE_BELOW_RATIO = 0.3;
-  const FALLBACK_CHAR_WIDTH_RATIO = 0.6;
-  function labelPlateExtents(fontSize) {
-    return {
-      above: roundToHalfPixel(fontSize * PLATE_ABOVE_RATIO),
-      below: roundToHalfPixel(fontSize * PLATE_BELOW_RATIO)
-    };
-  }
-  function roundToHalfPixel(value) {
-    return Math.round(value * 2) / 2;
-  }
-  function labelPlateRect({ x, y, textAnchor, width, fontSize }) {
-    const { above, below } = labelPlateExtents(fontSize);
-    let left = x;
-    if (textAnchor === "middle") {
-      left = x - width / 2;
-    } else if (textAnchor === "end") {
-      left = x - width;
-    }
-    return {
-      x: left - LABEL_PLATE_PADDING_X,
-      y: y - above,
-      width: width + LABEL_PLATE_PADDING_X * 2,
-      height: above + below
-    };
-  }
-  let measurementContext;
-  function textMeasurementContext() {
-    if (measurementContext === void 0) {
-      try {
-        measurementContext = document.createElement("canvas").getContext("2d");
-      } catch {
-        measurementContext = null;
-      }
-    }
-    return measurementContext;
-  }
-  function measureLabelWidth(content, fontSize, font = {}) {
-    const { fontFamily = "Arial, sans-serif", fontWeight = "bold" } = font;
-    const text = content || "";
-    const context = textMeasurementContext();
-    if (context) {
-      context.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-      const measured = context.measureText(text).width;
-      if (measured > 0) {
-        return measured;
-      }
-    }
-    return text.length * fontSize * FALLBACK_CHAR_WIDTH_RATIO;
-  }
-  function plateLabel(text, options = {}) {
-    const { fill = LABEL_PLATE_FILL, textFill = LABEL_TEXT_FILL } = options;
-    const fontSize = Number(text.getAttribute("font-size"));
-    const width = measureLabelWidth(text.textContent || "", fontSize, {
-      fontFamily: text.getAttribute("font-family") || void 0,
-      fontWeight: text.getAttribute("font-weight") || void 0
-    });
-    const box = labelPlateRect({
-      x: Number(text.getAttribute("x")),
-      y: Number(text.getAttribute("y")),
-      textAnchor: text.getAttribute("text-anchor") || "start",
-      width,
-      fontSize
-    });
-    text.setAttribute("fill", textFill);
-    text.removeAttribute("stroke");
-    text.removeAttribute("stroke-width");
-    text.removeAttribute("paint-order");
-    const plate = document.createElementNS(SVG_NS$5, "rect");
-    plate.setAttribute("class", LABEL_PLATE_CLASS);
-    plate.setAttribute("x", String(box.x));
-    plate.setAttribute("y", String(box.y));
-    plate.setAttribute("width", String(box.width));
-    plate.setAttribute("height", String(box.height));
-    plate.setAttribute("rx", String(LABEL_PLATE_RADIUS));
-    plate.setAttribute("ry", String(LABEL_PLATE_RADIUS));
-    plate.setAttribute("fill", fill);
-    const group = (
-      /** @type {SVGGElement} */
-      document.createElementNS(SVG_NS$5, "g")
-    );
-    group.setAttribute("class", LABEL_PLATE_GROUP_CLASS);
-    group.appendChild(plate);
-    group.appendChild(text);
-    return group;
-  }
-  const MAX_MARKER_LABEL_LENGTH = 32;
-  const TABLE_LABEL_FULL_LENGTH = 5;
-  const TABLE_LABEL_HEAD_LENGTH = 3;
-  function normalizeMarkerLabel(raw) {
-    if (typeof raw !== "string") {
-      return void 0;
-    }
-    const trimmed = raw.trim();
-    if (trimmed === "") {
-      return void 0;
-    }
-    return trimmed.slice(0, MAX_MARKER_LABEL_LENGTH);
-  }
-  function formatMarkerLabelForTable(label) {
-    const normalized = normalizeMarkerLabel(label);
-    if (!normalized) {
-      return "";
-    }
-    if (normalized.length <= TABLE_LABEL_FULL_LENGTH) {
-      return normalized;
-    }
-    return `${normalized.slice(0, TABLE_LABEL_HEAD_LENGTH)}..`;
-  }
-  const QUADRANT_GAP = 5;
-  const ABOVE_SYMBOL_GAP = 4;
-  const MARKER_LABEL_FONT_SIZE = 12;
-  function markerLabelPlacement(symbol, cx, cy, symbolSize) {
-    const plate = labelPlateExtents(MARKER_LABEL_FONT_SIZE);
-    if (resolveSymbolType(symbol) === "cross") {
-      return {
-        x: cx + QUADRANT_GAP + LABEL_PLATE_PADDING_X,
-        y: cy - QUADRANT_GAP - plate.below,
-        textAnchor: "start"
-      };
-    }
-    if (labelSitsBelowSymbol(symbol)) {
-      const y = cy + symbolSize / 2 + ABOVE_SYMBOL_GAP + plate.above;
-      return { x: cx, y, textAnchor: "middle" };
-    }
-    return { x: cx, y: cy - symbolSize / 2 - ABOVE_SYMBOL_GAP - plate.below, textAnchor: "middle" };
-  }
-  function createCursorReadout() {
-    const column = document.createElement("div");
-    column.className = "gram-frame-readout-column";
-    const kicker = document.createElement("div");
-    kicker.className = "gram-frame-kicker gram-frame-readout-kicker";
-    kicker.textContent = "Cursor";
-    column.appendChild(kicker);
-    const timeLED = createLEDDisplay("Time (mm:ss)", formatTime(0), "MM:SS");
-    column.appendChild(timeLED);
-    const separator = document.createElement("div");
-    separator.className = "gram-frame-readout-separator";
-    column.appendChild(separator);
-    const freqLED = createLEDDisplay("Frequency (Hz)", "0.0", "HZ");
-    freqLED.classList.add("gram-frame-led-accent");
-    column.appendChild(freqLED);
-    const spacer = document.createElement("div");
-    spacer.className = "gram-frame-readout-spacer";
-    column.appendChild(spacer);
-    const speedLED = createLEDDisplay("Doppler Speed (kts)", "0.0", "KTS", "Doppler");
-    speedLED.classList.add("gram-frame-led-inline");
-    column.appendChild(speedLED);
-    return { column, timeLED, freqLED, speedLED, kicker };
-  }
-  function refreshReadoutTarget(instance) {
-    const { kicker, timeLED, freqLED } = instance.ui;
-    if (!kicker) {
-      return;
-    }
-    const selected = describeSelection(instance);
-    kicker.replaceChildren();
-    if (!selected) {
-      kicker.textContent = "Cursor";
-      return;
-    }
-    const word = document.createElement("span");
-    word.textContent = "Selected";
-    kicker.appendChild(word);
-    const name = document.createElement("span");
-    name.className = "gram-frame-readout-target";
-    name.textContent = selected.label;
-    kicker.appendChild(name);
-    if (timeLED) {
-      setLEDValue(timeLED, formatTime(selected.time));
-    }
-    if (freqLED) {
-      setLEDValue(freqLED, selected.freq.toFixed(2));
-    }
-  }
-  function describeSelection(instance) {
-    const { selection, analysis, harmonics, sidebands } = instance.state;
-    if (!selection || !selection.selectedType || !selection.selectedId) {
-      return null;
-    }
-    const ordinal = (selection.selectedIndex ?? 0) + 1;
-    if (selection.selectedType === "marker") {
-      const marker = (analysis ? analysis.markers : []).find((candidate) => candidate.id === selection.selectedId);
-      if (!marker) {
-        return null;
-      }
-      return {
-        label: normalizeMarkerLabel(marker.label) || `Marker ${ordinal}`,
-        time: marker.time,
-        freq: marker.freq
-      };
-    }
-    if (selection.selectedType === "harmonicSet") {
-      const set2 = (harmonics ? harmonics.harmonicSets : []).find((candidate) => candidate.id === selection.selectedId);
-      return set2 ? { label: `Harmonics ${ordinal}`, time: set2.anchorTime, freq: set2.spacing } : null;
-    }
-    const set = (sidebands ? sidebands.sidebandSets : []).find((candidate) => candidate.id === selection.selectedId);
-    return set ? { label: `Sidebands ${ordinal}`, time: set.anchorTime, freq: set.fundamentalFreq } : null;
   }
   let currentFocusedInstance = null;
   const registeredInstances = /* @__PURE__ */ new Set();
@@ -1804,6 +1548,55 @@
       this.reset();
     }
   }
+  function decimalsForInterval(interval) {
+    if (!Number.isFinite(interval) || interval <= 0) {
+      return 0;
+    }
+    for (let decimals = 0; decimals < 3; decimals++) {
+      const scaled = interval * Math.pow(10, decimals);
+      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) {
+        return decimals;
+      }
+    }
+    return 3;
+  }
+  function formatAtInterval(value, interval) {
+    if (!Number.isFinite(interval) || interval <= 0) {
+      return String(Math.round(value));
+    }
+    return value.toFixed(decimalsForInterval(interval));
+  }
+  function formatFrequencyLabel(frequency, interval = 1) {
+    return formatAtInterval(frequency, interval) + "Hz";
+  }
+  function precisionIntervalFor(span) {
+    if (!Number.isFinite(span) || span <= 0) {
+      return 1;
+    }
+    return Math.pow(10, Math.floor(Math.log10(span)) - 1);
+  }
+  function formatTime(seconds) {
+    const sign = seconds < 0 ? "-" : "";
+    const magnitude = Math.abs(seconds);
+    const minutes = Math.floor(magnitude / 60);
+    const remainingSeconds = Math.floor(magnitude % 60);
+    const paddedMinutes = minutes.toString().padStart(2, "0");
+    const paddedSeconds = remainingSeconds.toString().padStart(2, "0");
+    return `${sign}${paddedMinutes}:${paddedSeconds}`;
+  }
+  function formatAxisTime(seconds, interval) {
+    const decimals = decimalsForInterval(interval);
+    if (decimals === 0) {
+      return formatTime(seconds);
+    }
+    const sign = seconds < 0 ? "-" : "";
+    const magnitude = Math.abs(seconds);
+    const minutes = Math.floor(magnitude / 60);
+    const remainingSeconds = magnitude % 60;
+    const paddedMinutes = minutes.toString().padStart(2, "0");
+    const secondsText = remainingSeconds.toFixed(decimals).padStart(decimals + 3, "0");
+    return `${sign}${paddedMinutes}:${secondsText}`;
+  }
   function renderAxes(instance) {
     if (!instance.ui.axesGroup) {
       return;
@@ -2135,6 +1928,24 @@
     const { duration } = playerOf(instance);
     return Math.max(0, Math.min(duration, seconds));
   }
+  function revealTime(instance, seconds) {
+    if (!isPlayerActive(instance) || isPlaying(instance) || !Number.isFinite(seconds)) {
+      return false;
+    }
+    const player = playerOf(instance);
+    const window2 = visibleWindowSeconds(instance);
+    if (seconds <= player.viewTop && seconds >= player.viewTop - window2) {
+      return false;
+    }
+    const target = clampViewTop(instance, seconds + window2 / 2);
+    if (target === player.viewTop) {
+      return false;
+    }
+    player.viewTop = target;
+    applyView(instance);
+    dispatch(instance);
+    return true;
+  }
   function applyView(instance) {
     if (instance.ui.svg) {
       applyZoomTransform(instance);
@@ -2465,44 +2276,6 @@
       owner.updateSet(setId, updates);
     }
   }
-  function setSelection(instance, type, id, index) {
-    setFocusedInstance(instance);
-    const state = instance.state;
-    const selection = state.selection;
-    selection.selectedType = type;
-    selection.selectedId = id;
-    selection.selectedIndex = index;
-    state.styleTarget = "selected";
-    updateSelectionVisuals(instance);
-    if (instance.interaction.syncStyleControls) {
-      instance.interaction.syncStyleControls();
-    }
-    dispatch(instance);
-  }
-  function toggleSelection(instance, type, id, index) {
-    if (isFeatureSelected(instance, type, id)) {
-      clearSelection(instance);
-    } else {
-      setSelection(instance, type, id, index);
-    }
-  }
-  function isFeatureSelected(instance, type, id) {
-    const selection = instance.state.selection;
-    return selection.selectedType === type && selection.selectedId === id;
-  }
-  function clearSelection(instance) {
-    const state = instance.state;
-    const selection = state.selection;
-    selection.selectedType = null;
-    selection.selectedId = null;
-    selection.selectedIndex = null;
-    state.styleTarget = "new";
-    updateSelectionVisuals(instance);
-    if (instance.interaction.syncStyleControls) {
-      instance.interaction.syncStyleControls();
-    }
-    dispatch(instance);
-  }
   function removeHarmonicSet(instance, id) {
     removePinSet(instance, "harmonicSet", id);
   }
@@ -2514,10 +2287,6 @@
     if (owner) {
       owner.removeSet(id);
     }
-  }
-  function updateSelectionVisuals(instance) {
-    refreshPanels(instance);
-    refreshReadoutTarget(instance);
   }
   function getSelectedFeature(instance) {
     const { selection: sel, styleTarget } = instance.state;
@@ -2612,6 +2381,213 @@
     selected.feature.largeSymbols = large;
     refreshFeatureVisuals(instance, selected.type);
     return true;
+  }
+  const SVG_NS$5 = "http://www.w3.org/2000/svg";
+  const LABEL_PLATE_CLASS = "gram-frame-label-plate";
+  const LABEL_PLATE_GROUP_CLASS = "gram-frame-label-plated";
+  const LABEL_PLATE_FILL = "#fff";
+  const LABEL_TEXT_FILL = "#000";
+  const LABEL_PLATE_PADDING_X = 3;
+  const LABEL_PLATE_RADIUS = 3;
+  const PLATE_ABOVE_RATIO = 0.95;
+  const PLATE_BELOW_RATIO = 0.3;
+  const FALLBACK_CHAR_WIDTH_RATIO = 0.6;
+  function labelPlateExtents(fontSize) {
+    return {
+      above: roundToHalfPixel(fontSize * PLATE_ABOVE_RATIO),
+      below: roundToHalfPixel(fontSize * PLATE_BELOW_RATIO)
+    };
+  }
+  function roundToHalfPixel(value) {
+    return Math.round(value * 2) / 2;
+  }
+  function labelPlateRect({ x, y, textAnchor, width, fontSize }) {
+    const { above, below } = labelPlateExtents(fontSize);
+    let left = x;
+    if (textAnchor === "middle") {
+      left = x - width / 2;
+    } else if (textAnchor === "end") {
+      left = x - width;
+    }
+    return {
+      x: left - LABEL_PLATE_PADDING_X,
+      y: y - above,
+      width: width + LABEL_PLATE_PADDING_X * 2,
+      height: above + below
+    };
+  }
+  let measurementContext;
+  function textMeasurementContext() {
+    if (measurementContext === void 0) {
+      try {
+        measurementContext = document.createElement("canvas").getContext("2d");
+      } catch {
+        measurementContext = null;
+      }
+    }
+    return measurementContext;
+  }
+  function measureLabelWidth(content, fontSize, font = {}) {
+    const { fontFamily = "Arial, sans-serif", fontWeight = "bold" } = font;
+    const text = content || "";
+    const context = textMeasurementContext();
+    if (context) {
+      context.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+      const measured = context.measureText(text).width;
+      if (measured > 0) {
+        return measured;
+      }
+    }
+    return text.length * fontSize * FALLBACK_CHAR_WIDTH_RATIO;
+  }
+  function plateLabel(text, options = {}) {
+    const { fill = LABEL_PLATE_FILL, textFill = LABEL_TEXT_FILL } = options;
+    const fontSize = Number(text.getAttribute("font-size"));
+    const width = measureLabelWidth(text.textContent || "", fontSize, {
+      fontFamily: text.getAttribute("font-family") || void 0,
+      fontWeight: text.getAttribute("font-weight") || void 0
+    });
+    const box = labelPlateRect({
+      x: Number(text.getAttribute("x")),
+      y: Number(text.getAttribute("y")),
+      textAnchor: text.getAttribute("text-anchor") || "start",
+      width,
+      fontSize
+    });
+    text.setAttribute("fill", textFill);
+    text.removeAttribute("stroke");
+    text.removeAttribute("stroke-width");
+    text.removeAttribute("paint-order");
+    const plate = document.createElementNS(SVG_NS$5, "rect");
+    plate.setAttribute("class", LABEL_PLATE_CLASS);
+    plate.setAttribute("x", String(box.x));
+    plate.setAttribute("y", String(box.y));
+    plate.setAttribute("width", String(box.width));
+    plate.setAttribute("height", String(box.height));
+    plate.setAttribute("rx", String(LABEL_PLATE_RADIUS));
+    plate.setAttribute("ry", String(LABEL_PLATE_RADIUS));
+    plate.setAttribute("fill", fill);
+    const group = (
+      /** @type {SVGGElement} */
+      document.createElementNS(SVG_NS$5, "g")
+    );
+    group.setAttribute("class", LABEL_PLATE_GROUP_CLASS);
+    group.appendChild(plate);
+    group.appendChild(text);
+    return group;
+  }
+  const MAX_MARKER_LABEL_LENGTH = 32;
+  const TABLE_LABEL_FULL_LENGTH = 5;
+  const TABLE_LABEL_HEAD_LENGTH = 3;
+  function normalizeMarkerLabel(raw) {
+    if (typeof raw !== "string") {
+      return void 0;
+    }
+    const trimmed = raw.trim();
+    if (trimmed === "") {
+      return void 0;
+    }
+    return trimmed.slice(0, MAX_MARKER_LABEL_LENGTH);
+  }
+  function formatMarkerLabelForTable(label) {
+    const normalized = normalizeMarkerLabel(label);
+    if (!normalized) {
+      return "";
+    }
+    if (normalized.length <= TABLE_LABEL_FULL_LENGTH) {
+      return normalized;
+    }
+    return `${normalized.slice(0, TABLE_LABEL_HEAD_LENGTH)}..`;
+  }
+  const QUADRANT_GAP = 5;
+  const ABOVE_SYMBOL_GAP = 4;
+  const MARKER_LABEL_FONT_SIZE = 12;
+  function markerLabelPlacement(symbol, cx, cy, symbolSize) {
+    const plate = labelPlateExtents(MARKER_LABEL_FONT_SIZE);
+    if (resolveSymbolType(symbol) === "cross") {
+      return {
+        x: cx + QUADRANT_GAP + LABEL_PLATE_PADDING_X,
+        y: cy - QUADRANT_GAP - plate.below,
+        textAnchor: "start"
+      };
+    }
+    if (labelSitsBelowSymbol(symbol)) {
+      const y = cy + symbolSize / 2 + ABOVE_SYMBOL_GAP + plate.above;
+      return { x: cx, y, textAnchor: "middle" };
+    }
+    return { x: cx, y: cy - symbolSize / 2 - ABOVE_SYMBOL_GAP - plate.below, textAnchor: "middle" };
+  }
+  function describeSelection(instance) {
+    const { selection, analysis, harmonics, sidebands } = instance.state;
+    if (!selection || !selection.selectedType || !selection.selectedId) {
+      return null;
+    }
+    const ordinal = (selection.selectedIndex ?? 0) + 1;
+    if (selection.selectedType === "marker") {
+      const marker = (analysis ? analysis.markers : []).find((candidate) => candidate.id === selection.selectedId);
+      if (!marker) {
+        return null;
+      }
+      return {
+        label: normalizeMarkerLabel(marker.label) || `Marker ${ordinal}`,
+        time: marker.time,
+        freq: marker.freq
+      };
+    }
+    if (selection.selectedType === "harmonicSet") {
+      const set2 = (harmonics ? harmonics.harmonicSets : []).find((candidate) => candidate.id === selection.selectedId);
+      return set2 ? { label: `Harmonics ${ordinal}`, time: set2.anchorTime, freq: set2.spacing } : null;
+    }
+    const set = (sidebands ? sidebands.sidebandSets : []).find((candidate) => candidate.id === selection.selectedId);
+    return set ? { label: `Sidebands ${ordinal}`, time: set.anchorTime, freq: set.fundamentalFreq } : null;
+  }
+  function createCursorReadout() {
+    const column = document.createElement("div");
+    column.className = "gram-frame-readout-column";
+    const kicker = document.createElement("div");
+    kicker.className = "gram-frame-kicker gram-frame-readout-kicker";
+    kicker.textContent = "Cursor";
+    column.appendChild(kicker);
+    const timeLED = createLEDDisplay("Time (mm:ss)", formatTime(0), "MM:SS");
+    column.appendChild(timeLED);
+    const separator = document.createElement("div");
+    separator.className = "gram-frame-readout-separator";
+    column.appendChild(separator);
+    const freqLED = createLEDDisplay("Frequency (Hz)", "0.0", "HZ");
+    freqLED.classList.add("gram-frame-led-accent");
+    column.appendChild(freqLED);
+    const spacer = document.createElement("div");
+    spacer.className = "gram-frame-readout-spacer";
+    column.appendChild(spacer);
+    const speedLED = createLEDDisplay("Doppler Speed (kts)", "0.0", "KTS", "Doppler");
+    speedLED.classList.add("gram-frame-led-inline");
+    column.appendChild(speedLED);
+    return { column, timeLED, freqLED, speedLED, kicker };
+  }
+  function refreshReadoutTarget(instance) {
+    const { kicker, timeLED, freqLED } = instance.ui;
+    if (!kicker) {
+      return;
+    }
+    const selected = describeSelection(instance);
+    kicker.replaceChildren();
+    if (!selected) {
+      kicker.textContent = "Cursor";
+      return;
+    }
+    const word = document.createElement("span");
+    word.textContent = "Selected";
+    kicker.appendChild(word);
+    const name = document.createElement("span");
+    name.className = "gram-frame-readout-target";
+    name.textContent = selected.label;
+    kicker.appendChild(name);
+    if (timeLED) {
+      setLEDValue(timeLED, formatTime(selected.time));
+    }
+    if (freqLED) {
+      setLEDValue(freqLED, selected.freq.toFixed(2));
+    }
   }
   function describeStyleTarget(instance) {
     const { selection, styleTarget } = instance.state;
@@ -2833,6 +2809,22 @@
     word.textContent = text;
     tab.appendChild(word);
   }
+  const NAVIGATION_GUIDANCE = [
+    { trigger: "Shift + drag", outcome: "a box to zoom into that region" },
+    { trigger: "Ctrl + scroll", outcome: "to zoom around the pointer" },
+    { trigger: "Scroll", outcome: "to pan when zoomed in" },
+    { trigger: "Wheel-button drag", outcome: "to pan when zoomed in" }
+  ];
+  function withNavigationGuidance(content) {
+    const own = resolveGuidance(content).map((section) => ({
+      title: section.title,
+      qualifier: section.qualifier,
+      items: section.lines.map((line2) => line2.trigger === "" ? line2.outcome : { trigger: line2.trigger, outcome: line2.outcome })
+    }));
+    return {
+      sections: [...own, { title: "In every mode", items: NAVIGATION_GUIDANCE }]
+    };
+  }
   function resolveGuidance(content) {
     if (!content || typeof content !== "object") {
       return [];
@@ -2986,7 +2978,7 @@
       guidanceTitle.textContent = getModeDisplayName(instance.state.mode);
     }
     if (guidancePanel) {
-      updateGuidancePanel(guidancePanel, mode.getGuidanceText());
+      updateGuidancePanel(guidancePanel, withNavigationGuidance(mode.getGuidanceText()));
     }
   }
   function createUnifiedLayout(instance) {
@@ -4487,6 +4479,52 @@
       instance.viewport.resizeObserver.disconnect();
       instance.viewport.resizeObserver = null;
     }
+  }
+  function setSelection(instance, type, id, index) {
+    setFocusedInstance(instance);
+    const state = instance.state;
+    const selection = state.selection;
+    selection.selectedType = type;
+    selection.selectedId = id;
+    selection.selectedIndex = index;
+    state.styleTarget = "selected";
+    updateSelectionVisuals(instance);
+    if (instance.interaction.syncStyleControls) {
+      instance.interaction.syncStyleControls();
+    }
+    const selected = describeSelection(instance);
+    if (selected) {
+      revealTime(instance, selected.time);
+    }
+    dispatch(instance);
+  }
+  function toggleSelection(instance, type, id, index) {
+    if (isFeatureSelected(instance, type, id)) {
+      clearSelection(instance);
+    } else {
+      setSelection(instance, type, id, index);
+    }
+  }
+  function isFeatureSelected(instance, type, id) {
+    const selection = instance.state.selection;
+    return selection.selectedType === type && selection.selectedId === id;
+  }
+  function clearSelection(instance) {
+    const state = instance.state;
+    const selection = state.selection;
+    selection.selectedType = null;
+    selection.selectedId = null;
+    selection.selectedIndex = null;
+    state.styleTarget = "new";
+    updateSelectionVisuals(instance);
+    if (instance.interaction.syncStyleControls) {
+      instance.interaction.syncStyleControls();
+    }
+    dispatch(instance);
+  }
+  function updateSelectionVisuals(instance) {
+    refreshPanels(instance);
+    refreshReadoutTarget(instance);
   }
   function setupAllEventListeners(instance) {
     setupEventListeners(instance);
@@ -7742,12 +7780,6 @@
       this.renderDopplerFeatures();
     }
   }
-  const NAVIGATION_GUIDANCE = [
-    { trigger: "Shift + drag", outcome: "a box to zoom into that region" },
-    { trigger: "Ctrl + scroll", outcome: "to zoom around the pointer" },
-    { trigger: "Scroll", outcome: "to pan when zoomed in" },
-    { trigger: "Wheel-button drag", outcome: "to pan when zoomed in" }
-  ];
   class PanMode extends BaseMode {
     /**
      * Constructor for pan mode
@@ -7902,12 +7934,12 @@
     /**
      * Get guidance content for pan mode.
      *
-     * Pan is the initial mode, so its guidance carries the global navigation
-     * gestures (which apply in every mode) as a second titled section beneath its
-     * own. Pan's own lines come first because the guidance column's header names
-     * the armed mode, and the rows directly under that header should be the ones
-     * answering it.
-     * @returns {Object} Structured guidance content (multi-section)
+     * Its own gestures only. The cross-mode ones used to be a second section
+     * here, because Pan is the initial mode and the old panel had room for them
+     * nowhere else — which meant an analyst who armed Cross Cursor first never
+     * learnt that Shift + drag zooms. The guidance column appends them to every
+     * mode now (see `utils/guidanceContent.js`).
+     * @returns {Object} Structured guidance content
      */
     getGuidanceText() {
       return {
@@ -7923,10 +7955,6 @@
               { trigger: "Fit", outcome: "to bring the whole gram back in one click" },
               `GramFrame v${getVersion()}`
             ]
-          },
-          {
-            title: "In every mode",
-            items: NAVIGATION_GUIDANCE
           }
         ]
       };
