@@ -7,7 +7,8 @@ import {
   expectValidConfig,
   expectValidImageDetails
 } from './helpers/state-assertions.js'
-import { GramFramePage } from './helpers/gram-frame-page.js'
+
+/** @typedef {import('./helpers/gram-frame-page.js').GramFramePage} GramFramePage */
 
 /**
  * @fileoverview Harmonics mode: creating a set by dragging, and what the drag
