@@ -785,6 +785,17 @@ class GramFramePage {
     if (!box) {
       throw new Error('parkPointerOffGram: the component is not on the page')
     }
+
+    // Put the pointer inside the SVG first, so the move out below is a real
+    // `mouseleave`. Without this the park depends on where the pointer already
+    // happened to be: if it was already outside — the page scrolled, the
+    // component moved under a stationary cursor, an earlier action left it
+    // elsewhere — no leave fires, the readout keeps whatever stale value it
+    // held, and the wait for null can never resolve. That is a deadlock, not a
+    // slow test, and it is what turned CI red on the first version of this.
+    // Hovering the element's own centre is unconditional: it needs no
+    // knowledge of the layout and cannot land outside the SVG.
+    await this.svg.hover()
     const viewport = this.page.viewportSize() ?? { width: 1280, height: 720 }
     const candidates = [
       { x: box.x - 10, y: box.y + box.height / 2 },
@@ -799,7 +810,7 @@ class GramFramePage {
     }
     await this.page.mouse.move(spot.x, spot.y)
     await this.waitForState((state) => state.cursorPosition === null, {
-      message: 'the readout to clear with the pointer off the gram'
+      message: 'the readout to clear after the pointer left the gram'
     })
   }
 
