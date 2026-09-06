@@ -12,6 +12,14 @@
  * controls join it; an image gram has no bar, so {@link mountDisplayRangeBar}
  * gives them one of their own under the gram. What differs is what else is on
  * the row, not what the controls are.
+ *
+ * The row is not full-width for the sake of it: the sliders are sized to what
+ * they need and the space beside them carries the two lines an analyst meeting
+ * these controls wants — what each does, and that neither moves a number. A
+ * vertical pair in the control row was tried instead (#325) and measured: it
+ * cost 163px of control-row height at a 1280px viewport, pushing the gram
+ * below the fold, because no column in that row has vertical slack. Height
+ * above the gram is dearer than width beside it.
  */
 
 /// <reference path="../types.js" />
@@ -22,15 +30,32 @@ import { dispatch } from '../core/state.js'
 import { setFocusedInstance } from '../core/FocusManager.js'
 
 /**
+ * What each control does, for the analyst who has not met them before.
+ *
+ * Shown beside the controls rather than in the mode guidance panel: that panel
+ * is per-mode and these controls are not, and an explanation sitting next to
+ * the thing it explains needs no cross-reference.
+ * @type {{floor: string, ceiling: string, hint: string, caveat: string}}
+ */
+const CONTRAST_HELP = {
+  floor: 'Floor: raise to push the background down and lift faint tonals clear of it',
+  ceiling: 'Ceiling: lower to spread mid-range detail across the whole colour scale',
+  hint: 'Raise Floor to sink the background; lower Ceiling to bring out mid-range detail.',
+  caveat: 'Appearance only — every reading and annotation is unchanged.'
+}
+
+/**
  * Build one labelled slider.
  * @param {string} className - Modifier class
  * @param {string} label - Accessible name and visible text
+ * @param {string} title - Tooltip saying what this control is for
  * @param {number} value - Initial position, 0..1
  * @returns {{wrap: HTMLLabelElement, input: HTMLInputElement}} The control
  */
-function slider(className, label, value) {
+function slider(className, label, title, value) {
   const wrap = document.createElement('label')
   wrap.className = `gram-frame-display-control ${className}`
+  wrap.title = title
   const text = document.createElement('span')
   text.className = 'gram-frame-display-label'
   text.textContent = label
@@ -60,17 +85,36 @@ export function createDisplayRangeControls(instance, bar, display) {
   group.setAttribute('role', 'group')
   group.setAttribute('aria-label', 'Contrast')
 
-  const floor = slider('gram-frame-display-floor', 'Floor', display.floor)
-  const ceiling = slider('gram-frame-display-ceiling', 'Ceiling', display.ceiling)
+  const heading = document.createElement('span')
+  heading.className = 'gram-frame-display-heading'
+  heading.textContent = 'Contrast'
+
+  const floor = slider('gram-frame-display-floor', 'Floor', CONTRAST_HELP.floor, display.floor)
+  const ceiling = slider('gram-frame-display-ceiling', 'Ceiling', CONTRAST_HELP.ceiling, display.ceiling)
 
   const reset = document.createElement('button')
   reset.type = 'button'
   reset.className = 'gram-frame-transport-btn gram-frame-display-reset'
-  reset.title = 'Reset contrast'
+  reset.title = 'Reset contrast: return the gram to exactly how it loaded'
   reset.setAttribute('aria-label', 'Reset contrast')
   reset.textContent = 'Reset'
 
-  ;[floor.wrap, ceiling.wrap, reset].forEach(el => group.appendChild(el))
+  // The help, in the width a bare pair of sliders would leave empty. Two lines:
+  // what to do with them, then what they leave alone — the second being the one
+  // that matters in a measurement tool, where an analyst meeting a contrast
+  // control is entitled to wonder whether it moves their numbers.
+  const help = document.createElement('div')
+  help.className = 'gram-frame-display-help'
+  const hint = document.createElement('span')
+  hint.className = 'gram-frame-display-hint'
+  hint.textContent = CONTRAST_HELP.hint
+  const caveat = document.createElement('span')
+  caveat.className = 'gram-frame-display-caveat'
+  caveat.textContent = CONTRAST_HELP.caveat
+  help.appendChild(hint)
+  help.appendChild(caveat)
+
+  ;[heading, floor.wrap, ceiling.wrap, reset, help].forEach(el => group.appendChild(el))
   bar.appendChild(group)
 
   /**

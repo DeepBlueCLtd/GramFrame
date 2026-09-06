@@ -59,8 +59,10 @@ drawn, or a drag that refuses to pass the playhead.
 
 ## 4. Story 2 — contrast
 
-1. Find the two sliders on the transport bar: **Floor** and **Ceiling**. (On an
-   image gram they are on a bar of their own in the same place — step 7.)
+1. Find the contrast bar: on a player it is the transport bar, on an image gram
+   a bar of its own in the same place. It reads **Contrast · Floor · Ceiling ·
+   Reset**, with two lines beside it saying what the sliders do and that they
+   change nothing you measure. Check those lines read true as you go.
 2. Drag **Floor** slowly to the right. The background darkens progressively and
    the tonals stand out; it should feel continuous under the hand, not stepped.
    (This is the SC-002 check that CI cannot do. Place half a dozen markers and a

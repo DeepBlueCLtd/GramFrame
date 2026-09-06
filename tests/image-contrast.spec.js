@@ -52,6 +52,22 @@ test.describe('#324 — contrast on an image-sourced gram', () => {
     await expect(bar.locator('.gram-frame-display-reset')).toHaveCount(1)
     await expect(page.locator('.gram-frame-transport')).toHaveCount(0)
 
+    // The guidance an analyst who has not met these controls needs: what they
+    // are, what each does, and — the one that matters on a measuring tool —
+    // that neither moves a number.
+    await expect(bar.locator('.gram-frame-display-heading')).toHaveText('Contrast')
+    await expect(bar.locator('.gram-frame-display-hint')).toContainText('Raise Floor')
+    await expect(bar.locator('.gram-frame-display-caveat')).toContainText('every reading and annotation is unchanged')
+    await expect(bar.locator('.gram-frame-display-floor')).toHaveAttribute('title', /faint tonals/)
+    await expect(bar.locator('.gram-frame-display-ceiling')).toHaveAttribute('title', /mid-range/)
+
+    // The sliders are sized to their job rather than stretched across the row,
+    // so the width can carry that help (#325)
+    const slider = await bar.locator('.gram-frame-display-floor input').boundingBox()
+    const row = await bar.boundingBox()
+    if (!slider || !row) throw new Error('the bar must be laid out')
+    expect(slider.width).toBeLessThan(row.width / 3)
+
     // The bar sits below the SVG, where a player's transport bar sits
     const order = await page.evaluate(() => {
       const cell = document.querySelector('.gram-frame-main-panel')
