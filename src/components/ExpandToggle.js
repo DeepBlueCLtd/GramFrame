@@ -16,7 +16,7 @@
 import { updateSVGLayout } from './svgLayout.js'
 import { renderAxes } from '../rendering/axes.js'
 import { dispatch } from '../core/state.js'
-import { baseRenderSize, isPlayerActive } from '../player/playerView.js'
+import { baseRenderSize } from '../player/playerView.js'
 
 // Small gap left between the expanded image and the viewport bottom (px).
 const BOTTOM_GAP = 16
@@ -68,12 +68,16 @@ function computeAvailableRenderSize(instance) {
   // Image region top in viewport coordinates (the image sits at y = margins.top).
   const svgRect = svg.getBoundingClientRect()
   const imageTopViewport = svgRect.top + margins.top
-  // A player's transport bar sits under the SVG and must stay on screen too.
-  const transport = isPlayerActive(instance) ? cell.querySelector('.gram-frame-transport') : null
-  const transportHeight = transport instanceof HTMLElement
-    ? transport.offsetHeight + (parseFloat(window.getComputedStyle(transport).marginTop) || 0)
-    : 0
-  const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP - transportHeight
+  // Whatever chrome sits under the SVG must stay on screen too: a player's
+  // transport bar, an image gram's contrast bar (#324), or both. Measured by
+  // what is actually there rather than by what kind of instance this is, so a
+  // third bar would need no change here.
+  const chromeHeight = ['.gram-frame-transport', '.gram-frame-display-bar']
+    .map(selector => cell.querySelector(selector))
+    .reduce((total, element) => total + (element instanceof HTMLElement
+      ? element.offsetHeight + (parseFloat(window.getComputedStyle(element).marginTop) || 0)
+      : 0), 0)
+  const height = window.innerHeight - imageTopViewport - margins.bottom - BOTTOM_GAP - chromeHeight
 
   // Never shrink below the base size — expand only ever grows the image.
   return {

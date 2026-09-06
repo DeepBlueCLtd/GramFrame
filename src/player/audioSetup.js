@@ -201,10 +201,10 @@ export async function setupAudioSource(instance) {
 
     createTransport(instance)
     const bar = createTransportBar(instance)
-    // Contrast, and the caption for anything the caps changed: both belong to
-    // an audio-sourced instance only (FR-014), so both are mounted here rather
-    // than anywhere an image instance would reach.
-    createDisplayRangeControls(instance, bar, player.display)
+    // The contrast controls go on the transport bar, which is the natural home
+    // for them on a player; an image gram, having no bar, gets one of its own
+    // in `spectrogramImage.js` (#324). The degraded caption is audio-only.
+    createDisplayRangeControls(instance, bar, state.display)
     if (player.degraded) {
       bar.parentElement?.insertBefore(createDegradedNote(player.degraded), bar)
     }

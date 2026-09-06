@@ -45,6 +45,9 @@ async function computeAvailable(page) {
   return page.evaluate(() => {
     const cell = document.querySelector('.gram-frame-main-panel')
     const svg = document.querySelector('.gram-frame-svg')
+    if (!cell || !svg) {
+      throw new Error('the gram must be on the page before its available size can be computed')
+    }
     const cs = window.getComputedStyle(cell)
     const ss = window.getComputedStyle(svg)
     const padL = parseFloat(cs.paddingLeft)
@@ -54,7 +57,15 @@ async function computeAvailable(page) {
     const width = cell.clientWidth - padL - padR - svgBorderX - margins.left - margins.right
     const svgRect = svg.getBoundingClientRect()
     const imageTopViewport = svgRect.top + margins.top
-    const height = window.innerHeight - imageTopViewport - margins.bottom - 16
+    // Chrome under the SVG has to stay on screen too: a player's transport bar,
+    // and since #324 an image gram's contrast bar. Mirrors the production
+    // formula in ExpandToggle rather than calling it, so the two can disagree.
+    const chrome = ['.gram-frame-transport', '.gram-frame-display-bar']
+      .map(selector => cell.querySelector(selector))
+      .reduce((total, el) => total + (el instanceof HTMLElement
+        ? el.offsetHeight + (parseFloat(window.getComputedStyle(el).marginTop) || 0)
+        : 0), 0)
+    const height = window.innerHeight - imageTopViewport - margins.bottom - 16 - chrome
     return { width, height }
   })
 }

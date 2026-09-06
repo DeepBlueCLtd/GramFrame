@@ -23,7 +23,8 @@ All five must pass (SC-007). The suites that carry this spec's own behaviour:
 | Story | Command | What it pins |
 |---|---|---|
 | 1 | `npx playwright test tests/player-load.spec.js tests/player-annotations.spec.js tests/player-pan.spec.js tests/player-region-zoom.spec.js` | The whole gram from load; annotations drawn wherever they sit; the view clamped by the duration rather than the playhead |
-| 2–6 | `npx playwright test tests/player-refinements.spec.js` | Contrast, drag-seek, zoom while playing, the rate ladder and pitch, the degraded load, the live region |
+| 2–6 | `npx playwright test tests/player-refinements.spec.js` | Contrast, drag-seek, click-to-pause, zoom while playing, the rate ladder and pitch, the degraded load, the live region |
+| 2 (image grams) | `npx playwright test tests/image-contrast.spec.js` | The same controls on an author-supplied PNG (#324) |
 | pure | `yarn test:unit -- display-range gram-image` | The contrast arithmetic and the hop-size substitution |
 
 ## 2. Start the sample page
@@ -58,7 +59,10 @@ drawn, or a drag that refuses to pass the playhead.
 
 ## 4. Story 2 — contrast
 
-1. Find the two sliders on the transport bar: **Floor** and **Ceiling**.
+1. Find the contrast bar: on a player it is the transport bar, on an image gram
+   a bar of its own in the same place. It reads **Contrast · Floor · Ceiling ·
+   Reset**, with two lines beside it saying what the sliders do and that they
+   change nothing you measure. Check those lines read true as you go.
 2. Drag **Floor** slowly to the right. The background darkens progressively and
    the tonals stand out; it should feel continuous under the hand, not stepped.
    (This is the SC-002 check that CI cannot do. Place half a dozen markers and a
@@ -71,11 +75,16 @@ drawn, or a drag that refuses to pass the playhead.
    through their whole travel and hover the same point: the readouts are
    identical to the digit (FR-011, SC-003). Every marker is where it was.
 6. Press **Reset**. The picture returns to exactly how it loaded.
-7. Open any image-backed page (`http://localhost:5173/debug.html`): there are no
-   contrast controls there at all (FR-014).
+7. Open an image-backed page (`http://localhost:5173/debug.html`). The same two
+   controls are there, on a bar of their own under the gram, and steps 2–6
+   behave identically. *(Spec 171 refused them here; #324 amended FR-014 and
+   reversed that — the reason it gave did not survive.)* On a colour-mapped
+   gram, note that raising the **Floor** changes the background's colour as
+   well as its brightness, while **Ceiling** leaves colour almost untouched;
+   neither ever changes which features look stronger.
 
 **Failure looks like**: a readout that shifts with a slider, a marker that
-moves, a blank image, or contrast controls on an image gram.
+moves, a blank image, or a control missing from either kind of gram.
 
 ## 5. Story 3 — moving around a playing recording
 
@@ -149,9 +158,12 @@ open http://localhost:5173/tests/fixtures/player-degraded-page.html
 
 1. Open `http://localhost:5173/debug.html` (an image gram) and use it normally:
    markers, harmonics, sidebands, doppler, zoom, pan, region zoom, expand.
-   Nothing in this spec touches an image-backed instance.
-2. Confirm no transport bar, no contrast controls and no `filter` attribute on
-   its `<image>` element.
+   Apart from the contrast bar (#324), nothing in this spec touches an
+   image-backed instance.
+2. Confirm there is no transport bar, and that with the controls at rest the
+   `<image>` element carries no `filter` attribute at all.
+3. Expand the image. It fills the window *above* the contrast bar rather than
+   running underneath it — the bar is chrome the expanded gram leaves room for.
 
 ---
 

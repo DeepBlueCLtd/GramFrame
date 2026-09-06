@@ -214,19 +214,47 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   cursor: grabbing !important;
 }
 
-/* The contrast controls, on the same bar as the transport (spec 171, US2). */
+/* An image gram has no transport bar, so the contrast controls get a bar of
+   their own under the gram (#324) — the same place a player's controls sit, so
+   the control is where the eye already expects it on either kind of gram. */
+.gram-frame-display-bar {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 4px 6px;
+  background: rgba(20, 30, 45, 0.75);
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e6f2ff;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+/* The contrast controls (spec 171, US2), on the transport bar where there is
+   one and on a bar of their own otherwise. The sliders are sized to what they
+   need rather than stretched across the row: the width beside them carries the
+   help text instead, which is what an analyst meeting these controls wants and
+   what stops the row being mostly empty. */
 .gram-frame-display-range {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex: 1 1 100%;
+  flex-wrap: wrap;
+}
+
+.gram-frame-display-heading {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ec5ff;
 }
 
 .gram-frame-display-control {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 1 1 120px;
+  flex: 0 0 auto;
 }
 
 .gram-frame-display-label {
@@ -237,8 +265,28 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 .gram-frame-display-slider {
-  flex: 1 1 80px;
-  min-width: 60px;
+  flex: 0 0 90px;
+  width: 90px;
+}
+
+/* The help: what the controls are for, and what they do to the measurements.
+   Takes the width the sliders no longer stretch across, and drops below them
+   on a narrow host rather than squeezing them. */
+.gram-frame-display-help {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 260px;
+  min-width: 200px;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.gram-frame-display-hint {
+  color: #8fa3ba;
+}
+
+.gram-frame-display-caveat {
+  color: #c8b98f;
 }
 
 /* The caption naming what the render caps changed (spec 171, FR-024). */

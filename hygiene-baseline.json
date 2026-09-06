@@ -4,7 +4,7 @@
   "_comment_moduleLines": "spec 167 SC-004, now enforced (R9-16). `moduleLineCaps` records every module currently over `moduleLineDefault`; a module without an entry must stay under the default, so a new one cannot quietly grow past the line and then be grandfathered in. Caps only ever fall: when a module shrinks by 10 lines or more, `yarn hygiene` says so and the cap is lowered in the same PR. The caps below are the sizes at the moment the ratchet was introduced -- they record the debt, they do not bless it.",
   "_comment_moduleLines_reset": "The caps were first measured on the branch that introduced the ratchet (#302). Six other PRs merged to main between that measurement and that merge -- #295, #298, #299, #305, #306 among them -- so the caps landed already below the tree they were meant to guard and main failed its own gate. They are re-measured here against main, once. This is the only reset: from this commit the ratchet is live, and a module that grows past its cap is a regression to fix rather than a number to raise.",
   "_comment_moduleLines_main_268": "src/main.js: 969 -> 966. #310 raised this to 969 for the named bootstrap issue #272 needed, and pointed at #268 as where it should come back down. It comes down 3: the duplicated drag-cancel loop is one helper and three comments describing removed behaviour are gone. That is short of the 962 the cap stood at before #310 -- the cleanup did not free everything #272 cost. Splitting main.js, which CLAUDE.md already names as the one module a later phase should split, is what recovers the rest.",
-  "_comment_moduleLines_state_171": "src/core/state.js: 423 -> 432 (the cap #276 had just re-measured at 423). Spec 171 adds three fields to the player slice -- `preservesPitch`, `display` and `degraded` -- and the initial state is the one place a core slice's shape is stated, so there is nowhere else for them to live. Nine lines, three of them fields and six the comments saying what each is and why it is not persisted. Caps otherwise only fall; this one is raised deliberately, as #310 raised main.js, and splitting state.js is not the fix -- the file is already only the shape, the listeners and the dispatch.",
+  "_comment_moduleLines_state_171": "src/core/state.js: 423 -> 432 (the cap #276 had just re-measured at 423). Spec 171 adds three fields the initial state is the only place to state: `preservesPitch` and `degraded` on the player slice, and `display`, which #324 then moved to the core keys when image grams gained the contrast controls. Caps otherwise only fall; this one was raised deliberately, as #310 raised main.js, and splitting state.js is not the fix -- the file is already only the shape, the listeners and the dispatch.",
   "moduleLineDefault": 350,
   "moduleLineCaps": {
     "src/api/GramFrameAPI.js": 415,
@@ -26,10 +26,10 @@
   "circularDependencies": 0,
   "unusedExportModules": 4,
   "_comment_specTypeErrors": "R9-10. `yarn typecheck` (tsconfig.json) covers src/, tests/helpers, tests/unit and scripts/ and must stay at zero. The Playwright spec files carry the rest -- mostly unguarded nulls from `boundingBox()` and `querySelector` inside `page.evaluate` -- and are counted here through tsconfig.specs.json so the debt is visible and falling rather than invisible. At zero, fold tests/**/*.js into tsconfig.json and delete tsconfig.specs.json.",
-  "specTypeErrors": 509,
+  "specTypeErrors": 505,
   "waitForTimeoutOccurrences": 1,
   "_comment_instanceSurface": "specs/167-structural-refactor Story 5. instanceStateReachIns counts lines containing `instance.state` under src/; instanceFields counts class-field declarations between `export class GramFrame` and its constructor in src/main.js.",
-  "instanceStateReachIns": 144,
+  "instanceStateReachIns": 143,
   "_comment_instanceFields_168": "Raised 11 -> 12 by spec 168: `player` is a fifth grouped sub-object (the audio element, its controller and follow loop share one lifetime), not a flat field returning to the surface.",
   "instanceFields": 12
 }

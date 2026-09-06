@@ -292,7 +292,36 @@ transitions are announced without moving focus.
 - **FR-012**: The floor MUST NOT be settable at or above the ceiling.
 - **FR-013**: The controls MUST have a default position that reproduces the
   image exactly as it loads today, and MUST be returnable to it.
-- **FR-014**: The controls MUST NOT appear on image-sourced instances.
+- **FR-014**: The controls MUST be offered on image-sourced instances as well
+  as audio-sourced ones. On an instance with no transport bar they MUST appear
+  on a bar of their own, in the same place under the gram.
+
+  *Amended by [#324](https://github.com/DeepBlueCLtd/GramFrame/issues/324),
+  2026-09-06.* It read "The controls MUST NOT appear on image-sourced
+  instances", on the ground that "the levels of an author-supplied PNG were
+  never ours to re-map". **That reason was wrong**: on a player the controls
+  also act on painted 8-bit pixels, not on measured levels, since the magnitude
+  grid is discarded once the PNG exists. The two cases are the same case.
+
+  The real question was whether a per-channel transfer misleads on a
+  colour-mapped image, and it was measured rather than argued. Every gram in
+  `sample/` is hue-coded blue → yellow (mean saturation 0.65–0.77, no greyscale
+  pixels) — **and hue is a monotone function of brightness in all of them**, so
+  the transfer, being monotone, never reorders what is strong and what is weak.
+  Hue distortion is confined to clipping: lowering the ceiling moves 3.9% of
+  pixels by more than 5°, while raising the floor to 0.35 moves 23% by more
+  than 15° — all of it in the background being deliberately suppressed. A
+  desaturating "hue-safe" variant was prototyped and rejected: identical
+  contrast, colour map thrown away.
+
+  This is a **trial**. The one fact that would have reversed it — a printed
+  colour key that analysts read values against, which would make colour the
+  measurement rather than a rendering of it — was put to the product owner and
+  answered on 2026-09-06: **no training material carries a colour key.** So
+  colour here is a rendering of level and nothing else, and the hue shift the
+  floor produces in the suppressed background costs no reading. It remains a
+  trial in the sense that it wants use before it is called settled, not in the
+  sense that a known risk is outstanding.
 
 ### Navigating a playing recording (R6, R7)
 
@@ -345,7 +374,9 @@ transitions are announced without moving focus.
 ### Key Entities
 
 - **Display range**: a floor and a ceiling over the rendered level scale. View
-  state, per instance, not persisted and not broadcast as annotation data.
+  state, per instance, not persisted and not broadcast as annotation data. It
+  lives in `state.display` — a core key, not a player one, since #324 gave
+  image-backed grams the controls too.
 - **Drag-seek**: a transient pairing of a pan gesture with a playback pause and
   a resume time. Owned by the transport, not by any mode. A press that never
   moves is the degenerate case, and means "pause" rather than "seek to here"
@@ -428,6 +459,15 @@ From research §9, product owner, 2026-09-05:
   decided this knowing the cost; it is recorded here so it is not rediscovered
   later as a defect. If a future exercise type needs it back, it should return as
   an authoring option, not as a global rule.
+- **The static-gram trial widens the blast radius of US2's limitation.** The
+  controls now act on author-supplied PNGs whose colour map GramFrame did not
+  choose and cannot know. The measurements above cover the material we have —
+  all of it hue-coded with hue monotone in brightness, and none of it carrying
+  a colour key (product owner, 2026-09-06). Material we have not seen is not
+  covered by them: a gram with a **non-monotone** map would break the ordering
+  argument, and one printed **with** a key would make colour a value to read
+  rather than a rendering. Neither exists today; both are things to check if
+  the material ever comes from a new source.
 - **US2 over-promises if read casually.** The floor/ceiling controls re-map
   levels that were already quantised to 8 bits and already clipped at the file's
   5th and 99.9th percentiles when the PNG was painted. Detail outside that

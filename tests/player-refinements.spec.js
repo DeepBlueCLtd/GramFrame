@@ -103,10 +103,10 @@ test.describe('Story 2 — contrast: bringing a faint tonal out of the backgroun
     await setContrast(page, 'ceiling', 0.3)
     await setContrast(page, 'floor', 0.9)
     const state = await new GramFramePage(page).getState()
-    expect(state.player.display.floor).toBeLessThan(state.player.display.ceiling)
+    expect(state.display.floor).toBeLessThan(state.display.ceiling)
 
     await setContrast(page, 'ceiling', 0)
-    const settled = (await new GramFramePage(page).getState()).player.display
+    const settled = (await new GramFramePage(page).getState()).display
     expect(settled.floor).toBeLessThan(settled.ceiling)
     expect(settled.floor).toBeGreaterThanOrEqual(0)
   })
@@ -119,17 +119,19 @@ test.describe('Story 2 — contrast: bringing a faint tonal out of the backgroun
     await page.locator('.gram-frame-display-reset').click()
     await expect(page.locator('.gram-frame-spectrogram-image')).not.toHaveAttribute('filter', /./)
     const state = await gfp.getState()
-    expect(state.player.display).toEqual({ floor: 0, ceiling: 1 })
+    expect(state.display).toEqual({ floor: 0, ceiling: 1 })
   })
 
-  test('FR-014: an image-sourced gram has no contrast controls', async ({ page }) => {
+  test('FR-014 (as amended by #324): an image-sourced gram has the controls too, on a bar of its own', async ({ page }) => {
     const gfp = new GramFramePage(page)
     await page.goto(IMAGE_PAGE)
     await gfp.waitForState(s => s.imageDetails.naturalWidth > 0, { message: 'the image gram to load' })
-    // The levels of an author-supplied PNG were never ours to re-map
-    await expect(page.locator('.gram-frame-display-range')).toHaveCount(0)
+    // One control group, on its own bar: an image gram has no transport bar to
+    // join. Spec 171 refused them here; #324 reversed that.
+    await expect(page.locator('.gram-frame-display-bar .gram-frame-display-range').first()).toBeVisible()
     await expect(page.locator('.gram-frame-transport')).toHaveCount(0)
-    await expect(page.locator('.gram-frame-spectrogram-image')).not.toHaveAttribute('filter', /./)
+    // And at rest it is still the image exactly as authored
+    await expect(page.locator('.gram-frame-spectrogram-image').first()).not.toHaveAttribute('filter', /./)
   })
 })
 
