@@ -4,7 +4,7 @@
 
 /// <reference path="../types.js" />
 
-import { screenToData, isWithinImage } from '../utils/coordinates.js'
+import { screenToDataWithZoom, acceptsOffImageDrag, unboundedDataCoords } from './pointerScope.js'
 import { hasActiveDrag, cancelActiveDrag } from '../modes/shared/BaseDragHandler.js'
 import { dispatch } from './state.js'
 import { updateUniversalCursorReadouts } from '../components/MainUI.js'
@@ -21,40 +21,6 @@ import { wheelPanHandler } from './wheelPan.js'
  * @type {number}
  */
 const WHEEL_ZOOM_STEP = 1.2
-
-/**
- * Convert a pointer event to data coordinates, or null when it is not over the
- * spectrogram image.
- *
- * The transformation itself lives in the canonical coordinate module, which is
- * already zoom-, expand-, render-size- and margin-aware (FR-002, FR-003). What
- * stays here is only the local convention every caller below relies on: an
- * off-image pointer reads as `null` rather than as an out-of-range point.
- *
- * @param {GramFrame} instance - GramFrame instance
- * @param {MouseEvent} event - Mouse event
- * @returns {ScreenToDataResult|null} Object with svgCoords, imageX, imageY and dataCoords, or null when off-image
- */
-function screenToDataWithZoom(instance, event) {
-  const point = screenToData(
-    event.clientX,
-    event.clientY,
-    instance.ui.svg,
-    instance.state,
-    instance.ui.spectrogramImage
-  )
-
-  if (!isWithinImage(point.svg, instance.state, instance.ui.spectrogramImage)) {
-    return null
-  }
-
-  return {
-    svgCoords: point.svg,
-    imageX: point.image.x,
-    imageY: point.image.y,
-    dataCoords: point.data
-  }
-}
 
 /**
  * Handle mouse-wheel events on the SVG: Ctrl+scroll zooms around the pointer,
@@ -208,6 +174,7 @@ function handleMouseMove(instance, event) {
     return
   }
 
+  const { state } = instance
   const result = screenToDataWithZoom(instance, event)
 
   if (result) {
@@ -215,7 +182,7 @@ function handleMouseMove(instance, event) {
 
     // Update cursor position in state (one rect read — this is the hot path)
     const svgRect = instance.ui.svg.getBoundingClientRect()
-    instance.state.cursorPosition = {
+    state.cursorPosition = {
       x: event.clientX - svgRect.left,
       y: event.clientY - svgRect.top,
       svgX: svgCoords.x,
@@ -234,8 +201,16 @@ function handleMouseMove(instance, event) {
       instance.currentMode.handleMouseMove(event, dataCoords)
     }
   } else {
-    // Clear cursor position if outside image bounds
-    instance.state.cursorPosition = null
+    // Clear cursor position if outside image bounds: there is no reading to
+    // show for a pointer that is not over the gram.
+    state.cursorPosition = null
+
+    // A pan already under way keeps following the pointer out there, though —
+    // it is moving the view, not measuring anything (see `acceptsOffImageDrag`).
+    if (acceptsOffImageDrag(instance) && instance.currentMode &&
+        typeof instance.currentMode.handleMouseMove === 'function') {
+      instance.currentMode.handleMouseMove(event, unboundedDataCoords(instance, event))
+    }
   }
 
   // No feature re-render here (H3): persistent features do not change on
@@ -302,10 +277,13 @@ function handleMouseDown(instance, event) {
   }
 
   const result = screenToDataWithZoom(instance, event)
+  // A pan on an audio-sourced gram starts anywhere in the component, including
+  // the blank above the recording's start: that blank is where the analyst has
+  // to press to drag the opening seconds up to the playhead.
+  const dataCoords = result ? result.dataCoords
+    : (acceptsOffImageDrag(instance) ? unboundedDataCoords(instance, event) : null)
 
-  if (result) {
-    const { dataCoords } = result
-
+  if (dataCoords) {
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseDown === 'function') {
       instance.currentMode.handleMouseDown(event, dataCoords)
@@ -350,13 +328,13 @@ function handleMouseUp(instance, event) {
   }
 
   const result = screenToDataWithZoom(instance, event)
+  const upCoords = result ? result.dataCoords
+    : (acceptsOffImageDrag(instance) ? unboundedDataCoords(instance, event) : null)
 
-  if (result) {
-    const { dataCoords } = result
-
+  if (upCoords) {
     // Delegate to current mode for mode-specific handling
     if (instance.currentMode && typeof instance.currentMode.handleMouseUp === 'function') {
-      instance.currentMode.handleMouseUp(event, dataCoords)
+      instance.currentMode.handleMouseUp(event, upCoords)
     }
   } else if (hasActiveDrag(instance)) {
     // Released off-image (over the axis margins or component chrome) while a

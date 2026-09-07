@@ -55,6 +55,13 @@ mode, so a first stray click never leaves an annotation behind.
   carrying command buttons, and four controls do not fit across the column with
   a word among them; the hand is also what the cursor becomes over a gram you
   can drag. Every other mode is still named in full.
+- On an audio-sourced gram the drag keeps working when the pointer leaves the
+  image. Scrolling back to the start of a recording *means* putting blank space
+  on screen — the top edge is the playhead, so the first second only reaches it
+  once the window below is empty — and a pan that stopped at the image's edge
+  would strand the analyst with the opening seconds visible but unreachable.
+  Every other mode places or moves a feature, which must land on the gram, so
+  for those an off-image pointer still cancels the drag.
 - Selectable at any zoom level, including fully zoomed out.
 
 ---
