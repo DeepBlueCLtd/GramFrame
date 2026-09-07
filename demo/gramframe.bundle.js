@@ -2067,9 +2067,8 @@
     return player.windowSeconds / zoom.level;
   }
   function clampViewTop(instance, seconds) {
-    const { duration, playhead } = playerOf(instance);
-    const lower = Math.min(visibleWindowSeconds(instance), duration, playhead);
-    return Math.max(lower, Math.min(duration, seconds));
+    const { duration } = playerOf(instance);
+    return Math.max(0, Math.min(duration, seconds));
   }
   function applyView(instance) {
     if (instance.ui.svg) {
@@ -3169,6 +3168,37 @@
     extractConfigData(instance);
     return setupComponentTable(instance, configTable);
   }
+  function screenToDataWithZoom(instance, event) {
+    const point = screenToData(
+      event.clientX,
+      event.clientY,
+      instance.ui.svg,
+      instance.state,
+      instance.ui.spectrogramImage
+    );
+    if (!isWithinImage(point.svg, instance.state, instance.ui.spectrogramImage)) {
+      return null;
+    }
+    return {
+      svgCoords: point.svg,
+      imageX: point.image.x,
+      imageY: point.image.y,
+      dataCoords: point.data
+    };
+  }
+  function acceptsOffImageDrag(instance) {
+    const mode = instance.currentMode;
+    return !!mode && typeof mode.acceptsOffImageDrag === "function" && mode.acceptsOffImageDrag();
+  }
+  function unboundedDataCoords(instance, event) {
+    return screenToData(
+      event.clientX,
+      event.clientY,
+      instance.ui.svg,
+      instance.state,
+      instance.ui.spectrogramImage
+    ).data;
+  }
   const SVG_NS$5 = "http://www.w3.org/2000/svg";
   const ICON_BOX = 24;
   function handShapes() {
@@ -3982,24 +4012,6 @@
     return instance.interaction._wheelPanHandler;
   }
   const WHEEL_ZOOM_STEP = 1.2;
-  function screenToDataWithZoom(instance, event) {
-    const point = screenToData(
-      event.clientX,
-      event.clientY,
-      instance.ui.svg,
-      instance.state,
-      instance.ui.spectrogramImage
-    );
-    if (!isWithinImage(point.svg, instance.state, instance.ui.spectrogramImage)) {
-      return null;
-    }
-    return {
-      svgCoords: point.svg,
-      imageX: point.image.x,
-      imageY: point.image.y,
-      dataCoords: point.data
-    };
-  }
   function handleWheel(instance, event) {
     const result = screenToDataWithZoom(instance, event);
     if (!result) {
@@ -4099,11 +4111,12 @@
     if (handleRegionPointerMove(instance, event)) {
       return;
     }
+    const { state } = instance;
     const result = screenToDataWithZoom(instance, event);
     if (result) {
       const { svgCoords, imageX, imageY, dataCoords } = result;
       const svgRect = instance.ui.svg.getBoundingClientRect();
-      instance.state.cursorPosition = {
+      state.cursorPosition = {
         x: event.clientX - svgRect.left,
         y: event.clientY - svgRect.top,
         svgX: svgCoords.x,
@@ -4118,7 +4131,10 @@
         instance.currentMode.handleMouseMove(event, dataCoords);
       }
     } else {
-      instance.state.cursorPosition = null;
+      state.cursorPosition = null;
+      if (acceptsOffImageDrag(instance) && instance.currentMode && typeof instance.currentMode.handleMouseMove === "function") {
+        instance.currentMode.handleMouseMove(event, unboundedDataCoords(instance, event));
+      }
     }
     dispatch(instance, { frame: true });
   }
@@ -4147,8 +4163,8 @@
       return;
     }
     const result = screenToDataWithZoom(instance, event);
-    if (result) {
-      const { dataCoords } = result;
+    const dataCoords = result ? result.dataCoords : acceptsOffImageDrag(instance) ? unboundedDataCoords(instance, event) : null;
+    if (dataCoords) {
       if (instance.currentMode && typeof instance.currentMode.handleMouseDown === "function") {
         instance.currentMode.handleMouseDown(event, dataCoords);
       }
@@ -4172,10 +4188,10 @@
       return;
     }
     const result = screenToDataWithZoom(instance, event);
-    if (result) {
-      const { dataCoords } = result;
+    const upCoords = result ? result.dataCoords : acceptsOffImageDrag(instance) ? unboundedDataCoords(instance, event) : null;
+    if (upCoords) {
       if (instance.currentMode && typeof instance.currentMode.handleMouseUp === "function") {
-        instance.currentMode.handleMouseUp(event, dataCoords);
+        instance.currentMode.handleMouseUp(event, upCoords);
       }
     } else if (hasActiveDrag(instance)) {
       cancelActiveDrag(instance);
@@ -4300,6 +4316,18 @@
      *   when the pointer is not over the image
      */
     updateLEDs(_coords) {
+    }
+    /**
+     * Whether a drag in this mode keeps working when the pointer is not over the
+     * gram itself.
+     *
+     * `false` for every mode that places or moves a feature: a marker has to land
+     * on the gram, so an off-image pointer is a mistake and the drag is cancelled.
+     * Panning an audio-sourced gram is the exception — see `PanMode`.
+     * @returns {boolean} True when the mode wants pointer events off the image
+     */
+    acceptsOffImageDrag() {
+      return false;
     }
     /**
      * Get guidance content for this mode
@@ -7631,6 +7659,23 @@
      */
     canPan() {
       return isZoomedIn(this.instance) || isPlayerActive(this.instance);
+    }
+    /**
+     * Panning an audio-sourced gram keeps working off the image.
+     *
+     * Scrolling back to the very start of a recording *means* putting blank space
+     * on screen: the top edge is the playhead, so the first second only reaches
+     * it once the whole window below is empty. A pan that stopped the moment the
+     * pointer left the gram would strand the analyst partway, with the opening
+     * seconds visible but unreachable.
+     *
+     * Only for the player, and only for panning. On an image-backed gram there is
+     * no blank inside the axes to drag from, and every other mode places or moves
+     * a feature, which must land on the gram.
+     * @returns {boolean} True on an audio-sourced gram
+     */
+    acceptsOffImageDrag() {
+      return isPlayerActive(this.instance);
     }
     /**
      * The cursor pan mode rests at: a grab hand when there is something to pan.

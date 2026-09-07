@@ -66,6 +66,24 @@ export class PanMode extends BaseMode {
   }
 
   /**
+   * Panning an audio-sourced gram keeps working off the image.
+   *
+   * Scrolling back to the very start of a recording *means* putting blank space
+   * on screen: the top edge is the playhead, so the first second only reaches
+   * it once the whole window below is empty. A pan that stopped the moment the
+   * pointer left the gram would strand the analyst partway, with the opening
+   * seconds visible but unreachable.
+   *
+   * Only for the player, and only for panning. On an image-backed gram there is
+   * no blank inside the axes to drag from, and every other mode places or moves
+   * a feature, which must land on the gram.
+   * @returns {boolean} True on an audio-sourced gram
+   */
+  acceptsOffImageDrag() {
+    return isPlayerActive(this.instance)
+  }
+
+  /**
    * The cursor pan mode rests at: a grab hand when there is something to pan.
    * @returns {string} Cursor style
    */
