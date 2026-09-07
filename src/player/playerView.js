@@ -97,22 +97,29 @@ export function visibleWindowSeconds(instance) {
  * Upper bound: the recording's duration (spec 171, FR-007). It was the
  * playhead until spec 168's reveal rule was withdrawn — the whole gram is
  * drawn from load, so a paused analyst may scroll to the last second of a file
- * they have never played. Lower bound: one window's worth above the start, so
- * the recording's beginning never scrolls above the bottom edge into empty
- * space; on a recording shorter than one window, the duration itself; and,
- * before a window has been played, the playhead — because in the opening
- * seconds the view is *meant* to be partly blank, the newest row at the top
- * edge with nothing yet beneath it, and the follow loop must not be fought
- * (FR-008). That last term makes `clampViewTop(playhead)` the identity, which
- * is what {@link syncViewToPlayhead} relies on.
+ * they have never played.
+ *
+ * Lower bound: the start of the recording. It used to be one window's worth
+ * *above* the start, so the beginning never scrolled above the bottom edge into
+ * empty space — but the top edge is the playhead, and drag-seek resumes from
+ * whatever time the top edge is showing. That bound therefore made the opening
+ * window of every recording impossible to put under the playhead, and so
+ * impossible to replay by dragging: the furthest back an analyst could get was
+ * the first sound sitting on the bottom edge.
+ *
+ * The blank it was avoiding is blank the view already shows and already
+ * accepts. In the opening seconds the bound resolved to the playhead — the
+ * newest row at the top edge with nothing yet beneath it — so the old rule
+ * forbade at second thirty exactly what it permitted at second three. Zero
+ * keeps `clampViewTop(playhead)` the identity for any playhead in the
+ * recording, which is what {@link syncViewToPlayhead} relies on.
  * @param {GramFrame} instance - GramFrame instance
  * @param {number} seconds - Candidate view-top time
  * @returns {number} The clamped time
  */
 export function clampViewTop(instance, seconds) {
-  const { duration, playhead } = playerOf(instance)
-  const lower = Math.min(visibleWindowSeconds(instance), duration, playhead)
-  return Math.max(lower, Math.min(duration, seconds))
+  const { duration } = playerOf(instance)
+  return Math.max(0, Math.min(duration, seconds))
 }
 
 /**
