@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GramFrame — Spectrograph Player Trial</title>
+<script src="gramframe.bundle.js"></script>
+<style>
+  :root { --ink:#1d2129; --muted:#5b6472; --line:#d8dde5; --bg:#f7f8fa; --accent:#1c5d99; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+         margin:0; padding:24px; color:var(--ink); background:var(--bg); }
+  .wrap { max-width:1100px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 20px; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:16px; }
+  .drop { border:2px dashed var(--line); border-radius:6px; padding:28px; text-align:center;
+          background:#fff; transition:border-color .15s, background .15s; }
+  .drop.over { border-color:var(--accent); background:#eef4fa; }
+  .drop p { margin:8px 0 0; color:var(--muted); font-size:13px; }
+  button, input[type=file]::file-selector-button {
+          font:inherit; padding:8px 16px; border:1px solid var(--accent); background:var(--accent);
+          color:#fff; border-radius:4px; cursor:pointer; }
+  button.secondary { background:#fff; color:var(--accent); }
+  button:disabled { opacity:.5; cursor:default; }
+  table.facts { border-collapse:collapse; font-size:13px; width:100%; }
+  table.facts td { padding:3px 12px 3px 0; vertical-align:top; }
+  table.facts td:first-child { color:var(--muted); white-space:nowrap; width:1%; }
+  .controls { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end; }
+  .controls label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .controls input, .controls select { font:inherit; padding:6px 8px; border:1px solid var(--line);
+          border-radius:4px; width:130px; }
+  .note { font-size:13px; padding:10px 12px; border-radius:4px; margin-top:12px; }
+  .note.warn { background:#fdf3e3; border:1px solid #e8cf9a; }
+  .note.err  { background:#fdeaea; border:1px solid #e8a9a9; }
+  #mount { min-height:20px; }
+  .hidden { display:none; }
+  footer { color:var(--muted); font-size:12px; margin-top:24px; }
+  code { background:#eef0f3; padding:1px 4px; border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>GramFrame — Spectrograph Player Trial</h1>
+  <p class="sub">Choose a WAV recording from this computer. It is analysed in your browser and never leaves this machine.</p>
+
+  <div class="panel">
+    <div class="drop" id="drop">
+      <input type="file" id="file" accept=".wav,audio/wav,audio/x-wav">
+      <p>or drag a <code>.wav</code> file onto this box</p>
+    </div>
+    <div id="problem" class="note err hidden"></div>
+  </div>
+
+  <div class="panel hidden" id="factsPanel">
+    <table class="facts" id="facts"></table>
+    <div id="capNote" class="note warn hidden"></div>
+  </div>
+
+  <div class="panel hidden" id="controlsPanel">
+    <div class="controls">
+      <div><label for="fft">FFT size</label>
+        <select id="fft"></select></div>
+      <div><label for="freqEnd">Top frequency (Hz)</label>
+        <input type="number" id="freqEnd" min="1" step="1"></div>
+      <div><label for="win">Window (seconds on screen)</label>
+        <input type="number" id="win" min="1" max="600" step="1" value="10"></div>
+      <div><button id="apply">Re-analyse</button></div>
+    </div>
+  </div>
+
+  <div id="mount"></div>
+
+  <footer>
+    Trial build. Annotations are not saved between sessions.
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict'
+
+  var MAX_GRAM_ROWS = 32768      // must match src/audio/gramImage.js
+  var MAX_GRAM_COLUMNS = 4096
+
+  var els = {
+    file: document.getElementById('file'),
+    drop: document.getElementById('drop'),
+    problem: document.getElementById('problem'),
+    factsPanel: document.getElementById('factsPanel'),
+    facts: document.getElementById('facts'),
+    capNote: document.getElementById('capNote'),
+    controlsPanel: document.getElementById('controlsPanel'),
+    fft: document.getElementById('fft'),
+    freqEnd: document.getElementById('freqEnd'),
+    win: document.getElementById('win'),
+    apply: document.getElementById('apply'),
+    mount: document.getElementById('mount')
+  }
+
+  var current = { instance: null, url: null, info: null }
+
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B'
+    if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB'
+    return (n / 1024 / 1024).toFixed(1) + ' MB'
+  }
+  function fmtTime(s) {
+    var m = Math.floor(s / 60), r = Math.round(s % 60)
+    return m > 0 ? m + ' min ' + r + ' s' : s.toFixed(1) + ' s'
+  }
+  function showProblem(msg) {
+    els.problem.textContent = msg
+    els.problem.classList.remove('hidden')
+  }
+  function clearProblem() { els.problem.classList.add('hidden') }
+
+  /**
+   * Read enough of the RIFF header to describe the recording without decoding it.
+   * Mirrors the chunk walk in src/audio/wavDecoder.js.
+   */
+  function readWavHeader(buf) {
+    var v = new DataView(buf)
+    function fourCC(o) {
+      return String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3))
+    }
+    if (buf.byteLength < 12) throw new Error('Too short to be a WAV file.')
+    if (fourCC(0) !== 'RIFF' || fourCC(8) !== 'WAVE') {
+      throw new Error('Not a WAV file — expected a RIFF/WAVE header, found "' + fourCC(0) + '"/"' + fourCC(8) + '".')
+    }
+    var fmt = null, dataBytes = null, o = 12
+    while (o + 8 <= buf.byteLength) {
+      var id = fourCC(o), size = v.getUint32(o + 4, true), body = o + 8
+      if (id === 'fmt ' && size >= 16) {
+        var tag = v.getUint16(body, true)
+        if (tag === 0xFFFE && size >= 40) tag = v.getUint16(body + 24, true)
+        fmt = {
+          tag: tag,
+          channels: v.getUint16(body + 2, true),
+          sampleRate: v.getUint32(body + 4, true),
+          bitsPerSample: v.getUint16(body + 14, true)
+        }
+      } else if (id === 'data') {
+        dataBytes = size
+        break                       // the header walk needs nothing past here
+      }
+      o = body + size + (size % 2)
+    }
+    if (!fmt) throw new Error('Malformed WAV: no "fmt " chunk in the first part of the file.')
+    if (fmt.tag !== 1 && fmt.tag !== 3) {
+      throw new Error('Unsupported WAV format tag ' + fmt.tag +
+        '. This player reads uncompressed PCM (1) and IEEE float (3) only — ' +
+        'the file appears to be compressed. Re-export it as PCM WAV and try again.')
+    }
+    if (!fmt.channels || !fmt.sampleRate) throw new Error('Malformed WAV: zero channels or sample rate.')
+    var bytesPerFrame = fmt.channels * (fmt.bitsPerSample / 8)
+    var frames = dataBytes ? Math.floor(dataBytes / bytesPerFrame) : 0
+    return {
+      tag: fmt.tag, channels: fmt.channels, sampleRate: fmt.sampleRate,
+      bitsPerSample: fmt.bitsPerSample, sampleCount: frames,
+      duration: frames / fmt.sampleRate
+    }
+  }
+
+  function nextPowerOfTwo(n) {
+    var p = 1
+    while (p < n) p *= 2
+    return p
+  }
+
+  /**
+   * Choose an analysis that fits the render caps *without leaving gaps*.
+   *
+   * GramFrame's own degrade path widens hop-size alone, which on a long
+   * recording pushes hop past fft-size and leaves most of the audio between
+   * windows. Raising fft-size in step keeps the windows overlapping, so every
+   * sample is looked at.
+   */
+  function planFor(info, wantedFreqEnd, wantedFft) {
+    var nyquist = info.sampleRate / 2
+    var freqEnd = Math.min(wantedFreqEnd || nyquist, nyquist)
+    var notes = []
+
+    // Rows: frames = ceil(sampleCount / hop), hop = fftSize / 2. The smallest
+    // FFT whose half-overlap hop keeps the gram inside the row cap.
+    var autoFft = nextPowerOfTwo(Math.max(1024, Math.ceil(info.sampleCount / (MAX_GRAM_ROWS / 2))))
+    var fftSize = wantedFft || autoFft
+
+    var hopSize = fftSize / 2
+    var binWidth = info.sampleRate / fftSize
+
+    // The notes describe the limits as they stand, not how this call was
+    // reached: the chosen values are echoed back into the controls, so a note
+    // conditioned on "did I just change this?" would show once and vanish.
+    if (fftSize >= autoFft && autoFft > 1024) {
+      notes.push('This recording needs an FFT size of at least ' + autoFft + ' to fit the ' +
+        MAX_GRAM_ROWS.toLocaleString() + '-row render limit with overlapping windows. ' +
+        'A smaller one would space the windows out and leave most of the recording unanalysed.')
+    }
+
+    // Columns are the retained bins *inclusive of DC*, matching planAnalysis():
+    // floor(freqEnd / binWidth) - ceil(freqStart / binWidth) + 1, freqStart = 0.
+    var capFreqEnd = Math.floor((MAX_GRAM_COLUMNS - 1) * binWidth)
+    if (capFreqEnd < nyquist) {
+      notes.push('At FFT size ' + fftSize + ' the ' + MAX_GRAM_COLUMNS.toLocaleString() +
+        '-column limit caps the top frequency at ' + capFreqEnd.toLocaleString() + ' Hz ' +
+        '(this recording reaches ' + Math.round(nyquist).toLocaleString() + ' Hz). ' +
+        'Lower the top frequency for finer detail, or trial a shorter excerpt at a smaller FFT size.')
+    }
+    if (freqEnd > capFreqEnd) freqEnd = capFreqEnd
+    var columns = Math.floor(freqEnd / binWidth) + 1
+
+    return {
+      fftSize: fftSize, hopSize: hopSize, freqEnd: freqEnd,
+      frames: Math.ceil(info.sampleCount / hopSize),
+      columns: columns, binWidth: binWidth, notes: notes
+    }
+  }
+
+  function describe(info, plan) {
+    var rows = [
+      ['File', current.name + '  (' + fmtBytes(current.size) + ')'],
+      ['Duration', fmtTime(info.duration)],
+      ['Format', info.sampleRate.toLocaleString() + ' Hz, ' +
+        (info.channels === 1 ? 'mono' : info.channels + ' channels') + ', ' +
+        info.bitsPerSample + '-bit ' + (info.tag === 3 ? 'float' : 'PCM')],
+      ['Spectrogram', plan.frames.toLocaleString() + ' rows x ' + plan.columns.toLocaleString() +
+        ' columns, ' + plan.binWidth.toFixed(1) + ' Hz per column'],
+      ['Time per row', (plan.hopSize / info.sampleRate * 1000).toFixed(0) + ' ms']
+    ]
+    els.facts.innerHTML = ''
+    rows.forEach(function (r) {
+      var tr = document.createElement('tr')
+      var td1 = document.createElement('td'); td1.textContent = r[0]
+      var td2 = document.createElement('td'); td2.textContent = r[1]
+      tr.appendChild(td1); tr.appendChild(td2); els.facts.appendChild(tr)
+    })
+    els.factsPanel.classList.remove('hidden')
+  }
+
+  function buildTable(url, plan, windowSeconds) {
+    var table = document.createElement('table')
+    table.className = 'gram-config'
+    function row(a, b) {
+      var tr = document.createElement('tr')
+      var td1 = document.createElement('td'); td1.textContent = a
+      var td2 = document.createElement('td'); td2.textContent = String(b)
+      tr.appendChild(td1); tr.appendChild(td2); return tr
+    }
+    var first = document.createElement('tr')
+    var cell = document.createElement('td')
+    cell.setAttribute('colspan', '2')
+    var audio = document.createElement('audio')
+    audio.src = url
+    audio.setAttribute('controls', '')
+    cell.appendChild(audio); first.appendChild(cell); table.appendChild(first)
+    table.appendChild(row('fft-size', plan.fftSize))
+    table.appendChild(row('hop-size', plan.hopSize))
+    table.appendChild(row('freq-end', Math.round(plan.freqEnd)))
+    table.appendChild(row('window-seconds', windowSeconds))
+    return table
+  }
+
+  function teardown() {
+    if (current.instance && typeof current.instance.destroy === 'function') {
+      try { current.instance.destroy() } catch (e) { /* already gone */ }
+    }
+    current.instance = null
+    els.mount.innerHTML = ''
+  }
+
+  function render() {
+    teardown()
+    var plan = planFor(current.info,
+      Number(els.freqEnd.value) || undefined,
+      Number(els.fft.value) || undefined)
+
+    // Say what is actually being analysed, including any narrowing just applied.
+    els.freqEnd.value = String(Math.round(plan.freqEnd))
+
+    if (plan.frames > MAX_GRAM_ROWS || plan.columns > MAX_GRAM_COLUMNS) {
+      els.capNote.textContent = 'That combination would need ' + plan.frames.toLocaleString() +
+        ' rows x ' + plan.columns.toLocaleString() + ' columns, beyond the ' +
+        MAX_GRAM_ROWS.toLocaleString() + ' x ' + MAX_GRAM_COLUMNS.toLocaleString() +
+        ' render limit. Raise the FFT size, or lower the top frequency.'
+      els.capNote.classList.remove('hidden')
+      return
+    }
+    if (plan.notes.length) {
+      els.capNote.textContent = plan.notes.join(' ')
+      els.capNote.classList.remove('hidden')
+    } else {
+      els.capNote.classList.add('hidden')
+    }
+
+    describe(current.info, plan)
+    var table = buildTable(current.url, plan, Number(els.win.value) || 10)
+    els.mount.appendChild(table)
+    var made = window.GramFrame.detectAndReplaceConfigTables(els.mount)
+    current.instance = made && made[0] ? made[0] : null
+  }
+
+  function populateFftChoices(info, chosen) {
+    els.fft.innerHTML = ''
+    for (var f = 256; f <= 32768; f *= 2) {
+      var frames = Math.ceil(info.sampleCount / (f / 2))
+      if (frames > MAX_GRAM_ROWS) continue
+      var opt = document.createElement('option')
+      opt.value = String(f)
+      opt.textContent = f + '  (' + (f / info.sampleRate * 1000).toFixed(0) + ' ms window)'
+      els.fft.appendChild(opt)
+    }
+    els.fft.value = String(chosen)
+  }
+
+  function load(file) {
+    clearProblem()
+    els.capNote.classList.add('hidden')
+    teardown()
+    if (current.url) { URL.revokeObjectURL(current.url); current.url = null }
+
+    current.name = file.name
+    current.size = file.size
+
+    // Only the header is read here; GramFrame reads the whole file itself.
+    file.slice(0, 64 * 1024).arrayBuffer().then(function (head) {
+      var info
+      try { info = readWavHeader(head) } catch (e) { showProblem(e.message); return }
+      if (!info.sampleCount) { showProblem('Malformed WAV: no audio data found.'); return }
+
+      current.info = info
+      current.url = URL.createObjectURL(file)
+
+      var plan = planFor(info, undefined)
+      populateFftChoices(info, plan.fftSize)
+      els.freqEnd.value = String(Math.round(plan.freqEnd))
+      els.freqEnd.max = String(Math.floor(info.sampleRate / 2))
+      els.controlsPanel.classList.remove('hidden')
+      render()
+    }).catch(function (e) {
+      showProblem('Could not read the file: ' + e.message)
+    })
+  }
+
+  els.file.addEventListener('change', function () {
+    if (els.file.files && els.file.files[0]) load(els.file.files[0])
+  })
+  els.apply.addEventListener('click', render)
+  ;['dragenter', 'dragover'].forEach(function (t) {
+    els.drop.addEventListener(t, function (e) { e.preventDefault(); els.drop.classList.add('over') })
+  })
+  ;['dragleave', 'drop'].forEach(function (t) {
+    els.drop.addEventListener(t, function (e) { e.preventDefault(); els.drop.classList.remove('over') })
+  })
+  els.drop.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
+    if (f) { els.file.files = e.dataTransfer.files; load(f) }
+  })
+})()
+</script>
+</body>
+</html>
