@@ -5,7 +5,7 @@
   document.head.appendChild(style);
 
   "use strict";
-  const VERSION = "0.1.19";
+  const VERSION = "0.2.0";
   function getVersion() {
     return VERSION;
   }
