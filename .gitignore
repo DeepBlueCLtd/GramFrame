@@ -148,7 +148,10 @@ playwright-report/
 # time (vite.config.js) rather than written into a tracked source file
 dist/
 
-# Assembled by scripts/make-trial.mjs from dist/ + trial/
+# Assembled by scripts/make-trial.mjs from dist/ + trial/, plus the zip and the
+# screenshots taken when verifying it. All reproducible from the build; none of
+# it belongs in the history for the reason dist/ does not.
 trial-package/
+gramframe-trial.zip
 trial-shot.png
 trial-big.png
