@@ -13,6 +13,16 @@ The file is read and analysed entirely inside your browser. Nothing is uploaded,
 and this folder needs no network connection, no web server and no installed
 software.
 
+## How to read the display
+
+- **Frequency runs left to right**, from 0 Hz at the left edge.
+- **Time runs bottom to top.** The start of the recording is at the *bottom*;
+  the latest sound is at the *top*. When you press play, new sound enters at
+  the top and the picture slides downwards.
+
+If a sound seems to be in the wrong place, check this first — it is the
+opposite of a chart where time runs left to right or downwards.
+
 ## What to try
 
 - **Press play.** The newest sound enters at the top and the picture slides down.

@@ -115,50 +115,87 @@
   }
   function clearProblem() { els.problem.classList.add('hidden') }
 
+  function fourCCOf(view, o) {
+    return String.fromCharCode(view.getUint8(o), view.getUint8(o + 1), view.getUint8(o + 2), view.getUint8(o + 3))
+  }
+
   /**
-   * Read enough of the RIFF header to describe the recording without decoding it.
+   * Describe the recording from its RIFF header, without decoding the audio.
    * Mirrors the chunk walk in src/audio/wavDecoder.js.
+   *
+   * The chain is walked by seeking through the File rather than over a fixed
+   * prefix of it. A field recorder or BWF tool routinely writes LIST/INFO,
+   * bext or iXML metadata ahead of the audio, and any prefix short enough to
+   * read eagerly is one a real recording can push its `data` chunk past — the
+   * file is then rejected as having no audio when the trouble is only that we
+   * stopped reading too early. File.slice() does not load the file, so seeking
+   * costs a few 8-byte reads however large the recording is.
+   *
+   * @param {File} file - The chosen recording
+   * @returns {Promise<Object>} What the header says
    */
-  function readWavHeader(buf) {
-    var v = new DataView(buf)
-    function fourCC(o) {
-      return String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3))
+  async function readWavHeader(file) {
+    if (file.size < 12) throw new Error('Too short to be a WAV file.')
+    var head = new DataView(await file.slice(0, 12).arrayBuffer())
+    var riff = fourCCOf(head, 0), wave = fourCCOf(head, 8)
+    if (riff === 'RF64') {
+      throw new Error('This is an RF64 file, the >4 GB variant of WAV. The player reads plain RIFF/WAVE — ' +
+        're-export it as a standard WAV.')
     }
-    if (buf.byteLength < 12) throw new Error('Too short to be a WAV file.')
-    if (fourCC(0) !== 'RIFF' || fourCC(8) !== 'WAVE') {
-      throw new Error('Not a WAV file — expected a RIFF/WAVE header, found "' + fourCC(0) + '"/"' + fourCC(8) + '".')
+    if (riff !== 'RIFF' || wave !== 'WAVE') {
+      throw new Error('Not a WAV file — expected a RIFF/WAVE header, found "' + riff + '"/"' + wave + '".')
     }
-    var fmt = null, dataBytes = null, o = 12
-    while (o + 8 <= buf.byteLength) {
-      var id = fourCC(o), size = v.getUint32(o + 4, true), body = o + 8
+
+    var fmt = null, dataBytes = null, dataStart = 0, seen = []
+    var o = 12, guard = 0
+    while (o + 8 <= file.size && guard++ < 10000) {
+      var hdr = new DataView(await file.slice(o, o + 8).arrayBuffer())
+      if (hdr.byteLength < 8) break
+      var id = fourCCOf(hdr, 0), size = hdr.getUint32(4, true), body = o + 8
+      seen.push(id)
       if (id === 'fmt ' && size >= 16) {
-        var tag = v.getUint16(body, true)
-        if (tag === 0xFFFE && size >= 40) tag = v.getUint16(body + 24, true)
+        var fv = new DataView(await file.slice(body, body + Math.min(size, 40)).arrayBuffer())
+        var tag = fv.getUint16(0, true)
+        if (tag === 0xFFFE && fv.byteLength >= 26) tag = fv.getUint16(24, true)
         fmt = {
           tag: tag,
-          channels: v.getUint16(body + 2, true),
-          sampleRate: v.getUint32(body + 4, true),
-          bitsPerSample: v.getUint16(body + 14, true)
+          channels: fv.getUint16(2, true),
+          sampleRate: fv.getUint32(4, true),
+          bitsPerSample: fv.getUint16(14, true)
         }
       } else if (id === 'data') {
+        dataStart = body
         dataBytes = size
-        break                       // the header walk needs nothing past here
+        break
       }
       o = body + size + (size % 2)
     }
-    if (!fmt) throw new Error('Malformed WAV: no "fmt " chunk in the first part of the file.')
+
+    if (!fmt) {
+      throw new Error('Malformed WAV: no "fmt " chunk. Chunks found: ' + (seen.join(', ') || 'none') + '.')
+    }
+    if (dataBytes === null) {
+      throw new Error('Malformed WAV: no "data" chunk. Chunks found: ' + (seen.join(', ') || 'none') + '.')
+    }
     if (fmt.tag !== 1 && fmt.tag !== 3) {
       throw new Error('Unsupported WAV format tag ' + fmt.tag +
         '. This player reads uncompressed PCM (1) and IEEE float (3) only — ' +
         'the file appears to be compressed. Re-export it as PCM WAV and try again.')
     }
     if (!fmt.channels || !fmt.sampleRate) throw new Error('Malformed WAV: zero channels or sample rate.')
+    if (!fmt.bitsPerSample) throw new Error('Malformed WAV: zero bits per sample.')
+
+    // Some recorders leave a placeholder length in a stream they never closed.
+    // Trust the file over the header when the header claims more than exists.
+    var available = file.size - dataStart
+    if (dataBytes === 0 || dataBytes > available) dataBytes = available
+
     var bytesPerFrame = fmt.channels * (fmt.bitsPerSample / 8)
-    var frames = dataBytes ? Math.floor(dataBytes / bytesPerFrame) : 0
+    var frames = Math.floor(dataBytes / bytesPerFrame)
     return {
       tag: fmt.tag, channels: fmt.channels, sampleRate: fmt.sampleRate,
       bitsPerSample: fmt.bitsPerSample, sampleCount: frames,
-      duration: frames / fmt.sampleRate
+      duration: frames / fmt.sampleRate, chunks: seen
     }
   }
 
@@ -323,10 +360,11 @@
     current.size = file.size
 
     // Only the header is read here; GramFrame reads the whole file itself.
-    file.slice(0, 64 * 1024).arrayBuffer().then(function (head) {
-      var info
-      try { info = readWavHeader(head) } catch (e) { showProblem(e.message); return }
-      if (!info.sampleCount) { showProblem('Malformed WAV: no audio data found.'); return }
+    readWavHeader(file).then(function (info) {
+      if (!info.sampleCount) {
+        showProblem('The "data" chunk is empty — this WAV holds no audio.')
+        return
+      }
 
       current.info = info
       current.url = URL.createObjectURL(file)
@@ -338,7 +376,7 @@
       els.controlsPanel.classList.remove('hidden')
       render()
     }).catch(function (e) {
-      showProblem('Could not read the file: ' + e.message)
+      showProblem(e.message)
     })
   }
 
