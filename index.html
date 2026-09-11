@@ -42,6 +42,7 @@
     .badge-student { background: #0d47a1; }
     .badge-trainer { background: #1b5e20; }
     .badge-player { background: #e65100; }
+    .badge-trial { background: #00695c; }
   </style>
 </head>
 <body>
@@ -62,6 +63,16 @@
     <a class="card" href="sample/player.html">
       <h2>Spectrograph Player <span class="badge badge-player">audio</span></h2>
       <p>A gram built from a WAV instead of an image: four machinery recordings analysed in the browser and shown as a scrolling, audible waterfall. Pause to annotate; the annotations ride the gram when play resumes.</p>
+    </a>
+
+    <!-- The trial harness loads gramframe.bundle.js and audio/*.wav as its own
+         siblings, so it only works where the deploy puts those beside it:
+         _site/demo/ (.github/workflows/pr-preview.yml). Hence demo/trial.html
+         rather than trial/index.html -- this card is a dead link under
+         `yarn dev`, where no demo/ directory is built. -->
+    <a class="card" href="demo/trial.html">
+      <h2>Player Trial Harness <span class="badge badge-trial">pick a file</span></h2>
+      <p>The package sent to stakeholders: choose one of the four samples, or any WAV on your own machine, then tune the analysis and the painting against it &mdash; FFT size, overlap, frame averaging, background normalisation and the display percentiles. Nothing is uploaded.</p>
     </a>
   </div>
 </body>
