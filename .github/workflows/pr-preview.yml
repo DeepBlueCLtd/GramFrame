@@ -58,6 +58,10 @@ jobs:
           mkdir -p _site/demo/audio
           cp sample/audio/*.wav _site/demo/audio/
           cp preview-player.html _site/demo/player.html
+          # The trial harness (the stakeholder package) alongside them. It loads
+          # gramframe.bundle.js and audio/*.wav as siblings, both already here.
+          cp trial/index.html _site/demo/trial.html
+          cp sample/audio/ATTRIBUTION.md _site/demo/audio/
           # Landing page for /demo/
           cat > _site/demo/index.html << 'LANDING'
           <!DOCTYPE html>
@@ -79,6 +83,7 @@ jobs:
               .badge-trainer { background: #1b5e20; }
               .badge-optimised { background: #6a1b9a; }
               .badge-player { background: #e65100; }
+              .badge-trial { background: #00695c; }
             </style>
           </head>
           <body>
@@ -100,6 +105,10 @@ jobs:
               <a class="card" href="player.html">
                 <h2>Spectrograph Player <span class="badge badge-player">audio</span></h2>
                 <p>Four machinery recordings analysed in the browser and shown as a scrolling, audible waterfall. Pause to annotate; the annotations ride the gram when play resumes.</p>
+              </a>
+              <a class="card" href="trial.html">
+                <h2>Player Trial Harness <span class="badge badge-trial">pick a file</span></h2>
+                <p>The package sent to stakeholders: choose one of the four samples, or any WAV on your own machine, and tune the FFT size and frequency range against it. Nothing is uploaded.</p>
               </a>
             </div>
           </body>
@@ -152,6 +161,10 @@ jobs:
           mkdir -p preview/audio
           cp sample/audio/*.wav preview/audio/
           cp preview-player.html preview/player.html
+          # The trial harness (the stakeholder package) alongside them. It loads
+          # gramframe.bundle.js and audio/*.wav as siblings, both already here.
+          cp trial/index.html preview/trial.html
+          cp sample/audio/ATTRIBUTION.md preview/audio/
           # Create landing page that links to both demos
           cat > preview/index.html << 'LANDING'
           <!DOCTYPE html>
@@ -173,6 +186,7 @@ jobs:
               .badge-trainer { background: #1b5e20; }
               .badge-optimised { background: #6a1b9a; }
               .badge-player { background: #e65100; }
+              .badge-trial { background: #00695c; }
             </style>
           </head>
           <body>
@@ -194,6 +208,10 @@ jobs:
               <a class="card" href="player.html">
                 <h2>Spectrograph Player <span class="badge badge-player">audio</span></h2>
                 <p>Four machinery recordings analysed in the browser and shown as a scrolling, audible waterfall. Pause to annotate; the annotations ride the gram when play resumes.</p>
+              </a>
+              <a class="card" href="trial.html">
+                <h2>Player Trial Harness <span class="badge badge-trial">pick a file</span></h2>
+                <p>The package sent to stakeholders: choose one of the four samples, or any WAV on your own machine, and tune the FFT size and frequency range against it. Nothing is uploaded.</p>
               </a>
             </div>
           </body>
