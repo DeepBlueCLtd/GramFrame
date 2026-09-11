@@ -3,19 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GramFrame Demo</title>
+  <title>GramFrame</title>
+  <!--
+    The one list of what this site contains.
+
+    Every path below is written exactly as it is published, and the repository
+    is laid out to match, so these links resolve identically under `yarn dev`
+    and on GitHub Pages. `scripts/build-site.sh` copies files; it never
+    rewrites a name or generates a page, so there is nothing here for a
+    deploy step to drift away from.
+
+    The demo/ pages need `demo/gramframe.bundle.js`, which is a build output
+    rather than a tracked file. Run `yarn build:standalone && scripts/build-site.sh _site`
+    and serve _site/ to exercise them locally.
+  -->
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       padding: 40px;
       margin: 0;
       background: #f5f5f5;
+      color: #333;
     }
-    h1 { color: #333; }
+    h1 { margin-bottom: 4px; }
+    h2 {
+      margin-top: 44px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #666;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 8px;
+    }
+    p.lede { color: #555; max-width: 70ch; }
     .cards {
       display: flex;
       gap: 20px;
-      margin-top: 30px;
+      margin-top: 20px;
       flex-wrap: wrap;
     }
     .card {
@@ -29,8 +53,8 @@
       transition: box-shadow 0.2s;
     }
     .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .card h2 { margin-top: 0; }
-    .card p { color: #666; line-height: 1.5; }
+    .card h3 { margin-top: 0; font-size: 17px; }
+    .card p { color: #666; line-height: 1.5; font-size: 14px; }
     .badge {
       display: inline-block;
       padding: 3px 10px;
@@ -41,38 +65,82 @@
     }
     .badge-student { background: #0d47a1; }
     .badge-trainer { background: #1b5e20; }
+    .badge-optimised { background: #6a1b9a; }
     .badge-player { background: #e65100; }
     .badge-trial { background: #00695c; }
+    .badge-dev { background: #616161; }
+    .warn {
+      background: #fdf3e3;
+      border: 1px solid #e8cf9a;
+      border-radius: 4px;
+      padding: 12px 14px;
+      max-width: 70ch;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 16px;
+    }
   </style>
 </head>
 <body>
-  <h1>GramFrame Demo Pages</h1>
-  <p>Interactive spectrogram analysis component with browser storage persistence.</p>
+  <h1>GramFrame</h1>
+  <p class="lede">Interactive spectrogram analysis for sonar training material. The pages below
+    are the component as it ships &mdash; the same standalone bundle a training page would load.</p>
 
+  <h2>Demos</h2>
+  <div class="cards">
+    <a class="card" href="demo/student.html">
+      <h3>Student page <span class="badge badge-student">sessionStorage</span></h3>
+      <p>Annotations persist within the browser session and are cleared when the browser closes. Simulates a shared-PC training environment.</p>
+    </a>
+
+    <a class="card" href="demo/trainer.html">
+      <h3>Trainer page <span class="badge badge-trainer">localStorage</span></h3>
+      <p>Annotations persist across browser restarts. Includes a &ldquo;Clear gram&rdquo; button to reset. Simulates a trainer workstation.</p>
+    </a>
+
+    <a class="card" href="demo/demo-gram.html">
+      <h3>Optimised demo gram <span class="badge badge-optimised">9KB</span></h3>
+      <p>A purpose-built synthetic gram &mdash; 9KB instead of 482KB &mdash; with a harmonic stack, sidebands, a Doppler curve and broadband transients drawn in, one for every mode.</p>
+    </a>
+
+    <a class="card" href="demo/player.html">
+      <h3>Spectrograph player <span class="badge badge-player">audio</span></h3>
+      <p>Four machinery recordings analysed in the browser and shown as a scrolling, audible waterfall. Pause to annotate; the annotations ride the gram when play resumes.</p>
+    </a>
+
+    <a class="card" href="demo/trial.html">
+      <h3>Player trial harness <span class="badge badge-trial">pick a file</span></h3>
+      <p>The package sent to stakeholders: choose one of the four samples, or any WAV on your own machine, then tune the analysis and the painting against it &mdash; FFT size, overlap, frame averaging, background normalisation and the display percentiles. Nothing is uploaded.</p>
+    </a>
+  </div>
+
+  <h2>Developer pages</h2>
+  <p class="lede">These load the component from source rather than the bundle, and set
+    <code>window.GRAMFRAME_DEBUG</code> so the <code>__test__*</code> inspection API is reachable.</p>
+  <div class="warn">
+    <strong>Not representative of published material.</strong> Training pages never set that flag,
+    so the debug hooks below do not exist on a real training page. Use the demos above to judge
+    what an analyst actually sees.
+  </div>
   <div class="cards">
     <a class="card" href="debug.html">
-      <h2>Student Page <span class="badge badge-student">sessionStorage</span></h2>
-      <p>Annotations persist within the browser session but are cleared when the browser closes. Simulates a shared-PC training environment.</p>
+      <h3>Debug page <span class="badge badge-dev">state panel</span></h3>
+      <p>A single gram beside a live state inspector, in the student storage context.</p>
     </a>
 
     <a class="card" href="debug-trainer.html">
-      <h2>Trainer Page <span class="badge badge-trainer">localStorage</span></h2>
-      <p>Annotations persist permanently across browser restarts. Includes a "Clear gram" button to reset. Simulates a trainer workstation.</p>
+      <h3>Debug page, trainer <span class="badge badge-dev">state panel</span></h3>
+      <p>The same inspector in the trainer storage context, with the &ldquo;Clear gram&rdquo; control.</p>
     </a>
 
-    <a class="card" href="sample/player.html">
-      <h2>Spectrograph Player <span class="badge badge-player">audio</span></h2>
-      <p>A gram built from a WAV instead of an image: four machinery recordings analysed in the browser and shown as a scrolling, audible waterfall. Pause to annotate; the annotations ride the gram when play resumes.</p>
+    <a class="card" href="debug-multiple.html">
+      <h3>Multiple instances <span class="badge badge-dev">focus</span></h3>
+      <p>Several grams on one page &mdash; which instance takes keyboard input, and how they stay independent.</p>
     </a>
 
-    <!-- The trial harness loads gramframe.bundle.js and audio/*.wav as its own
-         siblings, so it only works where the deploy puts those beside it:
-         _site/demo/ (.github/workflows/pr-preview.yml). Hence demo/trial.html
-         rather than trial/index.html -- this card is a dead link under
-         `yarn dev`, where no demo/ directory is built. -->
-    <a class="card" href="demo/trial.html">
-      <h2>Player Trial Harness <span class="badge badge-trial">pick a file</span></h2>
-      <p>The package sent to stakeholders: choose one of the four samples, or any WAV on your own machine, then tune the analysis and the painting against it &mdash; FFT size, overlap, frame averaging, background normalisation and the display percentiles. Nothing is uploaded.</p>
+    <a class="card" href="test-release.html">
+      <h3>Release test page <span class="badge badge-dev">bundle</span></h3>
+      <p>The page shipped inside the release archive, verifying the standalone bundle loads and runs.</p>
     </a>
   </div>
 </body>

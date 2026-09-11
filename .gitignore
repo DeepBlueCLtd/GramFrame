@@ -156,3 +156,7 @@ gramframe-trial.zip
 trial-*.png
 tones-gram.png
 hosted-*.png
+
+# Assembled GitHub Pages trees (scripts/build-site.sh)
+_site/
+preview/

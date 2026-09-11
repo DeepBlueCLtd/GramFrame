@@ -233,8 +233,28 @@ Every path below exists; keep this list in step with `src/` when adding modules.
 - `tests/` - Playwright suite, `tests/unit/` Vitest lane, `tests/smoke/` WebKit smoke, `tests/fixtures/` test pages
 - `sample/` - Sample HTML files for testing; `sample/audio/` holds four CC BY 4.0 machinery recordings (see its `ATTRIBUTION.md`) and `sample/player.html` plays them
 - `scripts/wav2js.mjs` - Wraps a WAV as a `<script>`-loadable sidecar for `file://` pages
+- `scripts/build-site.sh` - Assembles the GitHub Pages tree, for the main deploy
+  and the PR preview alike, so a preview is the same site as production rather
+  than a second arrangement of the same files. It copies without renaming and
+  generates no page, so every published path exists in the repository at that
+  same path
+- `scripts/check-site.js` - The two rules that keep the site honest: no dead
+  local links, and no published page unreachable from `index.html`. A deploy
+  that copies files cannot notice that nothing links to one, which is how the
+  trial harness came to be published and listed nowhere
 - `docs/archive/` - Development-history artefacts (not part of the component)
-- `debug.html` - Development debug page
+- `index.html` - The site's one landing page, and the only place its contents
+  are listed. Demo pages carry a single "All demos" link back here rather than
+  enumerating their siblings, so no page can drift out of step with the list
+- `demo/` - The pages that load the shipped bundle (`student.html`,
+  `trainer.html`, `demo-gram.html`, `player.html`), committed at the paths they
+  are published at. `demo/index.html` is a redirect keeping the old `/demo/`
+  landing-page URL alive. The bundle and grams they reference are build outputs,
+  copied in at deploy time, so run `yarn build:standalone && yarn build:site`
+  and serve `_site/` to exercise them locally
+- `debug.html` - Development debug page. These set `window.GRAMFRAME_DEBUG`, so
+  the landing page groups them apart from the demos and says so: they are not a
+  sample of what published training material looks like
 
 ### Configuration System
 
@@ -461,6 +481,11 @@ There is no visual/screenshot regression testing — see
 - Unchanged — Web Storage (`localStorage` trainer / `sessionStorage` student). No persisted-shape change in this phase. (167-structural-refactor)
 
 ## Recent Changes
+- Site structure: one landing page instead of two competing ones, the demo pages
+  committed at the paths they are published at, and one script assembling the
+  Pages tree for both the deploy and the PR preview. `yarn check:site` fails a PR
+  that publishes a page nothing links to — the failure that left the trial
+  harness online and unreachable for weeks
 - Painting controls for the trial: background normalisation (split-window across
   frequency, per-bin over time), incoherent frame averaging, and the display
   percentiles — all four exposed as config rows and as toggles on `trial/index.html`,
