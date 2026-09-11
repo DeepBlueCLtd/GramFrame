@@ -151,7 +151,15 @@
         freqStart: 0,
         freqEnd: null,
         columns: 0,
-        frames: 0
+        frames: 0,
+        // How the analysed grid is turned into a picture. Every default here is
+        // the painting the player already did — one frame per row, no background
+        // normalisation, the 5th to 99.9th percentile onto the colour table — so
+        // a table that names none of them is unaffected by their existing.
+        frameAverage: 1,
+        normalisation: "none",
+        levelFloor: 5,
+        levelCeiling: 99.9
       }
     }
   };
@@ -2935,6 +2943,80 @@
     }
     return { size, forward };
   }
+  const SPLIT_WINDOW_BINS = 25;
+  const SPLIT_GUARD_BINS = 3;
+  const SPLIT_REJECT_DB = 3;
+  const NORMALISATION_MODES = ["none", "split-window", "per-bin"];
+  function powerToDecibels(grid) {
+    const db = new Float32Array(grid.length);
+    for (let i = 0; i < grid.length; i++) db[i] = 10 * Math.log10(grid[i] + 1e-12);
+    return db;
+  }
+  function splitWindowPass(row, columns, prefix, out, window2, guard) {
+    prefix[0] = 0;
+    for (let k = 0; k < columns; k++) prefix[k + 1] = prefix[k] + row[k];
+    for (let k = 0; k < columns; k++) {
+      const outerFrom = Math.max(0, k - window2);
+      const outerTo = Math.min(columns - 1, k + window2);
+      const innerFrom = Math.max(0, k - guard);
+      const innerTo = Math.min(columns - 1, k + guard);
+      const count = outerTo - outerFrom + 1 - (innerTo - innerFrom + 1);
+      if (count > 0) {
+        const sum = prefix[outerTo + 1] - prefix[outerFrom] - (prefix[innerTo + 1] - prefix[innerFrom]);
+        out[k] = sum / count;
+      } else {
+        out[k] = prefix[columns] / columns;
+      }
+    }
+  }
+  function splitWindowNormalise(db, frames, columns) {
+    const window2 = Math.min(SPLIT_WINDOW_BINS, Math.max(1, Math.floor((columns - 1) / 2)));
+    const guard = Math.min(SPLIT_GUARD_BINS, Math.max(0, window2 - 1));
+    const out = new Float32Array(db.length);
+    const row = new Float32Array(columns);
+    const clipped = new Float32Array(columns);
+    const background = new Float32Array(columns);
+    const prefix = new Float32Array(columns + 1);
+    for (let f = 0; f < frames; f++) {
+      const start = f * columns;
+      for (let k = 0; k < columns; k++) row[k] = db[start + k];
+      splitWindowPass(row, columns, prefix, background, window2, guard);
+      for (let k = 0; k < columns; k++) {
+        clipped[k] = row[k] > background[k] + SPLIT_REJECT_DB ? background[k] : row[k];
+      }
+      splitWindowPass(clipped, columns, prefix, background, window2, guard);
+      for (let k = 0; k < columns; k++) out[start + k] = row[k] - background[k];
+    }
+    return out;
+  }
+  function perBinMedians(db, frames, columns) {
+    const cap = 4096;
+    const stride = Math.max(1, Math.floor(frames / cap));
+    const count = Math.floor((frames - 1) / stride) + 1;
+    const sample = new Float32Array(count);
+    const medians = new Float32Array(columns);
+    for (let k = 0; k < columns; k++) {
+      for (let f = 0, j = 0; f < frames; f += stride, j++) sample[j] = db[f * columns + k];
+      const sorted = Float32Array.from(sample).sort();
+      medians[k] = sorted[Math.floor(0.5 * (count - 1))];
+    }
+    return medians;
+  }
+  function normaliseDecibels(db, frames, columns, mode) {
+    if (mode === "split-window") {
+      return splitWindowNormalise(db, frames, columns);
+    }
+    if (mode === "per-bin") {
+      const medians = perBinMedians(db, frames, columns);
+      const out = new Float32Array(db.length);
+      for (let f = 0; f < frames; f++) {
+        const start = f * columns;
+        for (let k = 0; k < columns; k++) out[start + k] = db[start + k] - medians[k];
+      }
+      return out;
+    }
+    return db;
+  }
   function readParameterRows(configTable) {
     const params = /* @__PURE__ */ new Map();
     configTable.querySelectorAll("tr").forEach((row, index) => {
@@ -3005,6 +3087,35 @@
     config.freqMin = freqStart;
     config.freqMax = freqEnd;
   }
+  function readPaintingParams(params, player) {
+    const frameAverage = numberParam(params, "frame-average");
+    if (frameAverage !== null) {
+      if (!Number.isInteger(frameAverage) || frameAverage < 1 || frameAverage > 64) {
+        throw new Error(`Invalid frame-average: ${frameAverage} — must be a whole number between 1 and 64`);
+      }
+      player.analysis.frameAverage = frameAverage;
+    }
+    const normalisation = params.get("normalisation");
+    if (normalisation) {
+      const value = normalisation.text.trim().toLowerCase();
+      if (!NORMALISATION_MODES.includes(value)) {
+        throw new Error(`Invalid normalisation: "${normalisation.text}" — must be one of ${NORMALISATION_MODES.join(", ")}`);
+      }
+      player.analysis.normalisation = value;
+    }
+    const levelFloor = numberParam(params, "level-floor");
+    if (levelFloor !== null) {
+      player.analysis.levelFloor = levelFloor;
+    }
+    const levelCeiling = numberParam(params, "level-ceiling");
+    if (levelCeiling !== null) {
+      player.analysis.levelCeiling = levelCeiling;
+    }
+    const { levelFloor: floor, levelCeiling: ceiling } = player.analysis;
+    if (floor < 0 || ceiling > 100 || floor >= ceiling) {
+      throw new Error(`Invalid display percentiles: level-floor ${floor} and level-ceiling ${ceiling} — both must lie in 0..100 with the floor below the ceiling`);
+    }
+  }
   function extractAudioConfig(instance, audioElement, params) {
     const src = audioElement.getAttribute("src") ? audioElement.src : "";
     if (!src) {
@@ -3055,6 +3166,7 @@
       }
       player.windowSeconds = windowSeconds;
     }
+    readPaintingParams(params, player);
     const preservePitch = params.get("preserve-pitch");
     if (preservePitch) {
       const value = preservePitch.text.trim().toLowerCase();
@@ -8876,28 +8988,34 @@
       );
     }
   }
-  function powerToLevels(grid) {
-    const n = grid.length;
+  function decibelsToLevels(db, options = {}) {
+    const floorPercentile = options.floorPercentile === void 0 ? 5 : options.floorPercentile;
+    const ceilingPercentile = options.ceilingPercentile === void 0 ? 99.9 : options.ceilingPercentile;
+    const n = db.length;
     const stride = Math.max(1, Math.floor(n / 1e6));
     const sampleCount = Math.floor((n - 1) / stride) + 1;
     const sample = new Float32Array(sampleCount);
-    for (let i = 0, j = 0; i < n; i += stride, j++) {
-      sample[j] = 10 * Math.log10(grid[i] + 1e-12);
-    }
+    for (let i = 0, j = 0; i < n; i += stride, j++) sample[j] = db[i];
     sample.sort();
-    const floor = sample[Math.floor(0.05 * (sampleCount - 1))];
-    let ceiling = sample[Math.floor(0.999 * (sampleCount - 1))];
+    const at = (percentile) => sample[Math.min(sampleCount - 1, Math.max(0, Math.floor(percentile / 100 * (sampleCount - 1))))];
+    const floor = at(floorPercentile);
+    let ceiling = at(ceilingPercentile);
     if (ceiling <= floor) {
       ceiling = floor + 1;
     }
     const scale = 255 / (ceiling - floor);
     const levels = new Uint8Array(n);
     for (let i = 0; i < n; i++) {
-      const db = 10 * Math.log10(grid[i] + 1e-12);
-      const v = (db - floor) * scale;
+      const v = (db[i] - floor) * scale;
       levels[i] = v <= 0 ? 0 : v >= 255 ? 255 : Math.round(v);
     }
     return levels;
+  }
+  function powerToLevels(grid, options = {}) {
+    const db = powerToDecibels(grid);
+    const normalisation = options.normalisation || "none";
+    const normalised = normalisation === "none" ? db : normaliseDecibels(db, options.frames || 0, options.columns || 0, normalisation);
+    return decibelsToLevels(normalised, options);
   }
   function paintGram(levels, frames, columns) {
     const canvas = document.createElement("canvas");
@@ -8915,6 +9033,29 @@
       throw new Error(`The browser could not encode a ${columns}×${frames} spectrogram image`);
     }
     return url;
+  }
+  function averagedRowCount(frames, count) {
+    return Math.ceil(frames / Math.max(1, Math.floor(count)));
+  }
+  function averageFrames(grid, frames, columns, count) {
+    const n = Math.max(1, Math.floor(count));
+    if (n === 1) {
+      return { grid, frames };
+    }
+    const rows = averagedRowCount(frames, n);
+    const out = new Float32Array(rows * columns);
+    for (let r = 0; r < rows; r++) {
+      const from = r * n;
+      const to = Math.min(frames, from + n);
+      const rowOut = r * columns;
+      for (let f = from; f < to; f++) {
+        const rowIn = f * columns;
+        for (let k = 0; k < columns; k++) out[rowOut + k] += grid[rowIn + k];
+      }
+      const divisor = to - from;
+      for (let k = 0; k < columns; k++) out[rowOut + k] /= divisor;
+    }
+    return { grid: out, frames: rows };
   }
   const PLAYBACK_RATES = [[0.25, "0.25×"], [0.5, "0.5×"], [1, "1×"], [1.5, "1.5×"], [2, "2×"], [4, "4×"]];
   const ANNOUNCE_INTERVAL_MS = 5e3;
@@ -9433,14 +9574,15 @@
     if (plan.clamped) {
       console.warn(`GramFrame: freq-end ${player.analysis.freqEnd} Hz is above this recording's Nyquist frequency (${decoded.sampleRate / 2} Hz); clamped to ${plan.freqEnd} Hz`);
     }
-    const degraded = fitGramSize(plan.frames, plan.columns, plan);
+    const rows = () => averagedRowCount(plan.frames, player.analysis.frameAverage);
+    const degraded = fitGramSize(rows(), plan.columns, plan);
     if (degraded) {
-      console.warn(`GramFrame: ${plan.frames} analysis frames is above the render limit; ${degraded.parameter} raised from ${degraded.requested} to ${degraded.used}`);
+      console.warn(`GramFrame: ${rows()} painted rows is above the render limit; ${degraded.parameter} raised from ${degraded.requested} to ${degraded.used}`);
       plan = planAt(degraded.used);
       player.analysis.hopSize = degraded.used;
       player.degraded = degraded;
     }
-    checkGramSize(plan.frames, plan.columns, plan);
+    checkGramSize(rows(), plan.columns, plan);
     return plan;
   }
   async function setupAudioSource(instance) {
@@ -9465,13 +9607,21 @@
       });
       setProgress(instance, 0.9, "Painting spectrogram");
       await new Promise((resolve) => setTimeout(resolve, 0));
-      const url = paintGram(powerToLevels(grid), plan.frames, plan.columns);
+      const averaged = averageFrames(grid, plan.frames, plan.columns, player.analysis.frameAverage);
+      const levels = powerToLevels(averaged.grid, {
+        normalisation: player.analysis.normalisation,
+        frames: averaged.frames,
+        columns: plan.columns,
+        floorPercentile: player.analysis.levelFloor,
+        ceilingPercentile: player.analysis.levelCeiling
+      });
+      const url = paintGram(levels, averaged.frames, plan.columns);
       if (!container.isConnected) {
         return;
       }
       const imageDetails = state.imageDetails;
       imageDetails.naturalWidth = plan.columns;
-      imageDetails.naturalHeight = plan.frames;
+      imageDetails.naturalHeight = averaged.frames;
       imageDetails.renderWidth = PLAYER_RENDER_WIDTH;
       imageDetails.renderHeight = PLAYER_RENDER_HEIGHT;
       imageDetails.timeStretch = decoded.duration / player.windowSeconds;
@@ -9483,7 +9633,7 @@
       player.analysis.freqStart = plan.freqStart;
       player.analysis.freqEnd = plan.freqEnd;
       player.analysis.columns = plan.columns;
-      player.analysis.frames = plan.frames;
+      player.analysis.frames = averaged.frames;
       player.playhead = 0;
       player.viewTop = Math.min(player.windowSeconds, decoded.duration);
       player.progress = 1;

@@ -37,6 +37,14 @@
   .hidden { display:none; }
   footer { color:var(--muted); font-size:12px; margin-top:24px; }
   code { background:#eef0f3; padding:1px 4px; border-radius:3px; }
+  .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em;
+          color:var(--muted); margin:0 0 10px; font-weight:600; }
+  .panel h2 + .controls { margin-bottom:18px; }
+  details.help { margin-top:4px; border-top:1px solid var(--line); padding-top:12px; }
+  details.help summary { cursor:pointer; font-size:13px; color:var(--accent); }
+  details.help dl { font-size:13px; line-height:1.55; margin:12px 0 0; }
+  details.help dt { font-weight:600; margin-top:12px; }
+  details.help dd { margin:2px 0 0; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -80,15 +88,97 @@
   </div>
 
   <div class="panel hidden" id="controlsPanel">
+    <h2>Analysis</h2>
     <div class="controls">
       <div><label for="fft">FFT size</label>
-        <select id="fft"></select></div>
+        <select id="fft" style="width:230px"></select></div>
+      <div><label for="overlap">Window overlap</label>
+        <select id="overlap">
+          <option value="0">None</option>
+          <option value="0.5" selected>50%</option>
+          <option value="0.75">75%</option>
+          <option value="0.875">87.5%</option>
+        </select></div>
+      <div><label for="avg">Frame averaging</label>
+        <select id="avg">
+          <option value="1" selected>Off (1 frame per row)</option>
+          <option value="2">2 frames</option>
+          <option value="4">4 frames</option>
+          <option value="8">8 frames</option>
+          <option value="16">16 frames</option>
+        </select></div>
       <div><label for="freqEnd">Top frequency (Hz)</label>
         <input type="number" id="freqEnd" min="1" step="1"></div>
       <div><label for="win">Window (seconds on screen)</label>
         <input type="number" id="win" min="1" max="600" step="1" value="10"></div>
-      <div><button id="apply">Re-analyse</button></div>
     </div>
+
+    <h2>Display</h2>
+    <div class="controls">
+      <div style="flex:0 0 260px"><label for="norm">Background normalisation</label>
+        <select id="norm" style="width:260px">
+          <option value="none" selected>None — raw levels</option>
+          <option value="split-window">Split window (across frequency)</option>
+          <option value="per-bin">Per bin median (over time)</option>
+        </select></div>
+      <div><label for="floorPct">Darkest percentile</label>
+        <input type="number" id="floorPct" min="0" max="100" step="0.1" value="5"></div>
+      <div><label for="ceilPct">Brightest percentile</label>
+        <input type="number" id="ceilPct" min="0" max="100" step="0.1" value="99.9"></div>
+      <div><button id="apply">Re-analyse</button>
+        <button id="reset" class="secondary" type="button">Reset to defaults</button></div>
+    </div>
+
+    <details class="help">
+      <summary>What each control does</summary>
+      <dl>
+        <dt>FFT size</dt>
+        <dd>How many samples go into each transform, and so how finely the
+          frequency axis is divided: doubling it halves the width of a column in
+          hertz. This is the single biggest reason a gram can look coarser than
+          you expect — at 1024 on a 16 kHz recording each column is 15.6 Hz
+          wide, so the whole 0–200 Hz band is thirteen columns and closely spaced
+          tonals are merged before they are ever drawn. The cost is time: a
+          longer window smears a sound that changes quickly.</dd>
+
+        <dt>Window overlap</dt>
+        <dd>How far each transform is stepped on from the last. More overlap
+          gives more rows for the same FFT size — a smoother picture and a
+          better chance of catching a short event — at proportionally more
+          analysis time.</dd>
+
+        <dt>Frame averaging</dt>
+        <dd>Averages several transforms into each painted row. A single
+          transform of noise is a rough estimate, which is what makes an
+          un-averaged gram look speckled; averaging four of them halves that
+          speckle and lets a steady tonal show through it. The row then covers
+          proportionally more time, so a brief sound is diluted. Averaging also
+          cuts the row count, which is what lets a long recording keep a small
+          FFT size.</dd>
+
+        <dt>Background normalisation</dt>
+        <dd>Rather than painting the measured level, paint how far it stands
+          above the background around it, so a weak tonal reads the same
+          wherever it lies.
+          <em>Split window</em> estimates the background across frequency, from
+          bins either side with a gap left around the bin itself: a tonal never
+          contributes to the background it is judged against, so one that runs
+          the whole recording survives. It cannot show broadband structure —
+          anything as wide as the window counts as background.
+          <em>Per bin median</em> estimates it over time instead, and does the
+          opposite: it removes a fixed spectral shape cleanly and keeps
+          broadband events, but a tonal present throughout <strong>is</strong>
+          background to it, and is flattened away.</dd>
+
+        <dt>Darkest / brightest percentile</dt>
+        <dd>Which slice of the levels the colours are spread across. Everything
+          below the first is painted the darkest colour and everything above the
+          second the brightest — and that clipping happens when the picture is
+          made, so the contrast sliders on the player cannot bring it back.
+          Lowering the darkest percentile towards 0 is what returns the quietest
+          part of a recording to the picture.</dd>
+      </dl>
+    </details>
   </div>
 
   <div id="mount"></div>
@@ -117,9 +207,15 @@
     capNote: document.getElementById('capNote'),
     controlsPanel: document.getElementById('controlsPanel'),
     fft: document.getElementById('fft'),
+    overlap: document.getElementById('overlap'),
+    avg: document.getElementById('avg'),
     freqEnd: document.getElementById('freqEnd'),
     win: document.getElementById('win'),
+    norm: document.getElementById('norm'),
+    floorPct: document.getElementById('floorPct'),
+    ceilPct: document.getElementById('ceilPct'),
     apply: document.getElementById('apply'),
+    reset: document.getElementById('reset'),
     mount: document.getElementById('mount')
   }
 
@@ -256,39 +352,108 @@
   }
 
   /**
-   * Choose an analysis that fits the render caps *without leaving gaps*.
+   * What the controls currently ask for.
    *
-   * GramFrame's own degrade path widens hop-size alone, which on a long
-   * recording pushes hop past fft-size and leaves most of the audio between
-   * windows. Raising fft-size in step keeps the windows overlapping, so every
-   * sample is looked at.
+   * Read in one place so the row arithmetic and the config table can never
+   * disagree about which settings are in force.
+   * @returns {Object} The chosen settings
    */
-  function planFor(info, wantedFreqEnd, wantedFft) {
+  function settings() {
+    return {
+      fftSize: Number(els.fft.value) || 0,
+      overlap: Number(els.overlap.value) || 0,
+      average: Number(els.avg.value) || 1,
+      freqEnd: Number(els.freqEnd.value) || 0,
+      windowSeconds: Number(els.win.value) || 10,
+      normalisation: els.norm.value,
+      levelFloor: Number(els.floorPct.value),
+      levelCeiling: Number(els.ceilPct.value)
+    }
+  }
+
+  /**
+   * The hop implied by an FFT size and an overlap, as a whole number of samples.
+   * @param {number} fftSize - Frame length
+   * @param {number} overlap - 0 .. 0.875
+   * @returns {number} Samples between frame starts
+   */
+  function hopFor(fftSize, overlap) {
+    return Math.max(1, Math.round(fftSize * (1 - overlap)))
+  }
+
+  /**
+   * How many transforms a recording yields — the same count planAnalysis() in
+   * src/audio/spectrogram.js arrives at, so the row figure quoted below is the
+   * row figure the component produces rather than an estimate near it. A
+   * measurement tool that is out by two rows on its own front page invites the
+   * question of what else it is out by.
+   * @param {Object} info - The header facts
+   * @param {number} fftSize - Frame length
+   * @param {number} hopSize - Samples between frame starts
+   * @returns {number} Analysis frames, 0 when the file is shorter than a frame
+   */
+  function framesFor(info, fftSize, hopSize) {
+    return Math.max(0, Math.floor((info.sampleCount - fftSize) / hopSize) + 1)
+  }
+
+  /**
+   * The smallest FFT size whose painted rows fit the render cap.
+   *
+   * Rows are `sampleCount / hop / average`, and hop grows with the FFT size, so
+   * a recording too long to paint at one setting can be brought inside the cap
+   * either by transforming more samples at a time or by averaging more frames
+   * into each row. The page suggests the first and names the second, because
+   * raising the FFT size is the one that costs frequency detail.
+   * @param {Object} info - The header facts
+   * @param {number} overlap - Chosen overlap
+   * @param {number} average - Chosen frame averaging
+   * @returns {number} A power-of-two FFT size
+   */
+  function smallestFittingFft(info, overlap, average) {
+    for (var f = 1024; f < 32768; f *= 2) {
+      if (Math.ceil(framesFor(info, f, hopFor(f, overlap)) / average) <= MAX_GRAM_ROWS) return f
+    }
+    return 32768
+  }
+
+  /**
+   * Resolve the controls into the analysis that will actually be run.
+   *
+   * Every figure the facts table and the config table quote comes from here, so
+   * what the page says is being analysed is what is being analysed.
+   * @param {Object} info - The header facts
+   * @param {Object} want - From {@link settings}
+   * @returns {Object} The resolved plan, with any notes for the analyst
+   */
+  function planFor(info, want) {
     var nyquist = info.sampleRate / 2
-    var freqEnd = Math.min(wantedFreqEnd || nyquist, nyquist)
+    var overlap = want.overlap
+    var average = Math.max(1, want.average)
+    var freqEnd = Math.min(want.freqEnd || nyquist, nyquist)
     var notes = []
 
-    // Rows: frames = ceil(sampleCount / hop), hop = fftSize / 2. The smallest
-    // FFT whose half-overlap hop keeps the gram inside the row cap.
-    var autoFft = nextPowerOfTwo(Math.max(1024, Math.ceil(info.sampleCount / (MAX_GRAM_ROWS / 2))))
-    var fftSize = wantedFft || autoFft
+    var autoFft = smallestFittingFft(info, overlap, average)
+    var fftSize = want.fftSize || autoFft
 
-    var hopSize = fftSize / 2
+    var hopSize = hopFor(fftSize, overlap)
     var binWidth = info.sampleRate / fftSize
 
     // The notes describe the limits as they stand, not how this call was
     // reached: the chosen values are echoed back into the controls, so a note
     // conditioned on "did I just change this?" would show once and vanish.
     if (fftSize >= autoFft && autoFft > 1024) {
-      notes.push('This recording needs an FFT size of at least ' + autoFft + ' to fit the ' +
-        MAX_GRAM_ROWS.toLocaleString() + '-row render limit with overlapping windows. ' +
-        'A smaller one would space the windows out and leave most of the recording unanalysed.')
+      notes.push('This recording needs an FFT size of at least ' + autoFft +
+        ' to fit the ' + MAX_GRAM_ROWS.toLocaleString() + '-row render limit at this overlap and averaging. ' +
+        'Raising the frame averaging instead would let a smaller FFT size fit, trading time detail for frequency detail.')
     }
 
     // Columns are the retained bins *inclusive of DC*, matching planAnalysis():
     // floor(freqEnd / binWidth) - ceil(freqStart / binWidth) + 1, freqStart = 0.
     var capFreqEnd = Math.floor((MAX_GRAM_COLUMNS - 1) * binWidth)
-    if (capFreqEnd < nyquist) {
+    // Only when the limit actually bites. Saying "the top frequency is capped
+    // at 7,998 Hz" to someone who asked for 400 Hz is noise in a box that is
+    // otherwise worth reading.
+    if (freqEnd > capFreqEnd) {
       notes.push('At FFT size ' + fftSize + ' the ' + MAX_GRAM_COLUMNS.toLocaleString() +
         '-column limit caps the top frequency at ' + capFreqEnd.toLocaleString() + ' Hz ' +
         '(this recording reaches ' + Math.round(nyquist).toLocaleString() + ' Hz). ' +
@@ -296,11 +461,16 @@
     }
     if (freqEnd > capFreqEnd) freqEnd = capFreqEnd
     var columns = Math.floor(freqEnd / binWidth) + 1
+    var frames = framesFor(info, fftSize, hopSize)
 
     return {
-      fftSize: fftSize, hopSize: hopSize, freqEnd: freqEnd,
-      frames: Math.ceil(info.sampleCount / hopSize),
-      columns: columns, binWidth: binWidth, notes: notes
+      fftSize: fftSize, hopSize: hopSize, overlap: overlap, average: average,
+      freqEnd: freqEnd, frames: frames, rows: Math.ceil(frames / average),
+      columns: columns, binWidth: binWidth,
+      normalisation: want.normalisation,
+      levelFloor: want.levelFloor, levelCeiling: want.levelCeiling,
+      windowSeconds: want.windowSeconds,
+      notes: notes
     }
   }
 
@@ -311,9 +481,18 @@
       ['Format', info.sampleRate.toLocaleString() + ' Hz, ' +
         (info.channels === 1 ? 'mono' : info.channels + ' channels') + ', ' +
         info.bitsPerSample + '-bit ' + (info.tag === 3 ? 'float' : 'PCM')],
-      ['Spectrogram', plan.frames.toLocaleString() + ' rows x ' + plan.columns.toLocaleString() +
+      ['Spectrogram', plan.rows.toLocaleString() + ' rows x ' + plan.columns.toLocaleString() +
         ' columns, ' + plan.binWidth.toFixed(1) + ' Hz per column'],
-      ['Time per row', (plan.hopSize / info.sampleRate * 1000).toFixed(0) + ' ms']
+      ['Time per row', (plan.average * plan.hopSize / info.sampleRate * 1000).toFixed(0) + ' ms' +
+        (plan.average > 1
+          ? '  (' + plan.frames.toLocaleString() + ' transforms, ' + plan.average + ' averaged into each row)'
+          : '')],
+      ['Painting', (plan.normalisation === 'none'
+        ? 'raw levels'
+        : plan.normalisation === 'split-window'
+          ? 'split-window normalised across frequency'
+          : 'per-bin median normalised over time') +
+        ', ' + plan.levelFloor + '–' + plan.levelCeiling + ' percentile']
     ]
     els.facts.innerHTML = ''
     rows.forEach(function (r) {
@@ -325,7 +504,7 @@
     els.factsPanel.classList.remove('hidden')
   }
 
-  function buildTable(url, plan, windowSeconds) {
+  function buildTable(url, plan) {
     var table = document.createElement('table')
     table.className = 'gram-config'
     function row(a, b) {
@@ -344,7 +523,11 @@
     table.appendChild(row('fft-size', plan.fftSize))
     table.appendChild(row('hop-size', plan.hopSize))
     table.appendChild(row('freq-end', Math.round(plan.freqEnd)))
-    table.appendChild(row('window-seconds', windowSeconds))
+    table.appendChild(row('window-seconds', plan.windowSeconds))
+    table.appendChild(row('frame-average', plan.average))
+    table.appendChild(row('normalisation', plan.normalisation))
+    table.appendChild(row('level-floor', plan.levelFloor))
+    table.appendChild(row('level-ceiling', plan.levelCeiling))
     return table
   }
 
@@ -358,18 +541,26 @@
 
   function render() {
     teardown()
-    var plan = planFor(current.info,
-      Number(els.freqEnd.value) || undefined,
-      Number(els.fft.value) || undefined)
+    var want = settings()
+    if (!(want.levelFloor >= 0) || !(want.levelCeiling <= 100) || want.levelFloor >= want.levelCeiling) {
+      showProblem('The darkest percentile must be below the brightest, and both between 0 and 100.')
+      return
+    }
+
+    // The FFT choices depend on the overlap and averaging, so they are rebuilt
+    // whenever those change — before the plan is resolved, so the size it is
+    // resolved from is one the list still offers.
+    populateFftChoices(current.info, want)
+    var plan = planFor(current.info, settings())
 
     // Say what is actually being analysed, including any narrowing just applied.
     els.freqEnd.value = String(Math.round(plan.freqEnd))
 
-    if (plan.frames > MAX_GRAM_ROWS || plan.columns > MAX_GRAM_COLUMNS) {
-      els.capNote.textContent = 'That combination would need ' + plan.frames.toLocaleString() +
+    if (plan.rows > MAX_GRAM_ROWS || plan.columns > MAX_GRAM_COLUMNS) {
+      els.capNote.textContent = 'That combination would need ' + plan.rows.toLocaleString() +
         ' rows x ' + plan.columns.toLocaleString() + ' columns, beyond the ' +
         MAX_GRAM_ROWS.toLocaleString() + ' x ' + MAX_GRAM_COLUMNS.toLocaleString() +
-        ' render limit. Raise the FFT size, or lower the top frequency.'
+        ' render limit. Raise the FFT size or the frame averaging, or lower the top frequency.'
       els.capNote.classList.remove('hidden')
       els.factsPanel.classList.remove('hidden')
       clearBusy()
@@ -383,24 +574,68 @@
     }
 
     describe(current.info, plan)
-    var table = buildTable(current.url, plan, Number(els.win.value) || 10)
+    var table = buildTable(current.url, plan)
     els.mount.appendChild(table)
     var made = window.GramFrame.detectAndReplaceConfigTables(els.mount)
     current.instance = made && made[0] ? made[0] : null
     clearBusy()
   }
 
-  function populateFftChoices(info, chosen) {
+  /**
+   * Offer every FFT size this recording can actually be painted at.
+   *
+   * Which sizes those are depends on the overlap and the averaging, so the list
+   * is rebuilt whenever either changes. Each is labelled with the frequency
+   * detail it buys as well as the window it costs, because the trade between
+   * the two is the question the page exists to put.
+   * @param {Object} info - The header facts
+   * @param {Object} want - From {@link settings}
+   * @returns {void}
+   */
+  function populateFftChoices(info, want) {
+    var smallest = smallestFittingFft(info, want.overlap, want.average)
+    var chosen = want.fftSize && want.fftSize >= smallest ? want.fftSize : smallest
     els.fft.innerHTML = ''
+    var offered = 0
     for (var f = 256; f <= 32768; f *= 2) {
-      var frames = Math.ceil(info.sampleCount / (f / 2))
-      if (frames > MAX_GRAM_ROWS) continue
+      if (Math.ceil(framesFor(info, f, hopFor(f, want.overlap)) / want.average) > MAX_GRAM_ROWS) continue
       var opt = document.createElement('option')
       opt.value = String(f)
-      opt.textContent = f + '  (' + (f / info.sampleRate * 1000).toFixed(0) + ' ms window)'
+      opt.textContent = f + '  (' + (info.sampleRate / f).toFixed(1) + ' Hz per column, ' +
+        (f / info.sampleRate * 1000).toFixed(0) + ' ms window)'
       els.fft.appendChild(opt)
+      offered++
+    }
+    if (!offered) {
+      // Nothing fits: leave the control showing the smallest that would, so the
+      // cap note below has something to name.
+      var only = document.createElement('option')
+      only.value = String(chosen)
+      only.textContent = String(chosen)
+      els.fft.appendChild(only)
     }
     els.fft.value = String(chosen)
+    if (els.fft.value !== String(chosen)) els.fft.selectedIndex = 0
+  }
+
+  /**
+   * Put every control back to the setting the component ships with.
+   *
+   * The FFT size is the exception: it is whatever the recording's length allows,
+   * since a fixed default cannot know how long the file is.
+   * @returns {void}
+   */
+  function resetControls() {
+    els.overlap.value = '0.5'
+    els.avg.value = '1'
+    els.win.value = '10'
+    els.norm.value = 'none'
+    els.floorPct.value = '5'
+    els.ceilPct.value = '99.9'
+    if (current.info) {
+      populateFftChoices(current.info, { overlap: 0.5, average: 1, fftSize: 0 })
+      els.freqEnd.value = String(Math.floor(current.info.sampleRate / 2))
+    }
   }
 
   function load(file) {
@@ -420,9 +655,11 @@
       current.info = info
       current.url = URL.createObjectURL(file)
 
-      var plan = planFor(info, undefined)
-      populateFftChoices(info, plan.fftSize)
-      els.freqEnd.value = String(Math.round(plan.freqEnd))
+      // A new recording starts from the defaults. Carrying the last file's
+      // settings over would quietly show this one at a setting chosen for
+      // something else, and the facts table would be the only clue.
+      resetControls()
+      els.freqEnd.value = String(Math.round(Math.min(info.sampleRate / 2, planFor(info, settings()).freqEnd)))
       els.freqEnd.max = String(Math.floor(info.sampleRate / 2))
       els.controlsPanel.classList.remove('hidden')
       render()
@@ -470,6 +707,17 @@
     }
   })
   els.apply.addEventListener('click', render)
+  els.reset.addEventListener('click', function () {
+    resetControls()
+    render()
+  })
+  // Overlap and averaging change which FFT sizes are available at all, so the
+  // list is refreshed as soon as either moves rather than waiting for
+  // Re-analyse — otherwise the control can be showing a size that no longer fits.
+  ;['change', 'input'].forEach(function (t) {
+    els.overlap.addEventListener(t, function () { if (current.info) populateFftChoices(current.info, settings()) })
+    els.avg.addEventListener(t, function () { if (current.info) populateFftChoices(current.info, settings()) })
+  })
   ;['dragenter', 'dragover'].forEach(function (t) {
     els.drop.addEventListener(t, function (e) { e.preventDefault(); els.drop.classList.add('over') })
   })
