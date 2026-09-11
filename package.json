@@ -6,6 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:standalone": "BUILD_STANDALONE=true vite build",
+    "build:site": "scripts/build-site.sh _site",
+    "check:site": "node scripts/check-site.js _site",
     "test": "playwright test",
     "typecheck": "tsc --noEmit",
     "typecheck:specs": "tsc --noEmit -p tsconfig.specs.json",
