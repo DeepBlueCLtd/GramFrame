@@ -85,6 +85,16 @@ describe('split-window normalisation', () => {
     expect(out[132]).toBeGreaterThan(4)
   })
 
+  test('a one-column gram normalises to its own level rather than NaN', () => {
+    // planAnalysis only insists on one retained bin, so a narrow enough
+    // freq-start/freq-end really can produce this. There is no "either side"
+    // to estimate a background from, so the row itself is the background and
+    // the result is flat — the one case the guarded estimate cannot be made.
+    const db = powerToDecibels(Float32Array.from([100, 400, 900]))
+    const out = normaliseDecibels(db, 3, 1, 'split-window')
+    expect(Array.from(out)).toEqual([0, 0, 0])
+  })
+
   test('does not fall over on a gram narrower than the window', () => {
     const narrow = powerToDecibels(slopedGrid(2, 5, [2], 6))
     const out = normaliseDecibels(narrow, 2, 5, 'split-window')
