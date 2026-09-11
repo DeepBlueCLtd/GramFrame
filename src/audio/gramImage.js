@@ -15,6 +15,7 @@
 /// <reference path="../types.js" />
 
 import { levelsToPixels } from './colourMap.js'
+import { powerToDecibels, normaliseDecibels } from './normalise.js'
 
 /**
  * Hard caps on the gram, from research.md §3.3: inside Chromium's canvas
@@ -103,40 +104,75 @@ export function checkGramSize(frames, columns, plan) {
 }
 
 /**
- * Map power to 8-bit display levels.
- *
- * Power is taken to dB; the display range runs from the file's 5th percentile
- * (floor, level 0) to its 99.9th percentile (ceiling, level 255), measured on
- * an even subsample of at most one million values so the cost is bounded on
- * any file. Percentiles rather than a fixed span below the peak: a recording
- * with one loud transient would otherwise push its steady tonals into the
- * dark. Deterministic for a given grid.
- * @param {Float32Array} grid - Power grid from `spectrogram.js`
- * @returns {Uint8Array} One level per cell, same layout as `grid`
+ * How the analysed grid is turned into display levels.
+ * @typedef {Object} LevelOptions
+ * @property {string} [normalisation='none'] - One of `NORMALISATION_MODES`
+ * @property {number} [frames=0] - Rows; required by the normalisers
+ * @property {number} [columns=0] - Columns; required by the normalisers
+ * @property {number} [floorPercentile=5] - Percentile painted as level 0
+ * @property {number} [ceilingPercentile=99.9] - Percentile painted as level 255
  */
-export function powerToLevels(grid) {
-  const n = grid.length
+
+/**
+ * Map a dB grid to 8-bit display levels between two percentiles of itself.
+ *
+ * The percentiles are measured on an even subsample of at most one million
+ * values, so the cost is bounded on any file. Percentiles rather than a fixed
+ * span below the peak: a recording with one loud transient would otherwise push
+ * its steady tonals into the dark.
+ *
+ * The two ends are worth understanding as *destructive*: everything below the
+ * floor is level 0 and everything above the ceiling is 255, and no later
+ * control — the contrast sliders included, since they re-map levels that have
+ * already been painted — can recover what was clipped here. Widening the floor
+ * toward 0 is what brings the quietest 5 % of a recording back into the picture.
+ * Deterministic for a given grid.
+ * @param {Float32Array} db - Levels in dB
+ * @param {LevelOptions} [options] - The two percentiles; the rest is ignored
+ * @returns {Uint8Array} One level per cell, same layout as `db`
+ */
+function decibelsToLevels(db, options = {}) {
+  const floorPercentile = options.floorPercentile === undefined ? 5 : options.floorPercentile
+  const ceilingPercentile = options.ceilingPercentile === undefined ? 99.9 : options.ceilingPercentile
+  const n = db.length
   const stride = Math.max(1, Math.floor(n / 1000000))
   const sampleCount = Math.floor((n - 1) / stride) + 1
   const sample = new Float32Array(sampleCount)
-  for (let i = 0, j = 0; i < n; i += stride, j++) {
-    sample[j] = 10 * Math.log10(grid[i] + 1e-12)
-  }
+  for (let i = 0, j = 0; i < n; i += stride, j++) sample[j] = db[i]
   sample.sort()
-  const floor = sample[Math.floor(0.05 * (sampleCount - 1))]
-  let ceiling = sample[Math.floor(0.999 * (sampleCount - 1))]
+  const at = (/** @type {number} */ percentile) =>
+    sample[Math.min(sampleCount - 1, Math.max(0, Math.floor(percentile / 100 * (sampleCount - 1))))]
+  const floor = at(floorPercentile)
+  let ceiling = at(ceilingPercentile)
   if (ceiling <= floor) {
-    ceiling = floor + 1 // silence: everything at level 0 rather than 0/0
+    ceiling = floor + 1 // silence, or two percentiles that met: everything at level 0 rather than 0/0
   }
   const scale = 255 / (ceiling - floor)
 
   const levels = new Uint8Array(n)
   for (let i = 0; i < n; i++) {
-    const db = 10 * Math.log10(grid[i] + 1e-12)
-    const v = (db - floor) * scale
+    const v = (db[i] - floor) * scale
     levels[i] = v <= 0 ? 0 : v >= 255 ? 255 : Math.round(v)
   }
   return levels
+}
+
+/**
+ * Map power to 8-bit display levels, normalising first when asked to.
+ *
+ * Called with a grid alone this is what it has always been: dB, then the 5th to
+ * 99.9th percentile of the whole file onto 0..255.
+ * @param {Float32Array} grid - Power grid from `spectrogram.js`
+ * @param {LevelOptions} [options] - Normalisation and the display percentiles
+ * @returns {Uint8Array} One level per cell, same layout as `grid`
+ */
+export function powerToLevels(grid, options = {}) {
+  const db = powerToDecibels(grid)
+  const normalisation = options.normalisation || 'none'
+  const normalised = normalisation === 'none'
+    ? db
+    : normaliseDecibels(db, options.frames || 0, options.columns || 0, normalisation)
+  return decibelsToLevels(normalised, options)
 }
 
 /**

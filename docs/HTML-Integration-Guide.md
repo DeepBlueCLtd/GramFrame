@@ -94,9 +94,49 @@ is optional.
 | `freq-end` | Hz | half the sample rate | Highest frequency shown. Above the recording's Nyquist frequency it is clamped, with a console warning |
 | `window-seconds` | seconds > 0 | 10 | How much of the recording the unzoomed view spans |
 | `preserve-pitch` | `true` / `false` | `true` | Whether a change of playback speed keeps the pitch. `false` resamples instead, so slowing the recording lowers the pitch with it, as slowing a tape does |
+| `frame-average` | integer 1–64 | 1 | Analysis frames averaged into each painted row. Cuts the speckle a single transform leaves, at proportionally coarser time resolution |
+| `normalisation` | `none` / `split-window` / `per-bin` | `none` | Paint how far each point stands above the background rather than its measured level (see below) |
+| `level-floor` | percentile 0–100 | 5 | Which percentile of the levels is painted the darkest colour |
+| `level-ceiling` | percentile 0–100 | 99.9 | Which percentile is painted the brightest. Must be above `level-floor` |
 
 `time-start` and `time-end` are ignored on an audio table, with a console
 warning: the recording defines its own time range, `0` to its duration.
+
+### Making a faint tonal visible
+
+The default painting is honest but blunt: the measured level, with the 5th to
+99.9th percentile of the whole file spread across the colour table. Machinery
+and ship noise falls away steeply with frequency, so the loud low end takes most
+of that range and a genuine tonal higher up — a decibel or two above its own
+local background — is painted much the same colour as that background.
+
+`normalisation` paints how far each point stands *above* its background instead,
+so a weak line reads the same wherever in the band it lies. The two estimators
+fail in opposite directions, which is why both are offered:
+
+- **`split-window`** estimates the background across frequency, from the bins
+  either side with a guard band left around the bin itself, so a tonal never
+  contributes to the background it is judged against. A line that runs the whole
+  recording survives it intact. It cannot show broadband structure: anything as
+  wide as the window is background by definition.
+- **`per-bin`** estimates it over time, as each bin's median level. It removes a
+  fixed spectral shape and steady system noise cleanly and keeps broadband
+  events visible — but a tonal present throughout the recording *is* background
+  to this estimator, and is flattened away with it.
+
+`frame-average` is the other half of the same job: a single transform of noise is
+a rough estimate, which is what makes an un-averaged gram speckled. Averaging
+four of them halves that speckle so a steady tonal shows through, at the cost of
+each row covering four times as much time.
+
+`level-floor` and `level-ceiling` decide how much of the level range the colours
+are spread over. The clipping at each end happens when the image is painted, so
+the contrast sliders on the transport bar — which re-map levels already painted —
+cannot recover it. Lowering `level-floor` towards 0 is what brings the quietest
+part of a recording back into the picture.
+
+The [trial page](../trial/index.html) puts all four on screen as controls, for
+choosing the values an exercise should ship with.
 
 ### What the recording may be
 
@@ -105,7 +145,10 @@ mixed to mono for both analysis and playback). Keep recordings to a few
 minutes. The analysed gram is capped at 32,768 rows by 4,096 columns. A
 recording that would be too *tall* is drawn at the coarser `hop-size` that
 fits, with a caption under the gram naming what was asked for and what was
-used — it loads rather than being refused. A gram too *wide* is still refused
+used — it loads rather than being refused. The cap is on the *painted* rows, so
+`frame-average` counts against it: averaging four frames to a row is four times
+as much recording inside the same limit, and is the way to keep a fine
+`hop-size` on a long file. A gram too *wide* is still refused
 with the standard error indicator, since no substitution rescues it: lower
 `fft-size` or narrow the frequency range. Three minutes at 44.1 kHz with the
 defaults is about 15,500 rows.

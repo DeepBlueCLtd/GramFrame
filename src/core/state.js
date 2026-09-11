@@ -144,7 +144,15 @@ const initialState = {
       freqStart: 0,
       freqEnd: null,
       columns: 0,
-      frames: 0
+      frames: 0,
+      // How the analysed grid is turned into a picture. Every default here is
+      // the painting the player already did — one frame per row, no background
+      // normalisation, the 5th to 99.9th percentile onto the colour table — so
+      // a table that names none of them is unaffected by their existing.
+      frameAverage: 1,
+      normalisation: 'none',
+      levelFloor: 5,
+      levelCeiling: 99.9
     }
   },
 }

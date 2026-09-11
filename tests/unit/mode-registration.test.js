@@ -132,7 +132,15 @@ const FROZEN_INITIAL_STATE = {
       freqStart: 0,
       freqEnd: null,
       columns: 0,
-      frames: 0
+      frames: 0,
+      // The painting controls, added alongside the trial's normalisation and
+      // frame-averaging work. Recorded here with why, as `tombstones` is: their
+      // defaults are the painting the player already did, so the shape grows
+      // but nothing that was here changes value.
+      frameAverage: 1,
+      normalisation: 'none',
+      levelFloor: 5,
+      levelCeiling: 99.9
     }
   },
   // --- contributed by the modes, in registration order --------------------

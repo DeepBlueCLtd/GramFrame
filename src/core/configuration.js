@@ -12,6 +12,7 @@
 /// <reference path="../types.js" />
 
 import { isPowerOfTwo } from '../audio/fft.js'
+import { NORMALISATION_MODES } from '../audio/normalise.js'
 
 /**
  * A parameter row as read from the table: its raw text and where it sat.
@@ -150,6 +151,54 @@ function extractImageConfig(instance, imgElement, params) {
 }
 
 /**
+ * Read the rows that govern how the analysed grid is *painted*.
+ *
+ * These are separate from the analysis geometry above because they can be
+ * changed without re-running a single FFT in principle — though this component
+ * does re-analyse, since the grid is not kept — and because they are the ones
+ * an analyst is most likely to want to argue about. Every one of them defaults
+ * to the original behaviour, so a table that names none of them paints exactly
+ * what it always did.
+ * @param {Map<string, ParameterCell>} params - Parameter rows
+ * @param {PlayerState} player - The player slice to write into
+ * @throws {Error} When a value is out of range
+ */
+function readPaintingParams(params, player) {
+  const frameAverage = numberParam(params, 'frame-average')
+  if (frameAverage !== null) {
+    if (!Number.isInteger(frameAverage) || frameAverage < 1 || frameAverage > 64) {
+      throw new Error(`Invalid frame-average: ${frameAverage} — must be a whole number between 1 and 64`)
+    }
+    player.analysis.frameAverage = frameAverage
+  }
+
+  const normalisation = params.get('normalisation')
+  if (normalisation) {
+    const value = normalisation.text.trim().toLowerCase()
+    if (!NORMALISATION_MODES.includes(value)) {
+      throw new Error(`Invalid normalisation: "${normalisation.text}" — must be one of ${NORMALISATION_MODES.join(', ')}`)
+    }
+    player.analysis.normalisation = value
+  }
+
+  const levelFloor = numberParam(params, 'level-floor')
+  if (levelFloor !== null) {
+    player.analysis.levelFloor = levelFloor
+  }
+  const levelCeiling = numberParam(params, 'level-ceiling')
+  if (levelCeiling !== null) {
+    player.analysis.levelCeiling = levelCeiling
+  }
+  // Checked together rather than one at a time: either alone can be in range
+  // while the pair is not, and a floor at or above its ceiling has no display
+  // range between them to paint.
+  const { levelFloor: floor, levelCeiling: ceiling } = player.analysis
+  if (floor < 0 || ceiling > 100 || floor >= ceiling) {
+    throw new Error(`Invalid display percentiles: level-floor ${floor} and level-ceiling ${ceiling} — both must lie in 0..100 with the floor below the ceiling`)
+  }
+}
+
+/**
  * Read an audio-sourced table into `state.player` (spec 168, FR-003, FR-004).
  *
  * The time range and the frequency ceiling are unknown until the file is
@@ -220,6 +269,8 @@ function extractAudioConfig(instance, audioElement, params) {
     }
     player.windowSeconds = windowSeconds
   }
+
+  readPaintingParams(params, player)
 
   // Which way a rate change should sound, per exercise (spec 171, FR-022).
   // Absent, the pitch is preserved: the frequency an analyst reads off the gram
