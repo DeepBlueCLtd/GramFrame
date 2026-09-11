@@ -175,6 +175,93 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
     })
   })
 
+  test.describe('Zoom anchoring — the point under the pointer', () => {
+    /** Half a percent of the debug gram's 0-100 Hz / 0-60 s span. */
+    const FREQ_TOLERANCE = 0.5
+    const TIME_TOLERANCE = 0.3
+
+    /**
+     * The data under an SVG point, read the way an analyst sees it — by putting
+     * the pointer there and looking at the readout.
+     * @param {number} x - X coordinate relative to the SVG
+     * @param {number} y - Y coordinate relative to the SVG
+     * @returns {Promise<{freq: number, time: number}>} The data under that point
+     */
+    const dataUnder = async (x, y) => {
+      await gfp.moveMouse(x, y)
+      const { cursorPosition } = await gfp.getState()
+      if (!cursorPosition) {
+        throw new Error('dataUnder: the pointer is not over the gram')
+      }
+      return cursorPosition
+    }
+
+    test('a second Ctrl+scroll elsewhere holds the gram under the pointer', async () => {
+      // The aim of a wheel zoom is that the thing being looked at stays where
+      // it is. From 1x that is free, so the bug only ever showed on the second
+      // notch: zoom once here, move the pointer, and zoom again there.
+      const first = await gfp.imageSVGPoint(0.3, 0.3)
+      await gfp.wheelAtSVG(first.x, first.y, -100, true)
+
+      const second = await gfp.imageSVGPoint(0.7, 0.6)
+      const before = await dataUnder(second.x, second.y)
+
+      await gfp.wheelAtSVG(second.x, second.y, -100, true)
+
+      // Away and back, so the return is a real pointer move.
+      await gfp.moveMouse(first.x, first.y)
+      const after = await dataUnder(second.x, second.y)
+
+      expect(Math.abs(after.freq - before.freq)).toBeLessThan(FREQ_TOLERANCE)
+      expect(Math.abs(after.time - before.time)).toBeLessThan(TIME_TOLERANCE)
+    })
+
+    test('four notches in on a drifting hand still end up where they started', async () => {
+      // A hand on a wheel does not hold still, and each notch must hold the
+      // gram under wherever the pointer has got to. Notching at one fixed pixel
+      // would pass under the old rule too, because there the pointer happens to
+      // sit on the anchor.
+      const p = await gfp.imageSVGPoint(0.65, 0.35)
+      const before = await dataUnder(p.x, p.y)
+
+      for (const drift of [0, 6, -4, 9]) {
+        await gfp.wheelAtSVG(p.x + drift, p.y + drift, -100, true)
+      }
+      expect((await gfp.getState()).zoom.level).toBeGreaterThan(2.0)
+
+      await gfp.moveMouse(p.x - 40, p.y - 20)
+      const after = await dataUnder(p.x, p.y)
+
+      expect(Math.abs(after.freq - before.freq)).toBeLessThan(FREQ_TOLERANCE)
+      expect(Math.abs(after.time - before.time)).toBeLessThan(TIME_TOLERANCE)
+    })
+
+    test('the +/- buttons hold the middle of the view, not the wheel anchor', async () => {
+      // The buttons are pressed off the gram, so there is no pointer to follow:
+      // what they must not do is drag the view towards wherever the wheel last
+      // zoomed, press by press.
+      const p = await gfp.imageSVGPoint(0.2, 0.2)
+      await gfp.wheelAtSVG(p.x, p.y, -100, true)
+      await gfp.clickMode('Pan')
+
+      const mid = async () => {
+        const r = await gfp.visibleDataRange()
+        return { freq: (r.freqMin + r.freqMax) / 2, time: (r.timeMin + r.timeMax) / 2 }
+      }
+      const before = await mid()
+
+      await gfp.page.locator('.gram-frame-command-btn[title="Zoom In"]').click()
+      const afterIn = await mid()
+      expect(Math.abs(afterIn.freq - before.freq)).toBeLessThan(FREQ_TOLERANCE)
+      expect(Math.abs(afterIn.time - before.time)).toBeLessThan(TIME_TOLERANCE)
+
+      await gfp.page.locator('.gram-frame-command-btn[title="Zoom Out"]').click()
+      const afterOut = await mid()
+      expect(Math.abs(afterOut.freq - before.freq)).toBeLessThan(FREQ_TOLERANCE)
+      expect(Math.abs(afterOut.time - before.time)).toBeLessThan(TIME_TOLERANCE)
+    })
+  })
+
   test.describe('Regression — existing zoom/pan still works', () => {
     test('the + command button still zooms in', async () => {
       await gfp.setZoom(2.0, 0.5, 0.5)

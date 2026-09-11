@@ -215,6 +215,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     cross, and the linear transfer the filter is given
   - `axisFormat.js` - The one statement of "the tick interval decides the
     precision", shared by both axes and by the region-zoom span readout
+  - `zoomAnchor.js` - The zoom anchor arithmetic: where a point is drawn at a
+    given anchor and level, and the two solves that invert it — hold the point
+    under the mouse (the wheel), hold the middle of the view (the `+`/`−`
+    buttons). Pure, so "the gram under the pointer does not move" is pinned as a
+    property across levels rather than by one browser drag
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
   - `markerLabel.js` - Marker label normalisation and table abbreviation
@@ -345,9 +350,13 @@ There is no visual/screenshot regression testing — see
   run writes to a tracked file
 - Zoom resizes the image element (viewBox stays fixed) — see ADR-015
 - `zoom.centerX/centerY` are not the centre of the view but the *anchor*: the
-  image point that keeps its unzoomed screen position through the transform. A
-  caller that wants a given point centred solves for the anchor —
-  `viewport.js:zoomToRegion` does, via `anchorForCentre`
+  image point that keeps its **unzoomed** screen position through the transform.
+  So every zoom is a solve for the anchor, in `utils/zoomAnchor.js`, never an
+  assignment to it: `anchorHoldingPoint` keeps the gram under the mouse still
+  (the wheel), `anchorForCentre` puts a chosen point in the middle (the `+`/`−`
+  buttons, and `zoomToRegion`). Assigning the pointer's own point as the anchor
+  looks right from 1×, where every point is already at its unzoomed position,
+  and lurches on every notch after that
 - Drag state has one owner (`BaseDragHandler`) and one read-only projection
   (`state.drag`); modes never write drag fields into state
 - The engine hands `cursorFor(kind, phase)` a phase name (`idle`/`hover`/`drag`),
@@ -445,6 +454,10 @@ There is no visual/screenshot regression testing — see
   a release over the axis margins completes it, deliberately unlike a feature
   drag, which is cancelled off-image, because selecting to the very edge is a
   normal thing to want. The **fit** button beside `+`/`−` is the way back out
+- **Zoom (every mode)**: Ctrl + wheel zooms about the pointer — the gram under
+  the mouse stays under the mouse, at any level, because that is where the
+  analyst is looking. The `+`/`−` buttons have no pointer on the gram to follow,
+  so they hold the middle of the view instead
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
 - **The control row**: each mode's group is `[mode button] [its commands]`, and
   Pan's is the only group with commands — zoom out, zoom in, fit — so it is the
