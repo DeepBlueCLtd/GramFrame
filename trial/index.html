@@ -32,6 +32,7 @@
   .note { font-size:13px; padding:10px 12px; border-radius:4px; margin-top:12px; }
   .note.warn { background:#fdf3e3; border:1px solid #e8cf9a; }
   .note.err  { background:#fdeaea; border:1px solid #e8a9a9; }
+  .note.busy { background:#eef4fa; border:1px solid #b9d0e6; color:var(--muted); }
   #mount { min-height:20px; }
   .hidden { display:none; }
   footer { color:var(--muted); font-size:12px; margin-top:24px; }
@@ -44,11 +45,32 @@
   <h1>GramFrame — Spectrograph Player Trial</h1>
   <p class="sub">Choose a WAV recording from this computer. It is analysed in your browser and never leaves this machine.</p>
 
+  <div class="panel hidden" id="samplePanel">
+    <div class="controls">
+      <div style="flex:1 1 320px">
+        <label for="sample">Sample recording</label>
+        <select id="sample" style="width:100%">
+          <option value="">Choose a sample…</option>
+          <option value="audio/hot-bulb-diesel-engine.wav">Hot-bulb diesel engine (1932)</option>
+          <option value="audio/icebreaker-ship-engine-room.wav">Icebreaker engine room</option>
+          <option value="audio/air-compressor.wav">Air compressor</option>
+          <option value="audio/francis-water-turbine.wav">Francis water turbine</option>
+        </select>
+      </div>
+    </div>
+    <p style="margin:10px 0 0; font-size:12px; color:var(--muted)">
+      Recordings from the <a href="https://commons.wikimedia.org/wiki/Commons:Work_With_Sounds">Work With Sounds</a>
+      project via Wikimedia Commons, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+      Or use your own recording below.
+    </p>
+  </div>
+
   <div class="panel">
     <div class="drop" id="drop">
       <input type="file" id="file" accept=".wav,audio/wav,audio/x-wav">
       <p>or drag a <code>.wav</code> file onto this box</p>
     </div>
+    <div id="busy" class="note busy hidden"></div>
     <div id="problem" class="note err hidden"></div>
   </div>
 
@@ -85,7 +107,10 @@
 
   var els = {
     file: document.getElementById('file'),
+    sample: document.getElementById('sample'),
+    samplePanel: document.getElementById('samplePanel'),
     drop: document.getElementById('drop'),
+    busy: document.getElementById('busy'),
     problem: document.getElementById('problem'),
     factsPanel: document.getElementById('factsPanel'),
     facts: document.getElementById('facts'),
@@ -112,8 +137,33 @@
   function showProblem(msg) {
     els.problem.textContent = msg
     els.problem.classList.remove('hidden')
+    clearBusy()                    // a problem always ends the load that raised it
   }
   function clearProblem() { els.problem.classList.add('hidden') }
+  function showBusy(msg) {
+    els.busy.textContent = msg
+    els.busy.classList.remove('hidden')
+  }
+  function clearBusy() { els.busy.classList.add('hidden') }
+
+  /**
+   * Clear the screen down to "nothing chosen yet".
+   *
+   * A new source is chosen before its bytes arrive. Without this the previous
+   * player sits there with the previous file's duration and spectrogram size
+   * next to the new selection — a measurement tool stating figures that belong
+   * to a recording no longer on screen.
+   * @param {string} label - What is being loaded, for the status line
+   * @returns {void}
+   */
+  function beginLoad(label) {
+    clearProblem()
+    teardown()
+    els.capNote.classList.add('hidden')
+    els.factsPanel.classList.add('hidden')
+    els.controlsPanel.classList.add('hidden')
+    showBusy(label)
+  }
 
   function fourCCOf(view, o) {
     return String.fromCharCode(view.getUint8(o), view.getUint8(o + 1), view.getUint8(o + 2), view.getUint8(o + 3))
@@ -321,6 +371,8 @@
         MAX_GRAM_ROWS.toLocaleString() + ' x ' + MAX_GRAM_COLUMNS.toLocaleString() +
         ' render limit. Raise the FFT size, or lower the top frequency.'
       els.capNote.classList.remove('hidden')
+      els.factsPanel.classList.remove('hidden')
+      clearBusy()
       return
     }
     if (plan.notes.length) {
@@ -335,6 +387,7 @@
     els.mount.appendChild(table)
     var made = window.GramFrame.detectAndReplaceConfigTables(els.mount)
     current.instance = made && made[0] ? made[0] : null
+    clearBusy()
   }
 
   function populateFftChoices(info, chosen) {
@@ -351,9 +404,7 @@
   }
 
   function load(file) {
-    clearProblem()
-    els.capNote.classList.add('hidden')
-    teardown()
+    beginLoad('Reading ' + file.name + '…')
     if (current.url) { URL.revokeObjectURL(current.url); current.url = null }
 
     current.name = file.name
@@ -380,8 +431,43 @@
     })
   }
 
+  /**
+   * Load one of the bundled samples.
+   *
+   * The sample is fetched and handed to `load()` as a File, so a sample and a
+   * picked recording take exactly one code path from here on — the same header
+   * walk, the same analysis choice, the same teardown.
+   *
+   * This needs `fetch` of a sibling file, which `file://` refuses, so the
+   * picker below is the only source offered there (see the protocol gate).
+   * @param {string} url - Relative URL of the sample
+   * @param {string} label - What to call it on screen
+   * @returns {void}
+   */
+  function loadSample(url, label) {
+    beginLoad('Fetching ' + label + '…')
+    fetch(url).then(function (response) {
+      if (!response.ok) throw new Error(response.status + ' ' + response.statusText)
+      return response.blob()
+    }).then(function (blob) {
+      load(new File([blob], url.split('/').pop(), { type: 'audio/wav' }))
+    }).catch(function (e) {
+      clearBusy()
+      showProblem('Could not fetch ' + url + ' (' + e.message + '). ' +
+        'Samples need the hosted copy — from a local folder, use Choose File instead.')
+    })
+  }
+
+  els.sample.addEventListener('change', function () {
+    var option = els.sample.options[els.sample.selectedIndex]
+    if (els.sample.value) loadSample(els.sample.value, option.textContent.trim())
+  })
+
   els.file.addEventListener('change', function () {
-    if (els.file.files && els.file.files[0]) load(els.file.files[0])
+    if (els.file.files && els.file.files[0]) {
+      els.sample.value = ''          // the picked file is now the source on screen
+      load(els.file.files[0])
+    }
   })
   els.apply.addEventListener('click', render)
   ;['dragenter', 'dragover'].forEach(function (t) {
@@ -392,8 +478,15 @@
   })
   els.drop.addEventListener('drop', function (e) {
     var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
-    if (f) { els.file.files = e.dataTransfer.files; load(f) }
+    if (f) { els.file.files = e.dataTransfer.files; els.sample.value = ''; load(f) }
   })
+
+  // The samples are fetched from beside the page, which `file://` refuses. Offer
+  // them only where they can actually load, rather than listing four recordings
+  // that answer a click with an error.
+  if (location.protocol !== 'file:') {
+    els.samplePanel.classList.remove('hidden')
+  }
 })()
 </script>
 </body>

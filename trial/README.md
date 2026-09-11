@@ -7,6 +7,11 @@ real recording of yours before we commit to a publishing route.
 
 Open **`index.html`** in Chrome or Edge and choose a `.wav` file.
 
+The same page is also published on the project's GitHub Pages site, where it
+additionally offers four sample recordings from a drop-down. Those samples are
+fetched from beside the page, which a local folder cannot do, so this copy
+offers the file picker only.
+
 ## Your recording stays here
 
 The file is read and analysed entirely inside your browser. Nothing is uploaded,

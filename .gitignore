@@ -153,7 +153,6 @@ dist/
 # it belongs in the history for the reason dist/ does not.
 trial-package/
 gramframe-trial.zip
-trial-shot.png
-trial-big.png
+trial-*.png
 tones-gram.png
-hosted-check.png
+hosted-*.png
