@@ -363,7 +363,11 @@
  * @property {number} freqStart - Lowest retained frequency, Hz
  * @property {number|null} freqEnd - Highest retained frequency, Hz; null until the sample rate is known (default Nyquist)
  * @property {number} columns - Retained bins = the gram's natural width (0 until analysed)
- * @property {number} frames - Analysis frames = the gram's natural height (0 until analysed)
+ * @property {number} frames - Painted rows = the gram's natural height (0 until analysed); analysis frames divided by `frameAverage`
+ * @property {number} frameAverage - Analysis frames averaged into each painted row; 1 paints every frame
+ * @property {string} normalisation - Background estimator: `none`, `split-window` (along frequency) or `per-bin` (along time)
+ * @property {number} levelFloor - Percentile of the levels painted as the darkest colour
+ * @property {number} levelCeiling - Percentile painted as the brightest
  */
 
 /**

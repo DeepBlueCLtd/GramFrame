@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Player Page - painting controls</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <h1>Painting controls</h1>
+  <!--
+    Four tables over the same synthetic recording, so any difference between
+    their grams is the painting rather than the audio.
+
+    `plain` is the painting the player has always done and names none of the
+    new rows; `painted` averages four frames into each row and normalises
+    across frequency; `per-bin` takes the other estimator. `bad` names a
+    normalisation that does not exist and must fail the way every other bad
+    config row fails, rather than quietly painting something.
+  -->
+  <div class="component-container">
+    <table class="gram-config" id="plain">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>window-seconds</td><td>5</td></tr>
+      <tr><td>fft-size</td><td>1024</td></tr>
+      <tr><td>freq-end</td><td>3000</td></tr>
+    </table>
+    <table class="gram-config" id="painted">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>window-seconds</td><td>5</td></tr>
+      <tr><td>fft-size</td><td>1024</td></tr>
+      <tr><td>freq-end</td><td>3000</td></tr>
+      <tr><td>frame-average</td><td>4</td></tr>
+      <tr><td>normalisation</td><td>split-window</td></tr>
+      <tr><td>level-floor</td><td>1</td></tr>
+      <tr><td>level-ceiling</td><td>99</td></tr>
+    </table>
+    <table class="gram-config" id="per-bin">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>window-seconds</td><td>5</td></tr>
+      <tr><td>fft-size</td><td>1024</td></tr>
+      <tr><td>freq-end</td><td>3000</td></tr>
+      <tr><td>normalisation</td><td>per-bin</td></tr>
+    </table>
+    <table class="gram-config" id="bad">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>normalisation</td><td>whitening</td></tr>
+    </table>
+  </div>
+  <div class="diagnostics-panel" style="display:none;"><pre id="state-display">Loading...</pre></div>
+</body>
+</html>

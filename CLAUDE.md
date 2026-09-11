@@ -86,6 +86,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `fft.js` - Radix-2 FFT with cached tables
   - `spectrogram.js` - Hann-windowed frames → power grid, in ≤ 12 ms slices
   - `colourMap.js` - The colour table and the newest-row-on-top pixel layout
+  - `frameAverage.js` - Incoherent averaging of successive frames into one painted row
+  - `normalise.js` - The background estimators: `split-window` across frequency (a
+    guarded two-pass estimate, so a line never raises the floor it is measured
+    against) and `per-bin` over time. Which one is right is an analyst's question,
+    not ours — they lose opposite things, and the module says which
   - `gramImage.js` - Percentile-normalised levels, the size cap, canvas → PNG data URL
   - `audioSource.js` - `fetch`, falling back to the `<name>.wav.js` sidecar over `file://`
 - `src/player/` - The player around that chain:
@@ -358,6 +363,14 @@ There is no visual/screenshot regression testing — see
   rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`,
   `preserve-pitch`) set the analysis and playback. `core/configuration.js` parses
   both kinds
+- Four further optional rows say how the analysed grid is *painted*:
+  `frame-average`, `normalisation`, `level-floor` and `level-ceiling`. Every
+  default is the painting the player already did, so a table naming none of them
+  is unaffected. The order is fixed and matters: average on **power** (before the
+  logarithm, or it biases rather than steadies), normalise in **dB** against the
+  rows actually being painted, then map to levels. The render caps are tested on
+  the painted rows, so averaging buys a long recording a finer hop rather than
+  costing it one
 - The gram is one tall image of the whole recording: `config = [0, duration] ×
   [freq-start, freq-end]`, natural size = bins × frames, rendered at 900 × 400.
   `imageDetails.timeStretch` draws it `duration / window-seconds` times taller than
@@ -448,6 +461,10 @@ There is no visual/screenshot regression testing — see
 - Unchanged — Web Storage (`localStorage` trainer / `sessionStorage` student). No persisted-shape change in this phase. (167-structural-refactor)
 
 ## Recent Changes
+- Painting controls for the trial: background normalisation (split-window across
+  frequency, per-bin over time), incoherent frame averaging, and the display
+  percentiles — all four exposed as config rows and as toggles on `trial/index.html`,
+  so an analyst can judge them against a legacy display on their own recording
 - 171-player-refinements: The whole gram from load (the reveal rule withdrawn), contrast controls, drag-to-seek and zoom while playing, a 0.25–4 rate ladder with explicit pitch, oversize recordings degraded rather than refused, and a polite transport live region
 - 170-region-zoom: Shift-drag a box to zoom into it, in every mode, plus a Fit button and a live aspect-locked selection overlay
 - 167-structural-refactor: Planned Phase 3 — strict type gate burn-down (540 errors), state⇄modes decoupling, table.js split, capability seams, shrunk instance surface

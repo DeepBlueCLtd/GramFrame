@@ -18,6 +18,7 @@ import { loadAudioBytes } from '../audio/audioSource.js'
 import { decodeWav } from '../audio/wavDecoder.js'
 import { planAnalysis, analyse } from '../audio/spectrogram.js'
 import { fitGramSize, checkGramSize, powerToLevels, paintGram } from '../audio/gramImage.js'
+import { averageFrames, averagedRowCount } from '../audio/frameAverage.js'
 import { updateSVGLayout } from '../components/svgLayout.js'
 import { updatePersistentPanels } from '../components/MainUI.js'
 import { createErrorIndicator } from '../components/ErrorIndicator.js'
@@ -120,16 +121,22 @@ function planFittingAnalysis(player, decoded) {
     console.warn(`GramFrame: freq-end ${player.analysis.freqEnd} Hz is above this recording's Nyquist frequency (${decoded.sampleRate / 2} Hz); clamped to ${plan.freqEnd} Hz`)
   }
 
-  const degraded = fitGramSize(plan.frames, plan.columns, plan)
+  // The caps are on the *painted* gram, so they are tested on the rows that
+  // reach the canvas. Averaging four frames into a row is four times as much
+  // recording inside the same limit, which is why a long file can now keep a
+  // hop fine enough to resolve what is in it.
+  const rows = () => averagedRowCount(plan.frames, player.analysis.frameAverage)
+
+  const degraded = fitGramSize(rows(), plan.columns, plan)
   if (degraded) {
-    console.warn(`GramFrame: ${plan.frames} analysis frames is above the render limit; ${degraded.parameter} raised from ${degraded.requested} to ${degraded.used}`)
+    console.warn(`GramFrame: ${rows()} painted rows is above the render limit; ${degraded.parameter} raised from ${degraded.requested} to ${degraded.used}`)
     plan = planAt(degraded.used)
     player.analysis.hopSize = degraded.used
     player.degraded = degraded
   }
   // Anything the substitution could not rescue is still refused, with the
   // message it always had.
-  checkGramSize(plan.frames, plan.columns, plan)
+  checkGramSize(rows(), plan.columns, plan)
   return plan
 }
 
@@ -164,7 +171,19 @@ export async function setupAudioSource(instance) {
     })
     setProgress(instance, 0.9, 'Painting spectrogram')
     await new Promise(resolve => setTimeout(resolve, 0))
-    const url = paintGram(powerToLevels(grid), plan.frames, plan.columns)
+    // Average, then normalise, then map to levels: averaging is done on power
+    // (before the logarithm) because that is what makes it reduce variance
+    // rather than bias the result, and normalisation is done in dB against the
+    // averaged rows that are actually going to be painted.
+    const averaged = averageFrames(grid, plan.frames, plan.columns, player.analysis.frameAverage)
+    const levels = powerToLevels(averaged.grid, {
+      normalisation: player.analysis.normalisation,
+      frames: averaged.frames,
+      columns: plan.columns,
+      floorPercentile: player.analysis.levelFloor,
+      ceilingPercentile: player.analysis.levelCeiling
+    })
+    const url = paintGram(levels, averaged.frames, plan.columns)
 
     // The instance may have been destroyed while we were away (an SPA page
     // swap, a test teardown); a detached container means stop quietly.
@@ -177,7 +196,7 @@ export async function setupAudioSource(instance) {
     // source in state and is what the storage fingerprint identifies the gram by.
     const imageDetails = state.imageDetails
     imageDetails.naturalWidth = plan.columns
-    imageDetails.naturalHeight = plan.frames
+    imageDetails.naturalHeight = averaged.frames
     imageDetails.renderWidth = PLAYER_RENDER_WIDTH
     imageDetails.renderHeight = PLAYER_RENDER_HEIGHT
     imageDetails.timeStretch = decoded.duration / player.windowSeconds
@@ -190,7 +209,7 @@ export async function setupAudioSource(instance) {
     player.analysis.freqStart = plan.freqStart
     player.analysis.freqEnd = plan.freqEnd
     player.analysis.columns = plan.columns
-    player.analysis.frames = plan.frames
+    player.analysis.frames = averaged.frames
     player.playhead = 0
     // The first window of the recording, rather than the blank above its
     // start: the whole gram is drawn from load now (spec 171, FR-005), so the

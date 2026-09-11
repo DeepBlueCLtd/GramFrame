@@ -34,6 +34,52 @@ describe('powerToLevels', () => {
   })
 })
 
+describe('the display percentiles', () => {
+  /** A grid running 0 to 100 dB in even steps. @type {Float32Array} */
+  const ramp = Float32Array.from({ length: 1000 }, (_, i) => Math.pow(10, i / 100))
+
+  test('a floor of 0 brings the quietest cells back off the black', () => {
+    // The default clips the bottom 5 % to level 0 — and no later control can
+    // undo that, which is why the floor is worth exposing.
+    expect(powerToLevels(ramp)[49]).toBe(0)
+    expect(powerToLevels(ramp, { floorPercentile: 0 })[49]).toBeGreaterThan(0)
+  })
+
+  test('a lower ceiling saturates more of the top', () => {
+    const tight = powerToLevels(ramp, { ceilingPercentile: 50 })
+    expect(tight[600]).toBe(255)
+    expect(powerToLevels(ramp)[600]).toBeLessThan(255)
+  })
+
+  test('percentiles that meet do not produce NaN', () => {
+    const levels = powerToLevels(ramp, { floorPercentile: 40, ceilingPercentile: 40 })
+    expect(Array.from(levels).every(Number.isFinite)).toBe(true)
+  })
+})
+
+describe('normalisation through powerToLevels', () => {
+  test('gives a weak line most of the colour table instead of a sliver of it', () => {
+    // A recording whose noise floor falls 60 dB across the band, with a 6 dB
+    // line on it. Painted plainly, those 6 dB are 6 parts in the ~60 dB the
+    // display range has to cover, so the line gets a handful of levels and
+    // reads as barely-there. Normalised, the floor is gone from the range and
+    // the line has the table more or less to itself.
+    const frames = 8; const columns = 256
+    const grid = new Float32Array(frames * columns)
+    for (let f = 0; f < frames; f++) {
+      for (let k = 0; k < columns; k++) {
+        grid[f * columns + k] = Math.pow(10, (60 - 0.23 * k + (k === 160 ? 6 : 0)) / 10)
+      }
+    }
+    /** @param {Uint8Array} levels @returns {number} The line's height above its neighbours */
+    const prominence = levels => levels[160] - levels[156]
+    const plain = prominence(powerToLevels(grid))
+    const normalised = prominence(powerToLevels(grid, { frames, columns, normalisation: 'split-window' }))
+    expect(plain).toBeLessThan(40)
+    expect(normalised).toBeGreaterThan(plain * 3)
+  })
+})
+
 describe('levelsToPixels', () => {
   test('puts the last frame on the top row and the first on the bottom', () => {
     const frames = 3; const columns = 2

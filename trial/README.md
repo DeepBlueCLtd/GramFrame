@@ -39,13 +39,35 @@ opposite of a chart where time runs left to right or downwards.
 - **Pause, then annotate** — Cross Cursor, Harmonics, Sidebands and Doppler all
   measure the recording the same way they measure a fixed spectrogram image.
 - **Adjust FFT size and top frequency**, then Re-analyse, to see the trade
-  between frequency detail and time detail on your own material.
+  between frequency detail and time detail on your own material. If the picture
+  looks coarser than you expect, this is the first thing to change: at the
+  default of 1024 on a 16 kHz recording each column is 15.6 Hz wide, so the
+  whole 0–200 Hz band is only thirteen columns and close tonals are merged
+  before they are ever drawn.
+- **Turn on background normalisation.** Instead of the measured level, this
+  paints how far each point stands above the background around it, so a faint
+  tonal reads the same wherever in the band it lies. The two estimators lose
+  opposite things — *split window* keeps a tonal that runs the whole recording
+  but cannot show broadband structure; *per bin* keeps broadband events but
+  flattens a tonal that is always there — and which of those matters is the
+  question we would like your view on.
+- **Raise the frame averaging.** A single transform of noise is a rough
+  estimate, which is what makes the picture look speckled; averaging four of
+  them lets a steady weak line show through, at four times the time per row.
+- **Widen the darkest/brightest percentiles.** These decide how much of the
+  level range the colours cover, and the clipping happens when the picture is
+  made — the contrast sliders on the player cannot undo it.
+
+The *What each control does* panel under the controls explains all of these on
+the page itself.
 
 ## What we would like to know
 
 1. Does the picture show what you expect to see in this recording?
 2. Is the time and frequency detail good enough for the analysis you teach?
-3. How long did it take to appear, and is that acceptable?
+3. Which combination of the controls gets closest to the display you are used
+   to? We would rather ship the right defaults than a page full of knobs.
+4. How long did it take to appear, and is that acceptable?
 
 ## Known limits of this trial
 
