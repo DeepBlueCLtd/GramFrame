@@ -3493,6 +3493,28 @@
       }
     });
   }
+  function anchorHoldingPoint(point, anchor, level, newLevel) {
+    if (newLevel <= 1) {
+      return 0.5;
+    }
+    return clamp01$1((anchor * (1 - level) + point * (level - newLevel)) / (1 - newLevel));
+  }
+  function viewCentre(anchor, level) {
+    if (level <= 1) {
+      return 0.5;
+    }
+    return anchor + (0.5 - anchor) / level;
+  }
+  function anchorForCentre(centre, level) {
+    if (level <= 1) {
+      return 0.5;
+    }
+    const visibleFraction = 1 / level;
+    return clamp01$1((centre - visibleFraction / 2) / (1 - visibleFraction));
+  }
+  function clamp01$1(value) {
+    return Math.max(0, Math.min(1, value));
+  }
   const BOTTOM_GAP = 16;
   function isLandscape(instance) {
     const { width, height } = baseRenderSize(instance);
@@ -3605,6 +3627,8 @@
   }
   function zoomAboutViewCentre(instance, newLevel) {
     const { zoom, player } = instance.state;
+    const centreX = viewCentre(zoom.centerX, zoom.level);
+    const centreY = viewCentre(zoom.centerY, zoom.level);
     if (isPlayerActive(instance)) {
       const centreTime = player.viewTop - visibleWindowSeconds(instance) / 2;
       zoom.level = newLevel;
@@ -3614,7 +3638,8 @@
       fitView(instance);
       return;
     }
-    setZoom(instance, newLevel, zoom.centerX, zoom.centerY);
+    const anchorY = isPlayerActive(instance) ? 0.5 : anchorForCentre(centreY, newLevel);
+    setZoom(instance, newLevel, anchorForCentre(centreX, newLevel), anchorY);
   }
   function setZoom(instance, level, centerX, centerY) {
     const zoom = instance.state.zoom;
@@ -3659,31 +3684,31 @@
   }
   function zoomAtImagePoint(instance, factor, imageX, imageY) {
     const state = instance.state;
-    const { zoom, player, imageDetails } = state;
+    const { zoom, player } = state;
     const currentLevel = zoom.level;
     const newLevel = Math.max(MIN_ZOOM, Math.min(currentLevel * factor, MAX_ZOOM));
     if (newLevel === currentLevel) {
       return;
     }
-    const { naturalWidth, naturalHeight } = imageDetails;
-    const renderWidth = imageDetails.renderWidth || naturalWidth;
-    const renderHeight = imageDetails.renderHeight || naturalHeight;
+    const { renderWidth, renderHeight } = getRenderDimensions(state);
     if (isPlayerActive(instance)) {
       const pointerTime = imageToData(imageX, imageY, state).time;
       const fraction = (player.viewTop - pointerTime) / visibleWindowSeconds(instance);
       zoom.level = newLevel;
       player.viewTop = clampViewTop(instance, pointerTime + fraction * visibleWindowSeconds(instance));
-      const centerX2 = newLevel <= MIN_ZOOM ? 0.5 : Math.max(0, Math.min(1, imageX / renderWidth));
-      setZoom(instance, newLevel, centerX2, 0.5);
+      setZoom(instance, newLevel, anchorHoldingPoint(imageX / renderWidth, zoom.centerX, currentLevel, newLevel), 0.5);
       return;
     }
     if (newLevel <= MIN_ZOOM) {
       fitView(instance);
       return;
     }
-    const centerX = Math.max(0, Math.min(1, imageX / renderWidth));
-    const centerY = Math.max(0, Math.min(1, imageY / renderHeight));
-    setZoom(instance, newLevel, centerX, centerY);
+    setZoom(
+      instance,
+      newLevel,
+      anchorHoldingPoint(imageX / renderWidth, zoom.centerX, currentLevel, newLevel),
+      anchorHoldingPoint(imageY / renderHeight, zoom.centerY, currentLevel, newLevel)
+    );
   }
   function zoomToRegion(instance, region) {
     const state = instance.state;
@@ -3708,13 +3733,6 @@
     const level = Math.max(MIN_ZOOM, Math.min(across, renderHeight / region.height, MAX_ZOOM));
     const centreY = (region.y + region.height / 2) / renderHeight;
     setZoom(instance, level, anchorForCentre(centreX, level), anchorForCentre(centreY, level));
-  }
-  function anchorForCentre(centre, level) {
-    if (level <= MIN_ZOOM) {
-      return 0.5;
-    }
-    const visibleFraction = 1 / level;
-    return Math.max(0, Math.min(1, (centre - visibleFraction / 2) / (1 - visibleFraction)));
   }
   function fitView(instance) {
     const { zoom, player } = instance.state;
