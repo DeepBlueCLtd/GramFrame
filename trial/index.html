@@ -179,17 +179,21 @@
           part of a recording to the picture.</dd>
 
         <dt>Colour map</dt>
-        <dd>The selector on the player's own bar, beside the contrast sliders,
-          repaints the picture with a different colour map. <em>Grey</em> is
-          black for the quietest level and white for the loudest, for comparing
-          with a legacy display that only ever drew grey. <em>Colour</em> is
-          the table the player always used: its hue boundaries act as extra
-          contours, so more features stand out than in grey, but its brightness
-          is not in level order — yellow is lighter than the red above it.
-          <em>Inferno</em> keeps the hue boundaries and has brightness that
-          rises strictly with level, so brighter always means louder. Each is a
-          repaint of the same analysis: instant, no reading changes, and the
-          choice survives a Re-analyse.</dd>
+        <dd>The row of buttons under the player's own bar, below the contrast
+          sliders, repaints the picture with a different colour map.
+          <em>Grey</em> is black for the quietest level and white for the
+          loudest, for comparing with a legacy display that only ever drew
+          grey. <em>Colour</em> is the table the player always used: its hue
+          boundaries act as extra contours, so more features stand out than in
+          grey, but its brightness is not in level order — yellow is lighter
+          than the red above it. The other four are matplotlib's perceptually
+          uniform maps: they keep the hue boundaries with brightness that
+          rises strictly with level, so brighter always means louder.
+          <em>Inferno</em> and <em>Magma</em> start from black, so the
+          background stays dark as on a legacy display; <em>Viridis</em>
+          starts from dark blue and runs through green; <em>Plasma</em> has no
+          dark end at all. Each is a repaint of the same analysis: instant, no
+          reading changes, and the choice survives a Re-analyse.</dd>
       </dl>
     </details>
   </div>
@@ -554,7 +558,7 @@
   }
 
   function render() {
-    // The colour-map selector lives on the player bar, so a re-analysis would
+    // The colour-map choice lives on the player bar, so a re-analysis would
     // otherwise silently put the picture back into colour under the analyst.
     var colourMap = current.instance && current.instance.state.player.ready
       ? current.instance.state.player.analysis.colourMap

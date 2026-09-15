@@ -142,6 +142,24 @@ describe('the grey map (through levelsToPixels)', () => {
     for (let l = 1; l < 256; l++) expect(lum(inferno(l))).toBeGreaterThanOrEqual(lum(inferno(l - 1)))
   })
 
+  test('magma, viridis and plasma are matplotlib\'s tables verbatim, each never darker for louder beyond 8-bit rounding', () => {
+    /** @type {Array<[string, number[], number[], number[]]>} name, level 0, level 128, level 255 */
+    const expected = [
+      ['magma', [0, 0, 4], [183, 55, 121], [252, 253, 191]],
+      ['viridis', [68, 1, 84], [33, 145, 140], [253, 231, 37]],
+      ['plasma', [13, 8, 135], [204, 71, 120], [240, 249, 33]]
+    ]
+    const lum = (/** @type {number[]} */ c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+    for (const [name, first, mid, last] of expected) {
+      /** @param {number} level */
+      const pixel = level => Array.from(levelsToPixels(new Uint8Array([level]), 1, 1, /** @type {any} */ (name)).slice(0, 3))
+      expect(pixel(0)).toEqual(first)
+      expect(pixel(128)).toEqual(mid)
+      expect(pixel(255)).toEqual(last)
+      for (let l = 1; l < 256; l++) expect(lum(pixel(l))).toBeGreaterThanOrEqual(lum(pixel(l - 1)) - 1)
+    }
+  })
+
   test('the default map is still the colour table', () => {
     expect(levelsToPixels(new Uint8Array([255]), 1, 1)).toEqual(levelsToPixels(new Uint8Array([255]), 1, 1, 'colour'))
     expect(Array.from(levelsToPixels(new Uint8Array([255]), 1, 1).slice(0, 3))).toEqual([220, 20, 20])
