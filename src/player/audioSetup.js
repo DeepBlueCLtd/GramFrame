@@ -18,12 +18,14 @@ import { loadAudioBytes } from '../audio/audioSource.js'
 import { decodeWav } from '../audio/wavDecoder.js'
 import { planAnalysis, analyse } from '../audio/spectrogram.js'
 import { fitGramSize, checkGramSize, powerToLevels, paintGram } from '../audio/gramImage.js'
+import { rememberPaintedLevels } from './gramRepaint.js'
 import { averageFrames, averagedRowCount } from '../audio/frameAverage.js'
 import { updateSVGLayout } from '../components/svgLayout.js'
 import { updatePersistentPanels } from '../components/MainUI.js'
 import { createErrorIndicator } from '../components/ErrorIndicator.js'
 import { createTransportBar } from '../components/TransportBar.js'
 import { createDisplayRangeControls } from '../components/DisplayRangeControls.js'
+import { createColourMapToggle } from '../components/ColourMapToggle.js'
 import { dispatch } from '../core/state.js'
 import { createTransport } from './transport.js'
 import { PLAYER_RENDER_WIDTH, PLAYER_RENDER_HEIGHT } from './playerView.js'
@@ -183,7 +185,10 @@ export async function setupAudioSource(instance) {
       floorPercentile: player.analysis.levelFloor,
       ceilingPercentile: player.analysis.levelCeiling
     })
-    const url = paintGram(levels, averaged.frames, plan.columns)
+    const url = paintGram(levels, averaged.frames, plan.columns, player.analysis.colourMap)
+    // Kept for the colour-map toggle: a change of map is a repaint of these,
+    // not a second analysis.
+    rememberPaintedLevels(instance, levels, averaged.frames, plan.columns)
 
     // The instance may have been destroyed while we were away (an SPA page
     // swap, a test teardown); a detached container means stop quietly.
@@ -224,6 +229,7 @@ export async function setupAudioSource(instance) {
     // an audio-sourced instance only (FR-014), so both are mounted here rather
     // than anywhere an image instance would reach.
     createDisplayRangeControls(instance, bar, player.display)
+    createColourMapToggle(instance, bar, player.analysis)
     if (player.degraded) {
       bar.parentElement?.insertBefore(createDegradedNote(player.degraded), bar)
     }

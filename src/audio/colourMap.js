@@ -1,10 +1,22 @@
 /**
  * The spectrogram's colours (spec 168, D5).
  *
- * A 256-entry lookup from display level to RGB, and the pixel layout that
- * applies it with the newest frame on the top row. Pure, and split from
- * `gramImage.js` so both can be pinned in the unit lane without a canvas.
+ * Two 256-entry lookups from display level to RGB — the colour table, and a
+ * grey ramp for an analyst comparing the picture with a legacy renderer that
+ * only ever drew grey shades — and the pixel layout that applies one of them
+ * with the newest frame on the top row. Pure, and split from `gramImage.js`
+ * so all of it can be pinned in the unit lane without a canvas.
  */
+
+/**
+ * The colour maps a gram can be painted with, as named by the `colour-map`
+ * config row and `player.analysis.colourMap`. `colour` is the default and the
+ * painting the player always did.
+ * @type {ReadonlyArray<ColourMapName>}
+ */
+export const COLOUR_MAPS = Object.freeze(['colour', 'grey'])
+
+/** @typedef {'colour'|'grey'} ColourMapName */
 
 /**
  * The colour lookup: 256 entries, level 0 (quietest) to 255 (loudest).
@@ -20,6 +32,28 @@ const COLOUR_LUT = buildLut([
   [0.88, [255, 140, 0]],
   [1.00, [220, 20, 20]]
 ])
+
+/**
+ * The grey ramp: black at level 0, white at 255, and nothing in between but
+ * the level itself. A straight ramp rather than a desaturation of the colour
+ * table, because that table's brightness is not monotonic — yellow is lighter
+ * than the red above it — and a grey gram must never paint a louder point
+ * darker than a quieter one.
+ * @type {Uint8Array} Flat `[r, g, b, …]`, 768 bytes
+ */
+const GREY_LUT = buildLut([
+  [0.00, [0, 0, 0]],
+  [1.00, [255, 255, 255]]
+])
+
+/**
+ * The lookup a named map paints with.
+ * @param {ColourMapName} map - `colour` or `grey`
+ * @returns {Uint8Array} 768 bytes
+ */
+function lutFor(map) {
+  return map === 'grey' ? GREY_LUT : COLOUR_LUT
+}
 
 /**
  * Interpolate colour stops into a 256-entry table.
@@ -52,9 +86,11 @@ function buildLut(stops) {
  * @param {Uint8Array} levels - From {@link powerToLevels}
  * @param {number} frames - Rows
  * @param {number} columns - Columns
+ * @param {ColourMapName} [map='colour'] - Which lookup to paint with
  * @returns {Uint8ClampedArray} RGBA, `columns × frames × 4`
  */
-export function levelsToPixels(levels, frames, columns) {
+export function levelsToPixels(levels, frames, columns, map = 'colour') {
+  const lut = lutFor(map)
   const pixels = new Uint8ClampedArray(frames * columns * 4)
   for (let f = 0; f < frames; f++) {
     const y = frames - 1 - f
@@ -63,9 +99,9 @@ export function levelsToPixels(levels, frames, columns) {
     for (let k = 0; k < columns; k++) {
       const level = levels[rowIn + k] * 3
       const p = rowOut + k * 4
-      pixels[p] = COLOUR_LUT[level]
-      pixels[p + 1] = COLOUR_LUT[level + 1]
-      pixels[p + 2] = COLOUR_LUT[level + 2]
+      pixels[p] = lut[level]
+      pixels[p + 1] = lut[level + 1]
+      pixels[p + 2] = lut[level + 2]
       pixels[p + 3] = 255
     }
   }
