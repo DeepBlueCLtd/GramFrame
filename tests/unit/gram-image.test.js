@@ -131,6 +131,17 @@ describe('the grey map (through levelsToPixels)', () => {
     expect(levelsToPixels(new Uint8Array([7]), 1, 1, 'grey')[3]).toBe(255)
   })
 
+  test('inferno is dark at the quietest level, pale yellow at the loudest, and never darker for louder', () => {
+    /** @param {number} level */
+    const inferno = level => Array.from(levelsToPixels(new Uint8Array([level]), 1, 1, 'inferno').slice(0, 3))
+    expect(inferno(0)).toEqual([0, 0, 4])
+    expect(inferno(255)).toEqual([252, 255, 164])
+    // matplotlib's own mid-point, so the table is theirs verbatim rather than a fit
+    expect(inferno(128)).toEqual([188, 55, 84])
+    const lum = (/** @type {number[]} */ c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+    for (let l = 1; l < 256; l++) expect(lum(inferno(l))).toBeGreaterThanOrEqual(lum(inferno(l - 1)))
+  })
+
   test('the default map is still the colour table', () => {
     expect(levelsToPixels(new Uint8Array([255]), 1, 1)).toEqual(levelsToPixels(new Uint8Array([255]), 1, 1, 'colour'))
     expect(Array.from(levelsToPixels(new Uint8Array([255]), 1, 1).slice(0, 3))).toEqual([220, 20, 20])

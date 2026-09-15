@@ -178,13 +178,18 @@
           Lowering the darkest percentile towards 0 is what returns the quietest
           part of a recording to the picture.</dd>
 
-        <dt>Grey shades</dt>
-        <dd>The <strong>Grey</strong> button on the player's own bar, beside
-          the contrast sliders, repaints the picture as grey shades — black for
-          the quietest level, white for the loudest — for comparing it with a
-          legacy display that only ever drew grey. It is a repaint of the same
-          analysis, so it is instant, it changes no reading, and it survives a
-          Re-analyse. Press it again for colour.</dd>
+        <dt>Colour map</dt>
+        <dd>The selector on the player's own bar, beside the contrast sliders,
+          repaints the picture with a different colour map. <em>Grey</em> is
+          black for the quietest level and white for the loudest, for comparing
+          with a legacy display that only ever drew grey. <em>Colour</em> is
+          the table the player always used: its hue boundaries act as extra
+          contours, so more features stand out than in grey, but its brightness
+          is not in level order — yellow is lighter than the red above it.
+          <em>Inferno</em> keeps the hue boundaries and has brightness that
+          rises strictly with level, so brighter always means louder. Each is a
+          repaint of the same analysis: instant, no reading changes, and the
+          choice survives a Re-analyse.</dd>
       </dl>
     </details>
   </div>
@@ -549,7 +554,7 @@
   }
 
   function render() {
-    // The grey-shades toggle lives on the player bar, so a re-analysis would
+    // The colour-map selector lives on the player bar, so a re-analysis would
     // otherwise silently put the picture back into colour under the analyst.
     var colourMap = current.instance && current.instance.state.player.ready
       ? current.instance.state.player.analysis.colourMap

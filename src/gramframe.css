@@ -241,10 +241,16 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   min-width: 60px;
 }
 
-/* The colour-map toggle, on the same bar: grey shades for an analyst
-   comparing the picture with a legacy display, colour otherwise. */
+/* The colour-map selector, on the same bar: colour, grey shades for an
+   analyst comparing the picture with a legacy display, or inferno. */
 .gram-frame-colour-map {
   flex: 0 0 auto;
+  height: 26px;
+  color: #e6f2ff;
+  background: rgba(40, 60, 90, 0.8);
+  border: 1px solid rgba(180, 200, 230, 0.5);
+  border-radius: 4px;
+  font-size: 12px;
 }
 
 /* The caption naming what the render caps changed (spec 171, FR-024). */

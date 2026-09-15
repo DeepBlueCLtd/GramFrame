@@ -2,14 +2,15 @@ import { test, expect } from '@playwright/test'
 import { GramFramePage } from './helpers/gram-frame-page.js'
 
 /**
- * @fileoverview The grey-shades toggle and the `colour-map` config row.
+ * @fileoverview The colour-map selector and the `colour-map` config row.
  *
  * An analyst comparing the player with a legacy renderer that only ever drew
- * grey shades needs the same picture in grey, and needs it as a click rather
- * than a re-analysis. What is worth holding: the button repaints the *pixels*
- * grey (not merely a state flag), it goes back to colour, it never touches a
- * reading or an annotation, a table can open in grey, and an image-backed
- * instance never grows the button.
+ * grey shades needs the same picture in grey, and then a perceptually uniform
+ * map to set against both — each as a click rather than a re-analysis. What is
+ * worth holding: the selector repaints the *pixels* (not merely a state flag),
+ * it goes back to the identical colour image, it never touches a reading or an
+ * annotation, a table can open in any map, and an image-backed instance never
+ * grows the selector.
  */
 
 const PLAYER_PAGE = '/tests/fixtures/player-page.html'
@@ -58,18 +59,18 @@ async function gotoPlayer(page) {
   return gfp
 }
 
-test.describe('the grey-shades toggle', () => {
-  test('repaints the gram grey and back, without re-analysing', async ({ page }) => {
+test.describe('the colour-map selector', () => {
+  test('repaints the gram grey, then inferno, then back, without re-analysing', async ({ page }) => {
     const gfp = await gotoPlayer(page)
-    const button = page.locator('.gram-frame-colour-map')
-    await expect(button).toHaveAttribute('aria-pressed', 'false')
+    const select = page.locator('.gram-frame-colour-map')
+    await expect(select).toHaveValue('colour')
+    await expect(select.locator('option')).toHaveText(['Colour', 'Grey', 'Inferno'])
 
     const colour = await samplePixels(page, 0)
     expect(colour.coloured).toBe(true)
     const framesBefore = (await gfp.getState()).player.analysis.frames
 
-    await button.click()
-    await expect(button).toHaveAttribute('aria-pressed', 'true')
+    await select.selectOption('grey')
     const grey = await samplePixels(page, 0)
     expect(grey.grey).toBe(true)
     expect(grey.href).not.toBe(colour.href)
@@ -79,8 +80,14 @@ test.describe('the grey-shades toggle', () => {
     expect(state.player.analysis.frames).toBe(framesBefore)
     expect(state.player.ready).toBe(true)
 
-    await button.click()
-    await expect(button).toHaveAttribute('aria-pressed', 'false')
+    await select.selectOption('inferno')
+    const inferno = await samplePixels(page, 0)
+    expect(inferno.coloured).toBe(true)
+    expect(inferno.href).not.toBe(colour.href)
+    expect(inferno.href).not.toBe(grey.href)
+    expect((await gfp.getState()).player.analysis.colourMap).toBe('inferno')
+
+    await select.selectOption('colour')
     const back = await samplePixels(page, 0)
     expect(back.coloured).toBe(true)
     expect(back.href).toBe(colour.href)
@@ -95,7 +102,7 @@ test.describe('the grey-shades toggle', () => {
     const before = (await gfp.getState()).analysis.markers[0]
     const readingBefore = await gfp.readDataAtPixel(MARGINS.left + 450, MARGINS.top + 120)
 
-    await page.locator('.gram-frame-colour-map').click()
+    await page.locator('.gram-frame-colour-map').selectOption('inferno')
 
     const reading = await gfp.readDataAtPixel(MARGINS.left + 450, MARGINS.top + 120)
     if (!reading || !readingBefore) throw new Error('the readout must be live over the gram')
@@ -107,22 +114,27 @@ test.describe('the grey-shades toggle', () => {
     await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(1)
   })
 
-  test('the colour-map config row opens a table in grey, and the button shows it', async ({ page }) => {
+  test('the colour-map config row opens a table in grey or inferno, and the selector shows it', async ({ page }) => {
     await page.goto(PAINTING_PAGE)
-    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 4)
+    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 5)
 
     const plain = await samplePixels(page, 0)
     const grey = await samplePixels(page, 2)
+    const inferno = await samplePixels(page, 3)
     expect(plain.coloured).toBe(true)
     expect(grey.grey).toBe(true)
-    const analysis = await page.evaluate(() => window.GramFrame.__test__getInstances()[2].state.player.analysis)
-    expect(analysis.colourMap).toBe('grey')
-    // Instances are in document order, and `grey` is the third table
-    await expect(page.locator('.gram-frame-colour-map').nth(2)).toHaveAttribute('aria-pressed', 'true')
-    await expect(page.locator('.gram-frame-colour-map').nth(0)).toHaveAttribute('aria-pressed', 'false')
+    expect(inferno.coloured).toBe(true)
+    expect(inferno.href).not.toBe(plain.href)
+    const maps = await page.evaluate(() => window.GramFrame.__test__getInstances().map(i => i.state.player.analysis.colourMap))
+    expect(maps.slice(0, 4)).toEqual(['colour', 'colour', 'grey', 'inferno'])
+    // Instances are in document order: `grey` is the third table, `inferno` the fourth
+    const selects = page.locator('.gram-frame-colour-map')
+    await expect(selects.nth(0)).toHaveValue('colour')
+    await expect(selects.nth(2)).toHaveValue('grey')
+    await expect(selects.nth(3)).toHaveValue('inferno')
   })
 
-  test('an image-sourced gram has no toggle: there are no levels to repaint', async ({ page }) => {
+  test('an image-sourced gram has no selector: there are no levels to repaint', async ({ page }) => {
     await page.goto(IMAGE_PAGE)
     await page.locator('.gram-frame-container').first().waitFor()
     await expect(page.locator('.gram-frame-colour-map')).toHaveCount(0)
