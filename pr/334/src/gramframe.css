@@ -241,16 +241,29 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   min-width: 60px;
 }
 
-/* The colour-map selector, on the same bar: colour, grey shades for an
-   analyst comparing the picture with a legacy display, or inferno. */
+/* The colour-map choice, on the same bar: a radio row so every map under
+   trial is visible at once and switching between two is one click each way. */
 .gram-frame-colour-map {
-  flex: 0 0 auto;
-  height: 26px;
-  color: #e6f2ff;
-  background: rgba(40, 60, 90, 0.8);
-  border: 1px solid rgba(180, 200, 230, 0.5);
-  border-radius: 4px;
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  flex: 1 1 100%;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.gram-frame-colour-map-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.gram-frame-colour-map-option input {
+  margin: 0;
 }
 
 /* The caption naming what the render caps changed (spec 171, FR-024). */

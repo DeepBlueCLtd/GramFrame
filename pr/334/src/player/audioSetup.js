@@ -25,7 +25,7 @@ import { updatePersistentPanels } from '../components/MainUI.js'
 import { createErrorIndicator } from '../components/ErrorIndicator.js'
 import { createTransportBar } from '../components/TransportBar.js'
 import { createDisplayRangeControls } from '../components/DisplayRangeControls.js'
-import { createColourMapSelect } from '../components/ColourMapSelect.js'
+import { createColourMapChoice } from '../components/ColourMapChoice.js'
 import { dispatch } from '../core/state.js'
 import { createTransport } from './transport.js'
 import { PLAYER_RENDER_WIDTH, PLAYER_RENDER_HEIGHT } from './playerView.js'
@@ -229,7 +229,7 @@ export async function setupAudioSource(instance) {
     // an audio-sourced instance only (FR-014), so both are mounted here rather
     // than anywhere an image instance would reach.
     createDisplayRangeControls(instance, bar, player.display)
-    createColourMapSelect(instance, bar, player.analysis)
+    createColourMapChoice(instance, bar, player.analysis)
     if (player.degraded) {
       bar.parentElement?.insertBefore(createDegradedNote(player.degraded), bar)
     }
