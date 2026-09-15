@@ -177,6 +177,14 @@
           made, so the contrast sliders on the player cannot bring it back.
           Lowering the darkest percentile towards 0 is what returns the quietest
           part of a recording to the picture.</dd>
+
+        <dt>Grey shades</dt>
+        <dd>The <strong>Grey</strong> button on the player's own bar, beside
+          the contrast sliders, repaints the picture as grey shades — black for
+          the quietest level, white for the loudest — for comparing it with a
+          legacy display that only ever drew grey. It is a repaint of the same
+          analysis, so it is instant, it changes no reading, and it survives a
+          Re-analyse. Press it again for colour.</dd>
       </dl>
     </details>
   </div>
@@ -504,7 +512,7 @@
     els.factsPanel.classList.remove('hidden')
   }
 
-  function buildTable(url, plan) {
+  function buildTable(url, plan, colourMap) {
     var table = document.createElement('table')
     table.className = 'gram-config'
     function row(a, b) {
@@ -528,6 +536,7 @@
     table.appendChild(row('normalisation', plan.normalisation))
     table.appendChild(row('level-floor', plan.levelFloor))
     table.appendChild(row('level-ceiling', plan.levelCeiling))
+    table.appendChild(row('colour-map', colourMap || 'colour'))
     return table
   }
 
@@ -540,6 +549,11 @@
   }
 
   function render() {
+    // The grey-shades toggle lives on the player bar, so a re-analysis would
+    // otherwise silently put the picture back into colour under the analyst.
+    var colourMap = current.instance && current.instance.state.player.ready
+      ? current.instance.state.player.analysis.colourMap
+      : 'colour'
     teardown()
     var want = settings()
     if (!(want.levelFloor >= 0) || !(want.levelCeiling <= 100) || want.levelFloor >= want.levelCeiling) {
@@ -574,7 +588,7 @@
     }
 
     describe(current.info, plan)
-    var table = buildTable(current.url, plan)
+    var table = buildTable(current.url, plan, colourMap)
     els.mount.appendChild(table)
     var made = window.GramFrame.detectAndReplaceConfigTables(els.mount)
     current.instance = made && made[0] ? made[0] : null

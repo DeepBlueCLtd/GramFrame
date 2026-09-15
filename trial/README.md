@@ -36,6 +36,9 @@ opposite of a chart where time runs left to right or downwards.
   hand and resumes where you let go. A single click pauses and resumes.
 - **The two contrast sliders** lift a faint tonal out of the background without
   changing any reading.
+- **The Grey button**, beside them, repaints the picture as grey shades — black
+  quietest, white loudest — so it can be set against the legacy display's grey
+  directly. It is instant and changes no reading; press it again for colour.
 - **Pause, then annotate** — Cross Cursor, Harmonics, Sidebands and Doppler all
   measure the recording the same way they measure a fixed spectrogram image.
 - **Adjust FFT size and top frequency**, then Re-analyse, to see the trade

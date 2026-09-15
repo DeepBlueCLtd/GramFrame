@@ -13,6 +13,7 @@
 
 import { isPowerOfTwo } from '../audio/fft.js'
 import { NORMALISATION_MODES } from '../audio/normalise.js'
+import { COLOUR_MAPS } from '../audio/colourMap.js'
 
 /**
  * A parameter row as read from the table: its raw text and where it sat.
@@ -179,6 +180,15 @@ function readPaintingParams(params, player) {
       throw new Error(`Invalid normalisation: "${normalisation.text}" — must be one of ${NORMALISATION_MODES.join(', ')}`)
     }
     player.analysis.normalisation = value
+  }
+
+  const colourMap = params.get('colour-map')
+  if (colourMap) {
+    const value = colourMap.text.trim().toLowerCase()
+    if (!COLOUR_MAPS.includes(/** @type {any} */ (value))) {
+      throw new Error(`Invalid colour-map: "${colourMap.text}" — must be one of ${COLOUR_MAPS.join(', ')}`)
+    }
+    player.analysis.colourMap = /** @type {import('../audio/colourMap.js').ColourMapName} */ (value)
   }
 
   const levelFloor = numberParam(params, 'level-floor')

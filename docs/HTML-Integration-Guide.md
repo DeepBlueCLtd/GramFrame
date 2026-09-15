@@ -98,6 +98,7 @@ is optional.
 | `normalisation` | `none` / `split-window` / `per-bin` | `none` | Paint how far each point stands above the background rather than its measured level (see below) |
 | `level-floor` | percentile 0–100 | 5 | Which percentile of the levels is painted the darkest colour |
 | `level-ceiling` | percentile 0–100 | 99.9 | Which percentile is painted the brightest. Must be above `level-floor` |
+| `colour-map` | `colour` / `grey` | `colour` | Paint with the colour table, or as grey shades (black quietest, white loudest) as a legacy renderer draws. The **Grey** button on the transport bar toggles the same choice live, without re-analysing |
 
 `time-start` and `time-end` are ignored on an audio table, with a console
 warning: the recording defines its own time range, `0` to its duration.

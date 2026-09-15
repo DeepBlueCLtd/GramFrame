@@ -180,10 +180,11 @@ export function powerToLevels(grid, options = {}) {
  * @param {Uint8Array} levels - From {@link powerToLevels}
  * @param {number} frames - Rows
  * @param {number} columns - Columns
+ * @param {import('./colourMap.js').ColourMapName} [map='colour'] - Which colour map to paint with
  * @returns {string} A `data:image/png;base64,…` URL
  * @throws {Error} When the browser refuses a canvas of this size
  */
-export function paintGram(levels, frames, columns) {
+export function paintGram(levels, frames, columns, map = 'colour') {
   const canvas = document.createElement('canvas')
   canvas.width = columns
   canvas.height = frames
@@ -192,7 +193,7 @@ export function paintGram(levels, frames, columns) {
     throw new Error(`Could not create a ${columns}×${frames} canvas to paint the spectrogram`)
   }
   const image = context.createImageData(columns, frames)
-  image.data.set(levelsToPixels(levels, frames, columns))
+  image.data.set(levelsToPixels(levels, frames, columns, map))
   context.putImageData(image, 0, 0)
   const url = canvas.toDataURL('image/png')
   if (!url || !url.startsWith('data:image/png')) {

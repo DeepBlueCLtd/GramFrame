@@ -85,7 +85,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `wavDecoder.js` - RIFF/WAVE → mono `Float32Array` (PCM 8/16/24/32 and float)
   - `fft.js` - Radix-2 FFT with cached tables
   - `spectrogram.js` - Hann-windowed frames → power grid, in ≤ 12 ms slices
-  - `colourMap.js` - The colour table and the newest-row-on-top pixel layout
+  - `colourMap.js` - The colour table, the grey ramp beside it (a straight
+    black-to-white ramp, not a desaturation, since the colour table's brightness
+    is not monotonic) and the newest-row-on-top pixel layout
   - `frameAverage.js` - Incoherent averaging of successive frames into one painted row
   - `normalise.js` - The background estimators: `split-window` across frequency (a
     guarded two-pass estimate, so a line never raises the floor it is measured
@@ -103,6 +105,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     mode only — resume
   - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow
     loop, the reveal rule, and the time read off a click on the time axis
+  - `gramRepaint.js` - The painted 8-bit levels, kept per instance in a
+    `WeakMap` (never in `state`, which is deep-copied to listeners), so a change
+    of colour map is a repaint rather than a second analysis
 - `src/core/` - Core system modules:
   - `state.js` - State management and listeners
   - `annotationCommit.js` - `commitAnnotationChange`: the one cadence every annotation
@@ -178,6 +183,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `TransportBar.js` - The playback controls under an audio-sourced gram, the
     visible time span, and the polite live region a screen reader hears
   - `DisplayRangeControls.js` - The contrast floor and ceiling, on that bar
+  - `ColourMapToggle.js` - The **Grey** button on that bar: grey shades or
+    colour, as `player.analysis.colourMap`, for comparing the picture with a
+    legacy renderer that only drew grey
   - `ErrorIndicator.js` - The standard initialisation-error box, shared by the API and the audio setup
   - `LEDDisplay.js` - Digital display component
   - `table.js` - Component scaffold: builds the DOM structure and replaces the
@@ -392,8 +400,9 @@ There is no visual/screenshot regression testing — see
   rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`,
   `preserve-pitch`) set the analysis and playback. `core/configuration.js` parses
   both kinds
-- Four further optional rows say how the analysed grid is *painted*:
-  `frame-average`, `normalisation`, `level-floor` and `level-ceiling`. Every
+- Five further optional rows say how the analysed grid is *painted*:
+  `frame-average`, `normalisation`, `level-floor`, `level-ceiling` and
+  `colour-map`. Every
   default is the painting the player already did, so a table naming none of them
   is unaffected. The order is fixed and matters: average on **power** (before the
   logarithm, or it biases rather than steadies), normalise in **dB** against the
