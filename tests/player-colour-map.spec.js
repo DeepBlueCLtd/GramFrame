@@ -2,14 +2,15 @@ import { test, expect } from '@playwright/test'
 import { GramFramePage } from './helpers/gram-frame-page.js'
 
 /**
- * @fileoverview The grey-shades toggle and the `colour-map` config row.
+ * @fileoverview The colour-map radio row and the `colour-map` config row.
  *
  * An analyst comparing the player with a legacy renderer that only ever drew
- * grey shades needs the same picture in grey, and needs it as a click rather
- * than a re-analysis. What is worth holding: the button repaints the *pixels*
- * grey (not merely a state flag), it goes back to colour, it never touches a
- * reading or an annotation, a table can open in grey, and an image-backed
- * instance never grows the button.
+ * grey shades needs the same picture in grey, and then the perceptually
+ * uniform maps to set against both — each as a click rather than a
+ * re-analysis. What is worth holding: a radio repaints the *pixels* (not
+ * merely a state flag), it goes back to the identical colour image, it never
+ * touches a reading or an annotation, a table can open in any map, and an
+ * image-backed instance never grows the row.
  */
 
 const PLAYER_PAGE = '/tests/fixtures/player-page.html'
@@ -58,18 +59,31 @@ async function gotoPlayer(page) {
   return gfp
 }
 
-test.describe('the grey-shades toggle', () => {
-  test('repaints the gram grey and back, without re-analysing', async ({ page }) => {
+/**
+ * The radio for a map, on the first (or only) gram on the page.
+ * @param {import('@playwright/test').Page} page - The page
+ * @param {string} map - The map's name, as its radio's value
+ * @param {number} [index=0] - Which gram
+ * @returns {import('@playwright/test').Locator} The radio input
+ */
+function radio(page, map, index = 0) {
+  return page.locator('.gram-frame-colour-map').nth(index).locator(`input[value="${map}"]`)
+}
+
+test.describe('the colour-map radio row', () => {
+  test('repaints the gram grey, then inferno, then back, without re-analysing', async ({ page }) => {
     const gfp = await gotoPlayer(page)
-    const button = page.locator('.gram-frame-colour-map')
-    await expect(button).toHaveAttribute('aria-pressed', 'false')
+    const group = page.locator('.gram-frame-colour-map')
+    await expect(group).toHaveAttribute('role', 'radiogroup')
+    await expect(radio(page, 'colour')).toBeChecked()
+    await expect(group.locator('label')).toHaveText(['Colour', 'Grey', 'Inferno', 'Magma', 'Viridis', 'Plasma'])
 
     const colour = await samplePixels(page, 0)
     expect(colour.coloured).toBe(true)
     const framesBefore = (await gfp.getState()).player.analysis.frames
 
-    await button.click()
-    await expect(button).toHaveAttribute('aria-pressed', 'true')
+    await radio(page, 'grey').check()
+    await expect(radio(page, 'grey')).toBeChecked()
     const grey = await samplePixels(page, 0)
     expect(grey.grey).toBe(true)
     expect(grey.href).not.toBe(colour.href)
@@ -79,8 +93,26 @@ test.describe('the grey-shades toggle', () => {
     expect(state.player.analysis.frames).toBe(framesBefore)
     expect(state.player.ready).toBe(true)
 
-    await button.click()
-    await expect(button).toHaveAttribute('aria-pressed', 'false')
+    await radio(page, 'inferno').check()
+    const inferno = await samplePixels(page, 0)
+    expect(inferno.coloured).toBe(true)
+    expect(inferno.href).not.toBe(colour.href)
+    expect(inferno.href).not.toBe(grey.href)
+    expect((await gfp.getState()).player.analysis.colourMap).toBe('inferno')
+
+    // The other three each paint their own picture too
+    /** @type {string[]} */
+    const seen = [colour.href, grey.href, inferno.href]
+    for (const map of ['magma', 'viridis', 'plasma']) {
+      await radio(page, map).check()
+      const painted = await samplePixels(page, 0)
+      expect(painted.coloured).toBe(true)
+      expect(seen).not.toContain(painted.href)
+      seen.push(painted.href)
+      expect((await gfp.getState()).player.analysis.colourMap).toBe(map)
+    }
+
+    await radio(page, 'colour').check()
     const back = await samplePixels(page, 0)
     expect(back.coloured).toBe(true)
     expect(back.href).toBe(colour.href)
@@ -95,7 +127,7 @@ test.describe('the grey-shades toggle', () => {
     const before = (await gfp.getState()).analysis.markers[0]
     const readingBefore = await gfp.readDataAtPixel(MARGINS.left + 450, MARGINS.top + 120)
 
-    await page.locator('.gram-frame-colour-map').click()
+    await radio(page, 'inferno').check()
 
     const reading = await gfp.readDataAtPixel(MARGINS.left + 450, MARGINS.top + 120)
     if (!reading || !readingBefore) throw new Error('the readout must be live over the gram')
@@ -107,22 +139,30 @@ test.describe('the grey-shades toggle', () => {
     await expect(page.locator('.gram-frame-analysis-marker')).toHaveCount(1)
   })
 
-  test('the colour-map config row opens a table in grey, and the button shows it', async ({ page }) => {
+  test('the colour-map config row opens a table in grey or inferno, and the row shows it', async ({ page }) => {
     await page.goto(PAINTING_PAGE)
-    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 4)
+    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 5)
 
     const plain = await samplePixels(page, 0)
     const grey = await samplePixels(page, 2)
+    const inferno = await samplePixels(page, 3)
     expect(plain.coloured).toBe(true)
     expect(grey.grey).toBe(true)
-    const analysis = await page.evaluate(() => window.GramFrame.__test__getInstances()[2].state.player.analysis)
-    expect(analysis.colourMap).toBe('grey')
-    // Instances are in document order, and `grey` is the third table
-    await expect(page.locator('.gram-frame-colour-map').nth(2)).toHaveAttribute('aria-pressed', 'true')
-    await expect(page.locator('.gram-frame-colour-map').nth(0)).toHaveAttribute('aria-pressed', 'false')
+    expect(inferno.coloured).toBe(true)
+    expect(inferno.href).not.toBe(plain.href)
+    const maps = await page.evaluate(() => window.GramFrame.__test__getInstances().map(i => i.state.player.analysis.colourMap))
+    expect(maps.slice(0, 4)).toEqual(['colour', 'colour', 'grey', 'inferno'])
+    // Instances are in document order: `grey` is the third table, `inferno` the fourth
+    await expect(radio(page, 'colour', 0)).toBeChecked()
+    await expect(radio(page, 'grey', 2)).toBeChecked()
+    await expect(radio(page, 'inferno', 3)).toBeChecked()
+    // Each gram's radios are its own group: checking one never unchecks another gram's
+    await radio(page, 'plasma', 0).check()
+    await expect(radio(page, 'grey', 2)).toBeChecked()
+    await expect(radio(page, 'inferno', 3)).toBeChecked()
   })
 
-  test('an image-sourced gram has no toggle: there are no levels to repaint', async ({ page }) => {
+  test('an image-sourced gram has no radio row: there are no levels to repaint', async ({ page }) => {
     await page.goto(IMAGE_PAGE)
     await page.locator('.gram-frame-container').first().waitFor()
     await expect(page.locator('.gram-frame-colour-map')).toHaveCount(0)

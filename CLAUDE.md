@@ -87,7 +87,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `spectrogram.js` - Hann-windowed frames → power grid, in ≤ 12 ms slices
   - `colourMap.js` - The colour table, the grey ramp beside it (a straight
     black-to-white ramp, not a desaturation, since the colour table's brightness
-    is not monotonic) and the newest-row-on-top pixel layout
+    is not monotonic), matplotlib's four perceptually uniform maps verbatim
+    (inferno, magma, viridis, plasma: the hue boundaries of colour with
+    brightness that rises strictly with level) and the newest-row-on-top pixel
+    layout
   - `frameAverage.js` - Incoherent averaging of successive frames into one painted row
   - `normalise.js` - The background estimators: `split-window` across frequency (a
     guarded two-pass estimate, so a line never raises the floor it is measured
@@ -183,9 +186,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `TransportBar.js` - The playback controls under an audio-sourced gram, the
     visible time span, and the polite live region a screen reader hears
   - `DisplayRangeControls.js` - The contrast floor and ceiling, on that bar
-  - `ColourMapToggle.js` - The **Grey** button on that bar: grey shades or
-    colour, as `player.analysis.colourMap`, for comparing the picture with a
-    legacy renderer that only drew grey
+  - `ColourMapChoice.js` - The colour-map radio row on that bar — Colour, Grey
+    and the four uniform maps — as `player.analysis.colourMap`. Radios rather
+    than a select while the maps are under trial, so every choice is visible and
+    switching between two is one click each way
   - `ErrorIndicator.js` - The standard initialisation-error box, shared by the API and the audio setup
   - `LEDDisplay.js` - Digital display component
   - `table.js` - Component scaffold: builds the DOM structure and replaces the
