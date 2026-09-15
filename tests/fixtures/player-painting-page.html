@@ -15,7 +15,8 @@
 
     `plain` is the painting the player has always done and names none of the
     new rows; `painted` averages four frames into each row and normalises
-    across frequency; `per-bin` takes the other estimator. `bad` names a
+    across frequency; `per-bin` takes the other estimator; `grey` paints the
+    same picture as `plain` through the grey ramp. `bad` names a
     normalisation that does not exist and must fail the way every other bad
     config row fails, rather than quietly painting something.
   -->
@@ -35,6 +36,13 @@
       <tr><td>normalisation</td><td>split-window</td></tr>
       <tr><td>level-floor</td><td>1</td></tr>
       <tr><td>level-ceiling</td><td>99</td></tr>
+    </table>
+    <table class="gram-config" id="grey">
+      <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>
+      <tr><td>window-seconds</td><td>5</td></tr>
+      <tr><td>fft-size</td><td>1024</td></tr>
+      <tr><td>freq-end</td><td>3000</td></tr>
+      <tr><td>colour-map</td><td>grey</td></tr>
     </table>
     <table class="gram-config" id="per-bin">
       <tr><td colspan="2"><audio src="./audio/tone-20s.wav"></audio></td></tr>

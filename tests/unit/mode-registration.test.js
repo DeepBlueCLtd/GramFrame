@@ -140,7 +140,8 @@ const FROZEN_INITIAL_STATE = {
       frameAverage: 1,
       normalisation: 'none',
       levelFloor: 5,
-      levelCeiling: 99.9
+      levelCeiling: 99.9,
+      colourMap: 'colour'
     }
   },
   // --- contributed by the modes, in registration order --------------------

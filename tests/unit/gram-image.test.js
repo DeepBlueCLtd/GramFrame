@@ -108,6 +108,35 @@ describe('the colour table (through levelsToPixels)', () => {
   })
 })
 
+describe('the grey map (through levelsToPixels)', () => {
+  /** @param {number} level */
+  const rgb = level => Array.from(levelsToPixels(new Uint8Array([level]), 1, 1, 'grey').slice(0, 3))
+
+  test('is black at the quietest level and white at the loudest', () => {
+    expect(rgb(0)).toEqual([0, 0, 0])
+    expect(rgb(255)).toEqual([255, 255, 255])
+  })
+
+  test('is grey throughout — the three channels never differ', () => {
+    for (let l = 0; l < 256; l++) {
+      const [r, g, b] = rgb(l)
+      expect(g).toBe(r)
+      expect(b).toBe(r)
+    }
+  })
+
+  test('never paints a louder point darker than a quieter one, unlike a desaturated colour table would', () => {
+    for (let l = 1; l < 256; l++) expect(rgb(l)[0]).toBeGreaterThanOrEqual(rgb(l - 1)[0])
+    // The opaque alpha the colour map writes is written here too
+    expect(levelsToPixels(new Uint8Array([7]), 1, 1, 'grey')[3]).toBe(255)
+  })
+
+  test('the default map is still the colour table', () => {
+    expect(levelsToPixels(new Uint8Array([255]), 1, 1)).toEqual(levelsToPixels(new Uint8Array([255]), 1, 1, 'colour'))
+    expect(Array.from(levelsToPixels(new Uint8Array([255]), 1, 1).slice(0, 3))).toEqual([220, 20, 20])
+  })
+})
+
 describe('fitGramSize (spec 171, FR-023 to FR-025)', () => {
   const plan = { fftSize: 1024, hopSize: 512, sampleRate: 44100 }
   test('a gram inside the caps is left exactly as asked for', () => {

@@ -368,6 +368,7 @@
  * @property {string} normalisation - Background estimator: `none`, `split-window` (along frequency) or `per-bin` (along time)
  * @property {number} levelFloor - Percentile of the levels painted as the darkest colour
  * @property {number} levelCeiling - Percentile painted as the brightest
+ * @property {import('./audio/colourMap.js').ColourMapName} colourMap - `colour` (the default table) or `grey` (a black-to-white ramp, as a legacy renderer draws)
  */
 
 /**
