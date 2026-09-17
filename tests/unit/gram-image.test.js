@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
-import { powerToLevels, checkGramSize, fitGramSize } from '../../src/audio/gramImage.js'
-import { levelsToPixels } from '../../src/audio/colourMap.js'
+import { powerToLevels, checkGramSize, fitGramSize, LEVEL_SCOPES } from '../../src/audio/gramImage.js'
+import { levelsToPixels, isDarkForLoud } from '../../src/audio/colourMap.js'
 
 /** The caps gramImage enforces (research.md §5.2); duplicated here so the test says what it expects. */
 const MAX_GRAM_ROWS = 32768
@@ -54,6 +54,89 @@ describe('the display percentiles', () => {
   test('percentiles that meet do not produce NaN', () => {
     const levels = powerToLevels(ramp, { floorPercentile: 40, ceilingPercentile: 40 })
     expect(Array.from(levels).every(Number.isFinite)).toBe(true)
+  })
+})
+
+describe('the level scope', () => {
+  /**
+   * A recording that is loud for its first half and 30 dB quieter for its
+   * second, with a line 6 dB above the floor in every row.
+   * @type {{grid: Float32Array, frames: number, columns: number}}
+   */
+  const recording = (() => {
+    const frames = 8; const columns = 64
+    const grid = new Float32Array(frames * columns)
+    for (let f = 0; f < frames; f++) {
+      const floorDb = f < 4 ? 60 : 30
+      for (let k = 0; k < columns; k++) {
+        // A little texture across the row, so its percentiles are not all one value.
+        const texture = ((k * 37) % 11) / 5
+        grid[f * columns + k] = Math.pow(10, (floorDb + texture + (k === 40 ? 6 : 0)) / 10)
+      }
+    }
+    return { grid, frames, columns }
+  })()
+
+  test('names its two values', () => {
+    expect(LEVEL_SCOPES).toEqual(['file', 'row'])
+  })
+
+  test('over the file, a quiet row sits at the bottom of the table and its line is a blur', () => {
+    const { grid, frames, columns } = recording
+    const levels = powerToLevels(grid, { frames, columns, levelScope: 'file' })
+    const quietLine = levels[6 * columns + 40]
+    const quietFloor = levels[6 * columns + 39]
+    // The loud half took the top of the range; the quiet half has a sliver.
+    expect(quietLine).toBeLessThan(80)
+    expect(quietLine - quietFloor).toBeLessThan(60)
+    // And the default is this: naming no scope is the file scope.
+    expect(Array.from(powerToLevels(grid, { frames, columns }))).toEqual(Array.from(levels))
+  })
+
+  test('per row, a quiet row is spread over the table like a loud one and its line stands as sharply', () => {
+    const { grid, frames, columns } = recording
+    const levels = powerToLevels(grid, { frames, columns, levelScope: 'row' })
+    /** @param {number} f @returns {number} The line's height above its neighbour in that row */
+    const prominence = f => levels[f * columns + 40] - levels[f * columns + 39]
+    expect(levels[6 * columns + 40]).toBe(255)
+    expect(levels[1 * columns + 40]).toBe(255)
+    expect(prominence(6)).toBe(prominence(1))
+    expect(prominence(6)).toBeGreaterThan(150)
+    // Each row has its own floor: the quietest cell of a quiet row is level 0 too.
+    const quietRow = Array.from(levels.slice(6 * columns, 7 * columns))
+    expect(Math.min(...quietRow)).toBe(0)
+  })
+
+  test('per row, the picture no longer says which row was louder', () => {
+    const { grid, frames, columns } = recording
+    const levels = powerToLevels(grid, { frames, columns, levelScope: 'row' })
+    const rowMean = (/** @type {number} */ f) =>
+      Array.from(levels.slice(f * columns, (f + 1) * columns)).reduce((a, b) => a + b, 0) / columns
+    expect(Math.abs(rowMean(1) - rowMean(6))).toBeLessThan(2)
+  })
+
+  test('the row scope honours the percentiles, and a silent row is level 0 rather than NaN', () => {
+    const { grid, frames, columns } = recording
+    const wide = powerToLevels(grid, { frames, columns, levelScope: 'row', floorPercentile: 0, ceilingPercentile: 100 })
+    const tight = powerToLevels(grid, { frames, columns, levelScope: 'row', floorPercentile: 50, ceilingPercentile: 90 })
+    let saturatedWide = 0; let saturatedTight = 0
+    for (let k = 0; k < columns; k++) {
+      if (wide[6 * columns + k] === 255) saturatedWide++
+      if (tight[6 * columns + k] === 255) saturatedTight++
+    }
+    expect(saturatedTight).toBeGreaterThan(saturatedWide)
+    const withSilence = powerToLevels(new Float32Array(3 * columns), { frames: 3, columns, levelScope: 'row' })
+    expect(Array.from(withSilence).every(v => v === 0)).toBe(true)
+  })
+
+  test('the row scope composes with normalisation: the scope acts on what the normaliser left', () => {
+    const { grid, frames, columns } = recording
+    const plain = powerToLevels(grid, { frames, columns, levelScope: 'row' })
+    const normalised = powerToLevels(grid, { frames, columns, levelScope: 'row', normalisation: 'per-bin' })
+    // Per-bin flattens the line that runs every row; the row scope then spreads
+    // what is left, so the line is gone from the normalised picture.
+    expect(plain[6 * columns + 40]).toBe(255)
+    expect(normalised[6 * columns + 40]).toBeLessThan(plain[6 * columns + 40])
   })
 })
 
@@ -112,9 +195,9 @@ describe('the grey map (through levelsToPixels)', () => {
   /** @param {number} level */
   const rgb = level => Array.from(levelsToPixels(new Uint8Array([level]), 1, 1, 'grey').slice(0, 3))
 
-  test('is black at the quietest level and white at the loudest', () => {
-    expect(rgb(0)).toEqual([0, 0, 0])
-    expect(rgb(255)).toEqual([255, 255, 255])
+  test('is white at the quietest level and black at the loudest — dark for loud, as a legacy display draws', () => {
+    expect(rgb(0)).toEqual([255, 255, 255])
+    expect(rgb(255)).toEqual([0, 0, 0])
   })
 
   test('is grey throughout — the three channels never differ', () => {
@@ -125,8 +208,8 @@ describe('the grey map (through levelsToPixels)', () => {
     }
   })
 
-  test('never paints a louder point darker than a quieter one, unlike a desaturated colour table would', () => {
-    for (let l = 1; l < 256; l++) expect(rgb(l)[0]).toBeGreaterThanOrEqual(rgb(l - 1)[0])
+  test('never paints a louder point lighter than a quieter one, unlike a desaturated colour table would', () => {
+    for (let l = 1; l < 256; l++) expect(rgb(l)[0]).toBeLessThanOrEqual(rgb(l - 1)[0])
     // The opaque alpha the colour map writes is written here too
     expect(levelsToPixels(new Uint8Array([7]), 1, 1, 'grey')[3]).toBe(255)
   })
@@ -157,6 +240,13 @@ describe('the grey map (through levelsToPixels)', () => {
       expect(pixel(128)).toEqual(mid)
       expect(pixel(255)).toEqual(last)
       for (let l = 1; l < 256; l++) expect(lum(pixel(l))).toBeGreaterThanOrEqual(lum(pixel(l - 1)) - 1)
+    }
+  })
+
+  test('only the grey map is dark for loud', () => {
+    expect(isDarkForLoud('grey')).toBe(true)
+    for (const map of ['colour', 'inferno', 'magma', 'viridis', 'plasma']) {
+      expect(isDarkForLoud(/** @type {any} */ (map))).toBe(false)
     }
   })
 

@@ -368,7 +368,8 @@
  * @property {string} normalisation - Background estimator: `none`, `split-window` (along frequency) or `per-bin` (along time)
  * @property {number} levelFloor - Percentile of the levels painted as the darkest colour
  * @property {number} levelCeiling - Percentile painted as the brightest
- * @property {import('./audio/colourMap.js').ColourMapName} colourMap - `colour` (the default table), `grey` (black-to-white, as a legacy renderer draws) or one of matplotlib's perceptually uniform four
+ * @property {string} levelScope - What the two percentiles are measured over: `file` (the whole recording, one range) or `row` (each painted row on its own)
+ * @property {import('./audio/colourMap.js').ColourMapName} colourMap - `colour` (the default table), `grey` (white-to-black — dark for loud, as a legacy renderer draws) or one of matplotlib's perceptually uniform four
  */
 
 /**

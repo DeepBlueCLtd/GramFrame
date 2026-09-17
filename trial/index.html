@@ -125,6 +125,11 @@
         <input type="number" id="floorPct" min="0" max="100" step="0.1" value="5"></div>
       <div><label for="ceilPct">Brightest percentile</label>
         <input type="number" id="ceilPct" min="0" max="100" step="0.1" value="99.9"></div>
+      <div><label for="scope">Percentiles measured over</label>
+        <select id="scope">
+          <option value="file" selected>The whole file</option>
+          <option value="row">Each row on its own</option>
+        </select></div>
       <div><button id="apply">Re-analyse</button>
         <button id="reset" class="secondary" type="button">Reset to defaults</button></div>
     </div>
@@ -178,19 +183,31 @@
           Lowering the darkest percentile towards 0 is what returns the quietest
           part of a recording to the picture.</dd>
 
+        <dt>Percentiles measured over</dt>
+        <dd>Whether those two percentiles are taken from the whole file or from
+          each painted row on its own. Over <em>the whole file</em> a shade
+          means the same loudness everywhere, so a quiet passage has only the
+          bottom of the table to be drawn in and its structure is a dull blur
+          beside the loud passage that took the rest. <em>Each row on its own</em>
+          spreads every row over the whole table, as a legacy display's
+          per-line gain does: a quiet row's energy is as sharply bounded as a
+          loud row's, because no other row can take its shades. The price is
+          that nothing in the picture says which row was louder. It acts after
+          normalisation, on whatever the estimator left.</dd>
+
         <dt>Colour map</dt>
         <dd>The row of buttons under the player's own bar, below the contrast
           sliders, repaints the picture with a different colour map.
-          <em>Grey</em> is black for the quietest level and white for the
-          loudest, for comparing with a legacy display that only ever drew
-          grey. <em>Colour</em> is the table the player always used: its hue
+          <em>Grey</em> is white for the quietest level and black for the
+          loudest — dark for loud — for comparing with a legacy display that
+          only ever drew grey, and drew it that way up. <em>Colour</em> is the table the player always used: its hue
           boundaries act as extra contours, so more features stand out than in
           grey, but its brightness is not in level order — yellow is lighter
           than the red above it. The other four are matplotlib's perceptually
           uniform maps: they keep the hue boundaries with brightness that
           rises strictly with level, so brighter always means louder.
           <em>Inferno</em> and <em>Magma</em> start from black, so the
-          background stays dark as on a legacy display; <em>Viridis</em>
+          background stays dark; <em>Viridis</em>
           starts from dark blue and runs through green; <em>Plasma</em> has no
           dark end at all. Each is a repaint of the same analysis: instant, no
           reading changes, and the choice survives a Re-analyse.</dd>
@@ -231,6 +248,7 @@
     norm: document.getElementById('norm'),
     floorPct: document.getElementById('floorPct'),
     ceilPct: document.getElementById('ceilPct'),
+    scope: document.getElementById('scope'),
     apply: document.getElementById('apply'),
     reset: document.getElementById('reset'),
     mount: document.getElementById('mount')
@@ -384,7 +402,8 @@
       windowSeconds: Number(els.win.value) || 10,
       normalisation: els.norm.value,
       levelFloor: Number(els.floorPct.value),
-      levelCeiling: Number(els.ceilPct.value)
+      levelCeiling: Number(els.ceilPct.value),
+      levelScope: els.scope.value
     }
   }
 
@@ -486,6 +505,7 @@
       columns: columns, binWidth: binWidth,
       normalisation: want.normalisation,
       levelFloor: want.levelFloor, levelCeiling: want.levelCeiling,
+      levelScope: want.levelScope,
       windowSeconds: want.windowSeconds,
       notes: notes
     }
@@ -509,7 +529,8 @@
         : plan.normalisation === 'split-window'
           ? 'split-window normalised across frequency'
           : 'per-bin median normalised over time') +
-        ', ' + plan.levelFloor + '–' + plan.levelCeiling + ' percentile']
+        ', ' + plan.levelFloor + '–' + plan.levelCeiling + ' percentile of ' +
+        (plan.levelScope === 'row' ? 'each row' : 'the whole file')]
     ]
     els.facts.innerHTML = ''
     rows.forEach(function (r) {
@@ -545,6 +566,7 @@
     table.appendChild(row('normalisation', plan.normalisation))
     table.appendChild(row('level-floor', plan.levelFloor))
     table.appendChild(row('level-ceiling', plan.levelCeiling))
+    table.appendChild(row('level-scope', plan.levelScope))
     table.appendChild(row('colour-map', colourMap || 'colour'))
     return table
   }
@@ -655,6 +677,7 @@
     els.norm.value = 'none'
     els.floorPct.value = '5'
     els.ceilPct.value = '99.9'
+    els.scope.value = 'file'
     if (current.info) {
       populateFftChoices(current.info, { overlap: 0.5, average: 1, fftSize: 0 })
       els.freqEnd.value = String(Math.floor(current.info.sampleRate / 2))

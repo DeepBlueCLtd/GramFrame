@@ -2,8 +2,9 @@
  * The spectrogram's colours (spec 168, D5).
  *
  * Six 256-entry lookups from display level to RGB — the colour table, a
- * grey ramp for an analyst comparing the picture with a legacy renderer that
- * only ever drew grey shades, and matplotlib's four perceptually uniform maps
+ * grey ramp (dark for loud) for an analyst comparing the picture with a
+ * legacy renderer that only ever drew grey shades, and matplotlib's four
+ * perceptually uniform maps
  * (inferno, magma, viridis, plasma) — and the pixel layout that applies one
  * of them with the newest frame on the top row. Pure, and split from
  * `gramImage.js` so all of it can be pinned in the unit lane without a canvas.
@@ -35,16 +36,19 @@ const COLOUR_LUT = buildLut([
 ])
 
 /**
- * The grey ramp: black at level 0, white at 255, and nothing in between but
- * the level itself. A straight ramp rather than a desaturation of the colour
- * table, because that table's brightness is not monotonic — yellow is lighter
- * than the red above it — and a grey gram must never paint a louder point
- * darker than a quieter one.
+ * The grey ramp: white at level 0, black at 255, and nothing in between but
+ * the level itself. Dark for loud, because that is the convention of the
+ * legacy displays the ramp exists to be compared with — an analyst reads a
+ * tonal on those as a dark line on a light field, and a ramp the other way up
+ * is a different picture rather than the same one in grey. A straight ramp
+ * rather than a desaturation of the colour table, because that table's
+ * brightness is not monotonic — yellow is lighter than the red above it — and
+ * a grey gram must never paint a louder point lighter than a quieter one.
  * @type {Uint8Array} Flat `[r, g, b, …]`, 768 bytes
  */
 const GREY_LUT = buildLut([
-  [0.00, [0, 0, 0]],
-  [1.00, [255, 255, 255]]
+  [0.00, [255, 255, 255]],
+  [1.00, [0, 0, 0]]
 ])
 
 /**
@@ -174,6 +178,19 @@ const LUTS = {
  */
 function lutFor(map) {
   return LUTS[map] || COLOUR_LUT
+}
+
+/**
+ * Whether a map paints the quietest level *light* and the loudest dark.
+ *
+ * Only the grey ramp does: it runs the legacy way up. The contrast controls
+ * act on the painted channels, so on this map "floor" and "ceiling" would
+ * swap roles unless the transfer is told which way up the map is.
+ * @param {ColourMapName} map - One of {@link COLOUR_MAPS}
+ * @returns {boolean} True when louder is darker
+ */
+export function isDarkForLoud(map) {
+  return map === 'grey'
 }
 
 /**

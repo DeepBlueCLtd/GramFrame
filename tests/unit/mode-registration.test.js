@@ -141,6 +141,7 @@ const FROZEN_INITIAL_STATE = {
       normalisation: 'none',
       levelFloor: 5,
       levelCeiling: 99.9,
+      levelScope: 'file',
       colourMap: 'colour'
     }
   },

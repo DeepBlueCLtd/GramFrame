@@ -17,6 +17,7 @@ import { paintGram } from '../audio/gramImage.js'
  * @property {Uint8Array} levels - From `powerToLevels`
  * @property {number} frames - Rows
  * @property {number} columns - Columns
+ * @property {import('../audio/colourMap.js').ColourMapName} map - The map the picture currently on screen was painted with
  */
 
 /** @type {WeakMap<GramFrame, PaintedLevels>} */
@@ -28,9 +29,22 @@ const painted = new WeakMap()
  * @param {Uint8Array} levels - From `powerToLevels`
  * @param {number} frames - Rows
  * @param {number} columns - Columns
+ * @param {import('../audio/colourMap.js').ColourMapName} map - The map they were painted with
  */
-export function rememberPaintedLevels(instance, levels, frames, columns) {
-  painted.set(instance, { levels, frames, columns })
+export function rememberPaintedLevels(instance, levels, frames, columns, map) {
+  painted.set(instance, { levels, frames, columns, map })
+}
+
+/**
+ * The map the picture on screen was painted with — what the contrast filter
+ * needs to know, since it acts on the painted channels rather than on levels
+ * and the grey ramp runs the other way up from every other map.
+ * @param {GramFrame} instance - Any instance
+ * @returns {import('../audio/colourMap.js').ColourMapName} The map, `colour` when nothing has been painted
+ */
+export function paintedMap(instance) {
+  const kept = painted.get(instance)
+  return kept ? kept.map : 'colour'
 }
 
 /**
@@ -47,6 +61,7 @@ export function repaintGram(instance, map) {
     return false
   }
   const url = paintGram(kept.levels, kept.frames, kept.columns, map)
+  kept.map = map
   instance.ui.spectrogramImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url)
   return true
 }

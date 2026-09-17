@@ -183,12 +183,13 @@ export async function setupAudioSource(instance) {
       frames: averaged.frames,
       columns: plan.columns,
       floorPercentile: player.analysis.levelFloor,
-      ceilingPercentile: player.analysis.levelCeiling
+      ceilingPercentile: player.analysis.levelCeiling,
+      levelScope: player.analysis.levelScope
     })
     const url = paintGram(levels, averaged.frames, plan.columns, player.analysis.colourMap)
     // Kept for the colour-map toggle: a change of map is a repaint of these,
     // not a second analysis.
-    rememberPaintedLevels(instance, levels, averaged.frames, plan.columns)
+    rememberPaintedLevels(instance, levels, averaged.frames, plan.columns, player.analysis.colourMap)
 
     // The instance may have been destroyed while we were away (an SPA page
     // swap, a test teardown); a detached container means stop quietly.
@@ -229,7 +230,7 @@ export async function setupAudioSource(instance) {
     // an audio-sourced instance only (FR-014), so both are mounted here rather
     // than anywhere an image instance would reach.
     createDisplayRangeControls(instance, bar, player.display)
-    createColourMapChoice(instance, bar, player.analysis)
+    createColourMapChoice(instance, bar, player.analysis, player.display)
     if (player.degraded) {
       bar.parentElement?.insertBefore(createDegradedNote(player.degraded), bar)
     }

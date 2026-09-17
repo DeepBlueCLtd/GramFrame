@@ -14,6 +14,7 @@
 import { isPowerOfTwo } from '../audio/fft.js'
 import { NORMALISATION_MODES } from '../audio/normalise.js'
 import { COLOUR_MAPS } from '../audio/colourMap.js'
+import { LEVEL_SCOPES } from '../audio/gramImage.js'
 
 /**
  * A parameter row as read from the table: its raw text and where it sat.
@@ -189,6 +190,15 @@ function readPaintingParams(params, player) {
       throw new Error(`Invalid colour-map: "${colourMap.text}" — must be one of ${COLOUR_MAPS.join(', ')}`)
     }
     player.analysis.colourMap = /** @type {import('../audio/colourMap.js').ColourMapName} */ (value)
+  }
+
+  const levelScope = params.get('level-scope')
+  if (levelScope) {
+    const value = levelScope.text.trim().toLowerCase()
+    if (!LEVEL_SCOPES.includes(value)) {
+      throw new Error(`Invalid level-scope: "${levelScope.text}" — must be one of ${LEVEL_SCOPES.join(', ')}`)
+    }
+    player.analysis.levelScope = value
   }
 
   const levelFloor = numberParam(params, 'level-floor')

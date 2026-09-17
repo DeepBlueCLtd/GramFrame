@@ -28,6 +28,24 @@ const MAX_GRAM_ROWS = 32768
 const MAX_GRAM_COLUMNS = 4096
 
 /**
+ * Over what the display percentiles are measured (the `level-scope` config
+ * row). `file` is the painting the player always did: one range for the whole
+ * recording. `row` measures the two percentiles on each painted row alone, so
+ * every row gets the whole colour table to itself.
+ */
+export const LEVEL_SCOPES = ['file', 'row']
+
+/**
+ * At most this many of a row's values go into its percentiles under the `row`
+ * scope. A row is at most 4096 wide and a native sort of that many floats is
+ * a third of a millisecond, which over the 32768-row cap is ten seconds on the
+ * main thread; a quarter of the row places the percentiles well within a
+ * level and costs a quarter of that. The `file` scope subsamples for the same
+ * reason, at a million.
+ */
+const ROW_SAMPLE_CAP = 1024
+
+/**
  * What the render caps changed about a requested analysis (spec 171, FR-024).
  * @typedef {Object} DegradedAnalysis
  * @property {string} parameter - The config-table parameter that was changed
@@ -111,34 +129,30 @@ export function checkGramSize(frames, columns, plan) {
  * @property {number} [columns=0] - Columns; required by the normalisers
  * @property {number} [floorPercentile=5] - Percentile painted as level 0
  * @property {number} [ceilingPercentile=99.9] - Percentile painted as level 255
+ * @property {string} [levelScope='file'] - One of `LEVEL_SCOPES`: what the percentiles are measured over
  */
 
 /**
- * Map a dB grid to 8-bit display levels between two percentiles of itself.
+ * The floor and ceiling of a span of dB values, at two percentiles of it.
  *
- * The percentiles are measured on an even subsample of at most one million
- * values, so the cost is bounded on any file. Percentiles rather than a fixed
- * span below the peak: a recording with one loud transient would otherwise push
- * its steady tonals into the dark.
- *
- * The two ends are worth understanding as *destructive*: everything below the
- * floor is level 0 and everything above the ceiling is 255, and no later
- * control — the contrast sliders included, since they re-map levels that have
- * already been painted — can recover what was clipped here. Widening the floor
- * toward 0 is what brings the quietest 5 % of a recording back into the picture.
- * Deterministic for a given grid.
+ * Measured on an even subsample of at most `sampleCap` values, so the cost is
+ * bounded on any file. Percentiles rather than a fixed span below the peak: a
+ * recording with one loud transient would otherwise push its steady tonals
+ * into the dark.
  * @param {Float32Array} db - Levels in dB
- * @param {LevelOptions} [options] - The two percentiles; the rest is ignored
- * @returns {Uint8Array} One level per cell, same layout as `db`
+ * @param {number} from - First index of the span
+ * @param {number} to - One past the last
+ * @param {number} floorPercentile - Percentile that becomes the floor
+ * @param {number} ceilingPercentile - Percentile that becomes the ceiling
+ * @param {number} sampleCap - At most this many values are sorted
+ * @returns {{floor: number, ceiling: number}} The two ends, the ceiling strictly above the floor
  */
-function decibelsToLevels(db, options = {}) {
-  const floorPercentile = options.floorPercentile === undefined ? 5 : options.floorPercentile
-  const ceilingPercentile = options.ceilingPercentile === undefined ? 99.9 : options.ceilingPercentile
-  const n = db.length
-  const stride = Math.max(1, Math.floor(n / 1000000))
+function percentileRange(db, from, to, floorPercentile, ceilingPercentile, sampleCap) {
+  const n = to - from
+  const stride = Math.max(1, Math.floor(n / sampleCap))
   const sampleCount = Math.floor((n - 1) / stride) + 1
   const sample = new Float32Array(sampleCount)
-  for (let i = 0, j = 0; i < n; i += stride, j++) sample[j] = db[i]
+  for (let i = from, j = 0; i < to; i += stride, j++) sample[j] = db[i]
   sample.sort()
   const at = (/** @type {number} */ percentile) =>
     sample[Math.min(sampleCount - 1, Math.max(0, Math.floor(percentile / 100 * (sampleCount - 1))))]
@@ -147,13 +161,63 @@ function decibelsToLevels(db, options = {}) {
   if (ceiling <= floor) {
     ceiling = floor + 1 // silence, or two percentiles that met: everything at level 0 rather than 0/0
   }
-  const scale = 255 / (ceiling - floor)
+  return { floor, ceiling }
+}
 
-  const levels = new Uint8Array(n)
-  for (let i = 0; i < n; i++) {
-    const v = (db[i] - floor) * scale
+/**
+ * Write one span of dB values into `levels` as 0..255 between a floor and a ceiling.
+ * @param {Float32Array} db - Levels in dB
+ * @param {Uint8Array} levels - Where the levels go, same layout
+ * @param {number} from - First index of the span
+ * @param {number} to - One past the last
+ * @param {{floor: number, ceiling: number}} range - From {@link percentileRange}
+ */
+function writeLevels(db, levels, from, to, range) {
+  const scale = 255 / (range.ceiling - range.floor)
+  for (let i = from; i < to; i++) {
+    const v = (db[i] - range.floor) * scale
     levels[i] = v <= 0 ? 0 : v >= 255 ? 255 : Math.round(v)
   }
+}
+
+/**
+ * Map a dB grid to 8-bit display levels between two percentiles of itself.
+ *
+ * With the default `file` scope the percentiles are those of the whole grid
+ * (on a subsample of at most one million values), so a level means the same
+ * thing everywhere in the picture — but a quiet passage then has only the
+ * bottom of the table to be drawn in, and its structure is a dull blur beside
+ * the loud passage that took the rest. With the `row` scope each painted row
+ * is spread over the table on its own, as a legacy display's per-line
+ * automatic gain does: a quiet row's lines are as sharply bounded as a loud
+ * row's, at the price of nothing in the picture saying which row was louder.
+ * The row sort is exact rather than approximated: a row is at most 4096
+ * values, and 32768 native sorts of that many is well under a second.
+ *
+ * The two ends are worth understanding as *destructive*: everything below the
+ * floor is level 0 and everything above the ceiling is 255, and no later
+ * control — the contrast sliders included, since they re-map levels that have
+ * already been painted — can recover what was clipped here. Widening the floor
+ * toward 0 is what brings the quietest 5 % of a recording back into the picture.
+ * Deterministic for a given grid.
+ * @param {Float32Array} db - Levels in dB
+ * @param {LevelOptions} [options] - The two percentiles and their scope; the rest is ignored
+ * @returns {Uint8Array} One level per cell, same layout as `db`
+ */
+function decibelsToLevels(db, options = {}) {
+  const floorPercentile = options.floorPercentile === undefined ? 5 : options.floorPercentile
+  const ceilingPercentile = options.ceilingPercentile === undefined ? 99.9 : options.ceilingPercentile
+  const n = db.length
+  const levels = new Uint8Array(n)
+  const columns = options.columns || 0
+  if (options.levelScope === 'row' && columns > 0) {
+    for (let from = 0; from < n; from += columns) {
+      const to = Math.min(n, from + columns)
+      writeLevels(db, levels, from, to, percentileRange(db, from, to, floorPercentile, ceilingPercentile, ROW_SAMPLE_CAP))
+    }
+    return levels
+  }
+  writeLevels(db, levels, 0, n, percentileRange(db, 0, n, floorPercentile, ceilingPercentile, 1000000))
   return levels
 }
 
@@ -161,9 +225,11 @@ function decibelsToLevels(db, options = {}) {
  * Map power to 8-bit display levels, normalising first when asked to.
  *
  * Called with a grid alone this is what it has always been: dB, then the 5th to
- * 99.9th percentile of the whole file onto 0..255.
+ * 99.9th percentile of the whole file onto 0..255. Averaging happened before
+ * this; normalisation happens first inside it; the level scope acts last, on
+ * whatever the normaliser left.
  * @param {Float32Array} grid - Power grid from `spectrogram.js`
- * @param {LevelOptions} [options] - Normalisation and the display percentiles
+ * @param {LevelOptions} [options] - Normalisation, the display percentiles and their scope
  * @returns {Uint8Array} One level per cell, same layout as `grid`
  */
 export function powerToLevels(grid, options = {}) {

@@ -37,12 +37,12 @@ opposite of a chart where time runs left to right or downwards.
 - **The two contrast sliders** lift a faint tonal out of the background without
   changing any reading.
 - **The colour-map buttons**, below them, repaint the picture with a
-  different map. *Grey* — black quietest, white loudest — sets it against the
-  legacy display's grey directly. *Colour* is the table the player always used;
+  different map. *Grey* — white quietest, black loudest, dark for loud as the
+  legacy display draws — sets it against that display's grey directly. *Colour* is the table the player always used;
   its hue boundaries make more features stand out than grey does, but its
   brightness is not in level order. *Inferno*, *Magma*, *Viridis* and *Plasma*
   keep the hue boundaries with brightness rising strictly with level; the
-  first two start from black, as a legacy display does. Each is instant and
+  first two start from black. Each is instant and
   changes no reading — which one shows your recording best is a question we
   would like your view on.
 - **Pause, then annotate** — Cross Cursor, Harmonics, Sidebands and Doppler all

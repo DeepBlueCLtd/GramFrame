@@ -98,7 +98,8 @@ is optional.
 | `normalisation` | `none` / `split-window` / `per-bin` | `none` | Paint how far each point stands above the background rather than its measured level (see below) |
 | `level-floor` | percentile 0–100 | 5 | Which percentile of the levels is painted the darkest colour |
 | `level-ceiling` | percentile 0–100 | 99.9 | Which percentile is painted the brightest. Must be above `level-floor` |
-| `colour-map` | `colour` / `grey` / `inferno` / `magma` / `viridis` / `plasma` | `colour` | Paint with the colour table; as grey shades (black quietest, white loudest) as a legacy renderer draws; or with one of matplotlib's perceptually uniform maps, whose brightness rises strictly with level. The radio row on the transport bar changes the same choice live, without re-analysing |
+| `level-scope` | `file` / `row` | `file` | What those two percentiles are measured over: the whole recording, or each painted row on its own (see below) |
+| `colour-map` | `colour` / `grey` / `inferno` / `magma` / `viridis` / `plasma` | `colour` | Paint with the colour table; as grey shades (white quietest, black loudest — dark for loud, as a legacy renderer draws); or with one of matplotlib's perceptually uniform maps, whose brightness rises strictly with level. The radio row on the transport bar changes the same choice live, without re-analysing |
 
 `time-start` and `time-end` are ignored on an audio table, with a console
 warning: the recording defines its own time range, `0` to its duration.
@@ -136,7 +137,17 @@ the contrast sliders on the transport bar — which re-map levels already painte
 cannot recover it. Lowering `level-floor` towards 0 is what brings the quietest
 part of a recording back into the picture.
 
-The [trial page](../trial/index.html) puts all four on screen as controls, for
+`level-scope` decides what those two percentiles are measured over. With `file`,
+the default, there is one range for the whole recording, so a level means the
+same loudness everywhere in the picture — and a quiet passage is left with only
+the bottom of the colour table to be drawn in, its lines a dull blur beside the
+loud passage that took the rest. With `row`, every painted row is spread over
+the table on its own, as the per-line gain of a legacy display does: a quiet
+row's energy is as sharply bounded as a loud row's, because no other row can
+take its colours. The price is that nothing in the picture says which row was
+louder. It acts after normalisation, on whatever the estimator left.
+
+The [trial page](../trial/index.html) puts all five on screen as controls, for
 choosing the values an exercise should ship with.
 
 ### What the recording may be
