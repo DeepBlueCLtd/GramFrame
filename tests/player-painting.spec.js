@@ -17,7 +17,7 @@ const PAGE = '/tests/fixtures/player-painting-page.html'
 test.describe('the painting controls', () => {
   test('a table naming none of them paints exactly what it always did', async ({ page }) => {
     await page.goto(PAGE)
-    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 5)
+    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 6)
 
     const plain = await page.evaluate(() =>
       window.GramFrame.__test__getInstances()[0].state.player.analysis)
@@ -34,7 +34,7 @@ test.describe('the painting controls', () => {
 
   test('frame averaging divides the painted rows and reaches the image', async ({ page }) => {
     await page.goto(PAGE)
-    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 5)
+    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 6)
 
     const [plain, painted] = await page.evaluate(() => {
       const live = window.GramFrame.__test__getInstances()
@@ -64,7 +64,7 @@ test.describe('the painting controls', () => {
 
   test('the two estimators paint different pictures of the same recording', async ({ page }) => {
     await page.goto(PAGE)
-    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 5)
+    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 6)
 
     const hrefs = await page.evaluate(() => window.GramFrame.__test__getInstances().map(i =>
       i.ui.spectrogramImage.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || ''))
@@ -77,9 +77,19 @@ test.describe('the painting controls', () => {
     expect(perBin.frames).toBe(311)
   })
 
+  test('an fft-size above 8192 is accepted: a narrow low band wants one', async ({ page }) => {
+    await page.goto(PAGE)
+    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 6)
+    const big = await page.evaluate(() =>
+      window.GramFrame.__test__getInstances()[5].state.player.analysis)
+    expect(big.fftSize).toBe(16384)
+    // (160000 - 16384) / 8192 + 1 rows, at the default half-frame hop.
+    expect(big.frames).toBe(18)
+  })
+
   test('a normalisation that does not exist fails with the standard indicator', async ({ page }) => {
     await page.goto(PAGE)
-    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 5)
+    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 6)
 
     await expect(page.locator('table#bad')).toHaveClass(/gram-frame-config-error/)
     const indicator = page.locator('table#bad + .gramframe-error-indicator')

@@ -88,7 +88,7 @@ is optional.
 
 | Parameter | Type | Default | Meaning |
 |-----------|------|---------|---------|
-| `fft-size` | integer, power of two (64–8192) | 1024 | Samples per analysis frame. Larger gives finer frequency resolution and coarser time resolution |
+| `fft-size` | integer, power of two (64–32768) | 1024 | Samples per analysis frame. Larger gives finer frequency resolution and coarser time resolution. A narrow low band wants a large one: at 16 kHz, 16384 gives 1 Hz per column |
 | `hop-size` | integer ≥ 1 | `fft-size / 2` | Samples between frames — the height of one gram row in samples. Larger makes the gram shorter |
 | `freq-start` | Hz | 0 | Lowest frequency shown |
 | `freq-end` | Hz | half the sample rate | Highest frequency shown. Above the recording's Nyquist frequency it is clamped, with a console warning |

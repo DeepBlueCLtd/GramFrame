@@ -177,8 +177,8 @@ function extractAudioConfig(instance, audioElement, params) {
 
   const fftSize = numberParam(params, 'fft-size')
   if (fftSize !== null) {
-    if (!isPowerOfTwo(fftSize) || fftSize < 64 || fftSize > 8192) {
-      throw new Error(`Invalid fft-size: ${fftSize} — must be a power of two between 64 and 8192`)
+    if (!isPowerOfTwo(fftSize) || fftSize < 64 || fftSize > 32768) {
+      throw new Error(`Invalid fft-size: ${fftSize} — must be a power of two between 64 and 32768`)
     }
     player.analysis.fftSize = fftSize
   }

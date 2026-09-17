@@ -364,6 +364,17 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   font-size: 12px;
 }
 
+/* The analysed gram is drawn with hard-edged cells rather than the browser's
+   bilinear upscaling. A 0–200 Hz band at 2 Hz per column is 100 pixels wide
+   drawn across 800, and smoothed, each column becomes an 8-pixel gradient:
+   the whole picture reads as a watercolour and the vertical bars a legacy
+   display shows as discrete columns are gone. Pixelated, a column is a
+   column. It applies to the supplied-image instance too, where a PNG is
+   usually near its rendered size and the difference is slight. */
+.gram-frame-spectrogram-image {
+  image-rendering: pixelated;
+}
+
 /* Expand/collapse image toggle — floats at the top-left of the image region,
    clear of the time-axis labels (left margin is 60px). Landscape grams only. */
 .gram-frame-expand-toggle {

@@ -409,9 +409,12 @@ There is no visual/screenshot regression testing — see
 
 ### Audio-sourced instances (spec 168)
 - The config table's first row holds `<audio src>` instead of `<img>`; six optional
-  rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`,
-  `preserve-pitch`) set the analysis and playback. `core/configuration.js` parses
-  both kinds
+  rows (`fft-size` up to 32768, `hop-size`, `freq-start`, `freq-end`,
+  `window-seconds`, `preserve-pitch`) set the analysis and playback.
+  `core/configuration.js` parses both kinds
+- The gram image is drawn `image-rendering: pixelated` (`gramframe.css`): a
+  100-column band smoothed across 800 screen pixels is a watercolour, and the
+  bars a legacy display shows as discrete columns vanish into it
 - Eight further optional rows say how the analysed grid is *painted*:
   `frame-average`, `normalisation`, `normalisation-window` (the split window's
   reach in hertz, since a bin count is a different width at every FFT size),
