@@ -158,8 +158,10 @@
         // colour table, in colour — so a table naming none of them is unaffected.
         frameAverage: 1,
         normalisation: "none",
+        normalisationWindow: null,
         levelFloor: 5,
         levelCeiling: 99.9,
+        levelSpan: null,
         levelScope: "file",
         colourMap: "colour"
       }
@@ -2946,6 +2948,9 @@
     return { size, forward };
   }
   const SPLIT_WINDOW_BINS = 25;
+  function splitWindowBinsFor(hz, binWidth) {
+    return Math.max(1, Math.round(hz / binWidth));
+  }
   const SPLIT_GUARD_BINS = 3;
   const SPLIT_REJECT_DB = 3;
   const NORMALISATION_MODES = ["none", "split-window", "per-bin"];
@@ -2971,8 +2976,8 @@
       }
     }
   }
-  function splitWindowNormalise(db, frames, columns) {
-    const window2 = Math.min(SPLIT_WINDOW_BINS, Math.max(1, Math.floor((columns - 1) / 2)));
+  function splitWindowNormalise(db, frames, columns, windowBins) {
+    const window2 = Math.min(windowBins, Math.max(1, Math.floor((columns - 1) / 2)));
     const guard = Math.min(SPLIT_GUARD_BINS, Math.max(0, window2 - 1));
     const out = new Float32Array(db.length);
     const row = new Float32Array(columns);
@@ -3004,9 +3009,10 @@
     }
     return medians;
   }
-  function normaliseDecibels(db, frames, columns, mode) {
+  function normaliseDecibels(db, frames, columns, mode, options = {}) {
     if (mode === "split-window") {
-      return splitWindowNormalise(db, frames, columns);
+      const windowBins = options.windowBins && options.windowBins >= 1 ? Math.floor(options.windowBins) : SPLIT_WINDOW_BINS;
+      return splitWindowNormalise(db, frames, columns, windowBins);
     }
     if (mode === "per-bin") {
       const medians = perBinMedians(db, frames, columns);
@@ -3129,7 +3135,7 @@
       );
     }
   }
-  function percentileRange(db, from, to, floorPercentile, ceilingPercentile, sampleCap) {
+  function percentileRange(db, from, to, floorPercentile, ceilingPercentile, span, sampleCap) {
     const n = to - from;
     const stride = Math.max(1, Math.floor(n / sampleCap));
     const sampleCount = Math.floor((n - 1) / stride) + 1;
@@ -3138,7 +3144,7 @@
     sample.sort();
     const at = (percentile) => sample[Math.min(sampleCount - 1, Math.max(0, Math.floor(percentile / 100 * (sampleCount - 1))))];
     const floor = at(floorPercentile);
-    let ceiling = at(ceilingPercentile);
+    let ceiling = span !== null && span > 0 ? floor + span : at(ceilingPercentile);
     if (ceiling <= floor) {
       ceiling = floor + 1;
     }
@@ -3154,23 +3160,24 @@
   function decibelsToLevels(db, options = {}) {
     const floorPercentile = options.floorPercentile === void 0 ? 5 : options.floorPercentile;
     const ceilingPercentile = options.ceilingPercentile === void 0 ? 99.9 : options.ceilingPercentile;
+    const span = options.levelSpan === void 0 ? null : options.levelSpan;
     const n = db.length;
     const levels = new Uint8Array(n);
     const columns = options.columns || 0;
     if (options.levelScope === "row" && columns > 0) {
       for (let from = 0; from < n; from += columns) {
         const to = Math.min(n, from + columns);
-        writeLevels(db, levels, from, to, percentileRange(db, from, to, floorPercentile, ceilingPercentile, ROW_SAMPLE_CAP));
+        writeLevels(db, levels, from, to, percentileRange(db, from, to, floorPercentile, ceilingPercentile, span, ROW_SAMPLE_CAP));
       }
       return levels;
     }
-    writeLevels(db, levels, 0, n, percentileRange(db, 0, n, floorPercentile, ceilingPercentile, 1e6));
+    writeLevels(db, levels, 0, n, percentileRange(db, 0, n, floorPercentile, ceilingPercentile, span, 1e6));
     return levels;
   }
   function powerToLevels(grid, options = {}) {
     const db = powerToDecibels(grid);
     const normalisation = options.normalisation || "none";
-    const normalised = normalisation === "none" ? db : normaliseDecibels(db, options.frames || 0, options.columns || 0, normalisation);
+    const normalised = normalisation === "none" ? db : normaliseDecibels(db, options.frames || 0, options.columns || 0, normalisation, { windowBins: options.windowBins });
     return decibelsToLevels(normalised, options);
   }
   function paintGram(levels, frames, columns, map = "colour") {
@@ -3189,25 +3196,6 @@
       throw new Error(`The browser could not encode a ${columns}×${frames} spectrogram image`);
     }
     return url;
-  }
-  function readParameterRows(configTable) {
-    const params = /* @__PURE__ */ new Map();
-    configTable.querySelectorAll("tr").forEach((row, index) => {
-      var _a, _b;
-      try {
-        const cells = row.querySelectorAll("td");
-        if (cells.length === 2) {
-          const name = ((_a = cells[0].textContent) == null ? void 0 : _a.trim()) || "";
-          const text = ((_b = cells[1].textContent) == null ? void 0 : _b.trim()) || "";
-          if (name) {
-            params.set(name, { text, row: index + 1 });
-          }
-        }
-      } catch (error) {
-        console.warn(`GramFrame: Error parsing row ${index + 1}:`, error instanceof Error ? error.message : String(error));
-      }
-    });
-    return params;
   }
   function parseConfigValue(text) {
     if (typeof text !== "string") {
@@ -3231,6 +3219,41 @@
       return null;
     }
     return value;
+  }
+  function choiceParam(params, name, choices) {
+    const cell = params.get(name);
+    if (!cell) return null;
+    const value = cell.text.trim().toLowerCase();
+    if (!choices.includes(value)) {
+      throw new Error(`Invalid ${name}: "${cell.text}" — must be one of ${choices.join(", ")}`);
+    }
+    return value;
+  }
+  function positiveParam(params, name, unit) {
+    const value = numberParam(params, name);
+    if (value !== null && !(value > 0)) {
+      throw new Error(`Invalid ${name}: ${value} — must be a number of ${unit} above zero`);
+    }
+    return value;
+  }
+  function readParameterRows(configTable) {
+    const params = /* @__PURE__ */ new Map();
+    configTable.querySelectorAll("tr").forEach((row, index) => {
+      var _a, _b;
+      try {
+        const cells = row.querySelectorAll("td");
+        if (cells.length === 2) {
+          const name = ((_a = cells[0].textContent) == null ? void 0 : _a.trim()) || "";
+          const text = ((_b = cells[1].textContent) == null ? void 0 : _b.trim()) || "";
+          if (name) {
+            params.set(name, { text, row: index + 1 });
+          }
+        }
+      } catch (error) {
+        console.warn(`GramFrame: Error parsing row ${index + 1}:`, error instanceof Error ? error.message : String(error));
+      }
+    });
+    return params;
   }
   function extractImageConfig(instance, imgElement, params) {
     const srcAttribute = imgElement.getAttribute("src");
@@ -3268,34 +3291,17 @@
       }
       player.analysis.frameAverage = frameAverage;
     }
-    const normalisation = params.get("normalisation");
-    if (normalisation) {
-      const value = normalisation.text.trim().toLowerCase();
-      if (!NORMALISATION_MODES.includes(value)) {
-        throw new Error(`Invalid normalisation: "${normalisation.text}" — must be one of ${NORMALISATION_MODES.join(", ")}`);
-      }
-      player.analysis.normalisation = value;
-    }
-    const colourMap = params.get("colour-map");
-    if (colourMap) {
-      const value = colourMap.text.trim().toLowerCase();
-      if (!COLOUR_MAPS.includes(
-        /** @type {any} */
-        value
-      )) {
-        throw new Error(`Invalid colour-map: "${colourMap.text}" — must be one of ${COLOUR_MAPS.join(", ")}`);
-      }
-      player.analysis.colourMap = /** @type {import('../audio/colourMap.js').ColourMapName} */
-      value;
-    }
-    const levelScope = params.get("level-scope");
-    if (levelScope) {
-      const value = levelScope.text.trim().toLowerCase();
-      if (!LEVEL_SCOPES.includes(value)) {
-        throw new Error(`Invalid level-scope: "${levelScope.text}" — must be one of ${LEVEL_SCOPES.join(", ")}`);
-      }
-      player.analysis.levelScope = value;
-    }
+    const normalisation = choiceParam(params, "normalisation", NORMALISATION_MODES);
+    if (normalisation !== null) player.analysis.normalisation = normalisation;
+    const colourMap = choiceParam(params, "colour-map", COLOUR_MAPS);
+    if (colourMap !== null) player.analysis.colourMap = /** @type {import('../audio/colourMap.js').ColourMapName} */
+    colourMap;
+    const levelScope = choiceParam(params, "level-scope", LEVEL_SCOPES);
+    if (levelScope !== null) player.analysis.levelScope = levelScope;
+    const normalisationWindow = positiveParam(params, "normalisation-window", "hertz");
+    if (normalisationWindow !== null) player.analysis.normalisationWindow = normalisationWindow;
+    const levelSpan = positiveParam(params, "level-span", "decibels");
+    if (levelSpan !== null) player.analysis.levelSpan = levelSpan;
     const levelFloor = numberParam(params, "level-floor");
     if (levelFloor !== null) {
       player.analysis.levelFloor = levelFloor;
@@ -9766,10 +9772,12 @@
       const averaged = averageFrames(grid, plan.frames, plan.columns, player.analysis.frameAverage);
       const levels = powerToLevels(averaged.grid, {
         normalisation: player.analysis.normalisation,
+        windowBins: player.analysis.normalisationWindow === null ? void 0 : splitWindowBinsFor(player.analysis.normalisationWindow, plan.binWidth),
         frames: averaged.frames,
         columns: plan.columns,
         floorPercentile: player.analysis.levelFloor,
         ceilingPercentile: player.analysis.levelCeiling,
+        levelSpan: player.analysis.levelSpan,
         levelScope: player.analysis.levelScope
       });
       const url = paintGram(levels, averaged.frames, plan.columns, player.analysis.colourMap);

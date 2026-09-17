@@ -130,24 +130,32 @@ export function checkGramSize(frames, columns, plan) {
  * @property {number} [floorPercentile=5] - Percentile painted as level 0
  * @property {number} [ceilingPercentile=99.9] - Percentile painted as level 255
  * @property {string} [levelScope='file'] - One of `LEVEL_SCOPES`: what the percentiles are measured over
+ * @property {number|null} [levelSpan=null] - Decibels from the floor to level 255; when set, the ceiling percentile is not used
+ * @property {number} [windowBins] - Split-window half-width in bins, for the normaliser
  */
 
 /**
- * The floor and ceiling of a span of dB values, at two percentiles of it.
+ * The floor and ceiling of a span of dB values: the floor at a percentile of
+ * it, the ceiling at a second percentile or a fixed number of decibels up.
  *
  * Measured on an even subsample of at most `sampleCap` values, so the cost is
  * bounded on any file. Percentiles rather than a fixed span below the peak: a
  * recording with one loud transient would otherwise push its steady tonals
- * into the dark.
+ * into the dark. But a fixed span *above the floor* is the legacy LOFAR
+ * painting — normalise, then 0 to a dozen dB onto the shades, clipping
+ * anything stronger — and with a floor at the background it lets a 4 dB line
+ * take a third of the ramp whatever the strongest line in its row is doing;
+ * a ceiling percentile hands the whole ramp to that strongest line instead.
  * @param {Float32Array} db - Levels in dB
  * @param {number} from - First index of the span
  * @param {number} to - One past the last
  * @param {number} floorPercentile - Percentile that becomes the floor
- * @param {number} ceilingPercentile - Percentile that becomes the ceiling
+ * @param {number} ceilingPercentile - Percentile that becomes the ceiling, unless `span` is given
+ * @param {number|null} span - Decibels from the floor to the ceiling, or null for the percentile
  * @param {number} sampleCap - At most this many values are sorted
  * @returns {{floor: number, ceiling: number}} The two ends, the ceiling strictly above the floor
  */
-function percentileRange(db, from, to, floorPercentile, ceilingPercentile, sampleCap) {
+function percentileRange(db, from, to, floorPercentile, ceilingPercentile, span, sampleCap) {
   const n = to - from
   const stride = Math.max(1, Math.floor(n / sampleCap))
   const sampleCount = Math.floor((n - 1) / stride) + 1
@@ -157,7 +165,7 @@ function percentileRange(db, from, to, floorPercentile, ceilingPercentile, sampl
   const at = (/** @type {number} */ percentile) =>
     sample[Math.min(sampleCount - 1, Math.max(0, Math.floor(percentile / 100 * (sampleCount - 1))))]
   const floor = at(floorPercentile)
-  let ceiling = at(ceilingPercentile)
+  let ceiling = span !== null && span > 0 ? floor + span : at(ceilingPercentile)
   if (ceiling <= floor) {
     ceiling = floor + 1 // silence, or two percentiles that met: everything at level 0 rather than 0/0
   }
@@ -201,23 +209,24 @@ function writeLevels(db, levels, from, to, range) {
  * toward 0 is what brings the quietest 5 % of a recording back into the picture.
  * Deterministic for a given grid.
  * @param {Float32Array} db - Levels in dB
- * @param {LevelOptions} [options] - The two percentiles and their scope; the rest is ignored
+ * @param {LevelOptions} [options] - The percentiles, the span and the scope; the rest is ignored
  * @returns {Uint8Array} One level per cell, same layout as `db`
  */
 function decibelsToLevels(db, options = {}) {
   const floorPercentile = options.floorPercentile === undefined ? 5 : options.floorPercentile
   const ceilingPercentile = options.ceilingPercentile === undefined ? 99.9 : options.ceilingPercentile
+  const span = options.levelSpan === undefined ? null : options.levelSpan
   const n = db.length
   const levels = new Uint8Array(n)
   const columns = options.columns || 0
   if (options.levelScope === 'row' && columns > 0) {
     for (let from = 0; from < n; from += columns) {
       const to = Math.min(n, from + columns)
-      writeLevels(db, levels, from, to, percentileRange(db, from, to, floorPercentile, ceilingPercentile, ROW_SAMPLE_CAP))
+      writeLevels(db, levels, from, to, percentileRange(db, from, to, floorPercentile, ceilingPercentile, span, ROW_SAMPLE_CAP))
     }
     return levels
   }
-  writeLevels(db, levels, 0, n, percentileRange(db, 0, n, floorPercentile, ceilingPercentile, 1000000))
+  writeLevels(db, levels, 0, n, percentileRange(db, 0, n, floorPercentile, ceilingPercentile, span, 1000000))
   return levels
 }
 
@@ -237,7 +246,7 @@ export function powerToLevels(grid, options = {}) {
   const normalisation = options.normalisation || 'none'
   const normalised = normalisation === 'none'
     ? db
-    : normaliseDecibels(db, options.frames || 0, options.columns || 0, normalisation)
+    : normaliseDecibels(db, options.frames || 0, options.columns || 0, normalisation, { windowBins: options.windowBins })
   return decibelsToLevels(normalised, options)
 }
 

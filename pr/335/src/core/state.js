@@ -151,8 +151,10 @@ const initialState = {
       // colour table, in colour — so a table naming none of them is unaffected.
       frameAverage: 1,
       normalisation: 'none',
+      normalisationWindow: null,
       levelFloor: 5,
       levelCeiling: 99.9,
+      levelSpan: null,
       levelScope: 'file',
       colourMap: 'colour'
     }
