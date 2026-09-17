@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test'
 
 /**
  * @fileoverview The painting controls an audio table can now carry:
- * `frame-average`, `normalisation`, `level-floor`, `level-ceiling`,
- * `level-scope` and `colour-map`. They
+ * `frame-average`, `normalisation`, `normalisation-window`, `level-floor`,
+ * `level-ceiling`, `level-span`, `level-scope` and `colour-map`. They
  * exist so an analyst can judge, on their own material, whether GramFrame's
  * picture holds the detail a legacy display shows.
  *
@@ -26,6 +26,8 @@ test.describe('the painting controls', () => {
     expect(plain.levelFloor).toBe(5)
     expect(plain.levelCeiling).toBe(99.9)
     expect(plain.levelScope).toBe('file')
+    expect(plain.levelSpan).toBeNull()
+    expect(plain.normalisationWindow).toBeNull()
     // The row count spec 168 froze: (160000 - 1024) / 512 + 1.
     expect(plain.frames).toBe(311)
   })
@@ -48,6 +50,8 @@ test.describe('the painting controls', () => {
     expect(painted.analysis.levelFloor).toBe(1)
     expect(painted.analysis.levelCeiling).toBe(99)
     expect(painted.analysis.levelScope).toBe('row')
+    expect(painted.analysis.levelSpan).toBe(12)
+    expect(painted.analysis.normalisationWindow).toBe(50)
     // 311 transforms, four to a row, with the short trailing group still a row.
     expect(painted.analysis.frames).toBe(Math.ceil(plain.analysis.frames / 4))
     // The image really is that many pixels tall — the setting reached the

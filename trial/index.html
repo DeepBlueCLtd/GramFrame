@@ -121,10 +121,14 @@
           <option value="split-window">Split window (across frequency)</option>
           <option value="per-bin">Per bin median (over time)</option>
         </select></div>
+      <div><label for="normHz">Window reach (Hz)</label>
+        <input type="number" id="normHz" min="0.1" step="1" placeholder="25 bins"></div>
       <div><label for="floorPct">Darkest percentile</label>
         <input type="number" id="floorPct" min="0" max="100" step="0.1" value="5"></div>
       <div><label for="ceilPct">Brightest percentile</label>
         <input type="number" id="ceilPct" min="0" max="100" step="0.1" value="99.9"></div>
+      <div><label for="spanDb">Span above floor (dB)</label>
+        <input type="number" id="spanDb" min="0.1" step="1" placeholder="use percentile"></div>
       <div><label for="scope">Percentiles measured over</label>
         <select id="scope">
           <option value="file" selected>The whole file</option>
@@ -174,6 +178,25 @@
           opposite: it removes a fixed spectral shape cleanly and keeps
           broadband events, but a tonal present throughout <strong>is</strong>
           background to it, and is flattened away.</dd>
+
+        <dt>Window reach</dt>
+        <dd>How far each side of a bin the split window draws its background
+          from, in hertz. Left blank it is 25 bins, which is a different width
+          at every FFT size: 49 Hz at 8192 on a 16 kHz recording but 98 Hz at
+          4096 — half of a 200 Hz band, at which point the "local" background
+          is nearly the row mean and little is removed. A few times the spacing
+          of the lines you are looking at is a reasonable start.</dd>
+
+        <dt>Span above floor</dt>
+        <dd>Paint the darkest shade this many decibels above the floor instead
+          of at the brightest percentile, clipping anything stronger. This is
+          the legacy LOFAR painting: normalise, then zero to a dozen decibels
+          onto the shades. With a percentile the strongest line in the row owns
+          the top of the ramp and a line 4 dB above background gets a sliver;
+          over a 12 dB span it is a third of the way up whatever else is
+          present. Most useful with normalisation on and the darkest percentile
+          near 50, so the floor sits at the background. Blank uses the
+          brightest percentile.</dd>
 
         <dt>Darkest / brightest percentile</dt>
         <dd>Which slice of the levels the colours are spread across. Everything
@@ -249,6 +272,8 @@
     floorPct: document.getElementById('floorPct'),
     ceilPct: document.getElementById('ceilPct'),
     scope: document.getElementById('scope'),
+    normHz: document.getElementById('normHz'),
+    spanDb: document.getElementById('spanDb'),
     apply: document.getElementById('apply'),
     reset: document.getElementById('reset'),
     mount: document.getElementById('mount')
@@ -401,8 +426,10 @@
       freqEnd: Number(els.freqEnd.value) || 0,
       windowSeconds: Number(els.win.value) || 10,
       normalisation: els.norm.value,
+      normalisationWindow: els.normHz.value === '' ? null : Number(els.normHz.value),
       levelFloor: Number(els.floorPct.value),
       levelCeiling: Number(els.ceilPct.value),
+      levelSpan: els.spanDb.value === '' ? null : Number(els.spanDb.value),
       levelScope: els.scope.value
     }
   }
@@ -504,7 +531,9 @@
       freqEnd: freqEnd, frames: frames, rows: Math.ceil(frames / average),
       columns: columns, binWidth: binWidth,
       normalisation: want.normalisation,
+      normalisationWindow: want.normalisationWindow,
       levelFloor: want.levelFloor, levelCeiling: want.levelCeiling,
+      levelSpan: want.levelSpan,
       levelScope: want.levelScope,
       windowSeconds: want.windowSeconds,
       notes: notes
@@ -527,9 +556,12 @@
       ['Painting', (plan.normalisation === 'none'
         ? 'raw levels'
         : plan.normalisation === 'split-window'
-          ? 'split-window normalised across frequency'
+          ? 'split-window normalised across frequency (reach ' +
+            (plan.normalisationWindow === null ? '25 bins, ' + (25 * plan.binWidth).toFixed(0) + ' Hz' : plan.normalisationWindow + ' Hz') + ')'
           : 'per-bin median normalised over time') +
-        ', ' + plan.levelFloor + '–' + plan.levelCeiling + ' percentile of ' +
+        ', ' + (plan.levelSpan === null
+          ? plan.levelFloor + '–' + plan.levelCeiling + ' percentile of '
+          : plan.levelFloor + ' percentile floor + ' + plan.levelSpan + ' dB of ') +
         (plan.levelScope === 'row' ? 'each row' : 'the whole file')]
     ]
     els.facts.innerHTML = ''
@@ -566,6 +598,8 @@
     table.appendChild(row('normalisation', plan.normalisation))
     table.appendChild(row('level-floor', plan.levelFloor))
     table.appendChild(row('level-ceiling', plan.levelCeiling))
+    if (plan.normalisationWindow !== null) table.appendChild(row('normalisation-window', plan.normalisationWindow))
+    if (plan.levelSpan !== null) table.appendChild(row('level-span', plan.levelSpan))
     table.appendChild(row('level-scope', plan.levelScope))
     table.appendChild(row('colour-map', colourMap || 'colour'))
     return table
@@ -678,6 +712,8 @@
     els.floorPct.value = '5'
     els.ceilPct.value = '99.9'
     els.scope.value = 'file'
+    els.normHz.value = ''
+    els.spanDb.value = ''
     if (current.info) {
       populateFftChoices(current.info, { overlap: 0.5, average: 1, fftSize: 0 })
       els.freqEnd.value = String(Math.floor(current.info.sampleRate / 2))

@@ -122,7 +122,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     overlay, dispatch (R9-13). A leaf over `state.js`; nothing in `state.js` imports back
   - `events.js` - Mouse/wheel event handling and listener teardown
   - `viewport.js` - Zoom, pan and axis updates
-  - `configuration.js` - Config table parsing
+  - `configuration.js` - Config table parsing: which rows a kind of table needs
+    and where they go
+  - `configValues.js` - Reading one cell as a value: a strict number, one word
+    of a fixed set, a number above zero. A leaf, split out so `configuration.js`
+    stays under the module cap as the painting rows accumulate
   - `storage.js` - Annotation persistence (local/sessionStorage). Saving is
     read-merge-write, so two tabs on one gram are additive rather than
     last-writer-wins; deletions travel as tombstones, because a union cannot
@@ -408,9 +412,12 @@ There is no visual/screenshot regression testing — see
   rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`,
   `preserve-pitch`) set the analysis and playback. `core/configuration.js` parses
   both kinds
-- Six further optional rows say how the analysed grid is *painted*:
-  `frame-average`, `normalisation`, `level-floor`, `level-ceiling`,
-  `level-scope` and `colour-map`. Every
+- Eight further optional rows say how the analysed grid is *painted*:
+  `frame-average`, `normalisation`, `normalisation-window` (the split window's
+  reach in hertz, since a bin count is a different width at every FFT size),
+  `level-floor`, `level-ceiling`, `level-span` (a fixed dB span above the floor
+  in place of the ceiling percentile — the legacy LOFAR painting), `level-scope`
+  and `colour-map`. Every
   default is the painting the player already did, so a table naming none of them
   is unaffected. The order is fixed and matters: average on **power** (before the
   logarithm, or it biases rather than steadies), normalise in **dB** against the

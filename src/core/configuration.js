@@ -15,13 +15,9 @@ import { isPowerOfTwo } from '../audio/fft.js'
 import { NORMALISATION_MODES } from '../audio/normalise.js'
 import { COLOUR_MAPS } from '../audio/colourMap.js'
 import { LEVEL_SCOPES } from '../audio/gramImage.js'
+import { numberParam, choiceParam, positiveParam } from './configValues.js'
 
-/**
- * A parameter row as read from the table: its raw text and where it sat.
- * @typedef {Object} ParameterCell
- * @property {string} text - The value cell's trimmed text
- * @property {number} row - 1-based row number, for the console message
- */
+/** @typedef {import('./configValues.js').ParameterCell} ParameterCell */
 
 /**
  * Read the two-column parameter rows into a map of name → cell.
@@ -51,60 +47,6 @@ function readParameterRows(configTable) {
     }
   })
   return params
-}
-
-/**
- * Parse a configuration cell's text as a number, strictly.
- *
- * Strict because both loose readings produce a plausible gram with the wrong
- * axes and nothing on screen to say so (R9-03, BH-20). Every marker and every
- * harmonic ratio the analyst then reads is wrong by a factor they cannot see:
- *
- * - An **empty cell** used to fall back to `'0'`, so a missing `time-start`
- *   silently validated as 0 and drew a normal-looking axis.
- * - `parseFloat` stops at the first character it cannot use, so a
- *   European-locale `1,5` became `1` and `10 Hz` became `10`. `Number` consumes
- *   the whole string or nothing.
- *
- * `Number('')` is 0 and `Number(' ')` is 0, so the blank check must come first.
- * `Infinity` and `NaN` are rejected by the finiteness check.
- * @param {string | null | undefined} text - Raw cell text
- * @returns {number | null} The value, or null if the cell does not hold one number
- */
-function parseConfigValue(text) {
-  if (typeof text !== 'string') {
-    return null
-  }
-  const trimmed = text.trim()
-  if (trimmed === '') {
-    return null
-  }
-  const value = Number(trimmed)
-  return Number.isFinite(value) ? value : null
-}
-
-/**
- * Read a numeric parameter, or null when the row is absent or does not hold
- * a single number.
- *
- * A rejected value is never replaced by a guess: the caller sees null, and
- * for a required row the "must be present with valid numeric values" error
- * then reports it on the page instead of drawing an axis nobody asked for.
- * @param {Map<string, ParameterCell>} params - Parameter rows
- * @param {string} name - Parameter name
- * @returns {number|null} The value, or null when absent or non-numeric
- */
-function numberParam(params, name) {
-  const cell = params.get(name)
-  if (!cell) {
-    return null
-  }
-  const value = parseConfigValue(cell.text)
-  if (value === null) {
-    console.warn(`GramFrame: Ignoring ${name} in row ${cell.row} — "${cell.text}" is not a single numeric value`)
-    return null
-  }
-  return value
 }
 
 /**
@@ -174,32 +116,17 @@ function readPaintingParams(params, player) {
     player.analysis.frameAverage = frameAverage
   }
 
-  const normalisation = params.get('normalisation')
-  if (normalisation) {
-    const value = normalisation.text.trim().toLowerCase()
-    if (!NORMALISATION_MODES.includes(value)) {
-      throw new Error(`Invalid normalisation: "${normalisation.text}" — must be one of ${NORMALISATION_MODES.join(', ')}`)
-    }
-    player.analysis.normalisation = value
-  }
+  const normalisation = choiceParam(params, 'normalisation', NORMALISATION_MODES)
+  if (normalisation !== null) player.analysis.normalisation = normalisation
+  const colourMap = choiceParam(params, 'colour-map', COLOUR_MAPS)
+  if (colourMap !== null) player.analysis.colourMap = /** @type {import('../audio/colourMap.js').ColourMapName} */ (colourMap)
+  const levelScope = choiceParam(params, 'level-scope', LEVEL_SCOPES)
+  if (levelScope !== null) player.analysis.levelScope = levelScope
 
-  const colourMap = params.get('colour-map')
-  if (colourMap) {
-    const value = colourMap.text.trim().toLowerCase()
-    if (!COLOUR_MAPS.includes(/** @type {any} */ (value))) {
-      throw new Error(`Invalid colour-map: "${colourMap.text}" — must be one of ${COLOUR_MAPS.join(', ')}`)
-    }
-    player.analysis.colourMap = /** @type {import('../audio/colourMap.js').ColourMapName} */ (value)
-  }
-
-  const levelScope = params.get('level-scope')
-  if (levelScope) {
-    const value = levelScope.text.trim().toLowerCase()
-    if (!LEVEL_SCOPES.includes(value)) {
-      throw new Error(`Invalid level-scope: "${levelScope.text}" — must be one of ${LEVEL_SCOPES.join(', ')}`)
-    }
-    player.analysis.levelScope = value
-  }
+  const normalisationWindow = positiveParam(params, 'normalisation-window', 'hertz')
+  if (normalisationWindow !== null) player.analysis.normalisationWindow = normalisationWindow
+  const levelSpan = positiveParam(params, 'level-span', 'decibels')
+  if (levelSpan !== null) player.analysis.levelSpan = levelSpan
 
   const levelFloor = numberParam(params, 'level-floor')
   if (levelFloor !== null) {

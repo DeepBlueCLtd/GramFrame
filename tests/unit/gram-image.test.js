@@ -140,6 +140,55 @@ describe('the level scope', () => {
   })
 })
 
+describe('the level span', () => {
+  /**
+   * One row: a flat background with a 4 dB line and a 20 dB line on it.
+   * @type {{grid: Float32Array, columns: number}}
+   */
+  const row = (() => {
+    const columns = 64
+    const grid = new Float32Array(columns)
+    for (let k = 0; k < columns; k++) {
+      const texture = ((k * 37) % 11) / 10
+      grid[k] = Math.pow(10, (40 + texture + (k === 20 ? 4 : 0) + (k === 40 ? 20 : 0)) / 10)
+    }
+    return { grid, columns }
+  })()
+
+  test('a fixed span above the floor gives a weak line its share of the ramp whatever the strongest line is', () => {
+    const { grid, columns } = row
+    // Ceiling at the 100th percentile: on a 64-cell row the default 99.9th is
+    // the second-highest cell, which is the weak line itself.
+    const byPercentile = powerToLevels(grid, { frames: 1, columns, floorPercentile: 50, ceilingPercentile: 100 })
+    const bySpan = powerToLevels(grid, { frames: 1, columns, floorPercentile: 50, levelSpan: 12 })
+    // To the ceiling percentile the 20 dB line owns the ramp and the 4 dB one is near the floor.
+    expect(byPercentile[20]).toBeLessThan(60)
+    // Over a 12 dB span the 4 dB line is about a third of the way up, and the strong line clips.
+    expect(bySpan[20]).toBeGreaterThan(70)
+    expect(bySpan[20]).toBeLessThan(110)
+    expect(bySpan[40]).toBe(255)
+  })
+
+  test('a span leaves the ceiling percentile unused, and a null span means the percentile', () => {
+    const { grid, columns } = row
+    const a = powerToLevels(grid, { frames: 1, columns, levelSpan: 10, ceilingPercentile: 50 })
+    const b = powerToLevels(grid, { frames: 1, columns, levelSpan: 10, ceilingPercentile: 99.9 })
+    expect(Array.from(a)).toEqual(Array.from(b))
+    const c = powerToLevels(grid, { frames: 1, columns, levelSpan: null })
+    expect(Array.from(c)).toEqual(Array.from(powerToLevels(grid, { frames: 1, columns })))
+  })
+
+  test('a span composes with the row scope: each row measured from its own floor', () => {
+    const { grid, columns } = row
+    const two = new Float32Array(columns * 2)
+    two.set(grid, 0)
+    for (let k = 0; k < columns; k++) two[columns + k] = grid[k] / 1000 // 30 dB quieter
+    const levels = powerToLevels(two, { frames: 2, columns, floorPercentile: 50, levelSpan: 12, levelScope: 'row' })
+    expect(levels[columns + 20]).toBe(levels[20])
+    expect(levels[columns + 40]).toBe(255)
+  })
+})
+
 describe('normalisation through powerToLevels', () => {
   test('gives a weak line most of the colour table instead of a sliver of it', () => {
     // A recording whose noise floor falls 60 dB across the band, with a 6 dB
@@ -160,6 +209,9 @@ describe('normalisation through powerToLevels', () => {
     const normalised = prominence(powerToLevels(grid, { frames, columns, normalisation: 'split-window' }))
     expect(plain).toBeLessThan(40)
     expect(normalised).toBeGreaterThan(plain * 3)
+    // The window width reaches the normaliser: a different reach is a different picture.
+    const narrower = powerToLevels(grid, { frames, columns, normalisation: 'split-window', windowBins: 5 })
+    expect(Array.from(narrower)).not.toEqual(Array.from(powerToLevels(grid, { frames, columns, normalisation: 'split-window' })))
   })
 })
 

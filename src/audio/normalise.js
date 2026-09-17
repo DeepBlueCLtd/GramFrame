@@ -29,8 +29,27 @@
  * Pure: no DOM, no state.
  */
 
-/** Half-width of the split window, in bins: the background is drawn from this far each side. */
+/**
+ * Default half-width of the split window, in bins: the background is drawn
+ * from this far each side when the table names no `normalisation-window`.
+ *
+ * A width in bins is a different width in hertz at every FFT size — 25 bins
+ * is 49 Hz at 8192 on a 16 kHz recording and 98 Hz at 4096, half of a 200 Hz
+ * band, at which point the "local" background is nearly the row mean and the
+ * normaliser removes little. So the width an author states is in hertz, and
+ * {@link splitWindowBinsFor} converts it per analysis.
+ */
 export const SPLIT_WINDOW_BINS = 25
+
+/**
+ * The split window's half-width in bins for a reach stated in hertz.
+ * @param {number} hz - How far each side of a bin the background is drawn from
+ * @param {number} binWidth - Hz per bin of the analysis
+ * @returns {number} At least one bin
+ */
+export function splitWindowBinsFor(hz, binWidth) {
+  return Math.max(1, Math.round(hz / binWidth))
+}
 
 /**
  * Half-width of the guard band, in bins.
@@ -98,12 +117,13 @@ function splitWindowPass(row, columns, prefix, out, window, guard) {
  * @param {Float32Array} db - dB grid, `frames × columns`
  * @param {number} frames - Rows
  * @param {number} columns - Columns
+ * @param {number} windowBins - Half-width of the window, in bins
  * @returns {Float32Array} dB above the local background
  */
-function splitWindowNormalise(db, frames, columns) {
-  // Narrow grams cannot support the standard window; shrink it rather than
+function splitWindowNormalise(db, frames, columns, windowBins) {
+  // Narrow grams cannot support the asked-for window; shrink it rather than
   // decline, and let the guard shrink with it so an estimate still exists.
-  const window = Math.min(SPLIT_WINDOW_BINS, Math.max(1, Math.floor((columns - 1) / 2)))
+  const window = Math.min(windowBins, Math.max(1, Math.floor((columns - 1) / 2)))
   const guard = Math.min(SPLIT_GUARD_BINS, Math.max(0, window - 1))
 
   const out = new Float32Array(db.length)
@@ -160,16 +180,24 @@ function perBinMedians(db, frames, columns) {
 }
 
 /**
+ * What a normaliser may be told beyond its mode.
+ * @typedef {Object} NormaliseOptions
+ * @property {number} [windowBins] - Split-window half-width in bins; {@link SPLIT_WINDOW_BINS} when absent
+ */
+
+/**
  * Normalise a dB grid against its background.
  * @param {Float32Array} db - dB grid, `frames × columns`
  * @param {number} frames - Rows
  * @param {number} columns - Columns
  * @param {string} mode - One of {@link NORMALISATION_MODES}
+ * @param {NormaliseOptions} [options] - The window width, for `split-window`
  * @returns {Float32Array} The normalised grid, or `db` itself when `mode` is `none`
  */
-export function normaliseDecibels(db, frames, columns, mode) {
+export function normaliseDecibels(db, frames, columns, mode, options = {}) {
   if (mode === 'split-window') {
-    return splitWindowNormalise(db, frames, columns)
+    const windowBins = options.windowBins && options.windowBins >= 1 ? Math.floor(options.windowBins) : SPLIT_WINDOW_BINS
+    return splitWindowNormalise(db, frames, columns, windowBins)
   }
   if (mode === 'per-bin') {
     const medians = perBinMedians(db, frames, columns)

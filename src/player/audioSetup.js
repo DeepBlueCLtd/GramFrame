@@ -19,6 +19,7 @@ import { decodeWav } from '../audio/wavDecoder.js'
 import { planAnalysis, analyse } from '../audio/spectrogram.js'
 import { fitGramSize, checkGramSize, powerToLevels, paintGram } from '../audio/gramImage.js'
 import { rememberPaintedLevels } from './gramRepaint.js'
+import { splitWindowBinsFor } from '../audio/normalise.js'
 import { averageFrames, averagedRowCount } from '../audio/frameAverage.js'
 import { updateSVGLayout } from '../components/svgLayout.js'
 import { updatePersistentPanels } from '../components/MainUI.js'
@@ -180,10 +181,14 @@ export async function setupAudioSource(instance) {
     const averaged = averageFrames(grid, plan.frames, plan.columns, player.analysis.frameAverage)
     const levels = powerToLevels(averaged.grid, {
       normalisation: player.analysis.normalisation,
+      windowBins: player.analysis.normalisationWindow === null
+        ? undefined
+        : splitWindowBinsFor(player.analysis.normalisationWindow, plan.binWidth),
       frames: averaged.frames,
       columns: plan.columns,
       floorPercentile: player.analysis.levelFloor,
       ceilingPercentile: player.analysis.levelCeiling,
+      levelSpan: player.analysis.levelSpan,
       levelScope: player.analysis.levelScope
     })
     const url = paintGram(levels, averaged.frames, plan.columns, player.analysis.colourMap)
