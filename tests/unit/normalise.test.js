@@ -100,12 +100,12 @@ describe('split-window normalisation', () => {
     // A background that bends sharply: flat, then falling 1 dB a bin. The
     // default 25-bin reach averages across the bend and mis-estimates the
     // floor beside it; a 4-bin reach follows it.
-    const frames = 1; const columns = 128
-    const grid = new Float32Array(columns)
-    for (let k = 0; k < columns; k++) grid[k] = Math.pow(10, (k < 64 ? 60 : 60 - (k - 64)) / 10)
+    const width = 128
+    const grid = new Float32Array(width)
+    for (let k = 0; k < width; k++) grid[k] = Math.pow(10, (k < 64 ? 60 : 60 - (k - 64)) / 10)
     const db = powerToDecibels(grid)
-    const wide = normaliseDecibels(db, frames, columns, 'split-window')
-    const narrow = normaliseDecibels(db, frames, columns, 'split-window', { windowBins: 4 })
+    const wide = normaliseDecibels(db, 1, width, 'split-window')
+    const narrow = normaliseDecibels(db, 1, width, 'split-window', { windowBins: 4 })
     // Bin 70 sits 6 dB into the fall: the wide window reads it well off the
     // background, the narrow one reads it as the background it is.
     expect(Math.abs(narrow[70])).toBeLessThan(Math.abs(wide[70]))
