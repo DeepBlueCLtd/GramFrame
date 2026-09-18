@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { calculateMidpoint, calculateDopplerSpeed } from '../../src/utils/doppler.js'
+import { calculateMidpoint, calculateDopplerSpeed, isCompleteCurve, snapshotCurve, replacedCurveOf } from '../../src/utils/doppler.js'
 
 /**
  * @fileoverview Unit tests for the Doppler speed math (docs/Doppler-Calc.md).
@@ -108,5 +108,48 @@ describe('the speed of sound agrees across code, JSDoc and specification (R9-04)
     // Δf = 1 over f₀ = 100 gives exactly c/100.
     expect(calculateDopplerSpeed({ time: 0, freq: 101 }, { time: 1, freq: 99 }))
       .toBeCloseTo(EXPECTED_C / 100, 10)
+  })
+})
+
+describe('the one rule for "there is a curve"', () => {
+  const curve = {
+    fPlus: { time: 20, freq: 101 },
+    fMinus: { time: 10, freq: 99 },
+    fZero: { time: 15, freq: 100 },
+    speed: 15,
+    color: '#ff0000',
+    tempFirst: null,
+    previewEnd: null
+  }
+
+  test('a curve is complete only with all three markers', () => {
+    expect(isCompleteCurve(curve)).toBe(true)
+    for (const key of ['fPlus', 'fMinus', 'fZero']) {
+      expect(isCompleteCurve({ ...curve, [key]: null }), key).toBe(false)
+    }
+    expect(isCompleteCurve(null)).toBe(false)
+    expect(isCompleteCurve(undefined)).toBe(false)
+  })
+
+  test('a snapshot copies a complete curve, markers included', () => {
+    const snap = snapshotCurve(curve)
+    expect(snap).toEqual({
+      fPlus: curve.fPlus, fMinus: curve.fMinus, fZero: curve.fZero, speed: 15, color: '#ff0000'
+    })
+    // Copies, so a placement that overwrites the live markers cannot reach in
+    expect(snap && snap.fPlus).not.toBe(curve.fPlus)
+  })
+
+  test('an incomplete curve has no snapshot: there is nothing to come back to', () => {
+    expect(snapshotCurve({ ...curve, fMinus: null })).toBeNull()
+  })
+
+  test('the replaced curve rides on the place target, and only there', () => {
+    const snap = snapshotCurve(curve)
+    const place = { kind: 'place', id: 'fMinus', type: 'dopplerMarker', position: null, data: { markerType: 'fMinus', replaced: snap } }
+    expect(replacedCurveOf(/** @type {any} */ (place))).toBe(snap)
+    const fresh = { ...place, data: { markerType: 'fMinus', replaced: null } }
+    expect(replacedCurveOf(/** @type {any} */ (fresh))).toBeNull()
+    expect(replacedCurveOf(/** @type {any} */ ({ ...place, data: null }))).toBeNull()
   })
 })

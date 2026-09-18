@@ -357,6 +357,56 @@ test.describe('Feature 170 — Region zoom', () => {
     })
   })
 
+  test.describe('A selection whose release is lost does not wedge the component', () => {
+    /**
+     * Start a selection and leave the button down. The pointer stays over the
+     * gram, so neither mouseup nor mouseleave will arrive on its own.
+     * @returns {Promise<void>}
+     */
+    async function holdSelection() {
+      const a = await gfp.imageSVGPoint(0.3, 0.3)
+      const b = await gfp.imageSVGPoint(0.6, 0.6)
+      await gfp.shiftDragSVG(a.x, a.y, b.x, b.y, { release: false })
+      const during = await gfp.getState()
+      expect(during.drag).toMatchObject({ active: true, kind: 'region' })
+    }
+
+    /**
+     * Release the held button and Shift, then check the component still takes
+     * an annotation: a press in Cross Cursor mode places a marker.
+     * @returns {Promise<void>}
+     */
+    async function expectRecovered() {
+      await gfp.page.mouse.up()
+      await gfp.page.keyboard.up('Shift')
+      await expect(gfp.page.locator(BOX)).toHaveCount(0)
+      expect((await gfp.getState()).drag.active).toBe(false)
+
+      await gfp.clickMode('Cross Cursor')
+      const p = await gfp.imageSVGPoint(0.5, 0.5)
+      const svgBox = await gfp.svg.boundingBox()
+      await gfp.page.mouse.click((svgBox?.x ?? 0) + p.x, (svgBox?.y ?? 0) + p.y)
+      await gfp.waitForState((state) => state.analysis.markers.length === 1)
+    }
+
+    test('losing the window cancels the selection', async () => {
+      await holdSelection()
+      await gfp.page.evaluate(() => window.dispatchEvent(new Event('blur')))
+      await expectRecovered()
+    })
+
+    test('a mode switch cancels the selection', async () => {
+      await holdSelection()
+      // Driven through the API rather than the button, because moving the
+      // pointer to the button would leave the SVG and cancel the drag that way.
+      await gfp.page.evaluate(() => {
+        // @ts-ignore - published API
+        window.GramFrame._getInstances()[0]._switchMode('doppler')
+      })
+      await expectRecovered()
+    })
+  })
+
   test.describe('US1 supporting — guidance (FR-016)', () => {
     test('the cross-mode navigation section describes the gesture', async () => {
       await gfp.showGuidance()

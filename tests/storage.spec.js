@@ -189,13 +189,19 @@ test.describe('US1: Trainer annotations persist across reloads', () => {
     await gfp.page.locator('.gram-frame-mode-btn[title="Doppler" i]').click()
     await waitForPageState(page, (s) => s.mode === 'doppler', 'doppler mode')
 
-    // Place two points for doppler curve
-    await gfp.svg.click({ position: { x: 200, y: 100 } })
-    await gfp.svg.click({ position: { x: 200, y: 200 } })
+    // Drag out a curve. This used to be two clicks, which only ever "placed"
+    // the invisible lone f+ a moveless press left behind — the very state a
+    // click now discards.
+    const svgBox = await gfp.svg.boundingBox()
+    if (!svgBox) throw new Error('SVG not laid out')
+    await page.mouse.move(svgBox.x + 200, svgBox.y + 100)
+    await page.mouse.down()
+    await page.mouse.move(svgBox.x + 200, svgBox.y + 200, { steps: 5 })
+    await page.mouse.up()
     await waitForPageState(
       page,
-      (s) => s.doppler.fPlus !== null || s.doppler.fMinus !== null,
-      'a doppler marker to be placed'
+      (s) => s.doppler.fPlus !== null && s.doppler.fMinus !== null && s.doppler.fZero !== null,
+      'a doppler curve to be placed'
     )
 
     const stateBefore = await getStateFromPage(page)

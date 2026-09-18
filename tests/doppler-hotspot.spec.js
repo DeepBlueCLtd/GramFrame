@@ -90,15 +90,17 @@ test.describe('Doppler marker hotspot', () => {
     expect(await pressAt(gramFramePage, cx + 7, cy)).toEqual({ active: true, kind: 'move' })
   })
 
-  test('a press well clear of every marker grabs nothing', async ({ gramFramePage }) => {
+  test('a press well clear of every marker grabs none of them', async ({ gramFramePage }) => {
     const box = await drawCurveAndLocateMarker(gramFramePage)
     const cx = box.x + box.width / 2
     const cy = box.y + box.height / 2
 
     // Far enough out that no marker's region reaches, so the widened tolerance
-    // has not simply made the whole gram grabbable.
+    // has not simply made the whole gram grabbable: the press starts a new
+    // placement (one curve per gram, replaced by a drag clear of the markers),
+    // not a move of the nearest marker.
     const drag = await pressAt(gramFramePage, cx + 60, cy + 40)
-    expect(drag.active).toBe(false)
+    expect(drag).toEqual({ active: true, kind: 'place' })
   })
 
   test('dragging a marker moves it, and moves only it', async ({ gramFramePage }) => {
