@@ -17,6 +17,7 @@
 
 import { COLOUR_MAPS } from '../audio/colourMap.js'
 import { repaintGram } from '../player/gramRepaint.js'
+import { applyDisplayRange } from '../rendering/displayFilter.js'
 import { dispatch } from '../core/state.js'
 import { setFocusedInstance } from '../core/FocusManager.js'
 
@@ -41,9 +42,10 @@ let groupCounter = 0
  * @param {GramFrame} instance - An audio-sourced instance whose gram is painted
  * @param {HTMLElement} bar - The transport bar to mount into
  * @param {AnalysisParams} analysis - The instance's live `player.analysis` slice
+ * @param {import('../utils/displayRange.js').DisplayRange} display - The instance's live `player.display` slice
  * @returns {HTMLDivElement} The group
  */
-export function createColourMapChoice(instance, bar, analysis) {
+export function createColourMapChoice(instance, bar, analysis, display) {
   const group = document.createElement('div')
   group.className = 'gram-frame-colour-map'
   group.setAttribute('role', 'radiogroup')
@@ -70,6 +72,9 @@ export function createColourMapChoice(instance, bar, analysis) {
       }
       analysis.colourMap = map
       repaintGram(instance, map)
+      // The contrast transfer depends on which way up the map is, so a
+      // change of map re-applies it at the controls' current positions.
+      applyDisplayRange(instance, display)
       dispatch(instance)
     })
   })

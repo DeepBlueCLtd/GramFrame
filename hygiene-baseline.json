@@ -8,12 +8,14 @@
   "_comment_moduleLines_state_painting": "src/core/state.js: 432 -> 440 and src/types.js: 774 -> 778, for the painting controls (`frameAverage`, `normalisation`, `levelFloor`, `levelCeiling`) that the trial page needs in order to put normalisation and frame averaging in front of an analyst. They are four fields on `player.analysis`, and the initial state is the one place a core slice's shape is stated, so there is nowhere else for them to live; types.js takes the matching four @property lines for the same reason. Eight lines in state.js, four of them the fields and four the comment saying that every default reproduces the painting the player already did. Caps otherwise only fall; these are raised deliberately, as spec 171 raised state.js and #310 raised main.js.",
   "_comment_moduleLines_state_colourmap": "src/core/state.js: 440 -> 441 and src/types.js: 778 -> 779, for the `colour-map` painting control (`colourMap` on `player.analysis`), the grey-shades toggle an analyst comparing the player with a legacy renderer asked for. One field line in state.js, one @property line in types.js, for the same reason the painting controls raised both: the initial state is the one place a core slice's shape is stated. Caps otherwise only fall; these are raised deliberately, as the painting controls raised them.",
   "_comment_moduleLines_events_pointerscope": "src/core/events.js: 445 -> 423. The image-bounds gate on pointer delivery moved to core/pointerScope.js, which is where the one mode that opts out of it -- a pan on an audio-sourced gram, which has to keep working over the blank below the recording's start -- is explained.",
+  "_comment_moduleLines_state_levelscope": "src/core/state.js: 441 -> 442 and src/types.js: 779 -> 780, for the `level-scope` painting control (`levelScope` on `player.analysis`): whether the display percentiles are measured over the whole file or over each painted row, the per-line gain a legacy display applies and the reason its quiet passages stay sharply bounded. One field line in state.js, one @property line in types.js, for the same reason every painting control raised both: the initial state is the one place a core slice's shape is stated. Caps otherwise only fall; these are raised deliberately, as the earlier painting controls raised them.",
+  "_comment_moduleLines_state_levelspan": "src/core/state.js: 442 -> 444 and src/types.js: 780 -> 782, for `level-span` and `normalisation-window` (`levelSpan` and `normalisationWindow` on `player.analysis`): the fixed dB span above the floor that is the legacy LOFAR painting, and the split window's reach stated in hertz rather than a bin count that means a different width at every FFT size. One field line each in state.js, one @property line each in types.js, as every painting control before them. Caps otherwise only fall; these are raised deliberately.",
   "moduleLineDefault": 350,
   "moduleLineCaps": {
     "src/api/GramFrameAPI.js": 415,
     "src/core/events.js": 423,
     "src/core/keyboardControl.js": 698,
-    "src/core/state.js": 441,
+    "src/core/state.js": 444,
     "src/core/storage.js": 1025,
     "src/main.js": 966,
     "src/modes/analysis/AnalysisMode.js": 725,
@@ -22,7 +24,7 @@
     "src/modes/shared/BaseDragHandler.js": 357,
     "src/modes/shared/PinSetMode.js": 1046,
     "src/rendering/axes.js": 403,
-    "src/types.js": 779
+    "src/types.js": 782
   },
   "_comment_uncoveredUnitLines": "R9-11 (issue #266). Lines in the unit lane's scope - the module list in vitest.config.js - that no unit test executes. A count, so it falls like every other ratchet here, rather than a percentage that would need an inverted comparison and could rise while the untested code grew. Regenerate with `yarn coverage`; `yarn hygiene` skips the check when no summary is present.",
   "uncoveredUnitLines": 411,

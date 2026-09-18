@@ -86,8 +86,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `fft.js` - Radix-2 FFT with cached tables
   - `spectrogram.js` - Hann-windowed frames → power grid, in ≤ 12 ms slices
   - `colourMap.js` - The colour table, the grey ramp beside it (a straight
-    black-to-white ramp, not a desaturation, since the colour table's brightness
-    is not monotonic), matplotlib's four perceptually uniform maps verbatim
+    white-to-black ramp — dark for loud, the legacy way up — not a desaturation,
+    since the colour table's brightness is not monotonic; `isDarkForLoud` tells
+    the contrast filter which way up it is), matplotlib's four perceptually uniform maps verbatim
     (inferno, magma, viridis, plasma: the hue boundaries of colour with
     brightness that rises strictly with level) and the newest-row-on-top pixel
     layout
@@ -96,7 +97,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     guarded two-pass estimate, so a line never raises the floor it is measured
     against) and `per-bin` over time. Which one is right is an analyst's question,
     not ours — they lose opposite things, and the module says which
-  - `gramImage.js` - Percentile-normalised levels, the size cap, canvas → PNG data URL
+  - `gramImage.js` - Percentile-normalised levels — over the whole file, or per
+    painted row (`level-scope: row`, the per-line gain of a legacy display, so a
+    quiet passage is not left the bottom of the table) — the size cap, canvas →
+    PNG data URL
   - `audioSource.js` - `fetch`, falling back to the `<name>.wav.js` sidecar over `file://`
 - `src/player/` - The player around that chain:
   - `audioSetup.js` - The audio twin of `spectrogramImage.js`: load → analyse → paint → ready, then the deferred annotation restore. Coarsens the analysis rather than refusing when the caps demand it (spec 171)
@@ -118,7 +122,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     overlay, dispatch (R9-13). A leaf over `state.js`; nothing in `state.js` imports back
   - `events.js` - Mouse/wheel event handling and listener teardown
   - `viewport.js` - Zoom, pan and axis updates
-  - `configuration.js` - Config table parsing
+  - `configuration.js` - Config table parsing: which rows a kind of table needs
+    and where they go
+  - `configValues.js` - Reading one cell as a value: a strict number, one word
+    of a fixed set, a number above zero. A leaf, split out so `configuration.js`
+    stays under the module cap as the painting rows accumulate
   - `storage.js` - Annotation persistence (local/sessionStorage). Saving is
     read-merge-write, so two tabs on one gram are additive rather than
     last-writer-wins; deletions travel as tombstones, because a union cannot
@@ -401,16 +409,23 @@ There is no visual/screenshot regression testing — see
 
 ### Audio-sourced instances (spec 168)
 - The config table's first row holds `<audio src>` instead of `<img>`; six optional
-  rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`,
-  `preserve-pitch`) set the analysis and playback. `core/configuration.js` parses
-  both kinds
-- Five further optional rows say how the analysed grid is *painted*:
-  `frame-average`, `normalisation`, `level-floor`, `level-ceiling` and
-  `colour-map`. Every
+  rows (`fft-size` up to 32768, `hop-size`, `freq-start`, `freq-end`,
+  `window-seconds`, `preserve-pitch`) set the analysis and playback.
+  `core/configuration.js` parses both kinds
+- The gram image is drawn `image-rendering: pixelated` (`gramframe.css`): a
+  100-column band smoothed across 800 screen pixels is a watercolour, and the
+  bars a legacy display shows as discrete columns vanish into it
+- Eight further optional rows say how the analysed grid is *painted*:
+  `frame-average`, `normalisation`, `normalisation-window` (the split window's
+  reach in hertz, since a bin count is a different width at every FFT size),
+  `level-floor`, `level-ceiling`, `level-span` (a fixed dB span above the floor
+  in place of the ceiling percentile — the legacy LOFAR painting), `level-scope`
+  and `colour-map`. Every
   default is the painting the player already did, so a table naming none of them
   is unaffected. The order is fixed and matters: average on **power** (before the
   logarithm, or it biases rather than steadies), normalise in **dB** against the
-  rows actually being painted, then map to levels. The render caps are tested on
+  rows actually being painted, then map to levels — over the whole file, or
+  row by row when the scope is `row`. The render caps are tested on
   the painted rows, so averaging buys a long recording a finer hop rather than
   costing it one
 - The gram is one tall image of the whole recording: `config = [0, duration] ×

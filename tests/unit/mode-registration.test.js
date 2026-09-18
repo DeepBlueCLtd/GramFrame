@@ -139,8 +139,11 @@ const FROZEN_INITIAL_STATE = {
       // but nothing that was here changes value.
       frameAverage: 1,
       normalisation: 'none',
+      normalisationWindow: null,
       levelFloor: 5,
       levelCeiling: 99.9,
+      levelSpan: null,
+      levelScope: 'file',
       colourMap: 'colour'
     }
   },

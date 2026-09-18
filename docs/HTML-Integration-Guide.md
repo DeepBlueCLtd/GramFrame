@@ -88,7 +88,7 @@ is optional.
 
 | Parameter | Type | Default | Meaning |
 |-----------|------|---------|---------|
-| `fft-size` | integer, power of two (64–8192) | 1024 | Samples per analysis frame. Larger gives finer frequency resolution and coarser time resolution |
+| `fft-size` | integer, power of two (64–32768) | 1024 | Samples per analysis frame. Larger gives finer frequency resolution and coarser time resolution. A narrow low band wants a large one: at 16 kHz, 16384 gives 1 Hz per column |
 | `hop-size` | integer ≥ 1 | `fft-size / 2` | Samples between frames — the height of one gram row in samples. Larger makes the gram shorter |
 | `freq-start` | Hz | 0 | Lowest frequency shown |
 | `freq-end` | Hz | half the sample rate | Highest frequency shown. Above the recording's Nyquist frequency it is clamped, with a console warning |
@@ -96,9 +96,12 @@ is optional.
 | `preserve-pitch` | `true` / `false` | `true` | Whether a change of playback speed keeps the pitch. `false` resamples instead, so slowing the recording lowers the pitch with it, as slowing a tape does |
 | `frame-average` | integer 1–64 | 1 | Analysis frames averaged into each painted row. Cuts the speckle a single transform leaves, at proportionally coarser time resolution |
 | `normalisation` | `none` / `split-window` / `per-bin` | `none` | Paint how far each point stands above the background rather than its measured level (see below) |
+| `normalisation-window` | Hz > 0 | 25 bins | How far each side of a bin `split-window` draws its background from. Stated in hertz so it means the same width at every `fft-size` |
 | `level-floor` | percentile 0–100 | 5 | Which percentile of the levels is painted the darkest colour |
-| `level-ceiling` | percentile 0–100 | 99.9 | Which percentile is painted the brightest. Must be above `level-floor` |
-| `colour-map` | `colour` / `grey` / `inferno` / `magma` / `viridis` / `plasma` | `colour` | Paint with the colour table; as grey shades (black quietest, white loudest) as a legacy renderer draws; or with one of matplotlib's perceptually uniform maps, whose brightness rises strictly with level. The radio row on the transport bar changes the same choice live, without re-analysing |
+| `level-ceiling` | percentile 0–100 | 99.9 | Which percentile is painted the brightest. Must be above `level-floor`. Not used when `level-span` is set |
+| `level-span` | dB > 0 | — | Paint the brightest colour this many decibels above the floor instead of at `level-ceiling`, clipping anything stronger (see below) |
+| `level-scope` | `file` / `row` | `file` | What those two percentiles are measured over: the whole recording, or each painted row on its own (see below) |
+| `colour-map` | `colour` / `grey` / `inferno` / `magma` / `viridis` / `plasma` | `colour` | Paint with the colour table; as grey shades (white quietest, black loudest — dark for loud, as a legacy renderer draws); or with one of matplotlib's perceptually uniform maps, whose brightness rises strictly with level. The radio row on the transport bar changes the same choice live, without re-analysing |
 
 `time-start` and `time-end` are ignored on an audio table, with a console
 warning: the recording defines its own time range, `0` to its duration.
@@ -125,6 +128,13 @@ fail in opposite directions, which is why both are offered:
   events visible — but a tonal present throughout the recording *is* background
   to this estimator, and is flattened away with it.
 
+`normalisation-window` is how far each side of a bin the split window reaches.
+The default is 25 bins, which is a different width at every FFT size: 49 Hz at
+8192 on a 16 kHz recording, but 98 Hz at 4096 — half of a 200 Hz band, at which
+point the "local" background is nearly the row mean and little is removed. State
+it in hertz for the band being looked at; a few times the spacing of the lines
+of interest is a reasonable start.
+
 `frame-average` is the other half of the same job: a single transform of noise is
 a rough estimate, which is what makes an un-averaged gram speckled. Averaging
 four of them halves that speckle so a steady tonal shows through, at the cost of
@@ -136,7 +146,26 @@ the contrast sliders on the transport bar — which re-map levels already painte
 cannot recover it. Lowering `level-floor` towards 0 is what brings the quietest
 part of a recording back into the picture.
 
-The [trial page](../trial/index.html) puts all four on screen as controls, for
+`level-span` replaces the ceiling percentile with a fixed number of decibels
+above the floor. This is the legacy LOFAR painting: normalise, then map zero to
+a dozen decibels onto the shades and clip anything stronger. With a ceiling
+percentile the strongest line in the range owns the top of the colour table and
+a line 4 dB above background gets a sliver of it; over a 12 dB span that line is
+a third of the way up whatever else is present. It is most useful with
+normalisation on and `level-floor` near 50, so the floor sits at the background.
+
+`level-scope` decides what the floor percentile — and the ceiling percentile, if
+a span is not set — is measured over. With `file`,
+the default, there is one range for the whole recording, so a level means the
+same loudness everywhere in the picture — and a quiet passage is left with only
+the bottom of the colour table to be drawn in, its lines a dull blur beside the
+loud passage that took the rest. With `row`, every painted row is spread over
+the table on its own, as the per-line gain of a legacy display does: a quiet
+row's energy is as sharply bounded as a loud row's, because no other row can
+take its colours. The price is that nothing in the picture says which row was
+louder. It acts after normalisation, on whatever the estimator left.
+
+The [trial page](../trial/index.html) puts all of these on screen as controls, for
 choosing the values an exercise should ship with.
 
 ### What the recording may be

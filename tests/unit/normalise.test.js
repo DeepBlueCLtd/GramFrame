@@ -3,7 +3,8 @@ import {
   powerToDecibels,
   normaliseDecibels,
   NORMALISATION_MODES,
-  SPLIT_WINDOW_BINS
+  SPLIT_WINDOW_BINS,
+  splitWindowBinsFor
 } from '../../src/audio/normalise.js'
 
 /**
@@ -93,6 +94,34 @@ describe('split-window normalisation', () => {
     const db = powerToDecibels(Float32Array.from([100, 400, 900]))
     const out = normaliseDecibels(db, 3, 1, 'split-window')
     expect(Array.from(out)).toEqual([0, 0, 0])
+  })
+
+  test('a narrower window follows a steeper background that the default smears', () => {
+    // A background that bends sharply: flat, then falling 1 dB a bin. The
+    // default 25-bin reach averages across the bend and mis-estimates the
+    // floor beside it; a 4-bin reach follows it.
+    const width = 128
+    const grid = new Float32Array(width)
+    for (let k = 0; k < width; k++) grid[k] = Math.pow(10, (k < 64 ? 60 : 60 - (k - 64)) / 10)
+    const db = powerToDecibels(grid)
+    const wide = normaliseDecibels(db, 1, width, 'split-window')
+    const narrow = normaliseDecibels(db, 1, width, 'split-window', { windowBins: 4 })
+    // Bin 70 sits 6 dB into the fall: the wide window reads it well off the
+    // background, the narrow one reads it as the background it is.
+    expect(Math.abs(narrow[70])).toBeLessThan(Math.abs(wide[70]))
+    expect(Math.abs(narrow[70])).toBeLessThan(1)
+  })
+
+  test('the window width is stated in hertz and converted per analysis', () => {
+    expect(splitWindowBinsFor(50, 2)).toBe(25)
+    expect(splitWindowBinsFor(50, 3.90625)).toBe(13)
+    expect(splitWindowBinsFor(50, 0.977)).toBe(51)
+    // Never fewer than one bin, however coarse the analysis
+    expect(splitWindowBinsFor(1, 100)).toBe(1)
+    // And the default reach, unstated, is still SPLIT_WINDOW_BINS
+    const db = powerToDecibels(slopedGrid(2, 128, [64], 6))
+    expect(Array.from(normaliseDecibels(db, 2, 128, 'split-window', {})))
+      .toEqual(Array.from(normaliseDecibels(db, 2, 128, 'split-window', { windowBins: SPLIT_WINDOW_BINS })))
   })
 
   test('does not fall over on a gram narrower than the window', () => {
