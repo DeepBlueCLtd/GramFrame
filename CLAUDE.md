@@ -181,8 +181,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `GuidancePanel.js` - The armed mode's guidance column, and the 40px rail it
     collapses to. Collapse is remembered per user; with no stored choice the
     column decides by the panel's own width
-  - `CursorReadout.js` - The instrument face: time, frequency and doppler speed.
-    Reads the pointer, or the selected feature when there is one
+  - `CursorReadout.js` - The instrument face: frequency as the one large, lit
+    reading, with time immediately beneath it and doppler speed at the foot,
+    both at half the size in the label grey. Reads the pointer, or the selected
+    feature when there is one
   - `AnnotationTables.js` - The three table columns, their headers, count chips
     and the "Clear all annotations" footer
   - `icons.js` - The button glyphs, drawn as inline SVG in `currentColor` so
