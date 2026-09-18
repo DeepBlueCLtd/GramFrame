@@ -385,7 +385,15 @@
  * @property {number} freqStart - Lowest retained frequency, Hz
  * @property {number|null} freqEnd - Highest retained frequency, Hz; null until the sample rate is known (default Nyquist)
  * @property {number} columns - Retained bins = the gram's natural width (0 until analysed)
- * @property {number} frames - Analysis frames = the gram's natural height (0 until analysed)
+ * @property {number} frames - Painted rows = the gram's natural height (0 until analysed); analysis frames divided by `frameAverage`
+ * @property {number} frameAverage - Analysis frames averaged into each painted row; 1 paints every frame
+ * @property {string} normalisation - Background estimator: `none`, `split-window` (along frequency) or `per-bin` (along time)
+ * @property {number|null} normalisationWindow - How far each side of a bin, in Hz, `split-window` draws its background from; null for the default 25 bins
+ * @property {number} levelFloor - Percentile of the levels painted as the darkest colour
+ * @property {number} levelCeiling - Percentile painted as the brightest, unless `levelSpan` is set
+ * @property {number|null} levelSpan - Decibels from the floor to the brightest colour; null paints to the ceiling percentile instead
+ * @property {string} levelScope - What the two percentiles are measured over: `file` (the whole recording, one range) or `row` (each painted row on its own)
+ * @property {import('./audio/colourMap.js').ColourMapName} colourMap - `colour` (the default table), `grey` (white-to-black — dark for loud, as a legacy renderer draws) or one of matplotlib's perceptually uniform four
  */
 
 /**

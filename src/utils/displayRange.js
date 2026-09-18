@@ -75,13 +75,24 @@ export function isDefaultDisplayRange(range) {
  * The linear transfer the pair describes, as an SVG `feFuncR/G/B` takes it:
  * `out = slope · in + intercept`, with everything below the floor landing at 0
  * and everything above the ceiling at 1.
+ *
+ * The filter acts on the painted channels, not on levels, so on a map that
+ * paints loud *dark* (the grey ramp) the same floor and ceiling have to land
+ * the other way up: the quietest levels, which are the *lightest* channel
+ * values, go to 1 and the loudest to 0. Otherwise the floor control would
+ * saturate the loud end and the ceiling would blank the quiet one — each
+ * doing the other's job, on the one map an analyst reads against a legacy
+ * display.
  * @param {DisplayRange} range - Control positions
+ * @param {boolean} [darkForLoud=false] - True when the painted map runs light-to-dark with level
  * @returns {{slope: number, intercept: number}} Transfer coefficients
  */
-export function displayTransfer(range) {
+export function displayTransfer(range, darkForLoud = false) {
   const { floor, ceiling } = settleDisplayRange(range.floor, range.ceiling)
   const slope = 1 / (ceiling - floor)
-  return { slope, intercept: -floor * slope }
+  // A channel value c on a dark-for-loud map is 1 − level, so the level floor
+  // sits at channel 1 − floor and must map to 1: intercept = 1 − slope·(1 − floor).
+  return { slope, intercept: darkForLoud ? 1 - slope * (1 - floor) : -floor * slope }
 }
 
 /**

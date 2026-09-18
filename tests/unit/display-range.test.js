@@ -80,6 +80,20 @@ describe('displayTransfer (FR-010)', () => {
     expect(raised.slope * 0.3 + raised.intercept).toBeLessThan(0)
   })
 
+  test('on a dark-for-loud map the same pair lands the other way up: the floor at 1 and the ceiling at 0', () => {
+    // The grey ramp paints level L as channel 1 − L, so the level floor is the
+    // channel value 1 − floor, and must still be where the background goes.
+    const range = { floor: 0.25, ceiling: 0.75 }
+    const { slope, intercept } = displayTransfer(range, true)
+    expect(slope).toBeCloseTo(displayTransfer(range).slope, 12)
+    expect(slope * (1 - range.floor) + intercept).toBeCloseTo(1, 12)
+    expect(slope * (1 - range.ceiling) + intercept).toBeCloseTo(0, 12)
+    // And the resting pair is still the identity, whichever way up the map is.
+    const rest = displayTransfer(DEFAULT_DISPLAY_RANGE, true)
+    expect(rest.slope).toBeCloseTo(1, 12)
+    expect(rest.intercept).toBeCloseTo(0, 12)
+  })
+
   test('an illegal pair still produces a finite transfer rather than a division by zero', () => {
     const { slope, intercept } = displayTransfer({ floor: 0.6, ceiling: 0.6 })
     expect(Number.isFinite(slope)).toBe(true)

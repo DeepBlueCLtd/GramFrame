@@ -17,6 +17,8 @@
 /// <reference path="../types.js" />
 
 import { displayTransfer, isDefaultDisplayRange } from '../utils/displayRange.js'
+import { isDarkForLoud } from '../audio/colourMap.js'
+import { paintedMap } from '../player/gramRepaint.js'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
@@ -36,7 +38,9 @@ export function applyDisplayRange(instance, range) {
     return
   }
 
-  const { slope, intercept } = displayTransfer(range)
+  // Which way up the transfer runs depends on the map the picture on screen
+  // was painted with, which is the repaint module's to know.
+  const { slope, intercept } = displayTransfer(range, isDarkForLoud(paintedMap(instance)))
   const filter = ensureFilter(instance)
   // Selected structurally rather than by tag name: `feFuncR` is a
   // case-sensitive XML name and a CSS type selector for it is easy to get

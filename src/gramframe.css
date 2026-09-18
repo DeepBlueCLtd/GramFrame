@@ -272,6 +272,32 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   font-size: 10.5px;
 }
 
+/* The colour-map choice, on the same bar: a radio row so every map under
+   trial is visible at once and switching between two is one click each way. */
+.gram-frame-colour-map {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  flex: 1 1 100%;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.gram-frame-colour-map-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.gram-frame-colour-map-option input {
+  margin: 0;
+}
+
+/* The caption naming what the render caps changed (spec 171, FR-024). */
 .gram-frame-degraded-note {
   margin-top: 8px;
   padding: 4px 6px;
@@ -633,6 +659,17 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   border: 0;
   border-radius: 5px;
   background: var(--gf-secondary);
+}
+
+/* The analysed gram is drawn with hard-edged cells rather than the browser's
+   bilinear upscaling. A 0–200 Hz band at 2 Hz per column is 100 pixels wide
+   drawn across 800, and smoothed, each column becomes an 8-pixel gradient:
+   the whole picture reads as a watercolour and the vertical bars a legacy
+   display shows as discrete columns are gone. Pixelated, a column is a
+   column. It applies to the supplied-image instance too, where a PNG is
+   usually near its rendered size and the difference is slight. */
+.gram-frame-spectrogram-image {
+  image-rendering: pixelated;
 }
 
 /* Expand/collapse image toggle — floats at the top-left of the image region,

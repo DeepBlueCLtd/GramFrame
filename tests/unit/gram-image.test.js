@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
-import { powerToLevels, checkGramSize, fitGramSize } from '../../src/audio/gramImage.js'
-import { levelsToPixels } from '../../src/audio/colourMap.js'
+import { powerToLevels, checkGramSize, fitGramSize, LEVEL_SCOPES } from '../../src/audio/gramImage.js'
+import { levelsToPixels, isDarkForLoud } from '../../src/audio/colourMap.js'
 
 /** The caps gramImage enforces (research.md §5.2); duplicated here so the test says what it expects. */
 const MAX_GRAM_ROWS = 32768
@@ -34,6 +34,187 @@ describe('powerToLevels', () => {
   })
 })
 
+describe('the display percentiles', () => {
+  /** A grid running 0 to 100 dB in even steps. @type {Float32Array} */
+  const ramp = Float32Array.from({ length: 1000 }, (_, i) => Math.pow(10, i / 100))
+
+  test('a floor of 0 brings the quietest cells back off the black', () => {
+    // The default clips the bottom 5 % to level 0 — and no later control can
+    // undo that, which is why the floor is worth exposing.
+    expect(powerToLevels(ramp)[49]).toBe(0)
+    expect(powerToLevels(ramp, { floorPercentile: 0 })[49]).toBeGreaterThan(0)
+  })
+
+  test('a lower ceiling saturates more of the top', () => {
+    const tight = powerToLevels(ramp, { ceilingPercentile: 50 })
+    expect(tight[600]).toBe(255)
+    expect(powerToLevels(ramp)[600]).toBeLessThan(255)
+  })
+
+  test('percentiles that meet do not produce NaN', () => {
+    const levels = powerToLevels(ramp, { floorPercentile: 40, ceilingPercentile: 40 })
+    expect(Array.from(levels).every(Number.isFinite)).toBe(true)
+  })
+})
+
+describe('the level scope', () => {
+  /**
+   * A recording that is loud for its first half and 30 dB quieter for its
+   * second, with a line 6 dB above the floor in every row.
+   * @type {{grid: Float32Array, frames: number, columns: number}}
+   */
+  const recording = (() => {
+    const frames = 8; const columns = 64
+    const grid = new Float32Array(frames * columns)
+    for (let f = 0; f < frames; f++) {
+      const floorDb = f < 4 ? 60 : 30
+      for (let k = 0; k < columns; k++) {
+        // A little texture across the row, so its percentiles are not all one value.
+        const texture = ((k * 37) % 11) / 5
+        grid[f * columns + k] = Math.pow(10, (floorDb + texture + (k === 40 ? 6 : 0)) / 10)
+      }
+    }
+    return { grid, frames, columns }
+  })()
+
+  test('names its two values', () => {
+    expect(LEVEL_SCOPES).toEqual(['file', 'row'])
+  })
+
+  test('over the file, a quiet row sits at the bottom of the table and its line is a blur', () => {
+    const { grid, frames, columns } = recording
+    const levels = powerToLevels(grid, { frames, columns, levelScope: 'file' })
+    const quietLine = levels[6 * columns + 40]
+    const quietFloor = levels[6 * columns + 39]
+    // The loud half took the top of the range; the quiet half has a sliver.
+    expect(quietLine).toBeLessThan(80)
+    expect(quietLine - quietFloor).toBeLessThan(60)
+    // And the default is this: naming no scope is the file scope.
+    expect(Array.from(powerToLevels(grid, { frames, columns }))).toEqual(Array.from(levels))
+  })
+
+  test('per row, a quiet row is spread over the table like a loud one and its line stands as sharply', () => {
+    const { grid, frames, columns } = recording
+    const levels = powerToLevels(grid, { frames, columns, levelScope: 'row' })
+    /** @param {number} f @returns {number} The line's height above its neighbour in that row */
+    const prominence = f => levels[f * columns + 40] - levels[f * columns + 39]
+    expect(levels[6 * columns + 40]).toBe(255)
+    expect(levels[1 * columns + 40]).toBe(255)
+    expect(prominence(6)).toBe(prominence(1))
+    expect(prominence(6)).toBeGreaterThan(150)
+    // Each row has its own floor: the quietest cell of a quiet row is level 0 too.
+    const quietRow = Array.from(levels.slice(6 * columns, 7 * columns))
+    expect(Math.min(...quietRow)).toBe(0)
+  })
+
+  test('per row, the picture no longer says which row was louder', () => {
+    const { grid, frames, columns } = recording
+    const levels = powerToLevels(grid, { frames, columns, levelScope: 'row' })
+    const rowMean = (/** @type {number} */ f) =>
+      Array.from(levels.slice(f * columns, (f + 1) * columns)).reduce((a, b) => a + b, 0) / columns
+    expect(Math.abs(rowMean(1) - rowMean(6))).toBeLessThan(2)
+  })
+
+  test('the row scope honours the percentiles, and a silent row is level 0 rather than NaN', () => {
+    const { grid, frames, columns } = recording
+    const wide = powerToLevels(grid, { frames, columns, levelScope: 'row', floorPercentile: 0, ceilingPercentile: 100 })
+    const tight = powerToLevels(grid, { frames, columns, levelScope: 'row', floorPercentile: 50, ceilingPercentile: 90 })
+    let saturatedWide = 0; let saturatedTight = 0
+    for (let k = 0; k < columns; k++) {
+      if (wide[6 * columns + k] === 255) saturatedWide++
+      if (tight[6 * columns + k] === 255) saturatedTight++
+    }
+    expect(saturatedTight).toBeGreaterThan(saturatedWide)
+    const withSilence = powerToLevels(new Float32Array(3 * columns), { frames: 3, columns, levelScope: 'row' })
+    expect(Array.from(withSilence).every(v => v === 0)).toBe(true)
+  })
+
+  test('the row scope composes with normalisation: the scope acts on what the normaliser left', () => {
+    const { grid, frames, columns } = recording
+    const plain = powerToLevels(grid, { frames, columns, levelScope: 'row' })
+    const normalised = powerToLevels(grid, { frames, columns, levelScope: 'row', normalisation: 'per-bin' })
+    // Per-bin flattens the line that runs every row; the row scope then spreads
+    // what is left, so the line is gone from the normalised picture.
+    expect(plain[6 * columns + 40]).toBe(255)
+    expect(normalised[6 * columns + 40]).toBeLessThan(plain[6 * columns + 40])
+  })
+})
+
+describe('the level span', () => {
+  /**
+   * One row: a flat background with a 4 dB line and a 20 dB line on it.
+   * @type {{grid: Float32Array, columns: number}}
+   */
+  const row = (() => {
+    const columns = 64
+    const grid = new Float32Array(columns)
+    for (let k = 0; k < columns; k++) {
+      const texture = ((k * 37) % 11) / 10
+      grid[k] = Math.pow(10, (40 + texture + (k === 20 ? 4 : 0) + (k === 40 ? 20 : 0)) / 10)
+    }
+    return { grid, columns }
+  })()
+
+  test('a fixed span above the floor gives a weak line its share of the ramp whatever the strongest line is', () => {
+    const { grid, columns } = row
+    // Ceiling at the 100th percentile: on a 64-cell row the default 99.9th is
+    // the second-highest cell, which is the weak line itself.
+    const byPercentile = powerToLevels(grid, { frames: 1, columns, floorPercentile: 50, ceilingPercentile: 100 })
+    const bySpan = powerToLevels(grid, { frames: 1, columns, floorPercentile: 50, levelSpan: 12 })
+    // To the ceiling percentile the 20 dB line owns the ramp and the 4 dB one is near the floor.
+    expect(byPercentile[20]).toBeLessThan(60)
+    // Over a 12 dB span the 4 dB line is about a third of the way up, and the strong line clips.
+    expect(bySpan[20]).toBeGreaterThan(70)
+    expect(bySpan[20]).toBeLessThan(110)
+    expect(bySpan[40]).toBe(255)
+  })
+
+  test('a span leaves the ceiling percentile unused, and a null span means the percentile', () => {
+    const { grid, columns } = row
+    const a = powerToLevels(grid, { frames: 1, columns, levelSpan: 10, ceilingPercentile: 50 })
+    const b = powerToLevels(grid, { frames: 1, columns, levelSpan: 10, ceilingPercentile: 99.9 })
+    expect(Array.from(a)).toEqual(Array.from(b))
+    const c = powerToLevels(grid, { frames: 1, columns, levelSpan: null })
+    expect(Array.from(c)).toEqual(Array.from(powerToLevels(grid, { frames: 1, columns })))
+  })
+
+  test('a span composes with the row scope: each row measured from its own floor', () => {
+    const { grid, columns } = row
+    const two = new Float32Array(columns * 2)
+    two.set(grid, 0)
+    for (let k = 0; k < columns; k++) two[columns + k] = grid[k] / 1000 // 30 dB quieter
+    const levels = powerToLevels(two, { frames: 2, columns, floorPercentile: 50, levelSpan: 12, levelScope: 'row' })
+    expect(levels[columns + 20]).toBe(levels[20])
+    expect(levels[columns + 40]).toBe(255)
+  })
+})
+
+describe('normalisation through powerToLevels', () => {
+  test('gives a weak line most of the colour table instead of a sliver of it', () => {
+    // A recording whose noise floor falls 60 dB across the band, with a 6 dB
+    // line on it. Painted plainly, those 6 dB are 6 parts in the ~60 dB the
+    // display range has to cover, so the line gets a handful of levels and
+    // reads as barely-there. Normalised, the floor is gone from the range and
+    // the line has the table more or less to itself.
+    const frames = 8; const columns = 256
+    const grid = new Float32Array(frames * columns)
+    for (let f = 0; f < frames; f++) {
+      for (let k = 0; k < columns; k++) {
+        grid[f * columns + k] = Math.pow(10, (60 - 0.23 * k + (k === 160 ? 6 : 0)) / 10)
+      }
+    }
+    /** @param {Uint8Array} levels @returns {number} The line's height above its neighbours */
+    const prominence = levels => levels[160] - levels[156]
+    const plain = prominence(powerToLevels(grid))
+    const normalised = prominence(powerToLevels(grid, { frames, columns, normalisation: 'split-window' }))
+    expect(plain).toBeLessThan(40)
+    expect(normalised).toBeGreaterThan(plain * 3)
+    // The window width reaches the normaliser: a different reach is a different picture.
+    const narrower = powerToLevels(grid, { frames, columns, normalisation: 'split-window', windowBins: 5 })
+    expect(Array.from(narrower)).not.toEqual(Array.from(powerToLevels(grid, { frames, columns, normalisation: 'split-window' })))
+  })
+})
+
 describe('levelsToPixels', () => {
   test('puts the last frame on the top row and the first on the bottom', () => {
     const frames = 3; const columns = 2
@@ -59,6 +240,71 @@ describe('the colour table (through levelsToPixels)', () => {
     // Monotonic in brightness through the blue-to-yellow part
     const lum = (/** @type {number[]} */ c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
     for (let l = 1; l <= 173; l++) expect(lum(rgb(l))).toBeGreaterThanOrEqual(lum(rgb(l - 1)) - 0.5)
+  })
+})
+
+describe('the grey map (through levelsToPixels)', () => {
+  /** @param {number} level */
+  const rgb = level => Array.from(levelsToPixels(new Uint8Array([level]), 1, 1, 'grey').slice(0, 3))
+
+  test('is white at the quietest level and black at the loudest — dark for loud, as a legacy display draws', () => {
+    expect(rgb(0)).toEqual([255, 255, 255])
+    expect(rgb(255)).toEqual([0, 0, 0])
+  })
+
+  test('is grey throughout — the three channels never differ', () => {
+    for (let l = 0; l < 256; l++) {
+      const [r, g, b] = rgb(l)
+      expect(g).toBe(r)
+      expect(b).toBe(r)
+    }
+  })
+
+  test('never paints a louder point lighter than a quieter one, unlike a desaturated colour table would', () => {
+    for (let l = 1; l < 256; l++) expect(rgb(l)[0]).toBeLessThanOrEqual(rgb(l - 1)[0])
+    // The opaque alpha the colour map writes is written here too
+    expect(levelsToPixels(new Uint8Array([7]), 1, 1, 'grey')[3]).toBe(255)
+  })
+
+  test('inferno is dark at the quietest level, pale yellow at the loudest, and never darker for louder', () => {
+    /** @param {number} level */
+    const inferno = level => Array.from(levelsToPixels(new Uint8Array([level]), 1, 1, 'inferno').slice(0, 3))
+    expect(inferno(0)).toEqual([0, 0, 4])
+    expect(inferno(255)).toEqual([252, 255, 164])
+    // matplotlib's own mid-point, so the table is theirs verbatim rather than a fit
+    expect(inferno(128)).toEqual([188, 55, 84])
+    const lum = (/** @type {number[]} */ c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+    for (let l = 1; l < 256; l++) expect(lum(inferno(l))).toBeGreaterThanOrEqual(lum(inferno(l - 1)))
+  })
+
+  test('magma, viridis and plasma are matplotlib\'s tables verbatim, each never darker for louder beyond 8-bit rounding', () => {
+    /** @type {Array<[string, number[], number[], number[]]>} name, level 0, level 128, level 255 */
+    const expected = [
+      ['magma', [0, 0, 4], [183, 55, 121], [252, 253, 191]],
+      ['viridis', [68, 1, 84], [33, 145, 140], [253, 231, 37]],
+      ['plasma', [13, 8, 135], [204, 71, 120], [240, 249, 33]]
+    ]
+    const lum = (/** @type {number[]} */ c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
+    for (const [name, first, mid, last] of expected) {
+      /** @param {number} level */
+      const pixel = level => Array.from(levelsToPixels(new Uint8Array([level]), 1, 1, /** @type {any} */ (name)).slice(0, 3))
+      expect(pixel(0)).toEqual(first)
+      expect(pixel(128)).toEqual(mid)
+      expect(pixel(255)).toEqual(last)
+      for (let l = 1; l < 256; l++) expect(lum(pixel(l))).toBeGreaterThanOrEqual(lum(pixel(l - 1)) - 1)
+    }
+  })
+
+  test('only the grey map is dark for loud', () => {
+    expect(isDarkForLoud('grey')).toBe(true)
+    for (const map of ['colour', 'inferno', 'magma', 'viridis', 'plasma']) {
+      expect(isDarkForLoud(/** @type {any} */ (map))).toBe(false)
+    }
+  })
+
+  test('the default map is still the colour table', () => {
+    expect(levelsToPixels(new Uint8Array([255]), 1, 1)).toEqual(levelsToPixels(new Uint8Array([255]), 1, 1, 'colour'))
+    expect(Array.from(levelsToPixels(new Uint8Array([255]), 1, 1).slice(0, 3))).toEqual([220, 20, 20])
   })
 })
 

@@ -86,8 +86,22 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `wavDecoder.js` - RIFF/WAVE → mono `Float32Array` (PCM 8/16/24/32 and float)
   - `fft.js` - Radix-2 FFT with cached tables
   - `spectrogram.js` - Hann-windowed frames → power grid, in ≤ 12 ms slices
-  - `colourMap.js` - The colour table and the newest-row-on-top pixel layout
-  - `gramImage.js` - Percentile-normalised levels, the size cap, canvas → PNG data URL
+  - `colourMap.js` - The colour table, the grey ramp beside it (a straight
+    white-to-black ramp — dark for loud, the legacy way up — not a desaturation,
+    since the colour table's brightness is not monotonic; `isDarkForLoud` tells
+    the contrast filter which way up it is), matplotlib's four perceptually uniform maps verbatim
+    (inferno, magma, viridis, plasma: the hue boundaries of colour with
+    brightness that rises strictly with level) and the newest-row-on-top pixel
+    layout
+  - `frameAverage.js` - Incoherent averaging of successive frames into one painted row
+  - `normalise.js` - The background estimators: `split-window` across frequency (a
+    guarded two-pass estimate, so a line never raises the floor it is measured
+    against) and `per-bin` over time. Which one is right is an analyst's question,
+    not ours — they lose opposite things, and the module says which
+  - `gramImage.js` - Percentile-normalised levels — over the whole file, or per
+    painted row (`level-scope: row`, the per-line gain of a legacy display, so a
+    quiet passage is not left the bottom of the table) — the size cap, canvas →
+    PNG data URL
   - `audioSource.js` - `fetch`, falling back to the `<name>.wav.js` sidecar over `file://`
 - `src/player/` - The player around that chain:
   - `audioSetup.js` - The audio twin of `spectrogramImage.js`: load → analyse → paint → ready, then the deferred annotation restore. Coarsens the analysis rather than refusing when the caps demand it (spec 171)
@@ -103,6 +117,9 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     M, B)
   - `playerView.js` - The waterfall geometry: `viewTop`, its clamp, the follow
     loop, the reveal rule, and the time read off a click on the time axis
+  - `gramRepaint.js` - The painted 8-bit levels, kept per instance in a
+    `WeakMap` (never in `state`, which is deep-copied to listeners), so a change
+    of colour map is a repaint rather than a second analysis
 - `src/core/` - Core system modules:
   - `state.js` - State management and listeners
   - `featureStyle.js` - What the style controls act on — the defaults for the
@@ -118,7 +135,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     overlay, dispatch (R9-13). A leaf over `state.js`; nothing in `state.js` imports back
   - `events.js` - Mouse/wheel event handling and listener teardown
   - `viewport.js` - Zoom, pan and axis updates
-  - `configuration.js` - Config table parsing
+  - `configuration.js` - Config table parsing: which rows a kind of table needs
+    and where they go
+  - `configValues.js` - Reading one cell as a value: a strict number, one word
+    of a fixed set, a number above zero. A leaf, split out so `configuration.js`
+    stays under the module cap as the painting rows accumulate
   - `storage.js` - Annotation persistence (local/sessionStorage). Saving is
     read-merge-write, so two tabs on one gram are additive rather than
     last-writer-wins; deletions travel as tombstones, because a union cannot
@@ -211,6 +232,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     reader hears
   - `TransportBookmarks.js` - The bookmark flags on that track and the saved list
   - `DisplayRangeControls.js` - The contrast floor and ceiling, on that bar
+  - `ColourMapChoice.js` - The colour-map radio row on that bar — Colour, Grey
+    and the four uniform maps — as `player.analysis.colourMap`. Radios rather
+    than a select while the maps are under trial, so every choice is visible and
+    switching between two is one click each way
   - `ErrorIndicator.js` - The standard initialisation-error box, shared by the API and the audio setup
   - `LEDDisplay.js` - Digital display component
   - `table.js` - Component scaffold: builds the DOM structure and replaces the
@@ -252,6 +277,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     cross, and the linear transfer the filter is given
   - `axisFormat.js` - The one statement of "the tick interval decides the
     precision", shared by both axes and by the region-zoom span readout
+  - `zoomAnchor.js` - The zoom anchor arithmetic: where a point is drawn at a
+    given anchor and level, and the two solves that invert it — hold the point
+    under the mouse (the wheel), hold the middle of the view (the `+`/`−`
+    buttons). Pure, so "the gram under the pointer does not move" is pinned as a
+    property across levels rather than by one browser drag
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
   - `markerLabel.js` - Marker label normalisation and table abbreviation
@@ -274,8 +304,28 @@ Every path below exists; keep this list in step with `src/` when adding modules.
 - `tests/` - Playwright suite, `tests/unit/` Vitest lane, `tests/smoke/` WebKit smoke, `tests/fixtures/` test pages
 - `sample/` - Sample HTML files for testing; `sample/audio/` holds four CC BY 4.0 machinery recordings (see its `ATTRIBUTION.md`) and `sample/player.html` plays them
 - `scripts/wav2js.mjs` - Wraps a WAV as a `<script>`-loadable sidecar for `file://` pages
+- `scripts/build-site.sh` - Assembles the GitHub Pages tree, for the main deploy
+  and the PR preview alike, so a preview is the same site as production rather
+  than a second arrangement of the same files. It copies without renaming and
+  generates no page, so every published path exists in the repository at that
+  same path
+- `scripts/check-site.js` - The two rules that keep the site honest: no dead
+  local links, and no published page unreachable from `index.html`. A deploy
+  that copies files cannot notice that nothing links to one, which is how the
+  trial harness came to be published and listed nowhere
 - `docs/archive/` - Development-history artefacts (not part of the component)
-- `debug.html` - Development debug page
+- `index.html` - The site's one landing page, and the only place its contents
+  are listed. Demo pages carry a single "All demos" link back here rather than
+  enumerating their siblings, so no page can drift out of step with the list
+- `demo/` - The pages that load the shipped bundle (`student.html`,
+  `trainer.html`, `demo-gram.html`, `player.html`), committed at the paths they
+  are published at. `demo/index.html` is a redirect keeping the old `/demo/`
+  landing-page URL alive. The bundle and grams they reference are build outputs,
+  copied in at deploy time, so run `yarn build:standalone && yarn build:site`
+  and serve `_site/` to exercise them locally
+- `debug.html` - Development debug page. These set `window.GRAMFRAME_DEBUG`, so
+  the landing page groups them apart from the demos and says so: they are not a
+  sample of what published training material looks like
 
 ### Configuration System
 
@@ -366,9 +416,13 @@ There is no visual/screenshot regression testing — see
   run writes to a tracked file
 - Zoom resizes the image element (viewBox stays fixed) — see ADR-015
 - `zoom.centerX/centerY` are not the centre of the view but the *anchor*: the
-  image point that keeps its unzoomed screen position through the transform. A
-  caller that wants a given point centred solves for the anchor —
-  `viewport.js:zoomToRegion` does, via `anchorForCentre`
+  image point that keeps its **unzoomed** screen position through the transform.
+  So every zoom is a solve for the anchor, in `utils/zoomAnchor.js`, never an
+  assignment to it: `anchorHoldingPoint` keeps the gram under the mouse still
+  (the wheel), `anchorForCentre` puts a chosen point in the middle (the `+`/`−`
+  buttons, and `zoomToRegion`). Assigning the pointer's own point as the anchor
+  looks right from 1×, where every point is already at its unzoomed position,
+  and lurches on every notch after that
 - Drag state has one owner (`BaseDragHandler`) and one read-only projection
   (`state.drag`); modes never write drag fields into state
 - The engine hands `cursorFor(kind, phase)` a phase name (`idle`/`hover`/`drag`),
@@ -401,9 +455,25 @@ There is no visual/screenshot regression testing — see
 
 ### Audio-sourced instances (spec 168)
 - The config table's first row holds `<audio src>` instead of `<img>`; six optional
-  rows (`fft-size`, `hop-size`, `freq-start`, `freq-end`, `window-seconds`,
-  `preserve-pitch`) set the analysis and playback. `core/configuration.js` parses
-  both kinds
+  rows (`fft-size` up to 32768, `hop-size`, `freq-start`, `freq-end`,
+  `window-seconds`, `preserve-pitch`) set the analysis and playback.
+  `core/configuration.js` parses both kinds
+- The gram image is drawn `image-rendering: pixelated` (`gramframe.css`): a
+  100-column band smoothed across 800 screen pixels is a watercolour, and the
+  bars a legacy display shows as discrete columns vanish into it
+- Eight further optional rows say how the analysed grid is *painted*:
+  `frame-average`, `normalisation`, `normalisation-window` (the split window's
+  reach in hertz, since a bin count is a different width at every FFT size),
+  `level-floor`, `level-ceiling`, `level-span` (a fixed dB span above the floor
+  in place of the ceiling percentile — the legacy LOFAR painting), `level-scope`
+  and `colour-map`. Every
+  default is the painting the player already did, so a table naming none of them
+  is unaffected. The order is fixed and matters: average on **power** (before the
+  logarithm, or it biases rather than steadies), normalise in **dB** against the
+  rows actually being painted, then map to levels — over the whole file, or
+  row by row when the scope is `row`. The render caps are tested on
+  the painted rows, so averaging buys a long recording a finer hop rather than
+  costing it one
 - The gram is one tall image of the whole recording: `config = [0, duration] ×
   [freq-start, freq-end]`, natural size = bins × frames, rendered at 900 × 400.
   `imageDetails.timeStretch` draws it `duration / window-seconds` times taller than
@@ -458,6 +528,10 @@ There is no visual/screenshot regression testing — see
   a release over the axis margins completes it, deliberately unlike a feature
   drag, which is cancelled off-image, because selecting to the very edge is a
   normal thing to want. The **fit** button beside `+`/`−` is the way back out
+- **Zoom (every mode)**: Ctrl + wheel zooms about the pointer — the gram under
+  the mouse stays under the mouse, at any level, because that is where the
+  analyst is looking. The `+`/`−` buttons have no pointer on the gram to follow,
+  so they hold the middle of the view instead
 - **Pan Mode**: The default mode; drag to pan when zoomed in, so a first click never places anything
 - **The control row**: five columns — the mode rail, the armed mode's guidance,
   the cursor readouts, the style panel and the three annotation tables —
@@ -506,6 +580,15 @@ There is no visual/screenshot regression testing — see
 
 ## Recent Changes
 - 172-control-panel: The upper control panel rebuilt to the design handoff — five hairline-separated columns, a mode rail with the view controls in its foot, a permanent collapsible guidance column, instrument-styled readouts, a twin-tab style panel that states its target, inverted selected rows, and a transport bar with time bookmarks
+- Site structure: one landing page instead of two competing ones, the demo pages
+  committed at the paths they are published at, and one script assembling the
+  Pages tree for both the deploy and the PR preview. `yarn check:site` fails a PR
+  that publishes a page nothing links to — the failure that left the trial
+  harness online and unreachable for weeks
+- Painting controls for the trial: background normalisation (split-window across
+  frequency, per-bin over time), incoherent frame averaging, and the display
+  percentiles — all four exposed as config rows and as toggles on `trial/index.html`,
+  so an analyst can judge them against a legacy display on their own recording
 - 171-player-refinements: The whole gram from load (the reveal rule withdrawn), contrast controls, drag-to-seek and zoom while playing, a 0.25–4 rate ladder with explicit pitch, oversize recordings degraded rather than refused, and a polite transport live region
 - 170-region-zoom: Shift-drag a box to zoom into it, in every mode, plus a Fit button and a live aspect-locked selection overlay
 - 167-structural-refactor: Planned Phase 3 — strict type gate burn-down (540 errors), state⇄modes decoupling, table.js split, capability seams, shrunk instance surface

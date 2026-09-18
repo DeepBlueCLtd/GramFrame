@@ -159,7 +159,19 @@ const initialState = {
       freqStart: 0,
       freqEnd: null,
       columns: 0,
-      frames: 0
+      frames: 0,
+      // How the analysed grid is turned into a picture. Every default here is
+      // the painting the player already did — one frame per row, no background
+      // normalisation, the 5th to 99.9th percentile of the whole file onto the
+      // colour table, in colour — so a table naming none of them is unaffected.
+      frameAverage: 1,
+      normalisation: 'none',
+      normalisationWindow: null,
+      levelFloor: 5,
+      levelCeiling: 99.9,
+      levelSpan: null,
+      levelScope: 'file',
+      colourMap: 'colour'
     }
   },
 }

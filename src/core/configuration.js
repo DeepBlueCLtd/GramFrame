@@ -12,13 +12,12 @@
 /// <reference path="../types.js" />
 
 import { isPowerOfTwo } from '../audio/fft.js'
+import { NORMALISATION_MODES } from '../audio/normalise.js'
+import { COLOUR_MAPS } from '../audio/colourMap.js'
+import { LEVEL_SCOPES } from '../audio/gramImage.js'
+import { numberParam, choiceParam, positiveParam } from './configValues.js'
 
-/**
- * A parameter row as read from the table: its raw text and where it sat.
- * @typedef {Object} ParameterCell
- * @property {string} text - The value cell's trimmed text
- * @property {number} row - 1-based row number, for the console message
- */
+/** @typedef {import('./configValues.js').ParameterCell} ParameterCell */
 
 /**
  * Read the two-column parameter rows into a map of name → cell.
@@ -48,60 +47,6 @@ function readParameterRows(configTable) {
     }
   })
   return params
-}
-
-/**
- * Parse a configuration cell's text as a number, strictly.
- *
- * Strict because both loose readings produce a plausible gram with the wrong
- * axes and nothing on screen to say so (R9-03, BH-20). Every marker and every
- * harmonic ratio the analyst then reads is wrong by a factor they cannot see:
- *
- * - An **empty cell** used to fall back to `'0'`, so a missing `time-start`
- *   silently validated as 0 and drew a normal-looking axis.
- * - `parseFloat` stops at the first character it cannot use, so a
- *   European-locale `1,5` became `1` and `10 Hz` became `10`. `Number` consumes
- *   the whole string or nothing.
- *
- * `Number('')` is 0 and `Number(' ')` is 0, so the blank check must come first.
- * `Infinity` and `NaN` are rejected by the finiteness check.
- * @param {string | null | undefined} text - Raw cell text
- * @returns {number | null} The value, or null if the cell does not hold one number
- */
-function parseConfigValue(text) {
-  if (typeof text !== 'string') {
-    return null
-  }
-  const trimmed = text.trim()
-  if (trimmed === '') {
-    return null
-  }
-  const value = Number(trimmed)
-  return Number.isFinite(value) ? value : null
-}
-
-/**
- * Read a numeric parameter, or null when the row is absent or does not hold
- * a single number.
- *
- * A rejected value is never replaced by a guess: the caller sees null, and
- * for a required row the "must be present with valid numeric values" error
- * then reports it on the page instead of drawing an axis nobody asked for.
- * @param {Map<string, ParameterCell>} params - Parameter rows
- * @param {string} name - Parameter name
- * @returns {number|null} The value, or null when absent or non-numeric
- */
-function numberParam(params, name) {
-  const cell = params.get(name)
-  if (!cell) {
-    return null
-  }
-  const value = parseConfigValue(cell.text)
-  if (value === null) {
-    console.warn(`GramFrame: Ignoring ${name} in row ${cell.row} — "${cell.text}" is not a single numeric value`)
-    return null
-  }
-  return value
 }
 
 /**
@@ -150,6 +95,57 @@ function extractImageConfig(instance, imgElement, params) {
 }
 
 /**
+ * Read the rows that govern how the analysed grid is *painted*.
+ *
+ * These are separate from the analysis geometry above because they can be
+ * changed without re-running a single FFT in principle — though this component
+ * does re-analyse, since the grid is not kept — and because they are the ones
+ * an analyst is most likely to want to argue about. Every one of them defaults
+ * to the original behaviour, so a table that names none of them paints exactly
+ * what it always did.
+ * @param {Map<string, ParameterCell>} params - Parameter rows
+ * @param {PlayerState} player - The player slice to write into
+ * @throws {Error} When a value is out of range
+ */
+function readPaintingParams(params, player) {
+  const frameAverage = numberParam(params, 'frame-average')
+  if (frameAverage !== null) {
+    if (!Number.isInteger(frameAverage) || frameAverage < 1 || frameAverage > 64) {
+      throw new Error(`Invalid frame-average: ${frameAverage} — must be a whole number between 1 and 64`)
+    }
+    player.analysis.frameAverage = frameAverage
+  }
+
+  const normalisation = choiceParam(params, 'normalisation', NORMALISATION_MODES)
+  if (normalisation !== null) player.analysis.normalisation = normalisation
+  const colourMap = choiceParam(params, 'colour-map', COLOUR_MAPS)
+  if (colourMap !== null) player.analysis.colourMap = /** @type {import('../audio/colourMap.js').ColourMapName} */ (colourMap)
+  const levelScope = choiceParam(params, 'level-scope', LEVEL_SCOPES)
+  if (levelScope !== null) player.analysis.levelScope = levelScope
+
+  const normalisationWindow = positiveParam(params, 'normalisation-window', 'hertz')
+  if (normalisationWindow !== null) player.analysis.normalisationWindow = normalisationWindow
+  const levelSpan = positiveParam(params, 'level-span', 'decibels')
+  if (levelSpan !== null) player.analysis.levelSpan = levelSpan
+
+  const levelFloor = numberParam(params, 'level-floor')
+  if (levelFloor !== null) {
+    player.analysis.levelFloor = levelFloor
+  }
+  const levelCeiling = numberParam(params, 'level-ceiling')
+  if (levelCeiling !== null) {
+    player.analysis.levelCeiling = levelCeiling
+  }
+  // Checked together rather than one at a time: either alone can be in range
+  // while the pair is not, and a floor at or above its ceiling has no display
+  // range between them to paint.
+  const { levelFloor: floor, levelCeiling: ceiling } = player.analysis
+  if (floor < 0 || ceiling > 100 || floor >= ceiling) {
+    throw new Error(`Invalid display percentiles: level-floor ${floor} and level-ceiling ${ceiling} — both must lie in 0..100 with the floor below the ceiling`)
+  }
+}
+
+/**
  * Read an audio-sourced table into `state.player` (spec 168, FR-003, FR-004).
  *
  * The time range and the frequency ceiling are unknown until the file is
@@ -181,8 +177,8 @@ function extractAudioConfig(instance, audioElement, params) {
 
   const fftSize = numberParam(params, 'fft-size')
   if (fftSize !== null) {
-    if (!isPowerOfTwo(fftSize) || fftSize < 64 || fftSize > 8192) {
-      throw new Error(`Invalid fft-size: ${fftSize} — must be a power of two between 64 and 8192`)
+    if (!isPowerOfTwo(fftSize) || fftSize < 64 || fftSize > 32768) {
+      throw new Error(`Invalid fft-size: ${fftSize} — must be a power of two between 64 and 32768`)
     }
     player.analysis.fftSize = fftSize
   }
@@ -220,6 +216,8 @@ function extractAudioConfig(instance, audioElement, params) {
     }
     player.windowSeconds = windowSeconds
   }
+
+  readPaintingParams(params, player)
 
   // Which way a rate change should sound, per exercise (spec 171, FR-022).
   // Absent, the pitch is preserved: the frequency an analyst reads off the gram

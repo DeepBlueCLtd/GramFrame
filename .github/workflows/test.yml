@@ -57,6 +57,16 @@ jobs:
       - name: Assert the bundle stays within the advertised browser floor
         run: yarn check:bundle-floor
 
+      # Assemble the Pages tree with the same script the deploy uses, and check
+      # it. Here rather than only in the deploy workflow, because a page that is
+      # published but linked from nowhere -- how the trial harness spent its
+      # first weeks -- should fail the PR that introduces it, not be discovered
+      # on the live site afterwards.
+      - name: Assemble and check the Pages site
+        run: |
+          yarn build:site
+          yarn check:site
+
   playwright:
     name: Playwright tests
     needs: checks

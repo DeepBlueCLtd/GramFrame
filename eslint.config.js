@@ -12,7 +12,11 @@ export default [
   {
     // docs/archive/ holds development-history artefacts that are not part of the
     // component (spec 165, GF-36); linting them reports debt nobody will pay.
-    ignores: ['dist/**', 'node_modules/**', 'test-results/**', 'playwright-report/**', 'docs/archive/**'],
+    // trial-package/ is assembled by scripts/make-trial.mjs and carries a copy of
+    // the built bundle, so it is build output for the same reason dist/ is.
+    // _site/ and preview/ are the Pages trees scripts/build-site.sh assembles,
+    // which carry that same bundle -- likewise build output, not source.
+    ignores: ['dist/**', 'trial-package/**', '_site/**', 'preview/**', 'node_modules/**', 'test-results/**', 'playwright-report/**', 'docs/archive/**'],
   },
   {
     files: ['**/*.js'],
