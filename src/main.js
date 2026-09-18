@@ -52,6 +52,7 @@ import { createGramFrameAPI } from './api/GramFrameAPI.js'
 import {
   cleanupEventListeners
 } from './core/events.js'
+import { cancelActiveDrag } from './modes/shared/BaseDragHandler.js'
 
 import {
   saveAnnotations,
@@ -364,6 +365,8 @@ export class GramFrame {
    * of the drag record. Writing `state.drag` directly instead left the engine
    * saying *dragging* while the projection said *idle*, and the next publish
    * resurrected the stale drag (M4). One place now, not two (issue #268).
+   * Ends with the engine's own cancellation point, which reaches the region
+   * and wheel-pan handlers a mode switch could not.
    * @returns {void}
    */
   _cancelAllDrags() {
@@ -372,18 +375,16 @@ export class GramFrame {
         modeInstance.dragHandler.cancelDrag()
       }
     })
+    cancelActiveDrag(this)
   }
 
   /**
    * Clear all annotations from state and storage
    */
   _clearGram() {
-    // Clearing the gram also cancels a wheel pan, which a mode switch does not:
-    // the shared helper covers the feature drags both paths cancel.
+    // Every drag, the wheel pan included: the shared helper ends with the
+    // engine's own cancellation point, which reaches whichever handler owns it.
     this._cancelAllDrags()
-    if (this.interaction._wheelPanHandler) {
-      this.interaction._wheelPanHandler.cancelDrag()
-    }
 
     // Clear the selection through the selection seam rather than replacing the
     // selection object: this also re-syncs the style controls, so they stop

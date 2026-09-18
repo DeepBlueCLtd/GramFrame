@@ -60,8 +60,7 @@ function handleWheel(instance, event) {
  */
 export function setupEventListeners(instance) {
   // Every listener is kept as a bound reference so cleanupEventListeners can
-  // actually remove it (GF-14). Anonymous inline handlers were unremovable, so
-  // "cleanup" relied entirely on the SVG being dropped from the DOM.
+  // actually remove it (GF-14); anonymous inline handlers were unremovable.
   /** @type {Array<{target: EventTarget, type: string, handler: EventListener, options?: AddEventListenerOptions}>} */
   const registered = []
 
@@ -104,9 +103,8 @@ export function setupEventListeners(instance) {
       handleContextMenu(instance, /** @type {MouseEvent} */ (event))
     })
 
-    // Mouse wheel for global zoom (Ctrl+scroll) and horizontal pan (scroll).
-    // passive:false so the handler can preventDefault() to stop the host page
-    // from scrolling during a zoom/pan gesture.
+    // Mouse wheel for global zoom (Ctrl+scroll) and horizontal pan (scroll);
+    // passive:false so preventDefault() can stop the host page scrolling.
     listen(instance.ui.svg, 'wheel', (event) => {
       handleWheel(instance, /** @type {WheelEvent} */ (event))
     }, { passive: false })
@@ -129,10 +127,12 @@ export function setupEventListeners(instance) {
     }
   })
 
-  // Frequency-rate input UI events removed - the backend frequencyRate is preserved
-
   // Window resize event
   listen(window, 'resize', instance.viewport._boundHandleResize)
+
+  // A release over another window fires neither mouseup nor mouseleave; a drag
+  // left registered would block every later press in every mode.
+  listen(window, 'blur', () => cancelActiveDrag(instance))
 
   instance.interaction._registeredListeners = registered
 }

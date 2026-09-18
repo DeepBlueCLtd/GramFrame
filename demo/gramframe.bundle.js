@@ -4664,6 +4664,7 @@
       }
     });
     listen(window, "resize", instance.viewport._boundHandleResize);
+    listen(window, "blur", () => cancelActiveDrag(instance));
     instance.interaction._registeredListeners = registered;
   }
   function setupResizeObserver(instance) {
@@ -7640,6 +7641,27 @@
     const speed = speedOfSound / f0 * deltaF;
     return Math.abs(speed);
   }
+  function isCompleteCurve(doppler) {
+    return !!(doppler && doppler.fPlus && doppler.fMinus && doppler.fZero);
+  }
+  function snapshotCurve(doppler) {
+    if (!isCompleteCurve(doppler)) {
+      return null;
+    }
+    return {
+      fPlus: { .../** @type {DataCoordinates} */
+      doppler.fPlus },
+      fMinus: { .../** @type {DataCoordinates} */
+      doppler.fMinus },
+      fZero: { .../** @type {DataCoordinates} */
+      doppler.fZero },
+      speed: doppler.speed,
+      color: doppler.color
+    };
+  }
+  function replacedCurveOf(target) {
+    return target.data && target.data.replaced || null;
+  }
   const DopplerDraggedMarker = {
     fPlus: "fPlus",
     fMinus: "fMinus",
@@ -7739,7 +7761,7 @@
      */
     onMarkerDragEnd(target, _position) {
       if (target && target.kind === "place") {
-        this.completeMarkerPlacement();
+        this.completeMarkerPlacement(replacedCurveOf(target));
       }
     }
     /**
@@ -7748,69 +7770,77 @@
      * Cancel and end used to share one callback, so a cancelled placement —
      * mode switch or Escape mid-gesture — *committed* the half-placed f⁺/f⁻
      * curve the user thought was discarded (BH-9). A cancelled placement now
-     * discards the markers it seeded; a cancelled move leaves the marker at its
-     * last position, like the other modes.
+     * puts back the curve it was replacing (or clears what it seeded); a
+     * cancelled move leaves the marker at its last position, like the other modes.
      * @param {DragTarget} target - Drag target from the engine
      */
     onMarkerDragCancel(target) {
       if (target && target.kind === "place") {
-        const doppler = this.instance.state.doppler;
-        doppler.fPlus = null;
-        doppler.fMinus = null;
-        doppler.fZero = null;
-        doppler.speed = null;
-        doppler.tempFirst = null;
-        doppler.previewEnd = null;
-        this.updateSpeedLED();
-        this.renderDopplerFeatures();
-        dispatch(this.instance, { frame: true });
+        this.restoreCurve(replacedCurveOf(target));
       }
     }
     /**
-     * Resolve what a mousedown in doppler mode starts: moving one of the placed
-     * markers, or — with nothing placed yet — laying down f+ and dragging out f-.
+     * Resolve what a mousedown in doppler mode starts: moving the placed marker
+     * under the pointer, or — anywhere else — laying down f+ and dragging out f-,
+     * replacing whatever curve there was. Placement used to be offered only while
+     * *no* marker existed, so once one did every drag clear of it was ignored.
      * @param {DataCoordinates} position - Position of the mousedown
-     * @returns {DragTarget|null} A move- or place-kind target
+     * @returns {DragTarget} A move- or place-kind target
      */
     resolveDopplerDrag(position) {
-      const doppler = this.instance.state.doppler;
-      if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-        return this.findDopplerMarkerAtPosition(position);
-      }
-      return this.startMarkerPlacement(position);
+      return this.findDopplerMarkerAtPosition(position) || this.startMarkerPlacement(position);
     }
     /**
      * Seed f+ at the mousedown position and return a `place`-kind target, so the
      * rest of the placement is an ordinary drag with f- following the pointer.
      *
      * `tempFirst` and `previewEnd` stay on state.doppler: they are placement
-     * geometry the renderer needs, not drag bookkeeping (data-model.md §2).
+     * geometry the renderer needs, not drag bookkeeping (data-model.md §2). The
+     * curve being replaced rides on the target, so a cancelled or moveless
+     * placement can put it back.
      * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
      * @returns {DragTarget} A place-kind target
      */
     startMarkerPlacement(dataCoords) {
       const doppler = this.instance.state.doppler;
+      const replaced = snapshotCurve(doppler);
       doppler.fPlus = { time: dataCoords.time, freq: dataCoords.freq };
+      Object.assign(doppler, { fMinus: null, fZero: null, speed: null, color: null });
       doppler.tempFirst = doppler.fPlus;
       doppler.previewEnd = { time: dataCoords.time, freq: dataCoords.freq };
+      this.updateSpeedLED();
       this.renderDopplerFeatures();
       return {
         kind: "place",
         id: DopplerDraggedMarker.fMinus,
         type: "dopplerMarker",
         position: dataCoords,
-        data: { markerType: DopplerDraggedMarker.fMinus }
+        data: { markerType: DopplerDraggedMarker.fMinus, replaced }
       };
     }
     /**
-     * Finalise a placement drag: order the markers, derive f₀, and clear the
-     * placement geometry.
+     * Put back the curve a placement was replacing, or with none to put back
+     * clear what it seeded. The state is what it was before the press either
+     * way, so nothing is marked changed.
+     * @param {DopplerCurveSnapshot|null} replaced - The curve to restore, or null
      */
-    completeMarkerPlacement() {
+    restoreCurve(replaced) {
+      const empty = { fPlus: null, fMinus: null, fZero: null, speed: null, color: null };
+      Object.assign(this.instance.state.doppler, replaced || empty, { tempFirst: null, previewEnd: null });
+      this.updateSpeedLED();
+      this.renderDopplerFeatures();
+      dispatch(this.instance, { frame: true });
+    }
+    /**
+     * Finalise a placement drag: order the markers, derive f₀, and clear the
+     * placement geometry. A release before any movement is a click, not a curve,
+     * and restores what was there: it used to leave an invisible f+ behind.
+     * @param {DopplerCurveSnapshot|null} replaced - The curve the placement replaced
+     */
+    completeMarkerPlacement(replaced) {
       const doppler = this.instance.state.doppler;
       if (!doppler.tempFirst || !doppler.fPlus || !doppler.fMinus) {
-        doppler.tempFirst = null;
-        doppler.previewEnd = null;
+        this.restoreCurve(replaced);
         return;
       }
       if (doppler.fPlus.time <= doppler.fMinus.time) {
@@ -7835,7 +7865,7 @@
     getGuidanceText() {
       return {
         items: [
-          { trigger: "Click & drag", outcome: "to place f+ and f− in one gesture; the curve previews during the drag" },
+          { trigger: "Click & drag", outcome: "to place f+ and f− in one gesture; the curve previews during the drag. A drag that starts clear of the markers draws a new curve in place of the old one" },
           { trigger: "Drag f+ or f−", outcome: "to adjust; f₀ can be dragged independently" },
           { trigger: "f₀ marker", outcome: "is placed automatically at the midpoint" },
           { trigger: "Right-click", outcome: "to reset all doppler markers" }
@@ -7941,14 +7971,7 @@
      * Reset doppler-specific state
      */
     resetState() {
-      const doppler = this.instance.state.doppler;
-      doppler.fPlus = null;
-      doppler.fMinus = null;
-      doppler.fZero = null;
-      doppler.speed = null;
-      doppler.color = null;
-      doppler.tempFirst = null;
-      doppler.previewEnd = null;
+      this.restoreCurve(null);
       this.dragHandler.reset();
       recordDopplerDeletion(this.instance);
       markAnnotationsChanged(this.instance);
@@ -8184,11 +8207,10 @@
      * Half of the `PersistentFeatureProvider` capability. Lived on
      * `FeatureRenderer` as `hasDopplerFeatures()` until spec 167 moved it onto
      * the mode that owns the state it reads.
-     * @returns {boolean} True if any doppler marker has been placed
+     * @returns {boolean} True if a complete doppler curve has been placed
      */
     hasPersistentFeatures() {
-      const doppler = this.instance.state.doppler;
-      return !!(doppler && (doppler.fPlus || doppler.fMinus || doppler.fZero));
+      return isCompleteCurve(this.instance.state.doppler);
     }
     /**
      * Render persistent features (for FeatureRenderer)
@@ -9090,7 +9112,7 @@
     const hasMarkers = !!(state.analysis && state.analysis.markers && state.analysis.markers.length > 0);
     const hasHarmonics = !!(state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0);
     const hasSidebands = !!(state.sidebands && state.sidebands.sidebandSets && state.sidebands.sidebandSets.length > 0);
-    const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null || state.doppler.fZero !== null));
+    const hasDoppler = isCompleteCurve(state.doppler);
     return hasMarkers || hasHarmonics || hasSidebands || hasDoppler;
   }
   function isFiniteNumber(value) {
@@ -10829,6 +10851,8 @@
      * of the drag record. Writing `state.drag` directly instead left the engine
      * saying *dragging* while the projection said *idle*, and the next publish
      * resurrected the stale drag (M4). One place now, not two (issue #268).
+     * Ends with the engine's own cancellation point, which reaches the region
+     * and wheel-pan handlers a mode switch could not.
      * @returns {void}
      */
     _cancelAllDrags() {
@@ -10837,6 +10861,7 @@
           modeInstance.dragHandler.cancelDrag();
         }
       });
+      cancelActiveDrag(this);
     }
     /**
      * Clear all annotations from state and storage
@@ -10844,9 +10869,6 @@
     _clearGram() {
       var _a, _b, _c;
       this._cancelAllDrags();
-      if (this.interaction._wheelPanHandler) {
-        this.interaction._wheelPanHandler.cancelDrag();
-      }
       if (this.interaction.clearSelection) {
         this.interaction.clearSelection();
       }

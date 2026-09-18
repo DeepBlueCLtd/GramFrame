@@ -60,3 +60,52 @@ export function calculateDopplerSpeed(fPlus, fMinus, fZero = null, speedOfSound 
   return Math.abs(speed) // Return absolute value for speed
 }
 
+/**
+ * Whether all three markers are placed: the one rule for "there is a curve",
+ * shared by the renderer, the mode's capability predicate and storage. Anything
+ * less draws nothing, so it must count as nothing too. A lone f+ used to count
+ * as an annotation and block every later placement.
+ * @param {DopplerState|null|undefined} doppler - Doppler state
+ * @returns {boolean} True when f+, f- and f₀ are all set
+ */
+export function isCompleteCurve(doppler) {
+  return !!(doppler && doppler.fPlus && doppler.fMinus && doppler.fZero)
+}
+
+/**
+ * A complete curve, as it stood when a placement began to replace it.
+ * @typedef {Object} DopplerCurveSnapshot
+ * @property {DataCoordinates} fPlus - The f+ marker
+ * @property {DataCoordinates} fMinus - The f- marker
+ * @property {DataCoordinates} fZero - The f₀ marker
+ * @property {number|null} speed - The speed it gave, in m/s
+ * @property {string|null} color - The colour it was drawn in
+ */
+
+/**
+ * The curve a placement is about to replace, or null when there is not a
+ * complete one to come back to.
+ * @param {DopplerState} doppler - Doppler state
+ * @returns {DopplerCurveSnapshot|null} A copy of the curve, or null
+ */
+export function snapshotCurve(doppler) {
+  if (!isCompleteCurve(doppler)) {
+    return null
+  }
+  return {
+    fPlus: { .../** @type {DataCoordinates} */ (doppler.fPlus) },
+    fMinus: { .../** @type {DataCoordinates} */ (doppler.fMinus) },
+    fZero: { .../** @type {DataCoordinates} */ (doppler.fZero) },
+    speed: doppler.speed,
+    color: doppler.color
+  }
+}
+
+/**
+ * The snapshot a `place` target carries, if any.
+ * @param {DragTarget} target - Drag target from the engine
+ * @returns {DopplerCurveSnapshot|null} The replaced curve, or null
+ */
+export function replacedCurveOf(target) {
+  return (target.data && target.data.replaced) || null
+}
