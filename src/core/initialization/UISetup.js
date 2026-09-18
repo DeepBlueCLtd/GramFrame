@@ -11,7 +11,7 @@
 import { createUnifiedLayout } from '../../components/MainUI.js'
 import { createModeSwitchingUI } from '../../components/ModeButtons.js'
 import { setupSpectrogramImage } from '../../components/spectrogramImage.js'
-import { updateGuidancePanel } from '../../utils/secureHTML.js'
+import { showGuidanceForMode, applyGuidanceCollapsed } from '../../components/GuidancePanel.js'
 
 /** @typedef {import('../../modes/BaseMode.js').BaseMode} BaseMode */
 
@@ -42,19 +42,10 @@ export function createUnifiedLayoutStructure(instance, readoutPanel, modeCell) {
  * once they have.
  * @param {GramFrame} instance - GramFrame instance
  * @param {HTMLDivElement} modeColumn - Column the mode buttons mount into
- * @param {HTMLDivElement} guidanceColumn - Column the guidance panel mounts into
  * @returns {ModeUIElements} The mode UI just built
  */
-export function setupPersistentContainers(instance, modeColumn, guidanceColumn) {
-  // Create mode switching UI initially (will be updated after modes are initialized)
-  const tempContainer = document.createElement('div')
-  const modeUI = createModeSwitchingUI(tempContainer, instance.state, (/** @type {ModeType} */ mode) => instance._switchMode(mode))
-
-  // Add mode UI to appropriate columns
-  modeColumn.appendChild(modeUI.modesContainer)
-  guidanceColumn.appendChild(modeUI.guidancePanel)
-
-  return modeUI
+export function setupPersistentContainers(instance, modeColumn) {
+  return createModeSwitchingUI(modeColumn, instance.state.mode, (/** @type {ModeType} */ mode) => instance._switchMode(mode))
 }
 
 /**
@@ -64,24 +55,19 @@ export function setupPersistentContainers(instance, modeColumn, guidanceColumn) 
  * @param {Object<string, BaseMode>} modes - Constructed modes, for their command buttons
  * @param {BaseMode} currentMode - Mode whose guidance text is shown first
  * @param {HTMLDivElement} modeColumn - Column the mode buttons mount into
- * @param {HTMLDivElement} guidanceColumn - Column the guidance panel mounts into
  * @returns {ModeUIElements} The replacement mode UI
  */
-export function updateModeUIWithCommands(instance, previous, modes, currentMode, modeColumn, guidanceColumn) {
+export function updateModeUIWithCommands(instance, previous, modes, currentMode, modeColumn) {
   // Recreate mode UI with command buttons now that modes are available
   modeColumn.removeChild(previous.modesContainer)
-  guidanceColumn.removeChild(previous.guidancePanel)
 
-  const tempContainer2 = document.createElement('div')
-  const modeUIWithButtons = createModeSwitchingUI(tempContainer2, instance.state, (/** @type {ModeType} */ mode) => instance._switchMode(mode), modes)
+  const armed = instance.state.mode
+  const modeUIWithButtons = createModeSwitchingUI(modeColumn, armed, (/** @type {ModeType} */ mode) => instance._switchMode(mode), modes)
 
-  // Add updated mode UI back to appropriate columns
-  modeColumn.appendChild(modeUIWithButtons.modesContainer)
-  guidanceColumn.appendChild(modeUIWithButtons.guidancePanel)
-
-  // Set initial guidance content after recreating the panel
-  const guidanceContent = currentMode.getGuidanceText()
-  updateGuidancePanel(modeUIWithButtons.guidancePanel, guidanceContent)
+  // The guidance column outlives the rail — it is built once by the layout —
+  // so this pass only has to say which mode it is describing.
+  showGuidanceForMode(instance, currentMode)
+  applyGuidanceCollapsed(instance)
 
   return modeUIWithButtons
 }
@@ -94,7 +80,8 @@ export function setupSpectrogramIfAvailable(instance) {
   // Set up spectrogram image if we have one from config extraction. An
   // audio-sourced instance carries its audio URL here and is set up by
   // `player/audioSetup.js` from the constructor instead (spec 168).
-  if (instance.state.imageDetails.url && !instance.state.player.active) {
-    setupSpectrogramImage(instance, instance.state.imageDetails.url)
+  const { imageDetails, player } = instance.state
+  if (imageDetails.url && !player.active) {
+    setupSpectrogramImage(instance, imageDetails.url)
   }
 }

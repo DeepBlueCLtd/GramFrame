@@ -123,6 +123,51 @@ export function clampViewTop(instance, seconds) {
 }
 
 /**
+ * Bring a time into view, if it is not already there.
+ *
+ * A recording is one tall gram scrolled through a window a few tens of seconds
+ * high, so a feature placed ten minutes in is, most of the time, simply not on
+ * screen. Selecting its row in the annotation table then lit up a row, wrote
+ * two readouts and pointed the style panel at something the analyst could not
+ * see. This is the missing half of that: the view goes where the selection is.
+ *
+ * Only when paused. While playing, the follow loop owns `viewTop` and would
+ * undo this on the next frame — and annotation is inert anyway, so there is no
+ * selection being made to follow.
+ *
+ * Only when the time is off screen. Scrolling a feature that is already visible
+ * into the middle of the view would move the gram under the analyst's eye every
+ * time they clicked a row, which is the opposite of what looking at a row is
+ * for.
+ *
+ * It moves the view, never the playhead: this is a pan, and pressing play after
+ * it resumes from where the audio actually is. Dragging the gram is the gesture
+ * that means "play from here".
+ * @param {GramFrame} instance - GramFrame instance
+ * @param {number} seconds - The time to show
+ * @returns {boolean} True when the view moved
+ */
+export function revealTime(instance, seconds) {
+  if (!isPlayerActive(instance) || isPlaying(instance) || !Number.isFinite(seconds)) {
+    return false
+  }
+  const player = playerOf(instance)
+  const window = visibleWindowSeconds(instance)
+  // The top edge is the newest time, so the view spans backwards from it.
+  if (seconds <= player.viewTop && seconds >= player.viewTop - window) {
+    return false
+  }
+  const target = clampViewTop(instance, seconds + window / 2)
+  if (target === player.viewTop) {
+    return false
+  }
+  player.viewTop = target
+  applyView(instance)
+  dispatch(instance)
+  return true
+}
+
+/**
  * Redraw the gram, axes and features for the current `viewTop`/`playhead`.
  * @param {GramFrame} instance - GramFrame instance
  */
