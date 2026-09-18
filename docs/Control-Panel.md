@@ -88,9 +88,15 @@ The stored preference distinguishes all three (`true` / `false` / absent). Were
 ### 3. The cursor readouts
 
 The panel's anchor, and the only part styled as an instrument: recessed ground,
-large monospaced tabular numerals, and a faint bloom on the two readings the
-pointer produces. Doppler speed is fenced off at the foot between two rules at
-half the size, because it is a derived quantity rather than a coordinate.
+monospaced tabular numerals, and a faint bloom on the one reading that is lit.
+
+That reading is the **frequency**. In use it is by far the most important
+number in the panel, and the first pass set time at the same size directly
+above it, so the two competed for the eye and neither was the first read. Now
+frequency is the one large reading, and **time** sits immediately beneath it at
+half the size, captioned, in the same grey as the panel's labels rather than
+in ink. Doppler speed is fenced off at the foot between two rules at that same
+second rank, because it is a derived quantity rather than a coordinate.
 
 The column has two targets, named by its kicker:
 

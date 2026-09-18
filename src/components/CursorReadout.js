@@ -1,10 +1,14 @@
 /**
  * The instrument face: the numbers the panel is anchored on.
  *
- * Three readouts in a recessed column — time, frequency, and the doppler speed
- * pinned to the foot — set large, monospaced and tabular so a digit never
- * shifts sideways as it changes. Everything else in the control row is a
- * control; this is the measurement, and it is styled to look like one.
+ * Three readouts in a recessed column, in two ranks. Frequency is the one
+ * large, lit reading: in use it is by far the most important number in the
+ * panel, and giving time the same size made the two compete for the eye.
+ * Time sits immediately beneath it at half the size in the label grey, and
+ * the doppler speed is pinned to the foot at the same rank. All three are
+ * monospaced and tabular so a digit never shifts sideways as it changes.
+ * Everything else in the control row is a control; this is the measurement,
+ * and it is styled to look like one.
  *
  * The column has two targets, named by its kicker. With nothing selected it
  * follows the pointer over the gram ("CURSOR"). With a feature selected it
@@ -42,26 +46,25 @@ export function createCursorReadout() {
   kicker.textContent = 'Cursor'
   column.appendChild(kicker)
 
-  const timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0), 'MM:SS')
-  column.appendChild(timeLED)
-
-  // A hairline fading out to the right, rather than a full rule: it separates
-  // the two readings without drawing a box around either.
-  const separator = document.createElement('div')
-  separator.className = 'gram-frame-readout-separator'
-  column.appendChild(separator)
-
   const freqLED = createLEDDisplay('Frequency (Hz)', '0.0', 'HZ')
   freqLED.classList.add('gram-frame-led-accent')
   column.appendChild(freqLED)
+
+  // Time is the second-rank reading: directly under the frequency, at half its
+  // size and in the label grey, with its own caption since it no longer has
+  // the size to name itself. It is not fenced like doppler — it belongs with
+  // the frequency, as the other half of the pointer's coordinate.
+  const timeLED = createLEDDisplay('Time (mm:ss)', formatTime(0), 'MM:SS', 'Time')
+  timeLED.classList.add('gram-frame-led-secondary')
+  column.appendChild(timeLED)
 
   const spacer = document.createElement('div')
   spacer.className = 'gram-frame-readout-spacer'
   column.appendChild(spacer)
 
   // Doppler is a derived quantity rather than a coordinate, so it is fenced off
-  // at the foot between two rules and set at half the size — present, but not
-  // competing with the two readings the pointer actually produces.
+  // at the foot between two rules, at the same second rank as time — present,
+  // but not competing with the reading the column exists for.
   //
   // Its accessible name stays the full "Doppler Speed (kts)" while the caption
   // beside the number is the one word there is room for. The gap in that name
@@ -69,7 +72,7 @@ export function createCursorReadout() {
   // the source; Playwright normalises it to a plain space, so the
   // `:text-is("Doppler Speed (kts)")` locators in tests/helpers still match.
   const speedLED = createLEDDisplay('Doppler\u00a0Speed (kts)', '0.0', 'KTS', 'Doppler')
-  speedLED.classList.add('gram-frame-led-inline')
+  speedLED.classList.add('gram-frame-led-secondary', 'gram-frame-led-inline')
   column.appendChild(speedLED)
 
   return { column, timeLED, freqLED, speedLED, kicker }

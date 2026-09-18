@@ -1168,12 +1168,6 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   white-space: nowrap;
 }
 
-.gram-frame-readout-separator {
-  height: 1px;
-  margin: 9px 0;
-  background: linear-gradient(to right, var(--gf-divider), transparent);
-}
-
 .gram-frame-readout-spacer {
   flex: 1;
 }
@@ -1192,7 +1186,8 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   /* The faint bloom is what makes it read as a lit instrument rather than as
-     large text. It is the only glow in the panel, and only on these two. */
+     large text. It is the only glow in the panel, and only the frequency
+     keeps it: the two secondary readings switch it off below. */
   text-shadow: 0 0 18px rgba(247, 247, 250, 0.2);
 }
 
@@ -1214,20 +1209,34 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   text-transform: uppercase;
 }
 
-/* The doppler speed: a derived quantity, so it is fenced off at the foot
-   between two rules and set at half the size of the two readings the pointer
-   itself produces. */
-.gram-frame-led-inline {
+/* The second rank: time and the doppler speed. Half the frequency's size, no
+   bloom, and set in the same grey as the panel's labels rather than in ink,
+   so the frequency is the one reading that is lit. The caption on the left
+   names the row, since at this size the number cannot name itself. */
+.gram-frame-led-secondary {
   flex: none;
+}
+
+.gram-frame-led-secondary .gram-frame-led-value {
+  font-size: 19px;
+  color: var(--gf-muted);
+  text-shadow: none;
+  margin-left: auto;
+}
+
+/* Time sits directly under the frequency, as the other half of the pointer's
+   coordinate; a small gap rather than a rule, so they read as one reading and
+   its qualifier. */
+.gram-frame-led-secondary:not(.gram-frame-led-inline) {
+  margin-top: 6px;
+}
+
+/* The doppler speed is a derived quantity rather than a coordinate, so it is
+   also fenced off at the foot between two rules. */
+.gram-frame-led-inline {
   padding: 9px 0;
   border-top: 1px solid var(--gf-divider);
   border-bottom: 1px solid var(--gf-divider);
-}
-
-.gram-frame-led-inline .gram-frame-led-value {
-  font-size: 19px;
-  text-shadow: none;
-  margin-left: auto;
 }
 
 /* --- Column 4: the style panel ------------------------------------------- */
