@@ -84,13 +84,18 @@ test.describe('Story 4 — pause, annotate, resume', () => {
 
     await page.evaluate(() => window.GramFrame.getPlayer(0).seek(10))
     await gfp.waitForState(s => s.player.viewTop === 10, { message: 'seek to 10 s' })
-    const pos = await page.locator('.gram-frame-analysis-marker circle, .gram-frame-analysis-marker line').first().evaluate(el => {
-      const bb = el.getBoundingClientRect(); const svg = document.querySelector('.gram-frame-svg').getBoundingClientRect()
-      return { y: bb.top + bb.height / 2 - svg.top }
-    })
     // 4 s below the top edge → 320 px (the bounding-box read is border-box
-    // relative, as SVG units are)
-    expect(Math.abs(pos.y - expectedSVG(marker.time, marker.freq, 10).y)).toBeLessThan(6)
+    // relative, as SVG units are). Polled rather than read once: the seek
+    // redraws synchronously, but the media element's own `seeked` event
+    // redraws again a moment later, and a single read landing between the
+    // state settling and that redraw failed the v0.2.1 release run while
+    // passing the same commit everywhere else.
+    const markerY = () => page.locator('.gram-frame-analysis-marker circle, .gram-frame-analysis-marker line').first().evaluate(el => {
+      const bb = el.getBoundingClientRect(); const svg = document.querySelector('.gram-frame-svg').getBoundingClientRect()
+      return bb.top + bb.height / 2 - svg.top
+    })
+    await expect.poll(async () => Math.abs(await markerY() - expectedSVG(marker.time, marker.freq, 10).y),
+      { message: 'the marker to be drawn 4 s below the top edge' }).toBeLessThan(6)
 
     await page.evaluate(() => window.GramFrame.getPlayer(0).seek(14))
     await gfp.waitForState(s => s.player.viewTop === 14, { message: 'seek to 14 s' })
