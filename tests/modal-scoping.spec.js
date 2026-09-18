@@ -14,10 +14,15 @@ import { test, expect } from './helpers/fixtures.js'
  *      pressing Escape left the dialog open.
  *   3. Neither dialog restored focus: after Save or Cancel,
  *      `document.activeElement` was `<body>`.
+ *
+ * The marker-label dialog is gone with the control-row redesign — labels are
+ * edited in the style panel — so the second half of each pair is now the symbol
+ * popup, which is the panel's one remaining overlay and inherits the same three
+ * obligations.
  */
 
 const MANUAL_MODAL = '.gram-frame-manual-harmonic-modal'
-const LABEL_MODAL = '.gram-frame-marker-label-modal'
+const SYMBOL_POPUP = '.gram-frame-symbol-popup'
 const SPACING_INPUT = '.gram-frame-harmonic-spacing-input'
 
 /**
@@ -96,31 +101,30 @@ test.describe('Escape closes a dialog from anywhere in it (R9-08)', () => {
     await expect(page.locator(MANUAL_MODAL)).toHaveCount(0)
   })
 
-  test('the marker label dialog closes on Escape from the Cancel button', async ({ gramFramePage }) => {
+  test('the symbol popup closes on Escape from one of its cells', async ({ gramFramePage }) => {
     const page = gramFramePage.page
-    await gramFramePage.clickMode('Cross Cursor')
-    await gramFramePage.addMarker(30, 50)
-    const state = await gramFramePage.getState()
-    await gramFramePage.openMarkerLabelDialog(state.analysis.markers[0].id)
-    await expect(page.locator(LABEL_MODAL)).toHaveCount(1)
+    await page.locator('.gram-frame-symbol-select').click()
+    await expect(page.locator(SYMBOL_POPUP)).toHaveCount(1)
 
-    await page.locator(`${LABEL_MODAL} .gram-frame-modal-cancel`).focus()
+    // Focus somewhere inside the popup rather than on the button that opened
+    // it — the case that used to trap the analyst in the dialogs.
+    await page.locator('.gram-frame-symbol-cell').first().focus()
     await page.keyboard.press('Escape')
 
-    await expect(page.locator(LABEL_MODAL)).toHaveCount(0)
+    await expect(page.locator(SYMBOL_POPUP)).toHaveCount(0)
   })
 
-  test('Escape while a dialog is open does not also reach the component', async ({ gramFramePage }) => {
-    // The component uses document-level Escape to cancel a drag; the dialog's
+  test('Escape while a popup is open does not also reach the component', async ({ gramFramePage }) => {
+    // The component uses document-level Escape to cancel a drag; the popup's
     // handler stops the event so one keypress cannot do two things.
     const page = gramFramePage.page
     await gramFramePage.clickMode('Cross Cursor')
     await gramFramePage.addMarker(30, 50)
     const before = await gramFramePage.getState()
 
-    await gramFramePage.openMarkerLabelDialog(before.analysis.markers[0].id)
+    await page.locator('.gram-frame-symbol-select').click()
     await page.keyboard.press('Escape')
-    await expect(page.locator(LABEL_MODAL)).toHaveCount(0)
+    await expect(page.locator(SYMBOL_POPUP)).toHaveCount(0)
 
     const after = await gramFramePage.getState()
     expect(after.analysis.markers).toHaveLength(before.analysis.markers.length)
@@ -156,19 +160,15 @@ test.describe('A dialog gives focus back to what opened it (R9-08)', () => {
     expect(focused).toContain('gram-frame-manual-button')
   })
 
-  test('closing the marker label dialog returns focus to the Label button', async ({ gramFramePage }) => {
+  test('closing the symbol popup returns focus to the button that opened it', async ({ gramFramePage }) => {
     const page = gramFramePage.page
-    await gramFramePage.clickMode('Cross Cursor')
-    await gramFramePage.addMarker(30, 50)
-    const state = await gramFramePage.getState()
 
-    await gramFramePage.openMarkerLabelDialog(state.analysis.markers[0].id)
-    await page.locator(`${LABEL_MODAL} .gram-frame-modal-cancel`).click()
+    await page.locator('.gram-frame-symbol-select').click()
+    await expect(page.locator(SYMBOL_POPUP)).toHaveCount(1)
+    await page.keyboard.press('Escape')
+    await expect(page.locator(SYMBOL_POPUP)).toHaveCount(0)
 
-    const focused = await page.evaluate(() => {
-      const el = document.activeElement
-      return { tag: el?.tagName || '', text: el?.textContent || '', cls: el?.className || '' }
-    })
-    expect(focused.tag).toBe('BUTTON')
+    const focused = await page.evaluate(() => document.activeElement?.className || '')
+    expect(focused).toContain('gram-frame-symbol-select')
   })
 })

@@ -120,7 +120,7 @@ test.describe('Storage failures are visible (GF-16)', () => {
    * @param {import('@playwright/test').Page} page
    */
   async function placeMarker(page) {
-    await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').click()
+    await page.locator('.gram-frame-mode-btn[title="Cross Cursor" i]').click()
     await page.locator('.gram-frame-svg').first().click({ position: { x: 200, y: 100 } })
   }
 

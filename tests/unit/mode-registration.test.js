@@ -66,6 +66,12 @@ const FROZEN_INITIAL_STATE = {
     renderHeight: 0
   },
   imageExpanded: false,
+  // Added by the control-row redesign: the guidance column's collapse (chrome,
+  // remembered per user) and the transport's time bookmarks (playback chrome,
+  // in-memory). Both are core keys rather than a mode's, so this is where they
+  // are recorded.
+  guidanceCollapsed: false,
+  bookmarks: [],
   config: {
     timeMin: 0,
     timeMax: 0,
@@ -95,6 +101,9 @@ const FROZEN_INITIAL_STATE = {
     targetType: null,
     startPosition: null
   },
+  // Which of the style panel's twin tabs the style controls act on. It sits
+  // beside `selection` because it qualifies it.
+  styleTarget: 'new',
   selection: {
     selectedType: null,
     selectedId: null,

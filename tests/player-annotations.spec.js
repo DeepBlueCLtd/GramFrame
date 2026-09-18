@@ -226,3 +226,37 @@ test.describe('Story 4 — pause, annotate, resume', () => {
     expect(Math.abs(sample.y1 - expected.y)).toBeLessThan(2)
   })
 })
+
+test.describe('Selecting a feature brings it into view', () => {
+  test('a marker far above the view scrolls back to it, without moving the playhead', async ({ page }) => {
+    const { gfp, marker } = await pauseAndAnnotate(page)
+
+    // Well past the marker: the view spans [15, 20] and the marker sits at 6 s.
+    await page.evaluate(() => window.GramFrame.getPlayer(0)?.seek(20))
+    await gfp.waitForState(s => s.player.viewTop === 20, { message: 'seek to 20 s' })
+
+    await page.locator(`tr[data-marker-id="${marker.id}"]`).click()
+    await gfp.waitForState(s => s.player.viewTop < 20, { message: 'the view to reach the marker' })
+
+    // Half a window above the marker, so it sits mid-view rather than on an edge
+    const state = await gfp.getState()
+    expect(state.player.viewTop).toBeCloseTo(marker.time + WINDOW / 2, 3)
+    // A pan, not a seek: pressing play resumes from where the audio actually is
+    expect(state.player.playhead).toBe(20)
+
+    const drawnY = await page.locator('.gram-frame-analysis-marker')
+      .evaluate(el => /** @type {SVGGraphicsElement} */ (/** @type {unknown} */ (el)).getBBox().y)
+    expect(drawnY).toBeGreaterThan(MARGINS.top)
+    expect(drawnY).toBeLessThan(MARGINS.top + RENDER.height)
+  })
+
+  test('a feature already in view leaves the view alone', async ({ page }) => {
+    const { gfp, marker } = await pauseAndAnnotate(page)
+
+    // The view spans [3, 8]; the marker is at 6 s, well inside it.
+    const before = (await gfp.getState()).player.viewTop
+    await page.locator(`tr[data-marker-id="${marker.id}"]`).click()
+    await gfp.waitForState(s => s.selection.selectedId === marker.id, { message: 'the marker to be selected' })
+    expect((await gfp.getState()).player.viewTop).toBe(before)
+  })
+})

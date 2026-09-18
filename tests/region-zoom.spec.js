@@ -359,8 +359,9 @@ test.describe('Feature 170 — Region zoom', () => {
 
   test.describe('US1 supporting — guidance (FR-016)', () => {
     test('the cross-mode navigation section describes the gesture', async () => {
+      await gfp.showGuidance()
       const text = await gfp.page.locator('.gram-frame-guidance').textContent()
-      expect(text).toContain('Navigation')
+      expect(text).toContain('In every mode')
       expect(text).toMatch(/Shift \+ drag/)
     })
   })

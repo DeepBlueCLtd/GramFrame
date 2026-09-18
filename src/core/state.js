@@ -69,6 +69,16 @@ const initialState = {
   // Whether the image is currently expanded to fill available space.
   // In-memory only, default false, never persisted (independent of feature 155).
   imageExpanded: false,
+  // Whether the per-mode guidance column is collapsed to its 40px rail.
+  //
+  // Chrome, not annotation: it is remembered per user (localStorage) rather
+  // than saved with the gram's markers, so an analyst who works with the rail
+  // closed keeps it closed on the next gram as well as the next visit.
+  guidanceCollapsed: false,
+  // Times an analyst has flagged on the transport's scrub track, oldest first.
+  // Only meaningful on an audio-sourced instance; an empty array everywhere
+  // else, so every listener sees one shape.
+  bookmarks: [],
   config: {
     timeMin: 0,
     timeMax: 0,
@@ -102,6 +112,11 @@ const initialState = {
     targetType: null,
     startPosition: null
   },
+  // Which of the style panel's two targets is armed: the defaults for the next
+  // created feature, or the selected one. In-memory chrome, never persisted;
+  // selecting a feature arms 'selected', clearing or switching mode returns it
+  // to 'new'.
+  styleTarget: 'new',
   // Selection state for keyboard fine control
   selection: {
     selectedType: null,  // 'marker' | 'harmonicSet' | null
