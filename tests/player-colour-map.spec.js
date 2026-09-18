@@ -141,7 +141,11 @@ test.describe('the colour-map radio row', () => {
 
   test('the colour-map config row opens a table in grey or inferno, and the row shows it', async ({ page }) => {
     await page.goto(PAINTING_PAGE)
-    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 5)
+    // Six players, as tests/player-painting.spec.js waits for: the fixture's
+    // seventh table is the deliberately bad one, which never becomes an
+    // instance. Waiting for a count the page only passes through (it was 5,
+    // from before the fixture grew) is a race the page can skip in one frame.
+    await page.waitForFunction(() => window.GramFrame.__test__getInstances().filter(i => i.state.player.ready).length === 6)
 
     const plain = await samplePixels(page, 0)
     const grey = await samplePixels(page, 2)
