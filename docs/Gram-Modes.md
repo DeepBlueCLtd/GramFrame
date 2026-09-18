@@ -174,6 +174,10 @@ on a spectrogram.
 
 - Click and drag to place the f+ and f− markers in one gesture; the curve
   previews during the drag. On release, f+ is the later of the two in time.
+- There is one curve per gram. A drag that starts clear of the markers draws a
+  new curve in place of the old one; a drag that starts on a marker moves it.
+  A press released without moving places nothing and leaves the curve as it
+  was.
 - f₀ is placed automatically at the midpoint and can then be dragged
   independently — dragging f+ or f− leaves it where it is.
 - An S-curve is drawn between f+ and f−, with vertical extensions clipped to the

@@ -460,7 +460,12 @@ There is no visual/screenshot regression testing — see
 - **Harmonics Mode**: Real-time harmonic calculation and display
 - **Sidebands Mode**: A pin set with a user-placed origin — the fundamental —
   with members spread each side of it and labelled by signed offset
-- **Doppler Mode**: Speed calculation from f+/f-/f₀ markers
+- **Doppler Mode**: Speed calculation from f+/f-/f₀ markers. One curve per gram:
+  a drag that starts on a marker moves it, and a drag that starts anywhere else
+  draws a new curve in place of the old one. `isCompleteCurve` in
+  `utils/doppler.js` is the one rule for "there is a curve" — the renderer,
+  the mode's capability predicate and storage all read it, so a lone marker
+  can neither draw, persist nor block a placement
 
 ## Active Technologies
 - Markdown documentation (no code changes) + N/A (documentation-only feature) (154-enrich-docs)

@@ -252,15 +252,27 @@ describe('isAnnotationExpired clock-skew tolerance (BH-33)', () => {
   })
 })
 
-describe('hasPersistableAnnotations covers fZero (BH-32)', () => {
-  it('an fZero-only state is persistable, matching what renders', () => {
+describe('hasPersistableAnnotations follows what renders (BH-32)', () => {
+  it('a complete curve is persistable', () => {
     const state = /** @type {any} */ ({
       analysis: { markers: [] },
       harmonics: { harmonicSets: [] },
       sidebands: { sidebandSets: [] },
-      doppler: { fPlus: null, fMinus: null, fZero: { time: 1, freq: 2 } }
+      doppler: { fPlus: { time: 3, freq: 4 }, fMinus: { time: 1, freq: 2 }, fZero: { time: 2, freq: 3 } }
     })
     expect(hasPersistableAnnotations(state)).toBe(true)
+  })
+
+  it('a lone marker is not: only a complete curve draws, so only one persists', () => {
+    for (const key of ['fPlus', 'fMinus', 'fZero']) {
+      const state = /** @type {any} */ ({
+        analysis: { markers: [] },
+        harmonics: { harmonicSets: [] },
+        sidebands: { sidebandSets: [] },
+        doppler: { fPlus: null, fMinus: null, fZero: null, [key]: { time: 1, freq: 2 } }
+      })
+      expect(hasPersistableAnnotations(state), key).toBe(false)
+    }
   })
 
   it('a sideband set alone is persistable', () => {

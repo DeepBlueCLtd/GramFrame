@@ -414,4 +414,127 @@ test.describe('Doppler Mode', () => {
       expect(state.doppler.previewEnd).toBeNull()
     })
   })
+
+  /**
+   * One curve per gram. Placement used to be offered only while *no* marker
+   * existed, so once any one did — visible or not — a drag away from the
+   * markers was silently ignored and only a right-click got the mode back.
+   * An analyst who was click-dragging saw "nothing happens".
+   */
+  test.describe('One curve per gram: a drag away from the markers replaces it', () => {
+    /**
+     * The curve, without the transient placement geometry.
+     * @param {GramFrameState} state - Component state
+     * @returns {Object} The persisted part of the doppler slice
+     */
+    const curveOf = (state) => {
+      const { fPlus, fMinus, fZero, speed, color } = state.doppler
+      return { fPlus, fMinus, fZero, speed, color }
+    }
+
+    test('a drag that starts clear of an existing curve draws a new one in its place', async ({ gramFramePage }) => {
+      await placeCurve(gramFramePage, [0.2, 0.2], [0.4, 0.4])
+
+      const rect = await gramRect(gramFramePage)
+      const start = pointAt(rect, 0.6, 0.6)
+      const end = pointAt(rect, 0.8, 0.3)
+      await gramFramePage.page.mouse.move(start.x, start.y)
+      await gramFramePage.page.mouse.down()
+      await gramFramePage.page.mouse.move(end.x, end.y, { steps: 5 })
+      await gramFramePage.page.mouse.up()
+
+      const expectedMinus = dataAt(0.6, 0.6)
+      const expectedPlus = dataAt(0.8, 0.3)
+      await gramFramePage.waitForState((state) =>
+        !!state.doppler.fMinus && Math.abs(state.doppler.fMinus.freq - expectedMinus.freq) < 2)
+
+      const state = await gramFramePage.getState()
+      const fPlus = /** @type {DataCoordinates} */ (state.doppler.fPlus)
+      const fMinus = /** @type {DataCoordinates} */ (state.doppler.fMinus)
+      expect(fPlus.freq).toBeCloseTo(expectedPlus.freq, 0)
+      expect(fPlus.time).toBeCloseTo(expectedPlus.time, 0)
+      expect(fMinus.freq).toBeCloseTo(expectedMinus.freq, 0)
+      expect(fMinus.time).toBeCloseTo(expectedMinus.time, 0)
+      expect(state.drag.active).toBe(false)
+      // One curve drawn, not two
+      await expect(gramFramePage.page.locator('.gram-frame-doppler-curve')).toHaveCount(1)
+    })
+
+    test('a press released without moving places nothing', async ({ gramFramePage }) => {
+      const rect = await gramRect(gramFramePage)
+      const p = pointAt(rect, 0.5, 0.5)
+      await gramFramePage.page.mouse.move(p.x, p.y)
+      await gramFramePage.page.mouse.down()
+      await gramFramePage.page.mouse.up()
+
+      const state = await gramFramePage.getState()
+      expect(state.doppler.fPlus).toBeNull()
+      expect(state.doppler.fMinus).toBeNull()
+      expect(state.doppler.fZero).toBeNull()
+      expect(state.drag.active).toBe(false)
+      await expect(gramFramePage.page.locator('.gram-frame-svg [class*="doppler"]')).toHaveCount(0)
+
+      // ...and the next drag places a curve as if nothing had happened
+      const placed = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+      expect(placed.doppler.fZero).not.toBeNull()
+    })
+
+    test('a press released without moving leaves an existing curve as it was', async ({ gramFramePage }) => {
+      const before = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      const rect = await gramRect(gramFramePage)
+      const p = pointAt(rect, 0.8, 0.8)
+      await gramFramePage.page.mouse.move(p.x, p.y)
+      await gramFramePage.page.mouse.down()
+      await gramFramePage.page.mouse.up()
+
+      const after = await gramFramePage.getState()
+      expect(curveOf(after)).toEqual(curveOf(before))
+      await expect(gramFramePage.page.locator('.gram-frame-doppler-curve')).toHaveCount(1)
+    })
+
+    test('Escape during a replacing drag puts the old curve back', async ({ gramFramePage }) => {
+      const before = await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      const rect = await gramRect(gramFramePage)
+      const start = pointAt(rect, 0.8, 0.8)
+      const mid = pointAt(rect, 0.9, 0.6)
+      await gramFramePage.page.mouse.move(start.x, start.y)
+      await gramFramePage.page.mouse.down()
+      await gramFramePage.page.mouse.move(mid.x, mid.y, { steps: 5 })
+      await gramFramePage.page.keyboard.press('Escape')
+      await gramFramePage.page.mouse.up()
+
+      const after = await gramFramePage.getState()
+      expect(after.drag.active).toBe(false)
+      expect(curveOf(after)).toEqual(curveOf(before))
+    })
+
+    test('an incomplete curve restored from storage does not block placement', async ({ gramFramePage }) => {
+      await placeCurve(gramFramePage, [0.3, 0.2], [0.6, 0.7])
+
+      // Damage the saved record to a lone f+ — what a release before any
+      // movement used to leave behind, and what a record with one bad point
+      // still restores as.
+      await gramFramePage.page.evaluate(() => {
+        const key = 'gramframe::' + window.location.pathname
+        const record = JSON.parse(sessionStorage.getItem(key) || '{}')
+        record.doppler.fMinus = null
+        record.doppler.fZero = null
+        sessionStorage.setItem(key, JSON.stringify(record))
+      })
+      await gramFramePage.goto()
+      await gramFramePage.clickMode('Doppler')
+      await gramFramePage.waitForImageDimensions()
+
+      const restored = await gramFramePage.getState()
+      expect(restored.doppler.fPlus).not.toBeNull()
+      expect(restored.doppler.fMinus).toBeNull()
+
+      const placed = await placeCurve(gramFramePage, [0.6, 0.6], [0.8, 0.3])
+      expect(placed.doppler.fMinus).not.toBeNull()
+      expect(placed.doppler.fZero).not.toBeNull()
+      await expect(gramFramePage.page.locator('.gram-frame-doppler-curve')).toHaveCount(1)
+    })
+  })
 })

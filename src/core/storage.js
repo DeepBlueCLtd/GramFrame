@@ -32,6 +32,7 @@
 /// <reference path="../types.js" />
 
 import { normalizeMarkerLabel } from '../utils/markerLabel.js'
+import { isCompleteCurve } from '../utils/doppler.js'
 
 /** @type {number} */
 const SCHEMA_VERSION = 1
@@ -274,9 +275,8 @@ export function savePinPreference(showPin) {
  * failed write is worth telling the analyst about: with nothing annotated,
  * there is nothing to lose yet.
  *
- * Checks all three doppler markers, matching the mode's own
- * `hasPersistentFeatures` predicate: an fZero-only state renders, so it must
- * also persist rather than deleting the storage key on save (BH-32).
+ * A doppler curve counts only when complete (`isCompleteCurve`), matching the
+ * mode's own `hasPersistentFeatures` and what renders (BH-32, corrected).
  * @param {GramFrameState} state - Current component state
  * @returns {boolean} True when at least one annotation exists
  */
@@ -284,7 +284,7 @@ export function hasPersistableAnnotations(state) {
   const hasMarkers = !!(state.analysis && state.analysis.markers && state.analysis.markers.length > 0)
   const hasHarmonics = !!(state.harmonics && state.harmonics.harmonicSets && state.harmonics.harmonicSets.length > 0)
   const hasSidebands = !!(state.sidebands && state.sidebands.sidebandSets && state.sidebands.sidebandSets.length > 0)
-  const hasDoppler = !!(state.doppler && (state.doppler.fPlus !== null || state.doppler.fMinus !== null || state.doppler.fZero !== null))
+  const hasDoppler = isCompleteCurve(state.doppler)
   return hasMarkers || hasHarmonics || hasSidebands || hasDoppler
 }
 

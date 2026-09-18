@@ -3,17 +3,18 @@ import { setLEDValue } from '../../components/LEDDisplay.js'
 import { updateLEDDisplays } from '../../components/UIComponents.js'
 import { dispatch, markAnnotationsChanged, recordDopplerDeletion } from '../../core/state.js'
 // Rendering imports removed - no display element
-import { calculateDopplerSpeed, calculateMidpoint, MS_TO_KNOTS } from '../../utils/doppler.js'
+import { calculateDopplerSpeed, calculateMidpoint, isCompleteCurve, snapshotCurve, replacedCurveOf, MS_TO_KNOTS } from '../../utils/doppler.js'
 import { dataToSVG } from '../../utils/coordinates.js'
 import { BaseDragHandler } from '../shared/BaseDragHandler.js'
 import { getUniformTolerance, isWithinDataTolerance, findClosestTarget } from '../../utils/tolerance.js'
 import { IDLE_CURSOR } from '../../utils/cursors.js'
+/** @typedef {import('../../utils/doppler.js').DopplerCurveSnapshot} DopplerCurveSnapshot */
 
 // Doppler marker types
 /** @type {Record<DopplerDraggedMarker, DopplerDraggedMarker>} */
 const DopplerDraggedMarker = {
   fPlus: 'fPlus',
-  fMinus: 'fMinus', 
+  fMinus: 'fMinus',
   fZero: 'fZero'
 }
 
@@ -124,7 +125,7 @@ export class DopplerMode extends BaseMode {
    */
   onMarkerDragEnd(target, _position) {
     if (target && target.kind === 'place') {
-      this.completeMarkerPlacement()
+      this.completeMarkerPlacement(replacedCurveOf(target))
     }
     // Nothing else to unwind: the engine clears the drag record itself.
   }
@@ -135,39 +136,26 @@ export class DopplerMode extends BaseMode {
    * Cancel and end used to share one callback, so a cancelled placement —
    * mode switch or Escape mid-gesture — *committed* the half-placed f⁺/f⁻
    * curve the user thought was discarded (BH-9). A cancelled placement now
-   * discards the markers it seeded; a cancelled move leaves the marker at its
-   * last position, like the other modes.
+   * puts back the curve it was replacing (or clears what it seeded); a
+   * cancelled move leaves the marker at its last position, like the other modes.
    * @param {DragTarget} target - Drag target from the engine
    */
   onMarkerDragCancel(target) {
     if (target && target.kind === 'place') {
-      const doppler = this.instance.state.doppler
-      doppler.fPlus = null
-      doppler.fMinus = null
-      doppler.fZero = null
-      doppler.speed = null
-      doppler.tempFirst = null
-      doppler.previewEnd = null
-      this.updateSpeedLED()
-      this.renderDopplerFeatures()
-      dispatch(this.instance, { frame: true })
+      this.restoreCurve(replacedCurveOf(target))
     }
   }
 
   /**
-   * Resolve what a mousedown in doppler mode starts: moving one of the placed
-   * markers, or — with nothing placed yet — laying down f+ and dragging out f-.
+   * Resolve what a mousedown in doppler mode starts: moving the placed marker
+   * under the pointer, or — anywhere else — laying down f+ and dragging out f-,
+   * replacing whatever curve there was. Placement used to be offered only while
+   * *no* marker existed, so once one did every drag clear of it was ignored.
    * @param {DataCoordinates} position - Position of the mousedown
-   * @returns {DragTarget|null} A move- or place-kind target
+   * @returns {DragTarget} A move- or place-kind target
    */
   resolveDopplerDrag(position) {
-    const doppler = this.instance.state.doppler
-
-    if (doppler.fPlus || doppler.fMinus || doppler.fZero) {
-      return this.findDopplerMarkerAtPosition(position)
-    }
-
-    return this.startMarkerPlacement(position)
+    return this.findDopplerMarkerAtPosition(position) || this.startMarkerPlacement(position)
   }
 
   /**
@@ -175,21 +163,27 @@ export class DopplerMode extends BaseMode {
    * rest of the placement is an ordinary drag with f- following the pointer.
    *
    * `tempFirst` and `previewEnd` stay on state.doppler: they are placement
-   * geometry the renderer needs, not drag bookkeeping (data-model.md §2).
+   * geometry the renderer needs, not drag bookkeeping (data-model.md §2). The
+   * curve being replaced rides on the target, so a cancelled or moveless
+   * placement can put it back.
    * @param {DataCoordinates} dataCoords - Data coordinates {freq, time}
    * @returns {DragTarget} A place-kind target
    */
   startMarkerPlacement(dataCoords) {
     const doppler = this.instance.state.doppler
+    const replaced = snapshotCurve(doppler)
 
-    // Immediately set f+ at the current position
+    // Immediately set f+ at the current position. The old curve's colour goes
+    // with it: this is a new curve, and takes the colour currently selected.
     doppler.fPlus = { time: dataCoords.time, freq: dataCoords.freq }
+    Object.assign(doppler, { fMinus: null, fZero: null, speed: null, color: null })
 
     // f- will follow the mouse from here
     doppler.tempFirst = doppler.fPlus
     doppler.previewEnd = { time: dataCoords.time, freq: dataCoords.freq }
 
     // Render initial curve preview
+    this.updateSpeedLED()
     this.renderDopplerFeatures()
 
     return {
@@ -197,19 +191,34 @@ export class DopplerMode extends BaseMode {
       id: DopplerDraggedMarker.fMinus,
       type: 'dopplerMarker',
       position: dataCoords,
-      data: { markerType: DopplerDraggedMarker.fMinus }
+      data: { markerType: DopplerDraggedMarker.fMinus, replaced }
     }
   }
 
   /**
-   * Finalise a placement drag: order the markers, derive f₀, and clear the
-   * placement geometry.
+   * Put back the curve a placement was replacing, or with none to put back
+   * clear what it seeded. The state is what it was before the press either
+   * way, so nothing is marked changed.
+   * @param {DopplerCurveSnapshot|null} replaced - The curve to restore, or null
    */
-  completeMarkerPlacement() {
+  restoreCurve(replaced) {
+    const empty = { fPlus: null, fMinus: null, fZero: null, speed: null, color: null }
+    Object.assign(this.instance.state.doppler, replaced || empty, { tempFirst: null, previewEnd: null })
+    this.updateSpeedLED()
+    this.renderDopplerFeatures()
+    dispatch(this.instance, { frame: true })
+  }
+
+  /**
+   * Finalise a placement drag: order the markers, derive f₀, and clear the
+   * placement geometry. A release before any movement is a click, not a curve,
+   * and restores what was there: it used to leave an invisible f+ behind.
+   * @param {DopplerCurveSnapshot|null} replaced - The curve the placement replaced
+   */
+  completeMarkerPlacement(replaced) {
     const doppler = this.instance.state.doppler
     if (!doppler.tempFirst || !doppler.fPlus || !doppler.fMinus) {
-      doppler.tempFirst = null
-      doppler.previewEnd = null
+      this.restoreCurve(replaced)
       return
     }
 
@@ -248,7 +257,7 @@ export class DopplerMode extends BaseMode {
       title: 'Doppler Mode',
       items: [
         'Click & drag to place markers for f+ and f-',
-        'Drag markers to adjust positions',
+        'Drag markers to adjust positions; a drag that starts clear of them draws a new curve',
         'f₀ marker shows automatically at the midpoint',
         'Right-click to reset all markers'
       ]
@@ -396,14 +405,7 @@ export class DopplerMode extends BaseMode {
    * Reset doppler-specific state
    */
   resetState() {
-    const doppler = this.instance.state.doppler
-    doppler.fPlus = null
-    doppler.fMinus = null
-    doppler.fZero = null
-    doppler.speed = null
-    doppler.color = null
-    doppler.tempFirst = null
-    doppler.previewEnd = null
+    this.restoreCurve(null)
     this.dragHandler.reset()
     // Deleting the curve is an annotation mutation: masked today by the
     // signature's doppler identity fields, but the mark is the contract (BH-24).
@@ -711,11 +713,10 @@ export class DopplerMode extends BaseMode {
    * Half of the `PersistentFeatureProvider` capability. Lived on
    * `FeatureRenderer` as `hasDopplerFeatures()` until spec 167 moved it onto
    * the mode that owns the state it reads.
-   * @returns {boolean} True if any doppler marker has been placed
+   * @returns {boolean} True if a complete doppler curve has been placed
    */
   hasPersistentFeatures() {
-    const doppler = this.instance.state.doppler
-    return !!(doppler && (doppler.fPlus || doppler.fMinus || doppler.fZero))
+    return isCompleteCurve(this.instance.state.doppler)
   }
 
   /**
