@@ -144,22 +144,33 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
   test.describe('US4 — Guidance', () => {
     const guidance = () => gfp.page.locator('.gram-frame-guidance')
 
-    test('Pan mode (the initial mode) shows Navigation and Pan Mode sections', async () => {
-      // Default mode is Pan, so its guidance is shown on load.
+    test('Pan mode (the initial mode) carries the cross-mode gestures too', async () => {
+      // Default mode is Pan, so its guidance is shown on load. Its own lines
+      // come first — the column's header names the armed mode — and the
+      // gestures that work everywhere follow under their own heading.
+      await gfp.showGuidance()
       const text = await guidance().textContent()
-      expect(text).toContain('Navigation')
-      expect(text).toContain('Pan Mode')
+      expect(text).toContain('In every mode')
       expect(text).toContain('Ctrl')
-      expect(text?.toLowerCase()).toContain('available in all modes')
-      expect(text?.toLowerCase()).toContain('scroll to pan')
+      expect(text?.toLowerCase()).toContain('to pan when zoomed in')
       expect(text?.toLowerCase()).toContain('wheel-button drag')
+      // The header names Pan; the body no longer repeats it.
+      await expect(gfp.page.locator('.gram-frame-guidance-title')).toHaveText('Pan')
     })
 
-    test('other modes do not repeat the wheel guidance', async () => {
+    test('other modes carry the wheel guidance too', async () => {
+      // They used to be Pan's alone, because Pan is the initial mode and the
+      // old panel had room for them nowhere else — so an analyst who armed
+      // Cross Cursor first never learnt them. The redesigned column has the
+      // height, and they work in every mode, so every mode says so.
+      await gfp.showGuidance()
       await gfp.clickMode('Cross Cursor')
       const text = await guidance().textContent()
-      expect(text).not.toContain('Navigation')
-      expect(text?.toLowerCase()).not.toContain('wheel-button drag')
+      expect(text).toContain('In every mode')
+      expect(text?.toLowerCase()).toContain('wheel-button drag')
+      // Under the mode's own lines, not instead of them.
+      await expect(gfp.page.locator('.gram-frame-guidance-title')).toHaveText('Cross Cursor')
+      expect(text?.toLowerCase()).toContain('to add a persistent cross')
     })
   })
 
@@ -172,6 +183,93 @@ test.describe('Feature 160 — Mouse-wheel pan and zoom', () => {
 
       await gfp.clickMode('Pan')
       expect((await gfp.getState()).mode).toBe('pan')
+    })
+  })
+
+  test.describe('Zoom anchoring — the point under the pointer', () => {
+    /** Half a percent of the debug gram's 0-100 Hz / 0-60 s span. */
+    const FREQ_TOLERANCE = 0.5
+    const TIME_TOLERANCE = 0.3
+
+    /**
+     * The data under an SVG point, read the way an analyst sees it — by putting
+     * the pointer there and looking at the readout.
+     * @param {number} x - X coordinate relative to the SVG
+     * @param {number} y - Y coordinate relative to the SVG
+     * @returns {Promise<{freq: number, time: number}>} The data under that point
+     */
+    const dataUnder = async (x, y) => {
+      await gfp.moveMouse(x, y)
+      const { cursorPosition } = await gfp.getState()
+      if (!cursorPosition) {
+        throw new Error('dataUnder: the pointer is not over the gram')
+      }
+      return cursorPosition
+    }
+
+    test('a second Ctrl+scroll elsewhere holds the gram under the pointer', async () => {
+      // The aim of a wheel zoom is that the thing being looked at stays where
+      // it is. From 1x that is free, so the bug only ever showed on the second
+      // notch: zoom once here, move the pointer, and zoom again there.
+      const first = await gfp.imageSVGPoint(0.3, 0.3)
+      await gfp.wheelAtSVG(first.x, first.y, -100, true)
+
+      const second = await gfp.imageSVGPoint(0.7, 0.6)
+      const before = await dataUnder(second.x, second.y)
+
+      await gfp.wheelAtSVG(second.x, second.y, -100, true)
+
+      // Away and back, so the return is a real pointer move.
+      await gfp.moveMouse(first.x, first.y)
+      const after = await dataUnder(second.x, second.y)
+
+      expect(Math.abs(after.freq - before.freq)).toBeLessThan(FREQ_TOLERANCE)
+      expect(Math.abs(after.time - before.time)).toBeLessThan(TIME_TOLERANCE)
+    })
+
+    test('four notches in on a drifting hand still end up where they started', async () => {
+      // A hand on a wheel does not hold still, and each notch must hold the
+      // gram under wherever the pointer has got to. Notching at one fixed pixel
+      // would pass under the old rule too, because there the pointer happens to
+      // sit on the anchor.
+      const p = await gfp.imageSVGPoint(0.65, 0.35)
+      const before = await dataUnder(p.x, p.y)
+
+      for (const drift of [0, 6, -4, 9]) {
+        await gfp.wheelAtSVG(p.x + drift, p.y + drift, -100, true)
+      }
+      expect((await gfp.getState()).zoom.level).toBeGreaterThan(2.0)
+
+      await gfp.moveMouse(p.x - 40, p.y - 20)
+      const after = await dataUnder(p.x, p.y)
+
+      expect(Math.abs(after.freq - before.freq)).toBeLessThan(FREQ_TOLERANCE)
+      expect(Math.abs(after.time - before.time)).toBeLessThan(TIME_TOLERANCE)
+    })
+
+    test('the +/- buttons hold the middle of the view, not the wheel anchor', async () => {
+      // The buttons are pressed off the gram, so there is no pointer to follow:
+      // what they must not do is drag the view towards wherever the wheel last
+      // zoomed, press by press.
+      const p = await gfp.imageSVGPoint(0.2, 0.2)
+      await gfp.wheelAtSVG(p.x, p.y, -100, true)
+      await gfp.clickMode('Pan')
+
+      const mid = async () => {
+        const r = await gfp.visibleDataRange()
+        return { freq: (r.freqMin + r.freqMax) / 2, time: (r.timeMin + r.timeMax) / 2 }
+      }
+      const before = await mid()
+
+      await gfp.page.locator('.gram-frame-command-btn[title="Zoom In"]').click()
+      const afterIn = await mid()
+      expect(Math.abs(afterIn.freq - before.freq)).toBeLessThan(FREQ_TOLERANCE)
+      expect(Math.abs(afterIn.time - before.time)).toBeLessThan(TIME_TOLERANCE)
+
+      await gfp.page.locator('.gram-frame-command-btn[title="Zoom Out"]').click()
+      const afterOut = await mid()
+      expect(Math.abs(afterOut.freq - before.freq)).toBeLessThan(FREQ_TOLERANCE)
+      expect(Math.abs(afterOut.time - before.time)).toBeLessThan(TIME_TOLERANCE)
     })
   })
 

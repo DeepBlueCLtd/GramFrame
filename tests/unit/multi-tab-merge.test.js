@@ -23,6 +23,15 @@ import { mergeStoredAnnotations } from '../../src/core/storage.js'
 const noTombstones = () => ({ markers: {}, harmonicSets: {}, sidebandSets: {}, doppler: null })
 
 /**
+ * The clock every case runs under unless it says otherwise: midday on the day
+ * the fixtures are dated. `mergeStoredAnnotations` defaults `now` to the wall
+ * clock, and a tombstone older than the TTL is forgotten -- so a case dated
+ * 2026-09-05 that left `now` to the wall clock passed until 2026-09-12 and
+ * failed every day after. Pinned here, once, so the fixtures never age.
+ */
+const NOW = Date.parse('2026-09-05T12:00:00.000Z')
+
+/**
  * The ids in a list of features, sorted -- what most of these cases assert.
  * @param {any[]} features - Markers or pin sets
  * @returns {string[]} Their ids, sorted
@@ -38,13 +47,11 @@ const ids = features => features.map((/** @type {any} */ f) => f.id).sort()
  * guarded at each of the fifty-odd reads below (R9-10, issue #262).
  * @param {any} mine - What this tab would write
  * @param {any} theirs - What is already stored
- * @param {number} [now] - Current epoch milliseconds, for tombstone pruning
+ * @param {number} [now=NOW] - Current epoch milliseconds, for tombstone pruning
  * @returns {any} The merged record
  */
-function merge(mine, theirs, now = undefined) {
-  const merged = now === undefined
-    ? mergeStoredAnnotations(mine, theirs)
-    : mergeStoredAnnotations(mine, theirs, now)
+function merge(mine, theirs, now = NOW) {
+  const merged = mergeStoredAnnotations(mine, theirs, now)
   expect(merged).not.toBeNull()
   return merged
 }

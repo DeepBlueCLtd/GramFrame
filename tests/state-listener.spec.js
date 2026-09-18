@@ -294,7 +294,7 @@ test.describe('Notifications are batched (spec 166, US4)', () => {
     await page.locator('.gram-frame-container').waitFor({ timeout: 10000 })
 
     // Place one annotation so there is something that *could* be re-saved
-    await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').click()
+    await page.locator('.gram-frame-mode-btn[title="Cross Cursor" i]').click()
     await page.locator('.gram-frame-svg').click({ position: { x: 200, y: 150 } })
     await expect
       .poll(async () => page.evaluate(() => {

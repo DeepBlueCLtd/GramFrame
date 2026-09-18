@@ -11,6 +11,7 @@ import { renderAxes } from '../rendering/axes.js'
 import { updateCommandButtonStates, updateModeButtonStates } from '../components/ModeButtons.js'
 import { dispatch } from './state.js'
 import { screenToSVG, imageToData, getRenderDimensions } from '../utils/coordinates.js'
+import { anchorHoldingPoint, anchorForCentre, viewCentre } from '../utils/zoomAnchor.js'
 import { refreshExpandedLayout } from '../components/ExpandToggle.js'
 import { isPlayerActive, clampViewTop, visibleWindowSeconds } from '../player/playerView.js'
 
@@ -55,9 +56,12 @@ export function zoomOut(instance) {
 }
 
 /**
- * Change the zoom level keeping the centre of the view where it is.
+ * Change the zoom level keeping the centre of the view where it is — what the
+ * `+`/`−` buttons do, having no pointer on the gram to follow. The centre is
+ * read off the current anchor and re-solved into an anchor for the new level;
+ * passing `zoom.centerX/Y` through unchanged held the *anchor* still instead,
+ * letting the middle creep towards it press by press.
  *
- * For an image the centre is `zoom.centerX/Y`, which `setZoom` already keeps.
  * For an audio-sourced gram the vertical position is a time, not a centre
  * fraction (spec 168, D7): the time at the middle of the view is held and the
  * top edge recomputed from the new window height (D11).
@@ -66,6 +70,10 @@ export function zoomOut(instance) {
  */
 function zoomAboutViewCentre(instance, newLevel) {
   const { zoom, player } = instance.state
+  // What is in the middle of the view now, before the level changes under it.
+  const centreX = viewCentre(zoom.centerX, zoom.level)
+  const centreY = viewCentre(zoom.centerY, zoom.level)
+
   if (isPlayerActive(instance)) {
     const centreTime = player.viewTop - visibleWindowSeconds(instance) / 2
     zoom.level = newLevel
@@ -81,7 +89,9 @@ function zoomAboutViewCentre(instance, newLevel) {
     return
   }
 
-  setZoom(instance, newLevel, zoom.centerX, zoom.centerY)
+  // A player's vertical position is `viewTop`, set above; its anchor stays 0.5.
+  const anchorY = isPlayerActive(instance) ? 0.5 : anchorForCentre(centreY, newLevel)
+  setZoom(instance, newLevel, anchorForCentre(centreX, newLevel), anchorY)
 }
 
 /**
@@ -174,10 +184,18 @@ export function panByNormalized(instance, deltaX, deltaY) {
 }
 
 /**
- * Zoom by a multiplicative factor, centred on a point given in image render-pixel
- * space (e.g. the `imageX`/`imageY` returned by the events coordinate helper). The
- * point under the cursor becomes the zoom anchor. Clamped to the 1.0-10.0 range;
- * a no-op at the limit. Returning to level 1 recentres the view.
+ * Zoom by a multiplicative factor about a point in image render-pixel space
+ * (the `imageX`/`imageY` of the events coordinate helper) — the wheel zoom,
+ * where that point is the gram under the pointer and the whole purpose is that
+ * it does not move.
+ *
+ * Holding it still is a solve for the anchor ({@link anchorHoldingPoint}), not
+ * an assignment to it: `centerX/Y` is the point kept at its *unzoomed* screen
+ * position, so assigning the pointer's point snapped it back there — right from
+ * 1×, a lurch on every notch after. At the gram's edge the clamp wins and the
+ * point drifts, rather than blank space showing beside it.
+ *
+ * Clamped to the 1.0-10.0 range; a no-op at the limit. Level 1 recentres.
  * @param {GramFrame} instance - GramFrame instance
  * @param {number} factor - Multiplicative zoom factor (>1 zooms in, <1 zooms out)
  * @param {number} imageX - Pointer X in render-pixel space (0..renderWidth)
@@ -185,15 +203,13 @@ export function panByNormalized(instance, deltaX, deltaY) {
  */
 export function zoomAtImagePoint(instance, factor, imageX, imageY) {
   const state = instance.state
-  const { zoom, player, imageDetails } = state
+  const { zoom, player } = state
   const currentLevel = zoom.level
   const newLevel = Math.max(MIN_ZOOM, Math.min(currentLevel * factor, MAX_ZOOM))
   if (newLevel === currentLevel) {
     return // Already at the min/max limit
   }
-  const { naturalWidth, naturalHeight } = imageDetails
-  const renderWidth = imageDetails.renderWidth || naturalWidth
-  const renderHeight = imageDetails.renderHeight || naturalHeight
+  const { renderWidth, renderHeight } = getRenderDimensions(state)
 
   if (isPlayerActive(instance)) {
     // Hold the time under the pointer at the same fraction of the view while
@@ -202,8 +218,7 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
     const fraction = (player.viewTop - pointerTime) / visibleWindowSeconds(instance)
     zoom.level = newLevel
     player.viewTop = clampViewTop(instance, pointerTime + fraction * visibleWindowSeconds(instance))
-    const centerX = newLevel <= MIN_ZOOM ? 0.5 : Math.max(0, Math.min(1, imageX / renderWidth))
-    setZoom(instance, newLevel, centerX, 0.5)
+    setZoom(instance, newLevel, anchorHoldingPoint(imageX / renderWidth, zoom.centerX, currentLevel, newLevel), 0.5)
     return
   }
 
@@ -211,9 +226,12 @@ export function zoomAtImagePoint(instance, factor, imageX, imageY) {
     fitView(instance)
     return
   }
-  const centerX = Math.max(0, Math.min(1, imageX / renderWidth))
-  const centerY = Math.max(0, Math.min(1, imageY / renderHeight))
-  setZoom(instance, newLevel, centerX, centerY)
+  setZoom(
+    instance,
+    newLevel,
+    anchorHoldingPoint(imageX / renderWidth, zoom.centerX, currentLevel, newLevel),
+    anchorHoldingPoint(imageY / renderHeight, zoom.centerY, currentLevel, newLevel)
+  )
 }
 
 /**
@@ -269,24 +287,6 @@ export function zoomToRegion(instance, region) {
   setZoom(instance, level, anchorForCentre(centreX, level), anchorForCentre(centreY, level))
 }
 
-/**
- * The zoom anchor that puts a given normalised image position at the centre of
- * the visible area.
- *
- * At level L the view spans 1/L of the image starting at `anchor · (1 − 1/L)`,
- * so wanting `centre` in the middle fixes the anchor. Clamped to [0, 1] — the
- * range that keeps the view inside the image, as `panByNormalized` does.
- * @param {number} centre - Desired centre, normalized (0-1) against the base render size
- * @param {number} level - Target zoom level
- * @returns {number} Anchor for `setZoom`
- */
-function anchorForCentre(centre, level) {
-  if (level <= MIN_ZOOM) {
-    return 0.5
-  }
-  const visibleFraction = 1 / level
-  return Math.max(0, Math.min(1, (centre - visibleFraction / 2) / (1 - visibleFraction)))
-}
 
 /**
  * Show the whole gram again: the Fit button (spec 170, FR-014), and the

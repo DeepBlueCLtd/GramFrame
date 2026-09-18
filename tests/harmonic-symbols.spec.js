@@ -54,12 +54,13 @@ test.describe('US1: Symbols on harmonic pins', () => {
   })
 
   // T004
-  test('symbol drop-down is present and offers the catalogue shapes', async ({ gramFramePage }) => {
-    const select = gramFramePage.page.locator('.gram-frame-symbol-select')
-    await expect(select).toBeVisible()
+  test('the symbol popup is reachable and offers the catalogue shapes', async ({ gramFramePage }) => {
+    const button = gramFramePage.page.locator('.gram-frame-symbol-select')
+    await expect(button).toBeVisible()
 
-    const values = await select.locator('option').evaluateAll(
-      (opts) => opts.map((o) => /** @type {HTMLOptionElement} */ (o).value)
+    await button.click()
+    const values = await gramFramePage.page.locator('.gram-frame-symbol-cell').evaluateAll(
+      (cells) => cells.map((c) => c.getAttribute('data-symbol'))
     )
     for (const symbol of CATALOGUE) {
       expect(values).toContain(symbol)
@@ -184,8 +185,8 @@ test.describe('US2: Symbols persist across reload', () => {
     await waitForFixtureReady(page)
 
     // Select a distinctive symbol and create a harmonic set
-    await page.locator('.gram-frame-mode-btn:text("Harmonics")').click()
-    await page.locator('.gram-frame-symbol-select').selectOption('triangle')
+    await page.locator('.gram-frame-mode-btn[title="Harmonics" i]').click()
+    await gfp.selectSymbol('triangle')
     const setId = await gfp.addHarmonicSet(5, 100)
 
     const before = await getStateFromPage(page)

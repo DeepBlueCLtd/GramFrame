@@ -254,12 +254,11 @@ export class DopplerMode extends BaseMode {
    */
   getGuidanceText() {
     return {
-      title: 'Doppler Mode',
       items: [
-        'Click & drag to place markers for f+ and f-',
-        'Drag markers to adjust positions; a drag that starts clear of them draws a new curve',
-        'f₀ marker shows automatically at the midpoint',
-        'Right-click to reset all markers'
+        { trigger: 'Click & drag', outcome: 'to place f+ and f\u2212 in one gesture; the curve previews during the drag. A drag that starts clear of the markers draws a new curve in place of the old one' },
+        { trigger: 'Drag f+ or f\u2212', outcome: 'to adjust; f\u2080 can be dragged independently' },
+        { trigger: 'f\u2080 marker', outcome: 'is placed automatically at the midpoint' },
+        { trigger: 'Right-click', outcome: 'to reset all doppler markers' }
       ]
     }
   }

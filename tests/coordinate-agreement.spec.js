@@ -184,7 +184,7 @@ test.describe('One coordinate pipeline: expand does not move a data point', () =
       message: 'the image to be measured'
     })
 
-    await page.locator('.gram-frame-mode-btn:text("Cross Cursor")').click()
+    await page.locator('.gram-frame-mode-btn[title="Cross Cursor" i]').click()
     await gfp.waitForMode('analysis')
     const centre = await gfp.imageSVGPoint(0.5, 0.5)
     await gfp.clickSpectrogram(centre.x, centre.y)

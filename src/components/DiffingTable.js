@@ -18,6 +18,8 @@
 
 /// <reference path="../types.js" />
 
+import { revealTableRow } from './tableScroll.js'
+
 /**
  * Create a diffing table inside `container`.
  *
@@ -168,6 +170,40 @@ export function createDiffingTable(container, spec) {
   }
 
   /**
+   * The instructional line shown in place of rows when there are none.
+   *
+   * An empty table used to be an empty rectangle, which says only that nothing
+   * is there — not what to do about it. The line is a row of the table rather
+   * than a sibling of it so it scrolls, aligns and disappears with the rest,
+   * and it is only built when a consumer supplies the words.
+   * @type {HTMLTableRowElement|null}
+   */
+  let emptyRow = null
+
+  /**
+   * Show or hide the empty-state line.
+   * @param {boolean} empty - Whether there are no rows
+   */
+  function setEmptyState(empty) {
+    if (!spec.emptyMessage) {
+      return
+    }
+    if (!emptyRow) {
+      emptyRow = document.createElement('tr')
+      emptyRow.className = 'gram-frame-table-empty'
+      const cell = document.createElement('td')
+      cell.colSpan = spec.columns.length
+      cell.textContent = spec.emptyMessage
+      emptyRow.appendChild(cell)
+    }
+    if (empty) {
+      tbody.appendChild(emptyRow)
+    } else if (emptyRow.parentNode) {
+      emptyRow.remove()
+    }
+  }
+
+  /**
    * Bring the rendered rows into line with `currentRows`.
    *
    * Update in place while the keys agree; at the first disagreement rebuild the
@@ -175,6 +211,7 @@ export function createDiffingTable(container, spec) {
    * data. Idempotent: an update that changes nothing performs no DOM writes.
    */
   function applyDiff() {
+    setEmptyState(false)
     const existing = tbody.querySelectorAll('tr')
 
     for (let index = 0; index < currentRows.length; index++) {
@@ -193,45 +230,6 @@ export function createDiffingTable(container, spec) {
     // Trailing rows whose data is gone
     for (let i = currentRows.length; i < existing.length; i++) {
       existing[i].remove()
-    }
-  }
-
-  /**
-   * Scroll the row at `index` into view, if it is outside the visible band.
-   *
-   * Sets `scrollTop` on the scroll wrapper rather than calling
-   * `Element.scrollIntoView`, which would also scroll every scrollable ancestor
-   * — including the host page — to bring the table into view. A new marker
-   * should move the table's own scrollbar and nothing else.
-   *
-   * The scroll is minimal, and never happens at all when the row is already
-   * visible: the wrapper is then left exactly where the user put it. Upward
-   * scrolling is opt-in (`allowUpward`) because an *addition* only ever appears
-   * below the fold, whereas a *selection* can be anywhere in the list.
-   * @param {number} index - Index of the row to reveal
-   * @param {boolean} [allowUpward] - Also scroll up for a row above the fold
-   */
-  function revealRow(index, allowUpward = false) {
-    const tr = /** @type {HTMLElement|undefined} */ (tbody.children[index])
-    if (!tr) return
-
-    // offsetTop is measured against the wrapper, which is the nearest
-    // positioned ancestor (it is absolutely positioned over the table area).
-    const bottom = tr.offsetTop + tr.offsetHeight - wrapper.clientHeight
-    if (bottom > wrapper.scrollTop) {
-      wrapper.scrollTop = bottom
-      return
-    }
-
-    if (!allowUpward) return
-
-    // The header is sticky at the top of the scrollport, so it floats over the
-    // first rows of the scrolled body: scrolling to the row's own offsetTop
-    // would park it underneath the header rather than beside it.
-    const headerCell = /** @type {HTMLElement|null} */ (headerRow.firstElementChild)
-    const top = tr.offsetTop - (headerCell ? headerCell.offsetHeight : 0)
-    if (top < wrapper.scrollTop) {
-      wrapper.scrollTop = Math.max(0, top)
     }
   }
 
@@ -298,6 +296,7 @@ export function createDiffingTable(container, spec) {
 
       const keys = currentRows.map((row, index) => spec.rowKey(row, index))
       applyDiff()
+      setEmptyState(currentRows.length === 0)
 
       // Keep the last row that wasn't there before in view. Adding a marker
       // when the list has already overflowed otherwise appends it out of sight,
@@ -309,7 +308,7 @@ export function createDiffingTable(container, spec) {
         }
       }
       if (renderedKeys.size > 0 && lastAdded !== -1) {
-        revealRow(lastAdded)
+        revealTableRow(wrapper, headerRow, tbody, lastAdded)
       }
 
       // Keep a newly selected row in view too. Selecting a feature on the gram
@@ -320,7 +319,7 @@ export function createDiffingTable(container, spec) {
       const selectedIndex = isSelected ? keys.findIndex(key => isSelected(key)) : -1
       const selectedKey = selectedIndex === -1 ? null : keys[selectedIndex]
       if (renderedKeys.size > 0 && selectedKey !== null && selectedKey !== renderedSelectedKey) {
-        revealRow(selectedIndex, true)
+        revealTableRow(wrapper, headerRow, tbody, selectedIndex, true)
       }
 
       renderedKeys = new Set(keys)

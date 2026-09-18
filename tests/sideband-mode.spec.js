@@ -180,21 +180,30 @@ test.describe('Sidebands mode', () => {
   })
 
   test('the whole control row fits the component, with nothing cut off', async ({ gramFramePage }) => {
-    // Every column is at or near its minimum now that four tables share the row,
-    // so this is the guard against the next thing added to it silently pushing
-    // the sidebands table off the end.
+    // Measured on the laid-out row rather than on a `width: min-content` clone.
+    // The redesigned row is deliberately elastic — the tables give up width
+    // first, and past a point the guidance column collapses itself to its rail
+    // — so its min-content width is larger than the space it needs and says
+    // nothing about whether anything is actually cut off. What matters is that
+    // every column ends inside the row, and that the row itself never scrolls.
     const fits = await gramFramePage.page.evaluate(() => {
-      const layout = document.querySelector('.gram-frame-unified-layout')
-      const probe = document.createElement('div')
-      probe.style.cssText = 'position:absolute;visibility:hidden;left:-9999px;width:min-content'
-      probe.appendChild(layout.cloneNode(true))
-      document.body.appendChild(probe)
-      const minContent = Math.round(probe.firstChild.getBoundingClientRect().width)
-      probe.remove()
-      return { minContent, available: Math.round(layout.getBoundingClientRect().width) }
+      const layout = /** @type {HTMLElement} */ (document.querySelector('.gram-frame-unified-layout'))
+      const row = layout.getBoundingClientRect()
+      const overflow = Array.from(layout.children).map((child) => {
+        const box = child.getBoundingClientRect()
+        return Math.round(box.right - row.right)
+      })
+      return {
+        worstOverflow: Math.max(...overflow),
+        scrolls: layout.scrollWidth > layout.clientWidth + 1,
+        columns: layout.children.length
+      }
     })
-    expect(fits.minContent, `row needs ${fits.minContent}px, has ${fits.available}px`)
-      .toBeLessThanOrEqual(fits.available)
+    // Five columns: the mode rail, guidance, readouts, style and the tables.
+    expect(fits.columns).toBe(5)
+    expect(fits.worstOverflow, `a column overflows the row by ${fits.worstOverflow}px`)
+      .toBeLessThanOrEqual(1)
+    expect(fits.scrolls, 'the control row scrolls horizontally').toBe(false)
   })
 
   test('a set appears in the table and can be deleted from it', async ({ gramFramePage }) => {

@@ -73,15 +73,17 @@ describe('the roster is the only place the mode list is written (R9-12)', () => 
     expect(factory).toContain('MODE_NAMES.map(name =>')
   })
 
-  test('an icon replaces a mode button’s face, never its name', () => {
-    // Pan's button shows a hand (issue #310), but "Pan" is still what the mode
-    // is called everywhere it is spoken or read: the button's accessible name,
-    // and any readout of the current mode.
+  test('a mode’s icon rides beside its name, never instead of it', () => {
+    // Every mode carries a glyph in the rail, and every mode is still called by
+    // its word everywhere it is spoken or read: the button's accessible name,
+    // and any readout of the current mode. A mode the roster does not know has
+    // no glyph, which is what lets a caller ask for one unconditionally.
     expect(getModeIcon('pan')).toBe('hand')
     expect(getModeDisplayName('pan')).toBe('Pan')
-    // The other four are words, and say so by having no icon at all.
     expect(['analysis', 'harmonics', 'sideband', 'doppler'].map(getModeIcon))
-      .toEqual([undefined, undefined, undefined, undefined])
+      .toEqual(['cross-cursor', 'harmonics', 'sidebands', 'doppler'])
+    expect(['analysis', 'harmonics', 'sideband', 'doppler'].map(getModeDisplayName))
+      .toEqual(['Cross Cursor', 'Harmonics', 'Sidebands', 'Doppler'])
     expect(getModeIcon('waterfall')).toBeUndefined()
   })
 
