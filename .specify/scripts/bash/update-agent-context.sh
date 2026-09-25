@@ -218,6 +218,51 @@ parse_plan_data() {
     fi
 }
 
+# The fact an Active Technologies entry states, with everything that is not
+# the fact removed: the leading "- ", case, spacing and punctuation. Two
+# entries with the same normalised text are the same entry.
+normalise_tech_entry() {
+    printf '%s' "${1#- }" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]'
+}
+
+# Does the Active Technologies section of $2 already state $1? Existing
+# entries carry a "(branch)" suffix the candidate does not, so the test is
+# "an existing entry begins with the candidate", both normalised.
+tech_section_has() {
+    local wanted
+    wanted=$(normalise_tech_entry "$1")
+    [[ -z "$wanted" ]] && return 0
+    local in_section=false line
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" == "## Active Technologies" ]]; then
+            in_section=true
+            continue
+        fi
+        if [[ $in_section == true ]] && [[ "$line" =~ ^##[[:space:]] ]]; then
+            break
+        fi
+        if [[ $in_section == true ]] && [[ "$line" == "- "* ]]; then
+            [[ "$(normalise_tech_entry "$line")" == "$wanted"* ]] && return 0
+        fi
+    done < "$2"
+    return 1
+}
+
+# A Storage line that says there is none ("N/A", "None", "Unchanged — …") is
+# not a technology, whatever follows the dash.
+is_real_storage() {
+    local value="$1"
+    [[ -n "$value" ]] || return 1
+    case "$value" in
+        "NEEDS CLARIFICATION"*) return 1 ;;
+    esac
+    shopt -s nocasematch
+    local reject=0
+    [[ "$value" =~ ^(n/a|none|unchanged)([^[:alnum:]]|$) ]] && reject=1
+    shopt -u nocasematch
+    [[ $reject -eq 0 ]]
+}
+
 format_technology_stack() {
     local lang="$1"
     local framework="$2"
@@ -400,20 +445,28 @@ update_existing_agent_file() {
     local new_tech_entries=()
     local new_change_entry=""
     
-    # Prepare new technology entries
-    if [[ -n "$tech_stack" ]] && ! grep -q "$tech_stack" "$target_file"; then
+    # Prepare new technology entries. An entry is the fact it states, not its
+    # spelling: "JavaScript (ES2020+)" and "javascript es2020+" are the same
+    # entry, so the comparison is on the normalised text and ignores the
+    # "(branch)" suffix. The old exact-substring grep added a line for every
+    # rewording, and CLAUDE.md collected fifteen copies of one stack.
+    if [[ -n "$tech_stack" ]] && ! tech_section_has "$tech_stack" "$target_file"; then
         new_tech_entries+=("- $tech_stack ($CURRENT_BRANCH)")
     fi
-    
-    if [[ -n "$NEW_DB" ]] && [[ "$NEW_DB" != "N/A" ]] && [[ "$NEW_DB" != "NEEDS CLARIFICATION" ]] && ! grep -q "$NEW_DB" "$target_file"; then
+
+    if is_real_storage "$NEW_DB" && ! tech_section_has "$NEW_DB" "$target_file"; then
         new_tech_entries+=("- $NEW_DB ($CURRENT_BRANCH)")
     fi
-    
-    # Prepare new change entry
-    if [[ -n "$tech_stack" ]]; then
-        new_change_entry="- $CURRENT_BRANCH: Added $tech_stack"
-    elif [[ -n "$NEW_DB" ]] && [[ "$NEW_DB" != "N/A" ]] && [[ "$NEW_DB" != "NEEDS CLARIFICATION" ]]; then
-        new_change_entry="- $CURRENT_BRANCH: Added $NEW_DB"
+
+    # Prepare new change entry, only when the feature added a technology:
+    # a plan that restates the stack has nothing to record, and recording
+    # it anyway would evict a hand-written entry from the three kept.
+    if [[ ${#new_tech_entries[@]} -gt 0 ]]; then
+        if [[ -n "$tech_stack" ]]; then
+            new_change_entry="- $CURRENT_BRANCH: Added $tech_stack"
+        else
+            new_change_entry="- $CURRENT_BRANCH: Added $NEW_DB"
+        fi
     fi
     
     # Check if sections exist in the file
@@ -434,6 +487,7 @@ update_existing_agent_file() {
     local tech_entries_added=false
     local changes_entries_added=false
     local existing_changes_count=0
+    local current_change_kept=true
     local file_ended=false
     
     while IFS= read -r line || [[ -n "$line" ]]; do
@@ -443,14 +497,15 @@ update_existing_agent_file() {
             in_tech_section=true
             continue
         elif [[ $in_tech_section == true ]] && [[ "$line" =~ ^##[[:space:]] ]]; then
-            # Add new tech entries before closing the section
+            # Add new tech entries before closing the section. The heading
+            # that closes it is not consumed here: it may be "## Recent
+            # Changes", which the branch below must still see, or that
+            # section is never trimmed when the two sit together.
             if [[ $tech_entries_added == false ]] && [[ ${#new_tech_entries[@]} -gt 0 ]]; then
                 printf '%s\n' "${new_tech_entries[@]}" >> "$temp_file"
                 tech_entries_added=true
             fi
-            echo "$line" >> "$temp_file"
             in_tech_section=false
-            continue
         elif [[ $in_tech_section == true ]] && [[ -z "$line" ]]; then
             # Add new tech entries before empty line in tech section
             if [[ $tech_entries_added == false ]] && [[ ${#new_tech_entries[@]} -gt 0 ]]; then
@@ -476,11 +531,24 @@ update_existing_agent_file() {
             in_changes_section=false
             continue
         elif [[ $in_changes_section == true ]] && [[ "$line" == "- "* ]]; then
-            # Keep only first 2 existing changes
-            if [[ $existing_changes_count -lt 2 ]]; then
+            # The section keeps three entries: the new one plus the first two
+            # existing, or the first three when nothing was added. An entry
+            # may wrap onto indented continuation lines; they follow their
+            # entry's fate, or a dropped entry would leave its tail behind.
+            local keep_existing=3
+            [[ -n "$new_change_entry" ]] && keep_existing=2
+            if [[ $existing_changes_count -lt $keep_existing ]]; then
                 echo "$line" >> "$temp_file"
-                ((existing_changes_count++))
+                # Not `((count++))`: with the count at zero that evaluates to
+                # 0, which `set -e` reads as failure and exits the script.
+                existing_changes_count=$((existing_changes_count + 1))
+                current_change_kept=true
+            else
+                current_change_kept=false
             fi
+            continue
+        elif [[ $in_changes_section == true ]] && [[ -n "$line" ]]; then
+            [[ $current_change_kept == true ]] && echo "$line" >> "$temp_file"
             continue
         fi
         

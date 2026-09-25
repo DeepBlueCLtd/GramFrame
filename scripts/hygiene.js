@@ -304,6 +304,49 @@ if (existsSync(coverageSummaryPath)) {
   console.log('\u2022 Uncovered lines: no coverage summary found - run `yarn coverage` to include this check')
 }
 
+// --- 9. Restated entries in CLAUDE.md's Active Technologies -----------------
+
+// `/speckit.plan` appends the plan's Technical Context to this section through
+// `.specify/scripts/bash/update-agent-context.sh`. Until the script compared
+// entries by their normalised text, every rewording of the same stack added a
+// line, and by feature 167 the section said "JavaScript, no runtime deps, Vite"
+// fifteen ways. The script now dedupes and the plan template states the
+// constants verbatim; this check is what fails the build if either regresses.
+//
+// An entry's key is its text lower-cased, letters and digits only. The script
+// tags what it appends with a "(branch)" suffix, so two entries are one fact
+// stated twice when either key begins with the other — the same rule the
+// script applies before appending. An entry that says there is nothing to
+// state ("N/A", "None", "Unchanged") is counted too: it is not a technology.
+const claudeMd = readFileSync(join(repoRoot, 'CLAUDE.md'), 'utf8').split('\n')
+const techStart = claudeMd.indexOf('## Active Technologies')
+const techEntries = []
+for (let i = techStart + 1; techStart >= 0 && i < claudeMd.length; i++) {
+  if (/^##\s/.test(claudeMd[i])) break
+  if (claudeMd[i].startsWith('- ')) techEntries.push(claudeMd[i].slice(2))
+}
+/** @param {string} entry */
+const techKey = entry => entry.toLowerCase().replace(/[^a-z0-9]/g, '')
+const restatedTech = []
+/** @type {{key: string, entry: string}[]} */
+const seenTech = []
+for (const entry of techEntries) {
+  if (/^(n\/a|none|unchanged)(?![a-z0-9])/i.test(entry)) {
+    restatedTech.push(`states nothing: "${entry}"`)
+    continue
+  }
+  const key = techKey(entry)
+  const earlier = seenTech.find(seen => seen.key.startsWith(key) || key.startsWith(seen.key))
+  if (earlier) restatedTech.push(`restates "${earlier.entry}": "${entry}"`)
+  else seenTech.push({ key, entry })
+}
+results.push({
+  name: 'Active Technologies entries in CLAUDE.md that restate another or state nothing',
+  baseline: 0,
+  current: restatedTech.length,
+  detail: restatedTech,
+})
+
 // --- Report -----------------------------------------------------------------
 
 let failed = false

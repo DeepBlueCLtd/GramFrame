@@ -153,6 +153,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
   - `selectionTarget.js` - What is selected, described: its name, its time, the
     frequency it is about. A leaf, so the readout column and the player can both
     ask without a cycle back through `selection.js`
+  - `pointerScope.js` - Which pointer events reach the active mode: is the
+    pointer over the gram? A marker has to land on the gram, so an off-image
+    press is dropped and a running drag is cancelled — except when panning an
+    audio-sourced gram, where scrolling to the start of a recording *means*
+    bringing blank space into view
   - `wheelPan.js` - The middle-button pan, as a drag on the shared engine. Split
     from `events.js`, which owns *which* gesture happens rather than how each
     one behaves
@@ -222,6 +227,10 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     do to it (arm, rename, delete, describe)
   - `ColorPicker.js` - The colour slider: the one colour control in the panel
   - `SymbolPicker.js` - The symbol button and its popup, plus the size trial
+  - `SymbolSizeTrial.js` - TEMPORARY: the symbol-size trial, in the symbol popup
+    rather than the main panel — a choice between the current symbol size and a
+    larger one, so analysts can compare the two on a real gram. Routes like the
+    colour slider: the targeted feature only, else the next created one
   - `Segmented.js` - The shared two-option segmented control
   - `PinToggle.js` - Tall pins or mini, for the next created pin set or the
     selected one
@@ -407,9 +416,15 @@ There is no visual/screenshot regression testing — see
   without a cap must stay under the default — so a new module cannot grow past
   the line and then be grandfathered in. Shrink one by ten lines or more and
   `yarn hygiene` asks you to lower its cap in the same PR (issue #265)
+- The `## Active Technologies` and `## Recent Changes` sections at the foot of
+  this file are written by `.specify/scripts/bash/update-agent-context.sh` when
+  `/speckit.plan` runs. It dedupes entries by their normalised text and records
+  a change only when a feature adds a technology, and `yarn hygiene` fails an
+  entry that restates another — so a plan states the template's constants
+  verbatim rather than rewording them
 - Build output is unminified for field debugging (`minify: false` in vite.config.js)
 - TypeScript checking with JSDoc annotations (no TypeScript compilation).
-  `strict: true` with **no** per-flag disables since spec 167 — `noImplicitAny`,
+  `strict: true` with **no** per-flag disables — `noImplicitAny`,
   `strictNullChecks` and `strictPropertyInitialization` are all in force, so an
   unguarded `querySelector(...).classList` fails `yarn typecheck` (ADR-007)
 - The version is injected from package.json by a Vite define; no build or test
@@ -482,7 +497,7 @@ There is no visual/screenshot regression testing — see
   `utils/coordinates.js` reads the live element bounds, so nothing else changes
 - The whole gram is drawn from load (spec 171, FR-005): `clampViewTop` is bounded
   by the duration, the image clip is the axes area, and nothing asks whether a
-  time has been played before drawing at it — `isTimeRevealed` is gone
+  time has been played before drawing at it
 - While playing, `core/events.js` and `keyboardControl.js` hold **annotation**
   inert (spec 171, FR-017); a press-and-drag is a drag-seek instead
   (`player/dragSeek.js`: pause under the hand, resume from the released view,
@@ -520,10 +535,10 @@ There is no visual/screenshot regression testing — see
   selection. (`contain`, not `cover`; cropping what was deliberately framed is
   the wrong way for a measurement tool to fail.) The overlay draws that
   resulting view as a second dashed outline, so what you draw is still what you
-  get plus a stated remainder. The dimming stays on the **selection**: it
-  followed the dashed view at first, but a mask that is a different shape from
-  the box under the pointer reads as a second thing moving, and the box being
-  drawn is the one being aimed. It clamps at 10× rather
+  get plus a stated remainder. The dimming stays on the **selection**, not on
+  the dashed view: a mask that is a different shape from the box under the
+  pointer reads as a second thing moving, and the box being drawn is the one
+  being aimed. It clamps at 10× rather
   than refusing — visibly, since the preview is capped by the same limit — and
   a release over the axis margins completes it, deliberately unlike a feature
   drag, which is cancelled off-image, because selecting to the very edge is a
@@ -548,8 +563,7 @@ There is no visual/screenshot regression testing — see
   `getSelectedFeature` in `core/featureStyle.js`, decides what a colour click
   actually does, so the tab and the behaviour cannot disagree
 - **Marker labels** are edited in the style panel, in a field beside the same
-  marker's colour and symbol. The per-row dialog is gone; clearing the field
-  removes the label
+  marker's colour and symbol; clearing the field removes the label
 - **Analysis Mode**: Persistent draggable markers whose grab region follows exactly
   what is drawn — a symbol marker has no crosshair arms to grab (issue #273) — with
   cross-mode visibility and optional
@@ -566,22 +580,8 @@ There is no visual/screenshot regression testing — see
   can neither draw, persist nor block a placement
 
 ## Active Technologies
-- Markdown documentation (no code changes) + N/A (documentation-only feature) (154-enrich-docs)
-- JavaScript (ES2020+, JSDoc-typed, no compilation) + None (zero runtime dependencies, Vite for build) (155-browser-storage)
-- Browser Web Storage API (localStorage / sessionStorage) (155-browser-storage)
-- JavaScript (ES2020+), JSDoc-typed, no compilation + None at runtime (zero runtime deps); Vite for build (156-expand-image-toggle)
-- N/A — expand state is in-memory only (explicitly NOT browser storage) (156-expand-image-toggle)
-- JavaScript (ES2020+), JSDoc-typed, no compilation step + None at runtime (zero runtime dependencies); Vite for build (157-student-tonal-expiry)
-- Browser Web Storage API — `sessionStorage` (student), `localStorage` (trainer) (157-student-tonal-expiry)
-- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (157-harmonic-pin-symbols)
-- Browser Web Storage (localStorage for trainers / sessionStorage for students) (157-harmonic-pin-symbols)
-- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (158-harmonic-pin-sampling)
-- N/A — purely presentational; no persisted data or new state (158-harmonic-pin-sampling)
-- JavaScript ES2020+, JSDoc-typed (no TS compilation) + None at runtime (zero runtime deps); Vite for build (161-reformat-markers-harmonics)
-- Browser Web Storage — additive `symbol` field on markers; `cross` (symbol-less) default; no schema bump (161-reformat-markers-harmonics)
-- JavaScript ES2020+, JSDoc-typed, no TypeScript compilation + None at runtime (zero runtime deps); Vite 5 for build (166-consolidation)
-- Unchanged — Web Storage (`localStorage` trainer / `sessionStorage` student) (166-consolidation)
-- Unchanged — Web Storage (`localStorage` trainer / `sessionStorage` student). No persisted-shape change in this phase. (167-structural-refactor)
+- JavaScript (ES2020+), JSDoc-typed, no compilation step + None at runtime (zero runtime dependencies); Vite 5 for build
+- Browser Web Storage — `localStorage` (trainer) / `sessionStorage` (student)
 
 ## Recent Changes
 - 172-control-panel: The upper control panel rebuilt to the design handoff — five hairline-separated columns, a mode rail with the view controls in its foot, a permanent collapsible guidance column, instrument-styled readouts, a twin-tab style panel that states its target, inverted selected rows, and a transport bar with time bookmarks
@@ -594,10 +594,3 @@ There is no visual/screenshot regression testing — see
   frequency, per-bin over time), incoherent frame averaging, and the display
   percentiles — all four exposed as config rows and as toggles on `trial/index.html`,
   so an analyst can judge them against a legacy display on their own recording
-- 171-player-refinements: The whole gram from load (the reveal rule withdrawn), contrast controls, drag-to-seek and zoom while playing, a 0.25–4 rate ladder with explicit pitch, oversize recordings degraded rather than refused, and a polite transport live region
-- 170-region-zoom: Shift-drag a box to zoom into it, in every mode, plus a Fit button and a live aspect-locked selection overlay
-- 167-structural-refactor: Planned Phase 3 — strict type gate burn-down (540 errors), state⇄modes decoupling, table.js split, capability seams, shrunk instance surface
-- 166-consolidation: Planned Phase 2 consolidation — one coordinate pipeline, one drag engine, batched notifications, one diffing table, deterministic tests
-- 165-quick-fixes: Truthful published state and loud failures, dead-code sweep, docs corrected against the code
-- 161-reformat-markers-harmonics: Added a `cross` (symbol-less) default style and in-place restyling of selected markers/harmonic sets (colour + symbol)
-- 154-enrich-docs: Added Markdown documentation (no code changes) + N/A (documentation-only feature)
