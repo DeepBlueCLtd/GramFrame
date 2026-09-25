@@ -1,14 +1,24 @@
 <!-- Sync Impact Report
-  Version change: 0.0.0 → 1.0.0 (initial ratification)
-  Modified principles: N/A (initial)
-  Added sections: Core Principles (4), Technical Constraints, Quality Gates, Governance
-  Removed sections: PRINCIPLE_5 placeholder (reduced to 4 principles)
+  Version change: 1.0.0 → 1.0.1 (corrections of fact, from the 2026-09 prompt audit)
+  Modified principles:
+    - III. Modular Mode Architecture — names all five modes (Pan and Sidebands
+      were missing) and points at modeRoster.js as the one list
+    - IV. Declarative HTML Configuration — the first row holds the source: an
+      <img>, or the <audio> element of an audio-sourced instance (spec 168)
+  Modified sections: Quality Gates — the list CI actually runs (lint, hygiene,
+    coverage, smoke, standalone build, bundle floor, site checks), not three of it
+  Added sections: none
+  Removed sections: none
   Templates requiring updates:
-    - .specify/templates/plan-template.md ✅ no changes needed (Constitution Check section is generic)
+    - .specify/templates/plan-template.md ✅ updated in the same change (Technical
+      Context and Source Code now state the repository's constants)
     - .specify/templates/spec-template.md ✅ no changes needed
     - .specify/templates/tasks-template.md ✅ no changes needed
     - .specify/templates/checklist-template.md ✅ no changes needed
   Follow-up TODOs: none
+
+  1.0.0 (2026-03-26): initial ratification — Core Principles (4), Technical
+  Constraints, Quality Gates, Governance.
 -->
 
 # GramFrame Constitution
@@ -45,7 +55,8 @@ coordinate, event, or rendering regressions.
 
 ### III. Modular Mode Architecture
 
-Each interaction mode (Analysis, Harmonics, Doppler) MUST extend `BaseMode`.
+Each interaction mode — Pan, Analysis, Harmonics, Sidebands and Doppler, with
+`src/modes/modeRoster.js` as the one list — MUST extend `BaseMode`.
 New modes MUST be registered via `ModeFactory`. Modes MUST NOT directly
 depend on each other.
 
@@ -65,7 +76,8 @@ GramFrame instances MUST be configured via HTML tables with class `gram-config`.
 The component auto-discovers and replaces these tables on `DOMContentLoaded`.
 
 - Configuration MUST be parsed from 2-column table rows (`parameter | value`)
-- The first row MUST contain the spectrogram `<img>` element
+- The first row MUST hold the source: the spectrogram `<img>`, or the `<audio>`
+  element of an audio-sourced instance (spec 168)
 - JavaScript object configuration MUST NOT be required for basic usage
 - Multiple independent instances on a single page MUST be supported
 
@@ -87,8 +99,13 @@ existing deployments rely on this contract.
 All of the following MUST pass before any merge to main:
 
 1. `yarn typecheck` — zero errors
-2. `yarn test` — all Playwright tests green
-3. `yarn build` — clean production build
+2. `yarn lint` and `yarn hygiene` — the lint rules and the debt ratchets
+3. `yarn coverage` — the Vitest unit lane, with coverage
+4. `yarn test` — all Playwright tests green, plus the WebKit smoke config
+5. `yarn build`, `yarn build:standalone` and `yarn check:bundle-floor` — clean
+   builds inside the bundle floor
+6. `yarn build:site` and `yarn check:site` — no dead local link, no page
+   unreachable from `index.html`
 
 ## Governance
 
@@ -101,4 +118,4 @@ Amendments require:
 3. Update to the Sync Impact Report at the top of this file
 4. Propagation check across `.specify/templates/` for consistency
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-03-26
+**Version**: 1.0.1 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-09-25

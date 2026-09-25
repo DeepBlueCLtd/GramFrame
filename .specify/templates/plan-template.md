@@ -17,15 +17,20 @@
   the iteration process.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: JavaScript (ES2020+), JSDoc-typed, no compilation step
+**Primary Dependencies**: None at runtime (zero runtime dependencies); Vite 5 for build
+**Storage**: Browser Web Storage — `localStorage` (trainer) / `sessionStorage` (student)
+**Testing**: Playwright (`yarn test`) and Vitest (`yarn test:unit`)
+**Target Platform**: Evergreen browsers, including pages served over `file://`
+**Project Type**: Library — a single-bundle browser component
+**Performance Goals**: [feature-specific, or N/A]
+**Constraints**: [feature-specific, e.g. no new runtime dependency; module caps in `hygiene-baseline.json`]
+**Scale/Scope**: [feature-specific, or N/A]
+
+The first six lines are the repository's constants. Restate them verbatim unless
+this feature changes one, so the agent context file collects one entry rather
+than a differently worded copy per feature. A feature that stores nothing says
+`N/A` for Storage; the context script records nothing for that.
 
 ## Constitution Check
 
@@ -48,51 +53,24 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+├── main.js, index.js     # the GramFrame class and the entry point
+├── core/                 # state, events, viewport, configuration, storage, selection
+├── modes/                # one directory per mode; shared/ holds the drag engine and pin sets
+├── components/           # the control row, tables, panels, transport bar
+├── rendering/            # axes, symbols, labels, overlays — draw only, never dispatch
+├── audio/ and player/    # the audio-sourced instance: decode → analyse → paint, and playback
+└── utils/                # coordinates, geometry, formatting — pure functions
 
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+tests/            # Playwright specs; helpers/, unit/ (Vitest), smoke/ (WebKit), fixtures/
+sample/, demo/    # sample pages, and the demo pages at their published paths
+docs/ADRs/        # architecture decisions
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: [Which of these directories this feature touches, and
+any new module — each new module also needs its `CLAUDE.md` file-list entry]
 
 ## Complexity Tracking
 
