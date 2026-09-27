@@ -12,7 +12,7 @@ handoffs:
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+The user's input above, when present, shapes everything that follows.
 
 ## Outline
 
