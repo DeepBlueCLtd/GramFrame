@@ -187,7 +187,7 @@ dark-on-white one does, which is the whole point of a plate over a halo. It is a
 threaded through the renderers, because selection changes far more often than
 the features do.
 
-The sidebands column carries a footer holding **Clear all annotations**, on
+The sidebands column carries a footer holding **Clear all**, on
 every page. It was trainer-only, on the reasoning that a student's work expires
 overnight anyway — but "it will be gone tomorrow" is no answer to a student who
 has mislabelled a gram and wants to start the exercise again today. Clearing is
