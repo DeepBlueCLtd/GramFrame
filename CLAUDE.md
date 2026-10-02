@@ -251,6 +251,13 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     config table. Nothing else — its five other responsibilities were split out
     (ADR-018), and it is imported by exactly one module, `DOMSetup.js`
   - `spectrogramImage.js` - Spectrogram image load and scaling
+  - `imageSizing.js` - How big an image gram is drawn (issue #345), by the
+    optional `image-sizing` row: `screen` (the default: one image pixel per
+    screen pixel, shrunk to the room), `native` (one per CSS pixel, shrunk to
+    the room) or `legacy` (one per CSS pixel, capped at 1200). Measures the room
+    and refits on resize; the arithmetic is `utils/imageFit.js`. Under `screen`
+    and `native` every image gram gets the expand toggle, portrait snippets
+    included (`expandsAnyShape`)
   - `svgLayout.js` - SVG layout, viewBox and zoom-transform application
 - `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
   - `regionOverlay.js` - The region-zoom rubber band, the dashed outline of the
@@ -291,6 +298,7 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     under the mouse (the wheel), hold the middle of the view (the `+`/`−`
     buttons). Pure, so "the gram under the pointer does not move" is pinned as a
     property across levels rather than by one browser drag
+  - `imageFit.js` - The size an image-backed gram is drawn at, per sizing
   - `doppler.js` - Doppler-specific calculations
   - `harmonicSampling.js` - Pin sampling for dense harmonic sets
   - `markerLabel.js` - Marker label normalisation and table abbreviation

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image sizing trial - issue #345</title>
+  <link rel="stylesheet" href="../../src/gramframe.css" />
+  <script>window.GRAMFRAME_DEBUG = true</script>
+  <script type="module" src="../../src/main.js"></script>
+</head>
+<body>
+  <!-- The same 1677-wide gram twice: legacy caps it at 1200 whatever the room,
+       native fits it to the width the component has. -->
+  <table class="gram-config">
+    <tr><td colspan="2"><img src="../../sample/issue-345/gram-large.png" alt="Large"></td></tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>500</td></tr>
+    <tr><td>image-sizing</td><td>legacy</td></tr>
+  </table>
+  <table class="gram-config">
+    <tr><td colspan="2"><img src="../../sample/issue-345/gram-large.png" alt="Large"></td></tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>500</td></tr>
+    <tr><td>image-sizing</td><td>native</td></tr>
+  </table>
+  <!-- A portrait snippet: no expand toggle under legacy, one under the trial. -->
+  <table class="gram-config">
+    <tr><td colspan="2"><img src="../../sample/issue-345/gram-snippet.png" alt="Snippet"></td></tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100</td></tr>
+    <tr><td>image-sizing</td><td>legacy</td></tr>
+  </table>
+  <table class="gram-config">
+    <tr><td colspan="2"><img src="../../sample/issue-345/gram-snippet.png" alt="Snippet"></td></tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100</td></tr>
+    <tr><td>image-sizing</td><td>native</td></tr>
+  </table>
+  <table class="gram-config">
+    <tr><td colspan="2"><img src="../../sample/issue-345/gram-snippet.png" alt="Snippet"></td></tr>
+    <tr><td>time-start</td><td>0</td></tr>
+    <tr><td>time-end</td><td>60</td></tr>
+    <tr><td>freq-start</td><td>0</td></tr>
+    <tr><td>freq-end</td><td>100</td></tr>
+    <tr><td>image-sizing</td><td>sideways</td></tr>
+  </table>
+</body>
+</html>

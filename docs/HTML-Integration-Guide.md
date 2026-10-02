@@ -52,6 +52,7 @@ The configuration table uses a 2-column format: `parameter | value`.
 | `time-end` | number | Yes | End time value (top of Y-axis). Must be > `time-start` |
 | `freq-start` | number | Yes | Start frequency value (left of X-axis) |
 | `freq-end` | number | Yes | End frequency value (right of X-axis). Must be > `freq-start` |
+| `image-sizing` | `screen` / `native` / `legacy` | No (default `screen`) | How big the image is drawn. `screen`: one image pixel per screen pixel, so a display scaled to 125% or 150% does not enlarge it. `native`: one image pixel per CSS pixel. Both shrink the image, keeping its shape, only when it would not fit the page's width, and give every gram the expand button. `legacy`: one image pixel per CSS pixel, capped at 1200 wide whatever the room, with the expand button on landscape grams only |
 
 The first row must contain an `<img>` element with the spectrogram image (using `colspan="2"`).
 
@@ -309,7 +310,8 @@ State is deep-copied before being passed to listeners, so you cannot accidentall
 
 ## Expand API
 
-A landscape gram can be expanded to fill the space around it. The toggle is a
+A gram can be expanded to fill the space around it — any gram under the
+default `image-sizing`, landscape grams only under `legacy`. The toggle is a
 button on the component; these two methods drive the same state from a host
 page:
 
@@ -317,7 +319,7 @@ page:
 // Is the first instance currently expanded?
 const expanded = GramFrame.getExpandState()
 
-// Expand (or collapse) every landscape instance on the page
+// Expand (or collapse) every instance on the page that has the toggle
 GramFrame.setExpandState(true)
 ```
 

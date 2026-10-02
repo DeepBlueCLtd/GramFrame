@@ -2,8 +2,10 @@
  * Expand/collapse toggle control for the spectrogram image.
  *
  * A small floating button at the top-left of the image region that expands a
- * landscape gram to fill the available space and restores it. Portrait/square
- * images (verniers) receive no toggle. Expand state is in-memory only.
+ * landscape gram to fill the available space and restores it. Under legacy
+ * sizing, portrait/square images (verniers) receive no toggle; the
+ * default `screen` sizing gives every shape one (issue #345). Expand state is
+ * in-memory only.
  *
  * An audio-sourced gram (spec 168) always gets the toggle: its natural size is
  * bins × frames — portrait, and thousands of rows tall — but it is drawn at a
@@ -17,6 +19,7 @@ import { updateSVGLayout } from './svgLayout.js'
 import { renderAxes } from '../rendering/axes.js'
 import { dispatch } from '../core/state.js'
 import { baseRenderSize, isPlayerActive } from '../player/playerView.js'
+import { expandsAnyShape } from './imageSizing.js'
 
 // Small gap left between the expanded image and the viewport bottom (px).
 const BOTTOM_GAP = 16
@@ -27,9 +30,20 @@ const BOTTOM_GAP = 16
  * @param {GramFrame} instance - GramFrame instance
  * @returns {boolean} True if the image is landscape
  */
-export function isLandscape(instance) {
+function isLandscape(instance) {
   const { width, height } = baseRenderSize(instance)
   return width > 0 && height > 0 && width > height
+}
+
+/**
+ * Whether the instance gets the expand toggle: a landscape gram always does;
+ * under the `native` and `screen` sizings (issue #345) every image gram does, portrait
+ * snippets included, and expands the way a landscape one does.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {boolean} True if the image can be expanded
+ */
+export function canExpand(instance) {
+  return isLandscape(instance) || expandsAnyShape(instance)
 }
 
 /**
@@ -135,12 +149,12 @@ function updateToggleButton(button, expanded) {
 }
 
 /**
- * Programmatically set the expand state (no-op for non-landscape images).
+ * Programmatically set the expand state (no-op where `canExpand` says no).
  * @param {GramFrame} instance - GramFrame instance
  * @param {boolean} expanded - Desired expand state
  */
 export function setImageExpanded(instance, expanded) {
-  if (!isLandscape(instance)) {
+  if (!canExpand(instance)) {
     return
   }
   instance.state.imageExpanded = !!expanded
@@ -157,23 +171,23 @@ export function setImageExpanded(instance, expanded) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function refreshExpandedLayout(instance) {
-  if (!instance.state.imageExpanded) {
+  const { imageExpanded, imageDetails } = instance.state
+  if (!imageExpanded) {
     return
   }
   const { width, height } = computeAvailableRenderSize(instance)
-  const imageDetails = instance.state.imageDetails
   imageDetails.renderWidth = width
   imageDetails.renderHeight = height
 }
 
 /**
- * Create and mount the expand toggle for a landscape instance. Does nothing for
- * portrait/square images, so no toggle exists in the DOM for verniers.
+ * Create and mount the expand toggle where `canExpand` allows it. Under legacy
+ * sizing that is landscape grams only, so no toggle exists in the DOM for verniers.
  * @param {GramFrame} instance - GramFrame instance
- * @returns {HTMLButtonElement|null} The created button, or null if not landscape
+ * @returns {HTMLButtonElement|null} The created button, or null if it cannot expand
  */
 export function createExpandToggle(instance) {
-  if (!isLandscape(instance)) {
+  if (!canExpand(instance)) {
     return null
   }
 

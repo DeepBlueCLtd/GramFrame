@@ -1,6 +1,8 @@
 /**
  * Image scaling tests for Issue #153
- * Tests automatic scaling of images wider than MAX_IMAGE_WIDTH (1200px)
+ * Tests the `legacy` sizing's automatic scaling of images wider than 1200px.
+ * The default is now `screen` (issue #345); debug-multiple.html pins its large
+ * gram to `legacy`, and tests/image-sizing.spec.js covers the other sizings.
  */
 
 import { test, expect } from '@playwright/test'
