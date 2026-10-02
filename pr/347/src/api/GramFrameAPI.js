@@ -16,7 +16,7 @@ import {
   dispatch,
   flushDispatch
 } from '../core/state.js'
-import { setImageExpanded, isLandscape } from '../components/ExpandToggle.js'
+import { setImageExpanded, canExpand } from '../components/ExpandToggle.js'
 import { isBrowserSupported, showCompatibilityWarning, looksLikeMissingApiError } from '../core/browserCompatibility.js'
 import { createErrorIndicator } from '../components/ErrorIndicator.js'
 
@@ -332,13 +332,13 @@ export function createGramFrameAPI(GramFrame) {
     },
 
     /**
-     * Programmatically expand or collapse all landscape GramFrame instances.
-     * No-op for portrait/square images (mirrors the toggle's landscape gate).
+     * Programmatically expand or collapse every GramFrame instance that has the
+     * expand toggle; a no-op for those that do not (mirrors the toggle's gate).
      * @param {boolean} expanded - Desired expand state
      */
     setExpandState(expanded) {
       this._getInstances().forEach(instance => {
-        if (isLandscape(instance)) {
+        if (canExpand(instance)) {
           setImageExpanded(instance, expanded)
         }
       })

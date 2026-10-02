@@ -39,7 +39,14 @@
             <li><code>native</code> &mdash; one image pixel per CSS pixel, with the same fit to the available width.
                 Identical to <code>screen</code> on an unscaled display.</li>
         </ul>
-        <p>This display: <strong id="dpr">&hellip;</strong> screen pixels per CSS pixel.
+        <p>Under the trial sizings every gram gets the expand button, the snippet included; under
+        <code>legacy</code> only landscape grams do.</p>
+        <p><strong>Why <em>before</em> may look different here than on the target network:</strong> the legacy
+        large gram is 1200 CSS pixels wide. On a 1920-pixel screen scaled to 125% the window is about 1536 CSS
+        pixels, so 1200 nearly fills it; on a wider or unscaled screen it leaves a gap. Compare the scale factor
+        below with the target network's.</p>
+        <p>This display: <strong id="dpr">&hellip;</strong> screen pixels per CSS pixel, window
+        <strong id="win">&hellip;</strong> CSS pixels wide.
         Under each gram is the size it is drawn at, in CSS pixels.</p>
     </div>
 
@@ -93,6 +100,7 @@
         // Page diagnostics only: report the display scaling and each gram's drawn size.
         function report() {
             document.getElementById('dpr').textContent = String(window.devicePixelRatio)
+            document.getElementById('win').textContent = String(window.innerWidth)
             document.querySelectorAll('.gram-frame-container').forEach(container => {
                 const image = container.querySelector('.gram-frame-spectrogram-image')
                 if (!image || !image.getAttribute('width')) return

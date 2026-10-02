@@ -47,6 +47,18 @@ export function setImageSizing(instance, sizing) {
 }
 
 /**
+ * Whether this gram's sizing gives every shape the expand toggle. The trial
+ * sizings do, so a portrait snippet can be expanded too (issue #345); legacy
+ * keeps the toggle for landscape grams only.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {boolean} True under `native` or `screen`
+ */
+export function expandsAnyShape(instance) {
+  const record = records.get(instance)
+  return !!record && record.sizing !== 'legacy'
+}
+
+/**
  * The width the image area can take without overflowing the component: the
  * main panel's content width less the SVG border and the axis margins. The SVG
  * is taken out of the flow while measuring, so its current size cannot feed
