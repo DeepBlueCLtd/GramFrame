@@ -118,7 +118,7 @@ function setCount(container, count) {
 }
 
 /**
- * Put the "Clear all annotations" button at the foot of the sidebands column.
+ * Put the "Clear all" button at the foot of the sidebands column.
  *
  * On every page, trainer and student alike: a student whose annotations expire
  * overnight still wants to start today's exercise again today, and clearing is
@@ -137,7 +137,7 @@ export function mountClearAllButton(instance, onClear) {
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'gram-frame-clear-btn'
-  button.textContent = 'Clear all annotations'
+  button.textContent = 'Clear all'
   button.title = 'Remove every cross, harmonic set and sideband set'
   button.addEventListener('click', event => {
     event.preventDefault()
