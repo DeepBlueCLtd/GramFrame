@@ -255,7 +255,8 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     (the default: native, capped at 1200 CSS px), `native` (native, shrunk to
     the room) or `screen` (one image pixel per screen pixel, shrunk to the
     room). Measures the room and refits on resize; the arithmetic is
-    `utils/imageFit.js`
+    `utils/imageFit.js`. Under the two trial sizings every image gram gets the
+    expand toggle, portrait snippets included (`expandsAnyShape`)
   - `svgLayout.js` - SVG layout, viewBox and zoom-transform application
 - `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
   - `regionOverlay.js` - The region-zoom rubber band, the dashed outline of the
