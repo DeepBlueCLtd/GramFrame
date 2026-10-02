@@ -3408,13 +3408,14 @@
     };
   }
   const IMAGE_SIZINGS = ["legacy", "native", "screen"];
+  const DEFAULT_IMAGE_SIZING = "screen";
   const records = /* @__PURE__ */ new WeakMap();
   function setImageSizing(instance, sizing) {
     records.set(instance, { sizing, sourceWidth: 0, sourceHeight: 0 });
   }
   function expandsAnyShape(instance) {
     const record = records.get(instance);
-    return !!record && record.sizing !== "legacy";
+    return (record ? record.sizing : DEFAULT_IMAGE_SIZING) !== "legacy";
   }
   function measureAvailableWidth(instance, margins) {
     const { mainCell, svg } = instance.ui;
@@ -3447,7 +3448,7 @@
     return true;
   }
   function sizeLoadedImage(instance, viewport, source) {
-    const record = records.get(instance) || { sizing: "legacy", sourceWidth: 0, sourceHeight: 0 };
+    const record = records.get(instance) || { sizing: DEFAULT_IMAGE_SIZING, sourceWidth: 0, sourceHeight: 0 };
     record.sourceWidth = source.width;
     record.sourceHeight = source.height;
     records.set(instance, record);
@@ -3510,7 +3511,7 @@
     }
     config.freqMin = freqStart;
     config.freqMax = freqEnd;
-    setImageSizing(instance, choiceParam(params, "image-sizing", IMAGE_SIZINGS) || "legacy");
+    setImageSizing(instance, choiceParam(params, "image-sizing", IMAGE_SIZINGS) || DEFAULT_IMAGE_SIZING);
   }
   function readPaintingParams(params, player) {
     const frameAverage = numberParam(params, "frame-average");

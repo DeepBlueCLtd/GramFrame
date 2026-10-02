@@ -4,7 +4,7 @@
  * A small floating button at the top-left of the image region that expands a
  * landscape gram to fill the available space and restores it. Under legacy
  * sizing, portrait/square images (verniers) receive no toggle; the
- * `image-sizing` trial gives every shape one (issue #345). Expand state is
+ * default `screen` sizing gives every shape one (issue #345). Expand state is
  * in-memory only.
  *
  * An audio-sourced gram (spec 168) always gets the toggle: its natural size is
@@ -37,7 +37,7 @@ function isLandscape(instance) {
 
 /**
  * Whether the instance gets the expand toggle: a landscape gram always does;
- * under the `image-sizing` trial (issue #345) every image gram does, portrait
+ * under the `native` and `screen` sizings (issue #345) every image gram does, portrait
  * snippets included, and expands the way a landscape one does.
  * @param {GramFrame} instance - GramFrame instance
  * @returns {boolean} True if the image can be expanded

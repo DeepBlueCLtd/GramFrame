@@ -1,15 +1,14 @@
 /**
  * How big an image-backed gram is drawn (issue #345).
  *
- * TRIAL: chosen per gram by the `image-sizing` config row, so stakeholders can
- * compare the strategies side by side before one is made permanent.
+ * `screen` is the default; the `image-sizing` config row can choose another
+ * per gram, `legacy` being the way back to what every gram did before.
  *
- * - `legacy` (the default, what every gram did before): one image pixel per
- *   CSS pixel, with anything wider than 1200 CSS pixels scaled down to 1200 —
- *   whatever room the page actually has.
+ * - `legacy`: one image pixel per CSS pixel, with anything wider than 1200 CSS
+ *   pixels scaled down to 1200 — whatever room the page actually has.
  * - `native`: one image pixel per CSS pixel, scaled down (aspect kept) only
  *   when that would not fit the width the component has.
- * - `screen`: one image pixel per *screen* pixel — the CSS size divided by
+ * - `screen` (the default): one image pixel per *screen* pixel — the CSS size divided by
  *   `devicePixelRatio` — under the same fit. On a display scaled to 150% a CSS
  *   pixel is 1.5 screen pixels, so `native` draws a small snippet half as big
  *   again as the image itself, its axis labels with it; `screen` does not.
@@ -26,6 +25,9 @@ import { fitImageSize } from '../utils/imageFit.js'
 
 /** The values the `image-sizing` row accepts. */
 export const IMAGE_SIZINGS = ['legacy', 'native', 'screen']
+
+/** The sizing of a gram whose table has no `image-sizing` row. */
+export const DEFAULT_IMAGE_SIZING = 'screen'
 
 /**
  * @typedef {Object} SizingRecord
@@ -47,7 +49,7 @@ export function setImageSizing(instance, sizing) {
 }
 
 /**
- * Whether this gram's sizing gives every shape the expand toggle. The trial
+ * Whether this gram's sizing gives every shape the expand toggle. The fitting
  * sizings do, so a portrait snippet can be expanded too (issue #345); legacy
  * keeps the toggle for landscape grams only.
  * @param {GramFrame} instance - GramFrame instance
@@ -55,7 +57,7 @@ export function setImageSizing(instance, sizing) {
  */
 export function expandsAnyShape(instance) {
   const record = records.get(instance)
-  return !!record && record.sizing !== 'legacy'
+  return (record ? record.sizing : DEFAULT_IMAGE_SIZING) !== 'legacy'
 }
 
 /**
@@ -114,7 +116,7 @@ function applySize(instance, viewport) {
  * @param {{width: number, height: number}} source - The image file's pixel size
  */
 export function sizeLoadedImage(instance, viewport, source) {
-  const record = records.get(instance) || { sizing: 'legacy', sourceWidth: 0, sourceHeight: 0 }
+  const record = records.get(instance) || { sizing: DEFAULT_IMAGE_SIZING, sourceWidth: 0, sourceHeight: 0 }
   record.sourceWidth = source.width
   record.sourceHeight = source.height
   records.set(instance, record)
