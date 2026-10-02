@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GramFrame Image Sizing Trial</title>
+    <title>GramFrame Image Sizing</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .test-container { margin: 20px 0; }
@@ -19,7 +19,7 @@
     <script src="./gramframe.bundle.js"></script>
 </head>
 <body>
-    <h1>Image Sizing Trial (issue #345)</h1>
+    <h1>Image Sizing (issue #345)</h1>
 
     <div class="nav">
         <a href="../">&larr; All demos</a>
@@ -28,18 +28,19 @@
     <div class="note">
         <p><strong>The problem:</strong> a 357&nbsp;&times;&nbsp;366 snippet cut from a 1677&nbsp;&times;&nbsp;380
         gram is drawn larger than the image itself, axis labels and all.</p>
-        <p><strong>The trial:</strong> an optional config row, <code>image-sizing</code>, chooses how big a gram is drawn:</p>
+        <p><strong>The change:</strong> an optional config row, <code>image-sizing</code>, chooses how big a gram is
+        drawn, and its default is now <code>screen</code>:</p>
         <ul>
-            <li><code>legacy</code> (the default, <em>before</em>) &mdash; one image pixel per CSS pixel; anything
+            <li><code>legacy</code> (<em>before</em>, now opt-in) &mdash; one image pixel per CSS pixel; anything
                 wider than 1200 CSS pixels is cut down to 1200, whatever room the page has.</li>
-            <li><code>screen</code> (<em>after</em>, used below) &mdash; one image pixel per <em>screen</em> pixel,
+            <li><code>screen</code> (the default, <em>after</em>: the last two grams have no row at all) &mdash; one image pixel per <em>screen</em> pixel,
                 shrunk (aspect kept) only if it would not fit the width available. On a display scaled to 125% or
                 150% a CSS pixel is 1.25 or 1.5 screen pixels, which is what makes <code>legacy</code> draw a small
                 image bigger than it is.</li>
             <li><code>native</code> &mdash; one image pixel per CSS pixel, with the same fit to the available width.
                 Identical to <code>screen</code> on an unscaled display.</li>
         </ul>
-        <p>Under the trial sizings every gram gets the expand button, the snippet included; under
+        <p>Under <code>screen</code> and <code>native</code> every gram gets the expand button, the snippet included; under
         <code>legacy</code> only landscape grams do.</p>
         <p><strong>Why <em>before</em> may look different here than on the target network:</strong> the legacy
         large gram is 1200 CSS pixels wide. On a 1920-pixel screen scaled to 125% the window is about 1536 CSS
@@ -58,6 +59,7 @@
             <tr><td>time-end</td><td>60</td></tr>
             <tr><td>freq-start</td><td>0</td></tr>
             <tr><td>freq-end</td><td>500</td></tr>
+            <tr><td>image-sizing</td><td>legacy</td></tr>
         </table>
     </div>
 
@@ -69,10 +71,11 @@
             <tr><td>time-end</td><td>58</td></tr>
             <tr><td>freq-start</td><td>185</td></tr>
             <tr><td>freq-end</td><td>291</td></tr>
+            <tr><td>image-sizing</td><td>legacy</td></tr>
         </table>
     </div>
 
-    <h2>Large gram, 1677 &times; 380 <span class="tag">after &mdash; screen</span></h2>
+    <h2>Large gram, 1677 &times; 380 <span class="tag">after &mdash; default</span></h2>
     <div class="test-container">
         <table class="gram-config">
             <tr><td colspan="2"><img src="../sample/issue-345/gram-large.png" alt="Large spectrogram"></td></tr>
@@ -80,11 +83,10 @@
             <tr><td>time-end</td><td>60</td></tr>
             <tr><td>freq-start</td><td>0</td></tr>
             <tr><td>freq-end</td><td>500</td></tr>
-            <tr><td>image-sizing</td><td>screen</td></tr>
         </table>
     </div>
 
-    <h2>Snippet, 357 &times; 366 <span class="tag">after &mdash; screen</span></h2>
+    <h2>Snippet, 357 &times; 366 <span class="tag">after &mdash; default</span></h2>
     <div class="test-container">
         <table class="gram-config">
             <tr><td colspan="2"><img src="../sample/issue-345/gram-snippet.png" alt="Snippet spectrogram"></td></tr>
@@ -92,7 +94,6 @@
             <tr><td>time-end</td><td>58</td></tr>
             <tr><td>freq-start</td><td>185</td></tr>
             <tr><td>freq-end</td><td>291</td></tr>
-            <tr><td>image-sizing</td><td>screen</td></tr>
         </table>
     </div>
 

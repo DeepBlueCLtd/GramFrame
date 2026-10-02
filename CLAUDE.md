@@ -251,12 +251,13 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     config table. Nothing else — its five other responsibilities were split out
     (ADR-018), and it is imported by exactly one module, `DOMSetup.js`
   - `spectrogramImage.js` - Spectrogram image load and scaling
-  - `imageSizing.js` - TRIAL (issue #345): the `image-sizing` row — `legacy`
-    (the default: native, capped at 1200 CSS px), `native` (native, shrunk to
-    the room) or `screen` (one image pixel per screen pixel, shrunk to the
-    room). Measures the room and refits on resize; the arithmetic is
-    `utils/imageFit.js`. Under the two trial sizings every image gram gets the
-    expand toggle, portrait snippets included (`expandsAnyShape`)
+  - `imageSizing.js` - How big an image gram is drawn (issue #345), by the
+    optional `image-sizing` row: `screen` (the default: one image pixel per
+    screen pixel, shrunk to the room), `native` (one per CSS pixel, shrunk to
+    the room) or `legacy` (one per CSS pixel, capped at 1200). Measures the room
+    and refits on resize; the arithmetic is `utils/imageFit.js`. Under `screen`
+    and `native` every image gram gets the expand toggle, portrait snippets
+    included (`expandsAnyShape`)
   - `svgLayout.js` - SVG layout, viewBox and zoom-transform application
 - `src/rendering/` - Rendering system. These modules draw; they do not dispatch:
   - `regionOverlay.js` - The region-zoom rubber band, the dashed outline of the

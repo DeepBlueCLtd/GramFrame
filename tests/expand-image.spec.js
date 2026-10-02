@@ -112,13 +112,16 @@ test.describe('Expand Image Toggle — User Story 1', () => {
   })
 })
 
-test.describe('Expand Image Toggle — User Story 3 (portrait guard)', () => {
-  test('SC-005: no toggle for portrait vernier, toggle present for landscape', async ({ page }) => {
+test.describe('Expand Image Toggle — User Story 3 (portrait)', () => {
+  // SC-005 withheld the toggle from portrait verniers. Issue #345 gives it to
+  // every image gram under the default `screen` sizing; `legacy` keeps the
+  // portrait guard, and tests/image-sizing.spec.js covers that.
+  test('SC-005: the toggle is present for landscape and portrait grams alike', async ({ page }) => {
     const landscape = await gotoDemo(page, LANDSCAPE_PAGE)
     expect(await landscape.isExpandToggleVisible()).toBe(true)
 
     const portrait = await gotoDemo(page, VERNIER_PAGE)
-    expect(await portrait.isExpandToggleVisible()).toBe(false)
+    expect(await portrait.isExpandToggleVisible()).toBe(true)
   })
 })
 

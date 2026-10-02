@@ -62,6 +62,18 @@ test.describe('image-sizing config row (issue #345)', () => {
     })).toEqual([357, 366])
   })
 
+  test('with no image-sizing row a gram is drawn one image pixel per screen pixel', async ({ browser }) => {
+    const context = await browser.newContext({ deviceScaleFactor: 2, viewport: { width: 1400, height: 900 } })
+    const page = await context.newPage()
+    await page.goto('http://localhost:5173/sample/pub10-vernier.html')
+    // The vernier is 240 x 480 image pixels: 120 x 240 CSS pixels at 2x.
+    await expect.poll(async () => page.evaluate(() => {
+      const details = window.GramFrame.__test__getInstances()[0].state.imageDetails
+      return [details.naturalWidth, details.naturalHeight]
+    })).toEqual([120, 240])
+    await context.close()
+  })
+
   test('an unknown image-sizing value is reported on the page', async ({ page }) => {
     await page.goto('http://localhost:5173/tests/fixtures/image-sizing-page.html')
     await expect(page.locator('.gramframe-error-indicator').first()).toContainText('image-sizing')
