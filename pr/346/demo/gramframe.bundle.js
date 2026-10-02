@@ -1286,7 +1286,7 @@
       return set2 ? { label: `Harmonics ${ordinal}`, time: set2.anchorTime, freq: set2.spacing } : null;
     }
     const set = (sidebands ? sidebands.sidebandSets : []).find((candidate) => candidate.id === selection.selectedId);
-    return set ? { label: `Sidebands ${ordinal}`, time: set.anchorTime, freq: set.fundamentalFreq } : null;
+    return set ? { label: `Sidebands ${ordinal}`, time: set.anchorTime, freq: set.spacing } : null;
   }
   function createCursorReadout() {
     const column = document.createElement("div");
