@@ -13,9 +13,8 @@ import { dispatch } from '../core/state.js'
 import { renderAxes } from '../rendering/axes.js'
 import { createExpandToggle } from './ExpandToggle.js'
 import { updateSVGLayout } from './svgLayout.js'
+import { sizeLoadedImage } from './imageSizing.js'
 
-// Maximum image width in pixels - images wider than this will be scaled down
-const MAX_IMAGE_WIDTH = 1200
 
 /**
  * Set up spectrogram image display within SVG container
@@ -39,28 +38,10 @@ export function setupSpectrogramImage(instance, imageUrl) {
     // Dimensions are known, so the panel is about to render for real
     instance.ui.container.classList.remove('gram-frame-loading')
 
-    // Get original dimensions
-    let imageWidth = tempImg.naturalWidth
-    let imageHeight = tempImg.naturalHeight
-    
-    // Apply automatic scaling for images wider than the maximum allowed width
-    if (imageWidth > MAX_IMAGE_WIDTH) {
-      const scaleFactor = MAX_IMAGE_WIDTH / imageWidth
-      imageWidth = MAX_IMAGE_WIDTH
-      imageHeight = Math.round(imageHeight * scaleFactor)
-      
-      console.log(`GramFrame: Scaling down large image from ${tempImg.naturalWidth}x${tempImg.naturalHeight} to ${imageWidth}x${imageHeight} (scale factor: ${scaleFactor.toFixed(3)})`)
-    }
-    
-    // Store scaled dimensions as natural dimensions
-    const imageDetails = instance.state.imageDetails
-    imageDetails.naturalWidth = imageWidth
-    imageDetails.naturalHeight = imageHeight
-
-    // Initialise render dimensions to natural dimensions. Expand updates these
-    // to fill available space; collapse restores them to natural exactly.
-    imageDetails.renderWidth = imageWidth
-    imageDetails.renderHeight = imageHeight
+    // The image file's own size; how big it is drawn is the sizing's call
+    // (issue #345). Natural and render size are both set from it — expand
+    // updates the render size to fill available space, collapse restores it.
+    sizeLoadedImage(instance, instance.state, { width: tempImg.naturalWidth, height: tempImg.naturalHeight })
 
     // Update SVG layout
     updateSVGLayout(instance)

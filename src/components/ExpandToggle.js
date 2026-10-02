@@ -157,11 +157,11 @@ export function setImageExpanded(instance, expanded) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function refreshExpandedLayout(instance) {
-  if (!instance.state.imageExpanded) {
+  const { imageExpanded, imageDetails } = instance.state
+  if (!imageExpanded) {
     return
   }
   const { width, height } = computeAvailableRenderSize(instance)
-  const imageDetails = instance.state.imageDetails
   imageDetails.renderWidth = width
   imageDetails.renderHeight = height
 }

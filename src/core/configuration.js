@@ -16,6 +16,7 @@ import { NORMALISATION_MODES } from '../audio/normalise.js'
 import { COLOUR_MAPS } from '../audio/colourMap.js'
 import { LEVEL_SCOPES } from '../audio/gramImage.js'
 import { numberParam, choiceParam, positiveParam } from './configValues.js'
+import { IMAGE_SIZINGS, setImageSizing } from '../components/imageSizing.js'
 
 /** @typedef {import('./configValues.js').ParameterCell} ParameterCell */
 
@@ -92,6 +93,9 @@ function extractImageConfig(instance, imgElement, params) {
   }
   config.freqMin = freqStart
   config.freqMax = freqEnd
+
+  // TRIAL (issue #345): how big the image is drawn. Absent, it is `legacy`.
+  setImageSizing(instance, choiceParam(params, 'image-sizing', IMAGE_SIZINGS) || 'legacy')
 }
 
 /**
