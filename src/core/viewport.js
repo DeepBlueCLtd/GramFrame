@@ -13,6 +13,7 @@ import { dispatch } from './state.js'
 import { screenToSVG, imageToData, getRenderDimensions } from '../utils/coordinates.js'
 import { anchorHoldingPoint, anchorForCentre, viewCentre } from '../utils/zoomAnchor.js'
 import { refreshExpandedLayout } from '../components/ExpandToggle.js'
+import { refitImage } from '../components/imageSizing.js'
 import { isPlayerActive, clampViewTop, visibleWindowSeconds } from '../player/playerView.js'
 
 /** The zoom range the view is held within. Every zoom path clamps to it. */
@@ -287,7 +288,6 @@ export function zoomToRegion(instance, region) {
   setZoom(instance, level, anchorForCentre(centreX, level), anchorForCentre(centreY, level))
 }
 
-
 /**
  * Show the whole gram again: the Fit button (spec 170, FR-014), and the
  * recentring `zoomAtImagePoint` and `zoomAboutViewCentre` both do when a
@@ -336,7 +336,8 @@ function updateZoomControlStates(instance) {
  */
 export function handleResize(instance) {
   if (instance.ui.svg) {
-    // When expanded, recompute the available space so the image keeps filling it.
+    // Refit to the page's width (#345); when expanded, keep filling the space.
+    refitImage(instance, instance.state)
     refreshExpandedLayout(instance)
     updateSVGLayout(instance)
     renderAxes(instance)

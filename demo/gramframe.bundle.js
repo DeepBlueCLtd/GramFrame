@@ -3392,6 +3392,79 @@
     }
     return value;
   }
+  const LEGACY_MAX_WIDTH = 1200;
+  function fitImageSize(source, sizing, room) {
+    const { width, height } = source;
+    if (sizing === "legacy") {
+      if (width <= LEGACY_MAX_WIDTH) return { width, height };
+      return { width: LEGACY_MAX_WIDTH, height: Math.round(height * LEGACY_MAX_WIDTH / width) };
+    }
+    const ratio = sizing === "screen" && room.pixelRatio > 0 ? room.pixelRatio : 1;
+    const fits = !(room.availableWidth > 0) || width / ratio <= room.availableWidth;
+    const scale = fits ? 1 / ratio : room.availableWidth / width;
+    return {
+      width: Math.max(1, Math.round(width * scale)),
+      height: Math.max(1, Math.round(height * scale))
+    };
+  }
+  const IMAGE_SIZINGS = ["legacy", "native", "screen"];
+  const DEFAULT_IMAGE_SIZING = "screen";
+  const records = /* @__PURE__ */ new WeakMap();
+  function setImageSizing(instance, sizing) {
+    records.set(instance, { sizing, sourceWidth: 0, sourceHeight: 0 });
+  }
+  function expandsAnyShape(instance) {
+    const record = records.get(instance);
+    return (record ? record.sizing : DEFAULT_IMAGE_SIZING) !== "legacy";
+  }
+  function measureAvailableWidth(instance, margins) {
+    const { mainCell, svg } = instance.ui;
+    if (!mainCell || !svg) return 0;
+    const cellStyle = window.getComputedStyle(mainCell);
+    const svgStyle = window.getComputedStyle(svg);
+    const previousDisplay = svg.style.display;
+    svg.style.display = "none";
+    const inner = mainCell.clientWidth - (parseFloat(cellStyle.paddingLeft) || 0) - (parseFloat(cellStyle.paddingRight) || 0);
+    svg.style.display = previousDisplay;
+    const border = (parseFloat(svgStyle.borderLeftWidth) || 0) + (parseFloat(svgStyle.borderRightWidth) || 0);
+    return Math.max(0, Math.floor(inner - border - margins.left - margins.right));
+  }
+  function applySize(instance, viewport) {
+    const record = records.get(instance);
+    if (!record || !record.sourceWidth) return false;
+    const size = fitImageSize(
+      { width: record.sourceWidth, height: record.sourceHeight },
+      record.sizing,
+      { availableWidth: measureAvailableWidth(instance, viewport.margins), pixelRatio: window.devicePixelRatio || 1 }
+    );
+    const details = viewport.imageDetails;
+    if (size.width === details.naturalWidth && size.height === details.naturalHeight) return false;
+    details.naturalWidth = size.width;
+    details.naturalHeight = size.height;
+    if (!viewport.imageExpanded) {
+      details.renderWidth = size.width;
+      details.renderHeight = size.height;
+    }
+    return true;
+  }
+  function sizeLoadedImage(instance, viewport, source) {
+    const record = records.get(instance) || { sizing: DEFAULT_IMAGE_SIZING, sourceWidth: 0, sourceHeight: 0 };
+    record.sourceWidth = source.width;
+    record.sourceHeight = source.height;
+    records.set(instance, record);
+    applySize(instance, viewport);
+    const { naturalWidth, naturalHeight } = viewport.imageDetails;
+    if (naturalWidth !== source.width) {
+      const verb = naturalWidth < source.width ? "Scaling down large image" : "Scaling image";
+      const sizing = record.sizing === "legacy" ? "" : `, image-sizing: ${record.sizing}`;
+      console.log(`GramFrame: ${verb} from ${source.width}x${source.height} to ${naturalWidth}x${naturalHeight} (scale factor: ${(naturalWidth / source.width).toFixed(3)}${sizing})`);
+    }
+  }
+  function refitImage(instance, viewport) {
+    const record = records.get(instance);
+    if (!record || record.sizing === "legacy") return;
+    applySize(instance, viewport);
+  }
   function readParameterRows(configTable) {
     const params = /* @__PURE__ */ new Map();
     configTable.querySelectorAll("tr").forEach((row, index) => {
@@ -3438,6 +3511,7 @@
     }
     config.freqMin = freqStart;
     config.freqMax = freqEnd;
+    setImageSizing(instance, choiceParam(params, "image-sizing", IMAGE_SIZINGS) || DEFAULT_IMAGE_SIZING);
   }
   function readPaintingParams(params, player) {
     const frameAverage = numberParam(params, "frame-average");
@@ -3965,6 +4039,9 @@
     const { width, height } = baseRenderSize(instance);
     return width > 0 && height > 0 && width > height;
   }
+  function canExpand(instance) {
+    return isLandscape(instance) || expandsAnyShape(instance);
+  }
   function computeAvailableRenderSize(instance) {
     const margins = instance.state.margins;
     const { width: baseWidth, height: baseHeight } = baseRenderSize(instance);
@@ -4020,7 +4097,7 @@
     button2.textContent = expanded ? "⤢" : "⤡";
   }
   function setImageExpanded(instance, expanded) {
-    if (!isLandscape(instance)) {
+    if (!canExpand(instance)) {
       return;
     }
     instance.state.imageExpanded = !!expanded;
@@ -4031,16 +4108,16 @@
     }
   }
   function refreshExpandedLayout(instance) {
-    if (!instance.state.imageExpanded) {
+    const { imageExpanded, imageDetails } = instance.state;
+    if (!imageExpanded) {
       return;
     }
     const { width, height } = computeAvailableRenderSize(instance);
-    const imageDetails = instance.state.imageDetails;
     imageDetails.renderWidth = width;
     imageDetails.renderHeight = height;
   }
   function createExpandToggle(instance) {
-    if (!isLandscape(instance)) {
+    if (!canExpand(instance)) {
       return null;
     }
     const button2 = document.createElement("button");
@@ -4201,6 +4278,7 @@
   }
   function handleResize(instance) {
     if (instance.ui.svg) {
+      refitImage(instance, instance.state);
       refreshExpandedLayout(instance);
       updateSVGLayout(instance);
       renderAxes(instance);
@@ -8692,7 +8770,6 @@
     showGuidanceForMode(instance, currentMode);
     return currentMode;
   }
-  const MAX_IMAGE_WIDTH = 1200;
   function setupSpectrogramImage(instance, imageUrl) {
     if (!instance.ui.spectrogramImage || !imageUrl) {
       return;
@@ -8702,19 +8779,7 @@
     const tempImg = new Image();
     tempImg.onload = function() {
       instance.ui.container.classList.remove("gram-frame-loading");
-      let imageWidth = tempImg.naturalWidth;
-      let imageHeight = tempImg.naturalHeight;
-      if (imageWidth > MAX_IMAGE_WIDTH) {
-        const scaleFactor = MAX_IMAGE_WIDTH / imageWidth;
-        imageWidth = MAX_IMAGE_WIDTH;
-        imageHeight = Math.round(imageHeight * scaleFactor);
-        console.log(`GramFrame: Scaling down large image from ${tempImg.naturalWidth}x${tempImg.naturalHeight} to ${imageWidth}x${imageHeight} (scale factor: ${scaleFactor.toFixed(3)})`);
-      }
-      const imageDetails = instance.state.imageDetails;
-      imageDetails.naturalWidth = imageWidth;
-      imageDetails.naturalHeight = imageHeight;
-      imageDetails.renderWidth = imageWidth;
-      imageDetails.renderHeight = imageHeight;
+      sizeLoadedImage(instance, instance.state, { width: tempImg.naturalWidth, height: tempImg.naturalHeight });
       updateSVGLayout(instance);
       renderAxes(instance);
       createExpandToggle(instance);
@@ -8974,13 +9039,13 @@
         return !!(instance && instance.state && instance.state.imageExpanded);
       },
       /**
-       * Programmatically expand or collapse all landscape GramFrame instances.
-       * No-op for portrait/square images (mirrors the toggle's landscape gate).
+       * Programmatically expand or collapse every GramFrame instance that has the
+       * expand toggle; a no-op for those that do not (mirrors the toggle's gate).
        * @param {boolean} expanded - Desired expand state
        */
       setExpandState(expanded) {
         this._getInstances().forEach((instance) => {
-          if (isLandscape(instance)) {
+          if (canExpand(instance)) {
             setImageExpanded(instance, expanded);
           }
         });
