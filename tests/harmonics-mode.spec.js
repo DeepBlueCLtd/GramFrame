@@ -164,6 +164,24 @@ test.describe('Harmonics Mode - creating and adjusting sets by drag', () => {
       expect(spacings[2]).toBeGreaterThan(spacings[1])
     })
 
+    test('the frequency readout shows the live spacing mid-drag, not the spacing at the press (issue #344)', async ({ gramFramePage }) => {
+      await gramFramePage.addHarmonicSet(30, 20)
+      const line = await gramFramePage.page.locator('.gram-frame-harmonic-line').first().boundingBox()
+      if (!line) throw new Error('no harmonic line was rendered to drag')
+      const readout = gramFramePage.freqLED.locator('.gram-frame-led-value')
+
+      await gramFramePage.page.mouse.move(line.x + line.width / 2, line.y + line.height / 2)
+      await gramFramePage.page.mouse.down()
+      await gramFramePage.page.mouse.move(line.x + line.width / 2 + 80, line.y + line.height / 2, { steps: 4 })
+
+      // Read while the button is still down: the release is not what refreshes it.
+      const spacing = (await gramFramePage.getState()).harmonics.harmonicSets[0].spacing
+      expect(spacing, 'the drag changed the spacing').not.toBeCloseTo(20, 1)
+      await expect(readout).toHaveText(spacing.toFixed(2))
+
+      await gramFramePage.page.mouse.up()
+    })
+
     test('dragging an existing set re-spaces it', async ({ gramFramePage }) => {
       // Created through the helper, so the starting spacing is exact and the
       // change below is measured against a known number.

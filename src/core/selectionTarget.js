@@ -25,16 +25,17 @@ import { normalizeMarkerLabel } from '../utils/markerLabel.js'
  * @typedef {Object} SelectionDescription
  * @property {string} label - What to call it: a marker's own label, or its family and position
  * @property {number} time - Where it sits on the time axis, seconds
- * @property {number} freq - The frequency it is about: a marker's own, a
- *   sideband set's fundamental, a harmonic set's spacing
+ * @property {number} freq - The frequency it is about: a marker's own, or a
+ *   pin set's spacing
  */
 
 /**
  * Describe the selected feature, or null when nothing is selected.
  *
  * A marker has a time and a frequency outright. A pin set has an anchor time
- * and, for its frequency, the number that set is *about*: the fundamental an
- * analyst placed for a sideband set, the spacing that defines a harmonic one.
+ * and, for its frequency, its spacing: the number a drag of any member but a
+ * sideband set's origin changes, and the one an analyst is measuring
+ * (issue #344).
  * @param {GramFrame} instance - GramFrame instance
  * @returns {SelectionDescription|null} The selection, or null
  */
@@ -63,5 +64,5 @@ export function describeSelection(instance) {
   }
 
   const set = (sidebands ? sidebands.sidebandSets : []).find(candidate => candidate.id === selection.selectedId)
-  return set ? { label: `Sidebands ${ordinal}`, time: set.anchorTime, freq: set.fundamentalFreq } : null
+  return set ? { label: `Sidebands ${ordinal}`, time: set.anchorTime, freq: set.spacing } : null
 }

@@ -1,4 +1,5 @@
 import { dispatch, markAnnotationsChanged } from './state.js'
+import { refreshReadoutTarget } from '../components/CursorReadout.js'
 
 /*
  * Its own module rather than a function in `state.js`, because `state.js` sits
@@ -14,7 +15,7 @@ import { dispatch, markAnnotationsChanged } from './state.js'
  *
  * The cadence every annotation change has to perform -- bump the revision so
  * the storage listener notices, refresh the owning panel or table, re-render
- * the persistent overlay, dispatch -- was copy-pasted at sixteen call sites
+ * the persistent overlay, re-read the readout column, dispatch -- was copy-pasted at sixteen call sites
  * (R9-13). Four steps repeated by hand is four chances to forget one, and the
  * one that goes missing silently is the revision bump: everything still looks
  * right on screen and nothing is saved.
@@ -40,6 +41,11 @@ export function commitAnnotationChange(instance, refreshPanel = null, dispatchOp
   if (instance.featureRenderer) {
     instance.featureRenderer.renderAllPersistentFeatures()
   }
+
+  // The readout column reads the selected feature, so it goes stale with it:
+  // without this a dragged harmonic set showed the spacing it had at the press
+  // until it was deselected (issue #344).
+  refreshReadoutTarget(instance)
 
   dispatch(instance, dispatchOptions)
 }

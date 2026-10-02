@@ -212,7 +212,7 @@ Every path below exists; keep this list in step with `src/` when adding modules.
     both at half the size in the label grey. Reads the pointer, or the selected
     feature when there is one
   - `AnnotationTables.js` - The three table columns, their headers, count chips
-    and the "Clear all annotations" footer
+    and the "Clear all" footer
   - `icons.js` - The button glyphs, drawn as inline SVG in `currentColor` so
     they follow the button's states as text does. A mode's glyph rides beside
     its word; a view control's replaces it, keeping the word in a visually

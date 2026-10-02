@@ -133,6 +133,23 @@ test.describe('Sidebands mode', () => {
     expect(updated.fundamentalFreq).toBeCloseTo(50, 5)
   })
 
+  test('the frequency readout shows the live spacing mid-drag, not the fundamental (issue #344)', async ({ gramFramePage }) => {
+    await gramFramePage.addSidebandSet(30, 50, 10)
+    const readout = gramFramePage.freqLED.locator('.gram-frame-led-value')
+
+    // Mid-gesture: no onSetDragEnd, so nothing but the drag itself refreshes it.
+    await gramFramePage.page.evaluate(() => {
+      // @ts-ignore - test-only global
+      const instance = window.GramFrame.__test__getInstances()[0]
+      const sideband = /** @type {any} */ (instance.modes['sideband'])
+      const target = sideband.findSetTarget({ freq: 60, time: 30 })
+      sideband.onSetDragStart(target)
+      sideband.onSetDragUpdate(target, { freq: 70, time: 30 }, { freq: 60, time: 30 })
+    })
+
+    await expect(readout).toHaveText('20.00')
+  })
+
   test('dragging the fundamental moves the origin and leaves the spacing alone', async ({ gramFramePage }) => {
     const setId = await gramFramePage.addSidebandSet(30, 50, 10)
 
