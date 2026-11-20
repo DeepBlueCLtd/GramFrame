@@ -109,8 +109,8 @@ test.describe('Image Scaling Tests', () => {
     const svg = largeImageContainer.locator('.gram-frame-svg').first()
     
     // Hover over the center of the image (accounting for margins)
-    // Margins: left=60, top=15
-    await svg.hover({ position: { x: 60 + (1200 / 2), y: 15 + (315 / 2) } })
+    // Margins: left=54, top=15
+    await svg.hover({ position: { x: 54 + (1200 / 2), y: 15 + (315 / 2) } })
     // The hover has landed once the third instance reports a readout for it
     await expect
       .poll(async () => page.evaluate(() => {
@@ -135,7 +135,7 @@ test.describe('Image Scaling Tests', () => {
     expect(Math.abs(coordinates.freq - 2500)).toBeLessThan(100) // Within 100 Hz
 
     // imageX/imageY are image-relative (types.js contract), NOT SVG coordinates:
-    // the image centre is (600, 157.5) image-relative but (660, 172.5) in SVG
+    // the image centre is (600, 157.5) image-relative but (654, 172.5) in SVG
     // space because of the left/top margins (GF-02, spec 165)
     expect(Math.abs(coordinates.imageX - 600)).toBeLessThan(5)
     expect(Math.abs(coordinates.imageY - 157.5)).toBeLessThan(5)
@@ -145,8 +145,8 @@ test.describe('Image Scaling Tests', () => {
     const largeImageContainer = page.locator('.gram-frame-container').nth(2)
     const svg = largeImageContainer.locator('.gram-frame-svg').first()
 
-    // Hover just inside the image's top-left corner (margins: left=60, top=15)
-    await svg.hover({ position: { x: 61, y: 16 } })
+    // Hover just inside the image's top-left corner (margins: left=54, top=15)
+    await svg.hover({ position: { x: 55, y: 16 } })
 
     const readCursorPosition = () => page.evaluate(() => {
       const instances = window.GramFrame.__test__getInstances()
@@ -155,7 +155,7 @@ test.describe('Image Scaling Tests', () => {
     await expect.poll(readCursorPosition).toBeTruthy()
     const coordinates = await readCursorPosition()
     // Image-relative origin, within rounding tolerance — an SVG-coordinate
-    // regression would report ~ (61, 16) here (GF-02, spec 165)
+    // regression would report ~ (55, 16) here (GF-02, spec 165)
     expect(Math.abs(coordinates.imageX)).toBeLessThan(3)
     expect(Math.abs(coordinates.imageY)).toBeLessThan(3)
   })
@@ -186,10 +186,10 @@ test.describe('Image Scaling Tests', () => {
     const viewBox = await svg.getAttribute('viewBox')
     
     // SVG should be sized for scaled image + margins
-    // 1200px + margins.left(60) + margins.right(15) = 1275px
-    expect(svgWidth).toBe('1275px')
-    // 315px + margins.top(15) + margins.bottom(50) = 380px
-    expect(svgHeight).toBe('380px')
-    expect(viewBox).toBe('0 0 1275 380')
+    // 1200px + margins.left(54) + margins.right(15) = 1269px
+    expect(svgWidth).toBe('1269px')
+    // 315px + margins.top(15) + margins.bottom(30) = 360px
+    expect(svgHeight).toBe('360px')
+    expect(viewBox).toBe('0 0 1269 360')
   })
 })

@@ -82,9 +82,10 @@ const FROZEN_INITIAL_STATE = {
     width: 0,
     height: 0
   },
+  // Tightened from 60 / 50 by issue #349, so the axes take less of the gram.
   margins: {
-    left: 60,
-    bottom: 50,
+    left: 54,
+    bottom: 30,
     right: 15,
     top: 15
   },

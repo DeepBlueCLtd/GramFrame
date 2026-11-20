@@ -673,11 +673,11 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 }
 
 /* Expand/collapse image toggle — floats at the top-left of the image region,
-   clear of the time-axis labels (left margin is 60px). Landscape grams only. */
+   clear of the time-axis labels (left margin is 54px). Landscape grams only. */
 .gram-frame-expand-toggle {
   position: absolute;
   top: 22px;   /* just inside the main-panel padding + SVG top margin */
-  left: 80px;  /* clear of the 60px time-axis margin */
+  left: 74px;  /* clear of the 54px time-axis margin */
   z-index: 5;  /* above the SVG overlay */
   width: 26px;
   height: 26px;
@@ -712,6 +712,11 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
 /* SVG container for drawing the spectrogram and overlays */
 .gram-frame-svg {
   display: block;
+  /* The layout gives the SVG an explicit width equal to its viewBox. Under a
+     host page's `* { box-sizing: border-box }` the 2px border came out of that
+     width, so the viewBox was squeezed into 4px less and everything on the gram
+     (image, labels, halo) was drawn at ~98% and resampled (issue #349). */
+  box-sizing: content-box;
   width: 100%;
   height: auto;
   background: #000;
@@ -748,16 +753,13 @@ table.gram-config.gram-frame-config-error tr:first-child td::after {
   stroke-width: 1;
 }
 
-.gram-frame-axis-label {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  font-size: 12px;
-  fill: #fff;
-  dominant-baseline: central;
-}
-
+/* One size for both axes (issue #349) — they were 12px and 10px. The size is
+   mirrored by AXIS_LABEL_FONT_SIZE in rendering/axes.js, which places them. */
+.gram-frame-axis-label,
 .gram-frame-axis-label-major {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
   fill: #fff;
   dominant-baseline: central;
 }

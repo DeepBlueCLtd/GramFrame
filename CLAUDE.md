@@ -403,7 +403,7 @@ There is no visual/screenshot regression testing — see
 
 ### Technical Details
 - `state.frequencyRate` affects frequency calculations (it is the frequency divider). The player's `state.player.playbackRate` is a separate quantity; neither is named bare `rate`
-- Axes have configurable margins (left: 60px, bottom: 50px)
+- Axes have configurable margins (left: 54px, bottom: 30px — tightened by issue #349). Both axes label at one size, 10px, set in `gramframe.css` and mirrored by `AXIS_LABEL_FONT_SIZE` in `rendering/axes.js`
 - Harmonics are calculated dynamically during drag interactions
 - `commitAnnotationChange()` in `src/core/state.js` is the cadence every
   annotation mutation follows — bump the revision, refresh the owning panel,
