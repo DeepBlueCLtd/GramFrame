@@ -10,7 +10,6 @@
 /// <reference path="../types.js" />
 
 import { dispatch } from '../core/state.js'
-import { renderAxes } from '../rendering/axes.js'
 import { createExpandToggle } from './ExpandToggle.js'
 import { updateSVGLayout } from './svgLayout.js'
 import { sizeLoadedImage } from './imageSizing.js'
@@ -43,11 +42,8 @@ export function setupSpectrogramImage(instance, imageUrl) {
     // updates the render size to fill available space, collapse restores it.
     sizeLoadedImage(instance, instance.state, { width: tempImg.naturalWidth, height: tempImg.naturalHeight })
 
-    // Update SVG layout
+    // Size the SVG to the image, and draw the axes and features on it
     updateSVGLayout(instance)
-
-    // Render axes
-    renderAxes(instance)
 
     // Mount the expand toggle now that natural dimensions (and thus the
     // landscape test) are known. No-op for portrait/square images.
