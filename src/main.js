@@ -69,7 +69,7 @@ import {
 
 import { loadPinPreference } from './core/preferences.js'
 
-import { calculateDopplerSpeed, MS_TO_KNOTS } from './utils/doppler.js'
+import { calculateDopplerSpeed, restorableCurve, MS_TO_KNOTS } from './utils/doppler.js'
 
 import {
   cleanupKeyboardControl
@@ -526,9 +526,7 @@ export class GramFrame {
 
     // Merge doppler state
     if (saved.doppler) {
-      this.state.doppler.fPlus = saved.doppler.fPlus || null
-      this.state.doppler.fMinus = saved.doppler.fMinus || null
-      this.state.doppler.fZero = saved.doppler.fZero || null
+      Object.assign(this.state.doppler, restorableCurve(saved.doppler))
       if (saved.doppler.color) {
         this.state.doppler.color = saved.doppler.color
       }
@@ -649,10 +647,7 @@ export class GramFrame {
       showPin: sb.showPin !== false
     }))
     const doppler = merged.doppler || { fPlus: null, fMinus: null, fZero: null, color: null }
-    this.state.doppler.fPlus = doppler.fPlus || null
-    this.state.doppler.fMinus = doppler.fMinus || null
-    this.state.doppler.fZero = doppler.fZero || null
-    this.state.doppler.color = doppler.color || null
+    Object.assign(this.state.doppler, restorableCurve(doppler), { color: doppler.color || null })
     this._refreshDopplerSpeed()
     if (merged.tombstones) {
       this.state.tombstones = merged.tombstones

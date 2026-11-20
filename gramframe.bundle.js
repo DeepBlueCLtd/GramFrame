@@ -7726,6 +7726,12 @@
   function isCompleteCurve(doppler) {
     return !!(doppler && doppler.fPlus && doppler.fMinus && doppler.fZero);
   }
+  function restorableCurve(stored) {
+    if (!stored || !stored.fPlus || !stored.fMinus || !stored.fZero) {
+      return { fPlus: null, fMinus: null, fZero: null };
+    }
+    return { fPlus: stored.fPlus, fMinus: stored.fMinus, fZero: stored.fZero };
+  }
   function snapshotCurve(doppler) {
     if (!isCompleteCurve(doppler)) {
       return null;
@@ -11029,9 +11035,7 @@
         }));
       }
       if (saved.doppler) {
-        this.state.doppler.fPlus = saved.doppler.fPlus || null;
-        this.state.doppler.fMinus = saved.doppler.fMinus || null;
-        this.state.doppler.fZero = saved.doppler.fZero || null;
+        Object.assign(this.state.doppler, restorableCurve(saved.doppler));
         if (saved.doppler.color) {
           this.state.doppler.color = saved.doppler.color;
         }
@@ -11135,10 +11139,7 @@
         showPin: sb.showPin !== false
       }));
       const doppler = merged.doppler || { fPlus: null, fMinus: null, fZero: null, color: null };
-      this.state.doppler.fPlus = doppler.fPlus || null;
-      this.state.doppler.fMinus = doppler.fMinus || null;
-      this.state.doppler.fZero = doppler.fZero || null;
-      this.state.doppler.color = doppler.color || null;
+      Object.assign(this.state.doppler, restorableCurve(doppler), { color: doppler.color || null });
       this._refreshDopplerSpeed();
       if (merged.tombstones) {
         this.state.tombstones = merged.tombstones;

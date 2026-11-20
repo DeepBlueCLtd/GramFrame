@@ -73,6 +73,24 @@ export function isCompleteCurve(doppler) {
 }
 
 /**
+ * The markers a stored curve may put back into state: all three, or none.
+ *
+ * v0.2.0 saved an invisible lone f+ whenever a press was released without
+ * moving, and in that build any marker blocked every later placement — so one
+ * stray click left a gram's Doppler dead, across reloads (issue #350). Today a
+ * lone marker blocks nothing, but restoring one still leaves an invisible point
+ * a drag can grab, so an incomplete stored curve restores as no curve at all.
+ * @param {{fPlus?: DataCoordinates|null, fMinus?: DataCoordinates|null, fZero?: DataCoordinates|null}|null|undefined} stored - Stored doppler markers
+ * @returns {{fPlus: DataCoordinates|null, fMinus: DataCoordinates|null, fZero: DataCoordinates|null}} The markers to adopt
+ */
+export function restorableCurve(stored) {
+  if (!stored || !stored.fPlus || !stored.fMinus || !stored.fZero) {
+    return { fPlus: null, fMinus: null, fZero: null }
+  }
+  return { fPlus: stored.fPlus, fMinus: stored.fMinus, fZero: stored.fZero }
+}
+
+/**
  * A complete curve, as it stood when a placement began to replace it.
  * @typedef {Object} DopplerCurveSnapshot
  * @property {DataCoordinates} fPlus - The f+ marker
