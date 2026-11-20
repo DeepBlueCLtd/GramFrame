@@ -527,9 +527,12 @@ test.describe('Doppler Mode', () => {
       await gramFramePage.clickMode('Doppler')
       await gramFramePage.waitForImageDimensions()
 
+      // A lone marker draws nothing, so it restores as nothing (issue #350):
+      // no invisible point is left for a drag to grab.
       const restored = await gramFramePage.getState()
-      expect(restored.doppler.fPlus).not.toBeNull()
+      expect(restored.doppler.fPlus).toBeNull()
       expect(restored.doppler.fMinus).toBeNull()
+      expect(restored.doppler.fZero).toBeNull()
 
       const placed = await placeCurve(gramFramePage, [0.6, 0.6], [0.8, 0.3])
       expect(placed.doppler.fMinus).not.toBeNull()

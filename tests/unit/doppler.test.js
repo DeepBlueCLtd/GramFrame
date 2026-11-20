@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { calculateMidpoint, calculateDopplerSpeed, isCompleteCurve, snapshotCurve, replacedCurveOf } from '../../src/utils/doppler.js'
+import { calculateMidpoint, calculateDopplerSpeed, isCompleteCurve, snapshotCurve, replacedCurveOf, restorableCurve } from '../../src/utils/doppler.js'
 
 /**
  * @fileoverview Unit tests for the Doppler speed math (docs/Doppler-Calc.md).
@@ -151,5 +151,24 @@ describe('the one rule for "there is a curve"', () => {
     const fresh = { ...place, data: { markerType: 'fMinus', replaced: null } }
     expect(replacedCurveOf(/** @type {any} */ (fresh))).toBeNull()
     expect(replacedCurveOf(/** @type {any} */ ({ ...place, data: null }))).toBeNull()
+  })
+})
+
+describe('restoring a stored curve: all three markers or none (issue #350)', () => {
+  const a = { time: 1, freq: 100 }
+  const b = { time: 3, freq: 90 }
+  const c = { time: 2, freq: 95 }
+
+  test('a complete curve restores as stored', () => {
+    expect(restorableCurve({ fPlus: a, fMinus: b, fZero: c })).toEqual({ fPlus: a, fMinus: b, fZero: c })
+  })
+
+  test('the lone f+ v0.2.0 saved after a moveless press restores as nothing', () => {
+    expect(restorableCurve({ fPlus: a, fMinus: null, fZero: null })).toEqual({ fPlus: null, fMinus: null, fZero: null })
+  })
+
+  test('any missing marker, or no record, restores as nothing', () => {
+    expect(restorableCurve({ fPlus: a, fMinus: b, fZero: null })).toEqual({ fPlus: null, fMinus: null, fZero: null })
+    expect(restorableCurve(null)).toEqual({ fPlus: null, fMinus: null, fZero: null })
   })
 })
