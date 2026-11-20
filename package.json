@@ -18,7 +18,7 @@
     "check:bundle-floor": "node scripts/check-bundle-floor.js"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.1",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^24.0.14",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.0",
