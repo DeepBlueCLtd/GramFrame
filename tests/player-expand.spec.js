@@ -80,9 +80,30 @@ test.describe('Expand toggle on an audio-sourced gram', () => {
     const { renderWidth, renderHeight } = expanded.imageDetails
     const expectedX = 54 + (marker.freq / 3000) * renderWidth
     const expectedY = 15 + (8 - marker.time) * (renderHeight / 5)
-    const drawn = await page.locator('.gram-frame-analysis-marker').evaluate(el => { const b = el.getBBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 } })
-    expect(Math.abs(drawn.x - expectedX)).toBeLessThan(2)
-    expect(Math.abs(drawn.y - expectedY)).toBeLessThan(2)
+    const drawn = await page.locator('.gram-frame-analysis-marker').evaluate(el => {
+      const b = /** @type {SVGGraphicsElement} */ (el).getBBox()
+      // Issue #355: on CI this bbox has come back empty (x = 0) while the
+      // expected position was right. What it says when it fails, nothing more:
+      // the element, each ancestor's display, and the image it is drawn over.
+      const ancestors = []
+      for (let node = el.parentElement; node && node.tagName !== 'BODY'; node = node.parentElement) {
+        const style = getComputedStyle(node)
+        ancestors.push(`${node.tagName.toLowerCase()}.${node.getAttribute('class') || ''} display=${style.display} visibility=${style.visibility} connected=${node.isConnected}`)
+      }
+      const image = el.closest('svg')?.querySelector('image')
+      const diagnostic = {
+        bbox: { x: b.x, y: b.y, width: b.width, height: b.height },
+        connected: el.isConnected,
+        markerCount: document.querySelectorAll('.gram-frame-analysis-marker').length,
+        outerHTML: el.outerHTML.slice(0, 600),
+        image: image ? ['x', 'y', 'width', 'height'].map(a => `${a}=${image.getAttribute(a)}`).join(' ') : null,
+        ancestors
+      }
+      return { x: b.x + b.width / 2, y: b.y + b.height / 2, diagnostic: JSON.stringify(diagnostic, null, 2) }
+    })
+    const why = `expected (${expectedX.toFixed(2)}, ${expectedY.toFixed(2)}); renderWidth ${renderWidth}, renderHeight ${renderHeight}\n${drawn.diagnostic}`
+    expect(Math.abs(drawn.x - expectedX), why).toBeLessThan(2)
+    expect(Math.abs(drawn.y - expectedY), why).toBeLessThan(2)
 
     await gfp.clickExpandToggle()
     const collapsed = (await gfp.getState()).analysis.markers[0]
