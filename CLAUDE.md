@@ -321,6 +321,11 @@ Every path below exists; keep this list in step with `src/` when adding modules.
 - `tests/` - Playwright suite, `tests/unit/` Vitest lane, `tests/smoke/` WebKit smoke, `tests/fixtures/` test pages
 - `sample/` - Sample HTML files for testing; `sample/audio/` holds four CC BY 4.0 machinery recordings (see its `ATTRIBUTION.md`) and `sample/player.html` plays them
 - `scripts/wav2js.mjs` - Wraps a WAV as a `<script>`-loadable sidecar for `file://` pages
+- `scripts/release-evidence.js` / `scripts/release-version.js` - The release on
+  every merge to main: the first gathers the PRs and files since the last tag,
+  the second decides the semantic version from labels, Conventional Commits
+  titles and added feature specs (unit-tested). See
+  [Release-Process.md](docs/Release-Process.md)
 - `scripts/build-site.sh` - Assembles the GitHub Pages tree, for the main deploy
   and the PR preview alike, so a preview is the same site as production rather
   than a second arrangement of the same files. It copies without renaming and

@@ -1,43 +1,52 @@
 name: Release
 
-# Trigger on version tags (v*.*.*)
+# Every merge to main that passes the Tests workflow is released — no tag to
+# push by hand. The release reuses that run as its gate rather than repeating
+# it: the same hygiene, lint, typecheck, unit, build, bundle-floor, Playwright
+# and WebKit checks, on the same commit (R9-05). The version is decided by
+# scripts/release-version.js from the merged PRs' labels and titles; see
+# docs/Release-Process.md for the rules.
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches: [main]
+  # A manual release from main's tip, optionally forcing the bump.
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump (auto reads the merged PRs)'
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
 
-# Permissions required for creating releases
 permissions:
   contents: write
+  pull-requests: read
+
+# One release at a time, never cancelled midway. GitHub keeps only the newest
+# pending run, which is the one that should release.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
-    
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
-      - name: Checkout code
+      - name: Checkout the tested commit
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for changelog generation
-
-      - name: Validate tag format
-        id: validate-tag
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          echo "Tag: $TAG"
-          
-          # Validate semantic versioning format (v*.*.*)
-          if [[ ! $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "❌ Invalid tag format. Expected format: v*.*.* (e.g., v1.0.0)"
-            echo "Received: $TAG"
-            exit 1
-          fi
-          
-          # Extract version without 'v' prefix
-          VERSION=${TAG#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "✅ Tag format validated: $TAG (version: $VERSION)"
+          ref: ${{ env.SHA }}
+          fetch-depth: 0  # every tag and commit since the last release
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -45,139 +54,122 @@ jobs:
           node-version: '24'
           cache: 'yarn'
 
-      - name: Install dependencies
+      # If main has moved on, a newer Tests run will release this commit along
+      # with what followed it; releasing here would tag a commit that is no
+      # longer main's tip.
+      - name: Check this commit is still main's tip
+        id: tip
         run: |
-          echo "📦 Installing dependencies..."
-          yarn install --frozen-lockfile
+          git fetch origin main
+          TIP=$(git rev-parse origin/main)
+          if [ "$TIP" != "$SHA" ]; then
+            echo "superseded=true" >> "$GITHUB_OUTPUT"
+            echo "⏭️ main has moved on to $TIP; that commit's run will release."
+          elif git tag --points-at "$SHA" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "superseded=true" >> "$GITHUB_OUTPUT"
+            echo "⏭️ $SHA is already released."
+          else
+            echo "superseded=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Install Playwright browsers
+      - name: Decide the version
+        id: decide
+        if: steps.tip.outputs.superseded == 'false'
         run: |
-          echo "🎭 Installing Playwright browsers..."
-          yarn playwright install
-
-      # The release gate must be at least as strict as the PR gate (R9-05).
-      # It used to run typecheck, build and Playwright but neither `yarn lint`
-      # nor `yarn hygiene`, so a release cut from a branch that never went
-      # through a PR could ship a lint or ratchet regression. These are the
-      # same five checks `test.yml` runs, in the same order.
-      - name: Hygiene ratchet (cycles, unused exports, waitForTimeout)
-        run: |
-          echo "📏 Running hygiene ratchet..."
-          yarn hygiene
-
-      - name: Lint
-        run: |
-          echo "🧹 Running lint..."
-          yarn lint
-
-      - name: Run type checking
-        run: |
-          echo "🔍 Running type checking..."
-          yarn typecheck
-
-      - name: Unit tests
-        run: |
-          echo "🔬 Running unit tests..."
-          yarn test:unit
-
-      - name: Check the tag matches package.json
-        run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          TAG_VERSION="${{ steps.validate-tag.outputs.version }}"
-
-          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
-            echo "❌ Version mismatch: package.json has '$PACKAGE_VERSION', tag expects '$TAG_VERSION'"
+          node scripts/release-evidence.js "$SHA" "${{ inputs.bump || 'auto' }}" > evidence.json
+          node scripts/release-version.js evidence.json > decision.json
+          cat decision.json
+          RELEASE=$(node -p "require('./decision.json').release")
+          VERSION=$(node -p "require('./decision.json').version")
+          REASON=$(node -p "require('./decision.json').reason")
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Release decision"
+            if [ "$RELEASE" = "true" ]; then echo "**v$VERSION** — $REASON"; else echo "No release — $REASON"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$RELEASE" = "true" ] && git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "❌ Tag v$VERSION already exists"
             exit 1
           fi
 
-          echo "✅ package.json version matches the tag: $PACKAGE_VERSION"
+      - name: Set the version in package.json
+        if: steps.decide.outputs.release == 'true'
+        run: npm version "${{ steps.decide.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Install dependencies
+        if: steps.decide.outputs.release == 'true'
+        run: yarn install --frozen-lockfile
 
       - name: Build standalone version
+        if: steps.decide.outputs.release == 'true'
         run: |
-          echo "🏗️ Building standalone version for file:// protocol compatibility..."
           yarn build:standalone
-          
-          # Verify standalone bundle exists
+
           if [ ! -f "dist/gramframe.bundle.js" ]; then
             echo "❌ Standalone build failed: gramframe.bundle.js not found"
             exit 1
           fi
-          
-          # Check bundle size (should be substantial due to inlined CSS/assets)
-          BUNDLE_SIZE=$(stat -c%s "dist/gramframe.bundle.js" 2>/dev/null || stat -f%z "dist/gramframe.bundle.js")
+
+          BUNDLE_SIZE=$(stat -c%s "dist/gramframe.bundle.js")
           if [ "$BUNDLE_SIZE" -lt 100000 ]; then
             echo "❌ Standalone bundle too small ($BUNDLE_SIZE bytes), likely incomplete"
             exit 1
           fi
-          
-          # The version is injected into the bundle at build time (no tracked
-          # file is rewritten), so verify it landed in the shipped artifact.
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if ! grep -q "\"$PACKAGE_VERSION\"" dist/gramframe.bundle.js; then
-            echo "❌ Bundle does not carry version $PACKAGE_VERSION"
+
+          # The version is injected at build time; check it reached the artifact.
+          if ! grep -q "\"${{ steps.decide.outputs.version }}\"" dist/gramframe.bundle.js; then
+            echo "❌ Bundle does not carry version ${{ steps.decide.outputs.version }}"
             exit 1
           fi
+          echo "✅ Bundle: $BUNDLE_SIZE bytes"
 
-          echo "✅ Standalone build successful"
-          echo "📋 Bundle size: $BUNDLE_SIZE bytes"
-          echo "📋 Standalone build contents:"
-          ls -la dist/
-
-      # The shipped artifact must parse on the floor the runtime guard
-      # advertises; a parse error kills the IIFE before the guard runs (R9-06).
+      # Tests checked this already; repeated because the bundle was rebuilt
+      # with the new version, and it costs a second.
       - name: Assert the bundle stays within the advertised browser floor
-        run: |
-          echo "🌐 Checking the bundle's syntax floor..."
-          yarn check:bundle-floor
-
-      - name: Run tests
-        run: |
-          echo "🧪 Running tests..."
-          yarn test
+        if: steps.decide.outputs.release == 'true'
+        run: yarn check:bundle-floor
 
       - name: Prepare release assets
         id: assets
+        if: steps.decide.outputs.release == 'true'
+        env:
+          VERSION: ${{ steps.decide.outputs.version }}
+          TAG: ${{ steps.decide.outputs.tag }}
         run: |
-          echo "📦 Preparing release assets..."
-          
-          # Create release directory
           mkdir -p release-assets
-          
-          # Copy standalone bundle (the only build users need)
           cp dist/gramframe.bundle.js release-assets/
-          
-          # Copy test HTML file and required assets. The demo gram is a
-          # small synthetic spectrogram committed at sample/demo-gram.png,
-          # not one of the large photographic sample images.
+          # The demo gram is a small synthetic spectrogram committed at
+          # sample/demo-gram.png, not one of the large photographic samples.
           cp test-release.html release-assets/index.html
           cp sample/demo-gram.png release-assets/
-          
-          # Create simple verification file
-          cat > release-assets/README.md << 'EOF'
+
+          cat > release-assets/README.md << EOF
           # GramFrame Release
-          
+
           ## Quick Start
-          
-          1. **Double-click `index.html`** from your file explorer
+
+          1. **Double-click \`index.html\`** from your file explorer
           2. The component will load automatically - no web server required!
           3. Test all interactions with the spectrogram
-          
+
           ## Files Included
-          
-          - **`gramframe.bundle.js`** - Complete GramFrame component (file:// compatible)
-          - **`index.html`** - Sample HTML page demonstrating usage
-          - **`demo-gram.png`** - Synthetic demo spectrogram (harmonic stack, sidebands, Doppler curve)
-          - **`README.md`** - This guide
-          
+
+          - **\`gramframe.bundle.js\`** - Complete GramFrame component (file:// compatible)
+          - **\`index.html\`** - Sample HTML page demonstrating usage
+          - **\`demo-gram.png\`** - Synthetic demo spectrogram (harmonic stack, sidebands, Doppler curve)
+          - **\`README.md\`** - This guide
+
           ## How to Use in Your Training Materials
-          
-          1. Include `gramframe.bundle.js` in your HTML training materials
-          2. Add spectrogram configuration tables with class `gram-config`
+
+          1. Include \`gramframe.bundle.js\` in your HTML training materials
+          2. Add spectrogram configuration tables with class \`gram-config\`
           3. Component auto-initializes when the page loads
-          
+
           ### Example HTML Structure
-          
-          ```html
+
+          \`\`\`html
           <!DOCTYPE html>
           <html>
           <head>
@@ -185,8 +177,7 @@ jobs:
           </head>
           <body>
               <h1>Spectrogram Analysis</h1>
-              
-              <!-- Your spectrogram configuration -->
+
               <table class="gram-config">
                   <tr>
                       <td colspan="2"><img src="your-spectrogram.png" alt="Spectrogram"></td>
@@ -196,156 +187,108 @@ jobs:
                   <tr><td>freq-start</td><td>0</td></tr>
                   <tr><td>freq-end</td><td>100</td></tr>
               </table>
-              
-              <!-- Load GramFrame component -->
+
               <script src="./gramframe.bundle.js"></script>
           </body>
           </html>
-          ```
-          
+          \`\`\`
+
           ## Technical Details
-          
-          - **File Protocol Compatible**: Works with `file://` URLs (double-click HTML files)
+
+          - **File Protocol Compatible**: Works with \`file://\` URLs (double-click HTML files)
           - **Self-Contained**: All CSS and assets bundled in single JavaScript file
-          - **Auto-Detection**: Automatically finds and enhances `gram-config` tables
+          - **Auto-Detection**: Automatically finds and enhances \`gram-config\` tables
           - **No Dependencies**: No external libraries or web server required
-          
+
           ## Version Information
-          
-          - **Version**: ${{ steps.validate-tag.outputs.version }}
-          - **Tag**: ${{ steps.validate-tag.outputs.tag }}
+
+          - **Version**: $VERSION
+          - **Tag**: $TAG
           - **Build Date**: $(date -u)
           - **Bundle Size**: $(du -h dist/gramframe.bundle.js | cut -f1)
           EOF
-          
-          # Create compressed archive
-          ARCHIVE_NAME="gramframe-${{ steps.validate-tag.outputs.version }}.zip"
-          cd release-assets && zip -9r "../$ARCHIVE_NAME" . && cd ..
 
-          # Upper-bound size ratchet. The archive is ~88KB; anything approaching
-          # this ceiling means a large asset crept back in (it was 561KB when a
-          # photographic sample gram was shipped). Same spirit as `yarn hygiene`.
+          ARCHIVE_NAME="gramframe-$VERSION.zip"
+          (cd release-assets && zip -9r "../$ARCHIVE_NAME" .)
+
+          # Upper-bound size ratchet: the archive is ~88KB; approaching this
+          # ceiling means a large asset crept back in.
           MAX_ARCHIVE_BYTES=150000
-          ARCHIVE_SIZE=$(stat -c%s "$ARCHIVE_NAME" 2>/dev/null || stat -f%z "$ARCHIVE_NAME")
+          ARCHIVE_SIZE=$(stat -c%s "$ARCHIVE_NAME")
           if [ "$ARCHIVE_SIZE" -gt "$MAX_ARCHIVE_BYTES" ]; then
             echo "❌ Release archive is $ARCHIVE_SIZE bytes, over the $MAX_ARCHIVE_BYTES budget"
-            echo "   Check for a large asset added to release-assets/."
             exit 1
           fi
           echo "✅ Archive size: $ARCHIVE_SIZE bytes (budget $MAX_ARCHIVE_BYTES)"
-
-          echo "archive-name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
-          echo "✅ Release assets prepared"
-          echo "📋 Asset contents:"
-          ls -la release-assets/
-          echo "📦 Archive contents:"
+          echo "archive-name=$ARCHIVE_NAME" >> "$GITHUB_OUTPUT"
           unzip -l "$ARCHIVE_NAME"
 
       - name: Generate release notes
-        id: release-notes
+        if: steps.decide.outputs.release == 'true'
         run: |
-          echo "📝 Generating release notes..."
-          
-          # Get previous tag
-          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
-          CURRENT_TAG=${{ steps.validate-tag.outputs.tag }}
-          
-          if [ -z "$PREVIOUS_TAG" ]; then
-            echo "No previous tag found, creating initial release notes"
-            RELEASE_NOTES="## 🎉 Initial Release
+          node --input-type=module - << 'EOF' > release-notes.md
+          import { readFileSync } from 'node:fs'
+          const d = JSON.parse(readFileSync('decision.json', 'utf8'))
+          const e = JSON.parse(readFileSync('evidence.json', 'utf8'))
+          const repo = process.env.GITHUB_REPOSITORY
+          const out = [`## GramFrame v${d.version}`, '', `**${d.bump}** release: ${d.reason}.`, '']
+          const prs = d.pullRequests.filter(p => p.bump !== 'skip')
+          if (prs.length) {
+            out.push('### Changes', '')
+            for (const p of prs) out.push(`- ${p.title} (#${p.number})`)
+          } else if (e.commits.length) {
+            out.push('### Changes', '')
+            for (const c of e.commits.slice(-20)) out.push(`- ${c.subject}`)
+          }
+          out.push('', '### Quick start', '',
+            '1. Download and extract the release archive',
+            '2. **Double-click `index.html`** from your file explorer',
+            '3. The component loads automatically — no web server required')
+          if (e.lastTag) {
+            out.push('', `**Full changelog**: https://github.com/${repo}/compare/${e.lastTag}...v${d.version}`)
+          }
+          console.log(out.join('\n'))
+          EOF
+          cat release-notes.md
 
-            This is the first release of GramFrame v${{ steps.validate-tag.outputs.version }}.
-
-            ### 📦 What's Included
-            - **GramFrame Component**: Complete standalone bundle (\`gramframe.bundle.js\`)
-            - **Test Page**: Ready-to-use HTML sample (\`index.html\`)
-            - **Demo Spectrogram**: Synthetic gram for verification (\`demo-gram.png\`)
-            - **Documentation**: Usage guide and examples
-
-            ### 🚀 Quick Start
-            1. Download and extract the release archive
-            2. **Double-click \`index.html\`** from your file explorer
-            3. Component loads automatically - no web server required!
-
-            ### 🔧 Key Features
-            - **File Protocol Compatible**: Works directly from file system (double-click HTML files)
-            - **Self-Contained**: Single JavaScript file with all dependencies bundled
-            - **Auto-Detection**: Automatically enhances HTML tables with class \`gram-config\`
-            - **Complete Modes**: Pan, Cross Cursor, Harmonics, Sidebands and Doppler interaction modes
-            - **Training Ready**: Perfect for distributing spectrogram training materials"
+      # The version commit and the tag go up atomically: if main moved during
+      # this run the push is refused, nothing is released, and the newer
+      # commit's run releases both. Pushes made with GITHUB_TOKEN start no
+      # workflow, so the version commit cannot trigger another release.
+      - name: Commit the version and tag it
+        if: steps.decide.outputs.release == 'true'
+        env:
+          TAG: ${{ steps.decide.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- package.json; then
+            git tag -a "$TAG" -m "GramFrame $TAG"
+            git push origin "$TAG"
           else
-            echo "Generating changelog from $PREVIOUS_TAG to $CURRENT_TAG"
-            
-            # Generate commit log
-            COMMIT_LOG=$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$CURRENT_TAG" | head -20)
-            
-            if [ -z "$COMMIT_LOG" ]; then
-              COMMIT_LOG="- No commits found in this release"
-            fi
-            
-            RELEASE_NOTES="## 🔄 Release v${{ steps.validate-tag.outputs.version }}
-
-            ### 📦 What's Included
-            - **GramFrame Component**: Complete standalone bundle (\`gramframe.bundle.js\`)
-            - **Test Page**: Ready-to-use HTML sample (\`index.html\`)
-            - **Demo Spectrogram**: Synthetic gram for verification (\`demo-gram.png\`)
-            - **Documentation**: Usage guide and examples
-
-            ### 🚀 Quick Start
-            1. Download and extract the release archive
-            2. **Double-click \`index.html\`** from your file explorer
-            3. Component loads automatically - no web server required!
-
-            ### 📋 Changes Since $PREVIOUS_TAG
-            $COMMIT_LOG
-
-            ### 🔗 Full Changelog
-            Compare changes: [\`$PREVIOUS_TAG...$CURRENT_TAG\`](https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG)"
+            git commit -m "chore(release): $TAG [skip ci]" -- package.json
+            git tag -a "$TAG" -m "GramFrame $TAG"
+            git push --atomic origin HEAD:refs/heads/main "$TAG"
           fi
-          
-          # Save release notes to file for GitHub release
-          echo "$RELEASE_NOTES" > release-notes.md
-          echo "✅ Release notes generated"
-          echo "release-notes-file=release-notes.md" >> $GITHUB_OUTPUT
 
       - name: Create GitHub release
         id: create-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.decide.outputs.release == 'true'
         run: |
-          echo "🚀 Creating GitHub release..."
-          
-          # Create release with GitHub CLI
-          RELEASE_URL=$(gh release create "${{ steps.validate-tag.outputs.tag }}" \
-            --title "GramFrame v${{ steps.validate-tag.outputs.version }}" \
+          URL=$(gh release create "${{ steps.decide.outputs.tag }}" \
+            --title "GramFrame ${{ steps.decide.outputs.tag }}" \
             --notes-file release-notes.md \
             --verify-tag \
-            ./${{ steps.assets.outputs.archive-name }})
-          
-          echo "release-url=$RELEASE_URL" >> $GITHUB_OUTPUT
-          echo "✅ Release created successfully: $RELEASE_URL"
-
-      - name: Release summary
-        run: |
-          echo "🎉 Release completed successfully!"
-          echo "📊 Release Summary:"
-          echo "   - Tag: ${{ steps.validate-tag.outputs.tag }}"
-          echo "   - Version: ${{ steps.validate-tag.outputs.version }}"
-          echo "   - Archive: ${{ steps.assets.outputs.archive-name }}"
-          echo "   - Release URL: ${{ steps.create-release.outputs.release-url }}"
-          echo "✅ All steps completed successfully"
+            "./${{ steps.assets.outputs.archive-name }}")
+          echo "release-url=$URL" >> "$GITHUB_OUTPUT"
+          echo "✅ Released: $URL"
 
       - name: Notify completion
-        if: always()
+        if: always() && steps.decide.outputs.release == 'true'
         run: |
-          if [ ${{ job.status }} == 'success' ]; then
-            MESSAGE="✅ GramFrame v${{ steps.validate-tag.outputs.version }} released successfully! 
-            🔗 Release URL: ${{ steps.create-release.outputs.release-url }}
-            📦 Archive: ${{ steps.assets.outputs.archive-name }}"
+          if [ "${{ job.status }}" = "success" ]; then
+            MESSAGE="✅ GramFrame ${{ steps.decide.outputs.tag }} released: ${{ steps.create-release.outputs.release-url }}"
           else
-            MESSAGE="❌ GramFrame release v${{ steps.validate-tag.outputs.version }} failed
-            📋 Check workflow logs for details"
+            MESSAGE="❌ GramFrame release ${{ steps.decide.outputs.tag }} failed — check the workflow logs"
           fi
-          
-          echo "Sending notification: $MESSAGE"
           curl -d "$MESSAGE" ntfy.sh/iancc2025 || echo "Notification failed but continuing..."
