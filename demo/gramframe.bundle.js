@@ -2021,11 +2021,16 @@
     renderAxisLabels(instance, labelData, axisConfig);
   }
   function updateSVGLayout(instance) {
+    if (sizeSVG(instance)) {
+      applyZoomTransform(instance);
+    }
+  }
+  function sizeSVG(instance) {
     const viewport = instance.state;
     const { naturalWidth, naturalHeight } = viewport.imageDetails;
     const margins = viewport.margins;
     if (!naturalWidth || !naturalHeight) {
-      return;
+      return false;
     }
     const { renderWidth, renderHeight } = getRenderDimensions(viewport);
     const axesWidth = renderWidth;
@@ -2055,7 +2060,7 @@
       instance.ui.cursorClipRect.setAttribute("width", String(axesWidth));
       instance.ui.cursorClipRect.setAttribute("height", String(axesHeight));
     }
-    applyZoomTransform(instance);
+    return true;
   }
   function applyZoomTransform(instance) {
     const viewport = instance.state;
@@ -4075,22 +4080,16 @@
       const { width, height } = computeAvailableRenderSize(instance);
       imageDetails.renderWidth = width;
       imageDetails.renderHeight = height;
-      updateSVGLayout(instance);
+      sizeSVG(instance);
       const settled = computeAvailableRenderSize(instance);
-      if (Math.abs(settled.width - width) > 1 || Math.abs(settled.height - height) > 1) {
-        imageDetails.renderWidth = settled.width;
-        imageDetails.renderHeight = settled.height;
-      }
+      imageDetails.renderWidth = settled.width;
+      imageDetails.renderHeight = settled.height;
     } else {
       const base = baseRenderSize(instance);
       imageDetails.renderWidth = base.width;
       imageDetails.renderHeight = base.height;
     }
     updateSVGLayout(instance);
-    renderAxes(instance);
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures();
-    }
     dispatch(instance);
   }
   function updateToggleButton(button2, expanded) {
@@ -4280,15 +4279,16 @@
     }
   }
   function handleResize(instance) {
-    if (instance.ui.svg) {
-      refitImage(instance, instance.state);
-      refreshExpandedLayout(instance);
-      updateSVGLayout(instance);
-      renderAxes(instance);
-      if (instance.featureRenderer) {
-        instance.featureRenderer.renderAllPersistentFeatures();
-      }
-    }
+    if (!instance.ui.svg) return;
+    const viewport = instance.state;
+    const sizeOf = () => {
+      const d = viewport.imageDetails;
+      return `${d.naturalWidth},${d.naturalHeight},${d.renderWidth},${d.renderHeight}`;
+    };
+    const before = sizeOf();
+    refitImage(instance, viewport);
+    refreshExpandedLayout(instance);
+    if (sizeOf() !== before) updateSVGLayout(instance);
   }
   function selectionBounds(viewport, spectrogramImage = null) {
     const { renderWidth, renderHeight } = getRenderDimensions(viewport);
@@ -8790,7 +8790,6 @@
       instance.ui.container.classList.remove("gram-frame-loading");
       sizeLoadedImage(instance, instance.state, { width: tempImg.naturalWidth, height: tempImg.naturalHeight });
       updateSVGLayout(instance);
-      renderAxes(instance);
       createExpandToggle(instance);
       dispatch(instance);
     };

@@ -15,8 +15,7 @@
 
 /// <reference path="../types.js" />
 
-import { updateSVGLayout } from './svgLayout.js'
-import { renderAxes } from '../rendering/axes.js'
+import { updateSVGLayout, sizeSVG } from './svgLayout.js'
 import { dispatch } from '../core/state.js'
 import { baseRenderSize, isPlayerActive } from '../player/playerView.js'
 import { expandsAnyShape } from './imageSizing.js'
@@ -97,40 +96,37 @@ function computeAvailableRenderSize(instance) {
 }
 
 /**
- * Apply the current expand state to the layout: set render dims, relayout,
- * re-render axes and persistent features, and notify listeners.
+ * Apply the current expand state to the layout -- set render dims, relayout,
+ * and with it redraw the axes and persistent features once -- and notify
+ * listeners.
  * @param {GramFrame} instance - GramFrame instance
  */
 function applyExpandLayout(instance) {
   const imageDetails = instance.state.imageDetails
   if (instance.state.imageExpanded) {
     // Two-pass: expanding a tall image can introduce a page scrollbar which
-    // narrows the available width. Lay out once, then recompute against the
-    // settled layout so the final fill is accurate (SC-001/SC-002).
+    // narrows the available width. Size once to measure, then take the size
+    // the settled layout leaves room for (SC-001/SC-002). The first pass draws
+    // nothing, and any difference is taken, a 1 px one included: one left
+    // over is what the resize observer would otherwise find and redraw the
+    // whole overlay for (issue #355).
     const { width, height } = computeAvailableRenderSize(instance)
     imageDetails.renderWidth = width
     imageDetails.renderHeight = height
-    updateSVGLayout(instance)
+    sizeSVG(instance)
 
     const settled = computeAvailableRenderSize(instance)
-    if (Math.abs(settled.width - width) > 1 || Math.abs(settled.height - height) > 1) {
-      imageDetails.renderWidth = settled.width
-      imageDetails.renderHeight = settled.height
-    }
+    imageDetails.renderWidth = settled.width
+    imageDetails.renderHeight = settled.height
   } else {
     const base = baseRenderSize(instance)
     imageDetails.renderWidth = base.width
     imageDetails.renderHeight = base.height
   }
 
+  // Redraws the axes and every persistent feature, locked to their data
+  // coordinates through the render-aware transforms.
   updateSVGLayout(instance)
-  renderAxes(instance)
-
-  // Re-resolve all persistent features through the render-aware transforms so
-  // markers/harmonics/doppler stay locked to their data coordinates.
-  if (instance.featureRenderer) {
-    instance.featureRenderer.renderAllPersistentFeatures()
-  }
 
   dispatch(instance)
 }
