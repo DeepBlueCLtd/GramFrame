@@ -221,7 +221,7 @@ All runtime data lives in a single `state` object on each `GramFrame` instance. 
   imageDetails: { url, naturalWidth, naturalHeight },
   config: { timeMin, timeMax, freqMin, freqMax },
   displayDimensions: { width, height },
-  margins: { left: 60, bottom: 50, right: 15, top: 15 },
+  margins: { left: 54, bottom: 30, right: 15, top: 15 },
   zoom: { level: 1.0, centerX: 0.5, centerY: 0.5 },
   selection: { selectedType, selectedId, selectedIndex },
   // ...plus mode-specific fields from each mode's getInitialState()

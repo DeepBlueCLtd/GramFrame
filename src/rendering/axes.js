@@ -19,6 +19,12 @@ import { formatAxisTime } from '../utils/timeFormatter.js'
 import { calculateVisibleDataRange, getRenderDimensions } from '../utils/coordinates.js'
 import { formatFrequencyLabel } from '../utils/axisFormat.js'
 
+// Label placement, in SVG pixels (issue #349). The font size mirrors the one
+// stylesheet rule both axes' labels share — they had been 12 px and 10 px.
+const AXIS_LABEL_FONT_SIZE = 10
+const MAJOR_TICK_LENGTH = 8
+const LABEL_GAP = 3
+
 /**
  * A nice-number tick layout for one axis.
  * @typedef {Object} AxisTicks
@@ -63,10 +69,10 @@ export function renderAxes(instance) {
   if (!instance.ui.axesGroup) {
     return
   }
-  
+
   // Clear existing axes
   instance.ui.axesGroup.innerHTML = ''
-  
+
   const viewport = instance.state
   const { naturalWidth, naturalHeight } = viewport.imageDetails
   const margins = viewport.margins
@@ -167,7 +173,7 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
     const y = yFor(time)
 
     const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    tick.setAttribute('x1', String(axisX - 8))
+    tick.setAttribute('x1', String(axisX - MAJOR_TICK_LENGTH))
     tick.setAttribute('y1', String(y))
     tick.setAttribute('x2', String(axisX))
     tick.setAttribute('y2', String(y))
@@ -175,8 +181,9 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
     instance.ui.axesGroup.appendChild(tick)
 
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-    label.setAttribute('x', String(axisX - 12))
-    label.setAttribute('y', String(y + 4)) // Slight vertical offset for better alignment
+    label.setAttribute('x', String(axisX - MAJOR_TICK_LENGTH - LABEL_GAP))
+    // `dominant-baseline: central` centres it on the tick; no `+ 4` offset.
+    label.setAttribute('y', String(y))
     label.setAttribute('text-anchor', 'end')
     label.setAttribute('class', 'gram-frame-axis-label')
     label.textContent = formatAxisTime(time, majorInterval)
@@ -194,11 +201,11 @@ function renderTimeAxis(instance, margins, _naturalWidth, naturalHeight, timeMin
  */
 function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
   const range = max - min
-  
+
   // Calculate how many major ticks would fit with target spacing
   const targetMajorTicks = Math.max(2, Math.floor(containerSize / targetSpacing))
   const rawMajorInterval = range / (targetMajorTicks - 1)
-  
+
   // Nice numbers algorithm: find the "nicest" interval near the raw interval
   /**
    * @param {number} value - Raw interval to round
@@ -209,7 +216,7 @@ function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
     const exponent = Math.floor(Math.log10(value))
     const fraction = value / Math.pow(10, exponent)
     let niceFraction
-    
+
     if (round) {
       if (fraction < 1.5) niceFraction = 1
       else if (fraction < 3) niceFraction = 2
@@ -221,13 +228,13 @@ function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
       else if (fraction <= 5) niceFraction = 5
       else niceFraction = 10
     }
-    
+
     return niceFraction * Math.pow(10, exponent)
   }
-  
+
   // Calculate nice major interval
   const majorInterval = niceNum(rawMajorInterval, false)
-  
+
   // Minor interval is typically 1/2 or 1/5 of major interval
   let minorInterval
   const majorFraction = majorInterval / Math.pow(10, Math.floor(Math.log10(majorInterval)))
@@ -240,16 +247,16 @@ function calculateAxisTicks(min, max, containerSize, targetSpacing = 80) {
   } else {
     minorInterval = majorInterval / 2 // fallback
   }
-  
+
   // Calculate starting points aligned to intervals
   const majorStart = Math.ceil(min / majorInterval) * majorInterval
   const minorStart = Math.ceil(min / minorInterval) * minorInterval
-  
+
   // Calculate expected number of ticks for safety limits
   const expectedMajorTicks = Math.ceil(range / majorInterval) + 2
   const expectedMinorTicks = Math.ceil(range / minorInterval) + 2
   const maxTicks = Math.max(200, expectedMajorTicks + expectedMinorTicks)
-  
+
   return {
     majorInterval,
     minorInterval,
@@ -304,7 +311,8 @@ function renderAxisLabels(instance, labelData, axisConfig) {
   labelData.forEach(labelInfo => {
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
     label.setAttribute('x', String(labelInfo.x))
-    label.setAttribute('y', String(axisConfig.y + 25))
+    // Centred just clear of the major tick: the margin holds tick and text only.
+    label.setAttribute('y', String(axisConfig.y + MAJOR_TICK_LENGTH + LABEL_GAP + AXIS_LABEL_FONT_SIZE / 2))
     label.setAttribute('text-anchor', 'middle')
     label.setAttribute('class', labelInfo.className)
     label.textContent = labelInfo.text
@@ -326,52 +334,45 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
   const axisY = margins.top + _naturalHeight
   const axisStartX = margins.left
   const axisEndX = margins.left + naturalWidth
-  
+
   // No scaling here: these arrive in data scale from `calculateVisibleDataRange`,
   // the one place the rate is applied. Dividing again quartered labels (#276).
   const displayFreqMin = freqMin
   const displayFreqMax = freqMax
   const freqRange = displayFreqMax - displayFreqMin
-  
-  // Prepare axis configuration
+
   const axisConfig = { y: axisY, startX: axisStartX, endX: axisEndX }
-  
-  // Render main axis line
   renderAxisLine(instance, axisConfig)
-  
-  // Calculate tick positions using nice numbers algorithm
+
   const tickCalculation = calculateAxisTicks(displayFreqMin, displayFreqMax, naturalWidth)
-  
-  // Prepare tick and label data
+
   const minorTickData = []
   const majorTickData = []
   const labelData = []
-  
-  // Generate minor ticks
+
   const numMinorTicks = Math.floor((displayFreqMax - tickCalculation.minorStart) / tickCalculation.minorInterval) + 1
   if (numMinorTicks <= tickCalculation.maxTicks) {
     for (let i = 0; i < numMinorTicks; i++) {
       const freq = tickCalculation.minorStart + (i * tickCalculation.minorInterval)
       if (freq > displayFreqMax) break
-      
+
       // Skip minor ticks that coincide with major ticks
       if (Math.abs(freq % tickCalculation.majorInterval) < 0.01) continue
-      
+
       const x = axisStartX + ((freq - displayFreqMin) / freqRange) * naturalWidth
       minorTickData.push({ x, height: 4, className: 'gram-frame-axis-tick-minor' })
     }
   }
-  
+
   // Generate major ticks and labels
   const numMajorTicks = Math.floor((displayFreqMax - tickCalculation.majorStart) / tickCalculation.majorInterval) + 1
   if (numMajorTicks <= tickCalculation.maxTicks) {
     for (let i = 0; i < numMajorTicks; i++) {
       const freq = tickCalculation.majorStart + (i * tickCalculation.majorInterval)
       if (freq > displayFreqMax) break
-      
+
       const x = axisStartX + ((freq - displayFreqMin) / freqRange) * naturalWidth
-      
-      majorTickData.push({ x, height: 8, className: 'gram-frame-axis-tick-major' })
+      majorTickData.push({ x, height: MAJOR_TICK_LENGTH, className: 'gram-frame-axis-tick-major' })
       labelData.push({
         x,
         text: formatFrequencyLabel(freq, tickCalculation.majorInterval),
@@ -385,8 +386,8 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
     for (let i = 0; i < tickCount; i++) {
       const freq = displayFreqMin + (i * fallbackInterval)
       const x = axisStartX + (i / (tickCount - 1)) * naturalWidth
-      
-      majorTickData.push({ x, height: 8, className: 'gram-frame-axis-tick' })
+
+      majorTickData.push({ x, height: MAJOR_TICK_LENGTH, className: 'gram-frame-axis-tick' })
       labelData.push({
         x,
         text: formatFrequencyLabel(freq, fallbackInterval),
@@ -394,8 +395,7 @@ function renderFrequencyAxis(instance, margins, naturalWidth, _naturalHeight, fr
       })
     }
   }
-  
-  // Render all ticks and labels
+
   renderAxisTicks(instance, minorTickData, axisConfig)
   renderAxisTicks(instance, majorTickData, axisConfig)
   renderAxisLabels(instance, labelData, axisConfig)

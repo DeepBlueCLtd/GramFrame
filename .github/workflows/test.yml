@@ -70,7 +70,10 @@ jobs:
   playwright:
     name: Playwright tests
     needs: checks
-    runs-on: ubuntu-24.04 # Playwright 1.54 cannot install browsers on 26.04 (ubuntu-latest)
+    # Pinned, not ubuntu-latest: Playwright 1.54 refuses to install browsers on
+    # the ubuntu-26.04 image ubuntu-latest moved to. Unpin with a Playwright
+    # upgrade that supports it.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -93,7 +96,10 @@ jobs:
   webkit-smoke:
     name: WebKit smoke test
     needs: checks
-    runs-on: ubuntu-24.04 # Playwright 1.54 cannot install browsers on 26.04 (ubuntu-latest)
+    # Pinned, not ubuntu-latest: Playwright 1.54 refuses to install browsers on
+    # the ubuntu-26.04 image ubuntu-latest moved to. Unpin with a Playwright
+    # upgrade that supports it.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

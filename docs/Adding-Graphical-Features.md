@@ -116,7 +116,7 @@ See [ADR-011](ADRs/ADR-011-Feature-Renderer-Cross-Mode-Coordination.md).
 - All SVG elements go into `instance.cursorGroup` — this group is cleared and redrawn on every render cycle
 - Use CSS classes (not inline styles where possible) for consistent appearance
 - The SVG viewBox matches the image's natural dimensions plus margins
-- Margins: left=60px, top=15px, right=15px, bottom=50px (from `state.margins`)
+- Margins: left=54px, top=15px, right=15px, bottom=30px (from `state.margins`)
 
 ## Related Documentation
 

@@ -90,8 +90,8 @@ const initialState = {
     height: 0
   },
   margins: {
-    left: 60,    // Space for time axis labels
-    bottom: 50,  // Space for frequency axis labels  
+    left: 54,    // Space for time axis labels (issue #349: was 60)
+    bottom: 30,  // Space for frequency axis ticks and labels (issue #349: was 50)
     right: 15,   // Small right margin
     top: 15      // Small top margin
   },

@@ -12,7 +12,7 @@ import { GramFramePage } from './helpers/gram-frame-page.js'
  */
 
 const PLAYER_PAGE = '/tests/fixtures/player-page.html'
-const MARGINS = { left: 60, top: 15 }
+const MARGINS = { left: 54, top: 15 }
 const RENDER = { width: 900, height: 400 }
 const FREQ_MAX = 3000
 const WINDOW = 5

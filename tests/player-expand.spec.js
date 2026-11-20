@@ -67,7 +67,7 @@ test.describe('Expand toggle on an audio-sourced gram', () => {
     await page.evaluate(() => window.GramFrame.getPlayer(0).seek(8))
     await gfp.waitForState(s => s.player.viewTop === 8, { message: 'seek to 8 s' })
     await gfp.clickMode('Cross Cursor')
-    await gfp.svg.click({ position: { x: 60 + 300, y: 15 + 160 } })
+    await gfp.svg.click({ position: { x: 54 + 300, y: 15 + 160 } })
     await gfp.waitForMarkerCount(1)
     const placed = (await gfp.getState()).analysis.markers[0]
 
@@ -78,7 +78,7 @@ test.describe('Expand toggle on an audio-sourced gram', () => {
     expect(marker.freq).toBeCloseTo(placed.freq, 6)
     // Drawn where the data maps to on the expanded axes
     const { renderWidth, renderHeight } = expanded.imageDetails
-    const expectedX = 60 + (marker.freq / 3000) * renderWidth
+    const expectedX = 54 + (marker.freq / 3000) * renderWidth
     const expectedY = 15 + (8 - marker.time) * (renderHeight / 5)
     const drawn = await page.locator('.gram-frame-analysis-marker').evaluate(el => { const b = el.getBBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 } })
     expect(Math.abs(drawn.x - expectedX)).toBeLessThan(2)

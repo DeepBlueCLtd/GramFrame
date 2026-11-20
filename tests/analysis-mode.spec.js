@@ -82,7 +82,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       const positions = [
         { x: 100, y: 100 },
         { x: 300, y: 200 },
-        { x: 150, y: 300 },
+        { x: 150, y: 250 },
         { x: 400, y: 150 },
         { x: 250, y: 250 }
       ]
@@ -371,7 +371,7 @@ test.describe('Cross Cursor Mode - Comprehensive E2E Tests', () => {
       // Right-click on empty area (far from marker)
       await gramFramePage.svg.click({ 
         button: 'right', 
-        position: { x: 400, y: 300 } 
+        position: { x: 400, y: 250 } 
       })
       
       // The context-menu handler is synchronous, so the click resolving is
