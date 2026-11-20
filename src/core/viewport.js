@@ -7,7 +7,6 @@
 /// <reference path="../types.js" />
 
 import { applyZoomTransform, updateSVGLayout } from '../components/svgLayout.js'
-import { renderAxes } from '../rendering/axes.js'
 import { updateCommandButtonStates, updateModeButtonStates } from '../components/ModeButtons.js'
 import { dispatch } from './state.js'
 import { screenToSVG, imageToData, getRenderDimensions } from '../utils/coordinates.js'
@@ -335,15 +334,14 @@ function updateZoomControlStates(instance) {
  * @param {GramFrame} instance - GramFrame instance
  */
 export function handleResize(instance) {
-  if (instance.ui.svg) {
-    // Refit to the page's width (#345); when expanded, keep filling the space.
-    refitImage(instance, instance.state)
-    refreshExpandedLayout(instance)
-    updateSVGLayout(instance)
-    renderAxes(instance)
-    // Keep persistent features locked to their data coordinates after relayout.
-    if (instance.featureRenderer) {
-      instance.featureRenderer.renderAllPersistentFeatures()
-    }
-  }
+  if (!instance.ui.svg) return
+  const viewport = instance.state
+  const sizeOf = () => { const d = viewport.imageDetails; return `${d.naturalWidth},${d.naturalHeight},${d.renderWidth},${d.renderHeight}` }
+  const before = sizeOf()
+  // Refit to the page's width (#345); when expanded, keep filling the space.
+  refitImage(instance, viewport)
+  refreshExpandedLayout(instance)
+  // The observer also fires for the component's own growth (an expand); redraw
+  // only when the gram's size moved. The relayout redraws axes and features.
+  if (sizeOf() !== before) updateSVGLayout(instance)
 }

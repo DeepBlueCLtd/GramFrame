@@ -20,16 +20,32 @@ import { getRenderDimensions } from '../utils/coordinates.js'
 import { renderAxes } from '../rendering/axes.js'
 
 /**
- * Update SVG layout and viewBox based on image dimensions and margins
+ * Update SVG layout and viewBox based on image dimensions and margins, then
+ * apply the zoom transform -- which redraws the axes and every persistent
+ * feature. A caller does not redraw them again after this.
  * @param {GramFrame} instance - GramFrame instance
  */
 export function updateSVGLayout(instance) {
+  if (sizeSVG(instance)) {
+    applyZoomTransform(instance)
+  }
+}
+
+/**
+ * Size the SVG, image and clip rects to the current render dimensions, and
+ * draw nothing. For a caller that has to measure the page at a size before
+ * settling on one: the expand toggle's first pass. Every drawn element is
+ * redrawn by the {@link updateSVGLayout} that settles it.
+ * @param {GramFrame} instance - GramFrame instance
+ * @returns {boolean} False when there are no dimensions to size to yet
+ */
+export function sizeSVG(instance) {
   const viewport = instance.state
   const { naturalWidth, naturalHeight } = viewport.imageDetails
   const margins = viewport.margins
 
   if (!naturalWidth || !naturalHeight) {
-    return
+    return false
   }
 
   // Use the base render dimensions (which default to natural, but grow when the
@@ -76,8 +92,7 @@ export function updateSVGLayout(instance) {
     instance.ui.cursorClipRect.setAttribute('height', String(axesHeight))
   }
   
-  // Apply zoom if needed
-  applyZoomTransform(instance)
+  return true
 }
 
 /**

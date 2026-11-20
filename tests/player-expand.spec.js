@@ -24,6 +24,34 @@ async function gotoPlayer(page) {
   return gfp
 }
 
+/**
+ * Count how many times the analysis marker is redrawn while `action` runs and
+ * the layout settles. Two animation frames let the resize observer -- which
+ * the component's own growth fires -- deliver before the count is read.
+ * @param {import('@playwright/test').Page} page
+ * @param {() => Promise<void>} action
+ * @returns {Promise<number>} Marker elements added to the overlay
+ */
+async function markerRedraws(page, action) {
+  await page.evaluate(() => {
+    const w = /** @type {any} */ (window)
+    w.__markerAdds = 0
+    w.__markerObserver?.disconnect()
+    w.__markerObserver = new MutationObserver(records => {
+      for (const r of records) for (const n of r.addedNodes) {
+        if (n instanceof Element && n.classList.contains('gram-frame-analysis-marker')) w.__markerAdds++
+      }
+    })
+    w.__markerObserver.observe(document.querySelector('.gram-frame-cursors'), { childList: true })
+  })
+  await action()
+  return page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => {
+    const w = /** @type {any} */ (window)
+    w.__markerObserver.disconnect()
+    resolve(w.__markerAdds)
+  }))))
+}
+
 test.describe('Expand toggle on an audio-sourced gram', () => {
   test('the toggle is present and expands the gram to the available space with the transport still visible', async ({ page }) => {
     const gfp = await gotoPlayer(page)
@@ -111,5 +139,18 @@ test.describe('Expand toggle on an audio-sourced gram', () => {
     const s = await gfp.getState()
     expect(s.player.viewTop).toBeCloseTo(s.player.playhead, 6)
     expect(s.imageExpanded).toBe(true)
+  })
+
+  test('expanding and collapsing redraw the overlay once each, not once per layout pass', async ({ page }) => {
+    // Expand used to redraw every feature five times: each of its two layout
+    // passes, an explicit redraw after them, and then twice more from the
+    // resize observer its own growth fired, though nothing had changed size.
+    const gfp = await gotoPlayer(page)
+    await gfp.clickMode('Cross Cursor')
+    await gfp.svg.click({ position: { x: 54 + 300, y: 15 + 160 } })
+    await gfp.waitForMarkerCount(1)
+
+    expect(await markerRedraws(page, () => gfp.clickExpandToggle())).toBe(1)
+    expect(await markerRedraws(page, () => gfp.clickExpandToggle())).toBe(1)
   })
 })
