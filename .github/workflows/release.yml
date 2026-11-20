@@ -12,7 +12,9 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    # Pinned for the same reason as the browser jobs in test.yml: Playwright 1.54
+    # cannot install browsers on ubuntu-26.04, which ubuntu-latest now is.
+    runs-on: ubuntu-24.04
     
     steps:
       - name: Checkout code
