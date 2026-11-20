@@ -16,7 +16,7 @@ import { GramFramePage } from './helpers/gram-frame-page.js'
 const PLAYER_PAGE = '/tests/fixtures/player-page.html'
 const PAINTING_PAGE = '/tests/fixtures/player-painting-page.html'
 const IMAGE_PAGE = '/debug.html'
-const MARGINS = { left: 60, top: 15 }
+const MARGINS = { left: 54, top: 15 }
 
 /**
  * Decode the gram image an instance is showing and sample its pixels.

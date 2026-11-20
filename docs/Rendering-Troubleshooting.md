@@ -159,8 +159,8 @@ These are the default margins (from `state.margins`):
 
 | Margin | Value | Purpose |
 |--------|-------|---------|
-| `left` | 60px | Space for time axis labels |
-| `bottom` | 50px | Space for frequency axis labels |
+| `left` | 54px | Space for time axis labels |
+| `bottom` | 30px | Space for frequency axis labels |
 | `right` | 15px | Small right padding |
 | `top` | 15px | Small top padding |
 

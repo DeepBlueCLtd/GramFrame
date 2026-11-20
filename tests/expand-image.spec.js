@@ -50,7 +50,7 @@ async function computeAvailable(page) {
     const padL = parseFloat(cs.paddingLeft)
     const padR = parseFloat(cs.paddingRight)
     const svgBorderX = parseFloat(ss.borderLeftWidth) + parseFloat(ss.borderRightWidth)
-    const margins = { left: 60, right: 15, top: 15, bottom: 50 }
+    const margins = { left: 54, right: 15, top: 15, bottom: 30 }
     const width = cell.clientWidth - padL - padR - svgBorderX - margins.left - margins.right
     const svgRect = svg.getBoundingClientRect()
     const imageTopViewport = svgRect.top + margins.top
@@ -140,7 +140,7 @@ test.describe('Expand Image Toggle — User Story 2 (annotation fidelity)', () =
     // hovering the corresponding rendered position.
     const state = await gfp.getState()
     const { renderWidth, renderHeight, naturalWidth, naturalHeight } = state.imageDetails
-    const margins = { left: 60, top: 15 }
+    const margins = { left: 54, top: 15 }
     // Original pixel (300,120) in image space -> data ratios using natural dims
     const fx = (300 - margins.left) / naturalWidth
     const fy = (120 - margins.top) / naturalHeight

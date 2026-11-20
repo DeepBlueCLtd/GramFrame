@@ -38,7 +38,7 @@ All runtime data for a GramFrame instance lives in a single `state` object. See 
 
   // Layout
   displayDimensions: { width, height },
-  margins: { left: 60, bottom: 50, right: 15, top: 15 },
+  margins: { left: 54, bottom: 30, right: 15, top: 15 },
 
   // Zoom
   zoom: { level: 1.0, centerX: 0.5, centerY: 0.5 },
