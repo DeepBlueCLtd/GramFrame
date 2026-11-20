@@ -93,6 +93,16 @@ jobs:
       - name: Run Playwright tests
         run: yarn test
 
+      # The screenshot and error-context.md of a failure, so a CI-only failure
+      # can be read rather than guessed at (issue #355).
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 14
+
   webkit-smoke:
     name: WebKit smoke test
     needs: checks
