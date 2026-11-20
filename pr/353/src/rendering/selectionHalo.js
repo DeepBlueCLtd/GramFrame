@@ -54,12 +54,14 @@ const SELECTED_LABEL_CLASS = 'gram-frame-selected-label'
 const HALO_COLOR = 'rgba(255, 255, 255, 0.6)'
 
 /**
- * How much wider than the feature the halo is drawn, in SVG pixels. Enough to
- * be unmistakable beside an unselected twin, not enough to swallow a pin set
- * whose members sit a few pixels apart.
+ * How much wider than the feature the halo is drawn, in SVG pixels: one pixel
+ * each side. Five (2.5 a side) read as a thick white sleeve that dwarfed the
+ * pin lines of a harmonic set (issue #349); a one-pixel rim is still
+ * unmistakable beside an unselected twin, and never swallows a pin set whose
+ * members sit a few pixels apart.
  * @type {number}
  */
-const HALO_GROWTH = 5
+const HALO_GROWTH = 2
 
 /**
  * The attribute each family of feature stamps its id on.
